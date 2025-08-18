@@ -395,31 +395,6 @@
             box-shadow: none !important;
         }
 
-        /* Status colors using Bootstrap standard colors */
-        .status-select-rounded.status-pending {
-            background-color: #fff3cd;
-            border-color: #ffeaa7;
-            color: #856404;
-        }
-
-        .status-select-rounded.status-approved {
-            background-color: #d1ecf1;
-            border-color: #bee5eb;
-            color: #0c5460;
-        }
-
-        .status-select-rounded.status-delivered {
-            background-color: #d4edda;
-            border-color: #c3e6cb;
-            color: #155724;
-        }
-
-        .status-select-rounded.status-canceled {
-            background-color: #f8d7da;
-            border-color: #f5c6cb;
-            color: #721c24;
-        }
-
         select.form-select option:disabled {
             color: #999;
             cursor: not-allowed;

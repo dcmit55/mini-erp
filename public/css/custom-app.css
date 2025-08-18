@@ -296,8 +296,9 @@ td .btn {
 .status-pending {
     background-color: #ffc107 !important;
     /* Warna kuning */
-    color: #fff !important;
-    /* Warna teks putih */
+    color: #000 !important;
+    /* Warna teks hitam */
+    border-color: #ced4da !important; /* Bootstrap default border */
 }
 
 .status-approved {
