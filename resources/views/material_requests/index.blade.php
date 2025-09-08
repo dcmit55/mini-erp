@@ -453,6 +453,27 @@
         #datatable tbody td:nth-child(12) {
             text-align: center !important;
         }
+
+        .badge-custom {
+            padding: 0.25rem 0.5rem;
+            border-radius: 10px;
+            font-weight: 500;
+            font-size: 0.85rem;
+        }
+
+        .quantity-badge {
+            background: linear-gradient(135deg, #8F12FE, #6610f2);
+            color: white;
+        }
+
+        .price-badge {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+        }
+
+        .text-primary {
+            color: #6610f2 !important;
+        }
     </style>
 @endpush
 @push('scripts')

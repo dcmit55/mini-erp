@@ -6,6 +6,10 @@
             background: linear-gradient(135deg, #8F12FE, #4A25AA);
         }
 
+        .text-primary {
+            color: #6610f2 !important;
+        }
+
         .info-card {
             border: none;
             border-radius: 12px;
@@ -546,7 +550,7 @@
                                             </tr>
                                             <tr>
                                                 <th scope="row">
-                                                    <i class="fas fa-boxes me-2 text-muted"></i>Stock Quantity
+                                                    <i class="fas fa-boxes me-2 text-muted"></i>Quantity
                                                 </th>
                                                 <td>
                                                     <span class="badge badge-custom quantity-badge">
