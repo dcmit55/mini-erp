@@ -297,8 +297,6 @@ td .btn {
     background-color: #ffc107 !important;
     /* Warna kuning */
     color: #000 !important;
-    /* Warna teks hitam */
-    border-color: #ced4da !important; /* Bootstrap default border */
 }
 
 .status-approved {

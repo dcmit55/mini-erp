@@ -383,7 +383,6 @@
             border-radius: 20px !important;
             padding: 0.25rem 0.75rem !important;
             font-size: 0.85rem !important;
-            border: 1px solid !important;
             font-weight: 400 !important;
             min-width: 100px !important;
             outline: none !important;
