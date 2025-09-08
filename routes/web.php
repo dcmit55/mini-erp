@@ -25,6 +25,7 @@ use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\ExternalRequestController;
 
 /*
 |--------------------------------------------------------------------------
@@ -167,9 +168,13 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/timings/ajax-search', [TimingController::class, 'ajaxSearch'])->name('timings.ajax_search');
 
     //Final Project Summary
-    Route::get('final_project_summary', [App\Http\Controllers\FinalProjectSummaryController::class, 'index'])->name('final_project_summary.index');
-    Route::get('final_project_summary/{project}', [App\Http\Controllers\FinalProjectSummaryController::class, 'show'])->name('final_project_summary.show');
+    Route::get('final_project_summary', [FinalProjectSummaryController::class, 'index'])->name('final_project_summary.index');
+    Route::get('final_project_summary/{project}', [FinalProjectSummaryController::class, 'show'])->name('final_project_summary.show');
     Route::get('/final-project-summary/ajax-search', [FinalProjectSummaryController::class, 'ajaxSearch'])->name('final_project_summary.ajax_search');
+
+    // External Requests
+    Route::get('/external_requests/export', [ExternalRequestController::class, 'export'])->name('external_requests.export');
+    Route::resource('external_requests', ExternalRequestController::class)->middleware('auth');
 });
 
 Route::get('/artisan/{action}', function ($action) {

@@ -53,6 +53,7 @@
                                 <option value="admin_costume">Admin Costume</option>
                                 <option value="admin_finance">Admin Finance</option>
                                 <option value="admin_animatronic">Admin Animatronic</option>
+                                <option value="admin_procurement">Admin Procurement</option>
                                 <option value="general">General</option>
                             </select>
                             @error('role')

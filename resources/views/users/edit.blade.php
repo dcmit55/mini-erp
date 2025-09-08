@@ -73,6 +73,9 @@
                                 <option value="admin_animatronic"
                                     {{ old('role', $user->role) == 'admin_animatronic' ? 'selected' : '' }}>
                                     Admin Animatronic</option>
+                                <option value="admin_procurement"
+                                    {{ old('role', $user->role) == 'admin_procurement' ? 'selected' : '' }}>
+                                    Admin Procurement</option>
                                 <option value="general" {{ old('role', $user->role) == 'general' ? 'selected' : '' }}>
                                     General</option>
                             </select>

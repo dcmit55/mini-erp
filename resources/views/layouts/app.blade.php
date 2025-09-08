@@ -116,6 +116,28 @@
                                     </li>
                                 @endif
 
+                                <!-- Procurement Dropdown -->
+                                @if (in_array(auth()->user()->role, [
+                                        'super_admin',
+                                        'admin_procurement'
+                                    ]))
+                                    <li class="nav-item dropdown">
+                                        <a class="nav-link dropdown-toggle {{ request()->is('external_requests*') ? 'active' : '' }}"
+                                            href="#" id="procurementDropdown" role="button"
+                                            data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="fas fa-shopping-cart"></i> Procurement
+                                        </a>
+                                        <ul class="dropdown-menu" aria-labelledby="procurementDropdown">
+                                            <li>
+                                                <a class="dropdown-item {{ request()->is('external_requests*') ? 'active' : '' }}"
+                                                    href="{{ route('external_requests.index') }}">
+                                                    <i class="fas fa-external-link-alt"></i> External Request
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </li>
+                                @endif
+
                                 <!-- Productions Dropdown -->
                                 @if (in_array(auth()->user()->role, [
                                         'super_admin',
