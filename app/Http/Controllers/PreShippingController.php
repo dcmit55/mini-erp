@@ -1,0 +1,43 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\PreShipping;
+use App\Models\ExternalRequest;
+use Illuminate\Http\Request;
+
+class PreShippingController extends Controller
+{
+    public function index()
+    {
+        $requests = ExternalRequest::with(['project', 'supplier'])
+            ->where('approval_status', 'Approved')
+            ->get();
+
+        foreach ($requests as $req) {
+            PreShipping::firstOrCreate(['external_request_id' => $req->id]);
+        }
+
+        $requests = ExternalRequest::with(['project', 'supplier', 'preShipping'])
+            ->where('approval_status', 'Approved')
+            ->get();
+
+        return view('pre_shippings.index', compact('requests'));
+    }
+
+    public function quickUpdate(Request $request, $id)
+    {
+        $preShipping = PreShipping::where('external_request_id', $id)->firstOrFail();
+
+        $request->validate([
+            'domestic_waybill_no' => 'nullable|string|max:255',
+            'same_supplier_selection' => 'nullable|boolean',
+            'percentage_if_same_supplier' => 'nullable|numeric|min:0|max:100',
+            'domestic_cost' => 'nullable|numeric|min:0',
+        ]);
+
+        $preShipping->update($request->only(['domestic_waybill_no', 'same_supplier_selection', 'percentage_if_same_supplier', 'domestic_cost']));
+
+        return response()->json(['success' => true]);
+    }
+}

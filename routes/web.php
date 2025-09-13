@@ -26,6 +26,10 @@ use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\ExternalRequestController;
+use App\Http\Controllers\ShippingController;
+use App\Models\Shippings;
+use App\Http\Controllers\PreShippingController;
+use App\Models\PreShipping;
 
 /*
 |--------------------------------------------------------------------------
@@ -175,6 +179,15 @@ Route::middleware(['auth'])->group(function () {
     // External Requests
     Route::get('/external_requests/export', [ExternalRequestController::class, 'export'])->name('external_requests.export');
     Route::resource('external_requests', ExternalRequestController::class)->middleware('auth');
+    Route::post('/external_requests/{id}/quick-update', [ExternalRequestController::class, 'quickUpdate'])->name('external_requests.quick_update');
+
+    // Pre Shippings
+    Route::get('/pre-shippings', [\App\Http\Controllers\PreShippingController::class, 'index'])->name('pre-shippings.index');
+    Route::post('/pre-shippings/{external_request_id}/quick-update', [\App\Http\Controllers\PreShippingController::class, 'quickUpdate'])->name('pre-shippings.quick-update');
+
+    // Shippings
+    Route::get('/shippings/create', [ShippingController::class, 'create'])->name('shippings.create');
+    Route::post('/shippings/store', [ShippingController::class, 'store'])->name('shippings.store');
 });
 
 Route::get('/artisan/{action}', function ($action) {

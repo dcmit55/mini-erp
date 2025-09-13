@@ -9,7 +9,7 @@ class ExternalRequest extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['type', 'material_name', 'inventory_id', 'required_quantity', 'unit', 'stock_level', 'project_id', 'requested_by'];
+    protected $fillable = ['type', 'material_name', 'inventory_id', 'required_quantity', 'unit', 'stock_level', 'project_id', 'requested_by', 'supplier_id', 'price_per_unit', 'currency_id', 'approval_status'];
 
     public function inventory()
     {
@@ -24,5 +24,17 @@ class ExternalRequest extends Model
     public function user()
     {
         return $this->belongsTo(User::class, 'requested_by');
+    }
+    public function supplier()
+    {
+        return $this->belongsTo(Supplier::class);
+    }
+    public function currency()
+    {
+        return $this->belongsTo(Currency::class);
+    }
+    public function preShipping()
+    {
+        return $this->hasOne(PreShipping::class);
     }
 }

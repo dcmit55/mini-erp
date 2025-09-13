@@ -31,7 +31,9 @@ class ExternalRequestController extends Controller
         $requests = ExternalRequest::with(['inventory', 'project', 'user'])
             ->latest()
             ->get();
-        return view('external_requests.index', compact('requests'));
+        $suppliers = \App\Models\Supplier::orderBy('name')->get();
+        $currencies = \App\Models\Currency::orderBy('name')->get();
+        return view('external_requests.index', compact('requests', 'suppliers', 'currencies'));
     }
 
     /**
@@ -138,5 +140,18 @@ class ExternalRequestController extends Controller
         $externalRequest->delete();
 
         return redirect()->route('external_requests.index')->with('success', 'External request deleted!');
+    }
+
+    public function quickUpdate(Request $request, $id)
+    {
+        $request->validate([
+            'supplier_id' => 'nullable|exists:suppliers,id',
+            'price_per_unit' => 'nullable|numeric|min:0',
+            'currency_id' => 'nullable|exists:currencies,id',
+            'approval_status' => 'nullable|in:Approved,Decline',
+        ]);
+        $externalRequest = ExternalRequest::findOrFail($id);
+        $externalRequest->update($request->only(['supplier_id', 'price_per_unit', 'currency_id', 'approval_status']));
+        return response()->json(['success' => true]);
     }
 }

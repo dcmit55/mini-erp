@@ -212,6 +212,10 @@
                                 <th class="text-start">Required Qty</th>
                                 <th class="text-start">Stock Level</th>
                                 <th>Project</th>
+                                <th>Supplier</th>
+                                <th>Price Per Unit</th>
+                                <th>Currency</th>
+                                <th>Approval Status</th>
                                 <th>Requested By</th>
                                 <th>Requested At</th>
                                 <th>Actions</th>
@@ -219,7 +223,7 @@
                         </thead>
                         <tbody>
                             @foreach ($requests as $index => $req)
-                                <tr>
+                                <tr data-id="{{ $req->id }}">
                                     <td>{{ $index + 1 }}</td>
                                     <td>{{ ucfirst(str_replace('_', ' ', $req->type)) }}</td>
                                     <td>{{ $req->material_name }}</td>
@@ -236,6 +240,50 @@
                                         </span>
                                     </td>
                                     <td>{{ $req->project->name ?? '-' }}</td>
+                                    <!-- Supplier Dropdown -->
+                                    <td>
+                                        <select class="form-select form-select-sm supplier-select"
+                                            style="background:#000;color:#fff;" data-id="{{ $req->id }}">
+                                            <option value="">-</option>
+                                            @foreach ($suppliers as $supplier)
+                                                <option value="{{ $supplier->id }}"
+                                                    @if ($req->supplier_id == $supplier->id) selected @endif>
+                                                    {{ $supplier->name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </td>
+                                    <!-- Price Per Unit Input -->
+                                    <td>
+                                        <input type="number" min="0" step="0.01"
+                                            class="form-control form-control-sm price-input"
+                                            style="background:#000;color:#fff;" value="{{ $req->price_per_unit ?? '' }}"
+                                            data-id="{{ $req->id }}">
+                                    </td>
+                                    <!-- Currency Dropdown -->
+                                    <td>
+                                        <select class="form-select form-select-sm currency-select"
+                                            style="background:#000;color:#fff;" data-id="{{ $req->id }}">
+                                            <option value="">-</option>
+                                            @foreach ($currencies as $currency)
+                                                <option value="{{ $currency->id }}"
+                                                    @if ($req->currency_id == $currency->id) selected @endif>
+                                                    {{ $currency->name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </td>
+                                    <!-- Approval Status Dropdown -->
+                                    <td>
+                                        <select class="form-select form-select-sm approval-select"
+                                            style="background:#000;color:#fff;" data-id="{{ $req->id }}">
+                                            <option value="">-</option>
+                                            <option value="Approved" @if ($req->approval_status == 'Approved') selected @endif>
+                                                Approved</option>
+                                            <option value="Decline" @if ($req->approval_status == 'Decline') selected @endif>
+                                                Decline</option>
+                                        </select>
+                                    </td>
                                     <td>{{ $req->user->username ?? '-' }}</td>
                                     <td>{{ $req->created_at->format('d M Y, H:i') }}</td>
                                     <td>
@@ -303,6 +351,45 @@
                     if (result.isConfirmed) {
                         $('#delete-form-' + id).submit();
                     }
+                });
+            });
+
+            // Inline AJAX update for Supplier, Price, Currency, Approval Status
+            function quickUpdate(id, data) {
+                $.ajax({
+                    url: '/external_requests/' + id + '/quick-update',
+                    method: 'POST',
+                    data: Object.assign(data, {
+                        _token: '{{ csrf_token() }}'
+                    }),
+                    error: function(xhr) {
+                        Swal.fire('Error', xhr.responseJSON?.message || 'Failed to update', 'error');
+                    }
+                });
+            }
+
+            $('.supplier-select').on('change', function() {
+                let id = $(this).closest('tr').data('id');
+                quickUpdate(id, {
+                    supplier_id: $(this).val()
+                });
+            });
+            $('.price-input').on('change', function() {
+                let id = $(this).closest('tr').data('id');
+                quickUpdate(id, {
+                    price_per_unit: $(this).val()
+                });
+            });
+            $('.currency-select').on('change', function() {
+                let id = $(this).closest('tr').data('id');
+                quickUpdate(id, {
+                    currency_id: $(this).val()
+                });
+            });
+            $('.approval-select').on('change', function() {
+                let id = $(this).closest('tr').data('id');
+                quickUpdate(id, {
+                    approval_status: $(this).val()
                 });
             });
 

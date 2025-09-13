@@ -117,10 +117,7 @@
                                 @endif
 
                                 <!-- Procurement Dropdown -->
-                                @if (in_array(auth()->user()->role, [
-                                        'super_admin',
-                                        'admin_procurement'
-                                    ]))
+                                @if (in_array(auth()->user()->role, ['super_admin', 'admin_procurement']))
                                     <li class="nav-item dropdown">
                                         <a class="nav-link dropdown-toggle {{ request()->is('external_requests*') ? 'active' : '' }}"
                                             href="#" id="procurementDropdown" role="button"
@@ -132,6 +129,12 @@
                                                 <a class="dropdown-item {{ request()->is('external_requests*') ? 'active' : '' }}"
                                                     href="{{ route('external_requests.index') }}">
                                                     <i class="fas fa-external-link-alt"></i> External Request
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item {{ request()->is('pre-shippings*') ? 'active' : '' }}"
+                                                    href="{{ route('pre-shippings.index') }}">
+                                                    <i class="fas fa-truck"></i> Pre Shippings
                                                 </a>
                                             </li>
                                         </ul>
