@@ -27,6 +27,8 @@ use App\Http\Controllers\LocationController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\ExternalRequestController;
 use App\Http\Controllers\ShippingController;
+use App\Http\Controllers\ShippingManagementController;
+use App\Http\Controllers\GoodsReceiveController;
 use App\Models\Shippings;
 use App\Http\Controllers\PreShippingController;
 use App\Models\PreShipping;
@@ -186,8 +188,17 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/pre-shippings/{external_request_id}/quick-update', [\App\Http\Controllers\PreShippingController::class, 'quickUpdate'])->name('pre-shippings.quick-update');
 
     // Shippings
-    Route::get('/shippings/create', [ShippingController::class, 'create'])->name('shippings.create');
+    Route::post('/shippings/create', [ShippingController::class, 'create'])->name('shippings.create');
     Route::post('/shippings/store', [ShippingController::class, 'store'])->name('shippings.store');
+
+    // Shipping Management
+    Route::get('/shipping-management', [ShippingManagementController::class, 'index'])->name('shipping-management.index');
+    Route::get('/shipping-management/detail/{id}', [ShippingManagementController::class, 'detail']);
+    Route::get('/shipping-management/detail/{id}', [ShippingManagementController::class, 'detail'])->name('shipping-management.detail');
+
+    // Goods Receive
+    Route::post('/goods-receive/store', [GoodsReceiveController::class, 'store'])->name('goods-receive.store');
+    Route::get('/goods-receive', [GoodsReceiveController::class, 'index'])->name('goods-receive.index');
 });
 
 Route::get('/artisan/{action}', function ($action) {
@@ -237,150 +248,3 @@ Route::get('/artisan/{action}', function ($action) {
         return response()->json(['status' => 'error', 'message' => $e->getMessage()]);
     }
 })->name('artisan.action');
-
-// Demo routes for testing error pages
-if (app()->environment('local')) {
-    Route::prefix('demo/errors')->group(function () {
-        Route::get('/', function () {
-            return view('demo.error-test');
-        })->name('demo.errors');
-
-        Route::get('/400', function () {
-            abort(400);
-        })->name('demo.400');
-
-        Route::get('/401', function () {
-            abort(401);
-        })->name('demo.401');
-
-        Route::get('/403', function () {
-            abort(403);
-        })->name('demo.403');
-
-        Route::get('/404', function () {
-            abort(404);
-        })->name('demo.404');
-
-        Route::get('/405', function () {
-            abort(405);
-        })->name('demo.405');
-
-        Route::get('/406', function () {
-            abort(406);
-        })->name('demo.406');
-
-        Route::get('/408', function () {
-            abort(408);
-        })->name('demo.408');
-
-        Route::get('/409', function () {
-            abort(409);
-        })->name('demo.409');
-
-        Route::get('/410', function () {
-            abort(410);
-        })->name('demo.410');
-
-        Route::get('/411', function () {
-            abort(411);
-        })->name('demo.411');
-
-        Route::get('/413', function () {
-            abort(413);
-        })->name('demo.413');
-
-        Route::get('/414', function () {
-            abort(414);
-        })->name('demo.414');
-
-        Route::get('/415', function () {
-            abort(415);
-        })->name('demo.415');
-
-        Route::get('/422', function () {
-            abort(422);
-        })->name('demo.422');
-
-        Route::get('/429', function () {
-            abort(429);
-        })->name('demo.429');
-
-        // 5xx Server Error Demo Routes
-        Route::get('/500', function () {
-            abort(500);
-        })->name('demo.500');
-
-        Route::get('/501', function () {
-            abort(501);
-        })->name('demo.501');
-
-        Route::get('/502', function () {
-            abort(502);
-        })->name('demo.502');
-
-        Route::get('/503', function () {
-            abort(503);
-        })->name('demo.503');
-
-        Route::get('/504', function () {
-            abort(504);
-        })->name('demo.504');
-
-        Route::get('/505', function () {
-            abort(505);
-        })->name('demo.505');
-
-        Route::get('/507', function () {
-            abort(507);
-        })->name('demo.507');
-
-        Route::get('/508', function () {
-            abort(508);
-        })->name('demo.508');
-
-        Route::get('/511', function () {
-            abort(511);
-        })->name('demo.511');
-
-        // 3xx Redirect Error Demo Routes
-        Route::get('/300', function () {
-            return response()->view('errors.300', [], 300);
-        })->name('demo.300');
-
-        Route::get('/301', function () {
-            return response()->view('errors.301', [], 301)->header('Location', url('/dashboard'));
-        })->name('demo.301');
-
-        Route::get('/302', function () {
-            return response()->view('errors.302', [], 302)->header('Location', url('/dashboard'));
-        })->name('demo.302');
-
-        Route::get('/303', function () {
-            return response()->view('errors.303', [], 303)->header('Location', url('/dashboard'));
-        })->name('demo.303');
-
-        Route::get('/304', function () {
-            return response()->view('errors.304', [], 304);
-        })->name('demo.304');
-
-        Route::get('/305', function () {
-            return response()->view('errors.305', [], 305);
-        })->name('demo.305');
-
-        Route::get('/306', function () {
-            return response()->view('errors.306', [], 306);
-        })->name('demo.306');
-
-        Route::get('/307', function () {
-            return response()->view('errors.307', [], 307)->header('Location', url('/dashboard'));
-        })->name('demo.307');
-
-        Route::get('/308', function () {
-            return response()->view('errors.308', [], 308)->header('Location', url('/dashboard'));
-        })->name('demo.308');
-
-        Route::get('/310', function () {
-            return response()->view('errors.310', [], 310);
-        })->name('demo.310');
-    });
-}

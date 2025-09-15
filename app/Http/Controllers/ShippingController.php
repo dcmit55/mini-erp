@@ -11,12 +11,23 @@ class ShippingController extends Controller
 {
     public function create(Request $request)
     {
+        // Debug: cek data yang diterima
+        // dd($request->all());
+
         $preShippingIds = $request->input('pre_shipping_ids', []);
+        if (empty($preShippingIds)) {
+            return redirect()->route('pre-shippings.index')->with('error', 'Pilih minimal satu data!');
+        }
+
         $preShippings = PreShipping::with(['externalRequest.project', 'externalRequest.supplier'])
             ->whereIn('id', $preShippingIds)
             ->get();
 
-        $freightCompanies = ['DHL', 'FedEx', 'Maersk', 'CMA CGM']; // Dummy
+        if ($preShippings->isEmpty()) {
+            return redirect()->route('pre-shippings.index')->with('error', 'Data tidak ditemukan!');
+        }
+
+        $freightCompanies = ['DHL', 'FedEx', 'Maersk', 'CMA CGM'];
 
         return view('shippings.create', compact('preShippings', 'freightCompanies'));
     }
@@ -44,6 +55,6 @@ class ShippingController extends Controller
             ]);
         }
 
-        return redirect()->route('shippings.create')->with('success', 'Shipping created!');
+        return redirect()->route('shipping-management.index')->with('success', 'Shipping created!');
     }
 }

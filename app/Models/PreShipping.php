@@ -12,4 +12,9 @@ class PreShipping extends Model
     {
         return $this->belongsTo(ExternalRequest::class);
     }
+
+    public function shippingDetail()
+    {
+        return $this->hasOne(ShippingDetail::class);
+    }
 }

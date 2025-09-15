@@ -285,7 +285,7 @@
                                         </select>
                                     </td>
                                     <td>{{ $req->user->username ?? '-' }}</td>
-                                    <td>{{ $req->created_at->format('d M Y, H:i') }}</td>
+                                    <td>{{ $req->created_at ? $req->created_at->format('d M Y, H:i') : '-' }}</td>
                                     <td>
                                         <a href="{{ route('external_requests.edit', $req->id) }}"
                                             class="btn btn-warning btn-sm" title="Edit">

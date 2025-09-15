@@ -137,6 +137,18 @@
                                                     <i class="fas fa-truck"></i> Pre Shippings
                                                 </a>
                                             </li>
+                                            <li>
+                                                <a class="dropdown-item {{ request()->is('shipping-management*') ? 'active' : '' }}"
+                                                    href="{{ route('shipping-management.index') }}">
+                                                    <i class="fas fa-truck"></i> Shipping Management
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item {{ request()->is('goods-receive*') ? 'active' : '' }}"
+                                                    href="{{ route('goods-receive.index') }}">
+                                                    <i class="fas fa-box-open"></i> Goods Receive
+                                                </a>
+                                            </li>
                                         </ul>
                                     </li>
                                 @endif

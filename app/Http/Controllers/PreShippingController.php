@@ -10,16 +10,22 @@ class PreShippingController extends Controller
 {
     public function index()
     {
-        $requests = ExternalRequest::with(['project', 'supplier'])
+        // Ambil semua external request yang sudah approved dan belum masuk shipping
+        $requests = ExternalRequest::with(['project', 'supplier', 'preShipping'])
             ->where('approval_status', 'Approved')
             ->get();
 
+        // Pastikan setiap external_request yang lolos filter punya pre_shipping
         foreach ($requests as $req) {
             PreShipping::firstOrCreate(['external_request_id' => $req->id]);
         }
 
+        // Ambil ulang, tapi hanya yang belum punya shippingDetail
         $requests = ExternalRequest::with(['project', 'supplier', 'preShipping'])
             ->where('approval_status', 'Approved')
+            ->whereHas('preShipping', function ($q) {
+                $q->whereDoesntHave('shippingDetail');
+            })
             ->get();
 
         return view('pre_shippings.index', compact('requests'));
