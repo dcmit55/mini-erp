@@ -252,6 +252,12 @@
                                 @endforeach
                             </select>
                         </div>
+                        {{-- <div class="col-lg-2">
+                            <input type="number" id="min_quantity" class="form-control" placeholder="Min Qty">
+                        </div> --}}
+                        <div class="col-lg-2">
+                            <input type="number" id="max_quantity" class="form-control" placeholder=" Filter by Max Qty">
+                        </div>
                         <div class="col-lg-2">
                             <input type="text" id="custom-search" class="form-control" placeholder="Search inventory...">
                         </div>
@@ -370,6 +376,8 @@
                         d.currency_filter = $('#currency_filter').val();
                         d.supplier_filter = $('#supplier_filter').val();
                         d.location_filter = $('#location_filter').val();
+                        d.min_quantity = $('#min_quantity').val();
+                        d.max_quantity = $('#max_quantity').val();
                         d.custom_search = $('#custom-search').val();
                     }
                 },
@@ -468,6 +476,10 @@
                 table.ajax.reload();
             });
 
+            $('#min_quantity, #max_quantity').on('input', function() {
+                table.ajax.reload();
+            });
+
             $('#custom-search').on('input', function() {
                 $('#datatable').DataTable().ajax.reload();
             });
@@ -476,6 +488,8 @@
             $('#reset-filter').on('click', function() {
                 $('#category_filter, #currency_filter, #supplier_filter, #location_filter').val('').trigger(
                     'change');
+                $('#min_quantity').val('');
+                $('#max_quantity').val('');
                 $('#custom-search').val('');
                 table.ajax.reload();
             });

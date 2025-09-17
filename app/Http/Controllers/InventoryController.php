@@ -108,6 +108,12 @@ class InventoryController extends Controller
         if ($request->filled('location_filter')) {
             $query->where('location_id', $request->location_filter);
         }
+        if ($request->filled('min_quantity')) {
+            $query->where('quantity', '>=', $request->min_quantity);
+        }
+        if ($request->filled('max_quantity')) {
+            $query->where('quantity', '<=', $request->max_quantity);
+        }
 
         if ($request->filled('custom_search')) {
             $searchValue = $request->input('custom_search');
