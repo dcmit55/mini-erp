@@ -30,4 +30,12 @@ class Project extends Model
     {
         return $this->belongsTo(ProjectStatus::class, 'project_status_id');
     }
+
+    public function scopeNotArchived($query)
+    {
+        $archiveId = 1; // Ganti sesuai id status "archive" di tabel project_statuses
+        return $query->where(function ($q) use ($archiveId) {
+            $q->whereNull('project_status_id')->orWhere('project_status_id', '!=', $archiveId);
+        });
+    }
 }

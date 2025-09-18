@@ -118,7 +118,7 @@ class MaterialRequestController extends Controller
     public function create(Request $request)
     {
         $inventories = Inventory::orderBy('name')->get();
-        $projects = Project::with('department')->orderBy('name')->get();
+        $projects = Project::with('department', 'status')->notArchived()->orderBy('name')->get();
         $departments = Department::orderBy('name')->get();
 
         // Periksa apakah parameter material_id ada
@@ -187,7 +187,7 @@ class MaterialRequestController extends Controller
     public function bulkCreate()
     {
         $inventories = Inventory::orderBy('name')->get();
-        $projects = Project::with('department')->orderBy('name')->get();
+        $projects = Project::with('department', 'status')->notArchived()->orderBy('name')->get();
         $departments = Department::orderBy('name')->get();
 
         return view('material_requests.bulk_create', compact('inventories', 'projects', 'departments'));
@@ -300,7 +300,7 @@ class MaterialRequestController extends Controller
                 return $inventory;
             });
 
-        $projects = Project::with('department')->orderBy('name')->get();
+        $projects = Project::with('department', 'status')->notArchived()->orderBy('name')->get();
 
         return view('material_requests.edit', [
             'request' => $materialRequest,
