@@ -9,6 +9,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\TrashController;
 use App\Http\Controllers\GoodsInController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\ProjectStatusController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CurrencyController;
 use App\Http\Controllers\GoodsOutController;
@@ -84,6 +85,7 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('projects', ProjectController::class);
     Route::post('/projects/quick-add', [ProjectController::class, 'storeQuick'])->name('projects.store.quick');
     Route::get('/projects/json', [ProjectController::class, 'json'])->name('projects.json');
+    Route::post('/project-statuses', [ProjectStatusController::class, 'store'])->name('project-statuses.store');
 
     // Material Requests
     Route::get('/material_requests/export', [MaterialRequestController::class, 'export'])->name('material_requests.export');

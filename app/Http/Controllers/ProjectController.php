@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Validator;
 use App\Models\Project;
 use App\Models\Department;
 use App\Models\Part;
+use App\Models\ProjectStatus;
 use Illuminate\Http\Request;
 use App\Exports\ProjectExport;
 use Illuminate\Support\Facades\Auth;
@@ -20,7 +21,7 @@ class ProjectController extends Controller
 
     public function index(Request $request)
     {
-        $query = Project::with('department');
+        $query = Project::with('department', 'status');
 
         // Apply Filters
         if ($request->has('quantity') && $request->quantity !== null) {
@@ -76,7 +77,8 @@ class ProjectController extends Controller
     public function create()
     {
         $departments = Department::orderBy('name')->get();
-        return view('projects.create', compact('departments'));
+        $statuses = ProjectStatus::orderBy('name')->get();
+        return view('projects.create', compact('departments', 'statuses'));
     }
 
     public function store(Request $request)
@@ -89,6 +91,7 @@ class ProjectController extends Controller
             'deadline' => 'nullable|date',
             'finish_date' => 'nullable|date',
             'department_id' => 'required|exists:departments,id',
+            'project_status_id' => 'required|exists:project_statuses,id',
         ]);
 
         if ($request->hasFile('img')) {
@@ -159,7 +162,8 @@ class ProjectController extends Controller
     {
         $project->load('parts');
         $departments = Department::orderBy('name')->get();
-        return view('projects.edit', compact('project', 'departments'));
+        $statuses = ProjectStatus::orderBy('name')->get();
+        return view('projects.edit', compact('project', 'departments', 'statuses'));
     }
 
     public function update(Request $request, Project $project)
@@ -172,6 +176,7 @@ class ProjectController extends Controller
             'deadline' => 'nullable|date',
             'finish_date' => 'nullable|date',
             'department_id' => 'required|exists:departments,id',
+            'project_status_id' => 'required|exists:project_statuses,id',
         ]);
 
         // Validasi: start_date tidak boleh melebihi deadline

@@ -50,78 +50,7 @@
             border-color: #8F12FE;
             box-shadow: 0 2px 4px rgba(143, 18, 254, 0.3);
         }
-
-        /* Custom Badge Colors */
-        .bg-purple {
-            background-color: #6f42c1 !important;
-            color: white !important;
-        }
-
-        .bg-indigo {
-            background-color: #6610f2 !important;
-            color: white !important;
-        }
-
-        .bg-pink {
-            background-color: #d63384 !important;
-            color: white !important;
-        }
-
-        .bg-orange {
-            background-color: #fd7e14 !important;
-            color: white !important;
-        }
-
-        .bg-teal {
-            background-color: #20c997 !important;
-            color: white !important;
-        }
-
-        .bg-cyan {
-            background-color: #0dcaf0 !important;
-            color: white !important;
-        }
-
-        .bg-lime {
-            background-color: #84cc16 !important;
-            color: white !important;
-        }
-
-        .bg-amber {
-            background-color: #f59e0b !important;
-            color: white !important;
-        }
-
-        .bg-rose {
-            background-color: #f43f5e !important;
-            color: white !important;
-        }
-
-        .bg-emerald {
-            background-color: #10b981 !important;
-            color: white !important;
-        }
-
-        .bg-violet {
-            background-color: #8b5cf6 !important;
-            color: white !important;
-        }
-
-        .bg-sky {
-            background-color: #0ea5e9 !important;
-            color: white !important;
-        }
-
-        /* Badge hover effects */
-        .badge {
-            transition: all 0.2s ease-in-out;
-        }
-
-        .badge:hover {
-            transform: scale(1.05);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-
+        
         .vr-divider {
             width: 1px;
             height: 24px;

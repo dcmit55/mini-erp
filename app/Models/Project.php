@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Project extends Model
 {
     use SoftDeletes;
-    protected $fillable = ['name', 'qty', 'department_id', 'start_date', 'deadline', 'finish_date', 'img', 'created_by'];
+    protected $fillable = ['name', 'qty', 'department_id', 'project_status_id', 'start_date', 'deadline', 'finish_date', 'img', 'created_by'];
 
     public function materialUsages()
     {
@@ -24,5 +24,10 @@ class Project extends Model
     public function department()
     {
         return $this->belongsTo(Department::class);
+    }
+
+    public function status()
+    {
+        return $this->belongsTo(ProjectStatus::class, 'project_status_id');
     }
 }

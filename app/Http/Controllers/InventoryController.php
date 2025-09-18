@@ -54,6 +54,7 @@ class InventoryController extends Controller
 
         return $allColors[$colorIndex];
     }
+    
     public function __construct()
     {
         $this->middleware('auth');

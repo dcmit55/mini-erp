@@ -85,6 +85,7 @@
                             <th>Department</th>
                             <th>Start Date</th>
                             <th>Deadline</th>
+                            <th>Status</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -101,6 +102,15 @@
                                 </td>
                                 <td>
                                     {{ $project->deadline ? \Carbon\Carbon::parse($project->deadline)->translatedFormat('d F Y') : '-' }}
+                                </td>
+                                <td>
+                                    @if ($project->status)
+                                        <span class="badge {{ $project->status->badgeClass() }}" style="font-weight:500;">
+                                            {{ $project->status->name }}
+                                        </span>
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
                                 </td>
                                 <td>
                                     <div class="d-flex flex-wrap gap-1">

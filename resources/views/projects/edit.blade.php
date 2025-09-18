@@ -120,6 +120,30 @@
                         </div>
                     </div>
 
+                    <div class="col-lg-4 mb-3">
+                        <label for="project_status_id" class="form-label">Project Status <span
+                                class="text-danger">*</span></label>
+                        @if (auth()->user()->role === 'super_admin')
+                            <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal"
+                                data-bs-target="#addStatusModal"
+                                style="--bs-btn-padding-y: .25rem; --bs-btn-padding-x: .5rem; --bs-btn-font-size: .55rem;">
+                                + Add Status
+                            </button>
+                        @endif
+                        <select name="project_status_id" id="project_status_id" class="form-select select2" required>
+                            <option value="">Select Status</option>
+                            @foreach ($statuses as $status)
+                                <option value="{{ $status->id }}"
+                                    {{ old('project_status_id', $project->project_status_id ?? '') == $status->id ? 'selected' : '' }}>
+                                    {{ $status->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('project_status_id')
+                            <small class="text-danger">{{ $message }}</small>
+                        @enderror
+                    </div>
+
                     <div class="row">
                         <div class="col-lg-12 mb-3">
                             <label for="img" class="form-label">Image (optional)</label>
@@ -150,6 +174,7 @@
             </div>
         </div>
     </div>
+
     <!-- Add Department Modal -->
     <div class="modal fade" id="addDepartmentModal" tabindex="-1" aria-labelledby="addDepartmentModalLabel"
         aria-hidden="true">
@@ -168,6 +193,30 @@
                     </div>
                     <div class="modal-footer">
                         <button type="submit" class="btn btn-success">Add Department</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Status Modal -->
+    <div class="modal fade" id="addStatusModal" tabindex="-1" aria-labelledby="addStatusModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog">
+            <form id="statusForm" method="POST" action="{{ route('project-statuses.store') }}">
+                @csrf
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addStatusModalLabel">Add New Status</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <label>Status Name <span class="text-danger">*</span></label>
+                        <input type="text" name="name" class="form-control" required>
+                        <div id="status-error" class="text-danger mt-1" style="display:none"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-success">Add Status</button>
                     </div>
                 </div>
             </form>
@@ -218,7 +267,7 @@
             // Validasi tanggal di frontend
             const startDateInput = document.getElementById('start_date');
             const deadlineInput = document.getElementById('deadline');
-            const dateForm = startDateInput.closest('form'); 
+            const dateForm = startDateInput.closest('form');
 
             function validateDates(e) {
                 const startDate = startDateInput.value;
@@ -319,10 +368,40 @@
                     }
                 });
             });
-
             // Reset error saat modal dibuka ulang
             $('#addDepartmentModal').on('shown.bs.modal', function() {
                 $('#department-error').hide().text('');
+            });
+
+            $('#statusForm').on('submit', function(e) {
+                e.preventDefault();
+                let form = $(this);
+                let errorDiv = $('#status-error');
+                errorDiv.hide().text('');
+                $.ajax({
+                    url: form.attr('action'),
+                    method: 'POST',
+                    data: form.serialize(),
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    success: function(status) {
+                        let newOption = new Option(status.name, status.id, true, true);
+                        $('#project_status_id').append(newOption).val(status.id).trigger(
+                            'change');
+                        $('#addStatusModal').modal('hide');
+                        form[0].reset();
+                        errorDiv.hide().text('');
+                    },
+                    error: function(xhr) {
+                        let msg = xhr.responseJSON?.message ||
+                            'Failed to add status. Please try again.';
+                        errorDiv.html(msg).show();
+                    }
+                });
+            });
+            $('#addStatusModal').on('shown.bs.modal', function() {
+                $('#status-error').hide().text('');
             });
         });
     </script>
