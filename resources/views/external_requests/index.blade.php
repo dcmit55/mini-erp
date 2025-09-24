@@ -243,7 +243,7 @@
                                     <!-- Supplier Dropdown -->
                                     <td>
                                         <select class="form-select form-select-sm supplier-select"
-                                            style="background:#000;color:#fff;" data-id="{{ $req->id }}">
+                                            data-id="{{ $req->id }}">
                                             <option value="">-</option>
                                             @foreach ($suppliers as $supplier)
                                                 <option value="{{ $supplier->id }}"
@@ -257,13 +257,12 @@
                                     <td>
                                         <input type="number" min="0" step="0.01"
                                             class="form-control form-control-sm price-input"
-                                            style="background:#000;color:#fff;" value="{{ $req->price_per_unit ?? '' }}"
-                                            data-id="{{ $req->id }}">
+                                            value="{{ $req->price_per_unit ?? '' }}" data-id="{{ $req->id }}">
                                     </td>
                                     <!-- Currency Dropdown -->
                                     <td>
                                         <select class="form-select form-select-sm currency-select"
-                                            style="background:#000;color:#fff;" data-id="{{ $req->id }}">
+                                            data-id="{{ $req->id }}">
                                             <option value="">-</option>
                                             @foreach ($currencies as $currency)
                                                 <option value="{{ $currency->id }}"
@@ -276,7 +275,7 @@
                                     <!-- Approval Status Dropdown -->
                                     <td>
                                         <select class="form-select form-select-sm approval-select"
-                                            style="background:#000;color:#fff;" data-id="{{ $req->id }}">
+                                            data-id="{{ $req->id }}">
                                             <option value="">-</option>
                                             <option value="Approved" @if ($req->approval_status == 'Approved') selected @endif>
                                                 Approved</option>
@@ -332,6 +331,12 @@
                     info: "Showing _START_ to _END_ of _TOTAL_ entries",
                 },
                 dom: 't<"row datatables-footer-row align-items-center"<"col-md-7 d-flex align-items-center gap-2 datatables-left"l<"vr-divider mx-2">i><"col-md-5 dataTables_paginate justify-content-end"p>>',
+            });
+
+            $('.supplier-select, .currency-select').select2({
+                theme: 'bootstrap-5',
+                width: '100%',
+                dropdownParent: $('#datatable').parent()
             });
 
             // SweetAlert delete

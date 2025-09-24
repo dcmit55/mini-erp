@@ -6,6 +6,9 @@ use App\Models\ExternalRequest;
 use App\Models\Inventory;
 use App\Models\Unit;
 use App\Models\Project;
+use App\Models\Supplier;
+use App\Models\Currency;
+use App\Models\User;
 use App\Models\Department;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -31,8 +34,8 @@ class ExternalRequestController extends Controller
         $requests = ExternalRequest::with(['inventory', 'project', 'user'])
             ->latest()
             ->get();
-        $suppliers = \App\Models\Supplier::orderBy('name')->get();
-        $currencies = \App\Models\Currency::orderBy('name')->get();
+        $suppliers = Supplier::orderBy('name')->get();
+        $currencies = Currency::orderBy('name')->get();
         return view('external_requests.index', compact('requests', 'suppliers', 'currencies'));
     }
 
@@ -64,8 +67,16 @@ class ExternalRequestController extends Controller
             'project_id' => 'required|exists:projects,id',
         ]);
 
+        if ($request->type === 'new_material') {
+            $exists = Inventory::whereRaw('LOWER(name) = ?', [strtolower($request->material_name)])->exists();
+            if ($exists) {
+                return back()
+                    ->withInput()
+                    ->withErrors(['material_name' => 'Material already exists in inventory.']);
+            }
+        }
+
         $data = $request->all();
-        $data['requested_by'] = Auth::id();
 
         // Untuk restock, ambil nama material, unit, dan stock dari inventory
         if ($request->type === 'restock' && $request->inventory_id) {
@@ -74,6 +85,8 @@ class ExternalRequestController extends Controller
             $data['unit'] = $inventory->unit;
             $data['stock_level'] = $inventory->quantity;
         }
+
+        $data['requested_by'] = Auth::id();
 
         ExternalRequest::create($data);
 
@@ -131,17 +144,6 @@ class ExternalRequestController extends Controller
         return redirect()->route('external_requests.index')->with('success', 'External request updated!');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy($id)
-    {
-        $externalRequest = ExternalRequest::findOrFail($id);
-        $externalRequest->delete();
-
-        return redirect()->route('external_requests.index')->with('success', 'External request deleted!');
-    }
-
     public function quickUpdate(Request $request, $id)
     {
         $request->validate([
@@ -150,8 +152,33 @@ class ExternalRequestController extends Controller
             'currency_id' => 'nullable|exists:currencies,id',
             'approval_status' => 'nullable|in:Approved,Decline',
         ]);
+
+        // Cek supplier ada
+        if ($request->filled('supplier_id')) {
+            $supplier = Supplier::find($request->supplier_id);
+            if (!$supplier) {
+                return response()->json(['success' => false, 'message' => 'Supplier not found.'], 422);
+            }
+        }
+
+        // Cek currency ada
+        if ($request->filled('currency_id')) {
+            $currency = Currency::find($request->currency_id);
+            if (!$currency) {
+                return response()->json(['success' => false, 'message' => 'Currency not found.'], 422);
+            }
+        }
+
         $externalRequest = ExternalRequest::findOrFail($id);
         $externalRequest->update($request->only(['supplier_id', 'price_per_unit', 'currency_id', 'approval_status']));
         return response()->json(['success' => true]);
+    }
+
+    public function destroy($id)
+    {
+        $externalRequest = ExternalRequest::findOrFail($id);
+        $externalRequest->delete();
+
+        return redirect()->route('external_requests.index')->with('success', 'External request deleted!');
     }
 }

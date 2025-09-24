@@ -38,6 +38,11 @@
                             </select>
                         </div>
                         <div class="col-md-4">
+                            <label class="form-label">Stock Level</label>
+                            <input type="number" name="stock_level" id="stock_level_input" class="form-control" required
+                                min="0" step="0.01" value="{{ old('stock_level', $request->stock_level) }}">
+                        </div>
+                        <div class="col-md-4">
                             <label class="form-label">Required Quantity</label>
                             <input type="number" name="required_quantity" class="form-control" required min="0.01"
                                 step="0.01" value="{{ old('required_quantity', $request->required_quantity) }}">
@@ -63,12 +68,7 @@
                             <input type="text" name="unit" id="unit_input" class="form-control" readonly
                                 value="{{ old('unit', $request->unit) }}">
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Stock Level</label>
-                            <input type="number" name="stock_level" id="stock_level_input" class="form-control" required
-                                min="0" step="0.01" value="{{ old('stock_level', $request->stock_level) }}">
-                        </div>
-                        <div class="col-md-8">
+                        <div class="col-md-6">
                             <label class="form-label">Project</label>
                             <button type="button" class="btn btn-outline-primary btn-sm" id="quickAddProjectBtn"
                                 data-bs-toggle="modal" data-bs-target="#addProjectModal"
@@ -99,7 +99,8 @@
     </div>
 
     <!-- Quick Add Project Modal -->
-    <div class="modal fade" id="addProjectModal" tabindex="-1" aria-labelledby="addProjectModalLabel" aria-hidden="true">
+    <div class="modal fade" id="addProjectModal" tabindex="-1" aria-labelledby="addProjectModalLabel"
+        aria-hidden="true">
         <div class="modal-dialog">
             <form id="quickAddProjectForm" method="POST" action="{{ route('projects.store.quick') }}">
                 @csrf
@@ -201,7 +202,8 @@
                 if (type === '') {
                     // Kondisi awal: semua input disable
                     $('#material_name_input').show().prop('required', false).prop('disabled', true);
-                    $('#material_name_select').hide().addClass('d-none').prop('required', false).prop('disabled', true);
+                    $('#material_name_select').hide().addClass('d-none').prop('required', false).prop('disabled',
+                        true);
                     $('#material_name_select').next('.select2-container').hide();
                     $('#unit_input').show().prop('readonly', false).prop('disabled', true).val('');
                     $('#unit-select').hide().addClass('d-none').prop('disabled', true);
