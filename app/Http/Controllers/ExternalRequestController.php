@@ -65,6 +65,7 @@ class ExternalRequestController extends Controller
             'unit' => 'required',
             'stock_level' => 'required|numeric|min:0',
             'project_id' => 'required|exists:projects,id',
+            'img' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ]);
 
         if ($request->type === 'new_material') {
@@ -84,6 +85,10 @@ class ExternalRequestController extends Controller
             $data['material_name'] = $inventory->name;
             $data['unit'] = $inventory->unit;
             $data['stock_level'] = $inventory->quantity;
+        }
+
+        if ($request->hasFile('img')) {
+            $data['img'] = $request->file('img')->store('external_requests', 'public');
         }
 
         $data['requested_by'] = Auth::id();
@@ -127,6 +132,7 @@ class ExternalRequestController extends Controller
             'unit' => 'required',
             'stock_level' => 'required|numeric|min:0',
             'project_id' => 'required|exists:projects,id',
+            'img' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ]);
 
         $data = $request->all();
@@ -136,6 +142,10 @@ class ExternalRequestController extends Controller
             $data['material_name'] = $inventory->name;
             $data['unit'] = $inventory->unit;
             $data['stock_level'] = $inventory->quantity;
+        }
+
+        if ($request->hasFile('img')) {
+            $data['img'] = $request->file('img')->store('external_requests', 'public');
         }
 
         $externalRequest = ExternalRequest::findOrFail($id);

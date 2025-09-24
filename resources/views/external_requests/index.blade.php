@@ -286,20 +286,30 @@
                                     <td>{{ $req->user->username ?? '-' }}</td>
                                     <td>{{ $req->created_at ? $req->created_at->format('d M Y, H:i') : '-' }}</td>
                                     <td>
-                                        <a href="{{ route('external_requests.edit', $req->id) }}"
-                                            class="btn btn-warning btn-sm" title="Edit">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <button class="btn btn-danger btn-sm btn-delete" data-id="{{ $req->id }}"
-                                            data-name="{{ $req->material_name }}" title="Delete">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                        <form id="delete-form-{{ $req->id }}"
-                                            action="{{ route('external_requests.destroy', $req->id) }}" method="POST"
-                                            style="display:none;">
-                                            @csrf
-                                            @method('DELETE')
-                                        </form>
+                                        <div class="d-flex flex-nowrap gap-1">
+                                            <a href="{{ route('external_requests.edit', $req->id) }}"
+                                                class="btn btn-warning btn-xs py-1 px-2" title="Edit"
+                                                style="font-size: 0.8rem;">
+                                                <i class="far fa-edit"></i>
+                                            </a>
+                                            <button class="btn btn-info btn-xs py-1 px-2 btn-show-image"
+                                                data-img="{{ $req->img ? asset('storage/' . $req->img) : '' }}"
+                                                data-name="{{ $req->material_name }}" title="View Image"
+                                                style="font-size: 0.8rem;">
+                                                <i class="far fa-image"></i>
+                                            </button>
+                                            <button class="btn btn-danger btn-xs py-1 px-2 btn-delete"
+                                                data-id="{{ $req->id }}" data-name="{{ $req->material_name }}"
+                                                title="Delete" style="font-size: 0.8rem;">
+                                                <i class="fa fa-trash"></i>
+                                            </button>
+                                            <form id="delete-form-{{ $req->id }}"
+                                                action="{{ route('external_requests.destroy', $req->id) }}" method="POST"
+                                                style="display:none;">
+                                                @csrf
+                                                @method('DELETE')
+                                            </form>
+                                        </div>
                                     </td>
                                 </tr>
                             @endforeach
@@ -399,6 +409,35 @@
             });
 
             // Inisialisasi tooltip
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.forEach(function(tooltipTriggerEl) {
+                new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        });
+
+        $(document).on('click', '.btn-show-image', function() {
+            const imgSrc = $(this).data('img');
+            const imgName = $(this).data('name');
+            if (imgSrc) {
+                Fancybox.show([{
+                    src: imgSrc,
+                    type: "image",
+                    caption: imgName,
+                    downloadSrc: imgSrc,
+                }], {
+                    Toolbar: {
+                        display: ["zoom", "fullscreen", "download", "close"],
+                    },
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: 'No image available!',
+                });
+            }
+        });
+        document.addEventListener("DOMContentLoaded", function() {
             var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
             tooltipTriggerList.forEach(function(tooltipTriggerEl) {
                 new bootstrap.Tooltip(tooltipTriggerEl);

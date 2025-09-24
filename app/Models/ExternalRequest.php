@@ -9,7 +9,7 @@ class ExternalRequest extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['type', 'material_name', 'inventory_id', 'required_quantity', 'unit', 'stock_level', 'project_id', 'requested_by', 'supplier_id', 'price_per_unit', 'currency_id', 'approval_status'];
+    protected $fillable = ['type', 'material_name', 'inventory_id', 'required_quantity', 'unit', 'stock_level', 'project_id', 'requested_by', 'supplier_id', 'price_per_unit', 'currency_id', 'approval_status', 'img'];
 
     public function inventory()
     {

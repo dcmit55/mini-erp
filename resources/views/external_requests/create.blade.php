@@ -5,7 +5,7 @@
         <div class="card shadow rounded">
             <div class="card-body">
                 <h4 class="mb-3">External Request</h4>
-                <form method="POST" action="{{ route('external_requests.store') }}">
+                <form method="POST" action="{{ route('external_requests.store') }}" enctype="multipart/form-data">
                     @csrf
                     <div class="row g-3">
                         <div class="col-md-4">
@@ -74,6 +74,18 @@
                                     <option value="{{ $project->id }}">{{ $project->name }}</option>
                                 @endforeach
                             </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="img" class="form-label">Image (optional)</label>
+                            <input type="file" name="img" class="form-control" id="img" accept="image/*"
+                                onchange="previewImage(event)">
+                            <a id="img-preview-link" href="#" data-fancybox="gallery" style="display: none;">
+                                <img id="img-preview" src="#" alt="Image Preview" class="mt-2 rounded"
+                                    style="max-width: 200px;">
+                            </a>
+                            @error('img')
+                                <small class="text-danger">{{ $message }}</small>
+                            @enderror
                         </div>
                     </div>
                     <div class="mt-4">
@@ -305,6 +317,54 @@
                     submitBtn.childNodes[2].textContent = ' Submitting...';
                 });
             }
+        });
+
+        function previewImage(event) {
+            const input = event.target;
+            const preview = document.getElementById('img-preview');
+            const previewLink = document.getElementById('img-preview-link');
+            const maxSize = 2 * 1024 * 1024; // 2 MB
+
+            if (input.files && input.files[0]) {
+                if (input.files[0].size > maxSize) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'File too large',
+                        text: 'Maximum file size is 2 MB.',
+                    });
+                    input.value = '';
+                    if (preview) preview.src = '';
+                    if (previewLink) previewLink.href = '#';
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    if (preview) preview.src = e.target.result;
+                    if (previewLink) {
+                        previewLink.href = e.target.result;
+                        preview.style.display = 'block';
+                        previewLink.style.display = 'block';
+                    }
+                };
+                reader.readAsDataURL(input.files[0]);
+            } else {
+                if (preview) preview.src = '';
+                if (previewLink) previewLink.href = '#';
+                if (preview) preview.style.display = 'none';
+                if (previewLink) previewLink.style.display = 'none';
+            }
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+            Fancybox.bind("[data-fancybox='gallery']", {
+                Toolbar: {
+                    display: ["zoom", "download", "close"]
+                },
+                Thumbs: false,
+                Image: {
+                    zoom: true
+                },
+                Hash: false,
+            });
         });
     </script>
 @endpush
