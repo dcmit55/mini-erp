@@ -12,8 +12,11 @@
                             <label for="type" class="form-label">Type</label>
                             <select name="type" id="type" class="form-select" required>
                                 <option value="">Select Type</option>
-                                <option value="new_material">New Material</option>
-                                <option value="restock">Restock</option>
+                                <option value="new_material"
+                                    {{ old('type', $request->type ?? '') == 'new_material' ? 'selected' : '' }}>New Material
+                                </option>
+                                <option value="restock"
+                                    {{ old('type', $request->type ?? '') == 'restock' ? 'selected' : '' }}>Restock</option>
                             </select>
                         </div>
                         <div class="col-md-8" id="material-name-group">
@@ -30,16 +33,21 @@
                                     </option>
                                 @endforeach
                             </select>
+                            @error('material_name')
+                                <small class="text-danger">{{ $message }}</small>
+                            @enderror
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Stock Level</label>
-                            <input type="number" name="stock_level" id="stock_level_input" class="form-control" required
-                                min="0" step="0.01">
+                            <input type="number" name="stock_level" id="stock_level_input" class="form-control"
+                                value="{{ old('stock_level', $request->stock_level ?? '') }}" min="0"
+                                step="0.01">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Required Quantity</label>
-                            <input type="number" name="required_quantity" class="form-control" required min="0.01"
-                                step="0.01">
+                            <input type="number" name="required_quantity" class="form-control"
+                                value="{{ old('required_quantity', $request->required_quantity ?? '') }}" required
+                                min="0.01" step="0.01">
                         </div>
                         <div class="col-md-4" id="unit-group">
                             <label class="form-label">Unit</label>
@@ -68,10 +76,13 @@
                                 style="--bs-btn-padding-y: .25rem; --bs-btn-padding-x: .5rem; --bs-btn-font-size: .55rem;">
                                 + Add Project
                             </button>
-                            <select name="project_id" class="form-select select2" required>
+                            <select name="project_id" class="form-select select2">
                                 <option value="">Select Project</option>
                                 @foreach ($projects as $project)
-                                    <option value="{{ $project->id }}">{{ $project->name }}</option>
+                                    <option value="{{ $project->id }}"
+                                        {{ old('project_id', $request->project_id ?? '') == $project->id ? 'selected' : '' }}>
+                                        {{ $project->name }}
+                                    </option>
                                 @endforeach
                             </select>
                         </div>
@@ -219,7 +230,7 @@
                     $('#unit_input').hide().prop('disabled', true).val('');
                     $('#unit-select').show().prop('disabled', false);
                     $('#unit-select').next('.select2-container').show();
-                    $('#stock_level_input').prop('readonly', false).prop('disabled', false).val('');
+                    $('#stock_level_input').prop('readonly', false).prop('disabled', false);
                     $('input[name="required_quantity"]').prop('disabled', false);
                 } else if (type === 'restock') {
                     $('#material_name_input').hide().prop('required', false).prop('disabled', true);

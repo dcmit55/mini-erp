@@ -40,7 +40,7 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Stock Level</label>
-                            <input type="number" name="stock_level" id="stock_level_input" class="form-control" required
+                            <input type="number" name="stock_level" id="stock_level_input" class="form-control"
                                 min="0" step="0.01" value="{{ old('stock_level', $request->stock_level) }}">
                         </div>
                         <div class="col-md-4">
@@ -76,7 +76,7 @@
                                 style="--bs-btn-padding-y: .25rem; --bs-btn-padding-x: .5rem; --bs-btn-font-size: .55rem;">
                                 + Add Project
                             </button>
-                            <select name="project_id" class="form-select select2" required>
+                            <select name="project_id" class="form-select select2">
                                 <option value="">Select Project</option>
                                 @foreach ($projects as $project)
                                     <option value="{{ $project->id }}"
@@ -86,16 +86,19 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-6">
                             <label for="img" class="form-label">Image (optional)</label>
                             <input type="file" name="img" class="form-control" id="img" accept="image/*"
                                 onchange="previewImage(event)">
-                            <a id="img-preview-link" href="{{ $request->img ? asset('storage/' . $request->img) : '#' }}"
-                                data-fancybox="gallery"
-                                @if ($request->img) style="display: block;" @else style="display: none;" @endif>
-                                <img id="img-preview" src="{{ $request->img ? asset('storage/' . $request->img) : '#' }}"
-                                    alt="Image Preview" class="mt-2 rounded" style="max-width: 200px;">
-                            </a>
+
+                            @if ($request->img)
+                                <a id="img-preview-link" href="{{ asset('storage/' . $request->img) }}"
+                                    data-fancybox="gallery" style="display: block;">
+                                    <img id="img-preview" src="{{ asset('storage/' . $request->img) }}" alt="Image Preview"
+                                        class="mt-2 rounded" style="max-width: 200px;">
+                                </a>
+                            @endif
+
                             @error('img')
                                 <small class="text-danger">{{ $message }}</small>
                             @enderror

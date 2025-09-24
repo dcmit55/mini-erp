@@ -209,8 +209,8 @@
                                 <th>#</th>
                                 <th>Type</th>
                                 <th>Material Name</th>
-                                <th class="text-start">Required Qty</th>
                                 <th class="text-start">Stock Level</th>
+                                <th class="text-start">Required Qty</th>
                                 <th>Project</th>
                                 <th>Supplier</th>
                                 <th>Price Per Unit</th>
@@ -230,13 +230,13 @@
                                     <td class="text-start">
                                         <span data-bs-toggle="tooltip" data-bs-placement="right"
                                             title="{{ $req->unit }}">
-                                            {{ $req->required_quantity }}
+                                            {{ $req->stock_level !== null ? $req->stock_level : '-' }}
                                         </span>
                                     </td>
                                     <td class="text-start">
                                         <span data-bs-toggle="tooltip" data-bs-placement="right"
                                             title="{{ $req->unit }}">
-                                            {{ $req->stock_level }}
+                                            {{ $req->required_quantity }}
                                         </span>
                                     </td>
                                     <td>{{ $req->project->name ?? '-' }}</td>

@@ -63,8 +63,8 @@ class ExternalRequestController extends Controller
             'inventory_id' => 'required_if:type,restock|nullable|exists:inventories,id',
             'required_quantity' => 'required|numeric|min:0.01',
             'unit' => 'required',
-            'stock_level' => 'required|numeric|min:0',
-            'project_id' => 'required|exists:projects,id',
+            'stock_level' => 'nullable|numeric|min:0',
+            'project_id' => 'nullable|exists:projects,id',
             'img' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ]);
 
@@ -130,8 +130,8 @@ class ExternalRequestController extends Controller
             'inventory_id' => 'required_if:type,restock|nullable|exists:inventories,id',
             'required_quantity' => 'required|numeric|min:0.01',
             'unit' => 'required',
-            'stock_level' => 'required|numeric|min:0',
-            'project_id' => 'required|exists:projects,id',
+            'stock_level' => 'nullable|numeric|min:0',
+            'project_id' => 'nullable|exists:projects,id',
             'img' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ]);
 
