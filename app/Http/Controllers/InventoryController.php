@@ -54,7 +54,7 @@ class InventoryController extends Controller
 
         return $allColors[$colorIndex];
     }
-    
+
     public function __construct()
     {
         $this->middleware('auth');
@@ -168,7 +168,7 @@ class InventoryController extends Controller
                 }
             }
         } else {
-            $query->orderBy('created_at', 'desc');
+            $query->orderBy('updated_at', 'desc');
         }
 
         // Get total records
@@ -223,7 +223,10 @@ class InventoryController extends Controller
                 'supplier' => $inventory->supplier ? $inventory->supplier->name : '-',
                 'location' => $inventory->location ? $inventory->location->name : '-',
                 'remark' => '<div class="text-truncate" style="max-width: 250px;" title="' . strip_tags($inventory->remark ?? '-') . '">' . ($inventory->remark ?? '-') . '</div>',
-                'updated_at' => $inventory->updated_at ? '<span data-bs-toggle="tooltip" data-bs-placement="bottom" title=" Time: ' . $inventory->updated_at->format('H:i') . '">' . $inventory->updated_at->format('d M Y') . '</span>' : '-',
+                'updated_at' => [
+                    'display' => $inventory->updated_at ? \Carbon\Carbon::parse($inventory->updated_at)->format('d M Y, H:i') : '-',
+                    'timestamp' => $inventory->updated_at ? $inventory->updated_at->format('Y-m-d H:i:s') : '',
+                ],
                 'actions' => $this->getActionButtons($inventory),
                 'img' => $inventory->img,
                 'qr_code' => $inventory->qr_code,

@@ -50,7 +50,7 @@
             border-color: #8F12FE;
             box-shadow: 0 2px 4px rgba(143, 18, 254, 0.3);
         }
-        
+
         .vr-divider {
             width: 1px;
             height: 24px;
@@ -359,7 +359,13 @@
                     {
                         data: 'updated_at',
                         name: 'updated_at',
-                        width: '12%'
+                        width: '12%',
+                        render: function(data, type, row) {
+                            if (type === 'sort' || type === 'type') {
+                                return data.timestamp || '';
+                            }
+                            return data.display || '-';
+                        }
                     },
                     {
                         data: 'actions',
@@ -370,9 +376,6 @@
                         className: 'text-center'
                     }
                 ],
-                order: [
-                    [1, 'asc']
-                ], // Default sort by name
                 pageLength: 15,
                 lengthMenu: [
                     [10, 15, 25, 50, 100],

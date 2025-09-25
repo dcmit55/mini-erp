@@ -37,6 +37,9 @@
                                     </option>
                                 @endforeach
                             </select>
+                            @error('material_name')
+                                <small class="text-danger">{{ $message }}</small>
+                            @enderror
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Stock Level</label>

@@ -95,7 +95,9 @@ class ExternalRequestController extends Controller
 
         ExternalRequest::create($data);
 
-        return redirect()->route('external_requests.index')->with('success', 'External request submitted!');
+        return redirect()
+            ->route('external_requests.index')
+            ->with('success', 'External request <strong>' . ($externalRequest->material_name ?? '-') . '</strong> submitted!');
     }
 
     /**
@@ -135,6 +137,15 @@ class ExternalRequestController extends Controller
             'img' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ]);
 
+        if ($request->type === 'new_material') {
+            $exists = Inventory::whereRaw('LOWER(name) = ?', [strtolower($request->material_name)])->exists();
+            if ($exists) {
+                return back()
+                    ->withInput()
+                    ->withErrors(['material_name' => 'Material already exists in inventory.']);
+            }
+        }
+
         $data = $request->all();
 
         if ($request->type === 'restock' && $request->inventory_id) {
@@ -151,7 +162,9 @@ class ExternalRequestController extends Controller
         $externalRequest = ExternalRequest::findOrFail($id);
         $externalRequest->update($data);
 
-        return redirect()->route('external_requests.index')->with('success', 'External request updated!');
+        return redirect()
+            ->route('external_requests.index')
+            ->with('success', 'External request <strong>' . ($externalRequest->material_name ?? '-') . '</strong> updated!');
     }
 
     public function quickUpdate(Request $request, $id)
@@ -189,6 +202,8 @@ class ExternalRequestController extends Controller
         $externalRequest = ExternalRequest::findOrFail($id);
         $externalRequest->delete();
 
-        return redirect()->route('external_requests.index')->with('success', 'External request deleted!');
+        return redirect()
+            ->route('external_requests.index')
+            ->with('success', 'External request <strong>' . ($externalRequest->material_name ?? '-') . '</strong> deleted!');
     }
 }
