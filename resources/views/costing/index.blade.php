@@ -126,6 +126,7 @@
 
                     data.materials.forEach(material => {
                         const inventory = material.inventory || {
+                            id: null,
                             name: 'N/A',
                             price: 0,
                             unit: 'N/A',
@@ -144,9 +145,18 @@
                         const totalPrice = price * quantity;
                         const totalCost = material.total_cost ?? 0;
 
+                        // Cek jika inventory N/A dan user super admin
+                        let nameCell = name;
+                        @if (auth()->user()->role === 'super_admin')
+                            if (name === 'N/A' && inventory.id) {
+                                nameCell =
+                                    `<span data-bs-toggle="tooltip" data-bs-placement="right" title="ID: ${inventory.id}">N/A</span>`;
+                            }
+                        @endif
+
                         const row = `
                             <tr>
-                                <td>${name}</td>
+                                <td>${nameCell}</td>
                                 <td>${quantity} ${unit}</td>
                                 <td>${formatCurrency(price)} ${currencyName}</td>
                                 <td>${formatCurrency(totalPrice)} ${currencyName}</td>
@@ -155,6 +165,10 @@
                         `;
                         tableBody.innerHTML += row;
                     });
+                    setTimeout(() => {
+                        // Re-init tooltip setelah render
+                        $('[data-bs-toggle="tooltip"]').tooltip();
+                    }, 100);
 
                     document.getElementById('grandTotal').innerHTML =
                         `Grand Total: <span class="text-success fw-bold">${formatCurrency(data.grand_total_idr)} IDR</span>`;

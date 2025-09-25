@@ -70,6 +70,7 @@ class ProjectCostingController extends Controller
 
             return (object) [
                 'inventory' => (object) [
+                    'id' => $inventory->id ?? $usage->inventory_id, // Fallback ke inventory_id jika inventory null
                     'name' => $inventory->name ?? 'N/A',
                     'unit' => $unit,
                     'price' => $price,
