@@ -364,6 +364,9 @@
                             if (type === 'sort' || type === 'type') {
                                 return data.timestamp || '';
                             }
+                            if (data.display && data.tooltip) {
+                                return `<span data-bs-toggle="tooltip" data-bs-placement="right" title="${data.tooltip}">${data.display}</span>`;
+                            }
                             return data.display || '-';
                         }
                     },
@@ -375,6 +378,9 @@
                         width: '12%',
                         className: 'text-center'
                     }
+                ],
+                order: [
+                    [8, 'desc']
                 ],
                 pageLength: 15,
                 lengthMenu: [

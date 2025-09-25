@@ -146,26 +146,20 @@ class InventoryController extends Controller
         }
 
         // Sorting dari DataTables
-        $columns = ['id', 'name', 'category_name', 'quantity', 'price', 'supplier_name', 'location_name', 'created_at'];
+        $columns = ['id', 'name', 'category_name', 'quantity', 'price', 'supplier_name', 'location_name', 'remark', 'updated_at'];
         if ($request->filled('order')) {
             $orderColumnIndex = $request->input('order.0.column');
             $orderDirection = $request->input('order.0.dir', 'asc');
 
+            // Handle join sorting jika perlu (category, supplier, location)
             if ($orderColumnIndex == 2) {
-                // Category column
                 $query->leftJoin('categories', 'inventories.category_id', '=', 'categories.id')->orderBy('categories.name', $orderDirection)->select('inventories.*');
             } elseif ($orderColumnIndex == 5) {
-                // Supplier column
                 $query->leftJoin('suppliers', 'inventories.supplier_id', '=', 'suppliers.id')->orderBy('suppliers.name', $orderDirection)->select('inventories.*');
             } elseif ($orderColumnIndex == 6) {
-                // Location column
                 $query->leftJoin('locations', 'inventories.location_id', '=', 'locations.id')->orderBy('locations.name', $orderDirection)->select('inventories.*');
-            } else {
-                // Default sorting by available columns
-                $sortableColumns = ['id', 'name', 'quantity', 'price', 'created_at'];
-                if (isset($sortableColumns[$orderColumnIndex])) {
-                    $query->orderBy($sortableColumns[$orderColumnIndex], $orderDirection);
-                }
+            } elseif (isset($columns[$orderColumnIndex])) {
+                $query->orderBy($columns[$orderColumnIndex], $orderDirection);
             }
         } else {
             $query->orderBy('updated_at', 'desc');
@@ -224,7 +218,8 @@ class InventoryController extends Controller
                 'location' => $inventory->location ? $inventory->location->name : '-',
                 'remark' => '<div class="text-truncate" style="max-width: 250px;" title="' . strip_tags($inventory->remark ?? '-') . '">' . ($inventory->remark ?? '-') . '</div>',
                 'updated_at' => [
-                    'display' => $inventory->updated_at ? \Carbon\Carbon::parse($inventory->updated_at)->format('d M Y, H:i') : '-',
+                    'display' => $inventory->updated_at ? \Carbon\Carbon::parse($inventory->updated_at)->format('d M Y') : '-',
+                    'tooltip' => $inventory->updated_at ? \Carbon\Carbon::parse($inventory->updated_at)->format('H:i') : '',
                     'timestamp' => $inventory->updated_at ? $inventory->updated_at->format('Y-m-d H:i:s') : '',
                 ],
                 'actions' => $this->getActionButtons($inventory),
