@@ -3,8 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+
 class ExternalRequest extends Model
 {
     use HasFactory;
@@ -25,14 +25,17 @@ class ExternalRequest extends Model
     {
         return $this->belongsTo(User::class, 'requested_by');
     }
+
     public function supplier()
     {
         return $this->belongsTo(Supplier::class);
     }
+
     public function currency()
     {
         return $this->belongsTo(Currency::class);
     }
+
     public function preShipping()
     {
         return $this->hasOne(PreShipping::class);

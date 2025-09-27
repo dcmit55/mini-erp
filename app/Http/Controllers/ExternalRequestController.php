@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Models\Department;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Yajra\DataTables\Facades\DataTables;
 
 class ExternalRequestController extends Controller
 {
@@ -58,46 +59,77 @@ class ExternalRequestController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'type' => 'required|in:new_material,restock',
-            'material_name' => 'required_if:type,new_material',
-            'inventory_id' => 'required_if:type,restock|nullable|exists:inventories,id',
-            'required_quantity' => 'required|numeric|min:0.01',
-            'unit' => 'required',
-            'stock_level' => 'nullable|numeric|min:0',
-            'project_id' => 'nullable|exists:projects,id',
-            'img' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'requests' => 'required|array|min:1',
+            'requests.*.type' => 'required|in:new_material,restock',
+            'requests.*.material_name' => 'required_if:requests.*.type,new_material',
+            'requests.*.inventory_id' => 'required_if:requests.*.type,restock|nullable|exists:inventories,id',
+            'requests.*.required_quantity' => 'required|numeric|min:0.01',
+            'requests.*.unit' => 'required',
+            'requests.*.stock_level' => 'nullable|numeric|min:0',
+            'requests.*.project_id' => 'nullable|exists:projects,id',
+            'requests.*.img' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ]);
 
-        if ($request->type === 'new_material') {
-            $exists = Inventory::whereRaw('LOWER(name) = ?', [strtolower($request->material_name)])->exists();
-            if ($exists) {
-                return back()
-                    ->withInput()
-                    ->withErrors(['material_name' => 'Material already exists in inventory.']);
+        $successCount = 0;
+        $errors = [];
+
+        foreach ($request->requests as $key => $requestData) {
+            try {
+                // Skip if empty data - safety check
+                if (empty($requestData['type'])) {
+                    continue;
+                }
+
+                // For new_material type, check if it already exists
+                if ($requestData['type'] === 'new_material') {
+                    $exists = Inventory::whereRaw('LOWER(name) = ?', [strtolower($requestData['material_name'])])->exists();
+                    if ($exists) {
+                        $errors[] = 'Row ' . ($key + 1) . ": Material '{$requestData['material_name']}' already exists in inventory.";
+                        continue;
+                    }
+                }
+
+                $data = $requestData;
+
+                // For restock type, get material name, unit, and stock level from inventory
+                if ($requestData['type'] === 'restock' && !empty($requestData['inventory_id'])) {
+                    $inventory = Inventory::find($requestData['inventory_id']);
+                    $data['material_name'] = $inventory->name;
+                    $data['unit'] = $inventory->unit;
+                    $data['stock_level'] = $inventory->quantity;
+                }
+
+                // Handle image upload if present
+                if (isset($request->file('requests')[$key]['img'])) {
+                    $file = $request->file('requests')[$key]['img'];
+                    $data['img'] = $file->store('external_requests', 'public');
+                }
+
+                // Add the user ID
+                $data['requested_by'] = Auth::id();
+
+                // Create the external request
+                ExternalRequest::create($data);
+                $successCount++;
+            } catch (\Exception $e) {
+                $errors[] = 'Error in row ' . ($key + 1) . ': ' . $e->getMessage();
             }
         }
 
-        $data = $request->all();
-
-        // Untuk restock, ambil nama material, unit, dan stock dari inventory
-        if ($request->type === 'restock' && $request->inventory_id) {
-            $inventory = Inventory::find($request->inventory_id);
-            $data['material_name'] = $inventory->name;
-            $data['unit'] = $inventory->unit;
-            $data['stock_level'] = $inventory->quantity;
+        if ($successCount > 0) {
+            $message = $successCount . ' external request(s) submitted successfully!';
+            if (!empty($errors)) {
+                return redirect()
+                    ->route('external_requests.index')
+                    ->with('success', $message)
+                    ->with('warning', 'Some requests could not be processed: ' . implode('<br>', $errors));
+            }
+            return redirect()->route('external_requests.index')->with('success', $message);
+        } else {
+            return back()
+                ->withInput()
+                ->with('error', 'No requests were processed. Errors: ' . implode('<br>', $errors));
         }
-
-        if ($request->hasFile('img')) {
-            $data['img'] = $request->file('img')->store('external_requests', 'public');
-        }
-
-        $data['requested_by'] = Auth::id();
-
-        ExternalRequest::create($data);
-
-        return redirect()
-            ->route('external_requests.index')
-            ->with('success', 'External request <strong>' . ($externalRequest->material_name ?? '-') . '</strong> submitted!');
     }
 
     /**
