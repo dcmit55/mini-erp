@@ -37,7 +37,8 @@ class ExternalRequestController extends Controller
             ->get();
         $suppliers = Supplier::orderBy('name')->get();
         $currencies = Currency::orderBy('name')->get();
-        return view('external_requests.index', compact('requests', 'suppliers', 'currencies'));
+        $projects = Project::orderBy('name')->get();
+        return view('external_requests.index', compact('requests', 'suppliers', 'currencies', 'projects'));
     }
 
     /**

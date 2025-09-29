@@ -70,6 +70,61 @@
             align-items: center;
         }
 
+        /* Badge styling for approval status */
+        .badge-approved {
+            background-color: #198754 !important;
+            color: white !important;
+        }
+
+        .badge-decline {
+            background-color: #dc3545 !important;
+            color: white !important;
+        }
+
+        .badge-pending {
+            background-color: #ffc107 !important;
+            color: #000 !important;
+        }
+
+        .badge {
+            transition: all 0.2s ease-in-out;
+        }
+
+        .badge:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Button styling */
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Action buttons */
+        .btn-warning {
+            background-color: #ffc107;
+            border-color: #ffc107;
+            color: #000;
+        }
+
+        .btn-info {
+            background-color: #0dcaf0;
+            border-color: #0dcaf0;
+            color: #000;
+        }
+
+        .btn-danger {
+            background-color: #dc3545;
+            border-color: #dc3545;
+            color: #fff;
+        }
+
         /* Form controls in table */
         .form-select-sm,
         .form-control-sm {
@@ -142,14 +197,14 @@
                 <div class="mb-3">
                     <form id="filter-form" class="row g-2">
                         <div class="col-lg-2">
-                            <select name="type_filter" id="type_filter" class="form-select">
+                            <select name="type_filter" id="type_filter" class="form-select select2">
                                 <option value="">All Types</option>
                                 <option value="new_material">New Material</option>
                                 <option value="restock">Restock</option>
                             </select>
                         </div>
                         <div class="col-lg-2">
-                            <select name="project_filter" id="project_filter" class="form-select">
+                            <select name="project_filter" id="project_filter" class="form-select select2">
                                 <option value="">All Projects</option>
                                 @foreach ($projects as $project)
                                     <option value="{{ $project->id }}">{{ $project->name }}</option>
@@ -157,7 +212,7 @@
                             </select>
                         </div>
                         <div class="col-lg-2">
-                            <select name="supplier_filter" id="supplier_filter" class="form-select">
+                            <select name="supplier_filter" id="supplier_filter" class="form-select select2">
                                 <option value="">All Suppliers</option>
                                 @foreach ($suppliers as $supplier)
                                     <option value="{{ $supplier->id }}">{{ $supplier->name }}</option>
@@ -165,7 +220,7 @@
                             </select>
                         </div>
                         <div class="col-lg-2">
-                            <select name="approval_filter" id="approval_filter" class="form-select">
+                            <select name="approval_filter" id="approval_filter" class="form-select select2">
                                 <option value="">All Status</option>
                                 <option value="Approved">Approved</option>
                                 <option value="Decline">Declined</option>
@@ -253,10 +308,8 @@
                                         <select class="form-select form-select-sm approval-select"
                                             data-id="{{ $req->id }}">
                                             <option value="">Pending</option>
-                                            <option value="Approved" @if ($req->approval_status == 'Approved') selected @endif>
-                                                Approved</option>
-                                            <option value="Decline" @if ($req->approval_status == 'Decline') selected @endif>
-                                                Decline</option>
+                                            <option value="Approved" @if ($req->approval_status == 'Approved') selected @endif>Approved</option>
+                                            <option value="Decline" @if ($req->approval_status == 'Decline') selected @endif>Decline</option>
                                         </select>
                                     </td>
                                     <td>{{ $req->user->username ?? '-' }}</td>
@@ -326,10 +379,11 @@
 @push('scripts')
     <script>
         $(document).ready(function() {
-            // Initialize DataTable
+            // Initialize DataTable with static data
             const table = $('#datatable').DataTable({
                 responsive: true,
                 stateSave: false,
+                searching: false, // Use custom search
                 pageLength: 15,
                 lengthMenu: [
                     [10, 15, 25, 50, 100],
@@ -343,125 +397,118 @@
                     lengthMenu: "Show _MENU_ entries per page",
                     info: "Showing _START_ to _END_ of _TOTAL_ entries",
                 },
-                dom: 't<"row datatables-footer-row align-items-center"<"col-md-7 d-flex align-items-center gap-2 datatables-left"l<"vr-divider mx-2">i><"col-md-5 dataTables_paginate justify-content-end"p>>',
+                dom: 't<' +
+                    '"row datatables-footer-row align-items-center"' +
+                    '<"col-md-7 d-flex align-items-center gap-2 datatables-left"l<"vr-divider mx-2">i>' +
+                    '<"col-md-5 dataTables_paginate justify-content-end"p>' +
+                    '>',
                 order: [
                     [11, 'desc']
                 ],
                 drawCallback: function() {
                     // Reinitialize tooltips after table redraw
                     $('[data-bs-toggle="tooltip"]').tooltip();
-
-                    // Safely destroy existing Select2 instances
-                    $('.supplier-select, .currency-select, .approval-select').each(function() {
-                        if ($(this).hasClass('select2-hidden-accessible')) {
-                            $(this).select2('destroy');
-                        }
-                    });
-
-                    // Reinitialize Select2 for inline selects in table
-                    $('.supplier-select, .currency-select, .approval-select').select2({
-                        theme: 'bootstrap-5',
-                        allowClear: false,
-                        minimumResultsForSearch: 10,
-                        dropdownParent: $('body'),
-                        width: '100%'
-                    });
                 }
             });
 
-            // Initialize Select2 for filter dropdowns
-            $('#type_filter, #project_filter, #supplier_filter, #approval_filter').select2({
+            // Initialize Select2 for filters
+            $('.select2').select2({
                 theme: 'bootstrap-5',
-                allowClear: true,
                 placeholder: function() {
-                    return $(this).find('option:first').text();
-                }
+                    return $(this).data('placeholder');
+                },
+                allowClear: true
             });
 
-            // Initialize Select2 for table selects
-            $('.supplier-select, .currency-select, .approval-select').select2({
-                theme: 'bootstrap-5',
-                allowClear: false,
-                minimumResultsForSearch: 10,
-                dropdownParent: $('body'),
-                width: '100%'
-            });
+            // Custom filtering function
+            $.fn.dataTable.ext.search.push(
+                function(settings, data, dataIndex) {
+                    // Only apply to our table
+                    if (settings.nTable.id !== 'datatable') {
+                        return true;
+                    }
 
-            // Simple filter functionality
-            function performFilter() {
-                var typeFilter = $('#type_filter').val();
-                var projectFilter = $('#project_filter').val();
-                var supplierFilter = $('#supplier_filter').val();
-                var approvalFilter = $('#approval_filter').val();
-                var customSearch = $('#custom-search').val().toLowerCase();
+                    var typeFilter = $('#type_filter').val();
+                    var projectFilter = $('#project_filter').val();
+                    var supplierFilter = $('#supplier_filter').val();
+                    var approvalFilter = $('#approval_filter').val();
+                    var customSearch = $('#custom-search').val().toLowerCase();
 
-                $('#datatable tbody tr').each(function() {
-                    var $row = $(this);
-                    var show = true;
+                    var type = data[1] || '';
+                    var materialName = data[2] || '';
+                    var project = data[5] || '';
+                    var requestedBy = data[10] || '';
 
-                    // Skip empty row
-                    if ($row.find('td').length === 1) return;
+                    // Get row data to check actual values
+                    var rowNode = table.row(dataIndex).node();
+                    var $row = $(rowNode);
+
+                    // Custom search across multiple columns
+                    if (customSearch) {
+                        var searchText = (type + ' ' + materialName + ' ' + project + ' ' + requestedBy)
+                            .toLowerCase();
+                        if (searchText.indexOf(customSearch) === -1) {
+                            return false;
+                        }
+                    }
 
                     // Type filter
-                    if (typeFilter) {
-                        var typeText = $row.find('td:eq(1)').text().toLowerCase();
-                        if (typeText.indexOf(typeFilter.toLowerCase().replace('_', ' ')) === -1) {
-                            show = false;
-                        }
+                    if (typeFilter && type.toLowerCase().replace(/\s+/g, '_') !== typeFilter) {
+                        return false;
                     }
 
                     // Project filter
-                    if (projectFilter && show) {
-                        var projectText = $row.find('td:eq(5)').text().trim();
+                    if (projectFilter) {
                         var selectedProjectText = $('#project_filter option:selected').text();
-                        if (projectText !== selectedProjectText && projectText !== '-') {
-                            show = false;
+                        var projectText = project.trim();
+
+                        if (projectText === '-' || projectText === '') {
+                            return false; // No project assigned
+                        }
+
+                        if (projectText !== selectedProjectText) {
+                            return false;
                         }
                     }
 
-                    // Supplier filter
-                    if (supplierFilter && show) {
+                    // Supplier filter - check selected option in dropdown
+                    if (supplierFilter) {
                         var supplierSelect = $row.find('.supplier-select');
-                        if (supplierSelect.length) {
-                            var selectedSupplierId = supplierSelect.val();
-                            if (selectedSupplierId !== supplierFilter) {
-                                show = false;
-                            }
-                        } else {
-                            show = false;
+                        if (supplierSelect.length && supplierSelect.val() !== supplierFilter) {
+                            return false;
                         }
                     }
 
-                    // Approval filter
-                    if (approvalFilter && show) {
+                    // Approval filter - check selected option or badge text
+                    if (approvalFilter !== '') {
                         var approvalSelect = $row.find('.approval-select');
-                        if (approvalSelect.length) {
-                            var selectedValue = approvalSelect.val();
-                            if (approvalFilter === 'Pending' && selectedValue !== '') {
-                                show = false;
-                            } else if (approvalFilter !== 'Pending' && selectedValue !== approvalFilter) {
-                                show = false;
+                        var approvalBadge = $row.find('.badge-approved, .badge-decline');
+
+                        if (approvalBadge.length) {
+                            // Has badge (approved/declined)
+                            var badgeText = approvalBadge.text().trim();
+                            if (approvalFilter !== badgeText) {
+                                return false;
+                            }
+                        } else if (approvalSelect.length) {
+                            // Has select dropdown (pending)
+                            if (approvalFilter === 'Pending') {
+                                return true; // Show pending items
+                            } else {
+                                return false; // Don't show pending if looking for approved/declined
                             }
                         }
                     }
 
-                    // Custom search
-                    if (customSearch && show) {
-                        var rowText = $row.text().toLowerCase();
-                        if (rowText.indexOf(customSearch) === -1) {
-                            show = false;
-                        }
-                    }
+                    return true;
+                }
+            );
 
-                    $row.toggle(show);
-                });
-            }
-
-            // Filter event handlers
+            // Filter functionality
             $('#type_filter, #project_filter, #supplier_filter, #approval_filter, #custom-search').on(
                 'change input',
                 function() {
-                    performFilter();
+                    table.draw();
                 });
 
             // Reset filter
@@ -469,10 +516,10 @@
                 $('#type_filter, #project_filter, #supplier_filter, #approval_filter').val('').trigger(
                     'change');
                 $('#custom-search').val('');
-                $('#datatable tbody tr').show();
+                table.draw();
             });
 
-            // Inline AJAX update function
+            // Inline AJAX update for Supplier, Price, Currency, Approval Status
             function quickUpdate(id, data) {
                 $.ajax({
                     url: '/external_requests/' + id + '/quick-update',
@@ -481,7 +528,14 @@
                         _token: '{{ csrf_token() }}'
                     }),
                     success: function(response) {
-                        console.log('Updated successfully');
+                        if (response.success) {
+                            // Use toastr if available, otherwise use a simple alert
+                            if (typeof toastr !== 'undefined') {
+                                toastr.success('Updated successfully');
+                            } else {
+                                console.log('Updated successfully');
+                            }
+                        }
                     },
                     error: function(xhr) {
                         Swal.fire('Error', xhr.responseJSON?.message || 'Failed to update', 'error');
@@ -518,7 +572,7 @@
                 });
             });
 
-            // Delete functionality
+            // Delete functionality with AJAX
             $(document).on('click', '.btn-delete', function() {
                 const id = $(this).data('id');
                 const name = $(this).data('name');
@@ -534,6 +588,7 @@
                     reverseButtons: true
                 }).then((result) => {
                     if (result.isConfirmed) {
+                        // Use the form submission for simplicity
                         $('#delete-form-' + id).submit();
                     }
                 });
@@ -541,38 +596,59 @@
 
             // Show Image Modal Handler
             $(document).on('click', '.btn-show-image', function() {
+                // Reset modal content
                 $('#img-container').html('');
 
                 let img = $(this).data('img');
                 let name = $(this).data('name');
 
-                $('#imageModalLabel').html(`<i class="bi bi-image me-2"></i>${name}`);
+                $('#imageModalLabel').html(
+                    `<i class="bi bi-image" style="margin-right: 5px; color: cornflowerblue;"></i> ${name}`
+                );
 
+                // Show image if available
                 $('#img-container').html(img && img !== '' ?
-                    `<img src="${img}" alt="Image" class="img-fluid rounded" style="max-width:100%;">` :
+                    `<a href="${img}" data-fancybox="gallery" data-caption="${name}">
+                        <img src="${img}" alt="Image" class="img-fluid img-hover rounded" style="max-width:100%;">
+                    </a>` :
                     '<span class="text-muted">No Image Available</span>'
                 );
 
+                // Show modal
                 $('#imageModal').modal('show');
             });
 
             // Initialize Bootstrap Tooltip
             $('[data-bs-toggle="tooltip"]').tooltip();
+        });
 
-            // Ensure Select2 is working on initial load
-            setTimeout(function() {
-                $('.supplier-select, .currency-select, .approval-select').each(function() {
-                    if (!$(this).hasClass('select2-hidden-accessible')) {
-                        $(this).select2({
-                            theme: 'bootstrap-5',
-                            allowClear: false,
-                            minimumResultsForSearch: 10,
-                            dropdownParent: $('body'),
-                            width: '100%'
-                        });
-                    }
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize Fancybox if available
+            if (typeof Fancybox !== 'undefined') {
+                Fancybox.bind("[data-fancybox='gallery']", {
+                    Toolbar: {
+                        display: [{
+                                id: "counter",
+                                position: "center"
+                            },
+                            "zoom",
+                            "download",
+                            "close"
+                        ],
+                    },
+                    Thumbs: false,
+                    Image: {
+                        zoom: true,
+                    },
+                    Hash: false,
                 });
-            }, 100);
+            }
+
+            // Initialize Bootstrap Tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.forEach(function(tooltipTriggerEl) {
+                new bootstrap.Tooltip(tooltipTriggerEl);
+            });
         });
     </script>
 @endpush
