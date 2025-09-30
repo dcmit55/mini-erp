@@ -285,12 +285,24 @@ function updateDataTable(materialRequest) {
                 canDelete = true;
                 deleteTooltip = "Delete (Super Admin Only)";
             }
-        } else if (["pending", "canceled"].includes(materialRequest.status)) {
-            // Owner or super admin can delete pending/canceled requests
+        } else if (materialRequest.status === "pending") {
+            // Pending: Only Owner or Super Admin can delete
             if (isRequestOwner || isSuperAdmin) {
                 canDelete = true;
-                if (materialRequest.status === "canceled") {
-                    deleteTooltip = "Delete Canceled Request";
+                deleteTooltip = isRequestOwner
+                    ? "Delete Your Request"
+                    : "Delete (Super Admin)";
+            }
+        } else if (materialRequest.status === "canceled") {
+            // Canceled: Owner, Admin Logistic, or Super Admin can delete
+            if (isRequestOwner || isLogisticAdmin || isSuperAdmin) {
+                canDelete = true;
+                if (isRequestOwner) {
+                    deleteTooltip = "Delete Your Canceled Request";
+                } else if (isLogisticAdmin) {
+                    deleteTooltip = "Delete Canceled Request (Logistic Admin)";
+                } else {
+                    deleteTooltip = "Delete Canceled Request (Super Admin)";
                 }
             }
         }

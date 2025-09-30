@@ -142,7 +142,7 @@ class MaterialRequestController extends Controller
                             </a>';
                     }
 
-                    // Delete Button Logic - SEMUA STATUS BISA DIHAPUS dengan permission yang tepat
+                    // Delete Button - Updated Logic
                     $canDelete = false;
                     $deleteTooltip = 'Delete';
 
@@ -152,12 +152,22 @@ class MaterialRequestController extends Controller
                             $canDelete = true;
                             $deleteTooltip = 'Delete (Super Admin Only)';
                         }
-                    } elseif (in_array($req->status, ['pending', 'canceled'])) {
-                        // Owner or super admin can delete pending/canceled requests
+                    } elseif ($req->status === 'pending') {
+                        // Pending: Only Owner or Super Admin can delete
                         if ($isRequestOwner || $isSuperAdmin) {
                             $canDelete = true;
-                            if ($req->status === 'canceled') {
-                                $deleteTooltip = 'Delete Canceled Request';
+                            $deleteTooltip = $isRequestOwner ? 'Delete Your Request' : 'Delete (Super Admin)';
+                        }
+                    } elseif ($req->status === 'canceled') {
+                        // Canceled: Owner, Admin Logistic, or Super Admin can delete
+                        if ($isRequestOwner || $isLogisticAdmin || $isSuperAdmin) {
+                            $canDelete = true;
+                            if ($isRequestOwner) {
+                                $deleteTooltip = 'Delete Your Canceled Request';
+                            } elseif ($isLogisticAdmin) {
+                                $deleteTooltip = 'Delete Canceled Request (Logistic Admin)';
+                            } else {
+                                $deleteTooltip = 'Delete Canceled Request (Super Admin)';
                             }
                         }
                     }
@@ -176,7 +186,7 @@ class MaterialRequestController extends Controller
                             '">
                             <i class="bi bi-trash3"></i>
                         </button>
-                        </form>';
+                     </form>';
                     }
 
                     // Reminder Button
@@ -608,6 +618,7 @@ class MaterialRequestController extends Controller
         // Check user permissions
         $authUser = auth()->user();
         $isSuperAdmin = $authUser->isSuperAdmin();
+        $isLogisticAdmin = $authUser->isLogisticAdmin();
         $isRequestOwner = $authUser->username === $materialRequest->requested_by;
 
         // Validasi berdasarkan status dan role user
@@ -616,10 +627,15 @@ class MaterialRequestController extends Controller
             if (!$isSuperAdmin) {
                 return redirect()->route('material_requests.index', $filters)->with('error', 'Only Super Admin can delete approved or delivered requests.');
             }
-        } elseif (in_array($materialRequest->status, ['pending', 'canceled'])) {
-            // Owner atau super admin bisa delete pending/canceled requests
+        } elseif ($materialRequest->status === 'pending') {
+            // Pending: Hanya Owner atau Super Admin yang bisa delete
             if (!$isRequestOwner && !$isSuperAdmin) {
-                return redirect()->route('material_requests.index', $filters)->with('error', 'You do not have permission to delete this request.');
+                return redirect()->route('material_requests.index', $filters)->with('error', 'Only request owner or Super Admin can delete pending requests.');
+            }
+        } elseif ($materialRequest->status === 'canceled') {
+            // Canceled: Owner, Admin Logistic, atau Super Admin bisa delete
+            if (!$isRequestOwner && !$isLogisticAdmin && !$isSuperAdmin) {
+                return redirect()->route('material_requests.index', $filters)->with('error', 'You do not have permission to delete this canceled request.');
             }
         }
 
