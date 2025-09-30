@@ -294,7 +294,7 @@
         $(document).ready(function() {
             // Initialize DataTable dengan server-side processing
             const table = $('#datatable').DataTable({
-                processing: true,
+                processing: false,
                 serverSide: true,
                 searching: false,
                 ajax: {
@@ -388,7 +388,6 @@
                     [10, 15, 25, 50, 100]
                 ],
                 language: {
-                    processing: '<div class="d-flex justify-content-center align-items-center">',
                     emptyTable: '<div class="text-muted py-2"></i>No inventory data available</div>',
                     zeroRecords: '<div class="text-muted py-2">No matching records found</div>',
                     infoEmpty: "Showing 0 to 0 of 0 entries",

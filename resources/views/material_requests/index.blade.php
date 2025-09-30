@@ -126,13 +126,15 @@
                             <th>Project</th>
                             <th>Material</th>
                             <th>Requested Qty</th>
-                            <th><i class="bi bi-question-circle" data-bs-toggle="tooltip" data-bs-placement="top"
+                            <th>Remaining Qty <i class="bi bi-question-circle" data-bs-toggle="tooltip"
+                                    data-bs-placement="top"
                                     title="The quantity of material requests that have not yet been processed for goods out."
-                                    style="font-size: 0.8rem; cursor: pointer;"></i> Remaining Qty
+                                    style="font-size: 0.8rem; cursor: pointer;"></i>
                             </th>
-                            <th><i class="bi bi-question-circle" data-bs-toggle="tooltip" data-bs-placement="top"
+                            <th>Processed Qty <i class="bi bi-question-circle" data-bs-toggle="tooltip"
+                                    data-bs-placement="top"
                                     title="The quantity of material requests that have already been processed and issued as goods out."
-                                    style="font-size: 0.8rem; cursor: pointer;"></i> Processed Qty
+                                    style="font-size: 0.8rem; cursor: pointer;"></i>
                             </th>
                             <th>Requested By</th>
                             <th>Requested At</th>
@@ -141,126 +143,8 @@
                             <th>Action</th>
                         </tr>
                     </thead>
-                    <tbody class="align-middle">
-                        @foreach ($requests as $req)
-                            <tr id="row-{{ $req->id }}">
-                                <td class="text-center">
-                                    @if ($req->status === 'approved')
-                                        <input type="checkbox" class="select-row" id="checkbox-{{ $req->id }}"
-                                            value="{{ $req->id }}">
-                                    @endif
-                                </td>
-                                <td style="display:none">{{ $req->id }}</td>
-                                <td>{{ $req->project->name ?? '(No Project)' }}</td>
-                                <td>
-                                    <span class="material-detail-link gradient-link"
-                                        data-id="{{ $req->inventory->id ?? '' }}">
-                                        {{ $req->inventory->name ?? '(No Material)' }}
-                                    </span>
-                                </td>
-                                <td>{{ rtrim(rtrim(number_format($req->qty, 2, '.', ''), '0'), '.') }}
-                                    {{ $req->inventory->unit ?? '(No Unit)' }}</td>
-                                <td>
-                                    <span data-bs-toggle="tooltip" data-bs-placement="right"
-                                        title="{{ $req->inventory->unit ?? '(No Unit)' }}" class="tooltip-td">
-                                        {{ rtrim(rtrim(number_format($req->remaining_qty, 2, '.', ''), '0'), '.') }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <span data-bs-toggle="tooltip" data-bs-placement="right"
-                                        title="{{ $req->inventory->unit ?? '(No Unit)' }}" class="tooltip-td">
-                                        {{ rtrim(rtrim(number_format($req->processed_qty, 2, '.', ''), '0'), '.') }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <span data-bs-toggle="tooltip" data-bs-placement="right"
-                                        title="{{ $req->user && $req->user->department ? ucfirst($req->user->department->name) : '-' }}"
-                                        class="tooltip-td">
-                                        {{ ucfirst($req->requested_by) }}
-                                    </span>
-                                </td>
-                                <td>{{ $req->created_at?->format('Y-m-d, H:i') }}</td>
-                                <td>
-                                    @if (auth()->user()->isLogisticAdmin())
-                                        <form method="POST" action="{{ route('material_requests.update', $req->id) }}">
-                                            @csrf
-                                            @method('PUT')
-                                            <input type="hidden" name="filter_project"
-                                                value="{{ request('project') }}">
-                                            <input type="hidden" name="filter_material"
-                                                value="{{ request('material') }}">
-                                            <input type="hidden" name="filter_status" value="{{ request('status') }}">
-                                            <input type="hidden" name="filter_requested_by"
-                                                value="{{ request('requested_by') }}">
-                                            <input type="hidden" name="filter_requested_at"
-                                                value="{{ request('requested_at') }}">
-                                            <select name="status"
-                                                class="form-select form-select-sm status-select status-select-rounded"
-                                                onchange="this.form.submit()"
-                                                title="{{ $req->status === 'pending' ? 'Waiting for approval' : ($req->status === 'approved' ? 'Ready for goods out' : ($req->status === 'delivered' ? 'Already delivered' : 'Request canceled')) }}"
-                                                {{ $req->status === 'delivered' ? 'disabled' : '' }}>
-                                                <option value="pending"
-                                                    {{ $req->status === 'pending' ? 'selected' : '' }}>Pending</option>
-                                                <option value="approved"
-                                                    {{ $req->status === 'approved' ? 'selected' : '' }}>Approved</option>
-                                                <option value="canceled"
-                                                    {{ $req->status === 'canceled' ? 'selected' : '' }}>Canceled</option>
-                                                <option value="delivered"
-                                                    {{ $req->status === 'delivered' ? 'selected' : '' }} disabled>Delivered
-                                                </option>
-                                            </select>
-                                        </form>
-                                    @else
-                                        <span
-                                            class="badge rounded-pill {{ $req->getStatusBadgeClass() }}">{{ ucfirst($req->status) }}</span>
-                                    @endif
-                                </td>
-                                <td>{{ $req->remark }}</td>
-                                <td>
-                                    <div class="d-flex flex-nowrap gap-1">
-                                        @if (
-                                            $req->status === 'approved' &&
-                                                $req->status !== 'canceled' &&
-                                                $req->remaining_qty > 0 &&
-                                                auth()->user()->isLogisticAdmin())
-                                            <a href="{{ route('goods_out.create_with_id', $req->id) }}"
-                                                class="btn btn-sm btn-success" data-bs-toggle="tooltip"
-                                                data-bs-placement="bottom" title="Goods Out"><i
-                                                    class="bi bi-box-arrow-right"></i></a>
-                                        @endif
-                                        @if (
-                                            $req->status === 'pending' &&
-                                                (auth()->user()->username === $req->requested_by || auth()->user()->isLogisticAdmin()))
-                                            <a href="{{ route('material_requests.edit', [$req->id] + request()->query()) }}"
-                                                class="btn btn-sm btn-warning" data-bs-toggle="tooltip"
-                                                data-bs-placement="bottom" title="Edit"><i
-                                                    class="bi bi-pencil-square"></i></a>
-                                        @endif
-                                        @if (
-                                            $req->status !== 'canceled' &&
-                                                $req->status !== 'delivered' &&
-                                                (auth()->user()->isRequestOwner($req->requested_by) || auth()->user()->isSuperAdmin()))
-                                            <form action="{{ route('material_requests.destroy', $req->id) }}"
-                                                method="POST" class="delete-form">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="button" class="btn btn-sm btn-danger btn-delete"
-                                                    data-bs-toggle="tooltip" data-bs-placement="bottom" title="Delete"><i
-                                                        class="bi bi-trash3"></i></button>
-                                            </form>
-                                        @endif
-                                        @if (in_array($req->status, ['pending', 'approved']) &&
-                                                (auth()->user()->username === $req->requested_by || auth()->user()->isSuperAdmin()))
-                                            <button class="btn btn-sm btn-primary btn-reminder"
-                                                data-id="{{ $req->id }}" data-bs-toggle="tooltip"
-                                                data-bs-placement="bottom" title="Remind Logistic">
-                                                <i class="bi bi-bell"></i>
-                                            </button>
-                                        @endif
-                                    </div>
-                                </td>
-                            </tr>
-                        @endforeach
+                    <tbody>
+                        {{-- Data akan dimuat via AJAX --}}
                     </tbody>
                 </table>
             </div>
@@ -479,22 +363,116 @@
     <script>
         $(document).ready(function() {
             // Initialize DataTable
-            $('#datatable').DataTable({
-                responsive: true,
-                destroy: true,
-                stateSave: true,
-                columnDefs: [{
-                        orderable: false,
-                        targets: 0
-                    }, // Kolom checkbox tidak dapat diurutkan
-                    {
-                        visible: false,
-                        targets: 1
-                    }, // Sembunyikan kolom ID di DataTable
-                ],
-                rowId: function(data) {
-                    return 'row-' + data[1]; // data[1] adalah kolom ID
+            const table = $('#datatable').DataTable({
+                processing: false,
+                serverSide: true,
+                ajax: {
+                    url: "{{ route('material_requests.index') }}",
+                    data: function(d) {
+                        // Add filter parameters
+                        d.project = $('#filter-project').val();
+                        d.material = $('#filter-material').val();
+                        d.status = $('#filter-status').val();
+                        d.requested_by = $('#filter-requested-by').val();
+                        d.requested_at = $('#filter-requested-at').val();
+                    }
                 },
+                columns: [{
+                        data: 'checkbox',
+                        name: 'checkbox',
+                        orderable: false,
+                        searchable: false
+                    },
+                    {
+                        data: 'id',
+                        name: 'id',
+                        visible: false
+                    },
+                    {
+                        data: 'project_name',
+                        name: 'project.name'
+                    },
+                    {
+                        data: 'material_name',
+                        name: 'inventory.name'
+                    },
+                    {
+                        data: 'requested_qty',
+                        name: 'qty'
+                    },
+                    {
+                        data: 'remaining_qty',
+                        name: 'remaining_qty',
+                        orderable: false
+                    },
+                    {
+                        data: 'processed_qty',
+                        name: 'processed_qty',
+                        orderable: false
+                    },
+                    {
+                        data: 'requested_by',
+                        name: 'requested_by'
+                    },
+                    {
+                        data: 'requested_at',
+                        name: 'created_at'
+                    },
+                    {
+                        data: 'status',
+                        name: 'status'
+                    },
+                    {
+                        data: 'remark',
+                        name: 'remark'
+                    },
+                    {
+                        data: 'actions',
+                        name: 'actions',
+                        orderable: false,
+                        searchable: false
+                    }
+                ],
+                order: [
+                    [8, 'desc']
+                ], // Sort by requested_at
+                pageLength: 25,
+                lengthMenu: [
+                    [10, 25, 50, 100],
+                    [10, 25, 50, 100]
+                ],
+                responsive: true,
+                stateSave: true,
+                language: {
+                    emptyTable: "No material requests available",
+                    zeroRecords: "No matching records found"
+                },
+                drawCallback: function() {
+                    // Reinitialize tooltips
+                    $('[data-bs-toggle="tooltip"]').tooltip();
+
+                    // Update bulk goods out button
+                    updateBulkGoodsOutButton();
+
+                    // Update select colors
+                    $('.status-select').each(function() {
+                        updateStatusTitle($(this));
+                    });
+                }
+            });
+
+            // Filter functionality
+            $('#filter-project, #filter-material, #filter-status, #filter-requested-by, #filter-requested-at').on(
+                'change',
+                function() {
+                    table.draw();
+                });
+
+            // Reset filters
+            $('#reset-filters').on('click', function() {
+                $('#filter-project, #filter-material, #filter-status, #filter-requested-by, #filter-requested-at')
+                    .val('').trigger('change');
+                table.draw();
             });
 
             $('#datatable').on('draw.dt', function() {

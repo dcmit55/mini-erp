@@ -13,6 +13,8 @@ use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\MaterialRequestExport;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Yajra\DataTables\Facades\DataTables;
+use Illuminate\Support\Facades\Cache;
 
 class MaterialRequestController extends Controller
 {
@@ -23,37 +25,195 @@ class MaterialRequestController extends Controller
 
     public function index(Request $request)
     {
-        $query = MaterialRequest::with(['inventory:id,name,quantity,unit', 'project:id,name,department_id', 'user:id,username,department_id', 'user.department:id,name']);
+        if ($request->ajax()) {
+            \Log::info('DataTables request received', $request->all());
+            $query = MaterialRequest::with(['inventory:id,name,quantity,unit', 'project:id,name,department_id', 'user:id,username,department_id', 'user.department:id,name']);
 
-        // Apply filters
-        if ($request->has('project') && $request->project !== null) {
-            $query->where('project_id', $request->project);
+            // Apply filters
+            if ($request->has('project') && $request->project !== null) {
+                $query->where('project_id', $request->project);
+            }
+
+            if ($request->has('material') && $request->material !== null) {
+                $query->where('inventory_id', $request->material);
+            }
+
+            if ($request->has('status') && $request->status !== null) {
+                $query->where('status', $request->status);
+            }
+
+            if ($request->has('requested_by') && $request->requested_by !== null) {
+                $query->where('requested_by', $request->requested_by);
+            }
+
+            if ($request->has('requested_at') && $request->requested_at !== null) {
+                $query->whereDate('created_at', $request->requested_at);
+            }
+
+            return DataTables::of($query)
+                ->addColumn('checkbox', function ($req) {
+                    if ($req->status === 'approved') {
+                        return '<input type="checkbox" class="select-row" id="checkbox-' . $req->id . '" value="' . $req->id . '">';
+                    }
+                    return '';
+                })
+                ->addColumn('project_name', function ($req) {
+                    return $req->project->name ?? '(No Project)';
+                })
+                ->addColumn('material_name', function ($req) {
+                    return '<span class="material-detail-link gradient-link" data-id="' . ($req->inventory->id ?? '') . '">' . ($req->inventory->name ?? '(No Material)') . '</span>';
+                })
+                ->addColumn('requested_qty', function ($req) {
+                    return rtrim(rtrim(number_format($req->qty, 2, '.', ''), '0'), '.') . ' ' . ($req->inventory->unit ?? '(No Unit)');
+                })
+                ->addColumn('remaining_qty', function ($req) {
+                    $remaining = $req->qty - $req->processed_qty;
+                    return '<span data-bs-toggle="tooltip" data-bs-placement="right" title="' . ($req->inventory->unit ?? '(No Unit)') . '">' . rtrim(rtrim(number_format($remaining, 2, '.', ''), '0'), '.') . '</span>';
+                })
+                ->addColumn('processed_qty', function ($req) {
+                    return '<span data-bs-toggle="tooltip" data-bs-placement="right" title="' . ($req->inventory->unit ?? '(No Unit)') . '">' . rtrim(rtrim(number_format($req->processed_qty, 2, '.', ''), '0'), '.') . '</span>';
+                })
+                ->addColumn('requested_by', function ($req) {
+                    $department = $req->user && $req->user->department ? ucfirst($req->user->department->name) : '-';
+                    return '<span data-bs-toggle="tooltip" data-bs-placement="right" title="' . $department . '">' . ucfirst($req->requested_by) . '</span>';
+                })
+                ->addColumn('requested_at', function ($req) {
+                    return $req->created_at?->format('Y-m-d, H:i');
+                })
+                ->addColumn('status', function ($req) {
+                    if (auth()->user()->isLogisticAdmin()) {
+                        return '<form method="POST" action="' .
+                            route('material_requests.update', $req->id) .
+                            '">
+                        <input type="hidden" name="_token" value="' .
+                            csrf_token() .
+                            '">
+                        <input type="hidden" name="_method" value="PUT">
+                        <select name="status" class="form-select form-select-sm status-select status-select-rounded"
+                            onchange="this.form.submit()" ' .
+                            ($req->status === 'delivered' ? 'disabled' : '') .
+                            '>
+                            <option value="pending" ' .
+                            ($req->status === 'pending' ? 'selected' : '') .
+                            '>Pending</option>
+                            <option value="approved" ' .
+                            ($req->status === 'approved' ? 'selected' : '') .
+                            '>Approved</option>
+                            <option value="canceled" ' .
+                            ($req->status === 'canceled' ? 'selected' : '') .
+                            '>Canceled</option>
+                            <option value="delivered" ' .
+                            ($req->status === 'delivered' ? 'selected' : '') .
+                            ' disabled>Delivered</option>
+                        </select>
+                    </form>';
+                    } else {
+                        return '<span class="badge rounded-pill ' . $req->getStatusBadgeClass() . '">' . ucfirst($req->status) . '</span>';
+                    }
+                })
+                ->addColumn('remark', function ($req) {
+                    return $req->remark ?? '-';
+                })
+                ->addColumn('actions', function ($req) {
+                    $authUser = auth()->user();
+                    $isLogisticAdmin = $authUser->isLogisticAdmin();
+                    $isSuperAdmin = $authUser->isSuperAdmin();
+                    $isRequestOwner = $authUser->username === $req->requested_by;
+
+                    $actions = '<div class="d-flex flex-nowrap gap-1">';
+
+                    // Goods Out Button
+                    if ($req->status === 'approved' && $req->status !== 'canceled' && $req->qty - $req->processed_qty > 0 && $isLogisticAdmin) {
+                        $actions .=
+                            '<a href="' .
+                            route('goods_out.create_with_id', $req->id) .
+                            '" class="btn btn-sm btn-success" title="Goods Out">
+                                <i class="bi bi-box-arrow-right"></i>
+                            </a>';
+                    }
+
+                    // Edit Button
+                    if ($req->status !== 'canceled' && ($isRequestOwner || $isLogisticAdmin)) {
+                        $actions .=
+                            '<a href="' .
+                            route('material_requests.edit', $req->id) .
+                            '" class="btn btn-sm btn-warning" title="Edit">
+                                <i class="bi bi-pencil-square"></i>
+                            </a>';
+                    }
+
+                    // Delete Button Logic - SEMUA STATUS BISA DIHAPUS dengan permission yang tepat
+                    $canDelete = false;
+                    $deleteTooltip = 'Delete';
+
+                    if (in_array($req->status, ['approved', 'delivered'])) {
+                        // Only super admin can delete approved/delivered requests
+                        if ($isSuperAdmin) {
+                            $canDelete = true;
+                            $deleteTooltip = 'Delete (Super Admin Only)';
+                        }
+                    } elseif (in_array($req->status, ['pending', 'canceled'])) {
+                        // Owner or super admin can delete pending/canceled requests
+                        if ($isRequestOwner || $isSuperAdmin) {
+                            $canDelete = true;
+                            if ($req->status === 'canceled') {
+                                $deleteTooltip = 'Delete Canceled Request';
+                            }
+                        }
+                    }
+
+                    if ($canDelete) {
+                        $actions .=
+                            '<form action="' .
+                            route('material_requests.destroy', $req->id) .
+                            '" method="POST" class="delete-form" style="display:inline;">
+                        <input type="hidden" name="_method" value="DELETE">
+                        <input type="hidden" name="_token" value="' .
+                            csrf_token() .
+                            '">
+                        <button type="button" class="btn btn-sm btn-danger btn-delete" title="' .
+                            $deleteTooltip .
+                            '">
+                            <i class="bi bi-trash3"></i>
+                        </button>
+                        </form>';
+                    }
+
+                    // Reminder Button
+                    if (in_array($req->status, ['pending', 'approved']) && ($isRequestOwner || $isSuperAdmin)) {
+                        $actions .=
+                            '<button class="btn btn-sm btn-primary btn-reminder" data-id="' .
+                            $req->id .
+                            '" title="Remind Logistic">
+                        <i class="bi bi-bell"></i>
+                        </button>';
+                    }
+
+                    return $actions;
+                })
+                ->rawColumns(['checkbox', 'material_name', 'remaining_qty', 'processed_qty', 'requested_by', 'status', 'remark', 'actions'])
+                ->setRowId(function ($req) {
+                    return 'row-' . $req->id;
+                })
+                ->orderColumn('requested_at', 'created_at $1')
+                ->make(true);
         }
 
-        if ($request->has('material') && $request->material !== null) {
-            $query->where('inventory_id', $request->material);
-        }
+        // For non-AJAX requests, return view with filter data only
+        // Cache filter options for better performance
+        $projects = Cache::remember('material_requests_projects', 300, function () {
+            return Project::orderBy('name')->get(['id', 'name']);
+        });
 
-        if ($request->has('status') && $request->status !== null) {
-            $query->where('status', $request->status);
-        }
+        $materials = Cache::remember('material_requests_materials', 300, function () {
+            return Inventory::orderBy('name')->get(['id', 'name']);
+        });
 
-        if ($request->has('requested_by') && $request->requested_by !== null) {
-            $query->where('requested_by', $request->requested_by);
-        }
+        $users = Cache::remember('material_requests_users', 300, function () {
+            return User::orderBy('username')->get(['username']);
+        });
 
-        if ($request->has('requested_at') && $request->requested_at !== null) {
-            $query->whereDate('created_at', $request->requested_at);
-        }
-
-        $requests = $query->orderBy('created_at', 'desc')->get();
-
-        // Pass data for filters
-        $projects = Project::orderBy('name')->get();
-        $materials = Inventory::orderBy('name')->get();
-        $users = User::orderBy('username')->get();
-
-        return view('material_requests.index', compact('requests', 'projects', 'materials', 'users'));
+        return view('material_requests.index', compact('projects', 'materials', 'users'));
     }
 
     public function export(Request $request)
@@ -285,10 +445,17 @@ class MaterialRequestController extends Controller
             return redirect()->route('material_requests.index')->with('error', 'Only pending requests can be edited.');
         }
 
+        // Validasi: Pastikan request bukan milik user lain kecuali admin logistic
+        if (auth()->user()->username !== $materialRequest->requested_by && !auth()->user()->isLogisticAdmin()) {
+            return redirect()->route('material_requests.index', $filters)->with('error', 'You do not have permission to edit this request.');
+        }
+
+        // Validasi: Pastikan request bukan status canceled
         if ($materialRequest->status === 'canceled') {
             return redirect()->route('material_requests.index', $filters)->with('error', 'Canceled requests cannot be edited.');
         }
 
+        // Validasi: Pastikan inventory dan project masih ada
         if (!$materialRequest->inventory || !$materialRequest->project) {
             return redirect()->route('material_requests.index', $filters)->with('error', 'The associated inventory or project no longer exists.');
         }
@@ -438,9 +605,22 @@ class MaterialRequestController extends Controller
         ];
         $filters = array_filter($filters, fn($v) => !is_null($v) && $v !== '');
 
-        // Tidak boleh delete jika status delivered/canceled
-        if (in_array($materialRequest->status, ['delivered', 'canceled'])) {
-            return redirect()->route('material_requests.index')->with('error', 'Delivered or canceled requests cannot be deleted.');
+        // Check user permissions
+        $authUser = auth()->user();
+        $isSuperAdmin = $authUser->isSuperAdmin();
+        $isRequestOwner = $authUser->username === $materialRequest->requested_by;
+
+        // Validasi berdasarkan status dan role user
+        if (in_array($materialRequest->status, ['approved', 'delivered'])) {
+            // Hanya super admin yang bisa delete request dengan status approved/delivered
+            if (!$isSuperAdmin) {
+                return redirect()->route('material_requests.index', $filters)->with('error', 'Only Super Admin can delete approved or delivered requests.');
+            }
+        } elseif (in_array($materialRequest->status, ['pending', 'canceled'])) {
+            // Owner atau super admin bisa delete pending/canceled requests
+            if (!$isRequestOwner && !$isSuperAdmin) {
+                return redirect()->route('material_requests.index', $filters)->with('error', 'You do not have permission to delete this request.');
+            }
         }
 
         // Trigger event

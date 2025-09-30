@@ -172,12 +172,28 @@ function updateSelectColor(selectElement) {
 function updateDataTable(materialRequest) {
     const table = $("#datatable").DataTable();
     const rowSelector = `#row-${materialRequest.id}`;
-    let row = table.row(rowSelector);
 
-    // Logika untuk kolom status
-    let statusColumn = materialRequest.status;
-    if (["admin_logistic", "super_admin"].includes(authUserRole)) {
-        statusColumn = `
+    if (table.page.info().serverSide) {
+        // Check if the updated row is in current view
+        const currentData = table.rows().data().toArray();
+        const existingRowIndex = currentData.findIndex(
+            (row) => row.id == materialRequest.id
+        );
+
+        if (existingRowIndex !== -1) {
+            // Row exists in current view, reload table
+            table.draw("page"); // Reload current page only
+        } else {
+            // Row might be on different page, check if it should be visible with current filters
+            table.draw(false); // Reload without resetting pagination
+        }
+        table.ajax.reload(null, false);
+    } else {
+        // Logika untuk kolom status
+        let row = table.row(rowSelector);
+        let statusColumn = materialRequest.status;
+        if (["admin_logistic", "super_admin"].includes(authUserRole)) {
+            statusColumn = `
         <form method="POST" action="/material_requests/${materialRequest.id}">
             <input type="hidden" name="_token" value="${$(
                 'meta[name="csrf-token"]'
@@ -201,179 +217,190 @@ function updateDataTable(materialRequest) {
                 } disabled>Delivered</option>
             </select>
         </form>`;
-    } else {
-        const badgeClass =
-            materialRequest.status === "pending"
-                ? "text-bg-warning"
-                : materialRequest.status === "approved"
-                ? "text-bg-primary"
-                : materialRequest.status === "delivered"
-                ? "text-bg-success"
-                : materialRequest.status === "canceled"
-                ? "text-bg-danger"
-                : "";
+        } else {
+            const badgeClass =
+                materialRequest.status === "pending"
+                    ? "text-bg-warning"
+                    : materialRequest.status === "approved"
+                    ? "text-bg-primary"
+                    : materialRequest.status === "delivered"
+                    ? "text-bg-success"
+                    : materialRequest.status === "canceled"
+                    ? "text-bg-danger"
+                    : "";
 
-        statusColumn = `<span class="badge rounded-pill ${badgeClass}">${ucfirst(
-            materialRequest.status
-        )}</span>`;
-    }
+            statusColumn = `<span class="badge rounded-pill ${badgeClass}">${ucfirst(
+                materialRequest.status
+            )}</span>`;
+        }
 
-    // Logika untuk checkbox
-    let checkboxColumn = "";
-    if (materialRequest.status === "approved") {
-        checkboxColumn = `<input type="checkbox" class="select-row" value="${materialRequest.id}">`;
-    }
+        // Logika untuk checkbox
+        let checkboxColumn = "";
+        if (materialRequest.status === "approved") {
+            checkboxColumn = `<input type="checkbox" class="select-row" value="${materialRequest.id}">`;
+        }
 
-    // Logika untuk tombol Goods Out, Edit, Delete
-    const authUser = window.authUser || {};
-    const isLogisticAdmin = !!authUser.is_logistic_admin;
-    const isSuperAdmin = !!authUser.is_super_admin;
-    const isRequestOwner = authUser.username === materialRequest.requested_by;
+        // Logika untuk tombol Goods Out, Edit, Delete
+        const authUser = window.authUser || {};
+        const isLogisticAdmin = !!authUser.is_logistic_admin;
+        const isSuperAdmin = !!authUser.is_super_admin;
+        const isRequestOwner =
+            authUser.username === materialRequest.requested_by;
 
-    let actionColumn = `<div class="d-flex flex-nowrap gap-1">`;
+        let actionColumn = `<div class="d-flex flex-nowrap gap-1">`;
 
-    // Goods Out Button
-    if (
-        materialRequest.status === "approved" &&
-        materialRequest.status !== "canceled" &&
-        materialRequest.qty - (materialRequest.processed_qty ?? 0) > 0 &&
-        isLogisticAdmin
-    ) {
-        actionColumn += `
+        // Goods Out Button
+        if (
+            materialRequest.status === "approved" &&
+            materialRequest.status !== "canceled" &&
+            materialRequest.qty - (materialRequest.processed_qty ?? 0) > 0 &&
+            isLogisticAdmin
+        ) {
+            actionColumn += `
             <a href="/goods_out/create/${materialRequest.id}" class="btn btn-sm btn-success" title="Goods Out">
                 <i class="bi bi-box-arrow-right"></i>
             </a>
-        `;
-    }
+            `;
+        }
 
-    // Edit Button
-    if (
-        materialRequest.status !== "canceled" &&
-        (isRequestOwner || isLogisticAdmin)
-    ) {
-        actionColumn += `
+        // Edit Button
+        if (
+            materialRequest.status !== "canceled" &&
+            (isRequestOwner || isLogisticAdmin)
+        ) {
+            actionColumn += `
             <a href="/material_requests/${materialRequest.id}/edit" class="btn btn-sm btn-warning" title="Edit">
                 <i class="bi bi-pencil-square"></i>
             </a>
-        `;
-    }
+            `;
+        }
 
-    // Delete Button
-    if (
-        materialRequest.status !== "canceled" &&
-        (isRequestOwner || isSuperAdmin)
-    ) {
-        actionColumn += `
-            <form action="/material_requests/${
-                materialRequest.id
-            }" method="POST" class="delete-form" style="display:inline;">
-                <input type="hidden" name="_method" value="DELETE">
-                <input type="hidden" name="_token" value="${$(
-                    'meta[name="csrf-token"]'
-                ).attr("content")}">
-                <button type="button" class="btn btn-sm btn-danger btn-delete" title="Delete">
-                    <i class="bi bi-trash3"></i>
-                </button>
-            </form>
-        `;
-    }
+        // Delete Button - Updated Logic
+        let canDelete = false;
+        let deleteTooltip = "Delete";
 
-    // Reminder Button
-    if (
-        ["pending", "approved"].includes(materialRequest.status) &&
-        (isRequestOwner || isSuperAdmin)
-    ) {
-        actionColumn += `
+        if (["approved", "delivered"].includes(materialRequest.status)) {
+            // Only super admin can delete approved/delivered requests
+            if (isSuperAdmin) {
+                canDelete = true;
+                deleteTooltip = "Delete (Super Admin Only)";
+            }
+        } else if (["pending", "canceled"].includes(materialRequest.status)) {
+            // Owner or super admin can delete pending/canceled requests
+            if (isRequestOwner || isSuperAdmin) {
+                canDelete = true;
+                if (materialRequest.status === "canceled") {
+                    deleteTooltip = "Delete Canceled Request";
+                }
+            }
+        }
+
+        if (canDelete) {
+            actionColumn += `
+        <form action="/material_requests/${
+            materialRequest.id
+        }" method="POST" class="delete-form" style="display:inline;">
+            <input type="hidden" name="_method" value="DELETE">
+            <input type="hidden" name="_token" value="${$(
+                'meta[name="csrf-token"]'
+            ).attr("content")}">
+            <button type="button" class="btn btn-sm btn-danger btn-delete" title="${deleteTooltip}">
+                <i class="bi bi-trash3"></i>
+            </button>
+        </form>
+        `;
+        }
+
+        // Reminder Button
+        if (
+            ["pending", "approved"].includes(materialRequest.status) &&
+            (isRequestOwner || isSuperAdmin)
+        ) {
+            actionColumn += `
             <button class="btn btn-sm btn-primary btn-reminder"
                 data-id="${materialRequest.id}" data-bs-toggle="tooltip"
                 data-bs-placement="bottom" title="Remind Logistic">
                 <i class="bi bi-bell"></i>
             </button>
         `;
-    }
+        }
 
-    // Jika status canceled, tampilkan info
-    if (materialRequest.status === "canceled") {
-        actionColumn = `<span class="text-muted">No actions available</span>`;
-    } else {
-        actionColumn += `</div>`;
-    }
+        // Format angka dinamis
+        function formatNumberDynamic(num) {
+            if (num == null) return "0";
+            num = Number(num);
+            if (Number.isInteger(num)) return num.toString();
+            return num % 1 === 0
+                ? num.toFixed(0)
+                : num.toString().replace(/\.?0+$/, "");
+        }
 
-    // Format angka dinamis
-    function formatNumberDynamic(num) {
-        if (num == null) return "0";
-        num = Number(num);
-        if (Number.isInteger(num)) return num.toString();
-        return num % 1 === 0
-            ? num.toFixed(0)
-            : num.toString().replace(/\.?0+$/, "");
-    }
+        // Format tanggal
+        const formattedDate = moment(materialRequest.created_at).format(
+            "YYYY-MM-DD, HH:mm"
+        );
 
-    // Format tanggal
-    const formattedDate = moment(materialRequest.created_at).format(
-        "YYYY-MM-DD, HH:mm"
-    );
+        // Ambil nama departemen dari user yang membuat permintaan
+        const departmentName = getDepartmentName(materialRequest);
 
-    // Ambil nama departemen dari user yang membuat permintaan
-    const departmentName = getDepartmentName(materialRequest);
-
-    const rowData = [
-        checkboxColumn, // Checkbox
-        materialRequest.id, // Kolom ID tersembunyi
-        materialRequest.project?.name || "N/A", // Project
-        `<span class="material-detail-link gradient-link" data-id="${
-            materialRequest.inventory?.id || ""
-        }" style="cursor:pointer;">
+        const rowData = [
+            checkboxColumn, // Checkbox
+            materialRequest.id, // Kolom ID tersembunyi
+            materialRequest.project?.name || "N/A", // Project
+            `<span class="material-detail-link gradient-link" data-id="${
+                materialRequest.inventory?.id || ""
+            }" style="cursor:pointer;">
         ${materialRequest.inventory?.name || "(No Material)"}
         </span>`, // Material Name with gradient link
-        `${formatNumberDynamic(materialRequest.qty)} ${
-            materialRequest.inventory?.unit || ""
-        }`, // Requested Qty
-        `<span data-bs-toggle="tooltip" data-bs-placement="right" title="${
-            materialRequest.inventory?.unit || "(No Unit)"
-        }">
+            `${formatNumberDynamic(materialRequest.qty)} ${
+                materialRequest.inventory?.unit || ""
+            }`, // Requested Qty
+            `<span data-bs-toggle="tooltip" data-bs-placement="right" title="${
+                materialRequest.inventory?.unit || "(No Unit)"
+            }">
             ${formatNumberDynamic(
                 materialRequest.qty - (materialRequest.processed_qty ?? 0)
             )}
         </span>`, // Remaining Qty with tooltip
-        `<span data-bs-toggle="tooltip" data-bs-placement="right" title="${
-            materialRequest.inventory?.unit || "(No Unit)"
-        }">
+            `<span data-bs-toggle="tooltip" data-bs-placement="right" title="${
+                materialRequest.inventory?.unit || "(No Unit)"
+            }">
             ${formatNumberDynamic(materialRequest.processed_qty ?? 0)}
         </span>`, // Processed Qty with tooltip
-        `<span data-bs-toggle="tooltip" data-bs-placement="right" title="${ucfirst(
-            departmentName
-        )}" class="requested-by-tooltip">${ucfirst(
-            materialRequest.requested_by
-        )}</span>`, // Requested By
-        formattedDate, // Requested At (format lokal)
-        statusColumn, // Status
-        materialRequest.remark || "-", // Remark
-        actionColumn, // Action
-    ];
+            `<span data-bs-toggle="tooltip" data-bs-placement="right" title="${ucfirst(
+                departmentName
+            )}" class="requested-by-tooltip">${ucfirst(
+                materialRequest.requested_by
+            )}</span>`, // Requested By
+            formattedDate, // Requested At (format lokal)
+            statusColumn, // Status
+            materialRequest.remark || "-", // Remark
+            actionColumn, // Action
+        ];
 
-    if (!row.node()) {
-        table.row.add(rowData).draw();
-        table.order([8, "desc"]).draw(); // Urutkan ulang tabel berdasarkan kolom `Requested At`
-        return;
+        if (!row.node()) {
+            table.row.add(rowData).draw();
+            table.order([8, "desc"]).draw(); // Urutkan ulang tabel berdasarkan kolom `Requested At`
+            return;
+        }
+
+        row.data(rowData).draw();
+        table.order([8, "desc"]).draw(); // Urutkan ulang tabel setelah pembaruan
+
+        // Perbarui warna elemen <select> setelah elemen ditambahkan
+        const selectElement = row.node().querySelector(".status-select");
+        if (selectElement) {
+            updateSelectColor(selectElement);
+        }
+
+        // Inisialisasi ulang tooltip Bootstrap pada elemen baru
+        const tooltipTriggerList = [].slice.call(
+            row.node().querySelectorAll('[data-bs-toggle="tooltip"]')
+        );
+        tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+            new bootstrap.Tooltip(tooltipTriggerEl);
+        });
     }
-
-    row.data(rowData).draw();
-    table.order([8, "desc"]).draw(); // Urutkan ulang tabel setelah pembaruan
-
-    // Perbarui warna elemen <select> setelah elemen ditambahkan
-    const selectElement = row.node().querySelector(".status-select");
-    if (selectElement) {
-        updateSelectColor(selectElement);
-    }
-
-    // Inisialisasi ulang tooltip Bootstrap pada elemen baru
-    const tooltipTriggerList = [].slice.call(
-        row.node().querySelectorAll('[data-bs-toggle="tooltip"]')
-    );
-    tooltipTriggerList.forEach(function (tooltipTriggerEl) {
-        new bootstrap.Tooltip(tooltipTriggerEl);
-    });
 
     // Update bulk goods out button count after DataTable update
     setTimeout(() => {

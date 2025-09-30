@@ -14,9 +14,9 @@ class MaterialRequestReminder implements ShouldBroadcast
 
     public $materialRequest;
 
-    public function __construct(MaterialRequest $materialRequest)
+    public function __construct($materialRequest)
     {
-        $this->materialRequest = $materialRequest;
+        $this->materialRequest = $materialRequest->load('inventory', 'project', 'user.department');
     }
 
     public function broadcastOn()
@@ -28,7 +28,7 @@ class MaterialRequestReminder implements ShouldBroadcast
     {
         return [
             'materialRequest' => $this->materialRequest->load('project', 'inventory'),
-            'action' => 'reminder'
+            'action' => 'reminder',
         ];
     }
 }
