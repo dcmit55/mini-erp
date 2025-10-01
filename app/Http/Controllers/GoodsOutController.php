@@ -334,8 +334,8 @@ class GoodsOutController extends Controller
             DB::commit();
 
             // Broadcast real-time ke semua client
-            if ($updatedRequests) {
-                event(new \App\Events\MaterialRequestUpdated($updatedRequests, 'status'));
+            foreach ($updatedRequests as $mr) {
+                event(new \App\Events\MaterialRequestUpdated($mr, 'status'));
             }
 
             return response()->json(['success' => true, 'message' => 'Bulk Goods Out processed successfully.']);

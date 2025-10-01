@@ -284,8 +284,53 @@
             background-color: #f8f9fa;
         }
 
-        .tooltip-td {
-            cursor: pointer;
+        .tooltip {
+            z-index: 9999 !important;
+            /* Ensure tooltips appear above everything */
+        }
+
+        .tooltip-inner {
+            max-width: 200px;
+            padding: 0.3rem 0.6rem;
+            font-size: 0.775rem;
+            line-height: 1.2;
+            text-align: left;
+        }
+
+        /* Force right placement for table tooltips */
+        .table [data-bs-toggle="tooltip"] {
+            position: relative;
+        }
+
+        /* Ensure table cells have enough space for tooltips */
+        #datatable td {
+            position: relative;
+            overflow: visible !important;
+            /* Allow tooltips to overflow */
+        }
+
+        /* Specific styling for table container */
+        .table-responsive {
+            overflow: visible !important;
+            /* Allow tooltips to show outside table */
+        }
+
+        /* Override DataTables responsive styles that might clip tooltips */
+        .dataTables_wrapper {
+            overflow: visible !important;
+        }
+
+        /* Ensure tooltips work properly in responsive mode */
+        @media (max-width: 768px) {
+            .tooltip-inner {
+                max-width: 150px;
+                font-size: 0.6rem;
+            }
+
+            /* On mobile, prefer top/bottom placement */
+            .table [data-bs-toggle="tooltip"] {
+                --bs-tooltip-placement: top;
+            }
         }
 
         #bulkGoodsOutModal .table-sm th,
@@ -366,7 +411,7 @@
             const table = $('#datatable').DataTable({
                 processing: false, // Hide processing indicator
                 serverSide: true, // Enable server-side processing
-                searching: false, // Disable default search (use custom filters)
+                // searching: false,
                 ajax: {
                     url: "{{ route('material_requests.index') }}",
                     data: function(d) {
@@ -666,7 +711,7 @@
 
                 if (!isValid) {
                     Swal.fire('Error', 'Qty to Goods Out must be between 0.001 and Remaining Qty.',
-                    'error');
+                        'error');
                     return;
                 }
 
@@ -832,11 +877,18 @@
             // Dispose existing tooltips first
             $(container).find('[data-bs-toggle="tooltip"]').tooltip('dispose');
 
-            // Initialize new tooltips in batch
+            // Initialize new tooltips with enhanced configuration
             const tooltipElements = container.querySelectorAll('[data-bs-toggle="tooltip"]');
             tooltipElements.forEach(element => {
                 new bootstrap.Tooltip(element, {
-                    trigger: 'hover focus'
+                    trigger: 'hover focus',
+                    placement: 'right', // Force right placement
+                    fallbackPlacements: ['top', 'bottom', 'left'], // Fallback order
+                    boundary: 'viewport', // Use viewport as boundary instead of container
+                    container: 'body', // Append to body instead of parent container
+                    offset: [0, 8], // Add some spacing from element
+                    sanitize: false,
+                    html: true // Allow HTML in tooltips if needed
                 });
             });
         }
