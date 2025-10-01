@@ -28,15 +28,24 @@ class ProjectController extends Controller
             $query->where('qty', $request->quantity);
         }
 
-        // Filter by department name (bukan id)
+        // Filter by department - handle both ID and name
         if ($request->has('department') && $request->department !== null) {
-            $query->whereHas('department', function ($q) use ($request) {
-                $q->where('name', $request->department);
-            });
+            $departmentFilter = $request->department;
+
+            // Check if it's numeric (ID) or string (name)
+            if (is_numeric($departmentFilter)) {
+                // Filter by department ID
+                $query->where('department_id', $departmentFilter);
+            } else {
+                // Filter by department name
+                $query->whereHas('department', function ($q) use ($departmentFilter) {
+                    $q->where('name', $departmentFilter);
+                });
+            }
         }
 
         $projects = $query->latest()->get();
-        $departments = Department::orderBy('name')->get(); // Tambahkan baris ini
+        $departments = Department::orderBy('name')->get();
 
         return view('projects.index', compact('projects', 'departments'));
     }

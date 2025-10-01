@@ -37,75 +37,84 @@
             </div>
         </div>
 
-        <!-- Key Metrics Row -->
+        <!-- Key Metrics Row dengan Link -->
         <div class="row g-4 mb-4">
-            <!-- Total Inventory -->
+            <!-- Total Inventory - Link ke Inventory Index -->
             <div class="col-xl-3 col-md-6">
-                <div class="card border-0 shadow-sm h-100 card-hover">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center">
-                            <div class="flex-shrink-0">
-                                <div class="metric-icon bg-primary bg-opacity-10 text-primary rounded-3 p-3">
-                                    <i class="fas fa-boxes fs-4"></i>
+                <a href="{{ route('inventory.index') }}" class="text-decoration-none">
+                    <div class="card border-0 shadow-sm h-100 card-hover">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0">
+                                    <div class="metric-icon bg-primary bg-opacity-10 text-primary rounded-3 p-3">
+                                        <i class="fas fa-boxes fs-4"></i>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="flex-grow-1 ms-3">
-                                <div class="metric-value fw-bold fs-3 text-dark">{{ number_format($inventoryCount) }}</div>
-                                <div class="metric-label text-muted">Total Inventory Items</div>
-                                <div class="metric-trend small">
-                                    <span class="text-danger"><i class="fas fa-exclamation-triangle"></i>
-                                        {{ $lowStockItems }} Low Stock</span>
+                                <div class="flex-grow-1 ms-3">
+                                    <div class="metric-value fw-bold fs-3 text-dark">{{ number_format($inventoryCount) }}
+                                    </div>
+                                    <div class="metric-label text-muted">Total Inventory Items</div>
+                                    <div class="metric-trend small">
+                                        <span class="text-danger"><i class="fas fa-exclamation-triangle"></i>
+                                            {{ $lowStockItems }} Low Stock</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                </a>
             </div>
 
-            <!-- Active Projects -->
+            <!-- Active Projects - Link ke Projects Index -->
             <div class="col-xl-3 col-md-6">
-                <div class="card border-0 shadow-sm h-100 card-hover">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center">
-                            <div class="flex-shrink-0">
-                                <div class="metric-icon bg-success bg-opacity-10 text-success rounded-3 p-3">
-                                    <i class="fas fa-project-diagram fs-4"></i>
+                <a href="{{ route('projects.index') }}" class="text-decoration-none">
+                    <div class="card border-0 shadow-sm h-100 card-hover">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0">
+                                    <div class="metric-icon bg-success bg-opacity-10 text-success rounded-3 p-3">
+                                        <i class="fas fa-project-diagram fs-4"></i>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="flex-grow-1 ms-3">
-                                <div class="metric-value fw-bold fs-3 text-dark">{{ number_format($activeProjects) }}</div>
-                                <div class="metric-label text-muted">Active Projects</div>
-                                <div class="metric-trend small">
-                                    <span class="text-success"><i class="fas fa-arrow-up"></i> {{ $projectsThisMonth }} This
-                                        Month</span>
+                                <div class="flex-grow-1 ms-3">
+                                    <div class="metric-value fw-bold fs-3 text-dark">{{ number_format($activeProjects) }}
+                                    </div>
+                                    <div class="metric-label text-muted">Active Projects</div>
+                                    <div class="metric-trend small">
+                                        <span class="text-success"><i class="fas fa-arrow-up"></i> {{ $projectsThisMonth }}
+                                            This Month</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                </a>
             </div>
 
-            <!-- Pending Requests -->
+            <!-- Pending Requests - Link ke Material Requests dengan Filter Pending -->
             <div class="col-xl-3 col-md-6">
-                <div class="card border-0 shadow-sm h-100 card-hover">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center">
-                            <div class="flex-shrink-0">
-                                <div class="metric-icon bg-warning bg-opacity-10 text-warning rounded-3 p-3">
-                                    <i class="fas fa-clock fs-4"></i>
+                <a href="{{ route('material_requests.index') }}?status=pending" class="text-decoration-none">
+                    <div class="card border-0 shadow-sm h-100 card-hover">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0">
+                                    <div class="metric-icon bg-warning bg-opacity-10 text-warning rounded-3 p-3">
+                                        <i class="fas fa-clock fs-4"></i>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="flex-grow-1 ms-3">
-                                <div class="metric-value fw-bold fs-3 text-dark">{{ number_format($pendingRequests) }}</div>
-                                <div class="metric-label text-muted">Pending Requests</div>
-                                <div class="metric-trend small">
-                                    <span class="text-info"><i class="fas fa-info-circle"></i> {{ $totalRequests }}
-                                        Total</span>
+                                <div class="flex-grow-1 ms-3">
+                                    <div class="metric-value fw-bold fs-3 text-dark">{{ number_format($pendingRequests) }}
+                                    </div>
+                                    <div class="metric-label text-muted">Pending Requests</div>
+                                    <div class="metric-trend small">
+                                        <span class="text-info"><i class="fas fa-info-circle"></i> {{ $totalRequests }}
+                                            Total</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                </a>
             </div>
 
             <!-- Inventory Value - Only for Super Admin, Admin Finance, and Admin Logistic -->
@@ -158,7 +167,8 @@
                                     @endif
                                 </div>
                                 <div class="flex-grow-1 ms-3">
-                                    <div class="metric-value fw-bold fs-3 text-dark">{{ number_format($completedProjects) }}
+                                    <div class="metric-value fw-bold fs-3 text-dark">
+                                        {{ number_format($completedProjects) }}
                                     </div>
                                     <div class="metric-label text-muted">Completed Projects</div>
                                     <div class="metric-trend small">
@@ -182,12 +192,16 @@
                             <h5 class="card-title mb-0 fw-bold">Monthly Trends</h5>
                             <div class="dropdown">
                                 <button class="btn btn-sm btn-outline-brand dropdown-toggle" type="button"
-                                    data-bs-toggle="dropdown">
-                                    <i class="fas fa-filter me-1"></i> Filter
+                                    data-bs-toggle="dropdown" id="trendsFilterBtn">
+                                    <i class="fas fa-filter me-1"></i> Last 6 Months
                                 </button>
                                 <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="#">Last 6 Months</a></li>
-                                    <li><a class="dropdown-item" href="#">Last Year</a></li>
+                                    <li><a class="dropdown-item trends-filter" href="#" data-months="6">Last 6
+                                            Months</a></li>
+                                    <li><a class="dropdown-item trends-filter" href="#" data-months="12">Last
+                                            Year</a></li>
+                                    <li><a class="dropdown-item trends-filter" href="#" data-months="3">Last 3
+                                            Months</a></li>
                                 </ul>
                             </div>
                         </div>
@@ -231,7 +245,8 @@
                     <div class="card-header bg-transparent border-0 py-3">
                         <div class="d-flex align-items-center justify-content-between">
                             <h5 class="card-title mb-0 fw-bold">Recent Material Requests</h5>
-                            <a href="#" class="btn btn-sm btn-outline-brand">View All</a>
+                            <a href="{{ route('material_requests.index') }}" class="btn btn-sm btn-outline-brand">View
+                                All</a>
                         </div>
                     </div>
                     <div class="card-body p-0">
@@ -317,7 +332,7 @@
 
         <!-- Department Overview and Quick Actions -->
         <div class="row g-4 mb-4">
-            <!-- Department Overview -->
+            <!-- Department Overview dengan JavaScript handling -->
             <div class="col-xl-8">
                 <div class="card border-0 shadow-sm">
                     <div class="card-header bg-transparent border-0 py-3">
@@ -327,7 +342,9 @@
                         <div class="row g-3">
                             @foreach ($departmentStats as $dept)
                                 <div class="col-md-6 col-lg-4">
-                                    <div class="dept-card bg-light rounded-3 p-3 text-center">
+                                    <div class="dept-card bg-light rounded-3 p-3 text-center"
+                                        data-department-id="{{ $dept->id }}"
+                                        data-department-name="{{ $dept->name }}">
                                         <div class="dept-icon mb-2">
                                             <i class="fas fa-building text-brand-icon fs-3"></i>
                                         </div>
@@ -642,43 +659,64 @@
 
             // Initialize Artisan Actions
             initializeArtisanActions();
+
+            // Department card click handler
+            initializeDepartmentCards();
         });
 
-        // Monthly Trends Chart
-        function initializeTrendsChart() {
+        // ✅ Event listener untuk filter trends
+        document.querySelectorAll('.trends-filter').forEach(filter => {
+            filter.addEventListener('click', function(e) {
+                e.preventDefault();
+                const months = parseInt(this.dataset.months);
+                const filterText = this.textContent;
+
+                // Update button text
+                document.getElementById('trendsFilterBtn').innerHTML =
+                    `<i class="fas fa-filter me-1"></i> ${filterText}`;
+
+                // Update chart
+                updateTrendsChart(months);
+            });
+        });
+
+        // ✅ Updated Monthly Trends Chart dengan parameter months
+        function initializeTrendsChart(months = 6) {
             const ctx = document.getElementById('trendsChart');
             if (!ctx) return;
 
-            const monthlyData = @json($monthlyData);
+            // Filter data berdasarkan months
+            const allMonthlyData = @json($monthlyData);
+            const filteredData = allMonthlyData.slice(-months); // Ambil n bulan terakhir
 
-            new Chart(ctx, {
+            trendsChart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: monthlyData.map(item => item.month),
+                    labels: filteredData.map(item => item.month),
                     datasets: [{
                         label: 'Projects',
-                        data: monthlyData.map(item => item.projects),
+                        data: filteredData.map(item => item.projects),
                         borderColor: '#8F12FE',
                         backgroundColor: 'rgba(143, 18, 254, 0.1)',
                         tension: 0.4,
                         fill: true
                     }, {
                         label: 'Goods In',
-                        data: monthlyData.map(item => item.goods_in),
+                        data: filteredData.map(item => item.goods_in),
                         borderColor: '#28a745',
                         backgroundColor: 'rgba(40, 167, 69, 0.1)',
                         tension: 0.4,
                         fill: true
                     }, {
                         label: 'Goods Out',
-                        data: monthlyData.map(item => item.goods_out),
+                        data: filteredData.map(item => item.goods_out),
                         borderColor: '#dc3545',
                         backgroundColor: 'rgba(220, 53, 69, 0.1)',
                         tension: 0.4,
                         fill: true
                     }, {
                         label: 'Requests',
-                        data: monthlyData.map(item => item.requests),
+                        data: filteredData.map(item => item.requests),
                         borderColor: '#ffc107',
                         backgroundColor: 'rgba(255, 193, 7, 0.1)',
                         tension: 0.4,
@@ -714,6 +752,22 @@
                     }
                 }
             });
+        }
+
+        // ✅ Function untuk update chart dengan filter baru
+        function updateTrendsChart(months) {
+            if (!trendsChart) return;
+
+            const allMonthlyData = @json($monthlyData);
+            const filteredData = allMonthlyData.slice(-months);
+
+            trendsChart.data.labels = filteredData.map(item => item.month);
+            trendsChart.data.datasets[0].data = filteredData.map(item => item.projects);
+            trendsChart.data.datasets[1].data = filteredData.map(item => item.goods_in);
+            trendsChart.data.datasets[2].data = filteredData.map(item => item.goods_out);
+            trendsChart.data.datasets[3].data = filteredData.map(item => item.requests);
+
+            trendsChart.update();
         }
 
         // Request Status Doughnut Chart
@@ -783,6 +837,28 @@
 
             updateClock();
             setInterval(updateClock, 10000);
+        }
+
+        function initializeDepartmentCards() {
+            document.querySelectorAll('.dept-card[data-department-id]').forEach(card => {
+                card.addEventListener('click', function() {
+                    const departmentId = this.dataset.departmentId;
+                    const departmentName = this.dataset.departmentName;
+
+                    // ✅ Gunakan department name, bukan ID
+                    window.location.href =
+                        `{{ route('projects.index') }}?department=${encodeURIComponent(departmentName)}`;
+                });
+
+                // ✅ Tambahkan hover effect
+                card.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-2px)';
+                });
+
+                card.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0)';
+                });
+            });
         }
 
         // Artisan Actions
