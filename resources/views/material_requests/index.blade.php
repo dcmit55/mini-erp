@@ -268,9 +268,11 @@
             padding: 0.25rem 0.75rem !important;
             font-size: 0.85rem !important;
             font-weight: 400 !important;
-            min-width: 100px !important;
             outline: none !important;
             box-shadow: none !important;
+            width: 15ch !important;
+            min-width: 0 !important;
+            max-width: 20ch !important;
         }
 
         .status-select-rounded:focus {
@@ -282,6 +284,32 @@
             color: #999;
             cursor: not-allowed;
             background-color: #f8f9fa;
+        }
+
+        .status-select:disabled {
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 768px) {
+
+            /* Force all DataTable cells to center their content */
+            .dataTable.dtr-inline.collapsed tbody td:not(.dtr-control) {
+                text-align: center !important;
+            }
+
+            /* Specific fixes for status and actions */
+            .status-select,
+            .status-select-rounded,
+            .btn-group,
+            .d-flex {
+                margin: 0 auto !important;
+                justify-content: center !important;
+            }
+
+            /* Override any left alignment on mobile */
+            .dtr-details .dtr-data {
+                text-align: center !important;
+            }
         }
 
         .tooltip {
@@ -437,7 +465,7 @@
                         name: 'checkbox',
                         orderable: false,
                         searchable: false,
-                        width: '3%',
+                        width: '2%',
                         className: 'text-center'
                     },
                     {
@@ -448,56 +476,57 @@
                     {
                         data: 'project_name',
                         name: 'project.name',
-                        width: '12%'
+                        width: '16%'
                     },
                     {
                         data: 'material_name',
                         name: 'inventory.name',
-                        width: '15%'
+                        width: '16%'
                     },
                     {
                         data: 'requested_qty',
                         name: 'qty',
-                        width: '10%'
+                        width: '8%'
                     },
                     {
                         data: 'remaining_qty',
                         name: 'remaining_qty',
                         orderable: false,
-                        width: '10%'
+                        width: '8%'
                     },
                     {
                         data: 'processed_qty',
                         name: 'processed_qty',
                         orderable: false,
-                        width: '10%'
+                        width: '8%'
                     },
                     {
                         data: 'requested_by',
                         name: 'requested_by',
-                        width: '12%'
+                        width: '8%'
                     },
                     {
                         data: 'requested_at',
                         name: 'created_at', // For sorting
-                        width: '12%'
+                        width: '8%'
                     },
                     {
                         data: 'status',
                         name: 'status',
-                        width: '10%'
+                        width: '6%',
+                        className: 'text-center'
                     },
                     {
                         data: 'remark',
                         name: 'remark',
-                        width: '10%'
+                        width: '12%'
                     },
                     {
                         data: 'actions',
                         name: 'actions',
                         orderable: false,
                         searchable: false,
-                        width: '12%',
+                        width: '8%',
                         className: 'text-center'
                     }
                 ],
