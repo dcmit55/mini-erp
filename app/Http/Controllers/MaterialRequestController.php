@@ -26,36 +26,28 @@ class MaterialRequestController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            \Log::info('DataTables request received', $request->all());
             $query = MaterialRequest::with(['inventory:id,name,quantity,unit', 'project:id,name,department_id', 'user:id,username,department_id', 'user.department:id,name']);
 
-            // Apply filters
-            if ($request->has('project') && $request->project !== null) {
+            // ✅ Apply filters with null checks
+            if ($request->filled('project')) {
                 $query->where('project_id', $request->project);
             }
-
-            if ($request->has('material') && $request->material !== null) {
+            if ($request->filled('material')) {
                 $query->where('inventory_id', $request->material);
             }
-
-            if ($request->has('status') && $request->status !== null) {
+            if ($request->filled('status')) {
                 $query->where('status', $request->status);
             }
-
-            if ($request->has('requested_by') && $request->requested_by !== null) {
+            if ($request->filled('requested_by')) {
                 $query->where('requested_by', $request->requested_by);
             }
-
-            if ($request->has('requested_at') && $request->requested_at !== null) {
+            if ($request->filled('requested_at')) {
                 $query->whereDate('created_at', $request->requested_at);
             }
 
             return DataTables::of($query)
                 ->addColumn('checkbox', function ($req) {
-                    if ($req->status === 'approved') {
-                        return '<input type="checkbox" class="select-row" id="checkbox-' . $req->id . '" value="' . $req->id . '">';
-                    }
-                    return '';
+                    return $req->status === 'approved' ? '<input type="checkbox" class="select-row" value="' . $req->id . '">' : '';
                 })
                 ->addColumn('project_name', function ($req) {
                     return $req->project->name ?? '(No Project)';
@@ -64,21 +56,21 @@ class MaterialRequestController extends Controller
                     return '<span class="material-detail-link gradient-link" data-id="' . ($req->inventory->id ?? '') . '">' . ($req->inventory->name ?? '(No Material)') . '</span>';
                 })
                 ->addColumn('requested_qty', function ($req) {
-                    return rtrim(rtrim(number_format($req->qty, 2, '.', ''), '0'), '.') . ' ' . ($req->inventory->unit ?? '(No Unit)');
+                    return rtrim(rtrim(number_format($req->qty, 2, '.', ''), '0'), '.') . ' ' . ($req->inventory->unit ?? '');
                 })
                 ->addColumn('remaining_qty', function ($req) {
                     $remaining = $req->qty - $req->processed_qty;
-                    return '<span data-bs-toggle="tooltip" data-bs-placement="right" title="' . ($req->inventory->unit ?? '(No Unit)') . '">' . rtrim(rtrim(number_format($remaining, 2, '.', ''), '0'), '.') . '</span>';
+                    return '<span data-bs-toggle="tooltip" title="' . ($req->inventory->unit ?? '') . '">' . rtrim(rtrim(number_format($remaining, 2, '.', ''), '0'), '.') . '</span>';
                 })
                 ->addColumn('processed_qty', function ($req) {
-                    return '<span data-bs-toggle="tooltip" data-bs-placement="right" title="' . ($req->inventory->unit ?? '(No Unit)') . '">' . rtrim(rtrim(number_format($req->processed_qty, 2, '.', ''), '0'), '.') . '</span>';
+                    return '<span data-bs-toggle="tooltip" title="' . ($req->inventory->unit ?? '') . '">' . rtrim(rtrim(number_format($req->processed_qty, 2, '.', ''), '0'), '.') . '</span>';
                 })
                 ->addColumn('requested_by', function ($req) {
                     $department = $req->user && $req->user->department ? ucfirst($req->user->department->name) : '-';
-                    return '<span data-bs-toggle="tooltip" data-bs-placement="right" title="' . $department . '">' . ucfirst($req->requested_by) . '</span>';
+                    return '<span data-bs-toggle="tooltip" title="' . $department . '">' . ucfirst($req->requested_by) . '</span>';
                 })
                 ->addColumn('requested_at', function ($req) {
-                    return $req->created_at?->format('Y-m-d, H:i');
+                    return $req->created_at ? $req->created_at->format('Y-m-d, H:i') : '-';
                 })
                 ->addColumn('status', function ($req) {
                     if (auth()->user()->isLogisticAdmin()) {

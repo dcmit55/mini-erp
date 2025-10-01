@@ -362,10 +362,11 @@
 @push('scripts')
     <script>
         $(document).ready(function() {
-            // Initialize DataTable
+            // ✅ Initialize DataTable with Server-Side Processing
             const table = $('#datatable').DataTable({
-                processing: false,
-                serverSide: true,
+                processing: false, // Hide processing indicator
+                serverSide: true, // Enable server-side processing
+                searching: false, // Disable default search (use custom filters)
                 ajax: {
                     url: "{{ route('material_requests.index') }}",
                     data: function(d) {
@@ -375,13 +376,24 @@
                         d.status = $('#filter-status').val();
                         d.requested_by = $('#filter-requested-by').val();
                         d.requested_at = $('#filter-requested-at').val();
+                    },
+                    error: function(xhr, error, thrown) {
+                        console.error('DataTables AJAX Error:', {
+                            xhr: xhr,
+                            error: error,
+                            thrown: thrown,
+                            responseText: xhr.responseText
+                        });
+                        Swal.fire('Error', 'Failed to load data. Please refresh the page.', 'error');
                     }
                 },
                 columns: [{
                         data: 'checkbox',
                         name: 'checkbox',
                         orderable: false,
-                        searchable: false
+                        searchable: false,
+                        width: '3%',
+                        className: 'text-center'
                     },
                     {
                         data: 'id',
@@ -390,52 +402,63 @@
                     },
                     {
                         data: 'project_name',
-                        name: 'project.name'
+                        name: 'project.name',
+                        width: '12%'
                     },
                     {
                         data: 'material_name',
-                        name: 'inventory.name'
+                        name: 'inventory.name',
+                        width: '15%'
                     },
                     {
                         data: 'requested_qty',
-                        name: 'qty'
+                        name: 'qty',
+                        width: '10%'
                     },
                     {
                         data: 'remaining_qty',
                         name: 'remaining_qty',
-                        orderable: false
+                        orderable: false,
+                        width: '10%'
                     },
                     {
                         data: 'processed_qty',
                         name: 'processed_qty',
-                        orderable: false
+                        orderable: false,
+                        width: '10%'
                     },
                     {
                         data: 'requested_by',
-                        name: 'requested_by'
+                        name: 'requested_by',
+                        width: '12%'
                     },
                     {
                         data: 'requested_at',
-                        name: 'created_at'
+                        name: 'created_at', // For sorting
+                        width: '12%'
                     },
                     {
                         data: 'status',
-                        name: 'status'
+                        name: 'status',
+                        width: '10%'
                     },
                     {
                         data: 'remark',
-                        name: 'remark'
+                        name: 'remark',
+                        width: '10%'
                     },
                     {
                         data: 'actions',
                         name: 'actions',
                         orderable: false,
-                        searchable: false
+                        searchable: false,
+                        width: '12%',
+                        className: 'text-center'
                     }
                 ],
                 order: [
                     [8, 'desc']
-                ], // Sort by requested_at
+                ],
                 pageLength: 25,
                 lengthMenu: [
                     [10, 25, 50, 100],
@@ -445,28 +468,25 @@
                 stateSave: true,
                 language: {
                     emptyTable: "No material requests available",
-                    zeroRecords: "No matching records found"
+                    zeroRecords: "No matching records found",
+                    infoEmpty: "Showing 0 to 0 of 0 entries",
+                    infoFiltered: "(filtered from _MAX_ total entries)"
                 },
                 drawCallback: function() {
-                    // Reinitialize tooltips
-                    $('[data-bs-toggle="tooltip"]').tooltip();
-
-                    // Update bulk goods out button
+                    // ✅ Optimized post-draw operations
+                    initializeTooltipsBatch(this.api().table().container());
                     updateBulkGoodsOutButton();
-
-                    // Update select colors
-                    $('.status-select').each(function() {
-                        updateStatusTitle($(this));
-                    });
+                    updateAllSelectColors(this.api().table().container());
                 }
             });
 
-            // Filter functionality
-            $('#filter-project, #filter-material, #filter-status, #filter-requested-by, #filter-requested-at').on(
-                'change',
-                function() {
-                    table.draw();
-                });
+            // ✅ Debounced Filter Functionality
+            const debouncedFilter = debounce(function() {
+                table.draw();
+            }, 300);
+
+            $('#filter-project, #filter-material, #filter-status, #filter-requested-by, #filter-requested-at')
+                .on('change', debouncedFilter);
 
             // Reset filters
             $('#reset-filters').on('click', function() {
@@ -475,18 +495,7 @@
                 table.draw();
             });
 
-            $('#datatable').on('draw.dt', function() {
-                var tooltipTriggerList = [].slice.call(document.querySelectorAll(
-                    '[data-bs-toggle="tooltip"]'));
-                tooltipTriggerList.forEach(function(tooltipTriggerEl) {
-                    new bootstrap.Tooltip(tooltipTriggerEl);
-                });
-
-                // Update bulk goods out button setelah redraw
-                updateBulkGoodsOutButton();
-            });
-
-            // Initialize Select2
+            // ✅ Initialize Select2
             $('.select2').select2({
                 theme: 'bootstrap-5',
                 placeholder: function() {
@@ -495,7 +504,7 @@
                 allowClear: true
             });
 
-            // Add placeholder support for input[type="date"]
+            // ✅ Date Input Enhancement
             const dateInput = document.getElementById('filter-requested-at');
             if (dateInput) {
                 dateInput.onfocus = function() {
@@ -507,44 +516,55 @@
                 if (!dateInput.value) dateInput.type = 'text';
             }
 
-            // Function to update bulk goods out button
+            // ✅ Initialize flatpickr for date input
+            flatpickr("#filter-requested-at", {
+                dateFormat: "Y-m-d",
+                allowInput: true,
+            });
+
+            // ✅ Bulk Goods Out Button Management
             function updateBulkGoodsOutButton() {
                 const selectedCount = $('.select-row:checked').length;
                 const bulkBtn = $('#bulk-goods-out-btn');
                 const countBadge = $('#bulk-goods-out-count');
 
-                if (selectedCount > 0) {
-                    bulkBtn.prop('disabled', false);
-                    countBadge.removeClass('d-none').text(selectedCount);
-                } else {
-                    bulkBtn.prop('disabled', true);
-                    countBadge.addClass('d-none').text('0');
-                }
+                // Batch DOM updates
+                requestAnimationFrame(() => {
+                    if (selectedCount > 0) {
+                        bulkBtn.prop('disabled', false);
+                        countBadge.removeClass('d-none').text(selectedCount);
+                    } else {
+                        bulkBtn.prop('disabled', true);
+                        countBadge.addClass('d-none').text('0');
+                    }
+                });
             }
 
-            // Handle checkbox changes
-            $(document).on('change', '.select-row', function() {
-                updateBulkGoodsOutButton();
-            });
+            // Handle checkbox changes with debouncing
+            const debouncedCheckboxUpdate = debounce(updateBulkGoodsOutButton, 50);
+            $(document).on('change', '.select-row', debouncedCheckboxUpdate);
 
-            // Handle select all checkbox (if exists)
+            // Handle select all checkbox
             $('#select-all').on('change', function() {
                 $('.select-row').prop('checked', $(this).prop('checked'));
                 updateBulkGoodsOutButton();
             });
 
-            // SweetAlert for delete confirmation
+            // ✅ Enhanced Delete Confirmation
             $(document).on('click', '.btn-delete', function(e) {
                 e.preventDefault();
                 let form = $(this).closest('form');
+                const title = $(this).attr('title') || 'Delete';
+
                 Swal.fire({
                     title: 'Are you sure?',
-                    text: "This action cannot be undone!",
+                    text: `${title} - This action cannot be undone!`,
                     icon: 'warning',
                     showCancelButton: true,
-                    confirmButtonColor: '#3085d6',
-                    cancelButtonColor: '#d33',
+                    confirmButtonColor: '#dc3545',
+                    cancelButtonColor: '#6c757d',
                     confirmButtonText: 'Yes, delete it!',
+                    cancelButtonText: 'Cancel',
                     reverseButtons: true
                 }).then((result) => {
                     if (result.isConfirmed) {
@@ -553,6 +573,7 @@
                 });
             });
 
+            // ✅ Bulk Goods Out Modal Handler
             $('#bulk-goods-out-btn').on('click', function() {
                 const selectedIds = $('.select-row:checked').map(function() {
                     return $(this).val();
@@ -562,6 +583,12 @@
                     Swal.fire('Error', 'Please select at least one material request.', 'error');
                     return;
                 }
+
+                // Show loading in modal
+                $('#bulk-goods-out-table-body').html(
+                    '<tr><td colspan="5" class="text-center py-4"><div class="spinner-border" role="status"></div></td></tr>'
+                );
+                $('#bulkGoodsOutModal').modal('show');
 
                 // Fetch detail data for selected material requests
                 $.ajax({
@@ -574,48 +601,49 @@
                         $('#bulk-goods-out-table-body').empty();
                         response.forEach(function(item) {
                             $('#bulk-goods-out-table-body').append(`
-                                <tr>
-                                    <td>${item.material_name}</td>
-                                    <td>
-                                        ${item.project_name}
-                                        <span data-bs-toggle="tooltip" data-bs-placement="bottom" title="Requested By: ${item.requested_by}">
-                                            <i class="bi bi-person-circle"></i>
-                                        </span>
-                                    </td>
-                                    <td>${item.requested_qty} / ${item.remaining_qty} <span class="text-muted">${item.unit}</span></td>
-                                    <td>
-                                        <input type="number" name="goods_out_qty[${item.id}]" class="form-control form-control-sm"
-                                            value="${item.remaining_qty}" min="0.001" max="${item.remaining_qty}" step="any" required>
-                                    </td>
-                                    <td class="text-center align-middle">
-                                        <button type="button" class="btn btn-sm btn-danger btn-remove-row" title="Remove Row">
-                                            <i class="bi bi-x-circle"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                            `);
+                        <tr>
+                            <td>${item.material_name}</td>
+                            <td>
+                                ${item.project_name}
+                                <span data-bs-toggle="tooltip" data-bs-placement="bottom" title="Requested By: ${item.requested_by}">
+                                    <i class="bi bi-person-circle"></i>
+                                </span>
+                            </td>
+                            <td>${item.requested_qty} / ${item.remaining_qty} <span class="text-muted">${item.unit}</span></td>
+                            <td>
+                                <input type="number" name="goods_out_qty[${item.id}]" class="form-control form-control-sm"
+                                    value="${item.remaining_qty}" min="0.001" max="${item.remaining_qty}" step="any" required>
+                            </td>
+                            <td class="text-center align-middle">
+                                <button type="button" class="btn btn-sm btn-danger btn-remove-row" title="Remove Row">
+                                    <i class="bi bi-x-circle"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `);
                         });
-                        $('#bulkGoodsOutModal').modal('show');
-                        // Inisialisasi tooltip setelah modal tampil
-                        setTimeout(function() {
-                            var tooltipTriggerList = [].slice.call(document
-                                .querySelectorAll('[data-bs-toggle="tooltip"]'));
-                            tooltipTriggerList.forEach(function(tooltipTriggerEl) {
-                                new bootstrap.Tooltip(tooltipTriggerEl);
-                            });
-                        }, 300); // delay agar modal sudah render
+
+                        // Initialize tooltips after content is added
+                        setTimeout(() => {
+                            initializeTooltipsBatch(document.getElementById(
+                                'bulkGoodsOutModal'));
+                        }, 100);
                     },
                     error: function(xhr) {
-                        Swal.fire('Error', 'Failed to fetch material request details.',
-                            'error');
+                        $('#bulk-goods-out-table-body').html(
+                            '<tr><td colspan="5" class="text-center text-danger">Failed to load data. Please try again.</td></tr>'
+                        );
+                        console.error('Bulk details error:', xhr);
                     }
                 });
             });
 
+            // Remove row from bulk goods out modal
             $(document).on('click', '.btn-remove-row', function() {
                 $(this).closest('tr').remove();
             });
 
+            // ✅ Enhanced Bulk Goods Out Submission
             $('#submit-bulk-goods-out').on('click', function() {
                 const submitBtn = $(this);
                 const spinner = submitBtn.find('.spinner-border');
@@ -623,6 +651,7 @@
                     return this.nodeType === 3; // Text nodes only
                 }).last();
 
+                // Validate quantities
                 let isValid = true;
                 $('#bulk-goods-out-table-body input[type="number"]').each(function() {
                     const max = parseFloat($(this).attr('max'));
@@ -636,7 +665,8 @@
                 });
 
                 if (!isValid) {
-                    Swal.fire('Error', 'Qty to Goods Out must be between 0.001 or Remaining Qty.', 'error');
+                    Swal.fire('Error', 'Qty to Goods Out must be between 0.001 and Remaining Qty.',
+                    'error');
                     return;
                 }
 
@@ -652,37 +682,35 @@
                 spinner.removeClass('d-none');
                 btnText[0].textContent = ' Processing...';
 
-                // Tambahkan input hidden selected_ids[] ke form
-                $('#bulk-goods-out-form input[name="selected_ids[]"]')
-                    .remove(); // hapus dulu biar tidak dobel
+                // Add selected IDs to form
+                $('#bulk-goods-out-form input[name="selected_ids[]"]').remove();
                 $('#bulk-goods-out-table-body tr').each(function() {
                     const id = $(this).find('input[type="number"]').attr('name').match(/\d+/)[0];
                     $('#bulk-goods-out-form').append(
-                        `<input type="hidden" name="selected_ids[]" value="${id}">`);
+                        `<input type="hidden" name="selected_ids[]" value="${id}">`
+                    );
                 });
 
-                // Serialize form and send AJAX
+                // Submit form
                 const formData = $('#bulk-goods-out-form').serialize();
                 $.ajax({
                     url: "{{ route('goods_out.bulk') }}",
                     method: 'POST',
                     data: formData,
                     success: function(response) {
-                        // Reset button state immediately after response
                         resetButtonState();
-
                         if (response.success) {
-                            Swal.fire('Success', response.message, 'success')
-                                .then(() => location.reload());
+                            $('#bulkGoodsOutModal').modal('hide');
+                            Swal.fire('Success', response.message, 'success').then(() => {
+                                table.ajax.reload(null, false); // Reload DataTable
+                            });
                         } else {
                             Swal.fire('Error', response.message || 'Bulk Goods Out failed.',
                                 'error');
                         }
                     },
                     error: function(xhr) {
-                        // Reset button state immediately after error
                         resetButtonState();
-
                         let msg = xhr.responseJSON?.message || 'Bulk Goods Out failed.';
                         Swal.fire('Error', msg, 'error');
                     }
@@ -702,17 +730,63 @@
                 btnText[0].textContent = ' Submit All';
             });
 
-            // Initialize flatpickr for date input
-            flatpickr("#filter-requested-at", {
-                dateFormat: "Y-m-d",
-                allowInput: true,
+            // ✅ Material Detail Modal Handler
+            $(document).on('click', '.material-detail-link', function(e) {
+                e.preventDefault();
+                const inventoryId = $(this).data('id');
+                if (!inventoryId) return;
+
+                $('#material-detail-modal-body').html(
+                    '<div class="text-center py-4"><div class="spinner-border" role="status"></div></div>'
+                );
+                $('#materialDetailModal').modal('show');
+
+                $.get('/inventory/detail/' + inventoryId, function(res) {
+                    const html = $('<div>').html(res);
+                    const cardBody = html.find('.card-body').html();
+                    if (cardBody) {
+                        $('#material-detail-modal-body').html(cardBody);
+                    } else {
+                        $('#material-detail-modal-body').html(
+                            '<div class="alert alert-danger">Failed to load material details.</div>'
+                        );
+                    }
+                }).fail(function() {
+                    $('#material-detail-modal-body').html(
+                        '<div class="alert alert-danger">Failed to load material details.</div>'
+                    );
+                });
             });
 
-            // Spinner filter button handling
+            // ✅ Reminder Button Handler
+            $(document).on('click', '.btn-reminder', function() {
+                const id = $(this).data('id');
+                const btn = $(this);
+                const originalHtml = btn.html();
+
+                // Show loading state
+                btn.prop('disabled', true).html('<i class="bi bi-hourglass-split"></i>');
+
+                $.post(`/material_requests/${id}/reminder`, {
+                    _token: $('meta[name="csrf-token"]').attr('content')
+                }, function(res) {
+                    if (res.success) {
+                        Swal.fire('Reminder sent!', 'Logistic will be notified.', 'success');
+                    } else {
+                        Swal.fire('Error', res.message || 'Failed to send reminder.', 'error');
+                    }
+                }).fail(function(xhr) {
+                    Swal.fire('Error', 'Failed to send reminder. Please try again.', 'error');
+                }).always(function() {
+                    // Reset button state
+                    btn.prop('disabled', false).html(originalHtml);
+                });
+            });
+
+            // ✅ Filter Form Spinner Handler
             const filterBtn = $('#filter-btn');
             const filterSpinner = filterBtn.find('.spinner-border');
             const filterForm = $('#filter-form');
-            const filterBtnHtml = filterBtn.html();
 
             if (filterForm.length && filterBtn.length && filterSpinner.length) {
                 filterForm.on('submit', function() {
@@ -721,7 +795,7 @@
                 });
             }
 
-            // Fungsi untuk update title pada select status
+            // ✅ Status Select Enhancement
             function updateStatusTitle($select) {
                 const val = $select.val();
                 let tip = '';
@@ -732,80 +806,56 @@
                 $select.attr('title', tip);
             }
 
-            // Inisialisasi title pada semua status select saat halaman load
-            $('.status-select').each(function() {
-                updateStatusTitle($(this));
-            });
-
-            // Update title saat select berubah
+            // Update status title on change
             $(document).on('change', '.status-select', function() {
                 updateStatusTitle($(this));
-            });
-
-            // Jika pakai DataTable, update title setelah redraw
-            $('#datatable').on('draw.dt', function() {
-                $('.status-select').each(function() {
-                    updateStatusTitle($(this));
-                });
             });
 
             // Initial update of bulk goods out button
             updateBulkGoodsOutButton();
         });
 
-        // Material detail link click handler
-        $(document).on('click', '.material-detail-link', function(e) {
-            e.preventDefault();
-            const inventoryId = $(this).data('id');
-            if (!inventoryId) return;
+        // ✅ Utility Functions
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
 
-            $('#material-detail-modal-body').html(
-                '<div class="text-center py-4"><div class="spinner-border" role="status"></div></div>');
-            $('#materialDetailModal').modal('show');
+        function initializeTooltipsBatch(container = document) {
+            // Dispose existing tooltips first
+            $(container).find('[data-bs-toggle="tooltip"]').tooltip('dispose');
 
-            $.get('/inventory/detail/' + inventoryId, function(res) {
-                // Ambil hanya isi <div class="card-body">...</div> dari halaman detail
-                const html = $('<div>').html(res);
-                const cardBody = html.find('.card-body').html();
-                if (cardBody) {
-                    $('#material-detail-modal-body').html(cardBody);
-                } else {
-                    $('#material-detail-modal-body').html(
-                        '<div class="alert alert-danger">Failed to load material details.</div>');
-                }
-            }).fail(function() {
-                $('#material-detail-modal-body').html(
-                    '<div class="alert alert-danger">Failed to load material details.</div>');
+            // Initialize new tooltips in batch
+            const tooltipElements = container.querySelectorAll('[data-bs-toggle="tooltip"]');
+            tooltipElements.forEach(element => {
+                new bootstrap.Tooltip(element, {
+                    trigger: 'hover focus'
+                });
             });
-        });
+        }
 
-        // Tooltip initialization
-        document.addEventListener("DOMContentLoaded", function() {
-            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-            tooltipTriggerList.forEach(function(tooltipTriggerEl) {
-                new bootstrap.Tooltip(tooltipTriggerEl);
-            });
-        });
+        function updateAllSelectColors(container) {
+            const selects = container.querySelectorAll('.status-select');
+            selects.forEach(select => updateSelectColor(select));
+        }
 
-        // Global variable for authenticated user
+        // ✅ Global Variables for Auth User
         window.authUser = {
             username: "{{ auth()->user()->username }}",
             is_logistic_admin: {{ auth()->user()->isLogisticAdmin() ? 'true' : 'false' }},
             is_super_admin: {{ auth()->user()->isSuperAdmin() ? 'true' : 'false' }}
         };
 
-        // Reminder button click handler
-        $(document).on('click', '.btn-reminder', function() {
-            const id = $(this).data('id');
-            $.post(`/material_requests/${id}/reminder`, {}, function(res) {
-                if (res.success) {
-                    Swal.fire('Reminder sent!', 'Logistic will be notified.', 'success');
-                } else {
-                    Swal.fire('Error', res.message || 'Failed to send reminder.', 'error');
-                }
-            }).fail(function(xhr) {
-                Swal.fire('Error', 'Failed to send reminder. Please try again.', 'error');
-            });
+        // ✅ Initialize Tooltips on Page Load
+        document.addEventListener("DOMContentLoaded", function() {
+            initializeTooltipsBatch();
         });
     </script>
 @endpush
