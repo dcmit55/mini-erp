@@ -57,8 +57,7 @@
                 <div class="mb-3">
                     <form id="filter-form" class="d-flex flex-wrap gap-2 align-items-end">
                         <div class="flex-fill" style="min-width: 120px; max-width: 180px;">
-                            <select id="filter-project" name="project" class="form-select form-select-sm select2"
-                                data-placeholder="Filter by Projects">
+                            <select id="filter-project" name="project" class="form-select form-select-sm select2">
                                 <option value="">All Projects</option>
                                 @foreach ($projects as $project)
                                     <option value="{{ $project->id }}">{{ $project->name }}</option>
@@ -66,8 +65,7 @@
                             </select>
                         </div>
                         <div class="flex-fill" style="min-width: 120px; max-width: 180px;">
-                            <select id="filter-material" name="material" class="form-select form-select-sm select2"
-                                data-placeholder="Filter by Materials">
+                            <select id="filter-material" name="material" class="form-select form-select-sm select2">
                                 <option value="">All Materials</option>
                                 @foreach ($materials as $material)
                                     <option value="{{ $material->id }}">{{ $material->name }}</option>
@@ -75,8 +73,7 @@
                             </select>
                         </div>
                         <div style="min-width: 120px; max-width: 180px;">
-                            <select id="filter-status" name="status" class="form-select form-select-sm select2"
-                                data-placeholder="Filter by Status">
+                            <select id="filter-status" name="status" class="form-select form-select-sm select2">
                                 <option value="">All Status</option>
                                 <option value="pending">Pending</option>
                                 <option value="approved">Approved</option>
@@ -85,9 +82,8 @@
                             </select>
                         </div>
                         <div style="min-width: 150px; max-width: 180px;">
-                            <select id="filter-requested-by" name="requested_by" class="form-select form-select-sm select2"
-                                data-placeholder="Filter by Requesters">
-                                <option value="">All Requesters</option>
+                            <select id="filter-requested-by" name="requested_by" class="form-select form-select-sm select2">
+                                <option value="">All Requester</option>
                                 @foreach ($users as $user)
                                     <option value="{{ $user->username }}">{{ ucfirst($user->username) }}</option>
                                 @endforeach
@@ -718,6 +714,12 @@
                 },
                 allowClear: true
             });
+
+            // ✅ Set placeholder untuk setiap select
+            $('#filter-project').attr('data-placeholder', 'All Projects');
+            $('#filter-material').attr('data-placeholder', 'All Materials');
+            $('#filter-status').attr('data-placeholder', 'All Status');
+            $('#filter-requested-by').attr('data-placeholder', 'All Requesters');
 
             // Date Input Enhancement
             const dateInput = document.getElementById('filter-requested-at');
