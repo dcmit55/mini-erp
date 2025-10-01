@@ -53,65 +53,59 @@
                     </div>
                 @endif
 
+                <!-- filter form -->
                 <div class="mb-3">
-                    <form id="filter-form" method="GET" action="{{ route('material_requests.index') }}" class="row g-2">
-                        <div class="col-lg-2">
-                            <select id="filter-project" name="project" class="form-select select2">
+                    <form id="filter-form" class="d-flex flex-wrap gap-2 align-items-end">
+                        <div class="flex-fill" style="min-width: 120px; max-width: 180px;">
+                            <select id="filter-project" name="project" class="form-select form-select-sm select2"
+                                data-placeholder="Filter by Projects">
                                 <option value="">All Projects</option>
                                 @foreach ($projects as $project)
-                                    <option value="{{ $project->id }}"
-                                        {{ request('project') == $project->id ? 'selected' : '' }}>
-                                        {{ $project->name }}
-                                    </option>
+                                    <option value="{{ $project->id }}">{{ $project->name }}</option>
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-lg-2">
-                            <select id="filter-material" name="material" class="form-select select2">
+                        <div class="flex-fill" style="min-width: 120px; max-width: 180px;">
+                            <select id="filter-material" name="material" class="form-select form-select-sm select2"
+                                data-placeholder="Filter by Materials">
                                 <option value="">All Materials</option>
                                 @foreach ($materials as $material)
-                                    <option value="{{ $material->id }}"
-                                        {{ request('material') == $material->id ? 'selected' : '' }}>
-                                        {{ $material->name }}
-                                    </option>
+                                    <option value="{{ $material->id }}">{{ $material->name }}</option>
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-lg-2">
-                            <select id="filter-status" name="status" class="form-select select2">
+                        <div style="min-width: 120px; max-width: 180px;">
+                            <select id="filter-status" name="status" class="form-select form-select-sm select2"
+                                data-placeholder="Filter by Status">
                                 <option value="">All Status</option>
-                                <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending
-                                </option>
-                                <option value="approved" {{ request('status') == 'approved' ? 'selected' : '' }}>Approved
-                                </option>
-                                <option value="delivered" {{ request('status') == 'delivered' ? 'selected' : '' }}>
-                                    Delivered</option>
-                                <option value="canceled" {{ request('status') == 'canceled' ? 'selected' : '' }}>
-                                    Canceled</option>
+                                <option value="pending">Pending</option>
+                                <option value="approved">Approved</option>
+                                <option value="delivered">Delivered</option>
+                                <option value="canceled">Canceled</option>
                             </select>
                         </div>
-                        <div class="col-lg-2">
-                            <select id="filter-requested-by" name="requested_by" class="form-select select2">
-                                <option value="">All Requested By</option>
+                        <div style="min-width: 150px; max-width: 180px;">
+                            <select id="filter-requested-by" name="requested_by" class="form-select form-select-sm select2"
+                                data-placeholder="Filter by Requesters">
+                                <option value="">All Requesters</option>
                                 @foreach ($users as $user)
-                                    <option value="{{ $user->username }}"
-                                        {{ request('requested_by') == $user->username ? 'selected' : '' }}>
-                                        {{ ucfirst($user->username) }}
-                                    </option>
+                                    <option value="{{ $user->username }}">{{ ucfirst($user->username) }}</option>
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-lg-2">
-                            <input type="text" id="filter-requested-at" name="requested_at" class="form-control"
-                                value="{{ request('requested_at') }}" placeholder="Requested At Date" autocomplete="off">
+                        <div style="min-width: 120px; max-width: 180px;">
+                            <input type="text" id="filter-requested-at" name="requested_at"
+                                class="form-control form-control-sm" placeholder="Requested At Date">
                         </div>
-                        <div class="col-lg-2 align-self-end">
-                            <button type="submit" class="btn btn-primary" id="filter-btn">
-                                <span class="spinner-border spinner-border-sm me-1 d-none" role="status"
-                                    aria-hidden="true"></span>
-                                Filter
+                        <div class="flex-fill" style="min-width: 140px; max-width: 200px;">
+                            <input type="text" id="custom-search" name="search" class="form-control form-control-sm"
+                                placeholder="Search...">
+                        </div>
+                        <div>
+                            <button type="button" id="reset-filters" class="btn btn-outline-secondary btn-sm px-3"
+                                title="Reset All Filters">
+                                <i class="bi bi-arrow-clockwise"></i>
                             </button>
-                            <a href="{{ route('material_requests.index') }}" class="btn btn-secondary">Reset</a>
                         </div>
                     </form>
                 </div>
@@ -214,6 +208,58 @@
 @endsection
 @push('styles')
     <style>
+        #filter-form {
+            background: #f8f9fa;
+            padding: .75rem;
+            border-radius: 0.5rem;
+            border: 1px solid #dee2e6;
+        }
+
+        /* ✅ HAPUS semua override Select2, biarkan Select2 menggunakan styling default */
+        /* Hanya styling untuk form elements biasa saja */
+        #filter-form .form-select-sm,
+        #filter-form .form-control-sm {
+            font-size: 0.875rem !important;
+            border: 1px solid #ced4da !important;
+            border-radius: 0.2rem !important;
+            line-height: 1.5 !important;
+            color: #495057 !important;
+        }
+
+        /* ✅ Untuk form-select dropdown arrow */
+        #filter-form .form-select-sm {
+            padding-right: 2.25rem !important;
+            background-position: right 0.75rem center !important;
+            background-size: 16px 12px !important;
+        }
+
+        /* ✅ Focus state untuk form elements biasa */
+        #filter-form .form-select-sm:focus,
+        #filter-form .form-control-sm:focus {
+            border-color: #86b7fe !important;
+            outline: 0 !important;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
+        }
+
+        /* ✅ Placeholder styling */
+        #filter-form .form-control-sm::placeholder {
+            color: #6c757d !important;
+            opacity: 1 !important;
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 991.98px) {
+            #filter-form {
+                flex-direction: column !important;
+                gap: 0.75rem !important;
+            }
+
+            #filter-form>div {
+                min-width: 100% !important;
+                max-width: 100% !important;
+            }
+        }
+
         #datatable th {
             font-size: 0.90rem;
             white-space: nowrap;
@@ -234,6 +280,86 @@
             max-width: 170px;
             overflow: hidden;
             text-overflow: ellipsis;
+        }
+
+        .pagination {
+            --bs-pagination-padding-x: 0.75rem;
+            --bs-pagination-padding-y: 0.375rem;
+            --bs-pagination-color: #6c757d;
+            --bs-pagination-bg: #fff;
+            --bs-pagination-border-width: 1px;
+            --bs-pagination-border-color: #dee2e6;
+            --bs-pagination-border-radius: 0.375rem;
+            --bs-pagination-hover-color: #495057;
+            --bs-pagination-hover-bg: #e9ecef;
+            --bs-pagination-hover-border-color: #dee2e6;
+            --bs-pagination-focus-color: #495057;
+            --bs-pagination-focus-bg: #e9ecef;
+            --bs-pagination-focus-box-shadow: 0 0 0 0.25rem rgba(143, 18, 254, 0.25);
+            --bs-pagination-active-color: #fff;
+            --bs-pagination-active-bg: #8F12FE;
+            --bs-pagination-active-border-color: #4A25AA;
+            --bs-pagination-disabled-color: #6c757d;
+            --bs-pagination-disabled-bg: #fff;
+            --bs-pagination-disabled-border-color: #dee2e6;
+        }
+
+        .page-link {
+            transition: all 0.15s ease-in-out;
+        }
+
+        .page-link:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .page-item.active .page-link {
+            background: linear-gradient(135deg, #8F12FE 0%, #4A25AA 100%);
+            border-color: #8F12FE;
+            box-shadow: 0 2px 4px rgba(143, 18, 254, 0.3);
+        }
+
+        /* Vertical divider */
+        .vr-divider {
+            width: 1px;
+            height: 24px;
+            background: #dee2e6;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        /* DataTables footer styling */
+        .datatables-footer-row {
+            border-top: 1px solid #eee;
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+        }
+
+        .dataTables_paginate {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 767.98px) {
+            .datatables-footer-row {
+                flex-direction: column !important;
+                gap: 0.5rem;
+            }
+
+            .datatables-left {
+                flex-direction: column !important;
+                gap: 0.5rem;
+            }
+
+            .vr-divider {
+                display: none;
+            }
+
+            .dataTables_paginate {
+                justify-content: center !important;
+            }
         }
 
         .material-detail-link {
@@ -439,7 +565,7 @@
             const table = $('#datatable').DataTable({
                 processing: false, // Hide processing indicator
                 serverSide: true, // Enable server-side processing
-                // searching: false,
+                searching: false,
                 ajax: {
                     url: "{{ route('material_requests.index') }}",
                     data: function(d) {
@@ -449,6 +575,7 @@
                         d.status = $('#filter-status').val();
                         d.requested_by = $('#filter-requested-by').val();
                         d.requested_at = $('#filter-requested-at').val();
+                        d.custom_search = $('#custom-search').val();
                     },
                     error: function(xhr, error, thrown) {
                         console.error('DataTables AJAX Error:', {
@@ -533,43 +660,57 @@
                 order: [
                     [8, 'desc']
                 ],
-                pageLength: 25,
+                pageLength: 15,
                 lengthMenu: [
-                    [10, 25, 50, 100],
-                    [10, 25, 50, 100]
+                    [10, 15, 25, 50, 100],
+                    [10, 15, 25, 50, 100]
                 ],
+                language: {
+                    emptyTable: '<div class="text-muted py-2">No material requests available</div>',
+                    zeroRecords: '<div class="text-muted py-2">No matching records found</div>',
+                    infoEmpty: "Showing 0 to 0 of 0 entries",
+                    infoFiltered: "(filtered from _MAX_ total entries)",
+                    lengthMenu: "Show _MENU_ entries per page",
+                    info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                },
+
+                dom: 't<' +
+                    '"row datatables-footer-row align-items-center"' +
+                    '<"col-md-7 d-flex align-items-center gap-2 datatables-left"l<"vr-divider mx-2">i>' +
+                    '<"col-md-5 dataTables_paginate justify-content-end"p>' +
+                    '>',
+
                 responsive: true,
                 stateSave: true,
-                language: {
-                    emptyTable: "No material requests available",
-                    zeroRecords: "No matching records found",
-                    infoEmpty: "Showing 0 to 0 of 0 entries",
-                    infoFiltered: "(filtered from _MAX_ total entries)"
-                },
+
                 drawCallback: function() {
-                    // ✅ Optimized post-draw operations
-                    initializeTooltipsBatch(this.api().table().container());
-                    updateBulkGoodsOutButton();
-                    updateAllSelectColors(this.api().table().container());
+                    const container = this.api().table().container();
+                    setTimeout(() => {
+                        updateBulkGoodsOutButton();
+                        updateAllSelectColors(container);
+                        initializeStatusSelectTooltips(container);
+                        initializeTooltipsBatch(container);
+                    }, 100);
                 }
             });
 
-            // ✅ Debounced Filter Functionality
+            // Debounced Filter Functionality
             const debouncedFilter = debounce(function() {
                 table.draw();
             }, 300);
 
-            $('#filter-project, #filter-material, #filter-status, #filter-requested-by, #filter-requested-at')
-                .on('change', debouncedFilter);
+            // Update event listener untuk include custom search
+            $('#filter-project, #filter-material, #filter-status, #filter-requested-by, #filter-requested-at, #custom-search')
+                .on('change input', debouncedFilter);
 
-            // Reset filters
+            // Reset filters juga harus reset search
             $('#reset-filters').on('click', function() {
-                $('#filter-project, #filter-material, #filter-status, #filter-requested-by, #filter-requested-at')
+                $('#filter-project, #filter-material, #filter-status, #filter-requested-by, #filter-requested-at, #custom-search')
                     .val('').trigger('change');
                 table.draw();
             });
 
-            // ✅ Initialize Select2
+            // Initialize Select2
             $('.select2').select2({
                 theme: 'bootstrap-5',
                 placeholder: function() {
@@ -578,7 +719,7 @@
                 allowClear: true
             });
 
-            // ✅ Date Input Enhancement
+            // Date Input Enhancement
             const dateInput = document.getElementById('filter-requested-at');
             if (dateInput) {
                 dateInput.onfocus = function() {
@@ -590,13 +731,13 @@
                 if (!dateInput.value) dateInput.type = 'text';
             }
 
-            // ✅ Initialize flatpickr for date input
+            // Initialize flatpickr for date input
             flatpickr("#filter-requested-at", {
                 dateFormat: "Y-m-d",
                 allowInput: true,
             });
 
-            // ✅ Bulk Goods Out Button Management
+            // Bulk Goods Out Button Management
             function updateBulkGoodsOutButton() {
                 const selectedCount = $('.select-row:checked').length;
                 const bulkBtn = $('#bulk-goods-out-btn');
@@ -624,7 +765,7 @@
                 updateBulkGoodsOutButton();
             });
 
-            // ✅ Enhanced Delete Confirmation
+            // Enhanced Delete Confirmation
             $(document).on('click', '.btn-delete', function(e) {
                 e.preventDefault();
                 let form = $(this).closest('form');
@@ -647,7 +788,7 @@
                 });
             });
 
-            // ✅ Bulk Goods Out Modal Handler
+            // Bulk Goods Out Modal Handler
             $('#bulk-goods-out-btn').on('click', function() {
                 const selectedIds = $('.select-row:checked').map(function() {
                     return $(this).val();
@@ -717,7 +858,7 @@
                 $(this).closest('tr').remove();
             });
 
-            // ✅ Enhanced Bulk Goods Out Submission
+            // Enhanced Bulk Goods Out Submission
             $('#submit-bulk-goods-out').on('click', function() {
                 const submitBtn = $(this);
                 const spinner = submitBtn.find('.spinner-border');
@@ -804,7 +945,7 @@
                 btnText[0].textContent = ' Submit All';
             });
 
-            // ✅ Material Detail Modal Handler
+            // Material Detail Modal Handler
             $(document).on('click', '.material-detail-link', function(e) {
                 e.preventDefault();
                 const inventoryId = $(this).data('id');
@@ -832,7 +973,7 @@
                 });
             });
 
-            // ✅ Reminder Button Handler
+            // Reminder Button Handler
             $(document).on('click', '.btn-reminder', function() {
                 const id = $(this).data('id');
                 const btn = $(this);
@@ -857,19 +998,7 @@
                 });
             });
 
-            // ✅ Filter Form Spinner Handler
-            const filterBtn = $('#filter-btn');
-            const filterSpinner = filterBtn.find('.spinner-border');
-            const filterForm = $('#filter-form');
-
-            if (filterForm.length && filterBtn.length && filterSpinner.length) {
-                filterForm.on('submit', function() {
-                    filterBtn.prop('disabled', true);
-                    filterSpinner.removeClass('d-none');
-                });
-            }
-
-            // ✅ Status Select Enhancement
+            // Status Select Enhancement
             function updateStatusTitle($select) {
                 const val = $select.val();
                 let tip = '';
@@ -878,6 +1007,12 @@
                 else if (val === 'delivered') tip = 'Already delivered';
                 else if (val === 'canceled') tip = 'Request canceled';
                 $select.attr('title', tip);
+            }
+
+            function initializeStatusSelectTooltips(container = document) {
+                $(container).find('.status-select').each(function() {
+                    updateStatusTitle($(this));
+                });
             }
 
             // Update status title on change
@@ -889,7 +1024,7 @@
             updateBulkGoodsOutButton();
         });
 
-        // ✅ Utility Functions
+        // Utility Functions
         function debounce(func, wait) {
             let timeout;
             return function executedFunction(...args) {
@@ -927,14 +1062,14 @@
             selects.forEach(select => updateSelectColor(select));
         }
 
-        // ✅ Global Variables for Auth User
+        // Global Variables for Auth User
         window.authUser = {
             username: "{{ auth()->user()->username }}",
             is_logistic_admin: {{ auth()->user()->isLogisticAdmin() ? 'true' : 'false' }},
             is_super_admin: {{ auth()->user()->isSuperAdmin() ? 'true' : 'false' }}
         };
 
-        // ✅ Initialize Tooltips on Page Load
+        // Initialize Tooltips on Page Load
         document.addEventListener("DOMContentLoaded", function() {
             initializeTooltipsBatch();
         });

@@ -28,7 +28,7 @@ class MaterialRequestController extends Controller
         if ($request->ajax()) {
             $query = MaterialRequest::with(['inventory:id,name,quantity,unit', 'project:id,name,department_id', 'user:id,username,department_id', 'user.department:id,name']);
 
-            // ✅ Apply filters with null checks
+            // Apply filters with null checks
             if ($request->filled('project')) {
                 $query->where('project_id', $request->project);
             }
@@ -43,6 +43,21 @@ class MaterialRequestController extends Controller
             }
             if ($request->filled('requested_at')) {
                 $query->whereDate('created_at', $request->requested_at);
+            }
+
+            // Add custom search functionality like inventory
+            if ($request->filled('custom_search')) {
+                $search = $request->custom_search;
+                $query->where(function ($q) use ($search) {
+                    $q->whereHas('inventory', function ($q) use ($search) {
+                        $q->where('name', 'like', "%{$search}%");
+                    })
+                        ->orWhereHas('project', function ($q) use ($search) {
+                            $q->where('name', 'like', "%{$search}%");
+                        })
+                        ->orWhere('requested_by', 'like', "%{$search}%")
+                        ->orWhere('remark', 'like', "%{$search}%");
+                });
             }
 
             return DataTables::of($query)
