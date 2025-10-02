@@ -18,7 +18,7 @@ class GoodsReceiveController extends Controller
             'received_qty.*' => 'nullable|string|max:255',
         ]);
 
-        $shipping = Shipping::with(['details.preShipping.externalRequest.project', 'details.preShipping.externalRequest.supplier'])->findOrFail($request->shipping_id);
+        $shipping = Shipping::with(['details.preShipping.purchaseRequest.project', 'details.preShipping.purchaseRequest.supplier'])->findOrFail($request->shipping_id);
 
         $goodsReceive = GoodsReceive::create([
             'shipping_id' => $shipping->id,
@@ -32,13 +32,13 @@ class GoodsReceiveController extends Controller
             GoodsReceiveDetail::create([
                 'goods_receive_id' => $goodsReceive->id,
                 'shipping_detail_id' => $detail->id,
-                'purchase_type' => $detail->preShipping->externalRequest->type,
-                'project_name' => $detail->preShipping->externalRequest->project->name ?? '-',
-                'material_name' => $detail->preShipping->externalRequest->material_name,
-                'supplier_name' => $detail->preShipping->externalRequest->supplier->name ?? '-',
-                'unit_price' => $detail->preShipping->externalRequest->price_per_unit,
+                'purchase_type' => $detail->preShipping->purchaseRequest->type,
+                'project_name' => $detail->preShipping->purchaseRequest->project->name ?? '-',
+                'material_name' => $detail->preShipping->purchaseRequest->material_name,
+                'supplier_name' => $detail->preShipping->purchaseRequest->supplier->name ?? '-',
+                'unit_price' => $detail->preShipping->purchaseRequest->price_per_unit,
                 'domestic_waybill_no' => $detail->preShipping->domestic_waybill_no,
-                'purchased_qty' => $detail->preShipping->externalRequest->required_quantity,
+                'purchased_qty' => $detail->preShipping->purchaseRequest->required_quantity,
                 'received_qty' => $request->received_qty[$idx] ?? null,
             ]);
         }

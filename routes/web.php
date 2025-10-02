@@ -26,7 +26,7 @@ use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\Auth\RegisterController;
-use App\Http\Controllers\ExternalRequestController;
+use App\Http\Controllers\PurchaseRequestController;
 use App\Http\Controllers\ShippingController;
 use App\Http\Controllers\ShippingManagementController;
 use App\Http\Controllers\GoodsReceiveController;
@@ -180,14 +180,14 @@ Route::middleware(['auth'])->group(function () {
     Route::get('final_project_summary/{project}', [FinalProjectSummaryController::class, 'show'])->name('final_project_summary.show');
     Route::get('/final-project-summary/ajax-search', [FinalProjectSummaryController::class, 'ajaxSearch'])->name('final_project_summary.ajax_search');
 
-    // External Requests
-    Route::get('/external_requests/export', [ExternalRequestController::class, 'export'])->name('external_requests.export');
-    Route::resource('external_requests', ExternalRequestController::class)->middleware('auth');
-    Route::post('/external_requests/{id}/quick-update', [ExternalRequestController::class, 'quickUpdate'])->name('external_requests.quick_update');
+    // Purchase Requests
+    Route::get('/purchase_requests/export', [PurchaseRequestController::class, 'export'])->name('purchase_requests.export');
+    Route::resource('purchase_requests', PurchaseRequestController::class)->middleware('auth');
+    Route::post('/purchase_requests/{id}/quick-update', [PurchaseRequestController::class, 'quickUpdate'])->name('purchase_requests.quick_update');
 
     // Pre Shippings
     Route::get('/pre-shippings', [\App\Http\Controllers\PreShippingController::class, 'index'])->name('pre-shippings.index');
-    Route::post('/pre-shippings/{external_request_id}/quick-update', [\App\Http\Controllers\PreShippingController::class, 'quickUpdate'])->name('pre-shippings.quick-update');
+    Route::post('/pre-shippings/{purchase_request_id}/quick-update', [\App\Http\Controllers\PreShippingController::class, 'quickUpdate'])->name('pre-shippings.quick-update');
 
     // Shippings
     Route::post('/shippings/create', [ShippingController::class, 'create'])->name('shippings.create');

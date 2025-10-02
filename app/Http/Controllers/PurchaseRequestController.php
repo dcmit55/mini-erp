@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ExternalRequest;
+use App\Models\PurchaseRequest;
 use App\Models\Inventory;
 use App\Models\Unit;
 use App\Models\Project;
@@ -14,7 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Yajra\DataTables\Facades\DataTables;
 
-class ExternalRequestController extends Controller
+class PurchaseRequestController extends Controller
 {
     public function __construct()
     {
@@ -32,13 +32,13 @@ class ExternalRequestController extends Controller
      */
     public function index()
     {
-        $requests = ExternalRequest::with(['inventory', 'project', 'user'])
+        $requests = PurchaseRequest::with(['inventory', 'project', 'user'])
             ->latest()
             ->get();
         $suppliers = Supplier::orderBy('name')->get();
         $currencies = Currency::orderBy('name')->get();
         $projects = Project::orderBy('name')->get();
-        return view('external_requests.index', compact('requests', 'suppliers', 'currencies', 'projects'));
+        return view('purchase_requests.index', compact('requests', 'suppliers', 'currencies', 'projects'));
     }
 
     /**
@@ -51,7 +51,7 @@ class ExternalRequestController extends Controller
         $projects = Project::orderBy('name')->get();
         $departments = Department::orderBy('name')->get();
 
-        return view('external_requests.create', compact('inventories', 'units', 'projects', 'departments'));
+        return view('purchase_requests.create', compact('inventories', 'units', 'projects', 'departments'));
     }
 
     /**
@@ -103,14 +103,14 @@ class ExternalRequestController extends Controller
                 // Handle image upload if present
                 if (isset($request->file('requests')[$key]['img'])) {
                     $file = $request->file('requests')[$key]['img'];
-                    $data['img'] = $file->store('external_requests', 'public');
+                    $data['img'] = $file->store('purchase_requests', 'public');
                 }
 
                 // Add the user ID
                 $data['requested_by'] = Auth::id();
 
-                // Create the external request
-                ExternalRequest::create($data);
+                // Create the purchase request
+                PurchaseRequest::create($data);
                 $successCount++;
             } catch (\Exception $e) {
                 $errors[] = 'Error in row ' . ($key + 1) . ': ' . $e->getMessage();
@@ -118,14 +118,14 @@ class ExternalRequestController extends Controller
         }
 
         if ($successCount > 0) {
-            $message = $successCount . ' external request(s) submitted successfully!';
+            $message = $successCount . ' purchase request(s) submitted successfully!';
             if (!empty($errors)) {
                 return redirect()
-                    ->route('external_requests.index')
+                    ->route('purchase_requests.index')
                     ->with('success', $message)
                     ->with('warning', 'Some requests could not be processed: ' . implode('<br>', $errors));
             }
-            return redirect()->route('external_requests.index')->with('success', $message);
+            return redirect()->route('purchase_requests.index')->with('success', $message);
         } else {
             return back()
                 ->withInput()
@@ -146,12 +146,12 @@ class ExternalRequestController extends Controller
      */
     public function edit($id)
     {
-        $request = ExternalRequest::findOrFail($id);
+        $request = PurchaseRequest::findOrFail($id);
         $inventories = Inventory::orderBy('name')->get();
         $units = Unit::orderBy('name')->get();
         $projects = Project::orderBy('name')->get();
         $departments = Department::orderBy('name')->get();
-        return view('external_requests.edit', compact('request', 'inventories', 'units', 'projects', 'departments'));
+        return view('purchase_requests.edit', compact('request', 'inventories', 'units', 'projects', 'departments'));
     }
 
     /**
@@ -189,15 +189,15 @@ class ExternalRequestController extends Controller
         }
 
         if ($request->hasFile('img')) {
-            $data['img'] = $request->file('img')->store('external_requests', 'public');
+            $data['img'] = $request->file('img')->store('purchase_requests', 'public');
         }
 
-        $externalRequest = ExternalRequest::findOrFail($id);
-        $externalRequest->update($data);
+        $purchaseRequest = PurchaseRequest::findOrFail($id);
+        $purchaseRequest->update($data);
 
         return redirect()
-            ->route('external_requests.index')
-            ->with('success', 'External request <strong>' . ($externalRequest->material_name ?? '-') . '</strong> updated!');
+            ->route('purchase_requests.index')
+            ->with('success', 'Purchase request <strong>' . ($purchaseRequest->material_name ?? '-') . '</strong> updated!');
     }
 
     public function quickUpdate(Request $request, $id)
@@ -225,18 +225,18 @@ class ExternalRequestController extends Controller
             }
         }
 
-        $externalRequest = ExternalRequest::findOrFail($id);
-        $externalRequest->update($request->only(['supplier_id', 'price_per_unit', 'currency_id', 'approval_status']));
+        $purchaseRequest = PurchaseRequest::findOrFail($id);
+        $purchaseRequest->update($request->only(['supplier_id', 'price_per_unit', 'currency_id', 'approval_status']));
         return response()->json(['success' => true]);
     }
 
     public function destroy($id)
     {
-        $externalRequest = ExternalRequest::findOrFail($id);
-        $externalRequest->delete();
+        $purchaseRequest = PurchaseRequest::findOrFail($id);
+        $purchaseRequest->delete();
 
         return redirect()
-            ->route('external_requests.index')
-            ->with('success', 'External request <strong>' . ($externalRequest->material_name ?? '-') . '</strong> deleted!');
+            ->route('purchase_requests.index')
+            ->with('success', 'Purchase request <strong>' . ($purchaseRequest->material_name ?? '-') . '</strong> deleted!');
     }
 }

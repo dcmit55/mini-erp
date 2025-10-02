@@ -44,32 +44,32 @@
                         <div class="row g-3 align-items-end">
                             <div class="col-md-2">
                                 <label class="form-label text-muted mb-0">Purchase Type</label>
-                                <div class="fw-semibold">{{ ucfirst(str_replace('_', ' ', $pre->externalRequest->type)) }}
+                                <div class="fw-semibold">{{ ucfirst(str_replace('_', ' ', $pre->purchaseRequest->type)) }}
                                 </div>
                             </div>
                             <div class="col-md-2">
                                 <label class="form-label text-muted mb-0">Project Name</label>
-                                <div class="fw-semibold">{{ $pre->externalRequest->project->name ?? '-' }}</div>
+                                <div class="fw-semibold">{{ $pre->purchaseRequest->project->name ?? '-' }}</div>
                             </div>
                             <div class="col-md-2">
                                 <label class="form-label text-muted mb-0">Material Name</label>
-                                <div class="fw-semibold">{{ $pre->externalRequest->material_name }}</div>
+                                <div class="fw-semibold">{{ $pre->purchaseRequest->material_name }}</div>
                             </div>
                             <div class="col-md-1">
                                 <label class="form-label text-muted mb-0">Qty To Buy</label>
-                                <div class="fw-semibold">{{ $pre->externalRequest->required_quantity }}</div>
+                                <div class="fw-semibold">{{ $pre->purchaseRequest->required_quantity }}</div>
                             </div>
                             <div class="col-md-1">
                                 <label class="form-label text-muted mb-0">Unit Type</label>
-                                <div class="fw-semibold">{{ $pre->externalRequest->unit }}</div>
+                                <div class="fw-semibold">{{ $pre->purchaseRequest->unit }}</div>
                             </div>
                             <div class="col-md-2">
                                 <label class="form-label text-muted mb-0">Supplier</label>
-                                <div class="fw-semibold">{{ $pre->externalRequest->supplier->name ?? '-' }}</div>
+                                <div class="fw-semibold">{{ $pre->purchaseRequest->supplier->name ?? '-' }}</div>
                             </div>
                             <div class="col-md-2">
                                 <label class="form-label text-muted mb-0">Unit Price</label>
-                                <div class="fw-semibold">{{ number_format($pre->externalRequest->price_per_unit, 2) }}
+                                <div class="fw-semibold">{{ number_format($pre->purchaseRequest->price_per_unit, 2) }}
                                 </div>
                             </div>
                         </div>

@@ -44,38 +44,38 @@
                                                     <div class="col-md-2">
                                                         <span class="text-muted">Purchase Type:</span>
                                                         <div>
-                                                            {{ ucfirst(str_replace('_', ' ', $detail->preShipping->externalRequest->type)) }}
+                                                            {{ ucfirst(str_replace('_', ' ', $detail->preShipping->purchaseRequest->type)) }}
                                                         </div>
                                                     </div>
                                                     <div class="col-md-2">
                                                         <span class="text-muted">Project Name:</span>
                                                         <div>
-                                                            {{ $detail->preShipping->externalRequest->project->name ?? '-' }}
+                                                            {{ $detail->preShipping->purchaseRequest->project->name ?? '-' }}
                                                         </div>
                                                     </div>
                                                     <div class="col-md-2">
                                                         <span class="text-muted">Material Name:</span>
-                                                        <div>{{ $detail->preShipping->externalRequest->material_name }}
+                                                        <div>{{ $detail->preShipping->purchaseRequest->material_name }}
                                                         </div>
                                                     </div>
                                                     <div class="col-md-1">
                                                         <span class="text-muted">Qty To Buy:</span>
-                                                        <div>{{ $detail->preShipping->externalRequest->required_quantity }}
+                                                        <div>{{ $detail->preShipping->purchaseRequest->required_quantity }}
                                                         </div>
                                                     </div>
                                                     <div class="col-md-1">
                                                         <span class="text-muted">Unit Type:</span>
-                                                        <div>{{ $detail->preShipping->externalRequest->unit }}</div>
+                                                        <div>{{ $detail->preShipping->purchaseRequest->unit }}</div>
                                                     </div>
                                                     <div class="col-md-2">
                                                         <span class="text-muted">Supplier:</span>
                                                         <div>
-                                                            {{ $detail->preShipping->externalRequest->supplier->name ?? '-' }}
+                                                            {{ $detail->preShipping->purchaseRequest->supplier->name ?? '-' }}
                                                         </div>
                                                     </div>
                                                     <div class="col-md-2">
                                                         <span class="text-muted">Unit Price:</span>
-                                                        <div>{{ $detail->preShipping->externalRequest->price_per_unit }}
+                                                        <div>{{ $detail->preShipping->purchaseRequest->price_per_unit }}
                                                         </div>
                                                     </div>
                                                 </div>

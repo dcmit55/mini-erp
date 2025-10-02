@@ -6,11 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class PreShipping extends Model
 {
-    protected $fillable = ['external_request_id', 'domestic_waybill_no', 'same_supplier_selection', 'percentage_if_same_supplier', 'domestic_cost'];
+    protected $fillable = ['purchase_request_id', 'domestic_waybill_no', 'same_supplier_selection', 'percentage_if_same_supplier', 'domestic_cost'];
 
-    public function externalRequest()
+    public function purchaseRequest()
     {
-        return $this->belongsTo(ExternalRequest::class);
+        return $this->belongsTo(PurchaseRequest::class);
     }
 
     public function shippingDetail()

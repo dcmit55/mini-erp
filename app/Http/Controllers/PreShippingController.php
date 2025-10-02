@@ -3,25 +3,25 @@
 namespace App\Http\Controllers;
 
 use App\Models\PreShipping;
-use App\Models\ExternalRequest;
+use App\Models\PurchaseRequest;
 use Illuminate\Http\Request;
 
 class PreShippingController extends Controller
 {
     public function index()
     {
-        // Ambil semua external request yang sudah approved dan belum masuk shipping
-        $requests = ExternalRequest::with(['project', 'supplier', 'preShipping'])
+        // Ambil semua purchase request yang sudah approved dan belum masuk shipping
+        $requests = PurchaseRequest::with(['project', 'supplier', 'preShipping'])
             ->where('approval_status', 'Approved')
             ->get();
 
-        // Pastikan setiap external_request yang lolos filter punya pre_shipping
+        // Pastikan setiap purchase_request yang lolos filter punya pre_shipping
         foreach ($requests as $req) {
-            PreShipping::firstOrCreate(['external_request_id' => $req->id]);
+            PreShipping::firstOrCreate(['purchase_request_id' => $req->id]);
         }
 
         // Ambil ulang, tapi hanya yang belum punya shippingDetail
-        $requests = ExternalRequest::with(['project', 'supplier', 'preShipping'])
+        $requests = PurchaseRequest::with(['project', 'supplier', 'preShipping'])
             ->where('approval_status', 'Approved')
             ->whereHas('preShipping', function ($q) {
                 $q->whereDoesntHave('shippingDetail');
@@ -33,7 +33,7 @@ class PreShippingController extends Controller
 
     public function quickUpdate(Request $request, $id)
     {
-        $preShipping = PreShipping::where('external_request_id', $id)->firstOrFail();
+        $preShipping = PreShipping::where('purchase_request_id', $id)->firstOrFail();
 
         $request->validate([
             'domestic_waybill_no' => 'nullable|string|max:255',

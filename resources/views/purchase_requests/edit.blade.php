@@ -4,8 +4,8 @@
     <div class="container-fluid mt-4">
         <div class="card shadow rounded">
             <div class="card-body">
-                <h4 class="mb-3">External Request</h4>
-                <form method="POST" action="{{ route('external_requests.update', $request->id) }}"
+                <h4 class="mb-3">Purchase Request</h4>
+                <form method="POST" action="{{ route('purchase_requests.update', $request->id) }}"
                     enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
@@ -330,7 +330,7 @@
 
             // Spinner submit
             const form = document.querySelector(
-                'form[action="{{ route('external_requests.update', $request->id) }}"]');
+                'form[action="{{ route('purchase_requests.update', $request->id) }}"]');
             const submitBtn = document.getElementById('submit-request-btn');
             const spinner = submitBtn ? submitBtn.querySelector('.spinner-border') : null;
             if (form && submitBtn && spinner) {

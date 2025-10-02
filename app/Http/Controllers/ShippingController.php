@@ -19,7 +19,7 @@ class ShippingController extends Controller
             return redirect()->route('pre-shippings.index')->with('error', 'Pilih minimal satu data!');
         }
 
-        $preShippings = PreShipping::with(['externalRequest.project', 'externalRequest.supplier'])
+        $preShippings = PreShipping::with(['purchaseRequest.project', 'purchaseRequest.supplier'])
             ->whereIn('id', $preShippingIds)
             ->get();
 

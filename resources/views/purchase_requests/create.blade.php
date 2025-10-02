@@ -4,8 +4,8 @@
     <div class="container-fluid mt-4">
         <div class="card shadow rounded">
             <div class="card-body">
-                <h4 class="mb-2">External Request</h4>
-                <form method="POST" action="{{ route('external_requests.store') }}" enctype="multipart/form-data">
+                <h4 class="mb-2">Purchase Request</h4>
+                <form method="POST" action="{{ route('purchase_requests.store') }}" enctype="multipart/form-data">
                     @csrf
                     <div id="requests-container">
                         <!-- First request form (always visible) -->
@@ -334,7 +334,7 @@
             });
 
             // Submit form with spinner
-            const form = document.querySelector('form[action="{{ route('external_requests.store') }}"]');
+            const form = document.querySelector('form[action="{{ route('purchase_requests.store') }}"]');
             const submitBtn = document.getElementById('submit-request-btn');
             const spinner = submitBtn ? submitBtn.querySelector('.spinner-border') : null;
             if (form && submitBtn && spinner) {

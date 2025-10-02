@@ -162,12 +162,12 @@
                     <!-- Header -->
                     <div class="d-flex align-items-center mb-2 mb-sm-0">
                         <i class="fas fa-external-link-alt gradient-icon me-2" style="font-size: 1.5rem;"></i>
-                        <h2 class="mb-0 flex-shrink-0" style="font-size:1.3rem;">External Requests</h2>
+                        <h2 class="mb-0 flex-shrink-0" style="font-size:1.3rem;">Purchase Requests</h2>
                     </div>
 
                     <!-- Spacer untuk mendorong tombol ke kanan -->
                     <div class="ms-sm-auto d-flex flex-wrap gap-2">
-                        <a href="{{ route('external_requests.create') }}" class="btn btn-primary btn-sm flex-shrink-0">
+                        <a href="{{ route('purchase_requests.create') }}" class="btn btn-primary btn-sm flex-shrink-0">
                             <i class="bi bi-plus-circle me-1"></i> Create Request
                         </a>
                     </div>
@@ -321,7 +321,7 @@
                                     </td>
                                     <td class="text-center">
                                         <div class="d-flex flex-nowrap gap-1 justify-content-center">
-                                            <a href="{{ route('external_requests.edit', $req->id) }}"
+                                            <a href="{{ route('purchase_requests.edit', $req->id) }}"
                                                 class="btn btn-warning btn-sm" title="Edit">
                                                 <i class="bi bi-pencil-square"></i>
                                             </a>
@@ -336,7 +336,7 @@
                                                 <i class="bi bi-trash"></i>
                                             </button>
                                             <form id="delete-form-{{ $req->id }}"
-                                                action="{{ route('external_requests.destroy', $req->id) }}"
+                                                action="{{ route('purchase_requests.destroy', $req->id) }}"
                                                 method="POST" style="display:none;">
                                                 @csrf
                                                 @method('DELETE')
@@ -348,7 +348,7 @@
                                 <tr>
                                     <td colspan="13" class="text-center text-muted py-4">
                                         <i class="bi bi-inbox" style="font-size: 2rem;"></i>
-                                        <br>No external requests found
+                                        <br>No purchase requests found
                                     </td>
                                 </tr>
                             @endforelse
@@ -390,7 +390,7 @@
                     [10, 15, 25, 50, 100]
                 ],
                 language: {
-                    emptyTable: '<div class="text-muted py-2">No external request data available</div>',
+                    emptyTable: '<div class="text-muted py-2">No purchase request data available</div>',
                     zeroRecords: '<div class="text-muted py-2">No matching records found</div>',
                     infoEmpty: "Showing 0 to 0 of 0 entries",
                     infoFiltered: "(filtered from _MAX_ total entries)",
@@ -522,7 +522,7 @@
             // Inline AJAX update for Supplier, Price, Currency, Approval Status
             function quickUpdate(id, data) {
                 $.ajax({
-                    url: '/external_requests/' + id + '/quick-update',
+                    url: '/purchase_requests/' + id + '/quick-update',
                     method: 'POST',
                     data: Object.assign(data, {
                         _token: '{{ csrf_token() }}'
