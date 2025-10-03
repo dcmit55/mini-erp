@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Aug 05, 2025 at 01:31 AM
+-- Generation Time: Oct 03, 2025 at 07:30 AM
 -- Server version: 8.4.3
 -- PHP Version: 8.3.16
 
@@ -109,7 +109,8 @@ INSERT INTO `categories` (`id`, `name`, `created_at`, `updated_at`, `deleted_at`
 (73, 'ban karet', '2025-07-19 02:42:13', '2025-07-19 02:42:13', NULL),
 (74, 'Cat Tosca', '2025-07-19 02:42:13', '2025-07-19 02:42:13', NULL),
 (75, 'Furing C123', '2025-07-19 02:42:13', '2025-07-19 02:42:13', NULL),
-(76, 'Ayam', '2025-07-25 03:02:27', '2025-07-25 03:02:27', NULL);
+(76, 'Ayam', '2025-07-25 03:02:27', '2025-07-25 03:02:27', NULL),
+(77, 'testkuuu', '2025-10-01 08:36:28', '2025-10-01 08:36:28', NULL);
 
 -- --------------------------------------------------------
 
@@ -511,7 +512,106 @@ INSERT INTO `goods_out` (`id`, `material_request_id`, `inventory_id`, `project_i
 (154, 499, 215, 25, 'logitech', 1.00, '2025-07-26 04:23:55', '2025-07-26 04:23:55', 'Bulk Goods Out', NULL),
 (155, 482, 198, 43, 'logitech', 1.00, '2025-07-26 04:24:16', '2025-07-26 04:24:16', 'Bulk Goods Out', NULL),
 (156, 486, 84, 43, 'logitech', 1.00, '2025-07-26 04:24:16', '2025-07-26 04:24:16', 'Bulk Goods Out', NULL),
-(157, 488, 215, 25, 'logitech', 1.00, '2025-07-26 04:24:16', '2025-07-26 04:24:16', 'Bulk Goods Out', NULL);
+(157, 488, 215, 25, 'logitech', 1.00, '2025-07-26 04:24:16', '2025-07-26 04:24:16', 'Bulk Goods Out', NULL),
+(219, 325, 69, 14, 'tari', 1.00, '2025-08-15 08:11:35', '2025-08-15 08:11:35', 'Bulk Goods Out', NULL),
+(220, 330, 60, 14, 'logitech', 2.00, '2025-08-15 08:11:35', '2025-08-15 08:11:35', 'Bulk Goods Out', NULL),
+(221, 332, 69, 14, 'logitech', 1.00, '2025-08-15 08:11:35', '2025-08-15 08:11:35', 'Bulk Goods Out', NULL),
+(222, 342, 69, 15, 'logitech', 1.00, '2025-08-15 08:11:35', '2025-08-15 08:11:35', 'Bulk Goods Out', NULL),
+(223, 349, 90, 49, 'tari', 2.00, '2025-08-15 08:11:35', '2025-08-15 08:11:35', 'Bulk Goods Out', NULL),
+(224, 393, 146, 53, 'logitech', 1.00, '2025-08-15 08:11:35', '2025-08-15 08:11:35', 'Bulk Goods Out', NULL),
+(225, 431, 154, 43, 'logitech', 1.00, '2025-08-15 08:11:35', '2025-08-15 08:11:35', 'Bulk Goods Out', NULL),
+(226, 442, 146, 43, 'logitech', 2.00, '2025-08-15 08:11:35', '2025-08-15 08:11:35', 'Bulk Goods Out', NULL),
+(227, 449, 140, 17, 'logitech', 1.00, '2025-08-15 08:11:35', '2025-08-15 08:11:35', 'Bulk Goods Out', NULL),
+(228, 450, 72, 45, 'logitech', 1.00, '2025-08-15 08:11:35', '2025-08-15 08:11:35', 'Bulk Goods Out', NULL),
+(229, 456, 59, 14, 'logitech', 0.40, '2025-08-15 08:11:35', '2025-08-15 08:11:35', 'Bulk Goods Out', NULL),
+(230, 477, 84, 43, 'logitech', 1.00, '2025-08-15 08:11:35', '2025-08-15 08:11:35', 'Bulk Goods Out', NULL),
+(231, 478, 198, 14, 'logitech', 1.00, '2025-08-15 08:11:35', '2025-08-15 08:11:35', 'Bulk Goods Out', NULL),
+(232, 481, 84, 14, 'logitech', 1.00, '2025-08-15 08:11:35', '2025-08-15 08:11:35', 'Bulk Goods Out', NULL),
+(233, 483, 62, 25, 'logitech', 2.00, '2025-08-15 08:11:35', '2025-08-15 08:11:35', 'Bulk Goods Out', NULL),
+(234, 484, 177, 15, 'logitech', 1.00, '2025-08-15 08:11:35', '2025-08-15 08:11:35', 'Bulk Goods Out', NULL),
+(235, 485, 84, 43, 'logitech', 1.00, '2025-08-15 08:11:35', '2025-08-15 08:11:35', 'Bulk Goods Out', NULL),
+(236, 492, 84, 43, 'dyla', 3.00, '2025-08-15 08:11:35', '2025-08-15 08:11:35', 'Bulk Goods Out', NULL),
+(237, 499, 215, 25, 'logitech', 3.00, '2025-08-15 08:11:35', '2025-08-15 08:11:35', 'Bulk Goods Out', NULL),
+(238, 72, 63, 31, 'admin', 1.00, '2025-08-15 08:26:20', '2025-08-15 08:26:20', 'Bulk Goods Out', NULL),
+(239, 78, 61, 17, 'admin', 6.00, '2025-08-15 08:26:20', '2025-08-15 08:26:20', 'Bulk Goods Out', NULL),
+(240, 83, 69, 14, 'costume', 1.00, '2025-08-15 08:26:20', '2025-08-15 08:26:20', 'Bulk Goods Out', NULL),
+(241, 84, 59, 14, 'costume', 1.00, '2025-08-15 08:26:20', '2025-08-15 08:26:20', 'Bulk Goods Out', NULL),
+(242, 160, 59, 16, 'admin', 1.50, '2025-08-15 08:26:20', '2025-08-15 08:26:20', 'Bulk Goods Out', NULL),
+(243, 255, 60, 25, 'tari', 2.00, '2025-08-15 08:26:20', '2025-08-15 08:26:20', 'Bulk Goods Out', NULL),
+(244, 285, 69, 14, 'tari', 1.00, '2025-08-15 08:26:20', '2025-08-15 08:26:20', 'Bulk Goods Out', NULL),
+(245, 287, 69, 14, 'tari', 1.00, '2025-08-15 08:26:20', '2025-08-15 08:26:20', 'Bulk Goods Out', NULL),
+(246, 290, 69, 39, 'tari', 1.00, '2025-08-15 08:26:20', '2025-08-15 08:26:20', 'Bulk Goods Out', NULL),
+(247, 291, 84, 25, 'tari', 1.00, '2025-08-15 08:26:20', '2025-08-15 08:26:20', 'Bulk Goods Out', NULL),
+(248, 292, 69, 14, 'tari', 1.00, '2025-08-15 08:26:20', '2025-08-15 08:26:20', 'Bulk Goods Out', NULL),
+(249, 293, 69, 14, 'tari', 1.00, '2025-08-15 08:26:20', '2025-08-15 08:26:20', 'Bulk Goods Out', NULL),
+(250, 296, 69, 14, 'tari', 1.00, '2025-08-15 08:26:20', '2025-08-15 08:26:20', 'Bulk Goods Out', NULL),
+(251, 303, 69, 14, 'laura', 1.00, '2025-08-15 08:26:20', '2025-08-15 08:26:20', 'Bulk Goods Out', NULL),
+(252, 318, 60, 43, 'logitech', 1.00, '2025-08-15 08:26:20', '2025-08-15 08:26:20', 'Bulk Goods Out', NULL),
+(253, 329, 69, 25, 'logitech', 1.00, '2025-08-15 08:26:20', '2025-08-15 08:26:20', 'Bulk Goods Out', NULL),
+(254, 364, 146, 25, 'logitech', 1.00, '2025-08-15 08:26:20', '2025-08-15 08:26:20', 'Bulk Goods Out', NULL),
+(255, 509, 216, 39, 'logitech', 1.00, '2025-09-30 09:24:06', '2025-09-30 09:24:06', 'Bulk Goods Out', NULL),
+(256, 511, 146, 72, 'logitech', 1.00, '2025-09-30 09:24:06', '2025-09-30 09:24:06', 'Bulk Goods Out', NULL),
+(261, 493, 154, 73, 'dyla', 2.00, '2025-10-01 02:21:58', '2025-10-01 02:21:58', 'Bulk Goods Out', NULL),
+(262, 497, 215, 25, 'tari', 1.00, '2025-10-01 02:21:58', '2025-10-01 02:21:58', 'Bulk Goods Out', NULL),
+(263, 501, 192, 70, 'logitech', 1.00, '2025-10-01 02:21:58', '2025-10-01 02:21:58', 'Bulk Goods Out', NULL),
+(264, 507, 181, 66, 'logitech', 1.00, '2025-10-01 02:21:58', '2025-10-01 02:21:58', 'Bulk Goods Out', NULL),
+(265, 508, 75, 21, 'logitech', 1.00, '2025-10-01 02:21:58', '2025-10-01 02:21:58', 'Bulk Goods Out', NULL),
+(266, 510, 192, 64, 'logitech', 1.00, '2025-10-01 02:21:58', '2025-10-01 02:21:58', 'Bulk Goods Out', NULL),
+(267, 512, 187, 14, 'logitech', 1.00, '2025-10-01 02:21:58', '2025-10-01 02:21:58', 'Bulk Goods Out', NULL),
+(268, 513, 168, 50, 'tari', 1.00, '2025-10-01 02:21:58', '2025-10-01 02:21:58', 'Bulk Goods Out', NULL),
+(269, 519, 69, 15, 'dyla', 1.00, '2025-10-01 02:21:58', '2025-10-01 02:21:58', 'Bulk Goods Out', NULL),
+(270, 520, 146, 43, 'tari', 12.00, '2025-10-01 02:21:58', '2025-10-01 02:21:58', 'Bulk Goods Out', NULL),
+(283, 436, 146, 43, 'logitech', 1.60, '2025-10-01 02:52:20', '2025-10-01 02:52:20', 'Bulk Goods Out', NULL),
+(284, 437, 99, 14, 'logitech', 1.00, '2025-10-01 02:52:20', '2025-10-01 02:52:20', 'Bulk Goods Out', NULL),
+(285, 438, 156, 14, 'logitech', 1.08, '2025-10-01 02:52:20', '2025-10-01 02:52:20', 'Bulk Goods Out', NULL),
+(286, 439, 99, 53, 'logitech', 1.70, '2025-10-01 02:52:20', '2025-10-01 02:52:20', 'Bulk Goods Out', NULL),
+(287, 440, 154, 14, 'logitech', 1.97, '2025-10-01 02:52:20', '2025-10-01 02:52:20', 'Bulk Goods Out', NULL),
+(288, 441, 154, 14, 'logitech', 1.00, '2025-10-01 02:52:20', '2025-10-01 02:52:20', 'Bulk Goods Out', NULL),
+(289, 443, 146, 43, 'logitech', 1.00, '2025-10-01 02:52:20', '2025-10-01 02:52:20', 'Bulk Goods Out', NULL),
+(290, 444, 184, 14, 'logitech', 1.00, '2025-10-01 02:52:20', '2025-10-01 02:52:20', 'Bulk Goods Out', NULL),
+(291, 445, 154, 15, 'logitech', 1.00, '2025-10-01 02:52:20', '2025-10-01 02:52:20', 'Bulk Goods Out', NULL),
+(292, 446, 184, 43, 'logitech', 1.00, '2025-10-01 02:52:20', '2025-10-01 02:52:20', 'Bulk Goods Out', NULL),
+(293, 447, 184, 25, 'logitech', 1.00, '2025-10-01 02:52:20', '2025-10-01 02:52:20', 'Bulk Goods Out', NULL),
+(294, 448, 184, 43, 'logitech', 1.00, '2025-10-01 02:52:20', '2025-10-01 02:52:20', 'Bulk Goods Out', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `goods_receives`
+--
+
+CREATE TABLE `goods_receives` (
+  `id` bigint UNSIGNED NOT NULL,
+  `shipping_id` bigint UNSIGNED NOT NULL,
+  `international_waybill_no` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `freight_company` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `freight_price` decimal(15,2) NOT NULL,
+  `arrived_date` datetime NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `goods_receive_details`
+--
+
+CREATE TABLE `goods_receive_details` (
+  `id` bigint UNSIGNED NOT NULL,
+  `goods_receive_id` bigint UNSIGNED NOT NULL,
+  `shipping_detail_id` bigint UNSIGNED NOT NULL,
+  `purchase_type` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `project_name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `material_name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `supplier_name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `unit_price` decimal(15,2) DEFAULT NULL,
+  `domestic_waybill_no` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `purchased_qty` decimal(15,2) DEFAULT NULL,
+  `received_qty` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -543,36 +643,36 @@ CREATE TABLE `inventories` (
 --
 
 INSERT INTO `inventories` (`id`, `name`, `quantity`, `unit`, `price`, `currency_id`, `supplier_id`, `location_id`, `remark`, `img`, `qrcode_path`, `qrcode`, `created_at`, `updated_at`, `category_id`, `deleted_at`) VALUES
-(58, 'Fabric 223', 339.40, 'mm', 2500.00, 6, NULL, 1, NULL, 'images/CFqzHbQLMAUkIOsjx7iE7ag6XwtBl8oX7KmIxbFc.jpg', 'qrcodes/qr_683a8901cfbc6.svg', NULL, '2025-05-19 07:28:58', '2025-06-04 09:16:11', 1, NULL),
-(59, 'Buttons 1', 312.80, 'pcs', 0.50, 5, NULL, 2, NULL, 'images/aYwSO3uyO1eF3eKfQvSqZ9fafM6vZXstGMGRDcgM.jpg', 'qrcodes/qr_682fdd1629683.svg', NULL, '2025-05-19 07:30:00', '2025-07-17 09:52:09', 9, NULL),
-(60, 'Buttons 2', 497.00, 'pack', 0.25, 1, NULL, 3, NULL, 'images/kuBk9OHnTPF6YXQoUGsHTdIBUVityxZkTHdQX8ZZ.jpg', 'qrcodes/qr_682ae0a61b8fb.svg', NULL, '2025-05-19 07:31:00', '2025-06-17 07:01:25', 9, NULL),
-(61, 'Foam 1', 50.00, 'm', 12000.00, 2, NULL, 4, NULL, 'images/MyI4zCLVzse1nuHh2WBTaHtNmxmudSuO6DjrRsoj.jpg', 'qrcodes/qr_682ade57c7118.svg', NULL, '2025-05-19 07:31:35', '2025-07-17 04:41:54', 8, NULL),
-(62, 'Foam 2', 20.50, 'kg', 1300.00, 6, NULL, 4, NULL, 'images/TadRnNm3YJxNLKVTOC9YLpaosnELQRykx8Cum2fz.jpg', 'qrcodes/qr_682ade8e3152a.svg', NULL, '2025-05-19 07:32:30', '2025-06-04 06:56:21', 8, NULL),
-(63, 'Zipper 1', 125.00, 'set', 2.00, 5, NULL, 5, NULL, 'images/zG9Ng3mWP1sAMetg6Osmwix6SJREh8a7MGyCJniV.jpg', 'qrcodes/qr_682adee3d4810.svg', NULL, '2025-05-19 07:33:55', '2025-07-02 08:56:57', 10, NULL),
+(58, 'Fabric 223', 339.40, 'mm', 2500.00, 6, NULL, 1, NULL, 'images/CFqzHbQLMAUkIOsjx7iE7ag6XwtBl8oX7KmIxbFc.jpg', 'qrcodes/qr_683a8901cfbc6.svg', NULL, '2025-05-19 07:28:58', '2025-09-25 02:12:31', 1, '2025-09-25 02:12:31'),
+(59, 'Buttons 1', 309.90, 'pcs', 0.50, 5, NULL, 2, NULL, 'images/aYwSO3uyO1eF3eKfQvSqZ9fafM6vZXstGMGRDcgM.jpg', 'qrcodes/qr_682fdd1629683.svg', NULL, '2025-05-19 07:30:00', '2025-08-15 08:26:20', 9, NULL),
+(60, 'Buttons 2', 492.00, 'pack', 0.25, 1, NULL, 3, NULL, 'images/kuBk9OHnTPF6YXQoUGsHTdIBUVityxZkTHdQX8ZZ.jpg', 'qrcodes/qr_682ae0a61b8fb.svg', NULL, '2025-05-19 07:31:00', '2025-08-15 08:26:20', 9, NULL),
+(61, 'Foam 1', 44.00, 'm', 12000.00, 2, NULL, 4, NULL, 'images/MyI4zCLVzse1nuHh2WBTaHtNmxmudSuO6DjrRsoj.jpg', 'qrcodes/qr_682ade57c7118.svg', NULL, '2025-05-19 07:31:35', '2025-08-15 08:26:20', 8, NULL),
+(62, 'Foam 2', 18.50, 'kg', 1300.00, 6, NULL, 4, NULL, 'images/TadRnNm3YJxNLKVTOC9YLpaosnELQRykx8Cum2fz.jpg', 'qrcodes/qr_682ade8e3152a.svg', NULL, '2025-05-19 07:32:30', '2025-08-15 08:11:35', 8, NULL),
+(63, 'Zipper 1', 124.00, 'set', 2.00, 5, NULL, 5, NULL, 'images/zG9Ng3mWP1sAMetg6Osmwix6SJREh8a7MGyCJniV.jpg', 'qrcodes/qr_682adee3d4810.svg', NULL, '2025-05-19 07:33:55', '2025-08-15 08:26:20', 10, NULL),
 (64, 'Zipper 2', 489.00, 'pcs', 1.40, 1, NULL, 6, NULL, 'images/LIL8BXOR6SR4TxGCG5rhllwaHdNukXziNsgA9x6Y.jpg', 'qrcodes/qr_682adf0ecccc5.svg', NULL, '2025-05-19 07:34:38', '2025-07-03 03:57:54', 10, '2025-07-03 03:57:54'),
 (65, 'Foam 3', 105.00, 'pcs', 20000.00, 2, NULL, 6, NULL, 'images/ltLYZMLCILT2PW0vwpWG1WK9qstwTsRCaGsfHXwS.jpg', 'qrcodes/qr_682ae01889494.svg', NULL, '2025-05-19 07:39:04', '2025-05-19 07:39:04', 8, NULL),
 (66, 'Foam 4', 12.00, 'pack', 2.00, 5, NULL, 7, NULL, 'images/C46JybX6qaYsRr28kZrq9hfaK5oZcgTfYK2Y9D0Q.jpg', 'qrcodes/qr_682ae054366fe.svg', NULL, '2025-05-19 07:39:51', '2025-07-23 09:20:33', 8, NULL),
 (67, 'Fabric 4', 233.00, 'cm', 3400.00, 6, NULL, 6, NULL, 'images/5biAk4B9XCpZzfyVRdht1uvxyrkJ4Qhli5fu7aya.jpg', 'qrcodes/qr_682ae07faf63e.svg', NULL, '2025-05-19 07:40:47', '2025-07-17 04:29:38', 1, NULL),
 (68, 'Fabric 5', 378.00, 'kg', 4000.00, 6, NULL, 8, NULL, 'images/UGrKEVmZQdCRaxzaqOxb6vnxvtiQiD5XXvq2nzxt.jpg', 'qrcodes/qr_682ae0f4b4cbb.svg', NULL, '2025-05-19 07:42:44', '2025-05-19 07:42:44', 1, NULL),
-(69, 'Button 4', 447.50, 'kg', 200.00, 2, NULL, 7, NULL, 'images/lqKjFQd3RO33i6QFaIbZdQOMsq89aG5btkL3t6AZ.jpg', 'qrcodes/qr_682ae1311f7f5.svg', NULL, '2025-05-19 07:43:45', '2025-07-04 04:14:29', 9, NULL),
+(69, 'Button 4', 435.50, 'kg', 200.00, 2, NULL, 7, NULL, 'images/lqKjFQd3RO33i6QFaIbZdQOMsq89aG5btkL3t6AZ.jpg', 'qrcodes/qr_682ae1311f7f5.svg', NULL, '2025-05-19 07:43:45', '2025-10-01 02:21:58', 9, NULL),
 (70, 'Fabric 7', 4.00, 'roll', 2700.00, 6, NULL, 8, NULL, 'images/oWL0AjWu2KW0P6jyGEcK9aQFI3DZFe5G4kvqU9jg.jpg', 'qrcodes/qr_682ae196514d0.svg', NULL, '2025-05-19 07:45:26', '2025-07-17 09:08:23', 1, NULL),
 (71, 'Quick Mat', 200.00, 'dm', 20.00, 5, NULL, 7, NULL, 'inventory_images/uulwQ8atWvEz0KObNt9F9oT42BJJB5JxDdY38zkC.jpg', 'qrcodes/qr_682ae472d411e.svg', NULL, '2025-05-19 07:49:49', '2025-05-19 07:57:38', 11, NULL),
-(72, 'Buttons 8', 993.00, 'pcs', 2000.00, 2, NULL, 9, NULL, 'inventory_images/G3WOO8vGnYN5jkkEFhGUHH9nbRgTdcY3RRwA87PT.jpg', 'qrcodes/qr_682ae4426fee9.svg', NULL, '2025-05-19 07:52:22', '2025-06-03 02:10:48', 9, NULL),
+(72, 'Buttons 8', 992.00, 'pcs', 2000.00, 2, NULL, 9, NULL, 'inventory_images/G3WOO8vGnYN5jkkEFhGUHH9nbRgTdcY3RRwA87PT.jpg', 'qrcodes/qr_682ae4426fee9.svg', NULL, '2025-05-19 07:52:22', '2025-09-25 02:11:17', 9, NULL),
 (74, 'Test Material 2', 200.00, 'cm', 0.00, 15, NULL, NULL, NULL, NULL, 'qrcodes/qr_682ae90b1a45a.svg', NULL, '2025-05-19 08:05:03', '2025-05-19 08:17:15', 1, NULL),
-(75, 'test fabric', 10.50, 'dm', NULL, NULL, NULL, NULL, NULL, NULL, 'qrcodes/qr_682ea3f97fc77.svg', NULL, '2025-05-19 08:26:00', '2025-06-09 06:07:39', 1, NULL),
+(75, 'test fabric', 9.50, 'dm', NULL, NULL, NULL, NULL, NULL, NULL, 'qrcodes/qr_682ea3f97fc77.svg', NULL, '2025-05-19 08:26:00', '2025-10-01 02:21:58', 1, NULL),
 (76, 'test5464', 34.00, 'cm', 2.00, 15, NULL, 8, NULL, 'inventory_images/idcPPU5ycCONrc3Mu4UR8twxke4vqPBnmG7o2YOP.jpg', 'qrcodes/qr_683d62b02b63c.svg', NULL, '2025-05-19 09:08:14', '2025-06-02 08:37:04', 9, NULL),
 (77, 'dfbdfb', 45.00, 'cm', 0.00, NULL, NULL, NULL, NULL, NULL, 'qrcodes/qr_682fdd25f04f1.svg', NULL, '2025-05-19 09:26:40', '2025-05-23 02:27:50', 9, NULL),
 (83, 'sdcfswd', 23.00, 'cm', NULL, NULL, NULL, NULL, NULL, NULL, 'qrcodes/qr_682bfbd413f63.svg', NULL, '2025-05-20 03:49:40', '2025-05-27 07:09:46', 9, NULL),
-(84, 'ascasc', 29.00, 'dm', 200000.00, 15, NULL, 7, NULL, NULL, 'qrcodes/qr_68303ebaab0ed.svg', NULL, '2025-05-20 04:00:16', '2025-07-26 04:24:16', 9, NULL),
+(84, 'ascasc', 22.00, 'dm', 200000.00, 15, NULL, 7, NULL, NULL, 'qrcodes/qr_68303ebaab0ed.svg', NULL, '2025-05-20 04:00:16', '2025-08-15 08:26:20', 9, NULL),
 (85, 'rgbrt', 413.70, 'cm', 40000.00, 15, NULL, 8, NULL, 'inventory_images/8fcTzosKxgqt1R1Sz896hrm1rRYUFYXf4EXK3TWt.jpg', 'qrcodes/qr_68303e77874f6.svg', NULL, '2025-05-20 04:04:32', '2025-07-02 09:30:15', 9, NULL),
 (87, 'wefw', 34.78, 'cm', 45.04, 15, NULL, 10, NULL, NULL, 'qrcodes/qr_68303f7381817.svg', NULL, '2025-05-23 09:26:45', '2025-05-23 09:27:15', 14, NULL),
 (88, 'testrrr', 2.00, 'cm', 23.00, NULL, 1, 7, NULL, NULL, 'qrcodes/qr_684107b8625ec.svg', NULL, '2025-06-02 08:52:56', '2025-06-05 02:58:00', 9, NULL),
 (89, 'Lem biru', 32.00, 'Kantong', 3000.00, 15, NULL, NULL, NULL, NULL, 'qrcodes/qr_683fe8e94131c.svg', NULL, '2025-06-04 06:34:17', '2025-06-04 06:38:41', 16, NULL),
-(90, 'Foam Biru', 43.00, 'm', 200.00, 15, 2, 7, NULL, 'inventory_images/Hf4gF0hYycJNIe5WfJZ1uEEwo35u5OUtxoZM4WDu.jpg', 'qrcodes/qr_68410701eee7f.svg', NULL, '2025-06-04 09:13:36', '2025-07-23 08:25:09', 9, NULL),
+(90, 'Foam Biru', 41.00, 'm', 200.00, 15, 2, 7, NULL, 'inventory_images/Hf4gF0hYycJNIe5WfJZ1uEEwo35u5OUtxoZM4WDu.jpg', 'qrcodes/qr_68410701eee7f.svg', NULL, '2025-06-04 09:13:36', '2025-08-15 08:11:35', 9, NULL),
 (91, 'ssr', 29.00, 'joule', 2.00, 1, 3, 11, NULL, NULL, NULL, NULL, '2025-06-07 04:43:37', '2025-07-03 04:24:28', NULL, NULL),
 (93, 'ssr6', 31.00, 'joule', 4.00, 1, 3, 12, NULL, NULL, NULL, NULL, '2025-06-07 04:43:37', '2025-07-03 04:37:57', NULL, NULL),
 (94, 'ssr7', 32.00, 'joule', 5.00, 1, 3, 13, NULL, NULL, NULL, NULL, '2025-06-07 04:43:37', '2025-07-03 04:37:57', NULL, NULL),
-(99, 'bbooy3', 28.00, 'joule', 4.00, 1, 3, 12, NULL, NULL, 'qrcodes/qr_6843c477cbed9.svg', NULL, '2025-06-07 04:47:51', '2025-07-05 02:20:09', NULL, NULL),
+(99, 'bbooy3', 25.30, 'joule', 4.00, 1, 3, 12, NULL, NULL, 'qrcodes/qr_6843c477cbed9.svg', NULL, '2025-06-07 04:47:51', '2025-10-01 02:52:20', NULL, NULL),
 (103, 'Tali200mm8', 23.00, 'km', 35566.00, 2, NULL, NULL, NULL, NULL, NULL, NULL, '2025-06-07 05:22:30', '2025-06-07 05:22:30', NULL, NULL),
 (104, 'Tali200mm88', 23.00, 'km', 35566.00, 2, NULL, NULL, NULL, NULL, NULL, NULL, '2025-06-07 05:28:50', '2025-06-07 05:28:50', NULL, NULL),
 (105, 'Tali200mm66', 0.00, 'km', 2233.00, 2, NULL, NULL, NULL, NULL, NULL, NULL, '2025-06-07 05:35:58', '2025-06-07 05:35:58', NULL, NULL),
@@ -598,13 +698,13 @@ INSERT INTO `inventories` (`id`, `name`, `quantity`, `unit`, `price`, `currency_
 (126, 'testsss34', 177.00, 'cm', 200.00, 28, 2, 8, 'test remark', 'inventory_images/baDIlvXcDabdHGkbheNuhBzv41zsvvySjXLJk06P.jpg', 'qrcodes/qr_6849323383ce5.svg', NULL, '2025-06-09 08:47:57', '2025-06-11 07:37:23', 20, NULL),
 (138, 'ctrl', 24.00, 'cm', 40000.00, 2, 9, 7, 'test', 'inventory_images/3LpsY62nhniCriDpPZ62i3rD2XqZj3BcxpQbqBXG.jpg', 'qrcodes/qr_684d05509cf9a.svg', NULL, '2025-06-10 09:22:30', '2025-07-18 10:01:45', 19, NULL),
 (139, 'fftyuiop', 2.00, 'cm', 100.00, 28, 10, 8, 'test', NULL, 'qrcodes/qr_684d03472f8a5.svg', NULL, '2025-06-14 05:06:15', '2025-06-14 05:31:36', 19, '2025-06-14 05:31:36'),
-(140, 'Fiber Optik', 3.00, 'm', 0.00, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-06-14 05:42:58', '2025-07-17 04:29:38', NULL, NULL),
+(140, 'Fiber Optik', 2.00, 'm', 0.00, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-06-14 05:42:58', '2025-08-15 08:11:35', NULL, NULL),
 (141, 'Lycra / New Double-Sided Healthy Fabric 079 Blue', 8.00, 'm', 25.00, 6, 11, 15, 'Becky Bunny Father', NULL, 'qrcodes/qr_684fcffea71dc.svg', NULL, '2025-06-16 08:04:14', '2025-06-16 08:04:17', 1, NULL),
 (142, 'Fur / A material crystal super soft / #114 Brown dark orange', 19.50, 'm', 12.00, 6, 12, 15, 'Becky Bunny Mother', NULL, 'qrcodes/qr_684fd001d9c1c.svg', NULL, '2025-06-16 08:04:17', '2025-06-16 08:04:17', 1, NULL),
 (143, 'Fur / YII002A Material Crystal Super Soft-223# Peach', 2.00, 'm', 10.00, 6, 13, 15, 'Becky Bunny Father', NULL, 'qrcodes/qr_684fd001ddaf8.svg', NULL, '2025-06-16 08:04:17', '2025-06-16 08:04:17', 1, NULL),
 (144, 'Fur/ Thickened Crystal Super Soft WL-2022 / #152 Brownn', 18.00, 'm', 20.00, 6, 14, 15, 'Becky Bunny Mother', 'inventory_images/2qCbw8WC8i2THoWondkUra1NocimmGgL3KAEyaXY.jpg', 'qrcodes/qr_6852245b0cdb7.svg', NULL, '2025-06-16 08:04:17', '2025-07-04 04:04:07', 1, NULL),
 (145, 'KUNMU 8002 #14 Yellow', 164.00, 'm', 14.00, 6, 15, 16, 'Leftover FFFA Bear Plush Toys 2022, 23/07/2024 Dolphin 2024 minion land', NULL, 'qrcodes/qr_684fd001e5e97.svg', NULL, '2025-06-16 08:04:17', '2025-06-16 08:04:17', 1, NULL),
-(146, 'AT004 Nylon Matte #78# Blue', 178.50, 'm', 20.00, 6, 16, 15, 'NDP Soka headgear & Soka legging', NULL, 'qrcodes/qr_684fd001ea27b.svg', NULL, '2025-06-16 08:04:17', '2025-07-18 09:57:43', 1, NULL),
+(146, 'AT004 Nylon Matte #78# Blue', 158.90, 'm', 20.00, 6, 16, 15, 'NDP Soka headgear & Soka legging', NULL, 'qrcodes/qr_684fd001ea27b.svg', NULL, '2025-06-16 08:04:17', '2025-10-01 02:52:20', 1, NULL),
 (147, 'Fur / A material crystal 1mm-172-blue', 2.00, 'm', 12.00, 6, 12, 15, 'Comic con mascot', NULL, 'qrcodes/qr_684fd001ede31.svg', NULL, '2025-06-16 08:04:17', '2025-06-16 08:04:17', 1, NULL),
 (148, 'Fur / S Crystal Ultra Soft / #149 Dark Blue', 2.00, 'm', 20.00, 6, 14, 15, 'Comic con mascot', NULL, 'qrcodes/qr_684fd001f1df8.svg', NULL, '2025-06-16 08:04:17', '2025-06-16 08:04:18', 1, NULL),
 (149, 'Fur / S Crystal Ultra Soft / #025 skin colour', 1.00, 'm', 20.00, 6, 14, 15, 'Comic Con Mascot', NULL, 'qrcodes/qr_684fd00201ed7.svg', NULL, '2025-06-16 08:04:18', '2025-06-16 08:04:18', 1, NULL),
@@ -612,9 +712,9 @@ INSERT INTO `inventories` (`id`, `name`, `quantity`, `unit`, `price`, `currency_
 (151, 'Tapak Kuda', 2.00, 'cm', 210.00, 27, 2, 8, 'for NDP Blue', NULL, 'qrcodes/qr_684fdf485d136.svg', NULL, '2025-06-16 09:08:39', '2025-06-16 09:09:28', 20, NULL),
 (152, 'Speaker', 3.00, 'Pasang', 2.00, NULL, 17, NULL, 'For Server (From Quick Add)', 'inventory_images/qz5fT960Nezf9J4dg14QsCGUMgi0ncAWeZ8IWTRm.jpg', 'qrcodes/qr_684fe1b18e6d8.svg', NULL, '2025-06-16 09:19:10', '2025-06-16 09:19:45', 20, NULL),
 (153, 'Tisu', 23.00, 'pack', NULL, NULL, 18, 6, 'tisu', 'inventory_images/vRzP0GEUxsk6iSP8hsm6qFplxjIN76OOAdqT5rmB.jpg', 'qrcodes/qr_68510686c7905.svg', NULL, '2025-06-17 06:09:10', '2025-07-03 03:51:10', 22, NULL),
-(154, 'Battery', 4.00, 'final test unit', 200000.00, 2, 10, 8, 'ssdd', 'inventory_images/4sRttkFyr9BafkNiJW32vvJDaUJY2Bgghx2luQEb.jpg', 'qrcodes/qr_68522535ab3bb.svg', NULL, '2025-06-18 02:32:21', '2025-07-26 04:25:16', 13, NULL),
+(154, 'Battery', 996.03, 'final test unit', 200000.00, 2, 10, 8, 'ssdd', 'inventory_images/4sRttkFyr9BafkNiJW32vvJDaUJY2Bgghx2luQEb.jpg', 'qrcodes/qr_68522535ab3bb.svg', NULL, '2025-06-18 02:32:21', '2025-10-01 02:52:20', 13, NULL),
 (155, 'UPS 9Ah', 5.00, 'pcs', 200000.00, 2, 19, 8, '222334', 'inventory_images/duYfpBpwsFDWnPvM5BykaCtBDz34RxrwmelRrn46.jpg', NULL, NULL, '2025-06-18 02:36:13', '2025-06-18 02:36:13', 23, NULL),
-(156, 'Botol Aki', 0.70, 'dm', 4500.00, 2, 10, 8, 'sdcvsd', 'inventory_images/LER2Z8Ox1xZZNaG1Qt5WCLRI7pPdXOCLvxRWNm2I.jpg', NULL, NULL, '2025-06-18 06:50:59', '2025-07-17 09:37:42', 19, NULL),
+(156, 'Botol Aki', 998.92, 'dm', 4500.00, 2, 10, 8, 'sdcvsd', 'inventory_images/LER2Z8Ox1xZZNaG1Qt5WCLRI7pPdXOCLvxRWNm2I.jpg', NULL, NULL, '2025-06-18 06:50:59', '2025-10-01 02:52:20', 19, NULL),
 (157, 'jhmyh', 3.50, 'final test unit', 44.00, 28, 20, 17, '4532', 'inventory_images/9nhHV6Dm1sSr2Ax1r8zll2Z5dszd8B1smhVA44PL.jpg', NULL, NULL, '2025-06-18 10:05:39', '2025-06-25 02:11:07', 20, NULL),
 (158, 'testsss23', 1.00, 'cm', 22.00, 2, 21, 8, 'sdcsd', 'inventory_images/a7Y129hibbkIIxwOR6qZI5Alg0M4IfXkrcg8Rnax.jpg', NULL, NULL, '2025-06-30 04:08:20', '2025-06-30 04:08:20', 20, NULL),
 (159, 'fftyy', 45.00, 'cm', 0.00, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-07-02 10:04:37', '2025-07-03 01:57:10', 19, NULL),
@@ -624,7 +724,7 @@ INSERT INTO `inventories` (`id`, `name`, `quantity`, `unit`, `price`, `currency_
 (164, 'Pena Oren', 123.00, 'pcs', 0.00, NULL, NULL, NULL, 'untuk', NULL, NULL, NULL, '2025-07-03 02:19:43', '2025-07-03 02:20:26', 20, NULL),
 (166, 'USDrrr', 1.00, 'cm', 200000.00, 2, NULL, NULL, NULL, NULL, NULL, NULL, '2025-07-03 08:13:31', '2025-07-03 08:13:31', 19, NULL),
 (167, 'gelas', 2.00, 'Lembar', 40000.00, 2, 10, 8, 'test', 'inventory_images/p3mrT9cuQ3aYmDtmdtW5DnF1fUfwNIjdN7rheXkA.jpg', NULL, NULL, '2025-07-03 09:49:47', '2025-07-03 09:49:47', 24, NULL),
-(168, 'Large Bucket uio', 1.00, 'Lembar', 200000.00, 27, 10, 8, NULL, NULL, NULL, NULL, '2025-07-03 09:51:53', '2025-07-03 09:52:21', 14, NULL),
+(168, 'Large Bucket uio', 0.00, 'Lembar', 200000.00, 27, 10, 8, NULL, NULL, NULL, NULL, '2025-07-03 09:51:53', '2025-10-01 02:21:58', 14, NULL),
 (169, 'Kabel kaka', 1.00, 'm', 200000.00, 2, 10, 8, NULL, NULL, NULL, NULL, '2025-07-03 09:55:02', '2025-07-03 09:55:02', 9, NULL),
 (170, 'oytjerv', 26.00, 'cm', 564.00, 6, 22, 18, 'test available data', NULL, NULL, NULL, '2025-07-04 02:54:30', '2025-07-04 02:54:30', 1, NULL),
 (171, 'hhjkb', 21.00, 'pop', 2342.00, 1, 22, 19, 'test no available data', NULL, NULL, NULL, '2025-07-04 02:55:26', '2025-07-04 02:55:26', 27, NULL),
@@ -633,28 +733,28 @@ INSERT INTO `inventories` (`id`, `name`, `quantity`, `unit`, `price`, `currency_
 (174, 'testsssssdt', 2.00, 'cm', 0.00, NULL, NULL, NULL, '<span style=\"color: orange;\">(From Quick Add)</span>', NULL, NULL, NULL, '2025-07-05 05:13:15', '2025-07-05 05:13:15', NULL, NULL),
 (175, 'jikoni', 1.00, 'cm', 0.00, NULL, NULL, NULL, '<span style=\"color: orange;\">(From Quick Add)</span>', NULL, NULL, NULL, '2025-07-05 05:54:07', '2025-07-05 05:54:07', NULL, NULL),
 (176, 'hyupo', 23.00, 'kilo', 0.00, NULL, NULL, NULL, '<span style=\"color: orange;\">(From Quick Add)</span>', NULL, NULL, NULL, '2025-07-05 05:56:28', '2025-07-05 05:56:28', NULL, NULL),
-(177, 'cdmyu', 123.00, 'dm', 0.00, NULL, NULL, NULL, '<span style=\"color: orange;\">(From Quick Add)</span>', NULL, NULL, NULL, '2025-07-05 06:01:39', '2025-07-05 06:01:39', NULL, NULL),
+(177, 'cdmyu', 122.00, 'dm', 0.00, NULL, NULL, NULL, '<span style=\"color: orange;\">(From Quick Add)</span>', NULL, NULL, NULL, '2025-07-05 06:01:39', '2025-08-15 08:11:35', NULL, NULL),
 (178, 'test', 1.00, 'cm', 0.00, NULL, NULL, NULL, '<span style=\"color: orange;\">(From Quick Add)</span>', NULL, NULL, NULL, '2025-07-07 04:00:36', '2025-07-07 04:00:36', NULL, NULL),
 (179, 'fftyu', 1.00, 'cm', 0.00, NULL, NULL, NULL, 'cd <span style=\"color: orange;\">(From Quick Add)</span>', NULL, NULL, NULL, '2025-07-07 04:10:52', '2025-07-07 04:10:52', NULL, NULL),
 (180, 'oli castrol', 52.02, 'drum', 250000.00, 2, 23, 20, 'etst', 'inventory_images/NVftLNGwiPdWvIShNhgyrGIaCQxwfyddyYNt64UV.jpg', NULL, NULL, '2025-07-07 04:11:49', '2025-07-26 04:33:14', 24, NULL),
-(181, 'Button 1', 1.00, 'cm', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-07-07 04:35:50', '2025-07-07 04:35:50', 20, NULL),
+(181, 'Button 1', 0.00, 'cm', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-07-07 04:35:50', '2025-10-01 02:21:58', 20, NULL),
 (182, 'Zipper 2', 1.00, 'cm', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-07-07 04:41:45', '2025-07-07 06:11:04', 20, '2025-07-07 06:11:04'),
 (183, 'Zipper 2', 1.00, 'cm', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-07-07 06:11:22', '2025-07-07 06:11:22', 20, NULL),
-(184, 'ban karet', 0.00, 'cm', 1.00, 42, 24, 21, NULL, NULL, NULL, NULL, '2025-07-08 07:03:23', '2025-07-17 09:37:42', 19, NULL),
+(184, 'ban karet', 996.00, 'cm', 1.00, 42, 24, 21, NULL, NULL, NULL, NULL, '2025-07-08 07:03:23', '2025-10-01 02:52:20', 19, NULL),
 (185, 'Kunci', 25.00, 'ddty', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-07-08 08:25:28', '2025-07-08 08:51:13', 19, NULL),
 (186, 'Kancing Biru', 27.00, 'pcs', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-07-08 08:52:21', '2025-07-08 09:38:21', 9, NULL),
-(187, 'Cat Tosca', 67.00, 'Kaleng', 90000.00, 2, 25, 20, NULL, NULL, NULL, NULL, '2025-07-09 07:06:02', '2025-07-09 08:30:38', 29, NULL),
+(187, 'Cat Tosca', 66.00, 'Kaleng', 90000.00, 2, 25, 20, NULL, NULL, NULL, NULL, '2025-07-09 07:06:02', '2025-10-01 02:21:58', 29, NULL),
 (188, 'cat kotak', 0.10, 'ascas', 0.00, NULL, NULL, NULL, 'ffff (From Quick Add)', NULL, NULL, NULL, '2025-07-09 09:15:37', '2025-07-22 03:50:48', 20, NULL),
 (189, 'ssd', 2323.00, 'sd', 0.00, NULL, NULL, NULL, '<span style=\"color: orange;\">(From Quick Add)</span>', NULL, NULL, NULL, '2025-07-11 01:43:22', '2025-07-11 01:43:22', NULL, NULL),
 (190, 'xc x', 2.00, 'ascas', 0.00, NULL, NULL, NULL, 'asc <span style=\"color: orange;\">(From Quick Add)</span>', NULL, NULL, NULL, '2025-07-11 01:43:45', '2025-07-11 01:43:45', NULL, NULL),
 (191, 'sd', 34.00, 'df', 0.00, NULL, NULL, NULL, 'dff <span style=\"color: orange;\">(From Quick Add)</span>', NULL, NULL, NULL, '2025-07-11 01:43:55', '2025-07-11 01:43:55', NULL, NULL),
-(192, 'abata', 40.00, 'cm', 0.00, NULL, NULL, NULL, '<span style=\"color: orange;\">(From Quick Add)</span>', NULL, NULL, NULL, '2025-07-11 02:05:53', '2025-07-26 04:08:37', NULL, NULL),
+(192, 'abata', 38.00, 'cm', 0.00, NULL, NULL, NULL, '<span style=\"color: orange;\">(From Quick Add)</span>', NULL, NULL, NULL, '2025-07-11 02:05:53', '2025-10-01 02:21:58', NULL, NULL),
 (193, 'cdmog', 29.00, 'cm', 0.00, NULL, NULL, NULL, 'asas <span style=\"color: orange;\">(From Quick Add)</span>', NULL, NULL, NULL, '2025-07-11 02:06:37', '2025-07-11 02:06:37', NULL, NULL),
 (194, 'Furing C123', 122.00, 'cm', 0.00, NULL, NULL, NULL, 'test <span style=\"color: orange;\">(From Quick Add)</span>', NULL, NULL, NULL, '2025-07-11 02:24:58', '2025-07-17 08:51:45', NULL, NULL),
 (195, 'Furing B123', 123.00, 'cm', 0.00, NULL, NULL, NULL, 'testinggg (From Quick Add)', 'inventory_images/xMmTEVzDil1D3yn0OGcHwlDStI3qUaTDe8nAYBic.jpg', NULL, NULL, '2025-07-11 02:25:49', '2025-07-11 03:37:32', 20, NULL),
 (196, 'gtwgw', 34.00, 'cm', 0.00, NULL, NULL, NULL, 'asas <span style=\"color: orange;\">(From Quick Add)</span>', NULL, NULL, NULL, '2025-07-17 06:17:09', '2025-07-17 06:17:09', NULL, NULL),
 (197, 'testfab', 2.00, 'cm', 0.00, NULL, NULL, NULL, 'acas <span style=\"color: orange;\">(From Quick Add)</span>', NULL, NULL, NULL, '2025-07-17 06:17:46', '2025-07-17 06:17:46', NULL, NULL),
-(198, 'asdasw', 210.00, 'ascas', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-07-18 09:18:08', '2025-07-26 04:24:16', 20, NULL),
+(198, 'asdasw', 209.00, 'ascas', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-07-18 09:18:08', '2025-08-15 08:11:35', 20, NULL),
 (199, 'asdaswsdcvsd', 212.00, 'ascas', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-07-18 09:18:15', '2025-07-18 09:18:15', 20, NULL),
 (200, 'qdqw', 21200.00, 'oke', 123.00, 60, NULL, NULL, NULL, NULL, NULL, NULL, '2025-07-19 02:26:59', '2025-07-19 02:34:25', 32, NULL),
 (201, 'Qucking', 0.00, 'pcs', 0.00, 1, 26, 22, 'Delivered', NULL, NULL, NULL, '2025-07-19 02:42:12', '2025-07-19 02:43:18', 39, '2025-07-19 02:43:18'),
@@ -671,7 +771,10 @@ INSERT INTO `inventories` (`id`, `name`, `quantity`, `unit`, `price`, `currency_
 (212, 'Pillow Mascottt', 1.00, 'm', 1.00, 1, 28, 33, 'Delivered', NULL, NULL, NULL, '2025-07-19 02:42:13', '2025-07-19 02:44:00', 56, '2025-07-19 02:44:00'),
 (213, 'test1ggh', 1.00, 'Gulung', 1.00, 1, 28, 34, 'Delivered', NULL, NULL, NULL, '2025-07-19 02:42:13', '2025-07-19 02:43:26', 71, '2025-07-19 02:43:26'),
 (214, 'Ninja RR', 5.00, 'Kaleng', 5.00, 1, 28, 35, 'Delivered', NULL, NULL, NULL, '2025-07-19 02:42:13', '2025-07-19 02:43:22', 74, '2025-07-19 02:43:22'),
-(215, 'aderai', 18.10, 'cm', 0.00, NULL, NULL, NULL, 'dd <span style=\"color: orange;\">(From Quick Add)</span>', NULL, NULL, NULL, '2025-07-19 02:50:04', '2025-07-26 04:24:16', NULL, NULL);
+(215, 'aderai', 14.10, 'cm', 0.00, NULL, NULL, NULL, 'dd <span style=\"color: orange;\">(From Quick Add)</span>', NULL, NULL, NULL, '2025-07-19 02:50:04', '2025-10-01 02:21:58', NULL, NULL),
+(216, 'aaaaaabbbbbbcccc', 11.00, 'cm', 12.00, 15, 10, 20, 'ascas', 'inventory_images/UbArx5iq0cGzZz8rx6Pz95tTRRy4DWiOyxvXBrPJ.jpg', NULL, NULL, '2025-08-11 07:35:35', '2025-09-30 09:24:06', 45, NULL),
+(217, 'update at', 12.00, '16', 12.00, 39, 26, 20, 'sdcfswac', NULL, NULL, NULL, '2025-08-15 09:26:49', '2025-08-15 09:26:49', 45, NULL),
+(218, 'Tisu nex', 1.00, '16', 122.00, 42, 26, 21, 'sdsa', 'inventory_images/1RKXjFBXKpFgLPLxXKzLa1QYguxRP90ahS03CJoF.jpg', NULL, NULL, '2025-09-24 07:57:19', '2025-09-24 07:57:19', 31, NULL);
 
 -- --------------------------------------------------------
 
@@ -766,18 +869,18 @@ INSERT INTO `material_requests` (`id`, `inventory_id`, `project_id`, `qty`, `pro
 (43, 75, 25, 2.00, 0.00, 'admin', NULL, 'pending', NULL, '2025-05-20 02:05:06', '2025-05-20 02:05:06', NULL),
 (44, 69, 25, 1.00, 0.00, 'admin', 'sdvsd', 'pending', NULL, '2025-05-20 02:20:44', '2025-05-20 02:20:44', NULL),
 (57, 77, 21, 1.00, 0.00, 'admin', '4sdvsd', 'approved', NULL, '2025-05-20 02:43:32', '2025-05-20 03:21:57', NULL),
-(72, 63, 31, 1.00, 0.00, 'admin', 'ever', 'approved', NULL, '2025-05-20 02:58:11', '2025-06-02 04:33:15', NULL),
+(72, 63, 31, 1.00, 1.00, 'admin', 'ever', 'delivered', NULL, '2025-05-20 02:58:11', '2025-08-15 08:26:20', NULL),
 (74, 84, 25, 0.00, 0.00, 'admin', 'testiing A', 'delivered', NULL, '2025-05-22 03:37:23', '2025-05-22 04:37:31', NULL),
 (75, 85, 25, 0.00, 0.00, 'admin', 'etst', 'delivered', NULL, '2025-05-22 04:02:04', '2025-05-22 04:09:52', NULL),
 (76, 75, 14, 0.00, 0.00, 'admin', 'asd', 'delivered', NULL, '2025-05-22 04:12:03', '2025-05-22 04:14:04', NULL),
 (77, 59, 14, 0.00, 0.00, 'admin', '23/5', 'delivered', NULL, '2025-05-23 03:02:12', '2025-05-23 03:03:22', NULL),
-(78, 61, 17, 6.05, 0.00, 'admin', 'test', 'approved', NULL, '2025-05-23 08:00:53', '2025-06-17 08:17:48', NULL),
+(78, 61, 17, 6.05, 6.00, 'admin', 'test', 'approved', NULL, '2025-05-23 08:00:53', '2025-08-15 08:26:20', NULL),
 (79, 69, 14, 3.00, 0.00, 'admin', '4', 'pending', NULL, '2025-05-24 04:35:59', '2025-05-24 04:35:59', NULL),
 (80, 69, 14, 5.00, 0.00, 'costume', NULL, 'pending', NULL, '2025-05-24 04:36:43', '2025-05-24 04:36:43', NULL),
 (81, 84, 15, 1.00, 0.00, 'costume', '2', 'pending', NULL, '2025-05-24 04:37:22', '2025-05-24 04:37:22', NULL),
 (82, 69, 14, 1.00, 0.00, 'costume', 'eee', 'pending', NULL, '2025-05-24 04:40:23', '2025-05-24 04:40:23', NULL),
-(83, 69, 14, 1.00, 0.00, 'costume', 'rrrrr', 'approved', NULL, '2025-05-24 04:51:18', '2025-06-17 08:45:36', NULL),
-(84, 59, 14, 1.00, 0.00, 'costume', '1', 'approved', NULL, '2025-05-24 04:56:32', '2025-05-27 03:50:03', NULL),
+(83, 69, 14, 1.00, 1.00, 'costume', 'rrrrr', 'delivered', NULL, '2025-05-24 04:51:18', '2025-08-15 08:26:20', NULL),
+(84, 59, 14, 1.00, 1.00, 'costume', '1', 'delivered', NULL, '2025-05-24 04:56:32', '2025-08-15 08:26:20', NULL),
 (85, 84, 25, 4.50, 0.00, 'admin', 'testtti', 'pending', NULL, '2025-05-28 03:10:50', '2025-05-28 03:10:50', NULL),
 (86, 84, 25, 4.50, 0.00, 'admin', 'testtti', 'pending', NULL, '2025-05-28 03:11:28', '2025-05-28 03:11:28', NULL),
 (87, 76, 31, 2.00, 0.00, 'admin', 'testttting1', 'pending', NULL, '2025-05-28 03:16:15', '2025-05-28 03:16:15', NULL),
@@ -840,7 +943,7 @@ INSERT INTO `material_requests` (`id`, `inventory_id`, `project_id`, `qty`, `pro
 (152, 69, 14, 1.00, 0.00, 'admin', 'ddd', 'pending', NULL, '2025-05-30 06:28:42', '2025-05-30 06:28:42', NULL),
 (153, 69, 15, 1.00, 0.00, 'admin', 'sdsd', 'pending', NULL, '2025-05-30 06:29:37', '2025-05-30 06:29:37', NULL),
 (159, 60, 14, 1.00, 0.00, 'admin', 'ssdd', 'pending', NULL, '2025-05-30 06:56:31', '2025-05-30 06:58:36', NULL),
-(160, 59, 16, 2.00, 0.00, 'admin', 'ddd', 'approved', NULL, '2025-05-30 06:56:44', '2025-05-30 06:58:17', NULL),
+(160, 59, 16, 2.00, 1.50, 'admin', 'ddd', 'approved', NULL, '2025-05-30 06:56:44', '2025-08-15 08:26:20', NULL),
 (161, 69, 15, 0.00, 0.00, 'admin', 'vvvvddd', 'delivered', NULL, '2025-05-30 06:59:12', '2025-06-03 07:58:21', NULL),
 (162, 69, 14, 1.00, 0.00, 'admin', 'mmnnmm', 'pending', NULL, '2025-05-30 07:00:59', '2025-05-30 07:00:59', NULL),
 (163, 59, 14, 1.00, 0.00, 'admin', 'hyhyh', 'pending', NULL, '2025-05-30 07:13:17', '2025-05-30 07:13:17', NULL),
@@ -931,9 +1034,9 @@ INSERT INTO `material_requests` (`id`, `inventory_id`, `project_id`, `qty`, `pro
 (251, 62, 31, 1.00, 0.00, 'admin', '1', 'delivered', NULL, '2025-05-30 08:57:58', '2025-06-03 01:40:38', NULL),
 (253, 69, 14, 1.01, 0.00, 'admin', 'def', 'pending', NULL, '2025-05-30 09:14:05', '2025-06-02 09:44:03', NULL),
 (254, 69, 14, 1.00, 0.00, 'logitech', 'sss', 'pending', NULL, '2025-06-03 02:13:25', '2025-06-03 02:13:25', NULL),
-(255, 60, 25, 2.00, 0.00, 'tari', 'kkkkn', 'approved', NULL, '2025-06-03 02:16:23', '2025-07-09 03:25:02', NULL),
+(255, 60, 25, 2.00, 2.00, 'tari', 'kkkkn', 'delivered', NULL, '2025-06-03 02:16:23', '2025-08-15 08:26:20', NULL),
 (256, 62, 26, 0.00, 0.00, 'tari', 'jjjjjjjjjj', 'delivered', NULL, '2025-06-03 02:22:25', '2025-06-04 06:56:21', NULL),
-(257, 84, 14, 1.00, 0.00, 'tari', 'lklklk', 'pending', NULL, '2025-06-03 02:34:41', '2025-06-03 02:34:41', NULL),
+(257, 84, 14, 1.00, 0.00, 'tari', 'lklklk', 'approved', '2025-09-13 04:39:31', '2025-06-03 02:34:41', '2025-09-13 04:39:31', NULL),
 (258, 66, 23, 1.00, 0.00, 'tari', 'ioio', 'pending', NULL, '2025-06-03 02:39:05', '2025-06-03 02:39:05', NULL),
 (259, 69, 16, 1.00, 0.00, 'tari', 'uyuyuy', 'pending', NULL, '2025-06-03 02:39:50', '2025-06-03 02:39:50', NULL),
 (260, 60, 41, 1.00, 0.00, 'tari', 'qwqw', 'pending', NULL, '2025-06-03 02:48:53', '2025-06-03 02:48:53', NULL),
@@ -961,24 +1064,24 @@ INSERT INTO `material_requests` (`id`, `inventory_id`, `project_id`, `qty`, `pro
 (282, 69, 14, 1.00, 0.00, 'tari', 'vtvt', 'pending', NULL, '2025-06-04 01:56:46', '2025-06-04 01:56:46', NULL),
 (283, 69, 14, 1.00, 0.00, 'tari', 'vovo', 'pending', NULL, '2025-06-04 02:05:16', '2025-06-04 02:05:16', NULL),
 (284, 69, 14, 2.00, 0.00, 'tari', 'gqgq', 'pending', NULL, '2025-06-04 02:13:15', '2025-06-17 09:38:07', NULL),
-(285, 69, 14, 1.00, 0.00, 'tari', 'mo', 'approved', NULL, '2025-06-04 02:41:49', '2025-06-17 08:45:10', NULL),
+(285, 69, 14, 1.00, 1.00, 'tari', 'mo', 'delivered', NULL, '2025-06-04 02:41:49', '2025-08-15 08:26:20', NULL),
 (286, 69, 15, 1.00, 0.00, 'tari', 'jj', 'pending', NULL, '2025-06-04 02:42:08', '2025-06-04 02:42:08', NULL),
-(287, 69, 14, 1.00, 0.00, 'tari', 'gmgmn', 'approved', NULL, '2025-06-04 02:48:59', '2025-06-17 08:47:56', NULL),
+(287, 69, 14, 1.00, 1.00, 'tari', 'gmgmn', 'delivered', NULL, '2025-06-04 02:48:59', '2025-08-15 08:26:20', NULL),
 (288, 69, 14, 1.00, 0.00, 'tari', 'ft', 'pending', NULL, '2025-06-04 02:49:36', '2025-06-04 02:49:36', NULL),
 (289, 60, 16, 1.00, 0.00, 'tari', 'fy', 'pending', NULL, '2025-06-04 02:49:36', '2025-06-04 02:49:36', NULL),
-(290, 69, 39, 1.00, 0.00, 'tari', 'fu', 'approved', NULL, '2025-06-04 02:49:36', '2025-06-17 08:44:47', NULL),
-(291, 84, 25, 1.00, 0.00, 'tari', '2ee', 'approved', NULL, '2025-06-04 03:19:24', '2025-06-05 08:22:36', NULL),
-(292, 69, 14, 1.00, 0.00, 'tari', '222', 'approved', NULL, '2025-06-04 03:37:03', '2025-06-17 08:45:53', NULL),
-(293, 69, 14, 1.00, 0.00, 'tari', 'cbcb', 'approved', NULL, '2025-06-04 03:38:46', '2025-06-17 08:45:16', NULL),
+(290, 69, 39, 1.00, 1.00, 'tari', 'fu', 'delivered', NULL, '2025-06-04 02:49:36', '2025-08-15 08:26:20', NULL),
+(291, 84, 25, 1.00, 1.00, 'tari', '2ee', 'delivered', NULL, '2025-06-04 03:19:24', '2025-08-15 08:26:20', NULL),
+(292, 69, 14, 1.00, 1.00, 'tari', '222', 'delivered', NULL, '2025-06-04 03:37:03', '2025-08-15 08:26:20', NULL),
+(293, 69, 14, 1.00, 1.00, 'tari', 'cbcb', 'delivered', NULL, '2025-06-04 03:38:46', '2025-08-15 08:26:20', NULL),
 (295, 84, 25, 1.00, 0.00, 'tari', 'ffv', 'delivered', NULL, '2025-06-04 04:11:30', '2025-06-04 06:57:55', NULL),
-(296, 69, 14, 1.00, 0.00, 'tari', 'vt', 'approved', NULL, '2025-06-04 04:13:30', '2025-06-17 08:34:07', NULL),
+(296, 69, 14, 1.00, 1.00, 'tari', 'vt', 'delivered', NULL, '2025-06-04 04:13:30', '2025-08-15 08:26:20', NULL),
 (297, 69, 25, 0.00, 0.00, 'tari', 'test request', 'delivered', NULL, '2025-06-04 06:44:24', '2025-06-04 06:54:10', NULL),
 (298, 84, 14, 0.00, 0.00, 'tari', '1', 'delivered', NULL, '2025-06-04 06:45:21', '2025-06-04 06:49:12', NULL),
 (299, 69, 16, 1.00, 0.00, 'tari', '1', 'canceled', NULL, '2025-06-04 06:45:21', '2025-06-05 06:23:33', NULL),
 (300, 60, 39, 1.00, 0.00, 'tari', '1', 'delivered', NULL, '2025-06-04 06:45:21', '2025-06-04 06:57:55', NULL),
 (301, 69, 19, 1.00, 0.00, 'tari', '1', 'delivered', NULL, '2025-06-04 06:45:21', '2025-06-04 06:57:55', NULL),
 (302, 61, 42, 3.00, 0.00, 'laura', 'test', 'pending', NULL, '2025-06-04 09:10:31', '2025-07-02 03:22:45', NULL),
-(303, 69, 14, 1.00, 0.00, 'laura', 'test', 'approved', NULL, '2025-06-04 09:11:15', '2025-06-17 08:44:23', NULL),
+(303, 69, 14, 1.00, 1.00, 'laura', 'test', 'delivered', NULL, '2025-06-04 09:11:15', '2025-08-15 08:26:20', NULL),
 (304, 69, 17, 1.00, 0.00, 'laura', NULL, 'canceled', NULL, '2025-06-04 09:13:51', '2025-06-05 06:23:26', NULL),
 (305, 58, 18, 0.00, 0.00, 'laura', NULL, 'delivered', NULL, '2025-06-04 09:13:52', '2025-06-04 09:15:14', NULL),
 (306, 90, 43, 1.00, 0.00, 'laura', NULL, 'pending', NULL, '2025-06-04 09:13:52', '2025-07-02 03:09:32', NULL),
@@ -993,21 +1096,21 @@ INSERT INTO `material_requests` (`id`, `inventory_id`, `project_id`, `qty`, `pro
 (315, 69, 43, 1.00, 0.00, 'logitech', 'vvg', 'pending', NULL, '2025-06-05 06:46:52', '2025-06-05 06:46:52', NULL),
 (316, 72, 15, 1.00, 0.00, 'logitech', 'vzvz', 'pending', NULL, '2025-06-05 06:49:50', '2025-06-05 06:49:50', NULL),
 (317, 72, 43, 1.00, 0.00, 'logitech', '1', 'pending', NULL, '2025-06-05 06:50:06', '2025-06-05 06:50:06', NULL),
-(318, 60, 43, 1.00, 0.00, 'logitech', '2gg', 'approved', NULL, '2025-06-05 06:52:27', '2025-06-05 06:52:41', NULL),
+(318, 60, 43, 1.00, 1.00, 'logitech', '2gg', 'delivered', NULL, '2025-06-05 06:52:27', '2025-08-15 08:26:20', NULL),
 (319, 69, 14, 1.00, 0.00, 'tari', 'sss', 'pending', NULL, '2025-06-05 07:52:54', '2025-06-05 07:52:54', NULL),
 (320, 60, 14, 1.00, 0.00, 'tari', '1bbb', 'pending', NULL, '2025-06-05 07:54:10', '2025-06-05 07:54:10', NULL),
 (321, 60, 14, 1.00, 0.00, 'tari', 'ffyuu', 'pending', NULL, '2025-06-05 08:01:33', '2025-06-05 08:01:33', NULL),
 (322, 69, 43, 1.00, 0.00, 'tari', 'cdc', 'pending', NULL, '2025-06-05 08:05:18', '2025-06-05 08:05:18', NULL),
 (323, 60, 43, 1.00, 0.00, 'logitech', 'fdfvbdf', 'pending', NULL, '2025-06-05 08:05:32', '2025-06-05 08:05:32', NULL),
 (324, 60, 43, 1.00, 0.00, 'logitech', 'xc vd', 'pending', NULL, '2025-06-05 08:06:41', '2025-06-05 08:06:41', NULL),
-(325, 69, 14, 1.00, 0.00, 'tari', 'ffdc', 'approved', NULL, '2025-06-05 08:07:53', '2025-07-17 08:35:17', NULL),
+(325, 69, 14, 1.00, 1.00, 'tari', 'ffdc', 'delivered', NULL, '2025-06-05 08:07:53', '2025-08-15 08:11:35', NULL),
 (326, 69, 43, 1.00, 0.00, 'tari', 'hfhdg', 'canceled', NULL, '2025-06-05 08:14:48', '2025-06-05 08:49:40', NULL),
 (327, 72, 43, 1.00, 0.00, 'tari', 'ssdd', 'delivered', NULL, '2025-06-05 08:16:27', '2025-06-05 08:20:48', NULL),
 (328, 60, 15, 2.00, 0.00, 'tari', 'sdcvsd', 'delivered', NULL, '2025-06-05 08:16:40', '2025-06-05 08:22:09', NULL),
-(329, 69, 25, 1.00, 0.00, 'logitech', 'dsd', 'approved', NULL, '2025-06-05 08:39:51', '2025-06-05 08:49:36', NULL),
-(330, 60, 14, 2.00, 0.00, 'logitech', 'deved', 'approved', NULL, '2025-06-05 08:39:52', '2025-06-17 04:52:50', NULL),
+(329, 69, 25, 1.00, 1.00, 'logitech', 'dsd', 'delivered', NULL, '2025-06-05 08:39:51', '2025-08-15 08:26:20', NULL),
+(330, 60, 14, 2.00, 2.00, 'logitech', 'deved', 'delivered', NULL, '2025-06-05 08:39:52', '2025-08-15 08:11:35', NULL),
 (331, 119, 46, 0.00, 0.00, 'logitech', 'etst', 'delivered', NULL, '2025-06-09 04:04:26', '2025-06-09 04:05:09', NULL),
-(332, 69, 14, 1.00, 0.00, 'logitech', 'dds', 'approved', NULL, '2025-06-11 07:05:56', '2025-06-14 05:43:59', NULL),
+(332, 69, 14, 1.00, 1.00, 'logitech', 'dds', 'delivered', NULL, '2025-06-11 07:05:56', '2025-08-15 08:11:35', NULL),
 (333, 60, 43, 1.00, 0.00, 'tari', 'dds', 'pending', NULL, '2025-06-11 07:09:22', '2025-06-11 07:09:59', '2025-06-11 07:09:59'),
 (334, 140, 50, 1.00, 0.00, 'dyla', 'Request By IT', 'pending', NULL, '2025-06-14 05:43:23', '2025-07-02 02:36:59', NULL),
 (335, 146, 25, 4.00, 0.00, 'logitech', '2', 'delivered', NULL, '2025-06-16 09:36:16', '2025-06-17 04:50:28', NULL),
@@ -1017,14 +1120,14 @@ INSERT INTO `material_requests` (`id`, `inventory_id`, `project_id`, `qty`, `pro
 (339, 146, 43, 1.00, 0.00, 'logitech', 'sxcsd', 'pending', NULL, '2025-06-17 08:07:28', '2025-06-17 08:07:28', NULL),
 (340, 145, 53, 0.00, 1.00, 'logitech', '2', 'delivered', NULL, '2025-06-17 08:11:45', '2025-06-25 04:20:26', NULL),
 (341, 147, 45, 0.00, 1.00, 'logitech', 'rrt', 'delivered', NULL, '2025-06-17 08:15:14', '2025-06-25 04:19:24', NULL),
-(342, 69, 15, 1.00, 0.00, 'logitech', 'df', 'approved', NULL, '2025-06-17 08:15:43', '2025-06-17 08:31:27', NULL),
+(342, 69, 15, 1.00, 1.00, 'logitech', 'df', 'delivered', NULL, '2025-06-17 08:15:43', '2025-08-15 08:11:35', NULL),
 (343, 146, 43, 5.00, 0.00, 'logitech', '1', 'pending', NULL, '2025-06-17 09:45:05', '2025-06-17 09:45:05', NULL),
 (344, 148, 50, 1.00, 0.00, 'logitech', 'sdd', 'pending', NULL, '2025-06-17 09:46:25', '2025-06-17 09:46:25', NULL),
 (345, 146, 49, 5.00, 5.00, 'logitech', 'rret', 'delivered', NULL, '2025-06-25 07:16:56', '2025-06-25 07:28:59', NULL),
 (346, 144, 50, 2.00, 0.00, 'tari', NULL, 'pending', NULL, '2025-06-25 07:41:24', '2025-06-25 07:41:24', NULL),
 (347, 154, 14, 1.00, 0.00, 'tari', 'sdcsd', 'pending', NULL, '2025-06-25 07:44:48', '2025-06-25 07:44:48', NULL),
 (348, 146, 45, 2.00, 0.00, 'tari', 'sdcsd', 'pending', NULL, '2025-06-25 07:46:29', '2025-06-25 07:46:29', NULL),
-(349, 90, 49, 2.00, 0.00, 'tari', 'rre', 'approved', NULL, '2025-06-26 07:10:13', '2025-06-26 07:11:34', NULL),
+(349, 90, 49, 2.00, 2.00, 'tari', 'rre', 'delivered', NULL, '2025-06-26 07:10:13', '2025-08-15 08:11:35', NULL),
 (350, 156, 16, 2.00, 0.00, 'tari', 'scsd', 'pending', NULL, '2025-06-26 08:24:52', '2025-06-26 08:24:52', NULL),
 (351, 154, 43, 1.00, 0.00, 'tari', '2222', 'pending', NULL, '2025-06-26 08:49:08', '2025-06-26 08:49:08', NULL),
 (352, 152, 16, 2.00, 0.00, 'tari', 'scs', 'pending', NULL, '2025-07-01 02:39:09', '2025-07-03 08:30:39', NULL),
@@ -1039,7 +1142,7 @@ INSERT INTO `material_requests` (`id`, `inventory_id`, `project_id`, `qty`, `pro
 (361, 146, 43, 1.00, 0.00, 'logitech', 'dscfw', 'pending', NULL, '2025-07-01 08:34:23', '2025-07-01 08:34:23', NULL),
 (362, 154, 43, 2.00, 0.00, 'logitech', 'sdfcsd', 'pending', NULL, '2025-07-01 08:47:01', '2025-07-02 02:10:50', NULL),
 (363, 154, 14, 1.00, 0.00, 'logitech', 'ascas', 'pending', NULL, '2025-07-01 08:47:36', '2025-07-01 08:47:36', NULL),
-(364, 146, 25, 1.00, 0.00, 'logitech', 'sdcsd', 'approved', NULL, '2025-07-01 09:31:08', '2025-07-02 02:09:18', NULL),
+(364, 146, 25, 1.00, 1.00, 'logitech', 'sdcsd', 'delivered', NULL, '2025-07-01 09:31:08', '2025-08-15 08:26:20', NULL),
 (365, 154, 25, 1.00, 0.00, 'logitech', 'cdvsd', 'approved', NULL, '2025-07-01 09:43:20', '2025-07-02 01:20:31', NULL),
 (366, 84, 25, 1.00, 1.00, 'logitech', 'ddd', 'delivered', NULL, '2025-07-02 01:20:56', '2025-07-05 02:19:25', NULL),
 (367, 138, 21, 1.00, 0.00, 'logitech', NULL, 'pending', NULL, '2025-07-02 02:41:49', '2025-07-02 02:41:49', NULL),
@@ -1060,7 +1163,7 @@ INSERT INTO `material_requests` (`id`, `inventory_id`, `project_id`, `qty`, `pro
 (390, 124, 55, 2.00, 0.00, 'logitech', 'vbn', 'pending', NULL, '2025-07-02 04:38:27', '2025-07-02 04:38:27', NULL),
 (391, 156, 26, 2.00, 0.00, 'logitech', 'fbsv', 'pending', NULL, '2025-07-02 04:38:27', '2025-07-02 04:38:27', NULL),
 (392, 156, 14, 1.00, 1.00, 'logitech', 'rbrt', 'delivered', NULL, '2025-07-02 04:39:18', '2025-07-04 04:17:25', NULL),
-(393, 146, 53, 1.00, 0.00, 'logitech', 'rbrt', 'approved', NULL, '2025-07-02 04:39:18', '2025-07-05 04:49:53', NULL),
+(393, 146, 53, 1.00, 1.00, 'logitech', 'rbrt', 'delivered', NULL, '2025-07-02 04:39:18', '2025-08-15 08:11:35', NULL),
 (394, 138, 19, 1.00, 0.00, 'logitech', 'nhty', 'pending', NULL, '2025-07-02 04:39:18', '2025-07-02 04:39:18', NULL),
 (395, 156, 15, 1.00, 1.00, 'logitech', 'dcvdsw', 'delivered', NULL, '2025-07-02 04:52:36', '2025-07-04 04:17:25', NULL),
 (396, 69, 43, 1.00, 1.00, 'logitech', 'dfdf', 'delivered', NULL, '2025-07-02 04:53:16', '2025-07-04 04:14:29', NULL),
@@ -1098,32 +1201,32 @@ INSERT INTO `material_requests` (`id`, `inventory_id`, `project_id`, `qty`, `pro
 (428, 68, 55, 1.00, 0.00, 'logitech', NULL, 'pending', NULL, '2025-07-07 09:13:41', '2025-07-07 09:13:41', NULL),
 (429, 99, 31, 1.00, 0.00, 'logitech', NULL, 'pending', NULL, '2025-07-07 09:13:41', '2025-07-07 09:13:41', NULL),
 (430, 156, 26, 1.00, 0.00, 'logitech', 'ascas', 'pending', NULL, '2025-07-07 09:24:56', '2025-07-07 09:40:22', NULL),
-(431, 154, 43, 1.00, 0.00, 'logitech', 'sdcsd', 'approved', NULL, '2025-07-07 09:25:17', '2025-07-07 09:26:15', NULL),
+(431, 154, 43, 1.00, 1.00, 'logitech', 'sdcsd', 'delivered', NULL, '2025-07-07 09:25:17', '2025-08-15 08:11:35', NULL),
 (432, 154, 14, 1.00, 1.00, 'logitech', 'asc', 'delivered', NULL, '2025-07-07 09:25:33', '2025-07-07 09:39:50', NULL),
-(433, 84, 17, 1.00, 0.00, 'logitech', 'sdcfsd', 'pending', NULL, '2025-07-07 09:30:48', '2025-07-07 09:37:22', NULL),
-(434, 180, 25, 1.50, 0.00, 'logitech', 'test', 'pending', NULL, '2025-07-08 02:04:35', '2025-07-08 02:04:35', NULL),
-(435, 154, 43, 1.00, 0.00, 'logitech', 'asas', 'pending', NULL, '2025-07-08 02:51:45', '2025-07-08 02:51:45', NULL),
-(436, 146, 43, 1.60, 0.00, 'logitech', 'erfwer', 'pending', NULL, '2025-07-08 02:57:49', '2025-07-08 02:57:49', NULL),
-(437, 99, 14, 1.00, 0.00, 'logitech', 'fdf', 'pending', NULL, '2025-07-08 02:58:28', '2025-07-08 02:58:28', NULL),
-(438, 156, 14, 1.08, 0.00, 'logitech', NULL, 'pending', NULL, '2025-07-08 02:58:44', '2025-07-08 02:58:44', NULL),
-(439, 99, 53, 1.70, 0.00, 'logitech', 'fg', 'pending', NULL, '2025-07-08 02:59:01', '2025-07-08 03:44:53', NULL),
-(440, 154, 14, 1.97, 0.00, 'logitech', 'ascasdvsd', 'pending', NULL, '2025-07-08 03:43:25', '2025-07-08 03:43:51', NULL),
-(441, 154, 14, 1.00, 0.00, 'logitech', 'sdvsdfd', 'pending', NULL, '2025-07-08 03:43:39', '2025-07-08 03:44:05', NULL),
-(442, 146, 43, 2.00, 0.00, 'logitech', 'sds', 'approved', NULL, '2025-07-08 09:35:12', '2025-07-08 09:35:30', NULL),
-(443, 146, 43, 1.00, 0.00, 'logitech', 'sdvsd', 'pending', NULL, '2025-07-08 09:47:59', '2025-07-08 09:47:59', NULL),
-(444, 184, 14, 1.00, 0.00, 'logitech', 'sdvsd', 'pending', NULL, '2025-07-08 09:52:36', '2025-07-08 09:52:36', NULL),
-(445, 154, 15, 1.00, 0.00, 'logitech', 'sdcsd', 'pending', NULL, '2025-07-08 10:02:45', '2025-07-08 10:02:45', NULL),
-(446, 184, 43, 1.00, 0.00, 'logitech', 'sdcsd', 'pending', NULL, '2025-07-09 01:29:37', '2025-07-09 01:29:37', NULL),
-(447, 184, 25, 1.00, 0.00, 'logitech', 'sdcs', 'pending', NULL, '2025-07-09 01:32:43', '2025-07-09 01:32:43', NULL),
-(448, 184, 43, 1.00, 0.00, 'logitech', 'sd', 'pending', NULL, '2025-07-09 01:40:13', '2025-07-09 01:40:13', NULL),
-(449, 140, 17, 1.00, 0.00, 'logitech', 'sdc', 'pending', NULL, '2025-07-09 01:45:21', '2025-07-09 01:45:21', NULL),
-(450, 72, 45, 1.00, 0.00, 'logitech', 'dfbdf', 'pending', NULL, '2025-07-09 01:51:00', '2025-07-09 01:51:00', NULL),
+(433, 84, 17, 1.00, 0.00, 'logitech', 'sdcfsd', 'approved', '2025-10-01 02:49:37', '2025-07-07 09:30:48', '2025-10-01 02:49:37', NULL),
+(434, 180, 25, 1.50, 0.00, 'logitech', 'test', 'approved', '2025-10-01 02:49:32', '2025-07-08 02:04:35', '2025-10-01 02:49:32', NULL),
+(435, 154, 43, 1.00, 0.00, 'logitech', 'asas', 'approved', '2025-10-01 02:49:28', '2025-07-08 02:51:45', '2025-10-01 02:49:28', NULL),
+(436, 146, 43, 1.60, 1.60, 'logitech', 'erfwer', 'delivered', '2025-10-01 02:49:23', '2025-07-08 02:57:49', '2025-10-01 02:52:20', NULL),
+(437, 99, 14, 1.00, 1.00, 'logitech', 'fdf', 'delivered', '2025-10-01 02:49:17', '2025-07-08 02:58:28', '2025-10-01 02:52:20', NULL),
+(438, 156, 14, 1.08, 1.08, 'logitech', NULL, 'delivered', '2025-10-01 02:49:13', '2025-07-08 02:58:44', '2025-10-01 02:52:20', NULL),
+(439, 99, 53, 1.70, 1.70, 'logitech', 'fg', 'delivered', '2025-10-01 02:49:08', '2025-07-08 02:59:01', '2025-10-01 02:52:20', NULL),
+(440, 154, 14, 1.97, 1.97, 'logitech', 'ascasdvsd', 'delivered', '2025-10-01 02:49:04', '2025-07-08 03:43:25', '2025-10-01 02:52:20', NULL),
+(441, 154, 14, 1.00, 1.00, 'logitech', 'sdvsdfd', 'delivered', '2025-10-01 02:48:59', '2025-07-08 03:43:39', '2025-10-01 02:52:20', NULL),
+(442, 146, 43, 2.00, 2.00, 'logitech', 'sds', 'delivered', NULL, '2025-07-08 09:35:12', '2025-08-15 08:11:35', NULL),
+(443, 146, 43, 1.00, 1.00, 'logitech', 'sdvsd', 'delivered', '2025-10-01 02:48:54', '2025-07-08 09:47:59', '2025-10-01 02:52:20', NULL),
+(444, 184, 14, 1.00, 1.00, 'logitech', 'sdvsd', 'delivered', '2025-10-01 02:48:50', '2025-07-08 09:52:36', '2025-10-01 02:52:20', NULL),
+(445, 154, 15, 1.00, 1.00, 'logitech', 'sdcsd', 'delivered', '2025-10-01 02:48:46', '2025-07-08 10:02:45', '2025-10-01 02:52:20', NULL),
+(446, 184, 43, 1.00, 1.00, 'logitech', 'sdcsd', 'delivered', '2025-10-01 02:48:41', '2025-07-09 01:29:37', '2025-10-01 02:52:20', NULL),
+(447, 184, 25, 1.00, 1.00, 'logitech', 'sdcs', 'delivered', '2025-10-01 02:48:36', '2025-07-09 01:32:43', '2025-10-01 02:52:20', NULL),
+(448, 184, 43, 1.00, 1.00, 'logitech', 'sd', 'delivered', '2025-10-01 02:48:31', '2025-07-09 01:40:13', '2025-10-01 02:52:20', NULL),
+(449, 140, 17, 1.00, 1.00, 'logitech', 'sdc', 'delivered', '2025-08-15 08:08:25', '2025-07-09 01:45:21', '2025-08-15 08:11:35', NULL),
+(450, 72, 45, 1.00, 1.00, 'logitech', 'dfbdf', 'delivered', '2025-08-15 08:08:18', '2025-07-09 01:51:00', '2025-08-15 08:11:35', NULL),
 (451, 154, 17, 1.00, 1.00, 'logitech', 'sdc', 'delivered', NULL, '2025-07-09 01:55:20', '2025-07-19 01:49:40', NULL),
 (452, 184, 43, 1.00, 1.00, 'logitech', NULL, 'delivered', NULL, '2025-07-09 02:07:14', '2025-07-17 09:37:42', NULL),
 (453, 123, 15, 5.00, 0.00, 'logitech', 'kjnn', 'pending', NULL, '2025-07-09 02:08:33', '2025-07-09 02:55:17', '2025-07-09 02:55:17'),
 (454, 167, 14, 2.00, 0.00, 'logitech', 'sdcvsd', 'pending', NULL, '2025-07-09 02:53:53', '2025-07-09 03:26:37', '2025-07-09 03:26:37'),
 (455, 156, 61, 2.00, 2.00, 'logitech', 'dvd', 'delivered', NULL, '2025-07-09 03:26:07', '2025-07-17 09:37:42', NULL),
-(456, 59, 14, 5.00, 4.60, 'logitech', NULL, 'approved', NULL, '2025-07-09 03:36:19', '2025-07-22 03:12:46', NULL),
+(456, 59, 14, 5.00, 5.00, 'logitech', NULL, 'delivered', NULL, '2025-07-09 03:36:19', '2025-08-15 08:11:35', NULL),
 (457, 90, 14, 1.00, 0.00, 'logitech', 'sdcd', 'pending', NULL, '2025-07-09 03:37:11', '2025-07-09 03:38:07', '2025-07-09 03:38:07'),
 (458, 70, 43, 1.00, 1.00, 'logitech', 'ddf', 'delivered', NULL, '2025-07-09 04:26:09', '2025-07-17 09:08:23', NULL),
 (459, 90, 49, 1.00, 1.00, 'logitech', NULL, 'delivered', NULL, '2025-07-09 04:26:50', '2025-07-17 09:33:49', NULL),
@@ -1134,31 +1237,53 @@ INSERT INTO `material_requests` (`id`, `inventory_id`, `project_id`, `qty`, `pro
 (471, 146, 15, 1.00, 1.00, 'logitech', 'dvsd', 'delivered', NULL, '2025-07-17 04:07:18', '2025-07-17 08:35:42', NULL),
 (472, 184, 14, 1.00, 1.00, 'logitech', 'asxcas', 'delivered', NULL, '2025-07-17 04:09:07', '2025-07-17 08:35:42', NULL),
 (473, 140, 14, 1.00, 1.00, 'logitech', NULL, 'delivered', NULL, '2025-07-17 04:10:31', '2025-07-17 04:41:54', NULL),
-(474, 67, 49, 1.00, 1.00, 'logitech', NULL, 'pending', NULL, '2025-07-17 04:17:24', '2025-07-18 06:35:45', NULL),
-(475, 184, 64, 1.00, 1.00, 'dyla', NULL, 'approved', NULL, '2025-07-17 07:38:04', '2025-07-18 04:44:35', NULL),
+(474, 67, 49, 1.00, 1.00, 'logitech', NULL, 'approved', '2025-10-01 03:12:44', '2025-07-17 04:17:24', '2025-10-01 03:12:44', NULL),
+(475, 184, 64, 1.00, 1.00, 'dyla', NULL, 'canceled', '2025-09-30 09:25:29', '2025-07-17 07:38:04', '2025-10-01 03:12:29', NULL),
 (476, 146, 43, 1.00, 1.00, 'logitech', 'xc s', 'delivered', NULL, '2025-07-18 04:16:19', '2025-07-18 07:24:12', NULL),
-(477, 84, 43, 1.00, 0.00, 'logitech', 'aass', 'pending', NULL, '2025-07-19 02:47:44', '2025-07-19 02:47:44', NULL),
-(478, 198, 14, 1.00, 0.00, 'logitech', NULL, 'pending', NULL, '2025-07-19 02:48:09', '2025-07-19 02:48:09', NULL),
-(481, 84, 14, 1.00, 0.00, 'logitech', 'sas', 'pending', NULL, '2025-07-19 02:49:13', '2025-07-19 02:49:13', NULL),
+(477, 84, 43, 1.00, 1.00, 'logitech', 'aass', 'delivered', '2025-08-15 08:08:03', '2025-07-19 02:47:44', '2025-08-15 08:11:35', NULL),
+(478, 198, 14, 1.00, 1.00, 'logitech', NULL, 'delivered', '2025-08-15 08:07:57', '2025-07-19 02:48:09', '2025-08-15 08:11:35', NULL),
+(481, 84, 14, 1.00, 1.00, 'logitech', 'sas', 'delivered', '2025-08-15 08:07:51', '2025-07-19 02:49:13', '2025-08-15 08:11:35', NULL),
 (482, 198, 43, 1.00, 1.00, 'logitech', 'sxcas', 'delivered', NULL, '2025-07-19 02:49:13', '2025-07-26 04:24:16', NULL),
-(483, 62, 25, 2.00, 0.00, 'logitech', 'asxas', 'pending', NULL, '2025-07-19 02:49:13', '2025-07-19 02:49:13', NULL),
-(484, 177, 15, 1.00, 0.00, 'logitech', 'ddf', 'pending', NULL, '2025-07-19 02:49:13', '2025-07-19 02:49:13', NULL),
-(485, 84, 43, 1.00, 0.00, 'logitech', 'sdd', 'pending', NULL, '2025-07-21 03:17:23', '2025-07-21 03:17:23', NULL),
+(483, 62, 25, 2.00, 2.00, 'logitech', 'asxas', 'delivered', '2025-08-15 08:07:44', '2025-07-19 02:49:13', '2025-08-15 08:11:35', NULL),
+(484, 177, 15, 1.00, 1.00, 'logitech', 'ddf', 'delivered', '2025-08-15 08:07:36', '2025-07-19 02:49:13', '2025-08-15 08:11:35', NULL),
+(485, 84, 43, 1.00, 1.00, 'logitech', 'sdd', 'delivered', '2025-08-15 08:07:30', '2025-07-21 03:17:23', '2025-08-15 08:11:35', NULL),
 (486, 84, 43, 1.00, 1.00, 'logitech', 'asxas', 'delivered', NULL, '2025-07-21 03:30:32', '2025-07-26 04:24:16', NULL),
-(487, 188, 65, 1.00, 0.00, 'logitech', 'axas', 'pending', NULL, '2025-07-21 03:30:51', '2025-07-21 03:30:51', NULL),
+(487, 188, 65, 1.00, 0.00, 'logitech', 'axas', 'approved', '2025-09-13 04:57:24', '2025-07-21 03:30:51', '2025-09-13 04:57:24', NULL),
 (488, 215, 25, 1.00, 1.00, 'logitech', 'as', 'delivered', NULL, '2025-07-21 03:31:09', '2025-07-26 04:24:16', NULL),
-(489, 188, 14, 1.00, 0.10, 'logitech', 'asa', 'approved', NULL, '2025-07-21 04:37:18', '2025-07-22 03:14:03', NULL),
+(489, 188, 14, 1.00, 0.10, 'logitech', 'asa', 'pending', NULL, '2025-07-21 04:37:18', '2025-10-01 03:12:21', NULL),
 (490, 90, 73, 6.00, 6.00, 'logitech', NULL, 'delivered', NULL, '2025-07-22 09:32:22', '2025-07-23 08:25:05', NULL),
 (491, 154, 73, 3.00, 3.00, 'logitech', NULL, 'delivered', NULL, '2025-07-22 09:32:22', '2025-07-26 04:09:22', NULL),
-(492, 84, 43, 3.00, 0.00, 'dyla', 'etst', 'pending', NULL, '2025-07-23 08:36:19', '2025-07-23 08:36:19', NULL),
-(493, 154, 73, 2.00, 0.00, 'dyla', NULL, 'pending', NULL, '2025-07-23 08:37:31', '2025-07-23 08:37:31', NULL),
+(492, 84, 43, 3.00, 3.00, 'dyla', 'etst', 'delivered', '2025-08-15 08:07:16', '2025-07-23 08:36:19', '2025-08-15 08:11:35', NULL),
+(493, 154, 73, 2.00, 2.00, 'dyla', NULL, 'delivered', '2025-08-15 08:07:01', '2025-07-23 08:37:31', '2025-10-01 02:21:58', NULL),
 (494, 66, 42, 2.00, 2.00, 'logitech', NULL, 'delivered', NULL, '2025-07-23 09:00:43', '2025-07-23 09:20:32', NULL),
 (495, 180, 64, 2.00, 2.00, 'logitech', NULL, 'delivered', NULL, '2025-07-23 09:47:30', '2025-07-26 04:19:16', NULL),
 (496, 215, 25, 5.00, 0.00, 'tari', '1', 'pending', NULL, '2025-07-25 09:13:28', '2025-07-26 01:26:15', '2025-07-26 01:26:15'),
-(497, 215, 25, 1.00, 0.00, 'tari', NULL, 'canceled', NULL, '2025-07-26 03:46:43', '2025-07-26 03:55:11', NULL),
+(497, 215, 25, 1.00, 1.00, 'tari', NULL, 'delivered', '2025-09-13 04:38:47', '2025-07-26 03:46:43', '2025-10-01 02:21:58', NULL),
 (498, 192, 43, 1.00, 1.00, 'tari', NULL, 'delivered', '2025-07-26 04:08:29', '2025-07-26 03:47:38', '2025-07-26 04:08:37', NULL),
-(499, 215, 25, 5.00, 2.00, 'logitech', NULL, 'approved', '2025-07-26 04:19:38', '2025-07-26 04:10:53', '2025-07-26 04:23:55', NULL),
-(500, 154, 72, 5.00, 0.00, 'logitech', NULL, 'approved', '2025-07-26 04:25:24', '2025-07-26 04:24:51', '2025-07-26 04:25:24', NULL);
+(499, 215, 25, 5.00, 5.00, 'logitech', NULL, 'delivered', '2025-07-26 04:19:38', '2025-07-26 04:10:53', '2025-08-15 08:11:35', NULL),
+(500, 154, 72, 5.00, 0.00, 'logitech', NULL, 'pending', '2025-10-01 03:12:14', '2025-07-26 04:24:51', '2025-10-01 03:14:48', NULL),
+(501, 192, 70, 1.00, 1.00, 'logitech', 'sdcs', 'delivered', '2025-09-13 04:33:08', '2025-08-18 04:26:09', '2025-10-01 02:21:58', NULL),
+(502, 192, 25, 1.00, 0.00, 'logitech', 'ascas', 'delivered', NULL, '2025-08-18 04:35:55', '2025-09-13 04:18:39', NULL),
+(503, 171, 14, 1.00, 0.00, 'logitech', 'ascas', 'approved', '2025-10-01 03:14:36', '2025-08-18 04:38:36', '2025-10-01 03:14:36', NULL),
+(504, 72, 14, 1.00, 0.00, 'logitech', 'test', 'pending', '2025-09-13 04:16:16', '2025-08-18 04:40:07', '2025-09-29 09:14:08', '2025-09-29 09:14:08'),
+(505, 192, 25, 1.00, 0.00, 'logitech', 'sdc', 'canceled', '2025-09-13 04:39:07', '2025-08-18 07:03:21', '2025-09-13 04:39:11', NULL),
+(506, 60, 25, 1.00, 0.00, 'logitech', 'test order', 'approved', '2025-10-01 03:14:40', '2025-09-13 05:01:17', '2025-10-01 03:14:40', NULL),
+(507, 181, 66, 1.00, 1.00, 'logitech', 'asca', 'delivered', '2025-10-01 02:21:23', '2025-09-13 05:04:06', '2025-10-01 02:21:58', NULL),
+(508, 75, 21, 1.00, 1.00, 'logitech', NULL, 'delivered', '2025-10-01 02:21:19', '2025-09-13 05:08:36', '2025-10-01 02:21:58', NULL),
+(509, 216, 39, 1.00, 1.00, 'logitech', 'dert', 'delivered', '2025-09-29 09:05:01', '2025-09-29 09:04:22', '2025-09-30 09:24:06', NULL),
+(510, 192, 64, 1.00, 1.00, 'logitech', '23', 'delivered', '2025-10-01 02:20:56', '2025-09-29 09:05:40', '2025-10-01 02:21:58', NULL),
+(511, 146, 72, 1.00, 1.00, 'logitech', NULL, 'delivered', '2025-09-29 09:11:43', '2025-09-29 09:10:02', '2025-09-30 09:24:06', NULL),
+(512, 187, 14, 1.00, 1.00, 'logitech', NULL, 'delivered', '2025-10-01 02:20:44', '2025-09-29 09:12:38', '2025-10-01 02:21:58', NULL),
+(513, 168, 50, 1.00, 1.00, 'tari', 'test', 'delivered', '2025-09-29 09:17:04', '2025-09-29 09:15:58', '2025-10-01 02:21:58', NULL),
+(514, 215, 17, 1.00, 0.00, 'tari', NULL, 'pending', NULL, '2025-09-29 09:18:00', '2025-09-29 09:52:54', '2025-09-29 09:52:54'),
+(515, 215, 43, 1.00, 0.00, 'tari', NULL, 'approved', '2025-09-29 09:36:51', '2025-09-29 09:36:23', '2025-09-29 09:56:26', '2025-09-29 09:56:26'),
+(516, 140, 80, 1.00, 0.00, 'tari', NULL, 'approved', '2025-09-29 09:46:56', '2025-09-29 09:46:02', '2025-09-29 09:53:05', '2025-09-29 09:53:05'),
+(517, 69, 40, 1.00, 0.00, 'tari', 'sdcs', 'pending', NULL, '2025-09-29 09:51:29', '2025-09-30 02:39:35', '2025-09-30 02:39:35'),
+(518, 215, 43, 1.00, 0.00, 'tari', 'qwd', 'approved', '2025-10-01 04:53:28', '2025-09-30 02:40:02', '2025-10-01 04:53:28', NULL),
+(519, 69, 15, 1.00, 1.00, 'dyla', NULL, 'delivered', '2025-10-01 02:20:39', '2025-09-30 02:51:40', '2025-10-01 02:21:58', NULL),
+(520, 146, 43, 12.00, 12.00, 'tari', 'as', 'delivered', '2025-10-01 02:20:31', '2025-09-30 02:54:29', '2025-10-01 02:21:58', NULL),
+(521, 192, 45, 1.00, 0.00, 'logitech', 'ascas', 'pending', '2025-10-01 04:53:07', '2025-10-01 03:55:16', '2025-10-01 04:53:43', NULL),
+(522, 167, 49, 1.00, 0.00, 'logitech', NULL, 'pending', NULL, '2025-10-03 03:20:22', '2025-10-03 03:20:22', NULL);
 
 -- --------------------------------------------------------
 
@@ -1181,45 +1306,45 @@ CREATE TABLE `material_usages` (
 --
 
 INSERT INTO `material_usages` (`id`, `inventory_id`, `project_id`, `used_quantity`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(17, 69, 25, 3.00, '2025-05-20 01:34:37', '2025-07-09 07:01:38', NULL),
+(17, 69, 25, 4.00, '2025-05-20 01:34:37', '2025-08-15 08:26:20', NULL),
 (24, 84, 40, 2.00, '2025-05-22 08:54:05', '2025-07-09 07:01:39', NULL),
 (27, 72, 15, 4.00, '2025-05-22 09:12:23', '2025-07-09 07:01:38', NULL),
 (28, 72, 26, 5.00, '2025-05-22 09:38:05', '2025-07-09 07:01:38', NULL),
-(29, 84, 25, 3.20, '2025-05-23 02:15:36', '2025-07-09 07:01:39', NULL),
+(29, 84, 25, 4.20, '2025-05-23 02:15:36', '2025-08-15 08:26:20', NULL),
 (31, 59, 15, 6.50, '2025-05-23 02:58:57', '2025-06-11 10:04:57', '2025-06-11 10:04:57'),
-(33, 61, 17, -2.50, '2025-05-23 08:02:39', '2025-07-09 07:01:37', NULL),
-(34, 63, 31, 0.00, '2025-06-02 04:33:15', '2025-07-09 07:01:37', NULL),
+(33, 61, 17, 3.50, '2025-05-23 08:02:39', '2025-08-15 08:26:20', NULL),
+(34, 63, 31, 1.00, '2025-06-02 04:33:15', '2025-08-15 08:26:20', NULL),
 (35, 62, 31, 1.00, '2025-06-03 01:58:06', '2025-07-09 07:01:37', NULL),
 (36, 60, 15, 1.00, '2025-06-03 07:58:01', '2025-07-09 07:01:37', NULL),
-(37, 69, 15, 2.00, '2025-06-03 07:58:21', '2025-07-09 07:01:38', NULL),
+(37, 69, 15, 4.00, '2025-06-03 07:58:21', '2025-10-01 02:21:58', NULL),
 (38, 89, 25, 1.00, '2025-06-04 06:38:05', '2025-07-09 07:01:39', NULL),
 (40, 62, 26, 2.00, '2025-06-04 06:54:51', '2025-07-09 07:01:37', NULL),
 (41, 69, 19, 0.50, '2025-06-04 06:59:06', '2025-07-09 07:01:38', NULL),
 (42, 58, 18, 0.60, '2025-06-04 09:15:14', '2025-07-09 07:01:36', NULL),
 (43, 119, 46, 4.00, '2025-06-09 04:05:01', '2025-07-09 07:01:42', NULL),
 (44, 75, 14, 0.50, '2025-06-09 06:07:39', '2025-07-09 07:01:38', NULL),
-(45, 60, 14, 1.00, '2025-06-17 04:52:50', '2025-07-09 07:01:37', NULL),
+(45, 60, 14, 3.00, '2025-06-17 04:52:50', '2025-08-15 08:11:35', NULL),
 (46, 153, 53, 1.00, '2025-06-17 06:11:26', '2025-07-09 07:01:45', NULL),
 (47, 90, 53, 2.00, '2025-06-17 07:45:40', '2025-07-09 07:01:39', NULL),
 (48, 153, 15, 1.00, '2025-06-24 09:51:52', '2025-07-09 07:01:44', NULL),
-(49, 146, 25, 1.00, '2025-06-24 10:11:51', '2025-07-09 07:01:44', NULL),
+(49, 146, 25, 2.00, '2025-06-24 10:11:51', '2025-08-15 08:26:20', NULL),
 (50, 69, 43, 2.00, '2025-06-25 02:13:16', '2025-07-09 07:01:38', NULL),
 (51, 147, 45, 1.00, '2025-06-25 04:19:24', '2025-07-09 07:01:44', NULL),
 (52, 145, 53, 1.00, '2025-06-25 04:20:26', '2025-07-09 07:01:44', NULL),
 (53, 146, 49, 5.00, '2025-06-25 07:17:37', '2025-07-09 07:01:44', NULL),
 (54, 64, 49, 1.00, '2025-07-02 07:20:33', '2025-07-02 07:20:33', NULL),
 (55, 63, 24, 5.00, '2025-07-02 08:56:57', '2025-07-09 07:01:37', NULL),
-(56, 84, 43, 5.00, '2025-07-03 09:06:07', '2025-07-26 04:24:16', NULL),
-(57, 154, 43, 2.00, '2025-07-03 10:06:57', '2025-07-09 07:01:45', NULL),
+(56, 84, 43, 10.00, '2025-07-03 09:06:07', '2025-08-15 08:11:35', NULL),
+(57, 154, 43, 3.00, '2025-07-03 10:06:57', '2025-08-15 08:11:35', NULL),
 (58, 172, 25, 1.00, '2025-07-04 03:38:37', '2025-07-09 07:01:46', NULL),
 (59, 154, 49, 1.00, '2025-07-04 04:04:07', '2025-07-09 07:01:45', NULL),
 (60, 144, 55, 2.00, '2025-07-04 04:04:07', '2025-07-09 07:01:43', NULL),
 (61, 138, 52, 1.00, '2025-07-04 04:06:09', '2025-07-09 07:01:43', NULL),
-(62, 154, 14, 6.00, '2025-07-04 04:14:29', '2025-07-09 07:01:45', NULL),
-(63, 156, 14, 0.50, '2025-07-04 04:17:25', '2025-07-09 07:01:45', NULL),
+(62, 154, 14, 8.97, '2025-07-04 04:14:29', '2025-10-01 02:52:20', NULL),
+(63, 156, 14, 1.58, '2025-07-04 04:17:25', '2025-10-01 02:52:20', NULL),
 (64, 156, 15, 0.80, '2025-07-04 04:17:25', '2025-07-09 07:01:45', NULL),
-(65, 154, 15, 2.00, '2025-07-04 09:38:19', '2025-07-09 07:01:45', NULL),
-(66, 99, 14, 3.00, '2025-07-05 02:20:09', '2025-07-09 07:01:40', NULL),
+(65, 154, 15, 3.00, '2025-07-04 09:38:19', '2025-10-01 02:52:20', NULL),
+(66, 99, 14, 4.00, '2025-07-05 02:20:09', '2025-10-01 02:52:20', NULL),
 (67, 146, 16, 1.00, '2025-07-05 02:25:43', '2025-07-09 07:01:44', NULL),
 (68, 125, 59, 2.00, '2025-07-07 09:08:59', '2025-07-09 07:01:42', NULL),
 (69, 140, 55, 1.00, '2025-07-07 09:12:07', '2025-07-09 07:01:43', NULL),
@@ -1257,9 +1382,9 @@ INSERT INTO `material_usages` (`id`, `inventory_id`, `project_id`, `used_quantit
 (101, 58, 61, 0.00, '2025-07-09 06:48:03', '2025-07-09 07:01:37', NULL),
 (102, 58, 62, 0.00, '2025-07-09 06:48:03', '2025-07-09 07:01:37', NULL),
 (103, 58, 63, 0.00, '2025-07-09 06:48:03', '2025-07-09 07:01:37', NULL),
-(104, 59, 14, 5.70, '2025-07-09 06:48:03', '2025-07-17 09:52:10', NULL),
+(104, 59, 14, 7.10, '2025-07-09 06:48:03', '2025-08-15 08:26:20', NULL),
 (105, 59, 15, 0.00, '2025-07-09 06:48:03', '2025-07-09 07:01:37', NULL),
-(106, 59, 16, 0.00, '2025-07-09 06:48:03', '2025-07-09 07:01:37', NULL),
+(106, 59, 16, 1.50, '2025-07-09 06:48:03', '2025-08-15 08:26:20', NULL),
 (107, 59, 17, 0.00, '2025-07-09 06:48:03', '2025-07-09 07:01:37', NULL),
 (108, 59, 18, 0.00, '2025-07-09 06:48:03', '2025-07-09 07:01:37', NULL),
 (109, 59, 19, 0.00, '2025-07-09 06:48:03', '2025-07-09 07:01:37', NULL),
@@ -1300,7 +1425,7 @@ INSERT INTO `material_usages` (`id`, `inventory_id`, `project_id`, `used_quantit
 (144, 60, 21, 0.00, '2025-07-09 06:48:03', '2025-07-09 07:01:37', NULL),
 (145, 60, 23, 0.00, '2025-07-09 06:48:03', '2025-07-09 07:01:37', NULL),
 (146, 60, 24, 0.00, '2025-07-09 06:48:03', '2025-07-09 07:01:37', NULL),
-(147, 60, 25, 0.00, '2025-07-09 06:48:03', '2025-07-09 07:01:37', NULL),
+(147, 60, 25, 2.00, '2025-07-09 06:48:03', '2025-08-15 08:26:20', NULL),
 (148, 60, 26, 0.00, '2025-07-09 06:48:03', '2025-07-09 07:01:37', NULL),
 (149, 60, 27, 0.00, '2025-07-09 06:48:03', '2025-07-09 07:01:37', NULL),
 (150, 60, 31, 0.00, '2025-07-09 06:48:03', '2025-07-09 07:01:37', NULL),
@@ -1308,7 +1433,7 @@ INSERT INTO `material_usages` (`id`, `inventory_id`, `project_id`, `used_quantit
 (152, 60, 40, 0.00, '2025-07-09 06:48:03', '2025-07-09 07:01:37', NULL),
 (153, 60, 41, 0.00, '2025-07-09 06:48:03', '2025-07-09 07:01:37', NULL),
 (154, 60, 42, 0.00, '2025-07-09 06:48:03', '2025-07-09 07:01:37', NULL),
-(155, 60, 43, 0.00, '2025-07-09 06:48:03', '2025-07-09 07:01:37', NULL),
+(155, 60, 43, 1.00, '2025-07-09 06:48:03', '2025-08-15 08:26:20', NULL),
 (156, 60, 44, 0.00, '2025-07-09 06:48:03', '2025-07-09 07:01:37', NULL),
 (157, 60, 45, 0.00, '2025-07-09 06:48:03', '2025-07-09 07:01:37', NULL),
 (158, 60, 46, 0.00, '2025-07-09 06:48:03', '2025-07-09 07:01:37', NULL),
@@ -1369,7 +1494,7 @@ INSERT INTO `material_usages` (`id`, `inventory_id`, `project_id`, `used_quantit
 (213, 62, 21, 0.00, '2025-07-09 06:48:03', '2025-07-09 07:01:37', NULL),
 (214, 62, 23, 0.00, '2025-07-09 06:48:03', '2025-07-09 07:01:37', NULL),
 (215, 62, 24, 0.00, '2025-07-09 06:48:03', '2025-07-09 07:01:37', NULL),
-(216, 62, 25, 0.00, '2025-07-09 06:48:03', '2025-07-09 07:01:37', NULL),
+(216, 62, 25, 2.00, '2025-07-09 06:48:03', '2025-08-15 08:11:35', NULL),
 (217, 62, 27, 0.00, '2025-07-09 06:48:03', '2025-07-09 07:01:37', NULL),
 (218, 62, 39, 0.00, '2025-07-09 06:48:03', '2025-07-09 07:01:37', NULL),
 (219, 62, 40, 0.00, '2025-07-09 06:48:03', '2025-07-09 07:01:37', NULL),
@@ -1565,7 +1690,7 @@ INSERT INTO `material_usages` (`id`, `inventory_id`, `project_id`, `used_quantit
 (409, 68, 61, 0.00, '2025-07-09 06:48:04', '2025-07-09 07:01:38', NULL),
 (410, 68, 62, 0.00, '2025-07-09 06:48:04', '2025-07-09 07:01:38', NULL),
 (411, 68, 63, 0.00, '2025-07-09 06:48:04', '2025-07-09 07:01:38', NULL),
-(412, 69, 14, 0.00, '2025-07-09 06:48:04', '2025-07-09 07:01:38', NULL),
+(412, 69, 14, 9.00, '2025-07-09 06:48:04', '2025-08-15 08:26:20', NULL),
 (413, 69, 16, 1.00, '2025-07-09 06:48:04', '2025-07-09 07:01:38', NULL),
 (414, 69, 17, 0.00, '2025-07-09 06:48:04', '2025-07-09 07:01:38', NULL),
 (415, 69, 18, 0.00, '2025-07-09 06:48:04', '2025-07-09 07:01:38', NULL),
@@ -1576,7 +1701,7 @@ INSERT INTO `material_usages` (`id`, `inventory_id`, `project_id`, `used_quantit
 (420, 69, 26, 0.00, '2025-07-09 06:48:04', '2025-07-09 07:01:38', NULL),
 (421, 69, 27, 0.00, '2025-07-09 06:48:04', '2025-07-09 07:01:38', NULL),
 (422, 69, 31, 0.00, '2025-07-09 06:48:04', '2025-07-09 07:01:38', NULL),
-(423, 69, 39, 0.00, '2025-07-09 06:48:04', '2025-07-09 07:01:38', NULL),
+(423, 69, 39, 1.00, '2025-07-09 06:48:04', '2025-08-15 08:26:20', NULL),
 (424, 69, 40, 0.00, '2025-07-09 06:48:04', '2025-07-09 07:01:38', NULL),
 (425, 69, 41, 0.00, '2025-07-09 06:48:04', '2025-07-09 07:01:38', NULL),
 (426, 69, 42, 0.00, '2025-07-09 06:48:04', '2025-07-09 07:01:38', NULL),
@@ -1684,7 +1809,7 @@ INSERT INTO `material_usages` (`id`, `inventory_id`, `project_id`, `used_quantit
 (528, 72, 42, 0.00, '2025-07-09 06:48:04', '2025-07-09 07:01:38', NULL),
 (529, 72, 43, 0.00, '2025-07-09 06:48:04', '2025-07-09 07:01:38', NULL),
 (530, 72, 44, 0.00, '2025-07-09 06:48:04', '2025-07-09 07:01:38', NULL),
-(531, 72, 45, 0.00, '2025-07-09 06:48:04', '2025-07-09 07:01:38', NULL),
+(531, 72, 45, 1.00, '2025-07-09 06:48:04', '2025-08-15 08:11:35', NULL),
 (532, 72, 46, 0.00, '2025-07-09 06:48:04', '2025-07-09 07:01:38', NULL),
 (533, 72, 48, 0.00, '2025-07-09 06:48:04', '2025-07-09 07:01:38', NULL),
 (534, 72, 49, 0.00, '2025-07-09 06:48:04', '2025-07-09 07:01:38', NULL),
@@ -1740,7 +1865,7 @@ INSERT INTO `material_usages` (`id`, `inventory_id`, `project_id`, `used_quantit
 (584, 75, 18, 0.00, '2025-07-09 06:48:04', '2025-07-09 07:01:38', NULL),
 (585, 75, 19, 0.00, '2025-07-09 06:48:04', '2025-07-09 07:01:38', NULL),
 (586, 75, 20, 0.00, '2025-07-09 06:48:04', '2025-07-09 07:01:38', NULL),
-(587, 75, 21, 0.00, '2025-07-09 06:48:04', '2025-07-09 07:01:38', NULL),
+(587, 75, 21, 1.00, '2025-07-09 06:48:04', '2025-10-01 02:21:58', NULL),
 (588, 75, 23, 0.00, '2025-07-09 06:48:04', '2025-07-09 07:01:38', NULL),
 (589, 75, 24, 0.00, '2025-07-09 06:48:04', '2025-07-09 07:01:38', NULL),
 (590, 75, 25, 0.00, '2025-07-09 06:48:04', '2025-07-09 07:01:38', NULL),
@@ -1873,7 +1998,7 @@ INSERT INTO `material_usages` (`id`, `inventory_id`, `project_id`, `used_quantit
 (717, 83, 61, 0.00, '2025-07-09 06:48:05', '2025-07-09 07:01:39', NULL),
 (718, 83, 62, 0.00, '2025-07-09 06:48:05', '2025-07-09 07:01:39', NULL),
 (719, 83, 63, 0.00, '2025-07-09 06:48:05', '2025-07-09 07:01:39', NULL),
-(720, 84, 14, -1.00, '2025-07-09 06:48:05', '2025-07-09 07:01:39', NULL),
+(720, 84, 14, 0.00, '2025-07-09 06:48:05', '2025-08-15 08:11:35', NULL),
 (721, 84, 15, 0.00, '2025-07-09 06:48:05', '2025-07-09 07:01:39', NULL),
 (722, 84, 16, 0.00, '2025-07-09 06:48:05', '2025-07-09 07:01:39', NULL),
 (723, 84, 17, 0.00, '2025-07-09 06:48:05', '2025-07-09 07:01:39', NULL),
@@ -2068,7 +2193,7 @@ INSERT INTO `material_usages` (`id`, `inventory_id`, `project_id`, `used_quantit
 (911, 90, 45, 1.00, '2025-07-09 06:48:05', '2025-07-17 08:51:45', NULL),
 (912, 90, 46, 0.00, '2025-07-09 06:48:05', '2025-07-09 07:01:39', NULL),
 (913, 90, 48, 0.00, '2025-07-09 06:48:05', '2025-07-09 07:01:39', NULL),
-(914, 90, 49, 1.00, '2025-07-09 06:48:05', '2025-07-17 09:33:49', NULL),
+(914, 90, 49, 3.00, '2025-07-09 06:48:05', '2025-08-15 08:11:35', NULL),
 (915, 90, 50, 0.00, '2025-07-09 06:48:05', '2025-07-09 07:01:39', NULL),
 (916, 90, 51, 0.00, '2025-07-09 06:48:05', '2025-07-09 07:01:39', NULL),
 (917, 90, 52, 0.00, '2025-07-09 06:48:05', '2025-07-09 07:01:39', NULL),
@@ -2210,7 +2335,7 @@ INSERT INTO `material_usages` (`id`, `inventory_id`, `project_id`, `used_quantit
 (1053, 99, 50, 0.00, '2025-07-09 06:48:05', '2025-07-09 07:01:40', NULL),
 (1054, 99, 51, 0.00, '2025-07-09 06:48:05', '2025-07-09 07:01:40', NULL),
 (1055, 99, 52, 0.00, '2025-07-09 06:48:05', '2025-07-09 07:01:40', NULL),
-(1056, 99, 53, 0.00, '2025-07-09 06:48:05', '2025-07-09 07:01:40', NULL),
+(1056, 99, 53, 1.70, '2025-07-09 06:48:05', '2025-10-01 02:52:20', NULL),
 (1057, 99, 55, 0.00, '2025-07-09 06:48:05', '2025-07-09 07:01:40', NULL),
 (1058, 99, 57, 0.00, '2025-07-09 06:48:05', '2025-07-09 07:01:40', NULL),
 (1059, 99, 58, 0.00, '2025-07-09 06:48:05', '2025-07-09 07:01:40', NULL),
@@ -3024,7 +3149,7 @@ INSERT INTO `material_usages` (`id`, `inventory_id`, `project_id`, `used_quantit
 (1866, 140, 14, 1.00, '2025-07-09 06:48:08', '2025-07-17 04:29:38', NULL),
 (1867, 140, 15, 0.00, '2025-07-09 06:48:08', '2025-07-09 07:01:43', NULL),
 (1868, 140, 16, 0.00, '2025-07-09 06:48:08', '2025-07-09 07:01:43', NULL),
-(1869, 140, 17, 0.00, '2025-07-09 06:48:08', '2025-07-09 07:01:43', NULL),
+(1869, 140, 17, 1.00, '2025-07-09 06:48:08', '2025-08-15 08:11:35', NULL),
 (1870, 140, 18, 0.00, '2025-07-09 06:48:08', '2025-07-09 07:01:43', NULL),
 (1871, 140, 19, 0.00, '2025-07-09 06:48:08', '2025-07-09 07:01:43', NULL),
 (1872, 140, 20, 0.00, '2025-07-09 06:48:08', '2025-07-09 07:01:43', NULL),
@@ -3244,7 +3369,7 @@ INSERT INTO `material_usages` (`id`, `inventory_id`, `project_id`, `used_quantit
 (2086, 146, 40, 0.00, '2025-07-09 06:48:09', '2025-07-09 07:01:44', NULL),
 (2087, 146, 41, 0.00, '2025-07-09 06:48:09', '2025-07-09 07:01:44', NULL),
 (2088, 146, 42, 0.00, '2025-07-09 06:48:09', '2025-07-09 07:01:44', NULL),
-(2089, 146, 43, -1.00, '2025-07-09 06:48:09', '2025-07-18 10:02:12', NULL),
+(2089, 146, 43, 15.60, '2025-07-09 06:48:09', '2025-10-01 02:52:20', NULL),
 (2090, 146, 44, 0.00, '2025-07-09 06:48:09', '2025-07-09 07:01:44', NULL),
 (2091, 146, 45, 0.00, '2025-07-09 06:48:09', '2025-07-09 07:01:44', NULL),
 (2092, 146, 46, 0.00, '2025-07-09 06:48:09', '2025-07-09 07:01:44', NULL),
@@ -3252,7 +3377,7 @@ INSERT INTO `material_usages` (`id`, `inventory_id`, `project_id`, `used_quantit
 (2094, 146, 50, 0.00, '2025-07-09 06:48:09', '2025-07-09 07:01:44', NULL),
 (2095, 146, 51, 0.00, '2025-07-09 06:48:09', '2025-07-09 07:01:44', NULL),
 (2096, 146, 52, 0.00, '2025-07-09 06:48:09', '2025-07-09 07:01:44', NULL),
-(2097, 146, 53, 2.00, '2025-07-09 06:48:09', '2025-07-17 04:32:04', NULL),
+(2097, 146, 53, 3.00, '2025-07-09 06:48:09', '2025-08-15 08:11:35', NULL),
 (2098, 146, 55, 0.00, '2025-07-09 06:48:09', '2025-07-09 07:01:44', NULL),
 (2099, 146, 57, 0.00, '2025-07-09 06:48:09', '2025-07-09 07:01:44', NULL),
 (2100, 146, 58, 0.00, '2025-07-09 06:48:09', '2025-07-09 07:01:44', NULL),
@@ -3941,7 +4066,7 @@ INSERT INTO `material_usages` (`id`, `inventory_id`, `project_id`, `used_quantit
 (2782, 168, 46, 0.00, '2025-07-09 06:48:10', '2025-07-09 07:01:46', NULL),
 (2783, 168, 48, 0.00, '2025-07-09 06:48:10', '2025-07-09 07:01:46', NULL),
 (2784, 168, 49, 0.00, '2025-07-09 06:48:10', '2025-07-09 07:01:46', NULL),
-(2785, 168, 50, 0.00, '2025-07-09 06:48:11', '2025-07-09 07:01:46', NULL),
+(2785, 168, 50, 1.00, '2025-07-09 06:48:11', '2025-10-01 02:21:58', NULL),
 (2786, 168, 51, 0.00, '2025-07-09 06:48:11', '2025-07-09 07:01:46', NULL);
 INSERT INTO `material_usages` (`id`, `inventory_id`, `project_id`, `used_quantity`, `created_at`, `updated_at`, `deleted_at`) VALUES
 (2787, 168, 52, 0.00, '2025-07-09 06:48:11', '2025-07-09 07:01:46', NULL),
@@ -4233,7 +4358,7 @@ INSERT INTO `material_usages` (`id`, `inventory_id`, `project_id`, `used_quantit
 (3073, 176, 62, 0.00, '2025-07-09 06:48:11', '2025-07-09 07:01:47', NULL),
 (3074, 176, 63, 0.00, '2025-07-09 06:48:11', '2025-07-09 07:01:47', NULL),
 (3075, 177, 14, 0.00, '2025-07-09 06:48:11', '2025-07-09 07:01:47', NULL),
-(3076, 177, 15, 0.00, '2025-07-09 06:48:11', '2025-07-09 07:01:47', NULL),
+(3076, 177, 15, 1.00, '2025-07-09 06:48:11', '2025-08-15 08:11:35', NULL),
 (3077, 177, 16, 0.00, '2025-07-09 06:48:11', '2025-07-09 07:01:47', NULL),
 (3078, 177, 17, 0.00, '2025-07-09 06:48:11', '2025-07-09 07:01:47', NULL),
 (3079, 177, 18, 0.00, '2025-07-09 06:48:11', '2025-07-09 07:01:47', NULL),
@@ -4442,7 +4567,7 @@ INSERT INTO `material_usages` (`id`, `inventory_id`, `project_id`, `used_quantit
 (3282, 183, 61, 0.00, '2025-07-09 06:48:12', '2025-07-09 07:01:47', NULL),
 (3283, 183, 62, 0.00, '2025-07-09 06:48:12', '2025-07-09 07:01:47', NULL),
 (3284, 183, 63, 0.00, '2025-07-09 06:48:12', '2025-07-09 07:01:47', NULL),
-(3285, 184, 14, 1.00, '2025-07-09 06:48:12', '2025-07-17 08:35:42', NULL),
+(3285, 184, 14, 2.00, '2025-07-09 06:48:12', '2025-10-01 02:52:20', NULL),
 (3286, 184, 15, 0.00, '2025-07-09 06:48:12', '2025-07-09 07:01:48', NULL),
 (3287, 184, 16, 0.00, '2025-07-09 06:48:12', '2025-07-09 07:01:48', NULL),
 (3288, 184, 17, 0.00, '2025-07-09 06:48:12', '2025-07-09 07:01:48', NULL),
@@ -4452,7 +4577,7 @@ INSERT INTO `material_usages` (`id`, `inventory_id`, `project_id`, `used_quantit
 (3292, 184, 21, 0.00, '2025-07-09 06:48:12', '2025-07-09 07:01:48', NULL),
 (3293, 184, 23, 0.00, '2025-07-09 06:48:12', '2025-07-09 07:01:48', NULL),
 (3294, 184, 24, 0.00, '2025-07-09 06:48:12', '2025-07-09 07:01:48', NULL),
-(3295, 184, 25, 0.00, '2025-07-09 06:48:12', '2025-07-09 07:01:48', NULL),
+(3295, 184, 25, 1.00, '2025-07-09 06:48:12', '2025-10-01 02:52:20', NULL),
 (3296, 184, 26, 0.00, '2025-07-09 06:48:12', '2025-07-09 07:01:48', NULL),
 (3297, 184, 27, 0.00, '2025-07-09 06:48:12', '2025-07-09 07:01:48', NULL),
 (3298, 184, 31, 0.00, '2025-07-09 06:48:12', '2025-07-09 07:01:48', NULL),
@@ -4460,7 +4585,7 @@ INSERT INTO `material_usages` (`id`, `inventory_id`, `project_id`, `used_quantit
 (3300, 184, 40, 0.00, '2025-07-09 06:48:12', '2025-07-09 07:01:48', NULL),
 (3301, 184, 41, 0.00, '2025-07-09 06:48:12', '2025-07-09 07:01:48', NULL),
 (3302, 184, 42, 0.00, '2025-07-09 06:48:12', '2025-07-09 07:01:48', NULL),
-(3303, 184, 43, 1.00, '2025-07-09 06:48:12', '2025-07-17 09:37:42', NULL),
+(3303, 184, 43, 3.00, '2025-07-09 06:48:12', '2025-10-01 02:52:20', NULL),
 (3304, 184, 44, 0.00, '2025-07-09 06:48:12', '2025-07-09 07:01:48', NULL),
 (3305, 184, 45, 0.00, '2025-07-09 06:48:12', '2025-07-09 07:01:48', NULL),
 (3306, 184, 46, 0.00, '2025-07-09 06:48:12', '2025-07-09 07:01:48', NULL),
@@ -4557,10 +4682,17 @@ INSERT INTO `material_usages` (`id`, `inventory_id`, `project_id`, `used_quantit
 (3397, 200, 14, -1.00, '2025-07-19 02:33:34', '2025-07-19 02:33:34', NULL),
 (3398, 188, 14, 0.10, '2025-07-22 03:14:03', '2025-07-22 03:14:03', NULL),
 (3399, 90, 73, 1.00, '2025-07-22 09:32:59', '2025-07-23 08:25:10', NULL),
-(3400, 154, 73, 3.00, '2025-07-22 09:32:59', '2025-07-26 04:09:22', NULL),
+(3400, 154, 73, 5.00, '2025-07-22 09:32:59', '2025-10-01 02:21:58', NULL),
 (3401, 180, 64, 1.98, '2025-07-23 09:48:27', '2025-07-26 04:33:14', NULL),
 (3404, 192, 43, 1.00, '2025-07-26 04:08:37', '2025-07-26 04:08:37', NULL),
-(3405, 215, 25, 2.90, '2025-07-26 04:19:59', '2025-07-26 04:24:16', NULL);
+(3405, 215, 25, 6.90, '2025-07-26 04:19:59', '2025-10-01 02:21:58', NULL),
+(3410, 198, 14, 1.00, '2025-08-15 08:11:35', '2025-08-15 08:11:35', NULL),
+(3411, 216, 39, 1.00, '2025-09-30 09:24:06', '2025-09-30 09:24:06', NULL),
+(3412, 146, 72, 1.00, '2025-09-30 09:24:06', '2025-09-30 09:24:06', NULL),
+(3413, 192, 70, 1.00, '2025-10-01 02:21:58', '2025-10-01 02:21:58', NULL),
+(3414, 181, 66, 1.00, '2025-10-01 02:21:58', '2025-10-01 02:21:58', NULL),
+(3415, 192, 64, 1.00, '2025-10-01 02:21:58', '2025-10-01 02:21:58', NULL),
+(3416, 187, 14, 1.00, '2025-10-01 02:21:58', '2025-10-01 02:21:58', NULL);
 
 -- --------------------------------------------------------
 
@@ -4636,7 +4768,23 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES
 (56, '2025_07_24_092053_create_employee_documents_table', 41),
 (57, '2025_07_25_083128_create_suppliers_table', 42),
 (58, '2025_07_25_083135_create_locations_table', 42),
-(59, '2025_07_25_083217_migrate_supplier_and_location_data_to_new_tables', 42);
+(59, '2025_07_25_083217_migrate_supplier_and_location_data_to_new_tables', 42),
+(60, '2025_09_03_141437_create_external_requests_table', 43),
+(61, '2025_09_12_083555_add_procurement_columns_to_external_requests_table', 44),
+(62, '2025_09_12_100322_create_pre_shippings_table', 44),
+(63, '2025_09_12_114705_create_shippings_table', 44),
+(64, '2025_09_12_114729_create_shipping_details_table', 44),
+(65, '2025_09_13_091316_add_status_and_remarks_to_shippings_table', 45),
+(66, '2025_09_15_091252_create_goods_receives_table', 45),
+(67, '2025_09_15_091400_create_goods_receive_details_table', 45),
+(68, '2025_09_17_153927_create_project_statuses_table', 46),
+(69, '2025_09_17_163412_create_project_statuses_table', 47),
+(70, '2025_09_23_114952_add_image_to_external_requests_table', 48),
+(71, '2025_09_24_101228_add_img_to_external_requests_table', 49),
+(72, '2025_09_24_114516_alter_project_id_nullable_on_external_requests_table', 50),
+(73, '2025_10_02_084956_rename_external_requests_to_purchase_requests', 51),
+(74, '2025_10_02_090044_rename_external_request_id_to_purchase_request_id_in_pre_shippings', 52),
+(75, '2025_10_02_143209_add_delivery_date_to_purchase_requests_table', 53);
 
 -- --------------------------------------------------------
 
@@ -4671,6 +4819,37 @@ CREATE TABLE `personal_access_tokens` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `pre_shippings`
+--
+
+CREATE TABLE `pre_shippings` (
+  `id` bigint UNSIGNED NOT NULL,
+  `purchase_request_id` bigint UNSIGNED NOT NULL,
+  `domestic_waybill_no` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `same_supplier_selection` tinyint(1) NOT NULL DEFAULT '0',
+  `percentage_if_same_supplier` decimal(5,2) DEFAULT NULL,
+  `domestic_cost` decimal(15,2) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `pre_shippings`
+--
+
+INSERT INTO `pre_shippings` (`id`, `purchase_request_id`, `domestic_waybill_no`, `same_supplier_selection`, `percentage_if_same_supplier`, `domestic_cost`, `created_at`, `updated_at`) VALUES
+(1, 1, NULL, 0, NULL, NULL, '2025-09-15 07:53:28', '2025-09-15 07:53:28'),
+(2, 3, NULL, 0, NULL, NULL, '2025-09-15 07:53:28', '2025-09-15 07:53:28'),
+(3, 4, NULL, 0, NULL, NULL, '2025-09-15 07:53:28', '2025-09-15 07:53:28'),
+(4, 7, NULL, 0, NULL, NULL, '2025-09-15 08:00:38', '2025-09-15 08:00:38'),
+(5, 10, NULL, 0, NULL, NULL, '2025-10-02 01:31:19', '2025-10-02 01:31:19'),
+(6, 13, NULL, 0, NULL, NULL, '2025-10-02 01:31:19', '2025-10-02 01:31:19'),
+(7, 14, NULL, 0, NULL, NULL, '2025-10-02 01:31:19', '2025-10-02 01:31:19'),
+(8, 15, NULL, 0, NULL, NULL, '2025-10-02 02:05:24', '2025-10-02 02:05:24');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `projects`
 --
 
@@ -4680,6 +4859,7 @@ CREATE TABLE `projects` (
   `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `qty` int NOT NULL,
   `department_id` bigint UNSIGNED DEFAULT NULL,
+  `project_status_id` bigint UNSIGNED DEFAULT NULL,
   `img` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `start_date` date DEFAULT NULL,
   `deadline` date DEFAULT NULL,
@@ -4693,55 +4873,63 @@ CREATE TABLE `projects` (
 -- Dumping data for table `projects`
 --
 
-INSERT INTO `projects` (`id`, `created_by`, `name`, `qty`, `department_id`, `img`, `start_date`, `deadline`, `finish_date`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(14, '', 'Costume 1', 2, 1, 'projects/zvqZPckVQpBA9twdjkDNl1YFj8V653lvmULjEXCP.png', NULL, '2025-05-31', NULL, '2025-05-19 07:35:12', '2025-07-16 02:35:07', NULL),
-(15, '', 'Costume 2', 5, 1, 'projects/nco7izn5X5Jl26ldDwilHYVNmsyUhuRgQ1FzrFYl.png', NULL, '2025-06-07', NULL, '2025-05-19 07:35:35', '2025-07-16 02:35:07', NULL),
-(16, '', 'Costume 3', 3, 1, 'projects/xyFSpqbI8iO76qg3BSDv0Bz76IIpnRiLyB9J9nnY.png', NULL, '2025-06-04', NULL, '2025-05-19 07:36:07', '2025-07-16 02:35:07', NULL),
-(17, '', 'Mascot 1', 1, 2, 'projects/WwxLYysaGwcbB5vWnrmz35GdAy4nlY1aDlxCOkS2.png', NULL, '2025-06-27', NULL, '2025-05-19 07:36:29', '2025-07-16 02:35:07', NULL),
-(18, '', 'Mascot 2', 1, 2, 'projects/iC6qedTR8cRVPXPlYAOubatgBstx8gXuTTeIc2eo.png', NULL, '2025-07-05', NULL, '2025-05-19 07:36:41', '2025-07-16 02:35:07', NULL),
-(19, '', 'Project 1', 1, 3, 'projects/1wA9TSzcWaZzQc8ErdysqOJ5QxMo4zvPt8EcNHkY.png', NULL, '2025-07-25', NULL, '2025-05-19 07:37:03', '2025-07-16 02:35:07', NULL),
-(20, '', 'Project 2', 1, 3, 'projects/0sT6jN7Jn7379mQVftEC7HK1d1B1eMFeLWuGHCXt.png', NULL, '2025-05-23', NULL, '2025-05-19 07:37:22', '2025-07-16 02:35:07', NULL),
-(21, '', 'Test', 5, 2, 'projects/MzmRuUIHFFQVV1HRgM77EbYwWK3BCftJ7HMdoRm1.png', NULL, '2025-05-24', NULL, '2025-05-19 07:45:58', '2025-07-16 02:35:07', NULL),
-(23, '', 'Test 3', 2, 2, 'projects/iJdBsy9olbY2oyMq4lJnZskulz3RrdnM725oWiDY.png', NULL, '2025-05-24', NULL, '2025-05-19 07:46:43', '2025-07-16 02:35:07', NULL),
-(24, '', 'Project 3', 2, 1, 'projects/ejZvq2QTLy8z5bM6y7UEUeAIPMTWeEuUNshlhA63.jpg', NULL, '2025-05-23', NULL, '2025-05-19 07:47:19', '2025-07-16 02:35:07', NULL),
-(25, '', 'Bobo', 1, 1, NULL, NULL, NULL, NULL, '2025-05-19 07:50:24', '2025-07-16 02:35:07', NULL),
-(26, '', 'Qucking', 12, 1, 'projects/h2aE72Y5oPCkEnDCqAqhiMOriqWt0Ulh6uyXhO2X.png', NULL, '2025-05-31', NULL, '2025-05-19 07:51:55', '2025-07-16 02:35:07', NULL),
-(27, '', 'Mascot 7', 1, 2, NULL, NULL, NULL, NULL, '2025-05-19 08:02:52', '2025-07-16 02:35:07', NULL),
-(31, '', 'test99', 9, 1, NULL, NULL, NULL, NULL, '2025-05-19 09:07:05', '2025-07-16 02:35:07', NULL),
-(39, '', 'final test pro', 2, 3, 'projects/XQjjQvOXyF87BpwPi7CO0qwTaYcLb7NlwieKYIny.png', NULL, '2025-06-13', NULL, '2025-05-20 06:41:02', '2025-07-16 02:35:07', NULL),
-(40, '', 'test quick add', 4, 2, NULL, NULL, NULL, NULL, '2025-05-22 08:25:43', '2025-07-16 02:35:07', NULL),
-(41, '', 'testssspro', 1, 4, 'projects/pYshVyIsaPeGBS7GuNmARVodUzrk9Th9slHcDZ7q.png', NULL, '2025-06-03', NULL, '2025-06-02 02:36:03', '2025-07-16 02:35:07', NULL),
-(42, '', 'Panda', 1, 2, 'projects/tCOdO1QFaV0v53rMlQhswEAjQq6dtSwam7HxujRe.png', NULL, '2025-06-14', NULL, '2025-06-04 09:09:22', '2025-07-16 02:35:07', NULL),
-(43, '', 'buaya', 1, 2, NULL, '2025-06-05', '2025-06-07', NULL, '2025-06-04 09:12:54', '2025-07-16 02:35:07', NULL),
-(44, '', 'ffty', 1, 3, 'projects/iAefyFCaIJwEv8lvtX5MmgwhzfrU4DLqCXqIoRdz.png', NULL, '2025-06-07', NULL, '2025-06-05 09:59:08', '2025-07-16 02:35:07', NULL),
-(45, '', 'power ranger', 1, 2, 'projects/b9WXhh2IS6geSZ1qOKqJKV0JcGoIFUDpoGqzztOf.png', '2025-06-01', '2025-06-05', NULL, '2025-06-05 10:09:45', '2025-07-16 02:35:07', NULL),
-(46, '', 'Server', 23, 5, 'projects/9xfqRx4eMrOvQ7oD1Wc0tMy27LQfNj58YFt8oBus.jpg', '2025-06-01', '2025-06-28', NULL, '2025-06-09 04:03:27', '2025-07-16 02:35:07', NULL),
-(48, '', 'test1black', 2, NULL, 'projects/SXp2Bf8vuB6PlAouJhxsRuBSSeCngyDy02XVwHww.png', '2025-06-11', '2025-06-13', NULL, '2025-06-10 10:10:20', '2025-07-14 09:09:17', '2025-07-14 09:09:17'),
-(49, '', 'Wifi', 23, 6, 'projects/A6KLjrLfGTh81LxC8Nplf74srabxgdhwXZIBSR6W.png', '2025-06-08', '2025-06-14', NULL, '2025-06-14 05:42:01', '2025-07-16 02:35:07', NULL),
-(50, '', 'Server Bawah', 2, 6, NULL, NULL, NULL, NULL, '2025-06-14 05:42:38', '2025-07-16 02:35:07', NULL),
-(51, 'tari', 'sdsd', 4, 1, NULL, NULL, NULL, NULL, '2025-06-14 05:58:35', '2025-07-16 02:35:07', NULL),
-(52, 'tari', 'gtyo', 2, 1, NULL, NULL, NULL, NULL, '2025-06-14 06:02:20', '2025-07-16 02:35:07', NULL),
-(53, 'logitech', 'Joni', 1, 2, 'projects/RxOGo4bPLrFoJZuqsR9iEmVfLjwlTsYzecuVvEbo.jpg', '2025-06-17', '2025-06-24', NULL, '2025-06-17 06:10:25', '2025-07-16 02:35:07', NULL),
-(54, 'dyla', 'ssss', 3, NULL, NULL, NULL, NULL, NULL, '2025-06-17 08:07:18', '2025-07-03 08:14:17', '2025-07-03 08:14:17'),
-(55, 'logitech', 'Pillow Mascottt', 2, 2, NULL, NULL, NULL, NULL, '2025-07-01 07:44:52', '2025-07-16 02:35:07', NULL),
-(56, 'logitech', 'sdfsdfds', 5, NULL, NULL, NULL, NULL, NULL, '2025-07-03 01:57:30', '2025-07-03 04:43:32', '2025-07-03 04:43:32'),
-(57, 'logitech', 'fdb', 5, 6, NULL, NULL, NULL, NULL, '2025-07-03 08:14:27', '2025-07-16 02:35:07', NULL),
-(58, 'logitech', 'ds', 23, 2, NULL, NULL, NULL, NULL, '2025-07-04 09:13:47', '2025-07-16 02:35:07', NULL),
-(59, 'logitech', 'test1ggh', 2, 1, NULL, NULL, NULL, NULL, '2025-07-04 09:37:49', '2025-07-16 02:35:07', NULL),
-(60, 'logitech', 'dfbdf', 3, NULL, NULL, '2025-07-01', '2025-07-12', NULL, '2025-07-05 03:39:30', '2025-07-05 03:39:45', '2025-07-05 03:39:45'),
-(61, 'logitech', 'okami', 1, 2, NULL, NULL, NULL, NULL, '2025-07-05 05:53:42', '2025-07-16 02:35:07', NULL),
-(62, 'logitech', 'gty', 1, 2, NULL, NULL, NULL, NULL, '2025-07-05 05:56:07', '2025-07-16 02:35:07', NULL),
-(63, 'dyla', 'tdst', 1, NULL, 'projects/eaQonLMPwQe6tPnaMabDsBksqwD0ZFuN3vaHoTxW.jpg', '2025-07-18', '2025-08-09', NULL, '2025-07-07 06:29:24', '2025-07-14 09:09:04', '2025-07-14 09:09:04'),
-(64, 'logitech', 'Ninja RR', 1, 7, 'projects/XOfW54ZN9ZVUe9QPhIDvmyUs7g1lYLkpkDHfwVYl.png', '2025-07-09', '2025-08-09', '2025-09-06', '2025-07-09 07:07:45', '2025-07-16 02:35:07', NULL),
-(65, 'logitech', 'masak', 1, 8, NULL, NULL, NULL, NULL, '2025-07-16 04:46:13', '2025-07-16 04:46:13', NULL),
-(66, 'logitech', 'dvsdvs', 5, 4, NULL, '2025-07-11', '2025-07-18', '2025-08-09', '2025-07-17 01:23:08', '2025-07-17 01:23:08', NULL),
-(67, 'logitech', 'zsdcsd', 5, 9, NULL, NULL, NULL, NULL, '2025-07-17 06:14:38', '2025-07-17 06:14:38', NULL),
-(68, 'logitech', 'spidddd', 1, 10, NULL, NULL, NULL, NULL, '2025-07-17 06:15:42', '2025-07-17 06:15:42', NULL),
-(69, 'logitech', 'hhri', 22, 4, NULL, NULL, NULL, NULL, '2025-07-19 02:49:45', '2025-07-19 02:49:45', NULL),
-(70, 'logitech', 'asa', 2, 3, NULL, NULL, NULL, NULL, '2025-07-19 03:49:36', '2025-07-19 04:02:34', NULL),
-(71, 'logitech', 'ssddrt2', 2, 14, 'projects/bFS8uFFC4XIxwWCLi1Y8Emr4YUbmJhjDtxwOovof.jpg', '2025-07-19', '2025-07-20', '2025-07-26', '2025-07-19 03:59:04', '2025-07-19 03:59:25', NULL),
-(72, 'logitech', 'hari sabut', 2, 15, NULL, NULL, NULL, NULL, '2025-07-19 03:59:57', '2025-07-19 03:59:57', NULL),
-(73, 'logitech', 'Hotwheels', 2, 4, 'projects/oGbKzBQAXAJwHOlTkzuRbTlWpDUvImy9HC2Iv1gO.png', NULL, NULL, NULL, '2025-07-22 09:31:39', '2025-07-22 09:31:39', NULL);
+INSERT INTO `projects` (`id`, `created_by`, `name`, `qty`, `department_id`, `project_status_id`, `img`, `start_date`, `deadline`, `finish_date`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(14, '', 'Costume 1', 2, 1, NULL, 'projects/zvqZPckVQpBA9twdjkDNl1YFj8V653lvmULjEXCP.png', NULL, '2025-05-31', NULL, '2025-05-19 07:35:12', '2025-07-16 02:35:07', NULL),
+(15, '', 'Costume 2', 5, 1, NULL, 'projects/nco7izn5X5Jl26ldDwilHYVNmsyUhuRgQ1FzrFYl.png', NULL, '2025-06-07', NULL, '2025-05-19 07:35:35', '2025-07-16 02:35:07', NULL),
+(16, '', 'Costume 3', 3, 1, NULL, 'projects/xyFSpqbI8iO76qg3BSDv0Bz76IIpnRiLyB9J9nnY.png', NULL, '2025-06-04', NULL, '2025-05-19 07:36:07', '2025-07-16 02:35:07', NULL),
+(17, '', 'Mascot 1', 1, 2, NULL, 'projects/WwxLYysaGwcbB5vWnrmz35GdAy4nlY1aDlxCOkS2.png', NULL, '2025-06-27', NULL, '2025-05-19 07:36:29', '2025-07-16 02:35:07', NULL),
+(18, '', 'Mascot 2', 1, 2, NULL, 'projects/iC6qedTR8cRVPXPlYAOubatgBstx8gXuTTeIc2eo.png', NULL, '2025-07-05', NULL, '2025-05-19 07:36:41', '2025-07-16 02:35:07', NULL),
+(19, '', 'Project 1', 1, 3, NULL, 'projects/1wA9TSzcWaZzQc8ErdysqOJ5QxMo4zvPt8EcNHkY.png', NULL, '2025-07-25', NULL, '2025-05-19 07:37:03', '2025-07-16 02:35:07', NULL),
+(20, '', 'Project 2', 1, 3, NULL, 'projects/0sT6jN7Jn7379mQVftEC7HK1d1B1eMFeLWuGHCXt.png', NULL, '2025-05-23', NULL, '2025-05-19 07:37:22', '2025-07-16 02:35:07', NULL),
+(21, '', 'Test', 5, 2, NULL, 'projects/MzmRuUIHFFQVV1HRgM77EbYwWK3BCftJ7HMdoRm1.png', NULL, '2025-05-24', NULL, '2025-05-19 07:45:58', '2025-07-16 02:35:07', NULL),
+(23, '', 'Test 3', 2, 2, NULL, 'projects/iJdBsy9olbY2oyMq4lJnZskulz3RrdnM725oWiDY.png', NULL, '2025-05-24', NULL, '2025-05-19 07:46:43', '2025-07-16 02:35:07', NULL),
+(24, '', 'Project 3', 2, 1, NULL, 'projects/ejZvq2QTLy8z5bM6y7UEUeAIPMTWeEuUNshlhA63.jpg', NULL, '2025-05-23', NULL, '2025-05-19 07:47:19', '2025-07-16 02:35:07', NULL),
+(25, '', 'Bobo', 1, 1, NULL, NULL, NULL, NULL, NULL, '2025-05-19 07:50:24', '2025-07-16 02:35:07', NULL),
+(26, '', 'Qucking', 12, 1, NULL, 'projects/h2aE72Y5oPCkEnDCqAqhiMOriqWt0Ulh6uyXhO2X.png', NULL, '2025-05-31', NULL, '2025-05-19 07:51:55', '2025-07-16 02:35:07', NULL),
+(27, '', 'Mascot 7', 1, 2, NULL, NULL, NULL, NULL, NULL, '2025-05-19 08:02:52', '2025-07-16 02:35:07', NULL),
+(31, '', 'test99', 9, 1, NULL, NULL, NULL, NULL, NULL, '2025-05-19 09:07:05', '2025-07-16 02:35:07', NULL),
+(39, '', 'final test pro', 2, 3, NULL, 'projects/XQjjQvOXyF87BpwPi7CO0qwTaYcLb7NlwieKYIny.png', NULL, '2025-06-13', NULL, '2025-05-20 06:41:02', '2025-07-16 02:35:07', NULL),
+(40, '', 'test quick add', 4, 2, NULL, NULL, NULL, NULL, NULL, '2025-05-22 08:25:43', '2025-07-16 02:35:07', NULL),
+(41, '', 'testssspro', 1, 4, NULL, 'projects/pYshVyIsaPeGBS7GuNmARVodUzrk9Th9slHcDZ7q.png', NULL, '2025-06-03', NULL, '2025-06-02 02:36:03', '2025-07-16 02:35:07', NULL),
+(42, '', 'Panda', 1, 2, NULL, 'projects/tCOdO1QFaV0v53rMlQhswEAjQq6dtSwam7HxujRe.png', NULL, '2025-06-14', NULL, '2025-06-04 09:09:22', '2025-07-16 02:35:07', NULL),
+(43, '', 'buaya', 1, 2, NULL, NULL, '2025-06-05', '2025-06-07', NULL, '2025-06-04 09:12:54', '2025-07-16 02:35:07', NULL),
+(44, '', 'ffty', 1, 3, NULL, 'projects/iAefyFCaIJwEv8lvtX5MmgwhzfrU4DLqCXqIoRdz.png', NULL, '2025-06-07', NULL, '2025-06-05 09:59:08', '2025-07-16 02:35:07', NULL),
+(45, '', 'power ranger', 1, 2, NULL, 'projects/b9WXhh2IS6geSZ1qOKqJKV0JcGoIFUDpoGqzztOf.png', '2025-06-01', '2025-06-05', NULL, '2025-06-05 10:09:45', '2025-07-16 02:35:07', NULL),
+(46, '', 'Server', 23, 5, NULL, 'projects/9xfqRx4eMrOvQ7oD1Wc0tMy27LQfNj58YFt8oBus.jpg', '2025-06-01', '2025-06-28', NULL, '2025-06-09 04:03:27', '2025-07-16 02:35:07', NULL),
+(48, '', 'test1black', 2, NULL, NULL, 'projects/SXp2Bf8vuB6PlAouJhxsRuBSSeCngyDy02XVwHww.png', '2025-06-11', '2025-06-13', NULL, '2025-06-10 10:10:20', '2025-07-14 09:09:17', '2025-07-14 09:09:17'),
+(49, '', 'Wifi', 23, 6, NULL, 'projects/A6KLjrLfGTh81LxC8Nplf74srabxgdhwXZIBSR6W.png', '2025-06-08', '2025-06-14', NULL, '2025-06-14 05:42:01', '2025-07-16 02:35:07', NULL),
+(50, '', 'Server Bawah', 2, 6, NULL, NULL, NULL, NULL, NULL, '2025-06-14 05:42:38', '2025-07-16 02:35:07', NULL),
+(51, 'tari', 'sdsd', 4, 1, NULL, NULL, NULL, NULL, NULL, '2025-06-14 05:58:35', '2025-07-16 02:35:07', NULL),
+(52, 'tari', 'gtyo', 2, 1, NULL, NULL, NULL, NULL, NULL, '2025-06-14 06:02:20', '2025-07-16 02:35:07', NULL),
+(53, 'logitech', 'Joni', 1, 2, NULL, 'projects/RxOGo4bPLrFoJZuqsR9iEmVfLjwlTsYzecuVvEbo.jpg', '2025-06-17', '2025-06-24', NULL, '2025-06-17 06:10:25', '2025-07-16 02:35:07', NULL),
+(54, 'dyla', 'ssss', 3, NULL, NULL, NULL, NULL, NULL, NULL, '2025-06-17 08:07:18', '2025-07-03 08:14:17', '2025-07-03 08:14:17'),
+(55, 'logitech', 'Pillow Mascottt', 2, 2, NULL, NULL, NULL, NULL, NULL, '2025-07-01 07:44:52', '2025-07-16 02:35:07', NULL),
+(56, 'logitech', 'sdfsdfds', 5, NULL, NULL, NULL, NULL, NULL, NULL, '2025-07-03 01:57:30', '2025-07-03 04:43:32', '2025-07-03 04:43:32'),
+(57, 'logitech', 'fdb', 5, 6, NULL, NULL, NULL, NULL, NULL, '2025-07-03 08:14:27', '2025-07-16 02:35:07', NULL),
+(58, 'logitech', 'ds', 23, 2, NULL, NULL, NULL, NULL, NULL, '2025-07-04 09:13:47', '2025-07-16 02:35:07', NULL),
+(59, 'logitech', 'test1ggh', 2, 1, NULL, NULL, NULL, NULL, NULL, '2025-07-04 09:37:49', '2025-07-16 02:35:07', NULL),
+(60, 'logitech', 'dfbdf', 3, NULL, NULL, NULL, '2025-07-01', '2025-07-12', NULL, '2025-07-05 03:39:30', '2025-07-05 03:39:45', '2025-07-05 03:39:45'),
+(61, 'logitech', 'okami', 1, 2, NULL, NULL, NULL, NULL, NULL, '2025-07-05 05:53:42', '2025-07-16 02:35:07', NULL),
+(62, 'logitech', 'gty', 1, 2, NULL, NULL, NULL, NULL, NULL, '2025-07-05 05:56:07', '2025-07-16 02:35:07', NULL),
+(63, 'dyla', 'tdst', 1, NULL, NULL, 'projects/eaQonLMPwQe6tPnaMabDsBksqwD0ZFuN3vaHoTxW.jpg', '2025-07-18', '2025-08-09', NULL, '2025-07-07 06:29:24', '2025-07-14 09:09:04', '2025-07-14 09:09:04'),
+(64, 'logitech', 'Ninja RR', 1, 7, NULL, 'projects/XOfW54ZN9ZVUe9QPhIDvmyUs7g1lYLkpkDHfwVYl.png', '2025-07-09', '2025-08-09', '2025-09-06', '2025-07-09 07:07:45', '2025-07-16 02:35:07', NULL),
+(65, 'logitech', 'masak', 1, 8, NULL, NULL, NULL, NULL, NULL, '2025-07-16 04:46:13', '2025-07-16 04:46:13', NULL),
+(66, 'logitech', 'dvsdvs', 5, 4, NULL, NULL, '2025-07-11', '2025-07-18', '2025-08-09', '2025-07-17 01:23:08', '2025-07-17 01:23:08', NULL),
+(67, 'logitech', 'zsdcsd', 5, 9, NULL, NULL, NULL, NULL, NULL, '2025-07-17 06:14:38', '2025-07-17 06:14:38', NULL),
+(68, 'logitech', 'spidddd', 1, 10, NULL, NULL, NULL, NULL, NULL, '2025-07-17 06:15:42', '2025-07-17 06:15:42', NULL),
+(69, 'logitech', 'hhri', 22, 4, NULL, NULL, NULL, NULL, NULL, '2025-07-19 02:49:45', '2025-07-19 02:49:45', NULL),
+(70, 'logitech', 'asa', 2, 3, NULL, NULL, NULL, NULL, NULL, '2025-07-19 03:49:36', '2025-07-19 04:02:34', NULL),
+(71, 'logitech', 'ssddrt2', 2, 14, NULL, 'projects/bFS8uFFC4XIxwWCLi1Y8Emr4YUbmJhjDtxwOovof.jpg', '2025-07-19', '2025-07-20', '2025-07-26', '2025-07-19 03:59:04', '2025-07-19 03:59:25', NULL),
+(72, 'logitech', 'hari sabut', 2, 15, 2, NULL, NULL, '2025-08-22', NULL, '2025-07-19 03:59:57', '2025-09-18 09:22:12', NULL),
+(73, 'logitech', 'Hotwheels', 2, 4, 3, 'projects/oGbKzBQAXAJwHOlTkzuRbTlWpDUvImy9HC2Iv1gO.png', NULL, NULL, NULL, '2025-07-22 09:31:39', '2025-09-18 07:47:37', NULL),
+(74, 'logitech', 'test costume22', 1, 4, 3, NULL, NULL, NULL, NULL, '2025-09-04 08:19:42', '2025-09-18 07:47:29', NULL),
+(75, 'logitech', 'test ptooo', 2, 10, 1, NULL, NULL, NULL, NULL, '2025-09-04 08:31:35', '2025-09-18 07:44:07', NULL),
+(76, 'logitech', 'ddtg', 3, 4, 2, NULL, NULL, NULL, NULL, '2025-09-08 02:17:02', '2025-09-18 07:44:02', NULL),
+(77, 'logitech', 'spgh', 3, 4, 2, NULL, NULL, NULL, NULL, '2025-09-08 02:57:08', '2025-09-18 07:35:21', NULL),
+(78, 'logitech', 'test00998', 1, 10, 1, NULL, NULL, NULL, NULL, '2025-09-18 07:25:12', '2025-09-18 07:35:12', NULL),
+(79, 'logitech', 'testprogg', 123, 4, NULL, NULL, NULL, NULL, NULL, '2025-09-26 06:53:39', '2025-09-26 06:53:39', NULL),
+(80, 'logitech', 'opaaaa', 1, 14, NULL, NULL, NULL, NULL, NULL, '2025-09-26 06:54:45', '2025-09-26 06:54:45', NULL),
+(81, 'logitech', 'test lliuy', 1, 13, NULL, NULL, NULL, NULL, NULL, '2025-09-26 07:03:16', '2025-09-26 07:03:16', NULL);
 
 -- --------------------------------------------------------
 
@@ -4782,6 +4970,125 @@ INSERT INTO `project_parts` (`id`, `project_id`, `part_name`, `created_at`, `upd
 (8, 64, 'CVT', '2025-07-11 09:06:01', '2025-07-11 09:06:01'),
 (9, 66, 'vasc', '2025-07-17 01:23:08', '2025-07-17 01:23:08'),
 (10, 66, 'sdcvw', '2025-07-17 01:23:08', '2025-07-17 01:23:08');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `project_statuses`
+--
+
+CREATE TABLE `project_statuses` (
+  `id` bigint UNSIGNED NOT NULL,
+  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `project_statuses`
+--
+
+INSERT INTO `project_statuses` (`id`, `name`, `created_at`, `updated_at`) VALUES
+(1, 'Archive', NULL, NULL),
+(2, 'On Progress', NULL, NULL),
+(3, 'test', '2025-09-18 07:47:20', '2025-09-18 07:47:20');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `purchase_requests`
+--
+
+CREATE TABLE `purchase_requests` (
+  `id` bigint UNSIGNED NOT NULL,
+  `type` enum('new_material','restock') COLLATE utf8mb4_unicode_ci NOT NULL,
+  `material_name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `inventory_id` bigint UNSIGNED DEFAULT NULL,
+  `required_quantity` decimal(12,2) NOT NULL,
+  `unit` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `stock_level` decimal(12,2) DEFAULT NULL,
+  `project_id` bigint UNSIGNED DEFAULT NULL,
+  `supplier_id` bigint UNSIGNED DEFAULT NULL,
+  `price_per_unit` decimal(15,2) DEFAULT NULL,
+  `currency_id` bigint UNSIGNED DEFAULT NULL,
+  `approval_status` enum('Approved','Decline') COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `delivery_date` date DEFAULT NULL,
+  `img` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `requested_by` bigint UNSIGNED NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `purchase_requests`
+--
+
+INSERT INTO `purchase_requests` (`id`, `type`, `material_name`, `inventory_id`, `required_quantity`, `unit`, `stock_level`, `project_id`, `supplier_id`, `price_per_unit`, `currency_id`, `approval_status`, `delivery_date`, `img`, `requested_by`, `created_at`, `updated_at`) VALUES
+(1, 'restock', 'abata', 192, 2.00, 'cm', 40.00, 73, 5, 45.00, 56, 'Decline', NULL, NULL, 1, '2025-09-03 07:28:11', '2025-10-02 09:02:18'),
+(2, 'restock', 'ascasc', 84, 4.00, 'dm', 22.00, 70, 15, 11.00, 35, 'Decline', NULL, NULL, 1, '2025-09-04 07:52:39', '2025-09-23 04:24:35'),
+(3, 'new_material', 'test req', NULL, 2.00, 'dcm', 0.00, 74, 7, 43.00, 58, 'Approved', NULL, NULL, 1, '2025-09-04 08:20:09', '2025-09-23 04:24:34'),
+(4, 'new_material', 'test kabelk', NULL, 2.00, 'gl', 0.00, 25, 16, 13.00, 39, 'Approved', NULL, NULL, 1, '2025-09-04 08:34:57', '2025-09-13 03:29:03'),
+(5, 'restock', 'abata', 192, 2.00, 'cm', 40.00, 25, 29, 12.00, 57, 'Decline', NULL, NULL, 1, '2025-09-04 08:37:43', '2025-09-23 04:24:29'),
+(6, 'new_material', 'penggaris', NULL, 13.00, 'pcs', 0.00, 25, 24, 1233.00, 47, 'Decline', NULL, NULL, 1, '2025-09-13 03:32:11', '2025-09-23 04:24:27'),
+(7, 'new_material', 'test proc', NULL, 12.00, '16', 0.00, 25, 21, 12.00, 47, 'Approved', NULL, NULL, 1, '2025-09-15 08:00:24', '2025-09-23 04:24:08'),
+(10, 'new_material', 'abataa', NULL, 22.00, 'ascas', 1.00, NULL, 10, 344.00, 2, 'Approved', NULL, 'external_requests/2g74MVywrrRnSMBA3c08xnhLUCD0TfEEFTrGmtB2.png', 1, '2025-09-24 01:30:20', '2025-09-29 07:47:48'),
+(11, 'new_material', 'qeqw', NULL, 1.00, '16', 0.00, 70, 16, NULL, NULL, NULL, NULL, 'external_requests/PWqD6NNYwaO49UUfnpIW4tIqQcWg0imBO4ax5ejx.jpg', 1, '2025-09-24 03:25:10', '2025-09-24 03:26:17'),
+(12, 'new_material', 'akauypo', NULL, 12.00, 'cm', NULL, NULL, 10, NULL, 28, NULL, NULL, 'external_requests/Kf3XcY6srQYGFg7amyt8EJOJyPecFv3bL8ub9qbs.jpg', 1, '2025-09-24 04:45:51', '2025-09-29 07:57:43'),
+(13, 'restock', 'abata', 192, 4.30, 'cm', 40.00, NULL, 19, 144.00, 2, 'Approved', NULL, NULL, 1, '2025-09-24 07:40:28', '2025-09-29 07:38:07'),
+(14, 'restock', 'aderai', 215, 7.00, 'cm', 15.10, NULL, 21, 999.00, 42, 'Approved', NULL, NULL, 1, '2025-09-26 04:16:35', '2025-09-29 07:42:35'),
+(15, 'new_material', 'testmatreq', NULL, 12.00, 'cm', 0.00, 43, 26, 23.00, 35, 'Approved', NULL, 'purchase_requests/PGgfgccEmTJQwBA9txfVqnewCMnSTAWAU7s6epR3.jpg', 1, '2025-10-02 02:04:12', '2025-10-02 02:05:41'),
+(16, 'restock', 'aderai', 215, 28.00, 'cm', 14.10, 43, 16, 1.00, 56, NULL, NULL, 'purchase_requests/uEp500rkzjsmY57lR2u6chSXcsRt3HydU2xSbI7x.png', 1, '2025-10-02 02:04:12', '2025-10-02 02:05:03'),
+(17, 'new_material', 'Jamu', NULL, 45.00, 'dm', 0.00, 16, 7, 5.00, 45, NULL, NULL, NULL, 1, '2025-10-02 02:04:12', '2025-10-02 02:05:02'),
+(18, 'restock', 'cfcf2', 124, 45.00, 'm', 47.00, NULL, 3, 7.00, 42, NULL, '2025-10-11', NULL, 1, '2025-10-02 02:04:12', '2025-10-02 07:49:48');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `shippings`
+--
+
+CREATE TABLE `shippings` (
+  `id` bigint UNSIGNED NOT NULL,
+  `international_waybill_no` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `freight_company` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `freight_price` decimal(15,2) DEFAULT NULL,
+  `eta_to_arrived` datetime DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `shipment_status` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'On Process',
+  `remarks` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `shippings`
+--
+
+INSERT INTO `shippings` (`id`, `international_waybill_no`, `freight_company`, `freight_price`, `eta_to_arrived`, `created_at`, `updated_at`, `shipment_status`, `remarks`) VALUES
+(1, '88552200', 'Maersk', 500.00, '2025-10-11 15:52:00', '2025-09-19 08:52:35', '2025-09-19 08:52:35', 'On Process', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `shipping_details`
+--
+
+CREATE TABLE `shipping_details` (
+  `id` bigint UNSIGNED NOT NULL,
+  `shipping_id` bigint UNSIGNED NOT NULL,
+  `pre_shipping_id` bigint UNSIGNED NOT NULL,
+  `percentage` decimal(5,2) DEFAULT NULL,
+  `int_cost` decimal(15,2) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `shipping_details`
+--
+
+INSERT INTO `shipping_details` (`id`, `shipping_id`, `pre_shipping_id`, `percentage`, `int_cost`, `created_at`, `updated_at`) VALUES
+(1, 1, 3, 50.00, 250.00, '2025-09-19 08:52:35', '2025-09-19 08:52:35'),
+(2, 1, 4, 50.00, 250.00, '2025-09-19 08:52:35', '2025-09-19 08:52:35');
 
 -- --------------------------------------------------------
 
@@ -4934,7 +5241,11 @@ INSERT INTO `units` (`id`, `name`, `created_at`, `updated_at`) VALUES
 (51, 'oke', '2025-07-19 02:26:29', '2025-07-19 02:26:29'),
 (52, '(no unit)', '2025-07-19 02:42:12', '2025-07-19 02:42:12'),
 (53, 'joule', '2025-07-19 02:42:13', '2025-07-19 02:42:13'),
-(54, 'ton', '2025-07-25 02:51:09', '2025-07-25 02:51:09');
+(54, 'ton', '2025-07-25 02:51:09', '2025-07-25 02:51:09'),
+(55, 'rr', '2025-09-26 06:54:30', '2025-09-26 06:54:30'),
+(56, 'tyyu09', '2025-09-26 07:03:05', '2025-09-26 07:03:05'),
+(57, 'lliy', '2025-09-26 07:03:39', '2025-09-26 07:03:39'),
+(58, 'pkdns', '2025-09-26 07:04:23', '2025-09-26 07:04:23');
 
 -- --------------------------------------------------------
 
@@ -4946,7 +5257,7 @@ CREATE TABLE `users` (
   `id` bigint UNSIGNED NOT NULL,
   `username` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `password` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
-  `role` enum('super_admin','admin_logistic','admin_mascot','admin_costume','admin_finance','admin_animatronic','general') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `role` enum('super_admin','admin_logistic','admin_mascot','admin_costume','admin_finance','admin_animatronic','admin_procurement','general') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `department_id` bigint UNSIGNED DEFAULT NULL,
   `remember_token` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
@@ -4959,8 +5270,8 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `username`, `password`, `role`, `department_id`, `remember_token`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(1, 'logitech', '$2y$10$d92eVtlqhO1zea7Ofb/jKuR6s.LKe7GYqVQkAMTEDzm.sk34iBC5C', 'super_admin', 5, '4H69gf4skSjOSaMFn3BZlP0WdS2Q4dy10XWg0ez1futo4HXmMHVI1wp5vEe7', '2025-05-05 23:37:44', '2025-07-17 08:21:38', NULL),
-(2, 'laura', '$2y$10$agrAQMX7Zu08uOYtHcQQYeWTO1kge9xJWT.mIFMBX/XhItIyToAIy', 'admin_mascot', 2, 'H0SgnChAPwSgQ42qZX2r1are5fi8R6XW6KHSa0aXrA7nLcb17dvbnbpJ2VGo', '2025-05-06 00:07:01', '2025-07-17 02:34:01', NULL),
+(1, 'logitech', '$2y$10$d92eVtlqhO1zea7Ofb/jKuR6s.LKe7GYqVQkAMTEDzm.sk34iBC5C', 'super_admin', 5, 'u7BKImdosBdjQv35gpkoHcTibGGmACqGgI5sBNq5lH6KW1BLTwyCq76dvdOl', '2025-05-05 23:37:44', '2025-07-17 08:21:38', NULL),
+(2, 'laura', '$2y$10$agrAQMX7Zu08uOYtHcQQYeWTO1kge9xJWT.mIFMBX/XhItIyToAIy', 'admin_mascot', 2, 'kKTAUJSDLpCMdee97sBBKt4Rd5wrhGKv7V1cQLSbVSvJHs0alBy0ow4yh3R1', '2025-05-06 00:07:01', '2025-07-17 02:34:01', NULL),
 (3, 'tari', '$2y$10$Q2V3kGCkazSCAtjXQ3No4./RayNoZAMEVfNdmFr//vXHBqP87xrs6', 'admin_costume', 1, NULL, '2025-05-06 00:07:27', '2025-07-17 02:34:07', NULL),
 (4, 'dyla', '$2y$10$IbH1.hfTsurL05wNwT6VTepZnmQn1cyxoa.UwIjIN739.0hV11h.a', 'admin_logistic', 12, NULL, '2025-05-06 00:07:43', '2025-07-17 02:34:37', NULL),
 (5, 'lesta', '$2y$10$LijMxv8aRqT7/e0sX5me/.b/BTvBoKmpZdPEfw/OmGzQfavpUxYxu', 'admin_finance', 11, NULL, '2025-05-06 00:08:01', '2025-07-21 02:57:53', NULL),
@@ -5041,6 +5352,21 @@ ALTER TABLE `goods_out`
   ADD KEY `goods_out_project_id_foreign` (`project_id`);
 
 --
+-- Indexes for table `goods_receives`
+--
+ALTER TABLE `goods_receives`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `goods_receives_shipping_id_foreign` (`shipping_id`);
+
+--
+-- Indexes for table `goods_receive_details`
+--
+ALTER TABLE `goods_receive_details`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `goods_receive_details_goods_receive_id_foreign` (`goods_receive_id`),
+  ADD KEY `goods_receive_details_shipping_detail_id_foreign` (`shipping_detail_id`);
+
+--
 -- Indexes for table `inventories`
 --
 ALTER TABLE `inventories`
@@ -5100,11 +5426,19 @@ ALTER TABLE `personal_access_tokens`
   ADD KEY `personal_access_tokens_tokenable_type_tokenable_id_index` (`tokenable_type`,`tokenable_id`);
 
 --
+-- Indexes for table `pre_shippings`
+--
+ALTER TABLE `pre_shippings`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `pre_shippings_external_request_id_unique` (`purchase_request_id`);
+
+--
 -- Indexes for table `projects`
 --
 ALTER TABLE `projects`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `projects_department_id_foreign` (`department_id`);
+  ADD KEY `projects_department_id_foreign` (`department_id`),
+  ADD KEY `projects_project_status_id_foreign` (`project_status_id`);
 
 --
 -- Indexes for table `project_costings`
@@ -5119,6 +5453,36 @@ ALTER TABLE `project_costings`
 ALTER TABLE `project_parts`
   ADD PRIMARY KEY (`id`),
   ADD KEY `project_parts_project_id_foreign` (`project_id`);
+
+--
+-- Indexes for table `project_statuses`
+--
+ALTER TABLE `project_statuses`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `project_statuses_name_unique` (`name`);
+
+--
+-- Indexes for table `purchase_requests`
+--
+ALTER TABLE `purchase_requests`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `external_requests_inventory_id_foreign` (`inventory_id`),
+  ADD KEY `external_requests_project_id_foreign` (`project_id`),
+  ADD KEY `external_requests_requested_by_foreign` (`requested_by`);
+
+--
+-- Indexes for table `shippings`
+--
+ALTER TABLE `shippings`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `shipping_details`
+--
+ALTER TABLE `shipping_details`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `shipping_details_shipping_id_foreign` (`shipping_id`),
+  ADD KEY `shipping_details_pre_shipping_id_foreign` (`pre_shipping_id`);
 
 --
 -- Indexes for table `suppliers`
@@ -5158,7 +5522,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `categories`
 --
 ALTER TABLE `categories`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=77;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=78;
 
 --
 -- AUTO_INCREMENT for table `currencies`
@@ -5200,13 +5564,25 @@ ALTER TABLE `goods_in`
 -- AUTO_INCREMENT for table `goods_out`
 --
 ALTER TABLE `goods_out`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=158;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=295;
+
+--
+-- AUTO_INCREMENT for table `goods_receives`
+--
+ALTER TABLE `goods_receives`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `goods_receive_details`
+--
+ALTER TABLE `goods_receive_details`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `inventories`
 --
 ALTER TABLE `inventories`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=216;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=219;
 
 --
 -- AUTO_INCREMENT for table `inventory_transactions`
@@ -5224,19 +5600,19 @@ ALTER TABLE `locations`
 -- AUTO_INCREMENT for table `material_requests`
 --
 ALTER TABLE `material_requests`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=501;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=523;
 
 --
 -- AUTO_INCREMENT for table `material_usages`
 --
 ALTER TABLE `material_usages`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3406;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3417;
 
 --
 -- AUTO_INCREMENT for table `migrations`
 --
 ALTER TABLE `migrations`
-  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=60;
+  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=76;
 
 --
 -- AUTO_INCREMENT for table `personal_access_tokens`
@@ -5245,10 +5621,16 @@ ALTER TABLE `personal_access_tokens`
   MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `pre_shippings`
+--
+ALTER TABLE `pre_shippings`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+
+--
 -- AUTO_INCREMENT for table `projects`
 --
 ALTER TABLE `projects`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=74;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=82;
 
 --
 -- AUTO_INCREMENT for table `project_costings`
@@ -5261,6 +5643,30 @@ ALTER TABLE `project_costings`
 --
 ALTER TABLE `project_parts`
   MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+
+--
+-- AUTO_INCREMENT for table `project_statuses`
+--
+ALTER TABLE `project_statuses`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `purchase_requests`
+--
+ALTER TABLE `purchase_requests`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
+
+--
+-- AUTO_INCREMENT for table `shippings`
+--
+ALTER TABLE `shippings`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `shipping_details`
+--
+ALTER TABLE `shipping_details`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `suppliers`
@@ -5278,7 +5684,7 @@ ALTER TABLE `timings`
 -- AUTO_INCREMENT for table `units`
 --
 ALTER TABLE `units`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=55;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=59;
 
 --
 -- AUTO_INCREMENT for table `users`
@@ -5319,6 +5725,19 @@ ALTER TABLE `goods_out`
   ADD CONSTRAINT `goods_out_project_id_foreign` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON DELETE CASCADE;
 
 --
+-- Constraints for table `goods_receives`
+--
+ALTER TABLE `goods_receives`
+  ADD CONSTRAINT `goods_receives_shipping_id_foreign` FOREIGN KEY (`shipping_id`) REFERENCES `shippings` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `goods_receive_details`
+--
+ALTER TABLE `goods_receive_details`
+  ADD CONSTRAINT `goods_receive_details_goods_receive_id_foreign` FOREIGN KEY (`goods_receive_id`) REFERENCES `goods_receives` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `goods_receive_details_shipping_detail_id_foreign` FOREIGN KEY (`shipping_detail_id`) REFERENCES `shipping_details` (`id`) ON DELETE CASCADE;
+
+--
 -- Constraints for table `inventories`
 --
 ALTER TABLE `inventories`
@@ -5342,10 +5761,17 @@ ALTER TABLE `material_usages`
   ADD CONSTRAINT `material_usages_project_id_foreign` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`);
 
 --
+-- Constraints for table `pre_shippings`
+--
+ALTER TABLE `pre_shippings`
+  ADD CONSTRAINT `pre_shippings_external_request_id_foreign` FOREIGN KEY (`purchase_request_id`) REFERENCES `purchase_requests` (`id`) ON DELETE CASCADE;
+
+--
 -- Constraints for table `projects`
 --
 ALTER TABLE `projects`
-  ADD CONSTRAINT `projects_department_id_foreign` FOREIGN KEY (`department_id`) REFERENCES `departments` (`id`);
+  ADD CONSTRAINT `projects_department_id_foreign` FOREIGN KEY (`department_id`) REFERENCES `departments` (`id`),
+  ADD CONSTRAINT `projects_project_status_id_foreign` FOREIGN KEY (`project_status_id`) REFERENCES `project_statuses` (`id`);
 
 --
 -- Constraints for table `project_costings`
@@ -5358,6 +5784,21 @@ ALTER TABLE `project_costings`
 --
 ALTER TABLE `project_parts`
   ADD CONSTRAINT `project_parts_project_id_foreign` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `purchase_requests`
+--
+ALTER TABLE `purchase_requests`
+  ADD CONSTRAINT `external_requests_inventory_id_foreign` FOREIGN KEY (`inventory_id`) REFERENCES `inventories` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `external_requests_project_id_foreign` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `external_requests_requested_by_foreign` FOREIGN KEY (`requested_by`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `shipping_details`
+--
+ALTER TABLE `shipping_details`
+  ADD CONSTRAINT `shipping_details_pre_shipping_id_foreign` FOREIGN KEY (`pre_shipping_id`) REFERENCES `pre_shippings` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `shipping_details_shipping_id_foreign` FOREIGN KEY (`shipping_id`) REFERENCES `shippings` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `timings`
