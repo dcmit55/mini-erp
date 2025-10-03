@@ -206,7 +206,8 @@ class PurchaseRequestController extends Controller
             'supplier_id' => 'nullable|exists:suppliers,id',
             'price_per_unit' => 'nullable|numeric|min:0',
             'currency_id' => 'nullable|exists:currencies,id',
-            'approval_status' => 'nullable|in:Approved,Decline',
+            'approval_status' => 'nullable|in:Pending,Approved,Decline',
+            'delivery_date' => 'nullable|date',
         ]);
 
         // Cek supplier ada
@@ -226,7 +227,7 @@ class PurchaseRequestController extends Controller
         }
 
         $purchaseRequest = PurchaseRequest::findOrFail($id);
-        $purchaseRequest->update($request->only(['supplier_id', 'price_per_unit', 'currency_id', 'approval_status']));
+        $purchaseRequest->update($request->only(['supplier_id', 'price_per_unit', 'currency_id', 'approval_status', 'delivery_date']));
         return response()->json(['success' => true]);
     }
 

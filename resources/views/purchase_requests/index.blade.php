@@ -196,6 +196,7 @@
                                 <th>Price Per Unit</th>
                                 <th>Currency</th>
                                 <th>Approval Status</th>
+                                <th>Delivery Date</th>
                                 <th>Requested By</th>
                                 <th>Requested At</th>
                                 <th width="150">Actions</th>
@@ -258,6 +259,14 @@
                                             <option value="Decline" @if ($req->approval_status == 'Decline') selected @endif>
                                                 Decline</option>
                                         </select>
+                                    </td>
+                                    <td>
+                                        @if (auth()->user()->role === 'super_admin' || auth()->user()->role === 'admin_procurement')
+                                            <input type="date" class="form-control form-control-sm delivery-date-input"
+                                                value="{{ $req->delivery_date }}" data-id="{{ $req->id }}">
+                                        @else
+                                            {{ $req->delivery_date ? \Carbon\Carbon::parse($req->delivery_date)->format('d M Y') : '-' }}
+                                        @endif
                                     </td>
                                     <td>{{ $req->user->username ?? '-' }}</td>
                                     <td>
@@ -346,7 +355,7 @@
                 },
                 dom: 't<"row datatables-footer-row align-items-center"<"col-md-7 d-flex align-items-center gap-2 datatables-left"l<"vr-divider mx-2">i><"col-md-5 dataTables_paginate justify-content-end"p>>',
                 columnDefs: [{
-                    targets: 11, // kolom "Requested At"
+                    targets: 12, // kolom "Requested At"
                     type: 'num',
                     render: function(data, type, row, meta) {
                         // Ambil data-order dari span
@@ -358,7 +367,7 @@
                     }
                 }],
                 order: [
-                    [11, 'desc']
+                    [12, 'desc']
                 ],
                 drawCallback: function() {
                     // Reinitialize tooltips after table redraw
@@ -528,6 +537,13 @@
                 let id = $(this).data('id');
                 quickUpdate(id, {
                     approval_status: $(this).val()
+                });
+            });
+
+            $(document).on('change', '.delivery-date-input', function() {
+                let id = $(this).data('id');
+                quickUpdate(id, {
+                    delivery_date: $(this).val()
                 });
             });
 
