@@ -559,19 +559,49 @@
                                                     </span>
                                                 </td>
                                             </tr>
-                                            @if (in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance']))
-                                                <tr>
-                                                    <th scope="row">
-                                                        <i class="fas fa-dollar-sign me-2 text-muted"></i>Unit Price
-                                                    </th>
-                                                    <td>
-                                                        <span class="badge badge-custom price-badge">
-                                                            {{ number_format($inventory->price ?? 0, 2) }}
-                                                            {{ $inventory->currency ? $inventory->currency->name : '' }}
-                                                        </span>
-                                                    </td>
-                                                </tr>
-                                            @endif
+                                            <tr>
+                                                <th scope="row" style="width: 30%;">
+                                                    <i class="fas fa-dollar-sign me-2 text-muted"></i>Price Information
+                                                </th>
+                                                <td>
+                                                    @if (in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance']))
+                                                        <div class="row">
+                                                            <div class="col-md-4">
+                                                                <small class="text-muted">Unit Price:</small><br>
+                                                                <span class="badge bg-secondary text-white">
+                                                                    {{ number_format($inventory->price ?? 0, 2) }}
+                                                                    {{ $inventory->currency->name ?? '' }}
+                                                                </span>
+                                                            </div>
+                                                            <div class="col-md-4">
+                                                                <small class="text-muted">Domestic Freight:</small><br>
+                                                                <span class="badge bg-info text-white">
+                                                                    {{ number_format($inventory->unit_domestic_freight_cost ?? 0, 2) }}
+                                                                    {{ $inventory->currency->name ?? '' }}
+                                                                </span>
+                                                            </div>
+                                                            <div class="col-md-4">
+                                                                <small class="text-muted">International Freight:</small><br>
+                                                                <span class="badge bg-warning text-dark">
+                                                                    {{ number_format($inventory->unit_international_freight_cost ?? 0, 2) }}
+                                                                    {{ $inventory->currency->name ?? '' }}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="row mt-2">
+                                                            <div class="col-12">
+                                                                <small class="text-muted">Total Unit Cost:</small><br>
+                                                                <span class="badge badge-custom price-badge">
+                                                                    {{ number_format($inventory->total_unit_cost, 2) }}
+                                                                    {{ $inventory->currency->name ?? '' }}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    @else
+                                                        <span class="text-muted">Access restricted</span>
+                                                    @endif
+                                                </td>
+                                            </tr>
                                             <tr>
                                                 <th scope="row">
                                                     <i class="fas fa-truck me-2 text-muted"></i>Supplier

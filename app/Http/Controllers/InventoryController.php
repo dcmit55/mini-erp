@@ -203,7 +203,13 @@ class InventoryController extends Controller
 
             // Unit Price: angka bold, currency biasa
             $priceValue = number_format($inventory->price ?? 0, 2, ',', '.');
+
+            // **BARU**: Freight Costs
+            $domesticFreightValue = number_format($inventory->unit_domestic_freight_cost ?? 0, 2, ',', '.');
+            $internationalFreightValue = number_format($inventory->unit_international_freight_cost ?? 0, 2, ',', '.');
+
             $currencyName = $inventory->currency ? $inventory->currency->name : '';
+
             // Generate category badge with color
             $categoryBadge = $inventory->category ? '<span class="badge ' . $this->getCategoryBadgeColor($inventory->category->name) . '">' . $inventory->category->name . '</span>' : '<span class="text-muted">-</span>';
 
@@ -213,7 +219,9 @@ class InventoryController extends Controller
                 'name' => '<div class="fw-semibold">' . $inventory->name . '</div>',
                 'category' => $categoryBadge,
                 'quantity' => '<span class="' . $quantityClass . '"><span class="fw-semibold">' . $quantityValue . '</span> ' . $quantityUnit . '</span>',
-                'price' => in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance']) ? '<span class="fw-semibold">' . $priceValue . '</span> ' . $currencyName . '' : '',
+                'price' => in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance']) ? '<span class="fw-semibold">' . $priceValue . '</span> ' . $currencyName : '',
+                'domestic_freight' => in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance']) ? '<span class="fw-semibold text-info">' . $domesticFreightValue . '</span> ' . $currencyName : '',
+                'international_freight' => in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance']) ? '<span class="fw-semibold text-warning">' . $internationalFreightValue . '</span> ' . $currencyName : '',
                 'supplier' => $inventory->supplier ? $inventory->supplier->name : '-',
                 'location' => $inventory->location ? $inventory->location->name : '-',
                 'remark' => '<div class="text-truncate" style="max-width: 250px;" title="' . strip_tags($inventory->remark ?? '-') . '">' . ($inventory->remark ?? '-') . '</div>',
@@ -473,7 +481,9 @@ class InventoryController extends Controller
             'quantity' => 'required|numeric|min:0',
             'unit' => 'required|string',
             'new_unit' => 'required_if:unit,__new__|nullable|string|max:255',
-            'price' => 'nullable|numeric',
+            'price' => 'nullable|numeric|min:0',
+            'unit_domestic_freight_cost' => 'nullable|numeric|min:0',
+            'unit_international_freight_cost' => 'nullable|numeric|min:0',
             'supplier_id' => 'nullable|exists:suppliers,id',
             'currency_id' => 'nullable|exists:currencies,id',
             'location_id' => 'nullable|exists:locations,id',
@@ -487,6 +497,8 @@ class InventoryController extends Controller
         $inventory->quantity = $request->quantity;
         $inventory->unit = $request->unit;
         $inventory->price = $request->price;
+        $inventory->unit_domestic_freight_cost = $request->unit_domestic_freight_cost;
+        $inventory->unit_international_freight_cost = $request->unit_international_freight_cost;
         $inventory->supplier_id = $request->supplier_id;
         $inventory->currency_id = $request->currency_id;
         $inventory->location_id = $request->location_id;
@@ -495,7 +507,7 @@ class InventoryController extends Controller
         // Simpan unit baru jika ada
         if ($request->unit === '__new__' && $request->new_unit) {
             $unit = Unit::firstOrCreate(['name' => $request->new_unit]);
-            $inventory->unit = $unit->name; // Ganti nilai unit di $inventory
+            $inventory->unit = $unit->name;
         }
 
         // Upload Image if exists
@@ -506,10 +518,9 @@ class InventoryController extends Controller
             }
         }
 
-        // Simpan inventory terlebih dahulu
         $inventory->save();
 
-        // Buat pesan peringatan jika currency atau price kosong
+        // Warning message untuk field kosong
         $warningMessage = null;
         if (!$inventory->currency_id || !$inventory->price) {
             $warningMessage = "Price or Currency is empty for <b>{$inventory->name}</b>. Please update it as soon as possible, as it will affect the cost calculation!";
@@ -518,7 +529,7 @@ class InventoryController extends Controller
         return redirect()
             ->route('inventory.index')
             ->with([
-                'success' => "Inventory <b>{$inventory->name}</b> added successfully!",
+                'success' => "Inventory <b>{$inventory->name}</b> created successfully.",
                 'warning' => $warningMessage,
             ]);
     }
@@ -594,7 +605,9 @@ class InventoryController extends Controller
             'unit' => 'required|string',
             'new_unit' => 'required_if:unit,__new__|nullable|string|max:255',
             'currency_id' => 'nullable|exists:currencies,id',
-            'price' => 'nullable|numeric',
+            'price' => 'nullable|numeric|min:0',
+            'unit_domestic_freight_cost' => 'nullable|numeric|min:0',
+            'unit_international_freight_cost' => 'nullable|numeric|min:0',
             'supplier_id' => 'nullable|exists:suppliers,id',
             'location_id' => 'nullable|exists:locations,id',
             'remark' => 'nullable|string|max:255',
@@ -614,6 +627,8 @@ class InventoryController extends Controller
         $inventory->unit = $request->unit;
         $inventory->currency_id = $request->currency_id;
         $inventory->price = $request->price;
+        $inventory->unit_domestic_freight_cost = $request->unit_domestic_freight_cost;
+        $inventory->unit_international_freight_cost = $request->unit_international_freight_cost;
         $inventory->supplier_id = $request->supplier_id;
         $inventory->location_id = $request->location_id;
         $inventory->remark = $request->remark;
@@ -628,18 +643,15 @@ class InventoryController extends Controller
 
         // Upload image jika ada
         if ($request->hasFile('img')) {
-            // Hapus gambar lama jika ada
             if ($inventory->img && Storage::disk('public')->exists($inventory->img)) {
                 Storage::disk('public')->delete($inventory->img);
             }
-            // Simpan gambar baru
             $imgPath = $request->file('img')->store('inventory_images', 'public');
             $inventory->img = $imgPath;
         }
 
         $inventory->save();
 
-        // Buat pesan peringatan jika currency atau price kosong
         $warningMessage = null;
         if (!$inventory->currency_id || !$inventory->price) {
             $warningMessage = "Price or Currency is empty for <b>{$inventory->name}</b>. Please update it as soon as possible, as it will affect the cost calculation!";
@@ -648,7 +660,7 @@ class InventoryController extends Controller
         return redirect()
             ->route('inventory.index')
             ->with([
-                'success' => "Inventory <b>{$inventory->name}</b> edited successfully!",
+                'success' => "Inventory <b>{$inventory->name}</b> updated successfully.",
                 'warning' => $warningMessage,
             ]);
     }

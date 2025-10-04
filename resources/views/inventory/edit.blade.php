@@ -90,15 +90,49 @@
                     </div>
 
                     <div class="row mb-3">
-                        <!-- Price -->
-                        <div class="col-lg-6 mb-3">
+                        <!-- Unit Price -->
+                        <div class="col-lg-4">
                             <label for="price" class="form-label">Unit Price</label>
                             <input type="number" class="form-control" step="any" id="price" name="price"
-                                value="{{ old('price', $inventory->price) }}">
+                                value="{{ old('price', $inventory->price) }}" min="0">
                             @error('price')
                                 <small class="text-danger">{{ $message }}</small>
                             @enderror
                         </div>
+
+                        <!-- Unit Domestic Freight Cost -->
+                        <div class="col-lg-4">
+                            <label for="unit_domestic_freight_cost" class="form-label">
+                                Domestic Freight Cost
+                                <i class="fas fa-info-circle text-info" data-bs-toggle="tooltip" data-bs-placement="top"
+                                    title="Cost for domestic shipping per unit"></i>
+                            </label>
+                            <input type="number" step="any" class="form-control" id="unit_domestic_freight_cost"
+                                name="unit_domestic_freight_cost"
+                                value="{{ old('unit_domestic_freight_cost', $inventory->unit_domestic_freight_cost) }}"
+                                min="0" placeholder="0.00">
+                            @error('unit_domestic_freight_cost')
+                                <small class="text-danger">{{ $message }}</small>
+                            @enderror
+                        </div>
+
+                        <!-- Unit International Freight Cost -->
+                        <div class="col-lg-4">
+                            <label for="unit_international_freight_cost" class="form-label">
+                                International Freight Cost
+                                <i class="fas fa-info-circle text-warning" data-bs-toggle="tooltip"
+                                    data-bs-placement="top" title="Cost for international shipping per unit"></i>
+                            </label>
+                            <input type="number" step="any" class="form-control"
+                                id="unit_international_freight_cost" name="unit_international_freight_cost"
+                                value="{{ old('unit_international_freight_cost', $inventory->unit_international_freight_cost) }}"
+                                min="0" placeholder="0.00">
+                            @error('unit_international_freight_cost')
+                                <small class="text-danger">{{ $message }}</small>
+                            @enderror
+                        </div>
+                    </div>
+                    <div class="row mb-3">
                         <!-- Currency -->
                         <div class="col-lg-6 mb-3">
                             <label for="currency_id" class="form-label">Currency</label>

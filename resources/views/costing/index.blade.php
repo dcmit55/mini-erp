@@ -75,7 +75,9 @@
                                 <th>Material</th>
                                 <th>Quantity</th>
                                 <th>Unit Price</th>
-                                <th>Total Price</th>
+                                <th>Domestic Freight</th>
+                                <th>Intl Freight</th>
+                                <th>Total Unit Cost</th>
                                 <th>Total Cost (IDR)</th>
                             </tr>
                         </thead>
@@ -121,7 +123,6 @@
                     const tableBody = document.getElementById('costingTableBody');
                     tableBody.innerHTML = '';
 
-                    // Perbarui judul modal dengan nama proyek
                     document.getElementById('costingModalLabel').innerText = `Project Costing: ${data.project}`;
 
                     data.materials.forEach(material => {
@@ -129,49 +130,43 @@
                             id: null,
                             name: 'N/A',
                             price: 0,
+                            domestic_freight: 0,
+                            international_freight: 0,
+                            total_unit_cost: 0,
                             unit: 'N/A',
                             currency: {
                                 name: 'N/A'
                             }
                         };
 
-                        // Gunakan fallback jika ada field kosong/null
                         const name = inventory.name || 'N/A';
                         const unit = inventory.unit || 'N/A';
                         const price = inventory.price ?? 0;
+                        const domesticFreight = inventory.domestic_freight ?? 0;
+                        const internationalFreight = inventory.international_freight ?? 0;
+                        const totalUnitCost = inventory.total_unit_cost ?? 0;
                         const currencyName = (inventory.currency && inventory.currency.name) ? inventory
                             .currency.name : 'N/A';
                         const quantity = material.used_quantity ?? 0;
-                        const totalPrice = price * quantity;
                         const totalCost = material.total_cost ?? 0;
 
-                        // Cek jika inventory N/A dan user super admin
-                        let nameCell = name;
-                        @if (auth()->user()->role === 'super_admin')
-                            if (name === 'N/A' && inventory.id) {
-                                nameCell =
-                                    `<span data-bs-toggle="tooltip" data-bs-placement="right" title="ID: ${inventory.id}">N/A</span>`;
-                            }
-                        @endif
-
                         const row = `
-                            <tr>
-                                <td>${nameCell}</td>
-                                <td>${quantity} ${unit}</td>
-                                <td>${formatCurrency(price)} ${currencyName}</td>
-                                <td>${formatCurrency(totalPrice)} ${currencyName}</td>
-                                <td>${formatCurrency(totalCost)} IDR</td>
-                            </tr>
-                        `;
+                    <tr>
+                        <td>${name}</td>
+                        <td>${quantity} ${unit}</td>
+                        <td>${formatCurrency(price)} ${currencyName}</td>
+                        <td class="text-info">${formatCurrency(domesticFreight)} ${currencyName}</td>
+                        <td class="text-warning">${formatCurrency(internationalFreight)} ${currencyName}</td>
+                        <td class="fw-bold text-success">${formatCurrency(totalUnitCost)} ${currencyName}</td>
+                        <td class="fw-bold">${formatCurrency(totalCost)} IDR</td>
+                    </tr>
+                `;
                         tableBody.innerHTML += row;
                     });
-                    setTimeout(() => {
-                        // Re-init tooltip setelah render
-                        $('[data-bs-toggle="tooltip"]').tooltip();
-                    }, 100);
 
                     document.getElementById('grandTotal').innerHTML =
                         `Grand Total: <span class="text-success fw-bold">${formatCurrency(data.grand_total_idr)} IDR</span>`;
+
                     const modal = new bootstrap.Modal(document.getElementById('costingModal'));
                     modal.show();
                 })

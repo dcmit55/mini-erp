@@ -56,24 +56,33 @@ class ProjectCostingController extends Controller
             ->with(['inventory.currency'])
             ->get();
 
-        // Hitung total biaya per material dan konversi ke IDR
+        // Hitung total biaya per material dengan rumus baru dan konversi ke IDR
         $materials = $usages->map(function ($usage) {
             $inventory = $usage->inventory;
-            $price = $inventory->price ?? 0;
+
+            // RUMUS: Unit Price + Domestic Freight + International Freight
+            $unitPrice = $inventory->price ?? 0;
+            $domesticFreight = $inventory->unit_domestic_freight_cost ?? 0;
+            $internationalFreight = $inventory->unit_international_freight_cost ?? 0;
+            $totalUnitCost = $unitPrice + $domesticFreight + $internationalFreight;
+
             $usedQty = $usage->used_quantity ?? 0;
             $unit = $inventory->unit ?? 'N/A';
             $currency = $inventory->currency ?? (object) ['name' => 'N/A', 'exchange_rate' => 1];
             $exchangeRate = $currency->exchange_rate ?? 1;
 
-            $totalCost = $price * $usedQty;
+            $totalCost = $totalUnitCost * $usedQty;
             $totalCostInIDR = $totalCost * $exchangeRate;
 
             return (object) [
                 'inventory' => (object) [
-                    'id' => $inventory->id ?? $usage->inventory_id, // Fallback ke inventory_id jika inventory null
+                    'id' => $inventory->id ?? $usage->inventory_id,
                     'name' => $inventory->name ?? 'N/A',
                     'unit' => $unit,
-                    'price' => $price,
+                    'price' => $unitPrice,
+                    'domestic_freight' => $domesticFreight,
+                    'international_freight' => $internationalFreight,
+                    'total_unit_cost' => $totalUnitCost,
                     'currency' => $currency,
                 ],
                 'used_quantity' => $usedQty,
