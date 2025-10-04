@@ -11,20 +11,22 @@ class ShippingController extends Controller
 {
     public function create(Request $request)
     {
-        // Debug: cek data yang diterima
-        // dd($request->all());
+        // Decode group keys dari JSON
+        $groupKeys = $request->input('group_keys');
+        if (is_string($groupKeys)) {
+            $groupKeys = json_decode($groupKeys, true);
+        }
 
-        $preShippingIds = $request->input('pre_shipping_ids', []);
-        if (empty($preShippingIds)) {
-            return redirect()->route('pre-shippings.index')->with('error', 'Pilih minimal satu data!');
+        if (empty($groupKeys)) {
+            return redirect()->route('pre-shippings.index')->with('error', 'Please select at least one group');
         }
 
         $preShippings = PreShipping::with(['purchaseRequest.project', 'purchaseRequest.supplier'])
-            ->whereIn('id', $preShippingIds)
+            ->whereIn('group_key', $groupKeys)
             ->get();
 
         if ($preShippings->isEmpty()) {
-            return redirect()->route('pre-shippings.index')->with('error', 'Data tidak ditemukan!');
+            return redirect()->route('pre-shippings.index')->with('error', 'No data found for selected groups');
         }
 
         $freightCompanies = ['DHL', 'FedEx', 'Maersk', 'CMA CGM'];

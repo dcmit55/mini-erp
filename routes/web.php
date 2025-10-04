@@ -186,8 +186,8 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/purchase_requests/{id}/quick-update', [PurchaseRequestController::class, 'quickUpdate'])->name('purchase_requests.quick_update');
 
     // Pre Shippings
-    Route::get('/pre-shippings', [\App\Http\Controllers\PreShippingController::class, 'index'])->name('pre-shippings.index');
-    Route::post('/pre-shippings/{purchase_request_id}/quick-update', [\App\Http\Controllers\PreShippingController::class, 'quickUpdate'])->name('pre-shippings.quick-update');
+    Route::get('/pre-shippings', [PreShippingController::class, 'index'])->name('pre-shippings.index');
+    Route::post('/pre-shippings/{groupKey}/quick-update', [PreShippingController::class, 'quickUpdate'])->name('pre-shippings.quick-update');
 
     // Shippings
     Route::post('/shippings/create', [ShippingController::class, 'create'])->name('shippings.create');
