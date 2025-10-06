@@ -26,7 +26,7 @@ class PreShipping extends Model
         return $this->hasOne(ShippingDetail::class);
     }
 
-    // **PERBAIKAN**: Get all items in the same group dengan proper eager loading
+    // Get all items in the same group dengan proper eager loading
     public function groupItems()
     {
         return self::with(['purchaseRequest.project', 'purchaseRequest.supplier'])
@@ -43,7 +43,7 @@ class PreShipping extends Model
     // Calculate allocated cost based on method
     public function calculateAllocatedCost()
     {
-        // **PERBAIKAN**: Jangan query lagi, gunakan data yang sudah ada
+        // Pastikan data purchase request ter-load
         if (!$this->relationLoaded('purchaseRequest')) {
             $this->load('purchaseRequest');
         }
@@ -51,7 +51,10 @@ class PreShipping extends Model
         $groupItems = $this->groupItems();
         $totalDomesticCost = $this->domestic_cost ?? 0;
 
-        switch ($this->cost_allocation_method) {
+        // Fallback ke 'value' jika method tidak di-set
+        $method = $this->cost_allocation_method ?? 'value';
+
+        switch ($method) {
             case 'quantity':
                 return $this->calculateByQuantity($groupItems, $totalDomesticCost);
 
@@ -59,10 +62,9 @@ class PreShipping extends Model
                 return $this->calculateByPercentage($totalDomesticCost);
 
             case 'value':
-                return $this->calculateByValue($groupItems, $totalDomesticCost);
-
             default:
-                return 0;
+                // DEFAULT KE VALUE
+                return $this->calculateByValue($groupItems, $totalDomesticCost);
         }
     }
 

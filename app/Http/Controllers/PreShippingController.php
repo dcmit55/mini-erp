@@ -18,7 +18,7 @@ class PreShippingController extends Controller
             ->whereNotNull('delivery_date')
             ->get();
 
-        // Auto generate pre-shipping dengan grouping
+        // Auto generate pre-shipping dengan grouping (TANPA OVERRIDE)
         $this->generatePreShippingGroups($approvedRequests);
 
         // Ambil data yang sudah di-group untuk ditampilkan
@@ -40,13 +40,23 @@ class PreShippingController extends Controller
         // Create or update pre-shipping records
         foreach ($groups as $groupKey => $requests) {
             foreach ($requests as $request) {
-                PreShipping::updateOrCreate(
-                    ['purchase_request_id' => $request->id],
-                    [
+                $existingPreShipping = PreShipping::where('purchase_request_id', $request->id)->first();
+
+                if (!$existingPreShipping) {
+                    // Hanya buat baru jika belum ada, default ke 'value' bukan 'quantity'
+                    PreShipping::create([
+                        'purchase_request_id' => $request->id,
                         'group_key' => $groupKey,
-                        'cost_allocation_method' => 'quantity', // default method
-                    ],
-                );
+                        'cost_allocation_method' => 'value', // **UBAH DEFAULT KE 'value'**
+                    ]);
+                } else {
+                    // Jika sudah ada, JANGAN override cost_allocation_method
+                    // Hanya update group_key jika berbeda
+                    if ($existingPreShipping->group_key !== $groupKey) {
+                        $existingPreShipping->update(['group_key' => $groupKey]);
+                    }
+                    // JANGAN OVERRIDE cost_allocation_method yang sudah di-set user
+                }
             }
         }
     }
@@ -71,7 +81,8 @@ class PreShippingController extends Controller
                 'delivery_date' => $firstItem->purchaseRequest->delivery_date,
                 'domestic_waybill_no' => $firstItem->domestic_waybill_no,
                 'domestic_cost' => $firstItem->domestic_cost,
-                'cost_allocation_method' => $firstItem->cost_allocation_method ?? 'quantity',
+                // Pastikan mengambil cost_allocation_method dari database terbaru
+                'cost_allocation_method' => $firstItem->cost_allocation_method ?? 'value', // Default ke 'value'
                 // Items sudah ter-eager load, tidak perlu query lagi
                 'items' => $group,
                 'total_items' => $group->count(),
@@ -109,7 +120,6 @@ class PreShippingController extends Controller
 
         DB::beginTransaction();
         try {
-            // **PERBAIKAN**: Eager load untuk menghindari N+1
             $groupItems = PreShipping::with(['purchaseRequest.project', 'purchaseRequest.supplier'])
                 ->where('group_key', $groupKey)
                 ->get();
@@ -118,34 +128,53 @@ class PreShippingController extends Controller
                 return response()->json(['success' => false, 'message' => 'Group not found'], 404);
             }
 
-            // Validate percentage total if method is percentage
+            // Lebih flexible validation untuk percentage
             if ($request->cost_allocation_method === 'percentage') {
-                if (!$request->has('percentages') || empty($request->percentages)) {
-                    return response()->json(
-                        [
-                            'success' => false,
-                            'message' => 'Percentages are required when using percentage method',
-                        ],
-                        422,
-                    );
-                }
+                // Jika baru switch ke percentage mode, izinkan tanpa percentages dulu
+                if ($request->has('percentages') && !empty(array_filter($request->percentages))) {
+                    $totalPercentage = array_sum($request->percentages);
 
-                $totalPercentage = array_sum($request->percentages);
-                if (abs($totalPercentage - 100) > 0.1) {
-                    return response()->json(
-                        [
-                            'success' => false,
-                            'message' => "Total percentage must equal 100%. Current total: {$totalPercentage}%",
-                        ],
-                        422,
-                    );
+                    // Toleransi yang lebih besar dan pesan yang lebih informatif
+                    if (abs($totalPercentage - 100) > 5) {
+                        // Toleransi 5% untuk UX yang lebih baik
+                        return response()->json(
+                            [
+                                'success' => false,
+                                'message' => 'Total percentage should be close to 100%. Current total: ' . number_format($totalPercentage, 2) . '%',
+                                'warning' => true, // Flag untuk menunjukkan ini warning, bukan error fatal
+                            ],
+                            400,
+                        );
+                    }
+                }
+                // Jika tidak ada percentages, set default yang reasonable
+                elseif (!$request->has('percentages') || empty(array_filter($request->percentages))) {
+                    // Auto-distribute percentage berdasarkan value ratio
+                    $totalValue = $groupItems->sum(function ($item) {
+                        $qty = $item->purchaseRequest->required_quantity ?? 0;
+                        $price = $item->purchaseRequest->price_per_unit ?? 0;
+                        return $qty * $price;
+                    });
+
+                    $autoPercentages = [];
+                    if ($totalValue > 0) {
+                        foreach ($groupItems as $item) {
+                            $itemValue = ($item->purchaseRequest->required_quantity ?? 0) * ($item->purchaseRequest->price_per_unit ?? 0);
+                            $autoPercentages[] = ($itemValue / $totalValue) * 100;
+                        }
+                    } else {
+                        // Fallback: equal distribution
+                        $equalPercentage = 100 / $groupItems->count();
+                        $autoPercentages = array_fill(0, $groupItems->count(), $equalPercentage);
+                    }
+
+                    // Override request percentages with auto-calculated
+                    $request->merge(['percentages' => $autoPercentages]);
                 }
             }
 
             $updatedItems = [];
 
-            // **OPTIMISASI**: Batch update untuk performa yang lebih baik
-            $updateData = [];
             foreach ($groupItems as $index => $item) {
                 $itemUpdateData = [];
 
@@ -165,21 +194,24 @@ class PreShippingController extends Controller
                     }
                 }
 
-                if ($request->cost_allocation_method === 'percentage' && isset($request->percentages[$index])) {
-                    $itemUpdateData['allocation_percentage'] = $request->percentages[$index];
+                // Set percentage dengan auto-calculation
+                if ($request->cost_allocation_method === 'percentage') {
+                    $percentage = $request->percentages[$index] ?? 0;
+                    $itemUpdateData['allocation_percentage'] = $percentage;
                 }
 
                 // Update item
                 $item->update($itemUpdateData);
 
-                // Calculate allocated cost menggunakan data yang sudah di-eager load
-                $allocatedCost = $item->calculateAllocatedCost();
+                // Calculate allocated cost
+                $allocatedCost = $item->fresh()->calculateAllocatedCost();
                 $item->update(['allocated_cost' => $allocatedCost]);
 
                 $updatedItems[] = [
                     'id' => $item->id,
                     'allocated_cost' => $allocatedCost,
-                    'cost_allocation_method' => $item->cost_allocation_method,
+                    'allocation_percentage' => $item->fresh()->allocation_percentage,
+                    'cost_allocation_method' => $item->fresh()->cost_allocation_method,
                 ];
             }
 
@@ -188,15 +220,22 @@ class PreShippingController extends Controller
             return response()->json([
                 'success' => true,
                 'updated_items' => $updatedItems,
+                'auto_percentages' => $request->percentages ?? [], // Return auto-calculated percentages
                 'message' => 'Group updated successfully',
             ]);
         } catch (\Exception $e) {
             DB::rollback();
 
+            \Log::error('PreShipping quickUpdate error', [
+                'group_key' => $groupKey,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
             return response()->json(
                 [
                     'success' => false,
-                    'message' => 'Error updating pre-shipping: ' . $e->getMessage(),
+                    'message' => 'Server error occurred. Please try again.',
                 ],
                 500,
             );

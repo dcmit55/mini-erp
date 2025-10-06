@@ -193,8 +193,9 @@
                                 <div class="col-md-2 position-relative">
                                     <label class="form-label">Domestic Cost</label>
                                     <input type="number" class="form-control allocation-input group-cost-input"
-                                        data-group="{{ $group['group_key'] }}" value="{{ $group['domestic_cost'] }}"
-                                        min="0" step="0.01" placeholder="0.00">
+                                        data-group="{{ $group['group_key'] }}"
+                                        value="{{ rtrim(rtrim(number_format($group['domestic_cost'] ?? 0, 3, '.', ''), '0'), '.') }}"
+                                        min="0" step="0.001" placeholder="0">
                                     <div class="auto-save-indicator"></div>
                                 </div>
                                 <div class="col-md-3 position-relative">
@@ -202,25 +203,19 @@
                                     <select class="form-select allocation-input allocation-method-select"
                                         data-group="{{ $group['group_key'] }}">
                                         <option value="quantity"
-                                            {{ ($group['cost_allocation_method'] ?? 'quantity') == 'quantity' ? 'selected' : '' }}>
+                                            {{ ($group['cost_allocation_method'] ?? 'value') == 'quantity' ? 'selected' : '' }}>
                                             By Quantity (Auto)
                                         </option>
                                         <option value="percentage"
-                                            {{ ($group['cost_allocation_method'] ?? 'quantity') == 'percentage' ? 'selected' : '' }}>
+                                            {{ ($group['cost_allocation_method'] ?? 'value') == 'percentage' ? 'selected' : '' }}>
                                             By Percentage (Manual)
                                         </option>
                                         <option value="value"
-                                            {{ ($group['cost_allocation_method'] ?? 'quantity') == 'value' ? 'selected' : '' }}>
+                                            {{ ($group['cost_allocation_method'] ?? 'value') == 'value' ? 'selected' : '' }}>
                                             By Value (Auto)
                                         </option>
                                     </select>
                                     <div class="auto-save-indicator"></div>
-                                </div>
-                                <div class="col-md-4 d-flex align-items-end">
-                                    <div class="loading-spinner spinner-border spinner-border-sm text-primary"
-                                        role="status">
-                                        <span class="visually-hidden">Loading...</span>
-                                    </div>
                                 </div>
                             </div>
 
@@ -249,23 +244,22 @@
                                                 </td>
                                                 <td>
                                                     <span class="badge bg-secondary">
-                                                        {{-- SUDAH EAGER LOADED, tidak ada N+1 query --}}
                                                         {{ $item->purchaseRequest->project->name ?? '-' }}
                                                     </span>
                                                 </td>
                                                 <td>
                                                     <span
-                                                        class="fw-semibold">{{ number_format($item->purchaseRequest->required_quantity, 2) }}</span>
+                                                        class="fw-semibold">{{ rtrim(rtrim(number_format($item->purchaseRequest->required_quantity, 3, '.', ''), '0'), '.') }}</span>
                                                     <small
                                                         class="text-muted d-block">{{ $item->purchaseRequest->unit }}</small>
                                                 </td>
                                                 <td>
                                                     <span
-                                                        class="fw-semibold">${{ number_format($item->purchaseRequest->price_per_unit, 2) }}</span>
+                                                        class="fw-semibold">${{ rtrim(rtrim(number_format($item->purchaseRequest->price_per_unit, 3, '.', ''), '0'), '.') }}</span>
                                                 </td>
                                                 <td>
                                                     <span
-                                                        class="fw-semibold">${{ number_format($item->purchaseRequest->required_quantity * $item->purchaseRequest->price_per_unit, 2) }}</span>
+                                                        class="fw-semibold">${{ rtrim(rtrim(number_format($item->purchaseRequest->required_quantity * $item->purchaseRequest->price_per_unit, 3, '.', ''), '0'), '.') }}</span>
                                                 </td>
                                                 <td
                                                     class="percentage-column {{ $group['cost_allocation_method'] != 'percentage' ? 'd-none' : '' }}">
@@ -274,15 +268,15 @@
                                                             class="form-control form-control-sm allocation-input percentage-input"
                                                             data-index="{{ $index }}"
                                                             data-group="{{ $group['group_key'] }}"
-                                                            value="{{ $item->allocation_percentage ?? 0 }}" min="0"
-                                                            max="100" step="0.001" placeholder="0.000">
+                                                            value="{{ rtrim(rtrim(number_format($item->allocation_percentage ?? 0, 3, '.', ''), '0'), '.') }}"
+                                                            min="0" max="100" step="0.001" placeholder="0">
                                                         <div class="auto-save-indicator"></div>
                                                     </div>
                                                 </td>
                                                 <td>
                                                     <div class="allocated-cost-cell allocated-cost-highlight">
                                                         $<span
-                                                            class="allocated-amount">{{ number_format($item->allocated_cost ?? 0, 2) }}</span>
+                                                            class="allocated-amount">{{ rtrim(rtrim(number_format($item->allocated_cost ?? 0, 3, '.', ''), '0'), '.') }}</span>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -295,13 +289,20 @@
                             <div class="percentage-validation {{ $group['cost_allocation_method'] != 'percentage' ? 'd-none' : '' }}"
                                 data-group="{{ $group['group_key'] }}">
                                 <div class="alert alert-info">
-                                    <div class="d-flex align-items-center">
-                                        <i class="fas fa-calculator me-2"></i>
-                                        <strong>Total Percentage:
-                                            <span
-                                                class="total-percentage">{{ $group['items']->sum('allocation_percentage') }}</span>%
-                                        </strong>
-                                        <small class="text-muted ms-3">(Must equal 100%)</small>
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <div>
+                                            <i class="fas fa-calculator me-2"></i>
+                                            <strong>Total Percentage:
+                                                <span class="total-percentage">
+                                                    {{ rtrim(rtrim(number_format($group['items']->sum('allocation_percentage'), 3, '.', ''), '0'), '.') }}
+                                                </span>%
+                                            </strong>
+                                            <small class="text-muted ms-3">(Should equal 100%)</small>
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-outline-primary auto-distribute-btn"
+                                            data-group="{{ $group['group_key'] }}">
+                                            <i class="fas fa-magic me-1"></i>Auto Distribute
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -329,12 +330,98 @@
 
 @push('scripts')
     <script>
+        // 1. FUNCTION HELPERS
+        function formatDynamicNumber(number) {
+            if (number == null || number === '') return '0';
+            const num = parseFloat(number);
+            if (isNaN(num)) return number;
+            return num.toFixed(3).replace(/\.?0+$/, '');
+        }
+
+        function formatCurrency(number) {
+            const formatted = formatDynamicNumber(number);
+            return new Intl.NumberFormat('en-US', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 3
+            }).format(parseFloat(formatted));
+        }
+
+        // 2. SINGLE DOCUMENT READY BLOCK
         $(document).ready(function() {
             let updateTimeout = {};
             let selectedGroups = new Set();
+            let hasUnsavedChanges = false;
+            let isOnline = navigator.onLine;
 
-            // Handle checkbox selection
-            $('.group-checkbox').on('change', function() {
+            // ===== INITIALIZATION =====
+            initializePage();
+
+            // ===== EVENT HANDLERS =====
+
+            // Group checkbox selection
+            $('.group-checkbox').on('change', handleGroupSelection);
+
+            // Proceed to shipping
+            $('#proceed-shipping-btn').on('click', handleProceedToShipping);
+
+            // Allocation method change
+            $('.allocation-method-select').on('change', handleAllocationMethodChange);
+
+            // Input changes (debounced)
+            $('.allocation-input').on('input', handleInputChange);
+
+            // Percentage input changes
+            $(document).on('input', '.percentage-input', handlePercentageInput);
+
+            // Auto-distribute button
+            $(document).on('click', '.auto-distribute-btn', handleAutoDistribute);
+
+            // Visual feedback for inputs
+            $('.allocation-input').on('focus', function() {
+                $(this).addClass('border-primary');
+            }).on('blur', function() {
+                $(this).removeClass('border-primary');
+            });
+
+            // Connection status monitoring
+            window.addEventListener('online', function() {
+                isOnline = true;
+                showToast('success', 'Connection restored');
+            });
+
+            window.addEventListener('offline', function() {
+                isOnline = false;
+                showToast('error', 'Connection lost. Changes may not be saved.');
+            });
+
+            // Warn before page unload if unsaved changes
+            window.addEventListener('beforeunload', function(e) {
+                if (hasUnsavedChanges) {
+                    e.preventDefault();
+                    e.returnValue = '';
+                }
+            });
+
+            // ===== FUNCTION DEFINITIONS =====
+
+            function initializePage() {
+                // Initialize previous values for allocation method selects
+                $('.allocation-method-select').each(function() {
+                    const currentValue = $(this).val() || 'value';
+                    $(this).data('previous-value', currentValue);
+
+                    const groupKey = $(this).data('group');
+                    updateMethodBadge(groupKey, currentValue);
+                });
+
+                // Initialize percentage totals
+                $('.percentage-validation').each(function() {
+                    const groupKey = $(this).data('group');
+                    updatePercentageTotal(groupKey);
+                });
+            }
+
+            function handleGroupSelection() {
                 const groupKey = $(this).data('group');
                 const card = $(this).closest('.card-group-item');
 
@@ -345,11 +432,94 @@
                     selectedGroups.delete(groupKey);
                     card.removeClass('selected');
                 }
-
                 updateProceedButton();
-            });
+            }
 
-            // Update proceed button state
+            function handleProceedToShipping() {
+                if (selectedGroups.size === 0) {
+                    Swal.fire('Warning', 'Please select at least one group', 'warning');
+                    return;
+                }
+                $('#selected-group-keys').val(JSON.stringify([...selectedGroups]));
+                $('#proceed-shipping-form').submit();
+            }
+
+            function handleAllocationMethodChange() {
+                const method = $(this).val();
+                const groupKey = $(this).data('group');
+                const previousValue = $(this).data('previous-value') || 'value';
+
+                $(this).data('previous-value', method).prop('disabled', true);
+
+                togglePercentageColumns(groupKey, method);
+
+                const data = {
+                    domestic_waybill_no: $(`.group-waybill-input[data-group="${groupKey}"]`).val(),
+                    domestic_cost: $(`.group-cost-input[data-group="${groupKey}"]`).val(),
+                    cost_allocation_method: method,
+                    percentages: method === 'percentage' ? [] : undefined,
+                    _token: '{{ csrf_token() }}'
+                };
+
+                sendUpdateRequest(groupKey, data, previousValue);
+            }
+
+            function handleInputChange() {
+                const groupKey = $(this).data('group');
+                const $indicator = $(this).siblings('.auto-save-indicator');
+
+                $indicator.removeClass('saved').addClass('saving');
+                hasUnsavedChanges = true;
+
+                clearTimeout(updateTimeout[groupKey]);
+                updateTimeout[groupKey] = setTimeout(() => {
+                    autoUpdateGroup(groupKey);
+                }, 800);
+            }
+
+            function handlePercentageInput() {
+                const groupKey = $(this).data('group');
+                updatePercentageTotal(groupKey);
+
+                const $indicator = $(this).siblings('.auto-save-indicator');
+                $indicator.removeClass('saved').addClass('saving');
+                hasUnsavedChanges = true;
+
+                clearTimeout(updateTimeout[groupKey]);
+                updateTimeout[groupKey] = setTimeout(() => {
+                    autoUpdateGroupWithPercentages(groupKey);
+                }, 1500);
+            }
+
+            function handleAutoDistribute() {
+                const groupKey = $(this).data('group');
+                const $tbody = $(`tbody[data-group="${groupKey}"]`);
+
+                let totalValue = 0;
+                const itemValues = [];
+
+                $tbody.find('tr').each(function() {
+                    const qtyText = $(this).find('td:eq(2) .fw-semibold').text().replace(/,/g, '');
+                    const priceText = $(this).find('td:eq(3) .fw-semibold').text().replace(/[$,]/g, '');
+                    const value = (parseFloat(qtyText) || 0) * (parseFloat(priceText) || 0);
+                    itemValues.push(value);
+                    totalValue += value;
+                });
+
+                if (totalValue > 0) {
+                    $tbody.find('.percentage-input').each(function(index) {
+                        const percentage = (itemValues[index] / totalValue) * 100;
+                        $(this).val(formatDynamicNumber(percentage));
+                    });
+
+                    updatePercentageTotal(groupKey);
+                    setTimeout(() => autoUpdateGroupWithPercentages(groupKey), 500);
+                    showToast('success', 'Percentages auto-distributed based on item values');
+                } else {
+                    showToast('warning', 'Cannot auto-distribute: no item values found');
+                }
+            }
+
             function updateProceedButton() {
                 const count = selectedGroups.size;
                 const $countElement = $('#selected-count');
@@ -366,112 +536,6 @@
                 }
             }
 
-            // Handle proceed to shipping
-            $('#proceed-shipping-btn').on('click', function() {
-                if (selectedGroups.size === 0) {
-                    Swal.fire('Warning', 'Please select at least one group', 'warning');
-                    return;
-                }
-
-                $('#selected-group-keys').val(JSON.stringify([...selectedGroups]));
-                $('#proceed-shipping-form').submit();
-            });
-
-            // Handle allocation method change
-            $('.allocation-method-select').on('change', function() {
-                const method = $(this).val();
-                const groupKey = $(this).data('group');
-
-                // Store previous value in case we need to rollback
-                const previousValue = $(this).data('previous-value') || 'quantity';
-                $(this).data('previous-value', method);
-
-                // Toggle UI immediately
-                togglePercentageColumns(groupKey, method);
-
-                // Auto-save method
-                const data = {
-                    domestic_waybill_no: $(`.group-waybill-input[data-group="${groupKey}"]`).val(),
-                    domestic_cost: $(`.group-cost-input[data-group="${groupKey}"]`).val(),
-                    cost_allocation_method: method,
-                    _token: '{{ csrf_token() }}'
-                };
-
-                // Show loading
-                const $card = $(`.card-group-item[data-group="${groupKey}"]`);
-                const $spinner = $card.find('.loading-spinner');
-                $spinner.show();
-
-                $.post(`/pre-shippings/${groupKey}/quick-update`, data)
-                    .done(function(response) {
-                        if (response.success) {
-                            $card.find('.auto-save-indicator').removeClass('saving').addClass('saved');
-
-                            // Update badge immediately
-                            const $badge = $card.find('.cost-method-badge');
-                            $badge.text(method.charAt(0).toUpperCase() + method.slice(1).replace('_',
-                                ' '));
-
-                            // Store successful value
-                            $(`.allocation-method-select[data-group="${groupKey}"]`).data(
-                                'previous-value', method);
-
-                            showToast('success', 'Method updated successfully');
-                        } else {
-                            showToast('error', response.message || 'Failed to update method');
-                        }
-                    })
-                    .fail(function(xhr) {
-                        showToast('error', 'Failed to save method');
-
-                        // **PERBAIKAN**: Rollback dropdown ke nilai sebelumnya jika gagal
-                        $(`.allocation-method-select[data-group="${groupKey}"]`).val(previousValue);
-                        togglePercentageColumns(groupKey, previousValue);
-                    })
-                    .always(function() {
-                        $spinner.hide();
-                    });
-            });
-
-            // Initialize previous values on page load
-            $('.allocation-method-select').each(function() {
-                $(this).data('previous-value', $(this).val());
-            });
-
-            // Auto-update on input changes (debounced)
-            $('.allocation-input').on('input', function() {
-                const groupKey = $(this).data('group');
-                const $indicator = $(this).siblings('.auto-save-indicator');
-
-                $indicator.removeClass('saved').addClass('saving');
-
-                if (updateTimeout[groupKey]) {
-                    clearTimeout(updateTimeout[groupKey]);
-                }
-
-                updateTimeout[groupKey] = setTimeout(() => {
-                    autoUpdateGroup(groupKey);
-                }, 800);
-            });
-
-            // Handle percentage input changes
-            $(document).on('input', '.percentage-input', function() {
-                const groupKey = $(this).data('group');
-                updatePercentageTotal(groupKey);
-
-                const $indicator = $(this).siblings('.auto-save-indicator');
-                $indicator.removeClass('saved').addClass('saving');
-
-                if (updateTimeout[groupKey]) {
-                    clearTimeout(updateTimeout[groupKey]);
-                }
-
-                updateTimeout[groupKey] = setTimeout(() => {
-                    autoUpdateGroupWithPercentages(groupKey);
-                }, 1000);
-            });
-
-            // Toggle percentage columns
             function togglePercentageColumns(groupKey, method) {
                 const $tbody = $(`tbody[data-group="${groupKey}"]`);
                 const $validation = $(`.percentage-validation[data-group="${groupKey}"]`);
@@ -486,13 +550,122 @@
                     $validation.addClass('d-none');
                 }
 
-                // Update method badge
-                const $card = $(`.card-group-item[data-group="${groupKey}"]`);
-                const $badge = $card.find('.cost-method-badge');
+                updateMethodBadge(groupKey, method);
+            }
+
+            function updateMethodBadge(groupKey, method) {
+                const $badge = $(`.card-group-item[data-group="${groupKey}"] .cost-method-badge`);
                 $badge.text(method.charAt(0).toUpperCase() + method.slice(1).replace('_', ' '));
             }
 
-            // Function khusus untuk update dengan percentages
+            function sendUpdateRequest(groupKey, data, previousValue) {
+                const $card = $(`.card-group-item[data-group="${groupKey}"]`);
+                const $spinner = $card.find('.loading-spinner');
+                $spinner.show();
+
+                $.ajax({
+                    url: `/pre-shippings/${groupKey}/quick-update`,
+                    method: 'POST',
+                    data: data,
+                    timeout: 10000,
+                    success: function(response) {
+                        handleUpdateSuccess(response, groupKey);
+                    },
+                    error: function(xhr, status, error) {
+                        handleUpdateError(xhr, status, error, groupKey, previousValue);
+                    },
+                    complete: function() {
+                        $(`.allocation-method-select[data-group="${groupKey}"]`).prop('disabled',
+                        false);
+                        $spinner.hide();
+                    }
+                });
+            }
+
+            function handleUpdateSuccess(response, groupKey) {
+                const $card = $(`.card-group-item[data-group="${groupKey}"]`);
+
+                if (response.success) {
+                    $card.find('.auto-save-indicator').removeClass('saving').addClass('saved');
+                    hasUnsavedChanges = false;
+
+                    if (response.updated_items) {
+                        updateAllocatedAmounts(response.updated_items);
+                    }
+
+                    if (response.auto_percentages) {
+                        updatePercentageInputs(groupKey, response.auto_percentages);
+                    }
+
+                    showToast('success', 'Updated successfully');
+                } else {
+                    showToast(response.warning ? 'warning' : 'error', response.message);
+                }
+            }
+
+            function handleUpdateError(xhr, status, error, groupKey, previousValue) {
+                let errorMessage = 'Failed to save';
+
+                if (status === 'timeout') errorMessage = 'Request timeout. Please try again.';
+                else if (xhr.status === 422) errorMessage = xhr.responseJSON?.message ||
+                    'Validation error occurred.';
+                else if (xhr.status >= 500) errorMessage = 'Server error. Please try again later.';
+                else if (xhr.status === 0) errorMessage = 'Network connection error.';
+
+                showToast('error', errorMessage);
+
+                // Rollback changes
+                if (previousValue) {
+                    $(`.allocation-method-select[data-group="${groupKey}"]`).val(previousValue);
+                    togglePercentageColumns(groupKey, previousValue);
+                }
+            }
+
+            function updatePercentageTotal(groupKey) {
+                const $tbody = $(`tbody[data-group="${groupKey}"]`);
+                const $validation = $(`.percentage-validation[data-group="${groupKey}"]`);
+                let total = 0;
+                let hasValues = false;
+
+                $tbody.find('.percentage-input').each(function() {
+                    const value = parseFloat($(this).val()) || 0;
+                    if (value > 0) hasValues = true;
+                    total += value;
+                });
+
+                $validation.find('.total-percentage').text(formatDynamicNumber(total));
+                updateValidationState($validation, total, hasValues);
+            }
+
+            function updateValidationState($validation, total, hasValues) {
+                const $alert = $validation.find('.alert');
+                $validation.removeClass('valid invalid');
+
+                if (!hasValues) {
+                    $alert.removeClass('alert-success alert-warning alert-danger').addClass('alert-info');
+                } else if (Math.abs(total - 100) <= 1) {
+                    $validation.addClass('valid');
+                    $alert.removeClass('alert-warning alert-danger alert-info').addClass('alert-success');
+                } else if (total > 105) {
+                    $validation.addClass('invalid');
+                    $alert.removeClass('alert-success alert-info alert-warning').addClass('alert-danger');
+                } else {
+                    $validation.addClass('invalid');
+                    $alert.removeClass('alert-success alert-danger alert-info').addClass('alert-warning');
+                }
+            }
+
+            function autoUpdateGroup(groupKey) {
+                const data = {
+                    domestic_waybill_no: $(`.group-waybill-input[data-group="${groupKey}"]`).val(),
+                    domestic_cost: $(`.group-cost-input[data-group="${groupKey}"]`).val(),
+                    cost_allocation_method: $(`.allocation-method-select[data-group="${groupKey}"]`).val(),
+                    _token: '{{ csrf_token() }}'
+                };
+
+                sendSimpleUpdateRequest(groupKey, data, 'Group updated successfully');
+            }
+
             function autoUpdateGroupWithPercentages(groupKey) {
                 const data = {
                     domestic_waybill_no: $(`.group-waybill-input[data-group="${groupKey}"]`).val(),
@@ -504,17 +677,17 @@
                 if (data.cost_allocation_method === 'percentage') {
                     data.percentages = [];
                     $(`tbody[data-group="${groupKey}"] .percentage-input`).each(function() {
-                        const value = parseFloat($(this).val()) || 0;
-                        data.percentages.push(value);
+                        data.percentages.push(parseFloat($(this).val()) || 0);
                     });
 
-                    // Check if total is close to 100 before sending
                     const total = data.percentages.reduce((sum, val) => sum + val, 0);
-                    if (Math.abs(total - 100) > 0.1) {
-                        return; // Don't send request yet
-                    }
+                    if (Math.abs(total - 100) > 0.1) return; // Don't send if not close to 100%
                 }
 
+                sendSimpleUpdateRequest(groupKey, data, 'Percentages updated successfully');
+            }
+
+            function sendSimpleUpdateRequest(groupKey, data, successMessage) {
                 const $card = $(`.card-group-item[data-group="${groupKey}"]`);
                 const $spinner = $card.find('.loading-spinner');
                 $spinner.show();
@@ -522,149 +695,64 @@
                 $.post(`/pre-shippings/${groupKey}/quick-update`, data)
                     .done(function(response) {
                         if (response.success) {
-                            updateAllocatedCosts(groupKey, data);
                             $card.find('.auto-save-indicator').removeClass('saving').addClass('saved');
-                            showToast('success', 'Percentages updated successfully');
+                            hasUnsavedChanges = false;
+                            showToast('success', successMessage);
                         } else {
-                            showToast('error', response.message || 'Failed to update percentages');
+                            showToast('error', response.message || 'Failed to update');
                         }
                     })
                     .fail(function(xhr) {
-                        const message = xhr.responseJSON?.message || 'Failed to update percentages';
-                        showToast('error', message);
+                        showToast('error', xhr.responseJSON?.message || 'Failed to update');
                     })
                     .always(function() {
                         $spinner.hide();
                     });
             }
 
-            // Update percentage total with validation
-            function updatePercentageTotal(groupKey) {
-                const $tbody = $(`tbody[data-group="${groupKey}"]`);
-                const $validation = $(`.percentage-validation[data-group="${groupKey}"]`);
-                let total = 0;
+            function updateAllocatedAmounts(updatedItems) {
+                updatedItems.forEach(function(item) {
+                    const $allocatedSpan = $(`.allocated-amount`).filter(function() {
+                        return $(this).closest('tr').find(`[data-item-id="${item.id}"]`).length > 0;
+                    });
 
-                $tbody.find('.percentage-input').each(function() {
-                    const value = parseFloat($(this).val()) || 0;
-                    total += value;
+                    if ($allocatedSpan.length) {
+                        $allocatedSpan.text(formatDynamicNumber(item.allocated_cost));
+                    }
                 });
-
-                $validation.find('.total-percentage').text(total.toFixed(3));
-
-                const $alert = $validation.find('.alert');
-                if (Math.abs(total - 100) <= 0.1) {
-                    $validation.removeClass('invalid').addClass('valid');
-                    $alert.removeClass('alert-warning alert-danger').addClass('alert-success');
-                } else {
-                    $validation.removeClass('valid').addClass('invalid');
-                    if (total > 100) {
-                        $alert.removeClass('alert-success alert-info').addClass('alert-danger');
-                    } else {
-                        $alert.removeClass('alert-success alert-danger').addClass('alert-warning');
-                    }
-                }
             }
 
-            // Auto-update group without page reload
-            function autoUpdateGroup(groupKey) {
-                const data = {
-                    domestic_waybill_no: $(`.group-waybill-input[data-group="${groupKey}"]`).val(),
-                    domestic_cost: $(`.group-cost-input[data-group="${groupKey}"]`).val(),
-                    cost_allocation_method: $(`.allocation-method-select[data-group="${groupKey}"]`).val(),
-                    _token: '{{ csrf_token() }}'
-                };
-
-                const $card = $(`.card-group-item[data-group="${groupKey}"]`);
-                const $spinner = $card.find('.loading-spinner');
-                $spinner.show();
-
-                $.post(`/pre-shippings/${groupKey}/quick-update`, data)
-                    .done(function(response) {
-                        if (response.success) {
-                            updateAllocatedCosts(groupKey, data);
-                            $card.find('.auto-save-indicator').removeClass('saving').addClass('saved');
-                            showToast('success', 'Group updated successfully');
-                        } else {
-                            showToast('error', response.message || 'Failed to update group');
-                        }
-                    })
-                    .fail(function(xhr) {
-                        const message = xhr.responseJSON?.message || 'Failed to update group';
-                        showToast('error', message);
-                    })
-                    .always(function() {
-                        $spinner.hide();
-                    });
-            }
-
-            // Update allocated costs in real-time
-            function updateAllocatedCosts(groupKey, data) {
-                const method = data.cost_allocation_method;
-                const totalCost = parseFloat(data.domestic_cost) || 0;
-
-                if (totalCost <= 0) return;
-
+            function updatePercentageInputs(groupKey, autoPercentages) {
                 const $tbody = $(`tbody[data-group="${groupKey}"]`);
-
-                if (method === 'quantity') {
-                    let totalQty = 0;
-                    const quantities = [];
-
-                    $tbody.find('tr').each(function() {
-                        const qtyText = $(this).find('td:eq(2) .fw-semibold').text().replace(/,/g, '');
-                        const qty = parseFloat(qtyText) || 0;
-                        quantities.push(qty);
-                        totalQty += qty;
-                    });
-
-                    $tbody.find('tr').each(function(index) {
-                        if (totalQty > 0) {
-                            const allocated = (quantities[index] / totalQty) * totalCost;
-                            $(this).find('.allocated-amount').text(allocated.toFixed(2));
-                        }
-                    });
-                } else if (method === 'percentage' && data.percentages) {
-                    $tbody.find('tr').each(function(index) {
-                        const percentage = data.percentages[index] || 0;
-                        const allocated = (percentage / 100) * totalCost;
-                        $(this).find('.allocated-amount').text(allocated.toFixed(2));
-                    });
-                } else if (method === 'value') {
-                    let totalValue = 0;
-                    const values = [];
-
-                    $tbody.find('tr').each(function() {
-                        const valueText = $(this).find('td:eq(4) .fw-semibold').text().replace(/[$,]/g, '');
-                        const value = parseFloat(valueText) || 0;
-                        values.push(value);
-                        totalValue += value;
-                    });
-
-                    $tbody.find('tr').each(function(index) {
-                        if (totalValue > 0) {
-                            const allocated = (values[index] / totalValue) * totalCost;
-                            $(this).find('.allocated-amount').text(allocated.toFixed(2));
-                        }
-                    });
-                }
+                $tbody.find('.percentage-input').each(function(index) {
+                    if (autoPercentages[index] !== undefined) {
+                        $(this).val(formatDynamicNumber(autoPercentages[index]));
+                    }
+                });
+                updatePercentageTotal(groupKey);
             }
 
-            // Show toast notification
             function showToast(type, message) {
+                // Remove existing toasts to prevent spam
+                $(`.toast`).remove();
+
+                const bgClass = type === 'success' ? 'success' : type === 'warning' ? 'warning' : 'danger';
+                const iconClass = type === 'success' ? 'check-circle' : 'exclamation-triangle';
+
                 const toastHtml = `
-            <div class="toast align-items-center text-white bg-${type === 'success' ? 'success' : 'danger'} border-0" role="alert" aria-live="assertive" aria-atomic="true">
-                <div class="d-flex">
-                    <div class="toast-body">
-                        <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
-                        ${message}
+                    <div class="toast align-items-center text-white bg-${bgClass} border-0" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="true" data-bs-delay="3000">
+                        <div class="d-flex">
+                            <div class="toast-body">
+                                <i class="fas fa-${iconClass} me-2"></i>
+                                ${message}
+                            </div>
+                            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                        </div>
                     </div>
-                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-                </div>
-            </div>
-        `;
+                `;
 
                 const $toast = $(toastHtml);
-                $('#toast-container').append($toast);
+                $('body').append($toast);
 
                 const toast = new bootstrap.Toast($toast[0]);
                 toast.show();
@@ -673,23 +761,6 @@
                     $(this).remove();
                 });
             }
-
-            // Initialize percentage totals for existing data
-            $('.allocation-method-select').each(function() {
-                const groupKey = $(this).data('group');
-                const method = $(this).val();
-
-                if (method === 'percentage') {
-                    updatePercentageTotal(groupKey);
-                }
-            });
-
-            // Auto-save visual feedback
-            $('.allocation-input').on('focus', function() {
-                $(this).addClass('border-primary');
-            }).on('blur', function() {
-                $(this).removeClass('border-primary');
-            });
         });
     </script>
 @endpush
