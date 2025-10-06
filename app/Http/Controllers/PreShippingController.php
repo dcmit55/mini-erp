@@ -209,6 +209,7 @@ class PreShippingController extends Controller
 
                 $updatedItems[] = [
                     'id' => $item->id,
+                    'index' => $index, // Include index for frontend matching
                     'allocated_cost' => $allocatedCost,
                     'allocation_percentage' => $item->fresh()->allocation_percentage,
                     'cost_allocation_method' => $item->fresh()->cost_allocation_method,

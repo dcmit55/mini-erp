@@ -204,15 +204,15 @@
                                         data-group="{{ $group['group_key'] }}">
                                         <option value="quantity"
                                             {{ ($group['cost_allocation_method'] ?? 'value') == 'quantity' ? 'selected' : '' }}>
-                                            By Quantity (Auto)
+                                            By Quantity
                                         </option>
                                         <option value="percentage"
                                             {{ ($group['cost_allocation_method'] ?? 'value') == 'percentage' ? 'selected' : '' }}>
-                                            By Percentage (Manual)
+                                            By Percentage
                                         </option>
                                         <option value="value"
                                             {{ ($group['cost_allocation_method'] ?? 'value') == 'value' ? 'selected' : '' }}>
-                                            By Value (Auto)
+                                            By Value
                                         </option>
                                     </select>
                                     <div class="auto-save-indicator"></div>
@@ -238,9 +238,10 @@
                                     </thead>
                                     <tbody data-group="{{ $group['group_key'] }}">
                                         @foreach ($group['items'] as $index => $item)
-                                            <tr>
+                                            <tr data-item-id="{{ $item->id }}" data-index="{{ $index }}">
                                                 <td>
-                                                    <strong>{{ $item->purchaseRequest->material_name }}</strong>
+                                                    <strong
+                                                        class="text-dark">{{ $item->purchaseRequest->material_name }}</strong>
                                                 </td>
                                                 <td>
                                                     <span class="badge bg-secondary">
@@ -249,17 +250,22 @@
                                                 </td>
                                                 <td>
                                                     <span
-                                                        class="fw-semibold">{{ rtrim(rtrim(number_format($item->purchaseRequest->required_quantity, 3, '.', ''), '0'), '.') }}</span>
+                                                        class="fw-semibold text-primary">{{ rtrim(rtrim(number_format($item->purchaseRequest->required_quantity, 3, '.', ''), '0'), '.') }}</span>
                                                     <small
                                                         class="text-muted d-block">{{ $item->purchaseRequest->unit }}</small>
                                                 </td>
                                                 <td>
                                                     <span
-                                                        class="fw-semibold">${{ rtrim(rtrim(number_format($item->purchaseRequest->price_per_unit, 3, '.', ''), '0'), '.') }}</span>
+                                                        class="fw-semibold text-success">${{ rtrim(rtrim(number_format($item->purchaseRequest->price_per_unit, 3, '.', ''), '0'), '.') }}</span>
                                                 </td>
                                                 <td>
+                                                    @php
+                                                        $itemValue =
+                                                            $item->purchaseRequest->required_quantity *
+                                                            $item->purchaseRequest->price_per_unit;
+                                                    @endphp
                                                     <span
-                                                        class="fw-semibold">${{ rtrim(rtrim(number_format($item->purchaseRequest->required_quantity * $item->purchaseRequest->price_per_unit, 3, '.', ''), '0'), '.') }}</span>
+                                                        class="fw-bold text-success">${{ rtrim(rtrim(number_format($itemValue, 3, '.', ''), '0'), '.') }}</span>
                                                 </td>
                                                 <td
                                                     class="percentage-column {{ $group['cost_allocation_method'] != 'percentage' ? 'd-none' : '' }}">
@@ -268,6 +274,7 @@
                                                             class="form-control form-control-sm allocation-input percentage-input"
                                                             data-index="{{ $index }}"
                                                             data-group="{{ $group['group_key'] }}"
+                                                            data-item-id="{{ $item->id }}"
                                                             value="{{ rtrim(rtrim(number_format($item->allocation_percentage ?? 0, 3, '.', ''), '0'), '.') }}"
                                                             min="0" max="100" step="0.001" placeholder="0">
                                                         <div class="auto-save-indicator"></div>
@@ -275,8 +282,9 @@
                                                 </td>
                                                 <td>
                                                     <div class="allocated-cost-cell allocated-cost-highlight">
-                                                        $<span
-                                                            class="allocated-amount">{{ rtrim(rtrim(number_format($item->allocated_cost ?? 0, 3, '.', ''), '0'), '.') }}</span>
+                                                        <i class="fas fa-dollar-sign me-1 text-success"></i>
+                                                        <span class="allocated-amount"
+                                                            data-item-id="{{ $item->id }}">{{ rtrim(rtrim(number_format($item->allocated_cost ?? 0, 3, '.', ''), '0'), '.') }}</span>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -346,12 +354,107 @@
             }).format(parseFloat(formatted));
         }
 
+        // Real-time calculation functions
+        function calculateAllocatedCostRealtime(groupKey, method) {
+            const $tbody = $(`tbody[data-group="${groupKey}"]`);
+            const domesticCost = parseFloat($(`.group-cost-input[data-group="${groupKey}"]`).val()) || 0;
+
+            if (domesticCost <= 0) {
+                // If no domestic cost, set all allocated costs to 0
+                $tbody.find('.allocated-amount').text('0');
+                return;
+            }
+
+            if (method === 'percentage') {
+                calculateByPercentageRealtime($tbody, domesticCost);
+            } else if (method === 'quantity') {
+                calculateByQuantityRealtime($tbody, domesticCost);
+            } else if (method === 'value') {
+                calculateByValueRealtime($tbody, domesticCost);
+            }
+        }
+
+        function calculateByPercentageRealtime($tbody, totalCost) {
+            $tbody.find('tr').each(function() {
+                const $row = $(this);
+                const $percentageInput = $row.find('.percentage-input');
+                const $allocatedAmount = $row.find('.allocated-amount');
+
+                const percentage = parseFloat($percentageInput.val()) || 0;
+                const allocatedCost = (percentage / 100) * totalCost;
+
+                $allocatedAmount.text(formatDynamicNumber(allocatedCost));
+            });
+        }
+
+        function calculateByQuantityRealtime($tbody, totalCost) {
+            // Calculate total quantity first
+            let totalQuantity = 0;
+            const quantities = [];
+
+            $tbody.find('tr').each(function() {
+                const $row = $(this);
+                const qtyText = $row.find('td:eq(2) .fw-semibold').text().replace(/,/g, '');
+                const qty = parseFloat(qtyText) || 0;
+                quantities.push(qty);
+                totalQuantity += qty;
+            });
+
+            if (totalQuantity <= 0) {
+                $tbody.find('.allocated-amount').text('0');
+                return;
+            }
+
+            // Distribute cost based on quantity ratio
+            $tbody.find('tr').each(function(index) {
+                const $row = $(this);
+                const $allocatedAmount = $row.find('.allocated-amount');
+                const qty = quantities[index];
+                const allocatedCost = (qty / totalQuantity) * totalCost;
+
+                $allocatedAmount.text(formatDynamicNumber(allocatedCost));
+            });
+        }
+
+        function calculateByValueRealtime($tbody, totalCost) {
+            // Calculate total value first
+            let totalValue = 0;
+            const values = [];
+
+            $tbody.find('tr').each(function() {
+                const $row = $(this);
+                const qtyText = $row.find('td:eq(2) .fw-semibold').text().replace(/,/g, '');
+                const priceText = $row.find('td:eq(3) .fw-semibold').text().replace(/[$,]/g, '');
+                const qty = parseFloat(qtyText) || 0;
+                const price = parseFloat(priceText) || 0;
+                const value = qty * price;
+                values.push(value);
+                totalValue += value;
+            });
+
+            if (totalValue <= 0) {
+                $tbody.find('.allocated-amount').text('0');
+                return;
+            }
+
+            // Distribute cost based on value ratio
+            $tbody.find('tr').each(function(index) {
+                const $row = $(this);
+                const $allocatedAmount = $row.find('.allocated-amount');
+                const value = values[index];
+                const allocatedCost = (value / totalValue) * totalCost;
+
+                $allocatedAmount.text(formatDynamicNumber(allocatedCost));
+            });
+        }
+
         // 2. SINGLE DOCUMENT READY BLOCK
         $(document).ready(function() {
             let updateTimeout = {};
             let selectedGroups = new Set();
             let hasUnsavedChanges = false;
             let isOnline = navigator.onLine;
+            let isInitializing = true;
 
             // ===== INITIALIZATION =====
             initializePage();
@@ -367,11 +470,14 @@
             // Allocation method change
             $('.allocation-method-select').on('change', handleAllocationMethodChange);
 
-            // Input changes (debounced)
+            // Input changes dengan real-time calculation
             $('.allocation-input').on('input', handleInputChange);
 
-            // Percentage input changes
+            // Percentage input changes dengan real-time calculation
             $(document).on('input', '.percentage-input', handlePercentageInput);
+
+            // Domestic cost input changes dengan real-time calculation
+            $(document).on('input', '.group-cost-input', handleDomesticCostInput);
 
             // Auto-distribute button
             $(document).on('click', '.auto-distribute-btn', handleAutoDistribute);
@@ -405,20 +511,29 @@
             // ===== FUNCTION DEFINITIONS =====
 
             function initializePage() {
-                // Initialize previous values for allocation method selects
+                isInitializing = true;
+
                 $('.allocation-method-select').each(function() {
                     const currentValue = $(this).val() || 'value';
                     $(this).data('previous-value', currentValue);
 
                     const groupKey = $(this).data('group');
                     updateMethodBadge(groupKey, currentValue);
+
+                    // Initialize real-time calculation for each group
+                    setTimeout(() => {
+                        calculateAllocatedCostRealtime(groupKey, currentValue);
+                    }, 100);
                 });
 
-                // Initialize percentage totals
                 $('.percentage-validation').each(function() {
                     const groupKey = $(this).data('group');
                     updatePercentageTotal(groupKey);
                 });
+
+                setTimeout(() => {
+                    isInitializing = false;
+                }, 500);
             }
 
             function handleGroupSelection() {
@@ -453,6 +568,9 @@
 
                 togglePercentageColumns(groupKey, method);
 
+                // Calculate real-time sebelum AJAX request
+                calculateAllocatedCostRealtime(groupKey, method);
+
                 const data = {
                     domestic_waybill_no: $(`.group-waybill-input[data-group="${groupKey}"]`).val(),
                     domestic_cost: $(`.group-cost-input[data-group="${groupKey}"]`).val(),
@@ -479,6 +597,13 @@
 
             function handlePercentageInput() {
                 const groupKey = $(this).data('group');
+                const currentMethod = $(`.allocation-method-select[data-group="${groupKey}"]`).val();
+
+                // Real-time calculation saat input percentage berubah
+                if (currentMethod === 'percentage') {
+                    calculateAllocatedCostRealtime(groupKey, 'percentage');
+                }
+
                 updatePercentageTotal(groupKey);
 
                 const $indicator = $(this).siblings('.auto-save-indicator');
@@ -489,6 +614,24 @@
                 updateTimeout[groupKey] = setTimeout(() => {
                     autoUpdateGroupWithPercentages(groupKey);
                 }, 1500);
+            }
+
+            // Handle domestic cost input changes
+            function handleDomesticCostInput() {
+                const groupKey = $(this).data('group');
+                const currentMethod = $(`.allocation-method-select[data-group="${groupKey}"]`).val();
+
+                // Real-time calculation saat domestic cost berubah
+                calculateAllocatedCostRealtime(groupKey, currentMethod);
+
+                const $indicator = $(this).siblings('.auto-save-indicator');
+                $indicator.removeClass('saved').addClass('saving');
+                hasUnsavedChanges = true;
+
+                clearTimeout(updateTimeout[groupKey]);
+                updateTimeout[groupKey] = setTimeout(() => {
+                    autoUpdateGroup(groupKey);
+                }, 800);
             }
 
             function handleAutoDistribute() {
@@ -512,7 +655,10 @@
                         $(this).val(formatDynamicNumber(percentage));
                     });
 
+                    // Trigger real-time calculation after auto-distribute
+                    calculateAllocatedCostRealtime(groupKey, 'percentage');
                     updatePercentageTotal(groupKey);
+
                     setTimeout(() => autoUpdateGroupWithPercentages(groupKey), 500);
                     showToast('success', 'Percentages auto-distributed based on item values');
                 } else {
@@ -576,7 +722,7 @@
                     },
                     complete: function() {
                         $(`.allocation-method-select[data-group="${groupKey}"]`).prop('disabled',
-                        false);
+                            false);
                         $spinner.hide();
                     }
                 });
@@ -589,12 +735,17 @@
                     $card.find('.auto-save-indicator').removeClass('saving').addClass('saved');
                     hasUnsavedChanges = false;
 
+                    // **PERBAIKAN**: Update allocated amounts dengan response dari server
                     if (response.updated_items) {
                         updateAllocatedAmounts(response.updated_items);
                     }
 
                     if (response.auto_percentages) {
                         updatePercentageInputs(groupKey, response.auto_percentages);
+                        // Trigger real-time calculation setelah update percentages
+                        setTimeout(() => {
+                            calculateAllocatedCostRealtime(groupKey, 'percentage');
+                        }, 100);
                     }
 
                     showToast('success', 'Updated successfully');
@@ -618,6 +769,8 @@
                 if (previousValue) {
                     $(`.allocation-method-select[data-group="${groupKey}"]`).val(previousValue);
                     togglePercentageColumns(groupKey, previousValue);
+                    // Recalculate dengan previous method
+                    calculateAllocatedCostRealtime(groupKey, previousValue);
                 }
             }
 
@@ -697,6 +850,12 @@
                         if (response.success) {
                             $card.find('.auto-save-indicator').removeClass('saving').addClass('saved');
                             hasUnsavedChanges = false;
+
+                            // Update allocated amounts dari response
+                            if (response.updated_items) {
+                                updateAllocatedAmounts(response.updated_items);
+                            }
+
                             showToast('success', successMessage);
                         } else {
                             showToast('error', response.message || 'Failed to update');
@@ -712,11 +871,26 @@
 
             function updateAllocatedAmounts(updatedItems) {
                 updatedItems.forEach(function(item) {
+                    // Find allocated amount by matching data attributes
                     const $allocatedSpan = $(`.allocated-amount`).filter(function() {
-                        return $(this).closest('tr').find(`[data-item-id="${item.id}"]`).length > 0;
+                        const $row = $(this).closest('tr');
+                        // You might need to add data-item-id to the rows for better matching
+                        return $row.find(`[data-item-id="${item.id}"]`).length > 0;
                     });
 
-                    if ($allocatedSpan.length) {
+                    // If exact match not found, use index-based matching
+                    if ($allocatedSpan.length === 0) {
+                        const $allAllocatedSpans = $(`.allocated-amount`);
+                        if ($allAllocatedSpans.length > 0) {
+                            // Update all allocated amounts from the response
+                            updatedItems.forEach(function(responseItem, index) {
+                                if ($allAllocatedSpans.eq(index).length) {
+                                    $allAllocatedSpans.eq(index).text(formatDynamicNumber(
+                                        responseItem.allocated_cost));
+                                }
+                            });
+                        }
+                    } else {
                         $allocatedSpan.text(formatDynamicNumber(item.allocated_cost));
                     }
                 });
