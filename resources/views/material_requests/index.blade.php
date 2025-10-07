@@ -211,7 +211,6 @@
             border: 1px solid #dee2e6;
         }
 
-        /* ✅ HAPUS semua override Select2, biarkan Select2 menggunakan styling default */
         /* Hanya styling untuk form elements biasa saja */
         #filter-form .form-select-sm,
         #filter-form .form-control-sm {
@@ -222,14 +221,14 @@
             color: #495057 !important;
         }
 
-        /* ✅ Untuk form-select dropdown arrow */
+        /* Untuk form-select dropdown arrow */
         #filter-form .form-select-sm {
             padding-right: 2.25rem !important;
             background-position: right 0.75rem center !important;
             background-size: 16px 12px !important;
         }
 
-        /* ✅ Focus state untuk form elements biasa */
+        /* Focus state untuk form elements biasa */
         #filter-form .form-select-sm:focus,
         #filter-form .form-control-sm:focus {
             border-color: #86b7fe !important;
@@ -237,7 +236,7 @@
             box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
         }
 
-        /* ✅ Placeholder styling */
+        /* Placeholder styling */
         #filter-form .form-control-sm::placeholder {
             color: #6c757d !important;
             opacity: 1 !important;
@@ -409,6 +408,21 @@
         }
 
         .status-select:disabled {
+            cursor: not-allowed;
+        }
+
+        .status-quick-update.border-success {
+            border-color: #28a745 !important;
+            box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25) !important;
+        }
+
+        .status-quick-update.border-danger {
+            border-color: #dc3545 !important;
+            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+        }
+
+        .status-quick-update:disabled {
+            opacity: 0.7;
             cursor: not-allowed;
         }
 
@@ -1017,13 +1031,109 @@
                 });
             }
 
-            // Update status title on change
-            $(document).on('change', '.status-select', function() {
-                updateStatusTitle($(this));
-            });
-
             // Initial update of bulk goods out button
             updateBulkGoodsOutButton();
+
+            // Quick Update Status Handler
+            $(document).on('change', '.status-quick-update', function() {
+                const $select = $(this);
+                const id = $select.data('id');
+                const newStatus = $select.val();
+                const oldStatus = $select.data('previous-value') || $select.find('option[selected]').val();
+
+                // Store current value as previous
+                $select.data('previous-value', newStatus);
+
+                // Disable select while updating
+                $select.prop('disabled', true);
+
+                // Show loading state
+                const originalWidth = $select.width();
+                $select.css('width', originalWidth + 'px');
+
+                $.ajax({
+                    url: `/material_requests/${id}/quick-update`,
+                    method: 'POST',
+                    data: {
+                        status: newStatus,
+                        _token: $('meta[name="csrf-token"]').attr('content')
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            // Update select color
+                            updateSelectColor($select[0]);
+
+                            // Show success feedback (optional)
+                            $select.addClass('border-success');
+                            setTimeout(() => {
+                                $select.removeClass('border-success');
+                            }, 1000);
+
+                            // Update checkbox visibility if status changed to/from approved
+                            const $row = $select.closest('tr');
+                            const $checkbox = $row.find('.select-row');
+
+                            if (newStatus === 'approved') {
+                                if ($checkbox.length === 0) {
+                                    $row.find('td:first').html(
+                                        '<input type="checkbox" class="select-row" value="' +
+                                        id + '">');
+                                }
+                            } else {
+                                $checkbox.remove();
+                                $row.find('td:first').empty();
+                            }
+
+                            // Update bulk goods out button count
+                            if (window.updateBulkGoodsOutButton) {
+                                window.updateBulkGoodsOutButton();
+                            }
+
+                            console.log(`Status updated: ${oldStatus} → ${newStatus}`);
+                        } else {
+                            throw new Error(response.message || 'Update failed');
+                        }
+                    },
+                    error: function(xhr) {
+                        // Revert to previous value on error
+                        $select.val(oldStatus);
+                        $select.data('previous-value', oldStatus);
+
+                        const errorMessage = xhr.responseJSON?.message ||
+                            'Failed to update status';
+
+                        // Show error feedback
+                        $select.addClass('border-danger');
+                        setTimeout(() => {
+                            $select.removeClass('border-danger');
+                        }, 2000);
+
+                        // Show error message
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Update Failed',
+                            text: errorMessage,
+                            timer: 3000,
+                            showConfirmButton: false
+                        });
+
+                        console.error('Status update failed:', errorMessage);
+                    },
+                    complete: function() {
+                        // Re-enable select
+                        $select.prop('disabled', false);
+                        $select.css('width', '');
+                    }
+                });
+            });
+
+            // Initialize previous values for status selects
+            $(document).on('draw.dt', '#datatable', function() {
+                $('.status-quick-update').each(function() {
+                    const $select = $(this);
+                    $select.data('previous-value', $select.val());
+                });
+            });
         });
 
         // Utility Functions

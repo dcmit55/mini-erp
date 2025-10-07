@@ -190,33 +190,25 @@ function updateDataTable(materialRequest) {
         table.ajax.reload(null, false);
     } else {
         // Logika untuk kolom status
-        let row = table.row(rowSelector);
-        let statusColumn = materialRequest.status;
+        let statusColumn = "";
         if (["admin_logistic", "super_admin"].includes(authUserRole)) {
-            statusColumn = `
-        <form method="POST" action="/material_requests/${materialRequest.id}">
-            <input type="hidden" name="_token" value="${$(
-                'meta[name="csrf-token"]'
-            ).attr("content")}">
-            <input type="hidden" name="_method" value="PUT">
-            <select name="status" class="form-select form-select-sm status-select status-select-rounded"
-                onchange="this.form.submit()" ${
-                    materialRequest.status === "delivered" ? "disabled" : ""
-                }>
-                <option value="pending" ${
-                    materialRequest.status === "pending" ? "selected" : ""
-                }>Pending</option>
-                <option value="approved" ${
-                    materialRequest.status === "approved" ? "selected" : ""
-                }>Approved</option>
-                <option value="canceled" ${
-                    materialRequest.status === "canceled" ? "selected" : ""
-                }>Canceled</option>
-                <option value="delivered" ${
-                    materialRequest.status === "delivered" ? "selected" : ""
-                } disabled>Delivered</option>
-            </select>
-        </form>`;
+            statusColumn = `<select name="status" class="form-select form-select-sm status-select status-select-rounded status-quick-update"
+            data-id="${materialRequest.id}" ${
+                materialRequest.status === "delivered" ? "disabled" : ""
+            }>
+            <option value="pending" ${
+                materialRequest.status === "pending" ? "selected" : ""
+            }>Pending</option>
+            <option value="approved" ${
+                materialRequest.status === "approved" ? "selected" : ""
+            }>Approved</option>
+            <option value="canceled" ${
+                materialRequest.status === "canceled" ? "selected" : ""
+            }>Canceled</option>
+            <option value="delivered" ${
+                materialRequest.status === "delivered" ? "selected" : ""
+            } disabled>Delivered</option>
+            </select>`;
         } else {
             const badgeClass =
                 materialRequest.status === "pending"
@@ -233,6 +225,17 @@ function updateDataTable(materialRequest) {
                 materialRequest.status
             )}</span>`;
         }
+
+        // Pastikan juga setelah row update, initialize previous value
+        setTimeout(() => {
+            const $newSelect = $(
+                `#row-${materialRequest.id} .status-quick-update`
+            );
+            if ($newSelect.length) {
+                $newSelect.data("previous-value", $newSelect.val());
+                updateSelectColor($newSelect[0]);
+            }
+        }, 100);
 
         // Logika untuk checkbox
         let checkboxColumn = "";

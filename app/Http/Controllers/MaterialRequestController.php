@@ -89,31 +89,25 @@ class MaterialRequestController extends Controller
                 })
                 ->addColumn('status', function ($req) {
                     if (auth()->user()->isLogisticAdmin()) {
-                        return '<form method="POST" action="' .
-                            route('material_requests.update', $req->id) .
-                            '">
-                        <input type="hidden" name="_token" value="' .
-                            csrf_token() .
-                            '">
-                        <input type="hidden" name="_method" value="PUT">
-                        <select name="status" class="form-select form-select-sm status-select status-select-rounded"
-                            onchange="this.form.submit()" ' .
+                        return '<select name="status" class="form-select form-select-sm status-select status-select-rounded status-quick-update"
+                                    data-id="' .
+                            $req->id .
+                            '" ' .
                             ($req->status === 'delivered' ? 'disabled' : '') .
                             '>
-                            <option value="pending" ' .
+                                    <option value="pending" ' .
                             ($req->status === 'pending' ? 'selected' : '') .
                             '>Pending</option>
-                            <option value="approved" ' .
+                                    <option value="approved" ' .
                             ($req->status === 'approved' ? 'selected' : '') .
                             '>Approved</option>
-                            <option value="canceled" ' .
+                                    <option value="canceled" ' .
                             ($req->status === 'canceled' ? 'selected' : '') .
                             '>Canceled</option>
-                            <option value="delivered" ' .
+                                    <option value="delivered" ' .
                             ($req->status === 'delivered' ? 'selected' : '') .
                             ' disabled>Delivered</option>
-                        </select>
-                    </form>';
+                                </select>';
                     } else {
                         return '<span class="badge rounded-pill ' . $req->getStatusBadgeClass() . '">' . ucfirst($req->status) . '</span>';
                     }
@@ -184,16 +178,16 @@ class MaterialRequestController extends Controller
                             '<form action="' .
                             route('material_requests.destroy', $req->id) .
                             '" method="POST" class="delete-form" style="display:inline;">
-                        <input type="hidden" name="_method" value="DELETE">
-                        <input type="hidden" name="_token" value="' .
+                                <input type="hidden" name="_method" value="DELETE">
+                                <input type="hidden" name="_token" value="' .
                             csrf_token() .
                             '">
-                        <button type="button" class="btn btn-sm btn-danger btn-delete" title="' .
+                                <button type="button" class="btn btn-sm btn-danger btn-delete" title="' .
                             $deleteTooltip .
                             '">
-                            <i class="bi bi-trash3"></i>
-                        </button>
-                     </form>';
+                                            <i class="bi bi-trash3"></i>
+                                </button>
+                            </form>';
                     }
 
                     // Reminder Button
@@ -504,41 +498,10 @@ class MaterialRequestController extends Controller
         }
 
         // Jika hanya status yang diperbarui (inline dari tabel)
+        // Jika hanya status yang diperbarui (inline dari tabel)
         if ($request->has('status') && !$request->has('inventory_id')) {
-            $request->validate([
-                'status' => 'required|in:pending,approved,delivered,canceled',
-            ]);
-
-            // Ambil data sebelum update
-            $oldStatus = $materialRequest->status;
-            $projectName = $materialRequest->project ? $materialRequest->project->name : '-';
-            $materialName = $materialRequest->inventory ? $materialRequest->inventory->name : '-';
-
-            // Perbarui status
-            $updateData = ['status' => $request->status];
-            if ($request->status === 'approved' && $materialRequest->status !== 'approved') {
-                $updateData['approved_at'] = now();
-            }
-
-            $materialRequest->update($updateData);
-
-            event(new MaterialRequestUpdated($materialRequest, 'status'));
-
-            $filters = [
-                'project' => $request->input('filter_project'),
-                'material' => $request->input('filter_material'),
-                'status' => $request->input('filter_status'),
-                'requested_by' => $request->input('filter_requested_by'),
-                'requested_at' => $request->input('filter_requested_at'),
-            ];
-            $filters = array_filter($filters, fn($v) => !is_null($v) && $v !== '');
-
-            // Ambil status akhir
-            $newStatus = $materialRequest->status;
-
-            return redirect()
-                ->route('material_requests.index', $filters)
-                ->with('success', "Material Request status for <b>{$materialName}</b> in project <b>{$projectName}</b> updated from <b>" . ucfirst($oldStatus) . '</b> to <b>' . ucfirst($newStatus) . '</b>.');
+            // Redirect ke quickUpdate method atau handle sendiri
+            return $this->quickUpdate($request, $id);
         }
 
         // Validasi untuk pembaruan lengkap
@@ -607,6 +570,46 @@ class MaterialRequestController extends Controller
                 ->withInput()
                 ->withErrors(['qty' => 'Failed to update request: ' . $e->getMessage()]);
         }
+    }
+
+    public function quickUpdate(Request $request, $id)
+    {
+        $request->validate([
+            'status' => 'required|in:pending,approved,delivered,canceled',
+        ]);
+
+        $materialRequest = MaterialRequest::findOrFail($id);
+
+        // Jika status sudah delivered, tolak update
+        if ($materialRequest->status === 'delivered') {
+            return response()->json(['success' => false, 'message' => 'Delivered requests cannot be updated.'], 422);
+        }
+
+        // Check permissions
+        if (!auth()->user()->isLogisticAdmin()) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
+        }
+
+        // Ambil data sebelum update untuk event
+        $oldStatus = $materialRequest->status;
+
+        // Perbarui status
+        $updateData = ['status' => $request->status];
+        if ($request->status === 'approved' && $materialRequest->status !== 'approved') {
+            $updateData['approved_at'] = now();
+        }
+
+        $materialRequest->update($updateData);
+
+        // Trigger event untuk real-time update
+        event(new MaterialRequestUpdated($materialRequest, 'status'));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Status updated successfully',
+            'old_status' => $oldStatus,
+            'new_status' => $materialRequest->status,
+        ]);
     }
 
     public function destroy(Request $request, $id)
