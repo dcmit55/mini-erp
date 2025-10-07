@@ -108,6 +108,7 @@ class PurchaseRequestController extends Controller
 
                 // Add the user ID
                 $data['requested_by'] = Auth::id();
+                $data['approval_status'] = 'Pending'; // Set default status
 
                 // Create the purchase request
                 PurchaseRequest::create($data);

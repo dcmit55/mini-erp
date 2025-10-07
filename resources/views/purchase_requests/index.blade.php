@@ -263,9 +263,10 @@
                                     <td>
                                         @if (auth()->user()->role === 'super_admin' || auth()->user()->role === 'admin_procurement')
                                             <input type="date" class="form-control form-control-sm delivery-date-input"
-                                                value="{{ $req->delivery_date }}" data-id="{{ $req->id }}">
+                                                value="{{ $req->delivery_date ? $req->delivery_date->format('Y-m-d') : '' }}"
+                                                data-id="{{ $req->id }}">
                                         @else
-                                            {{ $req->delivery_date ? \Carbon\Carbon::parse($req->delivery_date)->format('d M Y') : '-' }}
+                                            {{ $req->delivery_date ? $req->delivery_date->format('d M Y') : '-' }}
                                         @endif
                                     </td>
                                     <td>{{ $req->user->username ?? '-' }}</td>

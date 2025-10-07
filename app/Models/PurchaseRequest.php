@@ -17,6 +17,10 @@ class PurchaseRequest extends Model
         'price_per_unit' => 'decimal:2',
     ];
 
+    protected $attributes = [
+        'approval_status' => 'Pending',
+    ];
+
     public function inventory()
     {
         return $this->belongsTo(Inventory::class);

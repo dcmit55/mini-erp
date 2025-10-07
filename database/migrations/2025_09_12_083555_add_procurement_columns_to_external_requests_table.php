@@ -15,7 +15,7 @@ return new class extends Migration {
             $table->decimal('price_per_unit', 15, 2)->nullable()->after('supplier_id');
             $table->unsignedBigInteger('currency_id')->nullable()->after('price_per_unit');
             $table
-                ->enum('approval_status', ['Approved', 'Decline'])
+                ->enum('approval_status', ['Pending', 'Approved', 'Decline'])
                 ->nullable()
                 ->after('currency_id');
         });
