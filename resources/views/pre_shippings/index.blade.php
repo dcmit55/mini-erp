@@ -192,10 +192,15 @@
                                 </div>
                                 <div class="col-md-2 position-relative">
                                     <label class="form-label">Domestic Cost</label>
-                                    <input type="number" class="form-control allocation-input group-cost-input"
-                                        data-group="{{ $group['group_key'] }}"
-                                        value="{{ rtrim(rtrim(number_format($group['domestic_cost'] ?? 0, 3, '.', ''), '0'), '.') }}"
-                                        min="0" step="0.001" placeholder="0">
+                                    <div class="input-group">
+                                        <input type="number" class="form-control allocation-input group-cost-input"
+                                            data-group="{{ $group['group_key'] }}"
+                                            value="{{ rtrim(rtrim(number_format($group['domestic_cost'] ?? 0, 3, '.', ''), '0'), '.') }}"
+                                            min="0" step="0.001" placeholder="0">
+                                        <span class="input-group-text">
+                                            {{ $group['items']->first()->purchaseRequest->currency->name ?? '-' }}
+                                        </span>
+                                    </div>
                                     <div class="auto-save-indicator"></div>
                                 </div>
                                 <div class="col-md-3 position-relative">
@@ -249,23 +254,30 @@
                                                     </span>
                                                 </td>
                                                 <td>
-                                                    <span
-                                                        class="fw-semibold text-primary">{{ rtrim(rtrim(number_format($item->purchaseRequest->required_quantity, 3, '.', ''), '0'), '.') }}</span>
-                                                    <small
-                                                        class="text-muted d-block">{{ $item->purchaseRequest->unit }}</small>
+                                                    <span class="fw-semibold text-primary" data-bs-toggle="tooltip"
+                                                        data-bs-placement="right"
+                                                        title="{{ $item->purchaseRequest->unit }}">
+                                                        {{ rtrim(rtrim(number_format($item->purchaseRequest->required_quantity, 3, '.', ''), '0'), '.') }}
+                                                    </span>
                                                 </td>
                                                 <td>
-                                                    <span
-                                                        class="fw-semibold text-success">${{ rtrim(rtrim(number_format($item->purchaseRequest->price_per_unit, 3, '.', ''), '0'), '.') }}</span>
+                                                    <span class="fw-semibold text-success" data-bs-toggle="tooltip"
+                                                        data-bs-placement="left"
+                                                        title="{{ $item->purchaseRequest->currency->name ?? '-' }}">
+                                                        {{ number_format($item->purchaseRequest->price_per_unit, 2) }}
+                                                    </span>
                                                 </td>
                                                 <td>
                                                     @php
                                                         $itemValue =
                                                             $item->purchaseRequest->required_quantity *
                                                             $item->purchaseRequest->price_per_unit;
+                                                        $currencyName = $item->purchaseRequest->currency->name ?? '-';
                                                     @endphp
-                                                    <span
-                                                        class="fw-bold text-success">${{ rtrim(rtrim(number_format($itemValue, 3, '.', ''), '0'), '.') }}</span>
+                                                    <span class="fw-bold text-success" data-bs-toggle="tooltip"
+                                                        data-bs-placement="left" title="{{ $currencyName }}">
+                                                        {{ number_format($itemValue, 2) }}
+                                                    </span>
                                                 </td>
                                                 <td
                                                     class="percentage-column {{ $group['cost_allocation_method'] != 'percentage' ? 'd-none' : '' }}">
@@ -282,9 +294,10 @@
                                                 </td>
                                                 <td>
                                                     <div class="allocated-cost-cell allocated-cost-highlight">
-                                                        <i class="fas fa-dollar-sign me-1 text-success"></i>
-                                                        <span class="allocated-amount"
-                                                            data-item-id="{{ $item->id }}">{{ rtrim(rtrim(number_format($item->allocated_cost ?? 0, 3, '.', ''), '0'), '.') }}</span>
+                                                        <span class="allocated-amount" data-bs-toggle="tooltip"
+                                                            data-bs-placement="left" title="{{ $currencyName }}">
+                                                            {{ number_format($item->allocated_cost ?? 0, 2) }}
+                                                        </span>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -296,7 +309,7 @@
                             <!-- Percentage Total Validation -->
                             <div class="percentage-validation {{ $group['cost_allocation_method'] != 'percentage' ? 'd-none' : '' }}"
                                 data-group="{{ $group['group_key'] }}">
-                                <div class="alert alert-info">
+                                <div class="alert alert-success">
                                     <div class="d-flex align-items-center justify-content-between">
                                         <div>
                                             <i class="fas fa-calculator me-2"></i>
@@ -417,7 +430,6 @@
         }
 
         function calculateByValueRealtime($tbody, totalCost) {
-            // Calculate total value first
             let totalValue = 0;
             const values = [];
 
@@ -437,16 +449,22 @@
                 return;
             }
 
-            // Distribute cost based on value ratio
             $tbody.find('tr').each(function(index) {
                 const $row = $(this);
                 const $allocatedAmount = $row.find('.allocated-amount');
                 const value = values[index];
                 const allocatedCost = (value / totalValue) * totalCost;
 
+                // ⭐ Debug log untuk memastikan update berjalan
+                console.log(`Updating row ${index}: ${allocatedCost}`);
+
                 $allocatedAmount.text(formatDynamicNumber(allocatedCost));
             });
         }
+
+        $(function() {
+            $('[data-bs-toggle="tooltip"]').tooltip();
+        });
 
         // 2. SINGLE DOCUMENT READY BLOCK
         $(document).ready(function() {
@@ -560,15 +578,15 @@
             }
 
             function handleAllocationMethodChange() {
-                const method = $(this).val();
                 const groupKey = $(this).data('group');
+                const method = $(this).val();
                 const previousValue = $(this).data('previous-value') || 'value';
 
                 $(this).data('previous-value', method).prop('disabled', true);
 
                 togglePercentageColumns(groupKey, method);
 
-                // Calculate real-time sebelum AJAX request
+                // Pastikan ini dipanggil SEBELUM AJAX request
                 calculateAllocatedCostRealtime(groupKey, method);
 
                 const data = {

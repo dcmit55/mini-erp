@@ -12,7 +12,7 @@ class PreShippingController extends Controller
     public function index()
     {
         // Ambil semua purchase request yang sudah approved dan belum masuk shipping
-        $approvedRequests = PurchaseRequest::with(['project', 'supplier', 'preShipping'])
+        $approvedRequests = PurchaseRequest::with(['project', 'supplier', 'preShipping', 'currency'])
             ->where('approval_status', 'Approved')
             ->whereNotNull('supplier_id')
             ->whereNotNull('delivery_date')
@@ -67,6 +67,7 @@ class PreShippingController extends Controller
         $preShippings = PreShipping::with([
             'purchaseRequest.project', // Eager load project
             'purchaseRequest.supplier', // Eager load supplier
+            'purchaseRequest.currency', // Eager load currency
         ])
             ->whereDoesntHave('shippingDetail')
             ->get();
