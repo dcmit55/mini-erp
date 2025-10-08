@@ -239,6 +239,17 @@
                                         </ul>
                                     </li>
                                 @endif
+
+                                <!-- Audit Log (only for super_admin) -->
+                                @if (Auth::user()->isSuperAdmin())
+                                    <li class="nav-item">
+                                        <a class="nav-link {{ Request::is('audit*') ? 'active' : '' }}"
+                                            href="{{ route('audit.index') }}">
+                                            <i class="bi bi-shield-check"></i>
+                                            <span>Audit Log</span>
+                                        </a>
+                                    </li>
+                                @endif
                             @endif
                         </ul>
 

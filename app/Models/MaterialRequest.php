@@ -5,10 +5,17 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use OwenIt\Auditing\Contracts\Auditable;
 
-class MaterialRequest extends Model
+class MaterialRequest extends Model implements Auditable
 {
+    use HasFactory, \OwenIt\Auditing\Auditable;
     use SoftDeletes;
+
+    protected $auditInclude = ['inventory_id', 'project_id', 'quantity', 'processed_qty', 'status', 'remark', 'requested_by'];
+
+    protected $auditTimestamps = true;
+
     protected $fillable = ['inventory_id', 'project_id', 'qty', 'processed_qty', 'requested_by', 'status', 'remark', 'approved_at'];
 
     protected $casts = [

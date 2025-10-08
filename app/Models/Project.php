@@ -5,10 +5,16 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use OwenIt\Auditing\Contracts\Auditable;
 
-class Project extends Model
+class Project extends Model implements Auditable
 {
-    use SoftDeletes;
+    use HasFactory, SoftDeletes, \OwenIt\Auditing\Auditable;
+
+    protected $auditInclude = ['name', 'description', 'status'];
+
+    protected $auditTimestamps = true;
+
     protected $fillable = ['name', 'qty', 'department_id', 'project_status_id', 'start_date', 'deadline', 'finish_date', 'img', 'created_by'];
 
     public function materialUsages()

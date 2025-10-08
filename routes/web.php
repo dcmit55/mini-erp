@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
+use app\Http\Controllers\AuditController;
 use App\Http\Controllers\UnitController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\TrashController;
@@ -59,6 +60,10 @@ Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->na
 Route::post('/register', [RegisterController::class, 'register']);
 
 Route::middleware(['auth'])->group(function () {
+    // Audit routes (only for super_admin)
+    Route::get('/audit', [App\Http\Controllers\AuditController::class, 'index'])->name('audit.index');
+    Route::get('/audit/changes/{id}', [App\Http\Controllers\AuditController::class, 'getChanges'])->name('audit.changes');
+
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 

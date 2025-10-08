@@ -5,23 +5,19 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use OwenIt\Auditing\Contracts\Auditable;
 
-class GoodsOut extends Model
+class GoodsOut extends Model implements Auditable
 {
-    use SoftDeletes;
-    use HasFactory;
+    use HasFactory, SoftDeletes, \OwenIt\Auditing\Auditable;
+
+    protected $auditInclude = ['inventory_id', 'project_id', 'quantity', 'remark', 'requested_by', 'material_request_id'];
+
+    protected $auditTimestamps = true;
 
     protected $table = 'goods_out'; // Pastikan nama tabel sesuai dengan database
 
-    protected $fillable = [
-        'material_request_id',
-        'inventory_id',
-        'project_id',
-        'requested_by',
-        'department',
-        'quantity',
-        'remark',
-    ];
+    protected $fillable = ['material_request_id', 'inventory_id', 'project_id', 'requested_by', 'department', 'quantity', 'remark'];
 
     public function materialRequest()
     {
