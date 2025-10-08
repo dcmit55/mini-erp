@@ -31,39 +31,183 @@ class GoodsOutController extends Controller
 
     public function index(Request $request)
     {
-        // Tambahkan eager loading untuk relasi goodsIns
+        // If AJAX request, return DataTables data
+        if ($request->ajax()) {
+            return $this->getDataTablesData($request);
+        }
+
+        // For non-AJAX requests, return view with master data for filters
+        $materials = Inventory::orderBy('name')->get();
+        $projects = Project::orderBy('name')->get();
+        $users = User::orderBy('username')->get();
+
+        return view('goods_out.index', compact('materials', 'projects', 'users'));
+    }
+
+    public function getDataTablesData(Request $request)
+    {
         $query = GoodsOut::with(['inventory', 'project', 'goodsIns', 'materialRequest', 'user.department']);
 
         // Apply filters
-        if ($request->has('material') && $request->material !== null) {
-            $query->where('inventory_id', $request->material);
+        if ($request->filled('material_filter')) {
+            $query->where('inventory_id', $request->material_filter);
         }
 
-        if ($request->has('qty') && $request->qty !== null) {
-            $query->where('quantity', $request->qty);
+        if ($request->filled('project_filter')) {
+            $query->where('project_id', $request->project_filter);
         }
 
-        if ($request->has('project') && $request->project !== null) {
-            $query->where('project_id', $request->project);
+        if ($request->filled('requested_by_filter')) {
+            $query->where('requested_by', $request->requested_by_filter);
         }
 
-        if ($request->has('requested_at') && $request->requested_at !== null) {
-            $query->whereDate('created_at', $request->requested_at);
+        if ($request->filled('requested_at_filter')) {
+            $query->whereDate('created_at', $request->requested_at_filter);
         }
 
-        if ($request->has('requested_by') && $request->requested_by !== null) {
-            $query->where('requested_by', $request->requested_by);
+        // Custom search functionality
+        if ($request->filled('custom_search')) {
+            $searchValue = $request->input('custom_search');
+            $query->where(function ($q) use ($searchValue) {
+                $q->whereHas('inventory', function ($q) use ($searchValue) {
+                    $q->where('name', 'LIKE', '%' . $searchValue . '%');
+                })
+                    ->orWhereHas('project', function ($q) use ($searchValue) {
+                        $q->where('name', 'LIKE', '%' . $searchValue . '%');
+                    })
+                    ->orWhere('requested_by', 'LIKE', '%' . $searchValue . '%')
+                    ->orWhere('remark', 'LIKE', '%' . $searchValue . '%');
+            });
         }
 
-        $goodsOuts = $query->orderBy('created_at', 'desc')->get();
+        // DataTables search
+        if ($request->filled('search.value')) {
+            $searchValue = $request->input('search.value');
+            $query->where(function ($q) use ($searchValue) {
+                $q->whereHas('inventory', function ($q) use ($searchValue) {
+                    $q->where('name', 'LIKE', '%' . $searchValue . '%');
+                })
+                    ->orWhereHas('project', function ($q) use ($searchValue) {
+                        $q->where('name', 'LIKE', '%' . $searchValue . '%');
+                    })
+                    ->orWhere('requested_by', 'LIKE', '%' . $searchValue . '%')
+                    ->orWhere('remark', 'LIKE', '%' . $searchValue . '%');
+            });
+        }
 
-        // Pass data for filters
-        $materials = Inventory::orderBy('name')->get();
-        $projects = Project::orderBy('name')->get();
-        $quantities = GoodsOut::select('quantity')->distinct()->pluck('quantity');
-        $users = User::orderBy('username')->get();
+        // Sorting
+        $columns = ['id', 'inventory_id', 'quantity', 'project_id', 'requested_by', 'created_at', 'remark'];
 
-        return view('goods_out.index', compact('goodsOuts', 'materials', 'projects', 'quantities', 'users'));
+        if ($request->filled('order')) {
+            $orderColumnIndex = $request->input('order.0.column');
+            $orderDirection = $request->input('order.0.dir', 'asc');
+
+            if ($orderColumnIndex == 1) {
+                // Material column
+                $query->join('inventories', 'goods_out.inventory_id', '=', 'inventories.id')->orderBy('inventories.name', $orderDirection)->select('goods_out.*');
+            } elseif ($orderColumnIndex == 3) {
+                // Project column
+                $query->join('projects', 'goods_out.project_id', '=', 'projects.id')->orderBy('projects.name', $orderDirection)->select('goods_out.*');
+            } elseif (isset($columns[$orderColumnIndex])) {
+                $query->orderBy($columns[$orderColumnIndex], $orderDirection);
+            } else {
+                $query->orderBy('created_at', 'desc');
+            }
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
+
+        // Get total and filtered counts
+        $totalRecords = GoodsOut::count();
+        $filteredRecords = $query->count();
+
+        // Pagination
+        $start = $request->input('start', 0);
+        $length = $request->input('length', 15);
+        $goodsOuts = $query->skip($start)->take($length)->get();
+
+        // Format data for DataTables
+        $data = [];
+        foreach ($goodsOuts as $index => $goodsOut) {
+            $data[] = [
+                'DT_RowIndex' => $start + $index + 1,
+                'material' => $goodsOut->inventory ? $goodsOut->inventory->name : '(No material)',
+                'quantity' => $this->formatQuantity($goodsOut),
+                'remaining_quantity' => $this->formatRemainingQuantity($goodsOut),
+                'project' => $goodsOut->project ? $goodsOut->project->name : '(No project)',
+                'requested_by' => $this->formatRequestedBy($goodsOut),
+                'created_at' => $goodsOut->created_at->format('d M Y, H:i'),
+                'remark' => $goodsOut->remark ?? '-',
+                'actions' => $this->getActionButtons($goodsOut),
+                'DT_RowId' => 'row-' . $goodsOut->id,
+            ];
+        }
+
+        return response()->json([
+            'draw' => intval($request->input('draw')),
+            'recordsTotal' => $totalRecords,
+            'recordsFiltered' => $filteredRecords,
+            'data' => $data,
+        ]);
+    }
+
+    private function formatQuantity($goodsOut)
+    {
+        $unit = $goodsOut->inventory ? $goodsOut->inventory->unit : '';
+        $quantity = number_format($goodsOut->quantity, 2);
+        $quantity = rtrim(rtrim($quantity, '0'), '.');
+
+        return '<span data-bs-toggle="tooltip" data-bs-placement="right" title="' . $unit . '">' . $quantity . '</span>';
+    }
+
+    private function formatRemainingQuantity($goodsOut)
+    {
+        $unit = $goodsOut->inventory ? $goodsOut->inventory->unit : '';
+        $remainingQuantity = number_format($goodsOut->remaining_quantity, 2);
+        $remainingQuantity = rtrim(rtrim($remainingQuantity, '0'), '.');
+        return '<span data-bs-toggle="tooltip" data-bs-placement="right" title="' . $unit . '">' . $remainingQuantity . '</span>';
+    }
+
+    private function formatRequestedBy($goodsOut)
+    {
+        $department = $goodsOut->user && $goodsOut->user->department ? $goodsOut->user->department->name : '';
+
+        if ($department) {
+            return '<span data-bs-toggle="tooltip" data-bs-placement="right" title="' . ucfirst($department) . '">' . ucfirst($goodsOut->requested_by) . '</span>';
+        }
+
+        return ucfirst($goodsOut->requested_by);
+    }
+
+    private function getActionButtons($goodsOut)
+    {
+        $buttons = '<div class="d-flex flex-nowrap gap-1">';
+
+        // Edit button - only for admin_logistic and super_admin
+        if (in_array(auth()->user()->role, ['admin_logistic', 'super_admin'])) {
+            $buttons .=
+                '<a href="' .
+                route('goods_out.edit', $goodsOut->id) .
+                '" class="btn btn-sm btn-primary" title="Edit">
+                    <i class="bi bi-pencil-square"></i>
+                </a>';
+
+            // Check if goods out can be deleted (no goods in)
+            if ($goodsOut->goodsIns->isEmpty()) {
+                $buttons .=
+                    '<button type="button" class="btn btn-sm btn-danger btn-delete"
+                data-id="' .
+                    $goodsOut->id .
+                    '"
+                data-material="' .
+                    ($goodsOut->inventory ? $goodsOut->inventory->name : 'Unknown') .
+                    '"
+                title="Delete"><i class="bi bi-trash"></i></button>';
+            }
+        }
+
+        $buttons .= '</div>';
+        return $buttons;
     }
 
     public function export(Request $request)

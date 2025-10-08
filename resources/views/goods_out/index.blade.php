@@ -4,45 +4,35 @@
     <div class="container-fluid mt-4">
         <div class="card shadow rounded">
             <div class="card-body">
-                <div class="d-flex flex-column flex-md-row align-items-md-center gap-2 mb-3">
+                <div class="d-flex flex-column flex-sm-row align-items-sm-center gap-2 mb-3">
                     <!-- Header -->
-                    <div class="d-flex align-items-center mb-2 mb-md-0">
-                        <i class="fas fa-shipping-fast gradient-icon me-2" style="font-size: 1.5rem;"></i>
-                        <h2 class="mb-0 flex-shrink-0" style="font-size:1.3rem;">Goods Out Records</h2>
+                    <div class="d-flex align-items-center mb-2 mb-sm-0">
+                        <i class="bi bi-box-arrow-up gradient-icon me-2" style="font-size: 1.5rem;"></i>
+                        <h2 class="mb-0 flex-shrink-0" style="font-size:1.3rem;">Goods Out</h2>
                     </div>
 
-                    <!-- Spacer untuk mendorong tombol ke kanan -->
-                    <div class="ms-md-auto d-flex flex-wrap gap-2">
-                        @if (auth()->user()->isLogisticAdmin())
-                            <a href="{{ route('goods_out.create_independent') }}"
-                                class="btn btn-primary btn-sm flex-shrink-0">
-                                <i class="bi bi-plus-circle me-1"></i> Create Goods Out
+                    <!-- Spacer to push buttons to the right -->
+                    <div class="ms-sm-auto d-flex flex-wrap gap-2">
+                        @if (in_array(Auth::user()->role, ['admin_logistic', 'super_admin']))
+                            <a href="{{ route('goods_out.create_independent') }}" class="btn btn-success btn-sm">
+                                <i class="bi bi-plus-circle me-1"></i> Create
                             </a>
                         @endif
-                        <button id="bulk-goods-in-btn" class="btn btn-info btn-sm flex-shrink-0" disabled>
-                            <i class="bi bi-box-arrow-in-left me-1"></i>
-                            <span id="bulk-goods-in-text">Bulk Goods In</span>
-                            <span id="bulk-goods-in-count" class="badge bg-light text-dark ms-1 d-none">0</span>
-                        </button>
                         <a href="{{ route('goods_out.export', request()->query()) }}"
-                            class="btn btn-outline-success btn-sm flex-shrink-0">
+                            class="btn btn-outline-success btn-sm">
                             <i class="bi bi-file-earmark-excel me-1"></i> Export
                         </a>
                     </div>
                 </div>
 
+                <!-- Alerts -->
                 @if (session('success'))
                     <div class="alert alert-success alert-dismissible fade show" role="alert">
                         {!! session('success') !!}
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 @endif
-                @if (session('warning'))
-                    <div class="alert alert-warning alert-dismissible fade show" role="alert">
-                        {!! session('warning') !!}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                @endif
+
                 @if (session('error'))
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
                         {!! session('error') !!}
@@ -50,504 +40,378 @@
                     </div>
                 @endif
 
+                <!-- Filters -->
                 <div class="mb-3">
-                    <form id="filter-form" method="GET" action="{{ route('goods_out.index') }}" class="row g-2">
-                        <div class="col-lg-2">
-                            <select id="filter-material" name="material" class="form-select select2">
+                    <form id="filter-form" class="row g-1">
+                        <div class="col-md-2">
+                            <select id="material_filter" class="form-select form-select-sm select2">
                                 <option value="">All Materials</option>
                                 @foreach ($materials as $material)
-                                    <option value="{{ $material->id }}"
-                                        {{ request('material') == $material->id ? 'selected' : '' }}>
-                                        {{ $material->name }}
-                                    </option>
+                                    <option value="{{ $material->id }}">{{ $material->name }}</option>
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-lg-2">
-                            <select id="filter-qty" name="qty" class="form-select select2">
-                                <option value="">All Quantities</option>
-                                @foreach ($quantities as $qty)
-                                    <option value="{{ $qty }}" {{ request('qty') == $qty ? 'selected' : '' }}>
-                                        {{ $qty }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-lg-2">
-                            <select id="filter-project" name="project" class="form-select select2">
+                        <div class="col-md-2">
+                            <select id="project_filter" class="form-select form-select-sm select2">
                                 <option value="">All Projects</option>
                                 @foreach ($projects as $project)
-                                    <option value="{{ $project->id }}"
-                                        {{ request('project') == $project->id ? 'selected' : '' }}>
-                                        {{ $project->name }}
-                                    </option>
+                                    <option value="{{ $project->id }}">{{ $project->name }}</option>
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-lg-2">
-                            <select id="filter-requested-by" name="requested_by" class="form-select select2">
-                                <option value="">All Requested By</option>
+                        <div class="col-md-2">
+                            <select id="requested_by_filter" class="form-select form-select-sm select2">
+                                <option value="">All Requesters</option>
                                 @foreach ($users as $user)
-                                    <option value="{{ $user->username }}"
-                                        {{ request('requested_by') == $user->username ? 'selected' : '' }}>
-                                        {{ ucfirst($user->username) }}
-                                    </option>
+                                    <option value="{{ $user->username }}">{{ ucfirst($user->username) }}</option>
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-lg-2">
-                            <input type="text" id="filter-requested-at" name="requested_at" class="form-control"
-                                value="{{ request('requested_at') }}" placeholder="Proceed At Date" autocomplete="off">
+                        <div class="col-md-2">
+                            <input type="date" id="requested_at_filter" class="form-control form-control-sm"
+                                placeholder="Requested Date">
                         </div>
-                        <div class="col-lg-2 align-self-end">
-                            <button type="submit" class="btn btn-primary" id="filter-btn">
-                                <span class="spinner-border spinner-border-sm me-1 d-none" role="status"
-                                    aria-hidden="true"></span>
-                                Filter
-                            </button>
-                            <a href="{{ route('goods_out.index') }}" class="btn btn-secondary">Reset</a>
+                        <div class="col-md-4">
+                            <div class="input-group">
+                                <input type="text" id="custom-search" class="form-control form-control-sm"
+                                    placeholder="Search...">
+                                <button type="button" id="reset-filters" class="btn btn-sm btn-secondary">
+                                    <i class="bi bi-x-circle"></i> Reset
+                                </button>
+                            </div>
                         </div>
                     </form>
                 </div>
 
-                <!-- Tabel Data -->
-                <table class="table table-striped table-hover table-bordered" id="datatable">
-                    <thead class="align-middle text-nowrap">
-                        <tr>
-                            <th></th>
-                            <th>Material</th>
-                            <th>Goods Out Qty</th>
-                            <th><i class="bi bi-question-circle" data-bs-toggle="tooltip" data-bs-placement="top"
-                                    title="Remaining Qty column serves as an indicator to monitor the quantity of goods that have not been returned (Goods In) to inventory after the Goods Out process."
-                                    style="font-size: 0.8rem;"></i> Remaining Qty to Goods In
-                            </th>
-                            <th>For Project</th>
-                            <th>Requested By</th>
-                            <th>Proceed At</th>
-                            <th>Remark</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody class="align-middle">
-                        @foreach ($goodsOuts as $goodsOut)
+                <!-- Table -->
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover table-bordered table-sm" id="datatable">
+                        <thead class="align-middle text-nowrap">
                             <tr>
-                                <td class="text-center">
-                                    @if ($goodsOut->quantity > 0)
-                                        @if (auth()->user()->username === $goodsOut->requested_by ||
-                                                in_array(auth()->user()->role, ['super_admin', 'admin_logistic']))
-                                            <input type="checkbox" class="select-row" id="checkbox-{{ $goodsOut->id }}"
-                                                value="{{ $goodsOut->id }}">
-                                        @endif
-                                    @endif
-                                </td>
-                                <td>{{ $goodsOut->inventory->name ?? '(no material)' }}</td>
-                                <td>{{ rtrim(rtrim(number_format($goodsOut->quantity, 2, '.', ''), '0'), '.') }}
-                                    {{ $goodsOut->inventory->unit ?? '(no unit)' }}
-                                </td>
-                                <td>{{ rtrim(rtrim(number_format($goodsOut->remaining_quantity, 2, '.', ''), '0'), '.') }}
-                                    {{ $goodsOut->inventory->unit ?? '(no unit)' }}</td>
-                                <td>
-                                    @if ($goodsOut->project)
-                                        {{ $goodsOut->project->name }}
-                                    @else
-                                        <span class="text-secondary">No Project</span>
-                                    @endif
-                                </td>
-                                <td>
-                                    <span data-bs-toggle="tooltip" data-bs-placement="right"
-                                        title="{{ $goodsOut->user && $goodsOut->user->department ? ucfirst($goodsOut->user->department->name) : '-' }}"
-                                        class="requested-by-tooltip">
-                                        {{ ucfirst($goodsOut->requested_by) }}
-                                    </span>
-                                </td>
-                                <td>{{ \Carbon\Carbon::parse($goodsOut->created_at)->translatedFormat('d F Y, H:i') }}</td>
-                                <td>
-                                    @if ($goodsOut->remark)
-                                        {{ $goodsOut->remark }}
-                                    @else
-                                        <span class="text-danger">-</span>
-                                    @endif
-                                </td>
-                                <td>
-                                    <div class="d-flex flex-wrap gap-1 align-items-center">
-                                        @if (auth()->user()->isLogisticAdmin())
-                                            <a href="{{ route('goods_out.edit', $goodsOut->id) }}"
-                                                class="btn btn-sm btn-warning" data-bs-toggle="tooltip"
-                                                data-bs-placement="bottom" title="Edit"><i
-                                                    class="bi bi-pencil-square"></i></a>
-                                            @if ($goodsOut->goodsIns->isEmpty())
-                                                <form action="{{ route('goods_out.destroy', $goodsOut->id) }}"
-                                                    method="POST" class="delete-form">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="button" class="btn btn-sm btn-danger btn-delete"
-                                                        data-bs-toggle="tooltip" data-bs-placement="bottom"
-                                                        title="Delete"><i class="bi bi-trash3"></i></button>
-                                                </form>
-                                            @endif
-                                        @endif
-                                        @if (
-                                            $goodsOut->material_request_id &&
-                                                $goodsOut->materialRequest &&
-                                                $goodsOut->materialRequest->remaining_qty > 0 &&
-                                                in_array(auth()->user()->role, ['admin_logistic', 'super_admin']))
-                                            <a href="{{ route('goods_out.create_with_id', $goodsOut->material_request_id) }}"
-                                                class="btn btn-sm btn-outline-primary" data-bs-toggle="tooltip"
-                                                data-bs-placement="bottom" title="Shortage">
-                                                <i class="bi bi-exclamation-circle"></i>
-                                            </a>
-                                        @endif
-                                        @if ($goodsOut->quantity > 0)
-                                            @if (auth()->user()->username === $goodsOut->requested_by ||
-                                                    in_array(auth()->user()->role, ['super_admin', 'admin_logistic']))
-                                                <a href="{{ route('goods_in.create_with_id', ['goods_out_id' => $goodsOut->id]) }}"
-                                                    class="btn btn-sm btn-info" data-bs-toggle="tooltip"
-                                                    data-bs-placement="bottom" title="Goods In">
-                                                    <i class="bi bi-box-arrow-in-left"></i>
-                                                </a>
-                                            @endif
-                                        @endif
-                                    </div>
-                                </td>
+                                <th>#</th>
+                                <th>Material</th>
+                                <th>Goods Out Qty</th>
+                                <th><i class="bi bi-question-circle" data-bs-toggle="tooltip" data-bs-placement="top"
+                                        title="Remaining Qty column serves as an indicator to monitor the quantity of goods that have not been returned (Goods In) to inventory after the Goods Out process."
+                                        style="font-size: 0.8rem; cursor: pointer;"></i> Remaining Qty to Goods In
+                                </th>
+                                <th>Project</th>
+                                <th>Requested By</th>
+                                <th>Proceeded At</th>
+                                <th>Remark</th>
+                                <th>Actions</th>
                             </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-    <!-- Modal for Bulk Goods In -->
-    <div class="modal fade" id="bulkGoodsInModal" tabindex="-1" aria-labelledby="bulkGoodsInModalLabel"
-        aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="bulkGoodsInModalLabel">Bulk Goods In</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="bulk-goods-in-form">
-                        @csrf
-                        <table class="table table-bordered align-middle" style="font-size: 0.92rem;">
-                            <thead>
-                                <tr class="align-middle">
-                                    <th>Material</th>
-                                    <th>Goods Out Quantity</th>
-                                    <th>Goods In Quantity</th>
-                                </tr>
-                            </thead>
-                            <tbody id="bulk-goods-in-table-body">
-                                <!-- Rows will be dynamically added here -->
-                            </tbody>
-                        </table>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" id="submit-bulk-goods-in" class="btn btn-primary">
-                        <span class="spinner-border spinner-border-sm me-1 d-none" role="status"
-                            aria-hidden="true"></span>
-                        Submit
-                    </button>
+                        </thead>
+                        <tbody class="align-middle">
+                            <!-- DataTables will populate this -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
 @endsection
+
 @push('styles')
     <style>
-        #datatable th {
-            font-size: 0.90rem;
-            white-space: nowrap;
+        .gradient-icon {
+            background: linear-gradient(135deg, #8F12FE 0%, #4A25AA 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        #filter-form {
+            background: #f8f9fa;
+            padding: .75rem;
+            border-radius: 0.5rem;
+            border: 1px solid #dee2e6;
+        }
+
+        /* Pagination styling */
+        .pagination {
+            --bs-pagination-padding-x: 0.75rem;
+            --bs-pagination-padding-y: 0.375rem;
+            --bs-pagination-color: #6c757d;
+            --bs-pagination-bg: #fff;
+            --bs-pagination-border-width: 1px;
+            --bs-pagination-border-color: #dee2e6;
+            --bs-pagination-border-radius: 0.375rem;
+            --bs-pagination-hover-color: #495057;
+            --bs-pagination-hover-bg: #e9ecef;
+            --bs-pagination-hover-border-color: #dee2e6;
+            --bs-pagination-focus-color: #495057;
+            --bs-pagination-focus-bg: #e9ecef;
+            --bs-pagination-focus-box-shadow: 0 0 0 0.25rem rgba(143, 18, 254, 0.25);
+            --bs-pagination-active-color: #fff;
+            --bs-pagination-active-bg: #8F12FE;
+            --bs-pagination-active-border-color: #4A25AA;
+            --bs-pagination-disabled-color: #6c757d;
+            --bs-pagination-disabled-bg: #fff;
+            --bs-pagination-disabled-border-color: #dee2e6;
+        }
+
+        .page-link {
+            transition: all 0.15s ease-in-out;
+        }
+
+        .page-link:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .page-item.active .page-link {
+            background: linear-gradient(135deg, #8F12FE 0%, #4A25AA 100%);
+            border-color: #8F12FE;
+            box-shadow: 0 2px 4px rgba(143, 18, 254, 0.3);
+        }
+
+        /* DataTables footer styling */
+        #datatable .quantity-column,
+        #datatable .quantity-column-header {
+            text-align: left !important;
+        }
+
+        .datatables-footer-row {
+            border-top: 1px solid #eee;
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+        }
+
+        .datatables-left {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .vr-divider {
+            width: 1px;
+            height: 24px;
+            background: #dee2e6;
+            display: inline-block;
             vertical-align: middle;
         }
 
-        #datatable td {
-            vertical-align: middle;
+        .dataTables_paginate {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
         }
 
-        /* Batasi lebar kolom tertentu jika perlu */
-        #datatable th,
-        #datatable td {
-            max-width: 170px;
-            overflow: hidden;
-            text-overflow: ellipsis;
+        /* Responsive adjustments */
+        @media (max-width: 767.98px) {
+            .datatables-footer-row {
+                flex-direction: column !important;
+                gap: 0.5rem;
+            }
+
+            .datatables-left {
+                flex-direction: column !important;
+                gap: 0.5rem;
+            }
+
+            .vr-divider {
+                display: none;
+            }
+
+            .dataTables_paginate {
+                justify-content: center !important;
+            }
         }
 
-        .requested-by-tooltip {
-            cursor: pointer;
+        /* Tooltips */
+        .tooltip {
+            z-index: 9999 !important;
         }
 
-        /* Bulk goods in button styling */
-        #bulk-goods-in-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        #bulk-goods-in-count {
-            border-radius: 50px;
-            font-size: 0.7rem;
-            padding: 0.2rem 0.4rem;
-            min-width: 20px;
-            text-align: center;
+        .tooltip-inner {
+            max-width: 200px;
+            padding: 0.3rem 0.6rem;
+            font-size: 0.775rem;
+            line-height: 1.2;
         }
     </style>
 @endpush
+
 @push('scripts')
     <script>
         $(document).ready(function() {
-            $('#datatable').DataTable({
-                responsive: true,
-                stateSave: true,
-                columnDefs: [{
+            // Initialize DataTable with server-side processing
+            const table = $('#datatable').DataTable({
+                processing: false,
+                serverSide: true,
+                searching: false,
+                ajax: {
+                    url: "{{ route('goods_out.index') }}",
+                    data: function(d) {
+                        d.material_filter = $('#material_filter').val();
+                        d.project_filter = $('#project_filter').val();
+                        d.requested_by_filter = $('#requested_by_filter').val();
+                        d.requested_at_filter = $('#requested_at_filter').val();
+                        d.custom_search = $('#custom-search').val();
+                    }
+                },
+                columns: [{
+                        data: 'DT_RowIndex',
+                        name: 'DT_RowIndex',
                         orderable: false,
-                        targets: 0
-                    }, // Kolom checkbox tidak dapat diurutkan
+                        searchable: false,
+                        className: 'text-center'
+                    },
+                    {
+                        data: 'material',
+                        name: 'material'
+                    },
+                    {
+                        data: 'quantity',
+                        name: 'quantity',
+                        className: 'quantity-column',
+                        orderable: false
+                    },
+                    {
+                        data: 'remaining_quantity',
+                        name: 'remaining_quantity',
+                        className: 'quantity-column',
+                        orderable: false
+                    },
+                    {
+                        data: 'project',
+                        name: 'project'
+                    },
+                    {
+                        data: 'requested_by',
+                        name: 'requested_by'
+                    },
+                    {
+                        data: 'created_at',
+                        name: 'created_at',
+                    },
+                    {
+                        data: 'remark',
+                        name: 'remark'
+                    },
+                    {
+                        data: 'actions',
+                        name: 'actions',
+                        orderable: false,
+                        searchable: false
+                    }
                 ],
+                order: [
+                    []
+                ], // Sort by proceeded_at (created_at) by default
+                pageLength: 15,
+                lengthMenu: [
+                    [10, 15, 25, 50, 100],
+                    [10, 15, 25, 50, 100]
+                ],
+                language: {
+                    emptyTable: '<div class="text-muted py-2">No goods out data available</div>',
+                    zeroRecords: '<div class="text-muted py-2">No matching records found</div>',
+                    infoEmpty: "Showing 0 to 0 of 0 entries",
+                    infoFiltered: "(filtered from _MAX_ total entries)",
+                    lengthMenu: "Show _MENU_ entries per page",
+                    info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                },
+                dom: 't<' +
+                    '"row datatables-footer-row align-items-center"' +
+                    '<"col-md-7 d-flex align-items-center gap-2 datatables-left"l<"vr-divider mx-2">i>' +
+                    '<"col-md-5 dataTables_paginate justify-content-end"p>' +
+                    '>',
+                responsive: true,
+                stateSave: false, // We handle filters manually
+                drawCallback: function() {
+                    // Reinitialize tooltips after table redraw
+                    $('[data-bs-toggle="tooltip"]').tooltip();
+                }
             });
 
-            $('#datatable').on('draw.dt', function() {
-                var tooltipTriggerList = [].slice.call(document.querySelectorAll(
-                    '[data-bs-toggle="tooltip"]'));
-                tooltipTriggerList.forEach(function(tooltipTriggerEl) {
-                    new bootstrap.Tooltip(tooltipTriggerEl);
+            // Filter functionality
+            $('#material_filter, #project_filter, #requested_by_filter, #requested_at_filter').on('change',
+                function() {
+                    table.ajax.reload();
                 });
 
-                // Update bulk goods in button setelah redraw
-                updateBulkGoodsInButton();
+            $('#custom-search').on('input', debounce(function() {
+                table.ajax.reload();
+            }, 500));
+
+            // Reset filter
+            $('#reset-filters').on('click', function() {
+                $('#material_filter, #project_filter, #requested_by_filter').val('').trigger('change');
+                $('#requested_at_filter').val('');
+                $('#custom-search').val('');
+                table.ajax.reload();
+            });
+
+            // Delete functionality with AJAX
+            $(document).on('click', '.btn-delete', function() {
+                const id = $(this).data('id');
+                const material = $(this).data('material');
+
+                Swal.fire({
+                    title: 'Are you sure?',
+                    text: `You want to delete Goods Out for "${material}"?`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Yes, delete it!',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: `/goods_out/${id}`,
+                            method: 'DELETE',
+                            data: {
+                                _token: '{{ csrf_token() }}'
+                            },
+                            success: function(response) {
+                                Swal.fire(
+                                    'Deleted!',
+                                    'The goods out record has been deleted.',
+                                    'success'
+                                );
+                                table.ajax.reload();
+                            },
+                            error: function(xhr) {
+                                Swal.fire(
+                                    'Error!',
+                                    xhr.responseJSON?.message ||
+                                    'Something went wrong!',
+                                    'error'
+                                );
+                            }
+                        });
+                    }
+                });
             });
 
             // Initialize Select2
             $('.select2').select2({
                 theme: 'bootstrap-5',
                 placeholder: function() {
-                    return $(this).data('placeholder');
+                    return $(this).data('placeholder') || 'Select an option';
                 },
-                allowClear: true
+                allowClear: true,
+                width: '100%'
             });
 
-            // Add placeholder support for input[type="date"]
-            const dateInput = document.getElementById('filter-requested-at');
-            if (dateInput) {
-                dateInput.onfocus = function() {
-                    this.type = 'date';
-                };
-                dateInput.onblur = function() {
-                    if (!this.value) this.type = 'text';
-                };
-                if (!dateInput.value) dateInput.type = 'text';
-            }
-
-            // Function to update bulk goods in button
-            function updateBulkGoodsInButton() {
-                const selectedCount = $('.select-row:checked').length;
-                const bulkBtn = $('#bulk-goods-in-btn');
-                const countBadge = $('#bulk-goods-in-count');
-
-                if (selectedCount > 0) {
-                    bulkBtn.prop('disabled', false);
-                    countBadge.removeClass('d-none').text(selectedCount);
-                } else {
-                    bulkBtn.prop('disabled', true);
-                    countBadge.addClass('d-none').text('0');
-                }
-            }
-
-            // Handle checkbox changes
-            $(document).on('change', '.select-row', function() {
-                updateBulkGoodsInButton();
-            });
-
-            // Handle select all checkbox (if exists)
-            $('#select-all').on('change', function() {
-                $('.select-row').prop('checked', $(this).prop('checked'));
-                updateBulkGoodsInButton();
-            });
-
-            // SweetAlert for delete confirmation
-            $(document).on('click', '.btn-delete', function(e) {
-                e.preventDefault();
-                let form = $(this).closest('form');
-                Swal.fire({
-                    title: 'Are you sure?',
-                    text: "This action cannot be undone!",
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#3085d6',
-                    cancelButtonColor: '#d33',
-                    confirmButtonText: 'Yes, delete it!',
-                    reverseButtons: true
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        form.submit();
-                    }
-                });
-            });
-
-            $('#bulk-goods-in-btn').on('click', function() {
-                const selectedIds = $('.select-row:checked').map(function() {
-                    return $(this).val();
-                }).get();
-
-                if (selectedIds.length === 0) {
-                    Swal.fire('Error', 'Please select at least one goods out.', 'error');
-                    return;
-                }
-
-                // Clear the modal table body
-                $('#bulk-goods-in-table-body').empty();
-
-                // Fetch data for selected goods out
-                $.ajax({
-                    url: "{{ route('goods_out.details') }}", // Gunakan endpoint yang benar
-                    method: 'GET',
-                    data: {
-                        selected_ids: selectedIds
-                    },
-                    success: function(response) {
-                        if (Array.isArray(response)) {
-                            response.forEach(item => {
-                                $('#bulk-goods-in-table-body').append(`
-                                    <tr>
-                                        <td>${item.material_name}</td>
-                                        <td>${item.goods_out_quantity} <span class="text-muted">${item.unit || ''}</span></td>
-                                        <td>
-                                            <input type="number" name="goods_in_quantities[${item.id}]" class="form-control form-control-sm"
-                                                max="${item.goods_out_quantity}" min="0.001" step="any" required>
-                                        </td>
-                                    </tr>
-                                `);
-                            });
-
-                            // Show the modal
-                            $('#bulkGoodsInModal').modal('show');
-
-                            // Re-init tooltip
-                            var tooltipTriggerList = [].slice.call(document.querySelectorAll(
-                                '[data-bs-toggle="tooltip"]'));
-                            tooltipTriggerList.forEach(function(tooltipTriggerEl) {
-                                new bootstrap.Tooltip(tooltipTriggerEl);
-                            });
-                        } else {
-                            Swal.fire('Error', 'Unexpected response format.', 'error');
-                        }
-                    },
-                    error: function(xhr) {
-                        Swal.fire('Error', 'Failed to fetch goods out details.', 'error');
-                    }
-                });
-            });
-
-            // Submit Bulk Goods In
-            $('#submit-bulk-goods-in').on('click', function() {
-                const submitBtn = $(this);
-                const spinner = submitBtn.find('.spinner-border');
-                const btnText = submitBtn.contents().filter(function() {
-                    return this.nodeType === 3; // Text nodes only
-                }).last();
-
-                let isValid = true;
-
-                // Function to reset button state
-                function resetButtonState() {
-                    submitBtn.prop('disabled', false);
-                    spinner.addClass('d-none');
-                    btnText[0].textContent = ' Submit';
-                }
-
-                // Validasi setiap input quantity
-                $('#bulk-goods-in-table-body input[type="number"]').each(function() {
-                    const max = parseFloat($(this).attr('max'));
-                    const value = parseFloat($(this).val());
-                    if (isNaN(value) || value < 0.001 || value > max) {
-                        isValid = false;
-                        $(this).addClass('is-invalid');
-                    } else {
-                        $(this).removeClass('is-invalid');
-                    }
-                });
-
-                if (!isValid) {
-                    Swal.fire('Error', 'Quantity must be between 0.001 and maximum goods out quantity.',
-                        'error');
-                    return;
-                }
-
-                // Disable button and show spinner
-                submitBtn.prop('disabled', true);
-                spinner.removeClass('d-none');
-                btnText[0].textContent = ' Processing...';
-
-                // Jika valid, kirim data ke server
-                const formData = $('#bulk-goods-in-form').serialize();
-
-                $.ajax({
-                    url: "{{ route('goods_in.bulk') }}",
-                    method: 'POST',
-                    data: formData,
-                    success: function(response) {
-                        // Reset button state immediately after response
-                        resetButtonState();
-
-                        if (response.success) {
-                            Swal.fire('Success', response.message ||
-                                    'Bulk Goods In processed successfully.', 'success')
-                                .then(() => location.reload());
-                        } else {
-                            Swal.fire('Error', response.message || 'Bulk Goods In failed.',
-                                'error');
-                        }
-                    },
-                    error: function(xhr) {
-                        // Reset button state immediately after error
-                        resetButtonState();
-
-                        let msg = xhr.responseJSON?.message ||
-                            'An error occurred while processing.';
-                        Swal.fire('Error', msg, 'error');
-                    }
-                });
-            });
-
-            // Reset button state when modal is closed
-            $('#bulkGoodsInModal').on('hidden.bs.modal', function() {
-                const submitBtn = $('#submit-bulk-goods-in');
-                const spinner = submitBtn.find('.spinner-border');
-                const btnText = submitBtn.contents().filter(function() {
-                    return this.nodeType === 3;
-                }).last();
-
-                submitBtn.prop('disabled', false);
-                spinner.addClass('d-none');
-                btnText[0].textContent = ' Submit';
-            });
-
-            flatpickr("#filter-requested-at", {
-                dateFormat: "Y-m-d",
-                allowInput: true,
-            });
-
-            const filterForm = document.getElementById('filter-form');
-            const filterBtn = document.getElementById('filter-btn');
-            const spinner = filterBtn ? filterBtn.querySelector('.spinner-border') : null;
-
-            if (filterForm && filterBtn && spinner) {
-                filterForm.addEventListener('submit', function() {
-                    filterBtn.disabled = true;
-                    spinner.classList.remove('d-none');
-                    filterBtn.childNodes[2].textContent = ' Filtering...';
-                });
-            }
-
-            // Initial update of bulk goods in button
-            updateBulkGoodsInButton();
+            // Initialize Bootstrap Tooltip
+            $('[data-bs-toggle="tooltip"]').tooltip();
         });
 
-        document.addEventListener("DOMContentLoaded", function() {
-            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-            tooltipTriggerList.forEach(function(tooltipTriggerEl) {
-                new bootstrap.Tooltip(tooltipTriggerEl);
-            });
-        });
+        // Debounce function to prevent excessive API calls
+        function debounce(func, wait) {
+            let timeout;
+            return function() {
+                const context = this;
+                const args = arguments;
+                clearTimeout(timeout);
+                timeout = setTimeout(() => {
+                    func.apply(context, args);
+                }, wait);
+            };
+        }
     </script>
 @endpush

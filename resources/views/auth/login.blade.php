@@ -12,7 +12,6 @@
                     <div class="card-body">
                         <form method="POST" action="{{ route('login') }}">
                             @csrf
-
                             <div class="row mb-3">
                                 <label for="username"
                                     class="col-lg-4 col-form-label text-lg-end">{{ __('Username') }}</label>

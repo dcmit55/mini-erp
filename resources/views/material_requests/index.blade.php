@@ -133,7 +133,7 @@
                             <th>Action</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="align-middle">
                         {{-- Data akan dimuat via AJAX --}}
                     </tbody>
                 </table>
