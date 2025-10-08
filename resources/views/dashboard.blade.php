@@ -418,13 +418,22 @@
                             </h5>
                         </div>
                         <div class="card-body">
-                            <div class="row g-2">
+                            <div class="row g-2 mb-2">
+                                <div class="col-md-2 col-sm-4 col-6">
+                                    <a href="{{ url('/log-viewer') }}" target="_blank"
+                                        class="btn btn-outline-dark w-100">
+                                        <i class="bi bi-journal-text d-block mb-1"></i>
+                                        <small>Log Viewer</small>
+                                    </a>
+                                </div>
                                 <div class="col-md-2 col-sm-4 col-6">
                                     <button class="btn btn-outline-brand w-100 artisan-action" data-action="storage-link">
                                         <i class="bi bi-link d-block mb-1"></i>
                                         <small>Storage Link</small>
                                     </button>
                                 </div>
+                            </div>
+                            <div class="row g-2">
                                 <div class="col-md-2 col-sm-4 col-6">
                                     <button class="btn btn-outline-danger w-100 artisan-action" data-action="clear-cache">
                                         <i class="bi bi-trash d-block mb-1"></i>
