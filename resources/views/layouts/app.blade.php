@@ -228,6 +228,10 @@
                                                     href="{{ route('employees.index') }}">
                                                     <i class="fas fa-users"></i> Employees
                                                 </a></li>
+                                            <li><a class="dropdown-item {{ request()->routeIs('leave_requests.index') ? 'active' : '' }}"
+                                                    href="{{ route('leave_requests.index') }}">
+                                                    <i class="bi bi-calendar-plus"></i> Leave Requests
+                                                </a></li>
                                             <li><a class="dropdown-item {{ request()->is('users*') ? 'active' : '' }}"
                                                     href="{{ route('users.index') }}">
                                                     <i class="fas fa-user"></i> Users

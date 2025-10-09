@@ -34,6 +34,7 @@ use App\Http\Controllers\GoodsReceiveController;
 use App\Models\Shippings;
 use App\Http\Controllers\PreShippingController;
 use App\Models\PreShipping;
+use App\Http\Controllers\LeaveRequestController;
 
 /*
 |--------------------------------------------------------------------------
@@ -45,6 +46,9 @@ use App\Models\PreShipping;
 | contains the "web" middleware group. Now create something great!
 |
 */
+
+//all accessible without login leave request
+Route::resource('leave_requests', LeaveRequestController::class);
 
 Auth::routes([
     'reset' => false,
@@ -175,6 +179,12 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/employees/check-employee-no', [EmployeeController::class, 'checkEmployeeNo'])->name('employees.check-employee-no');
     Route::get('/employee-documents/{document}/download', [EmployeeController::class, 'downloadDocument'])->name('employee-documents.download');
     Route::get('/employees/{employee}/documents', [EmployeeController::class, 'getDocuments'])->name('employees.documents');
+
+    //leave requests
+    Route::post('leave_requests/{id}/approval', [LeaveRequestController::class, 'updateApproval'])
+        ->name('leave_requests.updateApproval')
+        ->middleware('auth');
+    // Route::resource('leave_requests', \App\Http\Controllers\LeaveRequestController::class)->middleware('auth');
 
     //Timming
     Route::resource('timings', TimingController::class)->only(['index', 'create', 'store', 'show']);
