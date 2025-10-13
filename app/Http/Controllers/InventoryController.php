@@ -564,7 +564,6 @@ class InventoryController extends Controller
             'unit' => $unit->name,
             'price' => $request->price ?? 0,
             'remark' => $request->remark ? $request->remark . ' <span style="color: orange;">(From Quick Add)</span>' : '<span style="color: orange;">(From Quick Add)</span>',
-            'status' => 'pending',
         ]);
 
         return response()->json(['success' => true, 'material' => $material]);
