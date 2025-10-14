@@ -18,28 +18,25 @@ class ProjectCostingExport implements FromCollection, WithHeadings
         $this->projectName = $projectName;
     }
 
-
     public function collection()
     {
         return $this->materials->map(function ($item) {
-            $pricePerUnit = $item->inventory->price ?? 0; // Harga per unit
-            $quantity = $item->quantity ?? 0; // Jumlah material
-            $exchangeRate = $item->inventory->currency->exchange_rate ?? 1; // Kurs ke IDR (default 1 jika tidak ada)
-
-            $totalCost = $pricePerUnit * $quantity; // Total biaya sebelum konversi
-            $totalCostInIDR = $totalCost * $exchangeRate; // Konversi ke IDR
+            $currency = $item['currency'] ?? 'IDR';
 
             return [
-                'Material' => $item->inventory->name ?? 'N/A',
-                'Quantity' => $quantity,
-                'Unit Price' => $pricePerUnit,
-                'Total Price' => $totalCost,
-                'Total Cost (IDR)' => $totalCostInIDR,
+                'Material' => $item['material_name'] ?? 'N/A',
+                'Quantity' => ($item['used_quantity'] ?? 0) . ' ' . ($item['unit'] ?? ''),
+                'Unit Price' => number_format($item['unit_price'] ?? 0, 2, '.', ',') . ' ' . $currency,
+                'Domestic Freight' => number_format($item['domestic_freight'] ?? 0, 2, '.', ',') . ' ' . $currency,
+                'Intl Freight' => number_format($item['international_freight'] ?? 0, 2, '.', ',') . ' ' . $currency,
+                'Total Unit Cost' => number_format($item['total_unit_cost'] ?? 0, 2, '.', ',') . ' ' . $currency,
+                'Total Cost (IDR)' => 'Rp ' . number_format($item['total_cost'] ?? 0, 2, '.', ','),
             ];
         });
     }
+
     public function headings(): array
     {
-        return ['Material', 'Quantity', 'Unit Price', 'Total Price', 'Total Cost (IDR)'];
+        return ['Material', 'Quantity', 'Unit Price', 'Domestic Freight', 'Intl Freight', 'Total Unit Cost', 'Total Cost (IDR)'];
     }
 }

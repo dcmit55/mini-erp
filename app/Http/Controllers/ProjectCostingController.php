@@ -109,26 +109,38 @@ class ProjectCostingController extends Controller
             ->with(['inventory.currency'])
             ->get();
 
+        // Gunakan rumus yang sama dengan viewCosting()
         $materials = $usages->map(function ($usage) {
             $inventory = $usage->inventory;
-            $price = $inventory->price ?? 0;
+
+            // RUMUS LENGKAP: Unit Price + Domestic Freight + International Freight
+            $unitPrice = $inventory->price ?? 0;
+            $domesticFreight = $inventory->unit_domestic_freight_cost ?? 0;
+            $internationalFreight = $inventory->unit_international_freight_cost ?? 0;
+            $totalUnitCost = $unitPrice + $domesticFreight + $internationalFreight;
+
             $usedQty = $usage->used_quantity ?? 0;
-            $currency = $inventory->currency ?? (object) ['name' => 'N/A', 'exchange_rate' => 1];
+            $currency = $inventory->currency ?? (object) ['name' => 'IDR', 'exchange_rate' => 1];
             $exchangeRate = $currency->exchange_rate ?? 1;
+
+            $totalPrice = $totalUnitCost * $usedQty;
+            $totalCostInIDR = $totalPrice * $exchangeRate;
 
             return [
                 'material_name' => $inventory->name ?? 'N/A',
                 'used_quantity' => $usedQty,
                 'unit' => $inventory->unit ?? 'N/A',
-                'unit_price' => $price,
-                'currency' => $currency->name ?? 'N/A',
-                'total_price' => $price * $usedQty,
-                'total_cost' => $price * $usedQty * $exchangeRate,
+                'unit_price' => $unitPrice,
+                'domestic_freight' => $domesticFreight,
+                'international_freight' => $internationalFreight,
+                'total_unit_cost' => $totalUnitCost,
+                'currency' => $currency->name ?? 'IDR',
+                'total_price' => $totalPrice,
+                'total_cost' => $totalCostInIDR,
             ];
         });
 
-        // Ekspor ke Excel
-        return Excel::download(new ProjectCostingExport($materials, $project->name), 'project_costing_' . $project->name . '_' . now()->format('Y-m-d') . '.xlsx');
+        return Excel::download(new ProjectCostingExport($materials, $project->name), 'project_costing_' . str_replace(' ', '_', $project->name) . '_' . now()->format('Y-m-d') . '.xlsx');
     }
 }
 
