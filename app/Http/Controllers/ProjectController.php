@@ -28,26 +28,31 @@ class ProjectController extends Controller
             $query->where('qty', $request->quantity);
         }
 
-        // Filter by department - handle both ID and name
+        // Filter by department
         if ($request->has('department') && $request->department !== null) {
             $departmentFilter = $request->department;
 
             // Check if it's numeric (ID) or string (name)
             if (is_numeric($departmentFilter)) {
-                // Filter by department ID
                 $query->where('department_id', $departmentFilter);
             } else {
-                // Filter by department name
                 $query->whereHas('department', function ($q) use ($departmentFilter) {
                     $q->where('name', $departmentFilter);
                 });
             }
         }
 
+        // filter by status
+        if ($request->has('status') && $request->status !== null && $request->status !== '') {
+            $query->where('project_status_id', $request->status);
+        }
+
         $projects = $query->latest()->get();
         $departments = Department::orderBy('name')->get();
+        $allQuantities = Project::pluck('qty')->unique()->sort()->values();
+        $statuses = ProjectStatus::orderBy('name')->get();
 
-        return view('projects.index', compact('projects', 'departments'));
+        return view('projects.index', compact('projects', 'departments', 'allQuantities', 'statuses'));
     }
 
     public function export(Request $request)

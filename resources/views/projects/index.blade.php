@@ -50,7 +50,7 @@
                         <div class="col-lg-2">
                             <select id="filter-quantity" name="quantity" class="form-select select2">
                                 <option value="">All Quantity</option>
-                                @foreach ($projects->pluck('qty')->unique() as $qty)
+                                @foreach ($allQuantities as $qty)
                                     <option value="{{ $qty }}" {{ request('quantity') == $qty ? 'selected' : '' }}>
                                         {{ $qty }}
                                     </option>
@@ -64,6 +64,17 @@
                                     <option value="{{ $dept->name }}"
                                         {{ request('department') == $dept->name ? 'selected' : '' }}>
                                         {{ $dept->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-lg-2">
+                            <select id="filter-status" name="status" class="form-select select2">
+                                <option value="">All Status</option>
+                                @foreach ($statuses as $status)
+                                    <option value="{{ $status->id }}"
+                                        {{ request('status') == $status->id ? 'selected' : '' }}>
+                                        {{ $status->name }}
                                     </option>
                                 @endforeach
                             </select>
