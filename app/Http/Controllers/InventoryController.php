@@ -302,50 +302,77 @@ class InventoryController extends Controller
 
     public function export(Request $request)
     {
-        // Ambil filter dari request
-        $category = $request->category;
-        $currency = $request->currency;
-        $supplier = $request->supplier;
-        $location = $request->location;
-
-        // Filter data berdasarkan request
+        // Filter data berdasarkan request (sama seperti di getDataTablesData)
         $query = Inventory::query()->with(['category', 'supplier', 'location', 'currency']);
 
-        if ($category) {
-            $query->where('category_id', $category);
+        // Apply filters yang sama dengan DataTables
+        if ($request->filled('category_filter')) {
+            $query->where('category_id', $request->category_filter);
         }
-        if ($currency) {
-            $query->where('currency_id', $currency);
+        if ($request->filled('currency_filter')) {
+            $query->where('currency_id', $request->currency_filter);
         }
-        if ($supplier) {
-            $query->where('supplier_id', $supplier);
+        if ($request->filled('supplier_filter')) {
+            $query->where('supplier_id', $request->supplier_filter);
         }
-        if ($location) {
-            $query->where('location_id', $location);
+        if ($request->filled('location_filter')) {
+            $query->where('location_id', $request->location_filter);
+        }
+        if ($request->filled('min_quantity')) {
+            $query->where('quantity', '>=', $request->min_quantity);
+        }
+        if ($request->filled('max_quantity')) {
+            $query->where('quantity', '<=', $request->max_quantity);
+        }
+        if ($request->filled('custom_search')) {
+            $searchValue = $request->input('custom_search');
+            $query->where(function ($q) use ($searchValue) {
+                $q->where('name', 'like', "%{$searchValue}%")
+                    ->orWhere('remark', 'like', "%{$searchValue}%")
+                    ->orWhere('unit', 'like', "%{$searchValue}%")
+                    ->orWhere('quantity', 'like', "%{$searchValue}%");
+            });
         }
 
         $inventories = $query->get();
 
-        // Buat nama file dinamis
+        // Generate dynamic filename berdasarkan filter aktif
         $fileName = 'inventory';
-        if ($category) {
-            $categoryName = Category::find($category)->name ?? 'Unknown Category';
-            $fileName .= '_category-' . str_replace(' ', '-', strtolower($categoryName));
+        $filterParts = [];
+
+        if ($request->filled('category_filter')) {
+            $categoryName = Category::find($request->category_filter)->name ?? 'Unknown';
+            $filterParts[] = 'category-' . str_replace(' ', '-', strtolower($categoryName));
         }
-        if ($currency) {
-            $currencyName = Currency::find($currency)->name ?? 'Unknown Currency';
-            $fileName .= '_currency-' . str_replace(' ', '-', strtolower($currencyName));
+        if ($request->filled('currency_filter')) {
+            $currencyName = Currency::find($request->currency_filter)->name ?? 'Unknown';
+            $filterParts[] = 'currency-' . str_replace(' ', '-', strtolower($currencyName));
         }
-        if ($supplier) {
-            $fileName .= '_supplier-' . str_replace(' ', '-', strtolower($supplier));
+        if ($request->filled('supplier_filter')) {
+            $supplierName = Supplier::find($request->supplier_filter)->name ?? 'Unknown';
+            $filterParts[] = 'supplier-' . str_replace(' ', '-', strtolower($supplierName));
         }
-        if ($location) {
-            $fileName .= '_location-' . str_replace(' ', '-', strtolower($location));
+        if ($request->filled('location_filter')) {
+            $locationName = Location::find($request->location_filter)->name ?? 'Unknown';
+            $filterParts[] = 'location-' . str_replace(' ', '-', strtolower($locationName));
         }
+        if ($request->filled('max_quantity')) {
+            $filterParts[] = 'max-qty-' . $request->max_quantity;
+        }
+        if ($request->filled('custom_search')) {
+            $filterParts[] = 'search-' . str_replace(' ', '-', strtolower(substr($request->custom_search, 0, 10)));
+        }
+
+        if (!empty($filterParts)) {
+            $fileName .= '_' . implode('_', $filterParts);
+        }
+
         $fileName .= '_' . Carbon::now()->format('Y-m-d') . '.xlsx';
 
-        // Ekspor data menggunakan kelas InventoryExport
-        return Excel::download(new InventoryExport($inventories), $fileName);
+        // Update InventoryExport untuk menerima role info
+        $showCurrencyAndPrice = in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance']);
+
+        return Excel::download(new InventoryExport($inventories, $showCurrencyAndPrice), $fileName);
     }
 
     public function create()
@@ -676,10 +703,20 @@ class InventoryController extends Controller
     public function destroy($id)
     {
         $inventory = Inventory::findOrFail($id);
+        $name = $inventory->name;
         $inventory->delete();
 
+        // Return JSON response untuk AJAX
+        if (request()->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Inventory {$name} deleted successfully.",
+            ]);
+        }
+
+        // Fallback untuk form submission biasa
         return redirect()
             ->route('inventory.index')
-            ->with('success', "Inventory <b>{$inventory->name}</b> deleted successfully.");
+            ->with('success', "Inventory <b>{$name}</b> deleted successfully.");
     }
 }

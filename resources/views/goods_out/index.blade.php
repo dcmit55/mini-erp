@@ -360,26 +360,51 @@
                     reverseButtons: true
                 }).then((result) => {
                     if (result.isConfirmed) {
+                        const deleteUrl = `/goods_out/${id}`;
+
                         $.ajax({
-                            url: `/goods_out/${id}`,
+                            url: deleteUrl,
                             method: 'DELETE',
                             data: {
-                                _token: '{{ csrf_token() }}'
+                                _token: $('meta[name="csrf-token"]').attr('content')
+                            },
+                            headers: {
+                                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr(
+                                    'content'),
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json'
                             },
                             success: function(response) {
                                 Swal.fire(
                                     'Deleted!',
-                                    'The goods out record has been deleted.',
+                                    `<b>${material}</b> has been deleted.`,
                                     'success'
                                 );
-                                table.ajax.reload();
+                                table.ajax.reload(null, false);
                             },
                             error: function(xhr) {
+                                console.error('Delete error:', xhr);
+                                let errorMsg = 'Something went wrong!';
+                                let iconType = 'error';
+
+                                if (xhr.responseJSON?.message) {
+                                    errorMsg = xhr.responseJSON.message;
+                                } else if (xhr.responseText) {
+                                    errorMsg = xhr.responseText;
+                                }
+
+                                // ✅ PERBAIKAN: Handle permission errors differently
+                                if (xhr.status === 403) {
+                                    iconType = 'warning';
+                                    errorMsg = xhr.responseJSON?.message ||
+                                        'You don\'t have permission to perform this action.';
+                                }
+
                                 Swal.fire(
+                                    xhr.status === 403 ? 'Access Denied!' :
                                     'Error!',
-                                    xhr.responseJSON?.message ||
-                                    'Something went wrong!',
-                                    'error'
+                                    errorMsg,
+                                    iconType
                                 );
                             }
                         });

@@ -117,10 +117,9 @@
                                 <i class="bi bi-filetype-xls me-1"></i> Import
                             </button>
                         @endif
-                        <a href="{{ route('inventory.export', request()->query()) }}"
-                            class="btn btn-outline-success btn-sm flex-shrink-0">
+                        <button type="button" id="export-btn" class="btn btn-outline-success btn-sm flex-shrink-0">
                             <i class="bi bi-file-earmark-excel me-1"></i> Export
-                        </a>
+                        </button>
                     </div>
                 </div>
 
@@ -143,7 +142,6 @@
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 @endif
-
 
                 <div class="mb-3">
                     <form id="filter-form" class="row g-2">
@@ -185,7 +183,7 @@
                             <input type="number" id="min_quantity" class="form-control" placeholder="Min Qty">
                         </div> --}}
                         <div class="col-lg-2">
-                            <input type="number" id="max_quantity" class="form-control" placeholder=" Filter by Max Qty">
+                            <input type="number" id="max_quantity" class="form-control" placeholder="Filter by Max Qty">
                         </div>
                         <div class="col-lg-2">
                             <input type="text" id="custom-search" class="form-control" placeholder="Search inventory...">
@@ -431,6 +429,32 @@
                 table.ajax.reload();
             });
 
+            // Export functionality
+            $('#export-btn').on('click', function() {
+                const filters = {
+                    category_filter: $('#category_filter').val(),
+                    currency_filter: $('#currency_filter').val(),
+                    supplier_filter: $('#supplier_filter').val(),
+                    location_filter: $('#location_filter').val(),
+                    min_quantity: $('#min_quantity').val(),
+                    max_quantity: $('#max_quantity').val(),
+                    custom_search: $('#custom-search').val()
+                };
+
+                const queryParams = new URLSearchParams();
+
+                Object.keys(filters).forEach(key => {
+                    if (filters[key] && filters[key] !== '') {
+                        queryParams.append(key, filters[key]);
+                    }
+                });
+
+                const exportUrl = "{{ route('inventory.export') }}" +
+                    (queryParams.toString() ? '?' + queryParams.toString() : '');
+
+                window.location.href = exportUrl;
+            });
+
             // Delete functionality dengan AJAX
             $(document).on('click', '.btn-delete', function() {
                 const id = $(this).data('id');
@@ -447,22 +471,36 @@
                     reverseButtons: true
                 }).then((result) => {
                     if (result.isConfirmed) {
+                        // ✅ Generate URL dengan template yang benar
+                        const deleteUrl = '/inventory/' + id;
+
                         $.ajax({
-                            url: `/inventory/${id}`,
-                            type: 'DELETE',
+                            url: deleteUrl,
+                            method: 'DELETE', // Atau gunakan 'method' instead of 'type'
                             data: {
                                 _token: $('meta[name="csrf-token"]').attr('content')
                             },
+                            headers: {
+                                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr(
+                                    'content'),
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json'
+                            },
                             success: function(response) {
-                                Swal.fire('Deleted!', `${name} has been deleted.`,
-                                    'success');
-                                table.ajax.reload(null,
-                                    false); // Reload tanpa reset pagination
+                                Swal.fire({
+                                    title: 'Deleted!',
+                                    html: `"${name}" has been deleted.`,
+                                    icon: 'success'
+                                });
+                                table.ajax.reload(null, false);
                             },
                             error: function(xhr) {
+                                console.error('Delete error:', xhr);
                                 let errorMsg = 'Something went wrong.';
                                 if (xhr.responseJSON && xhr.responseJSON.message) {
                                     errorMsg = xhr.responseJSON.message;
+                                } else if (xhr.responseText) {
+                                    errorMsg = xhr.responseText;
                                 }
                                 Swal.fire('Error!', errorMsg, 'error');
                             }

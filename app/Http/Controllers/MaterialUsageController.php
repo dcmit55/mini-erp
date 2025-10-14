@@ -28,24 +28,35 @@ class MaterialUsageController extends Controller
 
     public function index(Request $request)
     {
-        $query = MaterialUsage::with('inventory', 'project');
+        $query = MaterialUsage::with(['inventory', 'project']);
 
         // Apply filters
-        if ($request->has('material') && $request->material !== null) {
+        if ($request->filled('material')) {
             $query->where('inventory_id', $request->material);
         }
 
-        if ($request->has('project') && $request->project !== null) {
-            $query->where('project_id', $request->project);
+        if ($request->filled('project')) {
+            if ($request->project === 'no_project') {
+                $query->whereNull('project_id');
+            } else {
+                $query->where('project_id', $request->project);
+            }
         }
 
-        $usages = $query->orderBy('created_at', 'desc')->get();
+        $usages = $query->get();
 
-        // Pass data for filters
-        $materials = Inventory::orderBy('name')->get();
+        // Add "No Project" option to filter
         $projects = Project::orderBy('name')->get();
+        $projects->prepend(
+            (object) [
+                'id' => 'no_project',
+                'name' => 'No Project',
+            ],
+        );
 
-        return view('material_usage.index', compact('usages', 'materials', 'projects'));
+        $materials = Inventory::orderBy('name')->get();
+
+        return view('material_usage.index', compact('usages', 'projects', 'materials'));
     }
 
     public function export(Request $request)
@@ -87,14 +98,22 @@ class MaterialUsageController extends Controller
     {
         $inventory_id = $request->query('inventory_id');
 
-        $usages = MaterialUsage::where('inventory_id', $inventory_id)
-            ->with('project', 'inventory')
+        $usages = MaterialUsage::where('inventory_id', $inventoryId)
+            ->with(['inventory', 'project'])
             ->get()
             ->map(function ($usage) {
                 $unit = $usage->inventory->unit ?? '';
                 return [
-                    'project_name' => $usage->project->name ?? 'N/A',
-                    'goods_out_quantity' => GoodsOut::where('inventory_id', $usage->inventory_id)->where('project_id', $usage->project_id)->sum('quantity'),
+                    'project_name' => $usage->project->name ?? 'No Project',
+                    'goods_out_quantity' => GoodsOut::where('inventory_id', $usage->inventory_id)
+                        ->where(function ($q) use ($usage) {
+                            if ($usage->project_id) {
+                                $q->where('project_id', $usage->project_id);
+                            } else {
+                                $q->whereNull('project_id');
+                            }
+                        })
+                        ->sum('quantity'),
                     'goods_in_quantity' => GoodsIn::where('inventory_id', $usage->inventory_id)->where('project_id', $usage->project_id)->sum('quantity'),
                     'used_quantity' => $usage->used_quantity,
                     'unit' => $unit,

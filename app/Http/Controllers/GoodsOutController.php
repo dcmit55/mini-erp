@@ -189,20 +189,35 @@ class GoodsOutController extends Controller
                 '<a href="' .
                 route('goods_out.edit', $goodsOut->id) .
                 '" class="btn btn-sm btn-primary" title="Edit">
-                    <i class="bi bi-pencil-square"></i>
-                </a>';
+                <i class="bi bi-pencil-square"></i>
+            </a>';
 
-            // Check if goods out can be deleted (no goods in)
-            if ($goodsOut->goodsIns->isEmpty()) {
+            // ✅ PERBAIKAN: Check delete permission using model method
+            if ($goodsOut->canBeDeleted()) {
+                $tooltip = $goodsOut->getDeleteTooltip();
                 $buttons .=
                     '<button type="button" class="btn btn-sm btn-danger btn-delete"
-                data-id="' .
+                    data-id="' .
                     $goodsOut->id .
                     '"
-                data-material="' .
+                    data-material="' .
                     ($goodsOut->inventory ? $goodsOut->inventory->name : 'Unknown') .
                     '"
-                title="Delete"><i class="bi bi-trash"></i></button>';
+                    title="' .
+                    $tooltip .
+                    '">
+                    <i class="bi bi-trash"></i>
+                </button>';
+            } else {
+                // Show disabled delete button with tooltip explaining why
+                $tooltip = $goodsOut->getDeleteTooltip();
+                $buttons .=
+                    '<button type="button" class="btn btn-sm btn-secondary" disabled
+                    title="' .
+                    $tooltip .
+                    '">
+                    <i class="bi bi-trash"></i>
+                </button>';
             }
         }
 
@@ -367,9 +382,6 @@ class GoodsOutController extends Controller
             $inventory = Inventory::where('id', $request->inventory_id)->lockForUpdate()->first();
             $user = User::with('department')->findOrFail($request->user_id);
 
-            // Ambil nama department dari relasi
-            $department = $user->department ? $user->department->name : null;
-
             // Validasi quantity setelah lock
             if ($request->quantity > $inventory->quantity) {
                 DB::rollBack();
@@ -382,26 +394,47 @@ class GoodsOutController extends Controller
             $inventory->quantity -= $request->quantity;
             $inventory->save();
 
+            // Pastikan project_id null jika kosong
+            $projectId = $request->filled('project_id') ? $request->project_id : null;
+
             // Simpan Goods Out
             GoodsOut::create([
                 'inventory_id' => $request->inventory_id,
-                'project_id' => $request->project_id,
+                'project_id' => $request->project_id, // Bisa null
                 'requested_by' => $user->username,
                 'quantity' => $request->quantity,
                 'remark' => $request->remark,
             ]);
 
             // Sync Material Usage hanya jika ada project
-            if ($request->filled('project_id')) {
-                MaterialUsageHelper::sync($request->inventory_id, $request->project_id);
-            }
+            MaterialUsageHelper::sync($request->inventory_id, $projectId);
 
             DB::commit();
+
+            // Response JSON untuk AJAX jika diperlukan
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "Goods Out {$inventory->name} created successfully.",
+                ]);
+            }
+
             return redirect()
                 ->route('goods_out.index')
                 ->with('success', "Goods Out <b>{$inventory->name}</b> created successfully.");
         } catch (\Exception $e) {
             DB::rollBack();
+
+            if ($request->ajax()) {
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => 'Failed to process Goods Out: ' . $e->getMessage(),
+                    ],
+                    500,
+                );
+            }
+
             return back()
                 ->withInput()
                 ->with('error', 'Failed to process Goods Out: ' . $e->getMessage());
@@ -641,25 +674,94 @@ class GoodsOutController extends Controller
     {
         $goodsOut = GoodsOut::findOrFail($id);
 
-        // Cek apakah ada Goods In yang terkait
-        if ($goodsOut->goodsIns()->exists()) {
-            return redirect()
-                ->route('goods_out.index')
-                ->with('error', "Cannot delete Goods Out <b>{$goodsOut->id}</b> with related Goods In.");
+        // ✅ PERBAIKAN: Check permission using model method
+        if (!$goodsOut->canBeDeleted()) {
+            $message = "You don't have permission to delete this Goods Out.";
+
+            // More specific error messages
+            if ($goodsOut->goodsIns()->exists()) {
+                $message = "Cannot delete Goods Out <b>{$goodsOut->id}</b> with related Goods In.";
+            } elseif ($goodsOut->material_request_id && !auth()->user()->isSuperAdmin()) {
+                $message = 'Cannot delete Goods Out from Material Request. Super Admin access required.';
+            }
+
+            if (request()->ajax()) {
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => $message,
+                    ],
+                    403,
+                ); // 403 Forbidden
+            }
+
+            return redirect()->route('goods_out.index')->with('error', $message);
         }
 
-        // Kembalikan stok ke inventory
+        // Continue with normal deletion process
         $inventory = $goodsOut->inventory;
-        $inventory->quantity += $goodsOut->quantity;
-        $inventory->save();
+        $materialName = $inventory->name;
+        $projectName = $goodsOut->project ? $goodsOut->project->name : 'No Project';
+        $materialRequest = $goodsOut->materialRequest;
 
-        // Soft delete Goods Out
-        $goodsOut->delete();
+        DB::beginTransaction();
+        try {
+            // If from material request, update material request status
+            if ($materialRequest) {
+                // Reduce processed_qty from material request
+                $materialRequest->processed_qty -= $goodsOut->quantity;
 
-        MaterialUsageHelper::sync($goodsOut->inventory_id, $goodsOut->project_id);
+                // Update status based on remaining quantity
+                if ($materialRequest->processed_qty <= 0) {
+                    $materialRequest->status = 'approved';
+                } elseif ($materialRequest->processed_qty < $materialRequest->qty) {
+                    $materialRequest->status = 'approved';
+                }
 
-        return redirect()
-            ->route('goods_out.index')
-            ->with('success', "Goods Out <b>{$inventory->name}</b> to <b>{$goodsOut->project->name}</b> deleted successfully.");
+                $materialRequest->save();
+
+                // Broadcast the change
+                event(new \App\Events\MaterialRequestUpdated($materialRequest, 'status'));
+            }
+
+            // Return stock to inventory
+            $inventory->quantity += $goodsOut->quantity;
+            $inventory->save();
+
+            // Soft delete Goods Out
+            $goodsOut->delete();
+
+            // Sync material usage setelah delete (termasuk null project)
+            MaterialUsageHelper::sync($goodsOut->inventory_id, $goodsOut->project_id);
+
+            DB::commit();
+
+            $successMessage = "Goods Out <b>{$materialName}</b> to <b>{$projectName}</b> deleted successfully.";
+
+            if (request()->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $successMessage,
+                ]);
+            }
+
+            return redirect()->route('goods_out.index')->with('success', $successMessage);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            $errorMessage = 'Failed to delete Goods Out: ' . $e->getMessage();
+
+            if (request()->ajax()) {
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => $errorMessage,
+                    ],
+                    500,
+                );
+            }
+
+            return redirect()->route('goods_out.index')->with('error', $errorMessage);
+        }
     }
 }

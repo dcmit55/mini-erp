@@ -49,4 +49,46 @@ class GoodsOut extends Model implements Auditable
         $totalGoodsIn = $this->goodsIns->sum('quantity');
         return $this->quantity - $totalGoodsIn;
     }
+
+    public function canBeDeleted()
+    {
+        $authUser = auth()->user();
+
+        // Super admin can delete anything
+        if ($authUser->isSuperAdmin()) {
+            return true;
+        }
+
+        // If goods out has related goods in, cannot be deleted
+        if ($this->goodsIns()->exists()) {
+            return false;
+        }
+
+        // If goods out comes from material request, only super admin can delete
+        if ($this->material_request_id) {
+            return false;
+        }
+
+        // Independent goods out can be deleted by logistic admin
+        return $authUser->isLogisticAdmin();
+    }
+
+    public function getDeleteTooltip()
+    {
+        $authUser = auth()->user();
+
+        if ($this->goodsIns()->exists()) {
+            return 'Cannot delete - has related Goods In';
+        }
+
+        if ($this->material_request_id && !$authUser->isSuperAdmin()) {
+            return 'Cannot delete - from Material Request (Super Admin only)';
+        }
+
+        if ($this->material_request_id && $authUser->isSuperAdmin()) {
+            return 'Delete (Super Admin - from Material Request)';
+        }
+
+        return 'Delete';
+    }
 }

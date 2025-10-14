@@ -57,11 +57,17 @@
                         <div class="col-lg-2">
                             <select id="filter-project" name="project" class="form-select select2">
                                 <option value="">All Projects</option>
+                                <option value="no_project" {{ request('project') == 'no_project' ? 'selected' : '' }}>
+                                    No Project
+                                </option>
                                 @foreach ($projects as $project)
-                                    <option value="{{ $project->id }}"
-                                        {{ request('project') == $project->id ? 'selected' : '' }}>
-                                        {{ $project->name }}
-                                    </option>
+                                    @if ($project->id !== 'no_project')
+                                        {{-- Skip the prepended "No Project" --}}
+                                        <option value="{{ $project->id }}"
+                                            {{ request('project') == $project->id ? 'selected' : '' }}>
+                                            {{ $project->name }}
+                                        </option>
+                                    @endif
                                 @endforeach
                             </select>
                         </div>
@@ -94,10 +100,15 @@
                             <tr>
                                 <td class="text-center">{{ $loop->iteration }}</td>
                                 <td>{{ $usage->inventory->name ?? '(No Material)' }}</td>
-                                <td>{{ $usage->project->name ?? '(No Project)' }}</td>
+                                <td>
+                                    <span class="badge {{ $usage->project_id ? 'bg-primary' : 'bg-secondary' }}">
+                                        {{ $usage->project->name ?? 'No Project' }}
+                                    </span>
+                                </td>
                                 <td style="font-weight: bold;">
                                     {{ rtrim(rtrim(number_format($usage->used_quantity, 2, '.', ''), '0'), '.') }}
-                                    {{ $usage->inventory->unit ?? '(No Unit)' }}</td>
+                                    {{ $usage->inventory->unit ?? '(No Unit)' }}
+                                </td>
                                 @if (auth()->user()->role === 'super_admin')
                                     <td>
                                         <div class="d-flex flex-wrap gap-1">

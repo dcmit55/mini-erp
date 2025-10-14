@@ -10,15 +10,32 @@ class MaterialUsageHelper
 {
     public static function sync($inventory_id, $project_id)
     {
+        // Pastikan project_id null jika kosong string
+        if (empty($project_id)) {
+            $project_id = null;
+        }
+
         // Hitung total Goods Out (hanya yang tidak dihapus)
         $goodsOutTotal = GoodsOut::where('inventory_id', $inventory_id)
-            ->where('project_id', $project_id)
-            ->whereNull('deleted_at') // Abaikan Goods Out yang dihapus
+            ->where(function ($q) use ($project_id) {
+                if ($project_id) {
+                    $q->where('project_id', $project_id);
+                } else {
+                    $q->whereNull('project_id');
+                }
+            })
+            ->whereNull('deleted_at')
             ->sum('quantity');
 
         // Hitung total Goods In
         $goodsInTotal = GoodsIn::where('inventory_id', $inventory_id)
-            ->where('project_id', $project_id)
+            ->where(function ($q) use ($project_id) {
+                if ($project_id) {
+                    $q->where('project_id', $project_id);
+                } else {
+                    $q->whereNull('project_id');
+                }
+            })
             ->sum('quantity');
 
         // Hitung used_quantity
@@ -32,7 +49,7 @@ class MaterialUsageHelper
             ],
             [
                 'used_quantity' => $used,
-            ]
+            ],
         );
     }
 }
