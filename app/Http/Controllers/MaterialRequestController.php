@@ -700,4 +700,67 @@ class MaterialRequestController extends Controller
 
         return response()->json($data);
     }
+
+    public function storeFromPlanning($planning)
+    {
+        try {
+            \Log::info('Processing material request from planning: ' . $planning->id . ' - ' . $planning->material_name);
+
+            // Cek apakah material ada di inventory
+            $inventoryId = \App\Models\Inventory::where('name', $planning->material_name)->value('id');
+
+            // Jika material tidak ada di inventory, buat dulu inventory baru
+            if (!$inventoryId) {
+                // Pastikan ada category default
+                $defaultCategory = \App\Models\Category::first();
+                if (!$defaultCategory) {
+                    $defaultCategory = \App\Models\Category::create([
+                        'name' => 'Default',
+                        'description' => 'Default category for material planning',
+                    ]);
+                }
+
+                $inventory = \App\Models\Inventory::create([
+                    'name' => $planning->material_name,
+                    'quantity' => 0,
+                    'unit' => optional($planning->unit)->name ?? 'pcs',
+                    'category_id' => $defaultCategory->id,
+                    'location' => 'Warehouse',
+                    'min_stock_level' => 0,
+                    'created_by' => 'system',
+                ]);
+                $inventoryId = $inventory->id;
+                \Log::info('New inventory created: ' . $inventory->name . ' (ID: ' . $inventoryId . ')');
+            }
+
+            // Ambil user berdasarkan ID dari planning
+            $user = \App\Models\User::find($planning->requested_by);
+            if (!$user) {
+                \Log::error('User not found with ID: ' . $planning->requested_by);
+                return null;
+            }
+
+            $username = $user->username;
+            \Log::info('User found - ID: ' . $planning->requested_by . ', Username: ' . $username);
+
+            // Buat material request
+            $materialRequest = \App\Models\MaterialRequest::create([
+                'inventory_id' => $inventoryId,
+                'project_id' => $planning->project_id,
+                'qty' => $planning->qty_needed,
+                'processed_qty' => 0,
+                'requested_by' => $username,
+                'remark' => 'Imported from Material Planning',
+                'status' => 'pending',
+            ]);
+
+            \Log::info('Material request successfully created with ID: ' . $materialRequest->id);
+
+            return $materialRequest;
+        } catch (\Exception $e) {
+            \Log::error('Error creating material request: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            return null;
+        }
+    }
 }

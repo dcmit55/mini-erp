@@ -241,4 +241,40 @@ class PurchaseRequestController extends Controller
             ->route('purchase_requests.index')
             ->with('success', 'Purchase request <strong>' . ($purchaseRequest->material_name ?? '-') . '</strong> deleted!');
     }
+
+    public function storeFromPlanning($planning)
+    {
+        try {
+            \Log::info('Processing purchase request from planning: ' . $planning->id . ' - ' . $planning->material_name);
+
+            // Cek apakah material ada di inventory
+            $inventoryId = \App\Models\Inventory::where('name', $planning->material_name)->value('id');
+
+            // Ambil user berdasarkan ID dari planning
+            $user = \App\Models\User::find($planning->requested_by);
+            if (!$user) {
+                \Log::error('User not found with ID: ' . $planning->requested_by);
+                return null;
+            }
+
+            $purchaseRequest = \App\Models\PurchaseRequest::create([
+                'inventory_id' => $inventoryId, // Bisa null untuk material baru
+                'material_name' => $planning->material_name,
+                'project_id' => $planning->project_id,
+                'required_quantity' => $planning->qty_needed,
+                'unit' => optional($planning->unit)->name ?? 'pcs',
+                'requested_by' => $user->id, // Gunakan user ID, bukan planning->requested_by
+                'remark' => 'Imported from Material Planning',
+                'type' => $inventoryId ? 'restock' : 'new_material',
+            ]);
+
+            \Log::info('Purchase request successfully created with ID: ' . $purchaseRequest->id);
+
+            return $purchaseRequest;
+        } catch (\Exception $e) {
+            \Log::error('Error creating purchase request: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            return null;
+        }
+    }
 }

@@ -7,6 +7,8 @@ use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
 class Kernel extends ConsoleKernel
 {
+    protected $commands = [Commands\FetchLarkJobOrders::class, Commands\TestLarkConnection::class];
+
     /**
      * Define the application's command schedule.
      *

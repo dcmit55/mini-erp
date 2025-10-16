@@ -1,7 +1,6 @@
 <?php
 
 return [
-
     /*
     |--------------------------------------------------------------------------
     | Third Party Services
@@ -30,4 +29,10 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'lark' => [
+        'app_id' => env('LARK_APP_ID'),
+        'app_secret' => env('LARK_APP_SECRET'),
+        'base_id' => env('LARK_BASE_ID'),
+        'table_id' => env('LARK_TABLE_ID'),
+    ],
 ];

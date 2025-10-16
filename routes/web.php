@@ -35,6 +35,7 @@ use App\Models\Shippings;
 use App\Http\Controllers\PreShippingController;
 use App\Models\PreShipping;
 use App\Http\Controllers\LeaveRequestController;
+use App\Http\Controllers\MaterialPlanningController;
 
 /*
 |--------------------------------------------------------------------------
@@ -64,7 +65,7 @@ Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->na
 Route::post('/register', [RegisterController::class, 'register']);
 
 Route::middleware(['auth'])->group(function () {
-    // Audit routes (only for super_admin)
+    // Audit
     Route::get('/audit', [App\Http\Controllers\AuditController::class, 'index'])->name('audit.index');
     Route::get('/audit/changes/{id}', [App\Http\Controllers\AuditController::class, 'getChanges'])->name('audit.changes');
 
@@ -109,6 +110,17 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/material_requests/{id}/reminder', [MaterialRequestController::class, 'sendReminder'])->name('material_requests.reminder');
     Route::get('material_requests/bulk_details', [MaterialRequestController::class, 'bulkDetails'])->name('material_requests.bulk_details');
     Route::post('/material_requests/{id}/quick-update', [MaterialRequestController::class, 'quickUpdate'])->name('material_requests.quick_update');
+
+    // Material Planning
+    Route::middleware(['auth'])
+        ->group(function () {
+            Route::get('/material-planning', [MaterialPlanningController::class, 'index'])->name('material_planning.index');
+            Route::get('/material-planning/create', [MaterialPlanningController::class, 'create'])->name('material_planning.create');
+            Route::post('/material-planning', [MaterialPlanningController::class, 'store'])->name('material_planning.store');
+            Route::delete('/material-planning/project/{projectId}', [MaterialPlanningController::class, 'destroyProject'])->name('material_planning.destroy_project');
+            Route::delete('/material-planning/{id}', [MaterialPlanningController::class, 'destroy'])->name('material_planning.destroy');
+        })
+        ->withoutMiddleware(['auth']);
 
     // Categories
     Route::post('/categories/quick-add', [CategoryController::class, 'store'])->name('categories.store');

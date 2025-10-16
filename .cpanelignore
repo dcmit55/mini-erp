@@ -1,0 +1,61 @@
+# ==============================
+#  Config for safe deployment
+# ==============================
+
+# --- 1. Environment & Config ---
+# .env
+# .env.*
+# /.env.example
+# /.cpanelignore
+# /.gitignore
+# /.gitattributes
+# /.editorconfig
+
+# --- 2. Local development files ---
+# /node_modules/
+# /vendor/
+# /public/hot
+# /public/storage
+# /public/mix-manifest.json
+/.vscode/
+/.idea/
+/_ide_helper.php
+/_ide_helper_models.php
+# /phpunit.xml
+# /package-lock.json
+# /yarn.lock
+
+# --- 3. Build & Test folders ---
+/tests/
+/bootstrap/cache/*.php
+/bootstrap/cache/packages.php
+/bootstrap/cache/services.php
+/storage/framework/cache/*
+/storage/framework/views/*
+/storage/framework/sessions/*
+/storage/logs/*
+/storage/debugbar/*
+/storage/testing/*
+# /storage/app/public/*
+
+# --- 4. Custom modules under development ---
+# -- (Remove the line below when module is ready to deploy) --
+/resources/views/material_planning/
+/app/Http/Controllers/MaterialPlanningController.php
+/app/Models/MaterialPlanning.php
+
+# --- 5. Miscellaneous system files ---
+/.DS_Store
+/Thumbs.db
+/npm-debug.log
+/yarn-error.log
+/.phpunit.result.cache
+# composer.lock
+
+# --- 6. Optional: ignore build scripts if you don’t deploy assets manually ---
+# /vite.config.js
+# /resources/js/*
+# /resources/sass/*
+# /resources/css/*
+# /resources/scss/*
+# /resources/ts/*

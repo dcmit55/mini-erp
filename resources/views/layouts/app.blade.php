@@ -182,6 +182,12 @@
                                                     href="{{ route('material_usage.index') }}">
                                                     <i class="fas fa-chart-line"></i> Material Usage
                                                 </a></li>
+                                            <li>
+                                                <a class="dropdown-item {{ request()->is('material-planning*') ? 'active' : '' }}"
+                                                    href="{{ route('material_planning.index') }}">
+                                                    <i class="fas fa-calendar-check"></i> Material Planning
+                                                </a>
+                                            </li>
                                             <li><a class="dropdown-item {{ request()->is('timings*') ? 'active' : '' }}"
                                                     href="{{ route('timings.index') }}">
                                                     <i class="fas fa-clock"></i> Timing
