@@ -107,6 +107,60 @@
                         </div>
                     </div>
 
+                    <!-- Personal Information Section -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="gender" class="form-label">Gender</label>
+                            <select name="gender" id="gender" class="form-select">
+                                <option value="">Select Gender</option>
+                                <option value="male" {{ old('gender', $employee->gender) == 'male' ? 'selected' : '' }}>
+                                    Male</option>
+                                <option value="female"
+                                    {{ old('gender', $employee->gender) == 'female' ? 'selected' : '' }}>Female</option>
+                            </select>
+                            @error('gender')
+                                <small class="text-danger">{{ $message }}</small>
+                            @enderror
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="ktp_id" class="form-label">KTP ID Number</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-card-text"></i></span>
+                                <input type="text" class="form-control" id="ktp_id" name="ktp_id"
+                                    value="{{ old('ktp_id', $employee->ktp_id) }}" placeholder="1234567890123456"
+                                    maxlength="20">
+                            </div>
+                            <small class="text-muted">Enter 16-digit KTP number</small>
+                            @error('ktp_id')
+                                <small class="text-danger">{{ $message }}</small>
+                            @enderror
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="place_of_birth" class="form-label">Place of Birth</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-geo-alt"></i></span>
+                                <input type="text" class="form-control" id="place_of_birth" name="place_of_birth"
+                                    value="{{ old('place_of_birth', $employee->place_of_birth) }}"
+                                    placeholder="e.g., Jakarta">
+                            </div>
+                            @error('place_of_birth')
+                                <small class="text-danger">{{ $message }}</small>
+                            @enderror
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="date_of_birth" class="form-label">Date of Birth</label>
+                            <input type="date" class="form-control" id="date_of_birth" name="date_of_birth"
+                                value="{{ old('date_of_birth', $employee->date_of_birth ? $employee->date_of_birth->format('Y-m-d') : '') }}"
+                                max="{{ date('Y-m-d') }}">
+                            @error('date_of_birth')
+                                <small class="text-danger">{{ $message }}</small>
+                            @enderror
+                        </div>
+                    </div>
+
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="department_id" class="form-label">Department <span
@@ -162,6 +216,15 @@
                                 <small class="text-danger">{{ $message }}</small>
                             @enderror
                         </div>
+                    </div>
+
+                    <!-- Address -->
+                    <div class="mb-3">
+                        <label for="address" class="form-label">Address</label>
+                        <textarea class="form-control" id="address" name="address" rows="2" placeholder="Enter full address...">{{ old('address', $employee->address) }}</textarea>
+                        @error('address')
+                            <small class="text-danger">{{ $message }}</small>
+                        @enderror
                     </div>
 
                     <!-- Financial Information -->

@@ -70,6 +70,11 @@ class EmployeeController extends Controller
             'department_id' => 'required|exists:departments,id',
             'email' => ['nullable', 'email', 'unique:employees,email'],
             'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string',
+            'gender' => 'nullable|in:male,female',
+            'ktp_id' => 'nullable|string|max:20|unique:employees,ktp_id',
+            'place_of_birth' => 'nullable|string|max:100',
+            'date_of_birth' => 'nullable|date|before:today',
             'rekening' => 'nullable|string|max:30',
             'hire_date' => 'nullable|date',
             'salary' => 'nullable|numeric|min:0',
@@ -83,7 +88,7 @@ class EmployeeController extends Controller
             'document_descriptions.*' => 'nullable|string',
         ]);
 
-        $employeeData = $request->only(['employee_no', 'name', 'position', 'department_id', 'email', 'phone', 'rekening', 'hire_date', 'salary', 'saldo_cuti', 'status', 'notes']);
+        $employeeData = $request->only(['employee_no', 'name', 'position', 'department_id', 'email', 'phone', 'address', 'gender', 'ktp_id', 'place_of_birth', 'date_of_birth', 'rekening', 'hire_date', 'salary', 'saldo_cuti', 'status', 'notes']);
 
         // Handle photo upload
         if ($request->hasFile('photo')) {
@@ -218,7 +223,6 @@ class EmployeeController extends Controller
             return $this->handleDocumentUpload($request, $employee);
         }
 
-        // Regular employee update logic
         $request->validate([
             'name' => 'required|string|max:255',
             'employee_no' => [
@@ -238,6 +242,11 @@ class EmployeeController extends Controller
             'department_id' => 'required|exists:departments,id',
             'email' => ['nullable', 'email', Rule::unique('employees')->ignore($employee->id)],
             'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string',
+            'gender' => 'nullable|in:male,female',
+            'ktp_id' => ['nullable', 'string', 'max:20', Rule::unique('employees')->ignore($employee->id)],
+            'place_of_birth' => 'nullable|string|max:100',
+            'date_of_birth' => 'nullable|date|before:today',
             'rekening' => 'nullable|string|max:30',
             'hire_date' => 'nullable|date',
             'salary' => 'nullable|numeric|min:0',
@@ -251,7 +260,7 @@ class EmployeeController extends Controller
             'document_descriptions.*' => 'nullable|string',
         ]);
 
-        $employeeData = $request->only(['employee_no', 'name', 'position', 'department_id', 'email', 'phone', 'rekening', 'hire_date', 'salary', 'saldo_cuti', 'status', 'notes']);
+        $employeeData = $request->only(['employee_no', 'name', 'position', 'department_id', 'email', 'phone', 'address', 'gender', 'ktp_id', 'place_of_birth', 'date_of_birth', 'rekening', 'hire_date', 'salary', 'saldo_cuti', 'status', 'notes']);
 
         // Handle photo upload
         if ($request->hasFile('photo')) {
@@ -370,6 +379,24 @@ class EmployeeController extends Controller
         return response()->json([
             'available' => $available,
             'formatted' => Employee::formatEmployeeNo($employeeNo),
+        ]);
+    }
+
+    public function checkKtpId(Request $request)
+    {
+        $ktpId = $request->input('ktp_id');
+        $employeeId = $request->input('employee_id');
+
+        $query = Employee::where('ktp_id', $ktpId);
+
+        if ($employeeId) {
+            $query->where('id', '!=', $employeeId);
+        }
+
+        $available = !$query->exists();
+
+        return response()->json([
+            'available' => $available,
         ]);
     }
 

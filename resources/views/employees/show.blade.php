@@ -108,6 +108,17 @@
                                 @endif
                             </div>
                         </div>
+
+                        <!-- Address in Contact Card -->
+                        @if ($employee->address)
+                            <div class="contact-item mb-3">
+                                <label class="fw-semibold text-muted small">Address</label>
+                                <div>
+                                    <i class="bi bi-geo-alt me-1"></i>{{ $employee->address }}
+                                </div>
+                            </div>
+                        @endif
+
                         <div class="contact-item mb-3">
                             <label class="fw-semibold text-muted small">Bank Account</label>
                             <div>
@@ -145,6 +156,43 @@
                                     @endif
                                 </div>
                             </div>
+
+                            <!-- Gender & KTP ID -->
+                            <div class="col-md-6 mb-3">
+                                <label class="fw-semibold text-muted small">Gender</label>
+                                <div class="fw-medium">
+                                    @if ($employee->gender)
+                                        <span class="badge bg-{{ $employee->gender == 'male' ? 'info' : 'pink' }}">
+                                            <i class="bi bi-gender-{{ $employee->gender }}"></i>
+                                            {{ ucfirst($employee->gender) }}
+                                        </span>
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="fw-semibold text-muted small">KTP ID</label>
+                                <div class="fw-medium">{{ $employee->formatted_ktp_id }}</div>
+                            </div>
+
+                            <!-- Place & Date of Birth -->
+                            <div class="col-md-6 mb-3">
+                                <label class="fw-semibold text-muted small">Place of Birth</label>
+                                <div class="fw-medium">{{ $employee->place_of_birth ?? '-' }}</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="fw-semibold text-muted small">Date of Birth</label>
+                                <div class="fw-medium">
+                                    @if ($employee->date_of_birth)
+                                        {{ $employee->date_of_birth->format('d M Y') }}
+                                        <small class="text-muted">({{ $employee->age }} years old)</small>
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
+                                </div>
+                            </div>
+
                             <div class="col-md-6 mb-3">
                                 <label class="fw-semibold text-muted small">Hire Date</label>
                                 <div class="fw-medium">
@@ -399,6 +447,16 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
             margin-bottom: 2px;
+        }
+
+        /* Gender badge color for female */
+        .bg-pink {
+            background-color: #e91e63 !important;
+        }
+
+        /* KTP ID formatting */
+        .fw-medium {
+            letter-spacing: 0.5px;
         }
 
         .card {

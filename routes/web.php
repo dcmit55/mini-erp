@@ -189,6 +189,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('employees/{employee}/timing', [EmployeeController::class, 'timing'])->name('employees.timing');
     Route::delete('employee-documents/{document}', [EmployeeController::class, 'deleteDocument'])->name('employee-documents.destroy');
     Route::post('/employees/check-employee-no', [EmployeeController::class, 'checkEmployeeNo'])->name('employees.check-employee-no');
+    Route::post('/employees/check-ktp', [EmployeeController::class, 'checkKtpId'])->name('employees.check-ktp');
     Route::get('/employee-documents/{document}/download', [EmployeeController::class, 'downloadDocument'])->name('employee-documents.download');
     Route::get('/employees/{employee}/documents', [EmployeeController::class, 'getDocuments'])->name('employees.documents');
 

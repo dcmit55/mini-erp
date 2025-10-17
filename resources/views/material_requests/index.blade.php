@@ -571,7 +571,7 @@
 @push('scripts')
     <script>
         $(document).ready(function() {
-            // ✅ Initialize DataTable with Server-Side Processing
+            // Initialize DataTable with Server-Side Processing
             const table = $('#datatable').DataTable({
                 processing: false, // Hide processing indicator
                 serverSide: true, // Enable server-side processing
@@ -587,14 +587,26 @@
                         d.requested_at = $('#filter-requested-at').val();
                         d.custom_search = $('#custom-search').val();
                     },
-                    error: function(xhr, error, thrown) {
+                    error: function(xhr, error, code) {
                         console.error('DataTables AJAX Error:', {
-                            xhr: xhr,
+                            status: xhr.status,
                             error: error,
-                            thrown: thrown,
+                            code: code,
                             responseText: xhr.responseText
                         });
-                        Swal.fire('Error', 'Failed to load data. Please refresh the page.', 'error');
+
+                        // Show user-friendly error
+                        if (xhr.status === 0) {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Connection Issue',
+                                text: 'Unable to refresh table data. Please check your connection or reload the page.',
+                                toast: true,
+                                position: 'top-end',
+                                showConfirmButton: false,
+                                timer: 5000
+                            });
+                        }
                     }
                 },
                 columns: [{

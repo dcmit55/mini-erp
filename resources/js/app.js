@@ -182,12 +182,13 @@ function updateDataTable(materialRequest) {
 
         if (existingRowIndex !== -1) {
             // Row exists in current view, reload table
-            table.draw("page"); // Reload current page only
+            table.ajax.reload(null, false); // Keep pagination
         } else {
-            // Row might be on different page, check if it should be visible with current filters
-            table.draw(false); // Reload without resetting pagination
+            // Row might be on different page
+            console.warn(
+                "Material request not in current view, skipping DataTable update"
+            );
         }
-        table.ajax.reload(null, false);
     } else {
         // Logika untuk kolom status
         let statusColumn = "";

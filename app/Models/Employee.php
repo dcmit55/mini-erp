@@ -13,10 +13,10 @@ class Employee extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $fillable = ['employee_no', 'name', 'photo', 'position', 'department_id', 'email', 'phone', 'rekening', 'hire_date', 'salary', 'saldo_cuti', 'status', 'notes'];
-
+    protected $fillable = ['employee_no', 'name', 'photo', 'position', 'department_id', 'email', 'phone', 'address', 'gender', 'ktp_id', 'place_of_birth', 'date_of_birth', 'rekening', 'hire_date', 'salary', 'saldo_cuti', 'status', 'notes'];
     protected $casts = [
         'hire_date' => 'date',
+        'date_of_birth' => 'date',
         'salary' => 'decimal:2',
     ];
 
@@ -72,6 +72,35 @@ class Employee extends Model
     public function getEmployeeNumberOnlyAttribute()
     {
         return str_replace('DCM-', '', $this->employee_no);
+    }
+
+    // accessor untuk age
+    public function getAgeAttribute()
+    {
+        return $this->date_of_birth ? $this->date_of_birth->age : null;
+    }
+
+    // Accessor untuk formatted KTP ID
+    public function getFormattedKtpIdAttribute()
+    {
+        if (!$this->ktp_id) {
+            return '-';
+        }
+
+        // Format: XXXX-XXXX-XXXX-XXXX (16 digits)
+        $clean = preg_replace('/[^0-9]/', '', $this->ktp_id);
+
+        if (strlen($clean) === 16) {
+            return substr($clean, 0, 4) . '-' . substr($clean, 4, 4) . '-' . substr($clean, 8, 4) . '-' . substr($clean, 12, 4);
+        }
+
+        return $this->ktp_id;
+    }
+
+    // Accessor untuk gender label
+    public function getGenderLabelAttribute()
+    {
+        return $this->gender ? ucfirst($this->gender) : '-';
     }
 
     public function timings()

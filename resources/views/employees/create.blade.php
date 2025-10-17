@@ -92,8 +92,8 @@
                                 </option>
                                 <option value="inactive" {{ old('status') == 'inactive' ? 'selected' : '' }}>Inactive
                                 </option>
-                                <option value="terminated" {{ old('status') == 'terminated' ? 'selected' : '' }}>
-                                    Terminated</option>
+                                <option value="terminated" {{ old('status') == 'terminated' ? 'selected' : '' }}>Terminated
+                                </option>
                             </select>
                             @error('status')
                                 <small class="text-danger">{{ $message }}</small>
@@ -101,9 +101,59 @@
                         </div>
                     </div>
 
+                    <!-- Personal Information Section -->
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="department" class="form-label">Department <span class="text-danger">*</span></label>
+                            <label for="gender" class="form-label">Gender</label>
+                            <select name="gender" id="gender" class="form-select">
+                                <option value="">Select Gender</option>
+                                <option value="male" {{ old('gender') == 'male' ? 'selected' : '' }}>Male</option>
+                                <option value="female" {{ old('gender') == 'female' ? 'selected' : '' }}>Female</option>
+                            </select>
+                            @error('gender')
+                                <small class="text-danger">{{ $message }}</small>
+                            @enderror
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="ktp_id" class="form-label">KTP ID Number</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-card-text"></i></span>
+                                <input type="text" class="form-control" id="ktp_id" name="ktp_id"
+                                    value="{{ old('ktp_id') }}" placeholder="1234567890123456" maxlength="20">
+                            </div>
+                            <small class="text-muted">Enter 16-digit KTP number</small>
+                            @error('ktp_id')
+                                <small class="text-danger">{{ $message }}</small>
+                            @enderror
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="place_of_birth" class="form-label">Place of Birth</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-geo-alt"></i></span>
+                                <input type="text" class="form-control" id="place_of_birth" name="place_of_birth"
+                                    value="{{ old('place_of_birth') }}" placeholder="e.g., Jakarta">
+                            </div>
+                            @error('place_of_birth')
+                                <small class="text-danger">{{ $message }}</small>
+                            @enderror
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="date_of_birth" class="form-label">Date of Birth</label>
+                            <input type="date" class="form-control" id="date_of_birth" name="date_of_birth"
+                                value="{{ old('date_of_birth') }}" max="{{ date('Y-m-d') }}">
+                            @error('date_of_birth')
+                                <small class="text-danger">{{ $message }}</small>
+                            @enderror
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="department" class="form-label">Department <span
+                                    class="text-danger">*</span></label>
                             <select name="department_id" id="department_id" class="form-select" required>
                                 <option value="">Select Department</option>
                                 @foreach ($departments as $dept)
@@ -154,6 +204,15 @@
                                 <small class="text-danger">{{ $message }}</small>
                             @enderror
                         </div>
+                    </div>
+
+                    <!-- Address -->
+                    <div class="mb-3">
+                        <label for="address" class="form-label">Address</label>
+                        <textarea class="form-control" id="address" name="address" rows="2" placeholder="Enter full address...">{{ old('address') }}</textarea>
+                        @error('address')
+                            <small class="text-danger">{{ $message }}</small>
+                        @enderror
                     </div>
 
                     <!-- Financial Information -->
@@ -918,6 +977,91 @@
                         });
                 }
             });
+            
+            // Format KTP ID input
+            const ktpInput = document.getElementById('ktp_id');
+            if (ktpInput) {
+                ktpInput.addEventListener('input', function() {
+                    // Only allow numbers
+                    this.value = this.value.replace(/[^0-9]/g, '');
+
+                    // Limit to 16 digits
+                    if (this.value.length > 16) {
+                        this.value = this.value.substring(0, 16);
+                    }
+                });
+
+                // Real-time validation
+                ktpInput.addEventListener('blur', function() {
+                    const value = this.value;
+                    const feedback = this.parentNode.parentNode.querySelector('.validation-feedback');
+
+                    // Remove existing feedback
+                    if (feedback) feedback.remove();
+
+                    if (value) {
+                        if (value.length !== 16) {
+                            showValidationError(this, 'KTP ID must be exactly 16 digits');
+                        } else {
+                            // Check uniqueness via AJAX
+                            fetch('/employees/check-ktp', {
+                                    method: 'POST',
+                                    headers: {
+                                        'X-CSRF-TOKEN': document.querySelector(
+                                            'meta[name="csrf-token"]').getAttribute('content'),
+                                        'Content-Type': 'application/json',
+                                        'Accept': 'application/json',
+                                    },
+                                    body: JSON.stringify({
+                                        ktp_id: value,
+                                        @if (isset($employee))
+                                            employee_id: {{ $employee->id }}
+                                        @endif
+                                    })
+                                })
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (!data.available) {
+                                        showValidationError(this, 'KTP ID already exists');
+                                    } else {
+                                        this.classList.remove('is-invalid');
+                                        this.classList.add('is-valid');
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('Error:', error);
+                                });
+                        }
+                    }
+                });
+            }
+
+            // Date of birth age calculator
+            const dobInput = document.getElementById('date_of_birth');
+            if (dobInput) {
+                dobInput.addEventListener('change', function() {
+                    const dob = new Date(this.value);
+                    const today = new Date();
+                    const age = Math.floor((today - dob) / (365.25 * 24 * 60 * 60 * 1000));
+
+                    const feedback = this.parentNode.querySelector('.validation-feedback');
+                    if (feedback) feedback.remove();
+
+                    if (age < 17) {
+                        showValidationError(this, 'Employee must be at least 17 years old');
+                    } else if (age > 100) {
+                        showValidationError(this, 'Please enter a valid date of birth');
+                    } else {
+                        this.classList.remove('is-invalid');
+                        this.classList.add('is-valid');
+
+                        const ageDisplay = document.createElement('small');
+                        ageDisplay.className = 'text-success d-block mt-1 validation-feedback';
+                        ageDisplay.textContent = `Age: ${age} years old`;
+                        this.parentNode.appendChild(ageDisplay);
+                    }
+                });
+            }
         });
     </script>
 @endpush
