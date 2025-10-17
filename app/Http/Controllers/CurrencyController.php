@@ -12,12 +12,20 @@ class CurrencyController extends Controller
     {
         $this->middleware('auth');
         $this->middleware(function ($request, $next) {
-            $rolesAllowed = ['super_admin', 'admin_finance', 'admin_logistic'];
+            $rolesAllowed = ['super_admin', 'admin_finance', 'admin_logistic', 'admin'];
             if (!in_array(Auth::user()->role, $rolesAllowed)) {
                 abort(403, 'Unauthorized');
             }
             return $next($request);
         });
+
+        // Batasi create/edit/delete
+        $this->middleware(function ($request, $next) {
+            if (Auth::user()->isReadOnlyAdmin()) {
+                abort(403, 'You do not have permission to modify currency data.');
+            }
+            return $next($request);
+        })->only(['store', 'update', 'destroy']);
     }
 
     public function index()
@@ -56,7 +64,9 @@ class CurrencyController extends Controller
                 if ($request->ajax()) {
                     return response()->json(['message' => $msg], 422);
                 }
-                return back()->withErrors(['name' => $msg])->withInput();
+                return back()
+                    ->withErrors(['name' => $msg])
+                    ->withInput();
             }
         }
 

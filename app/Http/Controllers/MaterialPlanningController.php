@@ -15,6 +15,13 @@ use Illuminate\Support\Facades\Log;
 
 class MaterialPlanningController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+
+        // ✅ Admin visitor bisa lihat
+    }
+
     public function index(Request $request)
     {
         // Buat query dasar dengan relasi yang diperlukan
@@ -22,7 +29,7 @@ class MaterialPlanningController extends Controller
 
         // Apply filter berdasarkan department jika ada
         if ($request->filled('department_filter')) {
-            $query->whereHas('project', function($q) use ($request) {
+            $query->whereHas('project', function ($q) use ($request) {
                 $q->where('department_id', $request->department_filter);
             });
         }
@@ -46,15 +53,10 @@ class MaterialPlanningController extends Controller
             $query->where('order_type', $request->order_type_filter);
         }
 
-        $plannings = $query->orderBy('eta_date')
-            ->get()
-            ->groupBy('project_id');
+        $plannings = $query->orderBy('eta_date')->get()->groupBy('project_id');
 
         // Dapatkan data projects dengan department
-        $projects = Project::with('department')
-            ->whereIn('id', $plannings->keys())
-            ->get()
-            ->keyBy('id');
+        $projects = Project::with('department')->whereIn('id', $plannings->keys())->get()->keyBy('id');
 
         // Dapatkan semua departments untuk filter
         $departments = Department::orderBy('name')->get();
@@ -70,21 +72,32 @@ class MaterialPlanningController extends Controller
 
             $projectStats[$projectId] = [
                 'created_date' => $createdDates->min(), // Tanggal pertama kali dibuat
-                'last_update' => $updatedDates->max(),  // Tanggal terakhir diupdate
+                'last_update' => $updatedDates->max(), // Tanggal terakhir diupdate
             ];
         }
 
-        return view('material_planning.index', compact(
-            'plannings',
-            'projects',
-            'departments',
-            'allProjects',
-            'projectStats'
-        ));
+        return view('material_planning.index', compact('plannings', 'projects', 'departments', 'allProjects', 'projectStats'));
+    }
+
+    public function create()
+    {
+        if (Auth::user()->isReadOnlyAdmin()) {
+            abort(403, 'You do not have permission to create material planning.');
+        }
+
+        return view('material_planning.create', [
+            'projects' => \App\Models\Project::orderBy('name')->get(),
+            'inventories' => \App\Models\Inventory::orderBy('name')->get(),
+            'units' => \App\Models\Unit::orderBy('name')->get(),
+        ]);
     }
 
     public function store(Request $request)
     {
+        if (Auth::user()->isReadOnlyAdmin()) {
+            abort(403, 'You do not have permission to create material planning.');
+        }
+
         $data = $request->validate([
             'plans' => 'required|array',
             'plans.*.project_id' => 'required|exists:projects,id',
@@ -125,8 +138,7 @@ class MaterialPlanningController extends Controller
                     $createdPlannings[] = $planning;
                     $createdCount++;
 
-                    Log::info("Planning created successfully with ID: " . $planning->id);
-
+                    Log::info('Planning created successfully with ID: ' . $planning->id);
                 } catch (\Exception $e) {
                     Log::error("Error creating planning {$planIndex}: " . $e->getMessage());
                     $errors[] = "Error pada planning {$planIndex} - material: {$plan['material_name']} - " . $e->getMessage();
@@ -137,23 +149,23 @@ class MaterialPlanningController extends Controller
             foreach ($createdPlannings as $planning) {
                 try {
                     if ($planning->order_type === 'material_req') {
-                        Log::info("Processing material request for planning ID: " . $planning->id);
+                        Log::info('Processing material request for planning ID: ' . $planning->id);
                         $result = app(\App\Http\Controllers\MaterialRequestController::class)->storeFromPlanning($planning);
                         if ($result) {
                             $materialReqCount++;
-                            Log::info("Material request created successfully for planning ID: " . $planning->id);
+                            Log::info('Material request created successfully for planning ID: ' . $planning->id);
                         } else {
-                            Log::error("Failed to create material request for planning ID: " . $planning->id);
+                            Log::error('Failed to create material request for planning ID: ' . $planning->id);
                             $errors[] = "Gagal membuat Material Request untuk: {$planning->material_name}";
                         }
                     } else {
-                        Log::info("Processing purchase request for planning ID: " . $planning->id);
+                        Log::info('Processing purchase request for planning ID: ' . $planning->id);
                         $result = app(\App\Http\Controllers\PurchaseRequestController::class)->storeFromPlanning($planning);
                         if ($result) {
                             $purchaseReqCount++;
-                            Log::info("Purchase request created successfully for planning ID: " . $planning->id);
+                            Log::info('Purchase request created successfully for planning ID: ' . $planning->id);
                         } else {
-                            Log::error("Failed to create purchase request for planning ID: " . $planning->id);
+                            Log::error('Failed to create purchase request for planning ID: ' . $planning->id);
                             $errors[] = "Gagal membuat Purchase Request untuk: {$planning->material_name}";
                         }
                     }
@@ -169,33 +181,35 @@ class MaterialPlanningController extends Controller
             $successMessage = "Material planning berhasil! {$createdCount} planning dibuat ({$materialReqCount} Material Request, {$purchaseReqCount} Purchase Request)";
 
             if (count($errors) > 0) {
-                return redirect()->route('material_planning.index')
+                return redirect()
+                    ->route('material_planning.index')
                     ->with('success', $successMessage)
                     ->with('warning', 'Beberapa item gagal diproses: ' . implode('<br>', $errors));
             }
 
             return redirect()->route('material_planning.index')->with('success', $successMessage);
-
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error("Fatal error in material planning store: " . $e->getMessage());
-            return redirect()->route('material_planning.index')
+            Log::error('Fatal error in material planning store: ' . $e->getMessage());
+            return redirect()
+                ->route('material_planning.index')
                 ->with('error', 'Terjadi kesalahan saat menyimpan planning: ' . $e->getMessage());
         }
-    }
-
-    public function create()
-    {
-        return view('material_planning.create', [
-            'projects' => \App\Models\Project::orderBy('name')->get(),
-            'inventories' => \App\Models\Inventory::orderBy('name')->get(),
-            'units' => \App\Models\Unit::orderBy('name')->get(),
-        ]);
     }
 
     // TAMBAHAN: Delete seluruh planning untuk project tertentu
     public function destroyProject($projectId)
     {
+        if (Auth::user()->isReadOnlyAdmin()) {
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'You do not have permission to delete material planning.',
+                ],
+                403,
+            );
+        }
+
         try {
             DB::beginTransaction();
 
@@ -203,10 +217,13 @@ class MaterialPlanningController extends Controller
             $plannings = MaterialPlanning::where('project_id', $projectId)->get();
 
             if ($plannings->isEmpty()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No material planning found for this project.'
-                ], 404);
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => 'No material planning found for this project.',
+                    ],
+                    404,
+                );
             }
 
             $projectName = $plannings->first()->project->name ?? 'Unknown Project';
@@ -221,23 +238,35 @@ class MaterialPlanningController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => "Successfully deleted {$materialCount} material planning items for project: {$projectName}"
+                'message' => "Successfully deleted {$materialCount} material planning items for project: {$projectName}",
             ]);
-
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error("Error deleting project material planning: " . $e->getMessage());
+            Log::error('Error deleting project material planning: ' . $e->getMessage());
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete material planning: ' . $e->getMessage()
-            ], 500);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Failed to delete material planning: ' . $e->getMessage(),
+                ],
+                500,
+            );
         }
     }
 
     // TAMBAHAN: Delete individual material planning
     public function destroy($id)
     {
+        if (Auth::user()->isReadOnlyAdmin()) {
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'You do not have permission to delete material planning.',
+                ],
+                403,
+            );
+        }
+
         try {
             $planning = MaterialPlanning::findOrFail($id);
             $materialName = $planning->material_name;
@@ -249,16 +278,18 @@ class MaterialPlanningController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => "Successfully deleted material planning: {$materialName} from project: {$projectName}"
+                'message' => "Successfully deleted material planning: {$materialName} from project: {$projectName}",
             ]);
-
         } catch (\Exception $e) {
-            Log::error("Error deleting material planning: " . $e->getMessage());
+            Log::error('Error deleting material planning: ' . $e->getMessage());
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete material planning: ' . $e->getMessage()
-            ], 500);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Failed to delete material planning: ' . $e->getMessage(),
+                ],
+                500,
+            );
         }
     }
 }

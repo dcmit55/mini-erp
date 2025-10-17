@@ -28,18 +28,27 @@ class TrashController extends Controller
             return $next($request);
         });
     }
+
     public function index()
     {
         return view('trash.index', [
-            'inventories'      => Inventory::onlyTrashed()->get(),
-            'projects'         => Project::onlyTrashed()->get(),
-            'materialRequests' => MaterialRequest::onlyTrashed()->with(['inventory', 'project'])->get(),
-            'goodsOuts'        => GoodsOut::onlyTrashed()->with(['inventory', 'project'])->get(),
-            'goodsIns'         => GoodsIn::onlyTrashed()->with(['inventory', 'project'])->get(),
-            'materialUsages'   => MaterialUsage::onlyTrashed()->with(['inventory', 'project'])->get(),
-            'currencies'       => Currency::onlyTrashed()->get(),
-            'users'            => User::onlyTrashed()->get(),
-            'employees'        => Employee::onlyTrashed()->get(),
+            'inventories' => Inventory::onlyTrashed()->get(),
+            'projects' => Project::onlyTrashed()->get(),
+            'materialRequests' => MaterialRequest::onlyTrashed()
+                ->with(['inventory', 'project'])
+                ->get(),
+            'goodsOuts' => GoodsOut::onlyTrashed()
+                ->with(['inventory', 'project'])
+                ->get(),
+            'goodsIns' => GoodsIn::onlyTrashed()
+                ->with(['inventory', 'project'])
+                ->get(),
+            'materialUsages' => MaterialUsage::onlyTrashed()
+                ->with(['inventory', 'project'])
+                ->get(),
+            'currencies' => Currency::onlyTrashed()->get(),
+            'users' => User::onlyTrashed()->get(),
+            'employees' => Employee::onlyTrashed()->get(),
         ]);
     }
 
@@ -52,25 +61,15 @@ class TrashController extends Controller
             $item = $modelClass::onlyTrashed()->findOrFail($id);
 
             // Cek duplikasi nama sebelum restore
-            if (
-                ($model === 'project' && Project::where('name', $item->name)->whereNull('deleted_at')->exists()) ||
-                ($model === 'inventory' && Inventory::where('name', $item->name)->whereNull('deleted_at')->exists()) ||
-                ($model === 'currency' && Currency::where('name', $item->name)->whereNull('deleted_at')->exists())
-            ) {
+            if (($model === 'project' && Project::where('name', $item->name)->whereNull('deleted_at')->exists()) || ($model === 'inventory' && Inventory::where('name', $item->name)->whereNull('deleted_at')->exists()) || ($model === 'currency' && Currency::where('name', $item->name)->whereNull('deleted_at')->exists())) {
                 return back()->with('error', ucfirst($model) . " <b>{$item->name}</b> cannot be restored because another active $model with the same name exists.");
             }
 
             $item->restore();
 
-            $restoredInfo = $item->name
-                ?? $item->username
-                ?? $item->remark
-                ?? (method_exists($item, 'getAttribute') ? $item->getAttribute('id') : $item->id);
+            $restoredInfo = $item->name ?? ($item->username ?? ($item->remark ?? (method_exists($item, 'getAttribute') ? $item->getAttribute('id') : $item->id)));
 
-            return back()->with(
-                'success',
-                ucfirst($model) . " <b>{$restoredInfo}</b> restored!"
-            );
+            return back()->with('success', ucfirst($model) . " <b>{$restoredInfo}</b> restored!");
         }
         return back()->with('error', 'Invalid model');
     }
@@ -102,23 +101,14 @@ class TrashController extends Controller
                 }
             }
 
-            $deletedInfo = $item->name
-                ?? $item->username
-                ?? $item->remark
-                ?? (method_exists($item, 'getAttribute') ? $item->getAttribute('id') : $item->id);
+            $deletedInfo = $item->name ?? ($item->username ?? ($item->remark ?? (method_exists($item, 'getAttribute') ? $item->getAttribute('id') : $item->id)));
 
             try {
                 $item->forceDelete(); // Hapus permanen dari database
-                return back()->with(
-                    'success',
-                    ucfirst($model) . " <b>{$deletedInfo}</b> permanently deleted!"
-                );
+                return back()->with('success', ucfirst($model) . " <b>{$deletedInfo}</b> permanently deleted!");
             } catch (\Illuminate\Database\QueryException $e) {
                 // Tangkap error constraint foreign key
-                return back()->with(
-                    'error',
-                    "Cannot delete " . ucfirst($model) . " <b>{$deletedInfo}</b> because this data is still used in another transaction."
-                );
+                return back()->with('error', 'Cannot delete ' . ucfirst($model) . " <b>{$deletedInfo}</b> because this data is still used in another transaction.");
             }
         }
 
@@ -128,16 +118,16 @@ class TrashController extends Controller
     private function getModelClass($model)
     {
         return match ($model) {
-            'inventory'        => Inventory::class,
-            'project'          => Project::class,
+            'inventory' => Inventory::class,
+            'project' => Project::class,
             'material_request' => MaterialRequest::class,
-            'goods_out'        => GoodsOut::class,
-            'goods_in'         => GoodsIn::class,
-            'material_usage'   => MaterialUsage::class,
-            'currency'         => Currency::class,
-            'user'             => User::class,
-            'employee'         => Employee::class,
-            default            => null,
+            'goods_out' => GoodsOut::class,
+            'goods_in' => GoodsIn::class,
+            'material_usage' => MaterialUsage::class,
+            'currency' => Currency::class,
+            'user' => User::class,
+            'employee' => Employee::class,
+            default => null,
         };
     }
 
@@ -160,18 +150,11 @@ class TrashController extends Controller
             if ($modelClass) {
                 $item = $modelClass::onlyTrashed()->find($id);
                 if ($item) {
-                    $info = $item->name
-                        ?? $item->username
-                        ?? $item->remark
-                        ?? (method_exists($item, 'getAttribute') ? $item->getAttribute('id') : $item->id);
+                    $info = $item->name ?? ($item->username ?? ($item->remark ?? (method_exists($item, 'getAttribute') ? $item->getAttribute('id') : $item->id)));
 
                     if ($action === 'restore') {
                         // Tambahkan pengecekan duplikasi nama
-                        if (
-                            ($model === 'project' && Project::where('name', $item->name)->whereNull('deleted_at')->exists()) ||
-                            ($model === 'inventory' && Inventory::where('name', $item->name)->whereNull('deleted_at')->exists()) ||
-                            ($model === 'currency' && Currency::where('name', $item->name)->whereNull('deleted_at')->exists())
-                        ) {
+                        if (($model === 'project' && Project::where('name', $item->name)->whereNull('deleted_at')->exists()) || ($model === 'inventory' && Inventory::where('name', $item->name)->whereNull('deleted_at')->exists()) || ($model === 'currency' && Currency::where('name', $item->name)->whereNull('deleted_at')->exists())) {
                             $errorInfo[] = ucfirst($model) . " <b>{$info}</b> cannot be restored because another active $model with the same name exists.";
                             continue;
                         }
@@ -191,10 +174,7 @@ class TrashController extends Controller
 
         $messages = [];
         if ($successInfo) {
-            $messages[] = ($action === 'restore'
-                ? 'Restored: '
-                : 'Permanently deleted: ')
-                . implode(', ', $successInfo) . ' successfully.';
+            $messages[] = ($action === 'restore' ? 'Restored: ' : 'Permanently deleted: ') . implode(', ', $successInfo) . ' successfully.';
         }
         if ($errorInfo) {
             $messages[] = 'Cannot delete because still used in another transaction: ' . implode(', ', $errorInfo) . '.';

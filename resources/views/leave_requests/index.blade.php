@@ -7,9 +7,11 @@
                 <h4 class="mb-0">
                     <i class="bi bi-calendar-plus me-2"></i>Leave Request List
                 </h4>
-                <a href="{{ route('leave_requests.create') }}" class="btn btn-primary">
-                    <i class="bi bi-plus-circle"></i>Add Leave Request
-                </a>
+                @if (auth()->user()->canModifyData())
+                    <a href="{{ route('leave_requests.create') }}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i>Add Leave Request
+                    </a>
+                @endif
             </div>
 
             <div class="card-body">
@@ -114,7 +116,7 @@
                                     </td>
 
                                     <td>{{ $leave->created_at->format('d-m-Y') }}</td>
-                                    @if (auth()->check() && in_array(auth()->user()->role, ['super_admin', 'admin_finance', 'admin_logistic', 'admin_hrd']))
+                                    @if (auth()->user()->canModifyData() && in_array(auth()->user()->role, ['super_admin', 'admin_finance', 'admin_hrd']))
                                         <td>
                                             <div class="d-flex gap-1">
                                                 <a href="{{ route('leave_requests.edit', $leave->id) }}"

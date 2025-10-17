@@ -20,11 +20,15 @@ class GoodsOutController extends Controller
     {
         $this->middleware('auth');
 
-        // Batasi akses untuk fitur tertentu agar hanya bisa diakses oleh admin_logistic dan super_admin
+        // Admin visitor bisa lihat goods out
+        // Tapi tidak bisa create/edit/delete
         $this->middleware(function ($request, $next) {
-            if (in_array($request->route()->getName(), ['goods_out.create_with_id', 'goods_out.store', 'goods_out.create_independent', 'goods_out.store_independent', 'goods_out.bulk', 'goods_out.edit', 'goods_out.update', 'goods_out.destroy']) && !in_array(Auth::user()->role, ['admin_logistic', 'super_admin'])) {
-                abort(403, 'Unauthorized');
+            $writeRoutes = ['goods_out.create_with_id', 'goods_out.store', 'goods_out.create_independent', 'goods_out.store_independent', 'goods_out.bulk', 'goods_out.edit', 'goods_out.update', 'goods_out.destroy'];
+
+            if (in_array($request->route()->getName(), $writeRoutes) && !in_array(Auth::user()->role, ['admin_logistic', 'super_admin'])) {
+                abort(403, 'You do not have permission to modify goods out data.');
             }
+
             return $next($request);
         })->only(['create', 'store', 'createIndependent', 'storeIndependent', 'bulkGoodsOut', 'edit', 'update', 'destroy']);
     }

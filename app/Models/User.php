@@ -33,6 +33,22 @@ class User extends Authenticatable
         return $this->role === 'super_admin';
     }
 
+    /**
+     * Check if user is read-only admin (visitor)
+     */
+    public function isReadOnlyAdmin()
+    {
+        return $this->role === 'admin';
+    }
+
+    /**
+     * Check if user can modify data (create/edit/delete)
+     */
+    public function canModifyData()
+    {
+        return !$this->isReadOnlyAdmin();
+    }
+
     public function isRequestOwner($username)
     {
         return $this->username === $username;

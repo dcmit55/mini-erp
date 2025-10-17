@@ -59,21 +59,23 @@ class InventoryController extends Controller
     {
         $this->middleware('auth');
         $this->middleware(function ($request, $next) {
-            $rolesAllowed = ['super_admin', 'admin_logistic', 'admin_mascot', 'admin_costume', 'admin_animatronic', 'admin_finance', 'general'];
+            $rolesAllowed = ['super_admin', 'admin_logistic', 'admin_finance', 'admin', 'general'];
             if (!in_array(Auth::user()->role, $rolesAllowed)) {
                 abort(403, 'Unauthorized');
             }
             return $next($request);
         });
 
-        // Batasi akses untuk fitur tertentu hanya untuk super_admin dan admin_logistic
+        // Batasi create/edit/delete HANYA untuk super_admin & admin_logistic
         $this->middleware(function ($request, $next) {
             $restrictedRoles = ['super_admin', 'admin_logistic'];
-            if (in_array($request->route()->getName(), ['inventory.create', 'inventory.import', 'inventory.edit', 'inventory.destroy']) && !in_array(Auth::user()->role, $restrictedRoles)) {
-                abort(403, 'Unauthorized');
+            $restrictedRoutes = ['inventory.create', 'inventory.import', 'inventory.edit', 'inventory.destroy', 'inventory.store', 'inventory.update'];
+
+            if (in_array($request->route()->getName(), $restrictedRoutes) && !in_array(Auth::user()->role, $restrictedRoles)) {
+                abort(403, 'You do not have permission to modify inventory data.');
             }
             return $next($request);
-        })->only(['create', 'import', 'edit', 'destroy']);
+        })->only(['create', 'store', 'import', 'edit', 'update', 'destroy']);
     }
 
     public function index(Request $request)

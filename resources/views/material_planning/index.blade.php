@@ -9,11 +9,13 @@
                         <i class="fas fa-clipboard-check gradient-icon me-2" style="font-size: 1.5rem;"></i>
                         <h2 class="mb-0" style="font-size:1.3rem;">Material Planning List</h2>
                     </div>
-                    <div>
-                        <a href="{{ route('material_planning.create') }}" class="btn btn-primary">
-                            <i class="fas fa-plus-circle me-1"></i> Add Material Planning
-                        </a>
-                    </div>
+                    @if (auth()->user()->canModifyData())
+                        <div>
+                            <a href="{{ route('material_planning.create') }}" class="btn btn-primary">
+                                <i class="fas fa-plus-circle me-1"></i> Add Material Planning
+                            </a>
+                        </div>
+                    @endif
                 </div>
 
                 @if (session('success'))
@@ -247,7 +249,6 @@
                                                                     {{ \Carbon\Carbon::parse($plan->eta_date)->format('d M Y') }}
                                                                 </td>
                                                                 <td>
-                                                                    <!-- DIPERBAIKI: Tambahkan tooltip dengan informasi user lengkap -->
                                                                     @if ($plan->requester)
                                                                         @php
                                                                             $requester = $plan->requester;
@@ -270,12 +271,12 @@
                                                                             data-bs-toggle="tooltip"
                                                                             data-bs-placement="top" data-bs-html="true"
                                                                             title="<div class='text-start'>
-                                <strong>Created by:</strong> {{ $requester->name }}<br>
-                                <strong>Username:</strong> {{ $requester->username }}<br>
-                                <strong>Department:</strong> {{ $department }}<br>
-                                <strong>Role:</strong> {{ $role }}<br>
-                                <strong>Created at:</strong> {{ $createdAt }}
-                             </div>"
+                                                                    <strong>Created by:</strong> {{ $requester->name }}<br>
+                                                                    <strong>Username:</strong> {{ $requester->username }}<br>
+                                                                    <strong>Department:</strong> {{ $department }}<br>
+                                                                    <strong>Role:</strong> {{ $role }}<br>
+                                                                    <strong>Created at:</strong> {{ $createdAt }}
+                                                                </div>"
                                                                             style="cursor: pointer;">
                                                                             <i class="fas fa-user me-1 text-primary"></i>
                                                                             {{ $requester->name }}

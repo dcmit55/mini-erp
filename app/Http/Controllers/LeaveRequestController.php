@@ -8,6 +8,11 @@ use App\Models\LeaveRequest;
 
 class LeaveRequestController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+    }
+
     /**
      * Display a listing of the resource.
      */
@@ -16,6 +21,7 @@ class LeaveRequestController extends Controller
         $leaveRequests = LeaveRequest::with(['employee.department'])
             ->latest()
             ->paginate(10);
+
         $leaveTypeLabels = [
             'ANNUAL' => 'Annual Leave',
             'MATERNITY' => 'Maternity (3 months)',
@@ -27,6 +33,7 @@ class LeaveRequestController extends Controller
             'DEATH_2' => 'Death of spouse/child or child in law/parent in law (2 days)',
             'BAPTISM' => 'Child Circumcision/Baptism (2 days)',
         ];
+
         return view('leave_requests.index', compact('leaveRequests', 'leaveTypeLabels'));
     }
 
@@ -35,8 +42,13 @@ class LeaveRequestController extends Controller
      */
     public function create()
     {
+        if (Auth::user()->isReadOnlyAdmin()) {
+            abort(403, 'You do not have permission to create leave requests.');
+        }
+
         $employees = Employee::with('department')->orderBy('name')->get();
         $leaveTypes = LeaveRequest::getTypeEnumOptions();
+
         // Label leave type (bisa custom, contoh di bawah)
         $leaveTypeLabels = [
             'ANNUAL' => 'Annual Leave',
@@ -49,27 +61,8 @@ class LeaveRequestController extends Controller
             'DEATH_2' => 'Death of spouse/child or child in law/parent in law (2 days)',
             'BAPTISM' => 'Child Circumcision/Baptism (2 days)',
         ];
-        return view('leave_requests.create', compact('employees', 'leaveTypes', 'leaveTypeLabels'));
-    }
 
-    public function updateApproval(Request $request, $id)
-    {
-        if (!in_array(auth()->user()->role, ['super_admin', 'admin_finance', 'admin_logistic', 'admin_hrd'])) {
-            abort(403, 'Unauthorized');
-        }
-        $request->validate([
-            'approval_1' => 'nullable|in:pending,approved,rejected',
-            'approval_2' => 'nullable|in:pending,approved,rejected',
-        ]);
-        $leave = LeaveRequest::findOrFail($id);
-        if ($request->has('approval_1')) {
-            $leave->approval_1 = $request->approval_1;
-        }
-        if ($request->has('approval_2')) {
-            $leave->approval_2 = $request->approval_2;
-        }
-        $leave->save();
-        return back()->with('success', 'Approval updated!');
+        return view('leave_requests.create', compact('employees', 'leaveTypes', 'leaveTypeLabels'));
     }
 
     /**
@@ -77,6 +70,10 @@ class LeaveRequestController extends Controller
      */
     public function store(Request $request)
     {
+        if (Auth::user()->isReadOnlyAdmin()) {
+            abort(403, 'You do not have permission to create leave requests.');
+        }
+
         $request->validate([
             'employee_id' => 'required|exists:employees,id',
             'start_date' => 'required|date',
@@ -85,6 +82,7 @@ class LeaveRequestController extends Controller
             'reason' => 'nullable|string',
             'duration' => 'required|numeric|min:0.01',
         ]);
+
         LeaveRequest::create([
             'employee_id' => $request->employee_id,
             'start_date' => $request->start_date,
@@ -95,15 +93,8 @@ class LeaveRequestController extends Controller
             'approval_1' => 'pending',
             'approval_2' => 'pending',
         ]);
-        return redirect()->route('leave_requests.index')->with('success', 'Leave request submitted!');
-    }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
+        return redirect()->route('leave_requests.index')->with('success', 'Leave request submitted!');
     }
 
     /**
@@ -111,9 +102,10 @@ class LeaveRequestController extends Controller
      */
     public function edit($id)
     {
-        if (!in_array(auth()->user()->role, ['super_admin', 'admin_finance', 'admin_logistic', 'admin_hrd'])) {
-            abort(403, 'Unauthorized');
+        if (Auth::user()->isReadOnlyAdmin()) {
+            abort(403, 'You do not have permission to edit leave requests.');
         }
+
         $leave = LeaveRequest::findOrFail($id);
         $employees = Employee::with('department')->orderBy('name')->get();
         $leaveTypes = LeaveRequest::getTypeEnumOptions();
@@ -128,6 +120,7 @@ class LeaveRequestController extends Controller
             'DEATH_2' => 'Death of spouse/child or child in law/parent in law (2 days)',
             'BAPTISM' => 'Child Circumcision/Baptism (2 days)',
         ];
+
         return view('leave_requests.edit', compact('leave', 'employees', 'leaveTypes', 'leaveTypeLabels'));
     }
 
@@ -136,18 +129,20 @@ class LeaveRequestController extends Controller
      */
     public function update(Request $request, $id)
     {
-        if (!in_array(auth()->user()->role, ['super_admin', 'admin_finance', 'admin_logistic', 'admin_hrd'])) {
-            abort(403, 'Unauthorized');
+        if (Auth::user()->isReadOnlyAdmin()) {
+            abort(403, 'You do not have permission to update leave requests.');
         }
+
         $request->validate([
             'employee_id' => 'required|exists:employees,id',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
             'type' => 'required|string',
-
             'reason' => 'nullable|string',
         ]);
+
         $leave = LeaveRequest::findOrFail($id);
+
         $leave->update([
             'employee_id' => $request->employee_id,
             'start_date' => $request->start_date,
@@ -156,7 +151,41 @@ class LeaveRequestController extends Controller
             'duration' => $request->duration,
             'reason' => $request->reason,
         ]);
+
         return redirect()->route('leave_requests.index')->with('success', 'Leave request updated!');
+    }
+
+    public function updateApproval(Request $request, $id)
+    {
+        if (Auth::user()->isReadOnlyAdmin()) {
+            abort(403, 'You do not have permission to approve leave requests.');
+        }
+
+        $request->validate([
+            'approval_1' => 'nullable|in:pending,approved,rejected',
+            'approval_2' => 'nullable|in:pending,approved,rejected',
+        ]);
+
+        $leave = LeaveRequest::findOrFail($id);
+        if ($request->has('approval_1')) {
+            $leave->approval_1 = $request->approval_1;
+        }
+
+        if ($request->has('approval_2')) {
+            $leave->approval_2 = $request->approval_2;
+        }
+
+        $leave->save();
+        
+        return back()->with('success', 'Approval updated!');
+    }
+
+    /**
+     * Display the specified resource.
+     */
+    public function show(string $id)
+    {
+        //
     }
 
     /**
@@ -164,9 +193,10 @@ class LeaveRequestController extends Controller
      */
     public function destroy($id)
     {
-        if (!in_array(auth()->user()->role, ['super_admin', 'admin_finance', 'admin_logistic', 'admin_hrd'])) {
-            abort(403, 'Unauthorized');
+        if (Auth::user()->isReadOnlyAdmin()) {
+            abort(403, 'You do not have permission to delete leave requests.');
         }
+
         $leave = LeaveRequest::findOrFail($id);
         $leave->delete();
         return redirect()->route('leave_requests.index')->with('success', 'Leave request deleted!');

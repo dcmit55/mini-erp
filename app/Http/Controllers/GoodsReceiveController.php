@@ -9,8 +9,23 @@ use App\Models\GoodsReceiveDetail;
 
 class GoodsReceiveController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+    }
+
     public function store(Request $request)
     {
+        if (Auth::user()->isReadOnlyAdmin()) {
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'You do not have permission to create goods receive.',
+                ],
+                403,
+            );
+        }
+
         $request->validate([
             'shipping_id' => 'required|exists:shippings,id',
             'arrived_date' => 'required|date',

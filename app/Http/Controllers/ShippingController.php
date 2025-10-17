@@ -9,8 +9,17 @@ use App\Models\ShippingDetail;
 
 class ShippingController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+    }
+
     public function create(Request $request)
     {
+        if (Auth::user()->isReadOnlyAdmin()) {
+            return redirect()->route('pre-shippings.index')->with('error', 'You do not have permission to create shipping.');
+        }
+
         // Decode group keys dari JSON
         $groupKeys = $request->input('group_keys');
         if (is_string($groupKeys)) {
@@ -36,6 +45,10 @@ class ShippingController extends Controller
 
     public function store(Request $request)
     {
+        if (Auth::user()->isReadOnlyAdmin()) {
+            return redirect()->route('pre-shippings.index')->with('error', 'You do not have permission to create shipping.');
+        }
+
         $request->validate([
             'international_waybill_no' => 'required|string|max:255',
             'freight_company' => 'required|string|max:255',

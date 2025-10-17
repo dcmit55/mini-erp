@@ -7,6 +7,11 @@ use App\Models\Shipping;
 
 class ShippingManagementController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+    }
+
     public function index()
     {
         $shippings = Shipping::with(['details.preShipping.purchaseRequest.project', 'details.preShipping.purchaseRequest.supplier'])

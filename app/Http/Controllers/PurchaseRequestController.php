@@ -18,13 +18,23 @@ class PurchaseRequestController extends Controller
 {
     public function __construct()
     {
+        $this->middleware('auth');
+
         $this->middleware(function ($request, $next) {
-            $allowedRoles = ['super_admin', 'admin_procurement'];
+            $allowedRoles = ['super_admin', 'admin_procurement', 'admin'];
             if (!in_array(auth()->user()->role, $allowedRoles)) {
                 abort(403, 'Unauthorized access to Procurement module.');
             }
             return $next($request);
         });
+
+        // Batasi create/edit/delete
+        $this->middleware(function ($request, $next) {
+            if (Auth::user()->isReadOnlyAdmin()) {
+                abort(403, 'You do not have permission to modify purchase requests.');
+            }
+            return $next($request);
+        })->only(['create', 'store', 'edit', 'update', 'destroy', 'quickUpdate', 'storeFromPlanning']);
     }
 
     /**

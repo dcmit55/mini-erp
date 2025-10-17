@@ -13,7 +13,7 @@ class AuditController extends Controller
     {
         $this->middleware('auth');
 
-        // Only super_admin can access audit logs
+        // Audit hanya untuk super_admin
         $this->middleware(function ($request, $next) {
             if (!Auth::user()->isSuperAdmin()) {
                 abort(403, 'Access denied. Super admin only.');

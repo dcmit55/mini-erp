@@ -9,6 +9,11 @@ use Illuminate\Support\Facades\DB;
 
 class PreShippingController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+    }
+
     public function index()
     {
         // Ambil semua purchase request yang sudah approved dan belum masuk shipping
@@ -101,6 +106,16 @@ class PreShippingController extends Controller
 
     public function quickUpdate(Request $request, $groupKey)
     {
+        if (Auth::user()->isReadOnlyAdmin()) {
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'You do not have permission to update pre-shipping data.',
+                ],
+                403,
+            );
+        }
+
         try {
             $request->validate([
                 'domestic_waybill_no' => 'nullable|string|max:255',

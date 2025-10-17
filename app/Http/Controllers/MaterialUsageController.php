@@ -18,7 +18,7 @@ class MaterialUsageController extends Controller
     {
         $this->middleware('auth');
         $this->middleware(function ($request, $next) {
-            $rolesAllowed = ['super_admin', 'admin_logistic', 'admin_mascot', 'admin_costume', 'admin_animatronic', 'admin_finance', 'general'];
+            $rolesAllowed = ['super_admin', 'admin_logistic', 'admin_mascot', 'admin_costume', 'admin_animatronic', 'admin_finance', 'admin', 'general'];
             if (!in_array(Auth::user()->role, $rolesAllowed)) {
                 abort(403, 'Unauthorized');
             }
@@ -125,6 +125,11 @@ class MaterialUsageController extends Controller
 
     public function destroy(MaterialUsage $material_usage)
     {
+        // Admin visitor tidak bisa delete
+        if (Auth::user()->isReadOnlyAdmin()) {
+            return redirect()->route('material_usage.index')->with('error', 'You do not have permission to delete material usage.');
+        }
+
         if (Auth::user()->role !== 'super_admin') {
             return redirect()->route('material_usage.index')->with('error', 'You are not authorized to delete this data.');
         }

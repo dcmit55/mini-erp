@@ -11,6 +11,11 @@ use Illuminate\Validation\Rule;
 
 class EmployeeController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+    }
+
     /**
      * Display a listing of the resource.
      */
@@ -25,6 +30,10 @@ class EmployeeController extends Controller
 
     public function create()
     {
+        if (Auth::user()->isReadOnlyAdmin()) {
+            abort(403, 'You do not have permission to create employees.');
+        }
+
         $departments = Department::orderBy('name')->get();
         $documentTypes = EmployeeDocument::getDocumentTypes();
         return view('employees.create', compact('departments', 'documentTypes'));
@@ -32,6 +41,10 @@ class EmployeeController extends Controller
 
     public function store(Request $request)
     {
+        if (Auth::user()->isReadOnlyAdmin()) {
+            abort(403, 'You do not have permission to create employees.');
+        }
+
         $request->validate([
             'name' => 'required|string|max:255',
             'employee_no' => [
@@ -182,6 +195,10 @@ class EmployeeController extends Controller
 
     public function edit(Employee $employee)
     {
+        if (Auth::user()->isReadOnlyAdmin()) {
+            abort(403, 'You do not have permission to edit employees.');
+        }
+
         $departments = Department::orderBy('name')->get();
         $documentTypes = EmployeeDocument::getDocumentTypes();
         $employee->load('documents');
@@ -190,6 +207,10 @@ class EmployeeController extends Controller
 
     public function update(Request $request, Employee $employee)
     {
+        if (Auth::user()->isReadOnlyAdmin()) {
+            abort(403, 'You do not have permission to edit employees.');
+        }
+
         // Check if this is a document upload request from modal
         if ($request->hasFile('documents') && $request->filled('document_types') && !$request->filled('name')) {
             return $this->handleDocumentUpload($request, $employee);
@@ -352,6 +373,10 @@ class EmployeeController extends Controller
 
     public function destroy(Employee $employee)
     {
+        if (Auth::user()->isReadOnlyAdmin()) {
+            abort(403, 'You do not have permission to delete employees.');
+        }
+
         // Delete photo
         if ($employee->photo && Storage::disk('public')->exists($employee->photo)) {
             Storage::disk('public')->delete($employee->photo);
@@ -370,6 +395,10 @@ class EmployeeController extends Controller
 
     public function deleteDocument(EmployeeDocument $document)
     {
+        if (Auth::user()->isReadOnlyAdmin()) {
+            return redirect()->route('employees.show', $document->employee_id)->with('error', 'You do not have permission to delete documents.');
+        }
+
         try {
             $employeeId = $document->employee_id;
 

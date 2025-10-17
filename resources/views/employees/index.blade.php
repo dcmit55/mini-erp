@@ -12,15 +12,17 @@
                     </div>
 
                     <!-- Stats Cards - Better mobile layout -->
-                    <div class="ms-lg-auto">
-                        <div class="d-flex flex-wrap gap-3 align-items-center justify-content-lg-end">
-                            <a href="{{ route('employees.create') }}" class="btn btn-primary btn-sm">
-                                <i class="bi bi-plus-circle me-1"></i>
-                                <span class="d-none d-sm-inline">Add Employee</span>
-                                <span class="d-sm-none">Add</span>
-                            </a>
+                    @if (auth()->user()->canModifyData())
+                        <div class="ms-lg-auto">
+                            <div class="d-flex flex-wrap gap-3 align-items-center justify-content-lg-end">
+                                <a href="{{ route('employees.create') }}" class="btn btn-primary btn-sm">
+                                    <i class="bi bi-plus-circle me-1"></i>
+                                    <span class="d-none d-sm-inline">Add Employee</span>
+                                    <span class="d-sm-none">Add</span>
+                                </a>
+                            </div>
                         </div>
-                    </div>
+                    @endif
                 </div>
 
                 @if (session('success'))
@@ -187,19 +189,21 @@
                                                 class="btn btn-primary btn-sm" title="View Details">
                                                 <i class="bi bi-eye"></i>
                                             </a>
-                                            <a href="{{ route('employees.edit', $employee) }}"
-                                                class="btn btn-warning btn-sm" title="Edit Employee">
-                                                <i class="bi bi-pencil"></i>
-                                            </a>
                                             <a href="{{ route('employees.timing', $employee) }}"
                                                 class="btn btn-info btn-sm" title="View Timings">
                                                 <i class="bi bi-clock"></i>
                                             </a>
-                                            <button type="button" class="btn btn-danger btn-sm delete-employee-btn"
-                                                data-employee-id="{{ $employee->id }}"
-                                                data-employee-name="{{ $employee->name }}" title="Delete Employee">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
+                                            @if (auth()->user()->canModifyData())
+                                                <a href="{{ route('employees.edit', $employee) }}"
+                                                    class="btn btn-warning btn-sm" title="Edit Employee">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                                <button type="button" class="btn btn-danger btn-sm delete-employee-btn"
+                                                    data-employee-id="{{ $employee->id }}"
+                                                    data-employee-name="{{ $employee->name }}" title="Delete Employee">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            @endif
                                         </div>
                                     </td>
                                 </tr>

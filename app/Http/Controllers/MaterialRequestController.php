@@ -288,6 +288,10 @@ class MaterialRequestController extends Controller
 
     public function create(Request $request)
     {
+        if (Auth::user()->isReadOnlyAdmin()) {
+            abort(403, 'You do not have permission to create material requests.');
+        }
+
         $inventories = Inventory::orderBy('name')->get();
         $projects = Project::with('department', 'status')->notArchived()->orderBy('name')->get();
         $departments = Department::orderBy('name')->get();
@@ -303,6 +307,10 @@ class MaterialRequestController extends Controller
 
     public function store(Request $request)
     {
+        if (Auth::user()->isReadOnlyAdmin()) {
+            abort(403, 'You do not have permission to create material requests.');
+        }
+
         $request->validate([
             'inventory_id' => 'required|exists:inventories,id',
             'project_id' => 'required|exists:projects,id',
@@ -357,6 +365,10 @@ class MaterialRequestController extends Controller
 
     public function bulkCreate()
     {
+        if (Auth::user()->isReadOnlyAdmin()) {
+            abort(403, 'You do not have permission to create material requests.');
+        }
+
         $inventories = Inventory::orderBy('name')->get();
         $projects = Project::with('department', 'status')->notArchived()->orderBy('name')->get();
         $departments = Department::orderBy('name')->get();
@@ -366,6 +378,10 @@ class MaterialRequestController extends Controller
 
     public function bulkStore(Request $request)
     {
+        if (Auth::user()->isReadOnlyAdmin()) {
+            abort(403, 'You do not have permission to create material requests.');
+        }
+
         $request->validate([
             'requests.*.inventory_id' => 'required|exists:inventories,id',
             'requests.*.project_id' => 'required|exists:projects,id',
@@ -439,6 +455,10 @@ class MaterialRequestController extends Controller
 
     public function edit(Request $request, $id)
     {
+        if (Auth::user()->isReadOnlyAdmin()) {
+            abort(403, 'You do not have permission to edit material requests.');
+        }
+
         $materialRequest = MaterialRequest::with('inventory', 'project')->findOrFail($id);
         $departments = Department::orderBy('name')->get();
 
@@ -490,6 +510,10 @@ class MaterialRequestController extends Controller
 
     public function update(Request $request, $id)
     {
+        if (Auth::user()->isReadOnlyAdmin()) {
+            abort(403, 'You do not have permission to edit material requests.');
+        }
+
         $materialRequest = MaterialRequest::findOrFail($id);
 
         // Jika status sudah delivered, tolak update status
@@ -574,6 +598,16 @@ class MaterialRequestController extends Controller
 
     public function quickUpdate(Request $request, $id)
     {
+        if (Auth::user()->isReadOnlyAdmin()) {
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'You do not have permission to update status.',
+                ],
+                403,
+            );
+        }
+
         $request->validate([
             'status' => 'required|in:pending,approved,delivered,canceled',
         ]);
@@ -614,6 +648,10 @@ class MaterialRequestController extends Controller
 
     public function destroy(Request $request, $id)
     {
+        if (Auth::user()->isReadOnlyAdmin()) {
+            abort(403, 'You do not have permission to delete material requests.');
+        }
+
         $materialRequest = MaterialRequest::findOrFail($id);
 
         $filters = [

@@ -35,16 +35,19 @@ class UserController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'username' => ['required', 'unique:users', 'regex:/^[A-Za-z0-9._-]+$/'],
-            'password' => 'required|min:6',
-            'role' => 'required|in:super_admin,admin_logistic,admin_mascot,admin_costume,admin_finance,admin_animatronic,general',
-            'department_id' => 'required|exists:departments,id',
-        ], [
-            'username.regex' => 'Username can only contain letters, numbers, dots, underscores, and dashes.',
-            'username.unique' => 'Username has already been taken.',
-            'password.min' => 'Password must be at least 6 characters.',
-        ]);
+        $validated = $request->validate(
+            [
+                'username' => ['required', 'unique:users', 'regex:/^[A-Za-z0-9._-]+$/'],
+                'password' => 'required|min:6',
+                'role' => 'required|in:super_admin,admin_logistic,admin_mascot,admin_costume,admin_finance,admin_animatronic,admin_procurement,admin,general',
+                'department_id' => 'required|exists:departments,id',
+            ],
+            [
+                'username.regex' => 'Username can only contain letters, numbers, dots, underscores, and dashes.',
+                'username.unique' => 'Username has already been taken.',
+                'password.min' => 'Password must be at least 6 characters.',
+            ],
+        );
 
         User::create([
             'username' => $validated['username'],

@@ -83,6 +83,7 @@
                                         'admin_logistic',
                                         'admin_finance',
                                         'admin_animatronic',
+                                        'admin',
                                         'general',
                                     ]))
                                     <li class="nav-item dropdown">
@@ -117,7 +118,7 @@
                                 @endif
 
                                 <!-- Procurement Dropdown -->
-                                @if (in_array(auth()->user()->role, ['super_admin', 'admin_procurement']))
+                                @if (in_array(auth()->user()->role, ['super_admin', 'admin_procurement', 'admin']))
                                     <li class="nav-item dropdown">
                                         <a class="nav-link dropdown-toggle {{ request()->is('purchase_requests*') ? 'active' : '' }}"
                                             href="#" id="procurementDropdown" role="button"
@@ -161,6 +162,7 @@
                                         'admin_logistic',
                                         'admin_finance',
                                         'admin_animatronic',
+                                        'admin',
                                         'general',
                                     ]))
                                     <li class="nav-item dropdown">
@@ -197,7 +199,7 @@
                                 @endif
 
                                 <!-- Finances Dropdown -->
-                                @if (in_array(auth()->user()->role, ['super_admin', 'admin_finance']))
+                                @if (in_array(auth()->user()->role, ['super_admin', 'admin_finance', 'admin']))
                                     <li class="nav-item dropdown">
                                         <a class="nav-link dropdown-toggle {{ request()->is('currencies*') || request()->is('costing-report*') || request()->is('final_project_summary*') ? 'active' : '' }}"
                                             href="#" id="financesDropdown" role="button"
@@ -222,7 +224,7 @@
                                 @endif
 
                                 <!-- Admin Dropdown -->
-                                @if (auth()->user()->role === 'super_admin')
+                                @if (in_array(auth()->user()->role, ['super_admin', 'admin']))
                                     <li class="nav-item dropdown">
                                         <a class="nav-link dropdown-toggle {{ request()->is('employees*') || request()->is('users*') || request()->routeIs('trash.index') ? 'active' : '' }}"
                                             href="#" id="adminDropdown" role="button"

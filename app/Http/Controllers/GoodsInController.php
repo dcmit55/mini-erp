@@ -18,13 +18,18 @@ class GoodsInController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
+
+        // Admin visitor bisa lihat goods in
+        // Tapi tidak bisa create/edit/delete
         $this->middleware(function ($request, $next) {
-            $rolesAllowed = ['super_admin', 'admin_logistic', 'admin_mascot', 'admin_costume', 'admin_animatronic', 'admin_finance', 'general'];
-            if (!in_array(Auth::user()->role, $rolesAllowed)) {
-                abort(403, 'Unauthorized');
+            $writeRoutes = ['goods_in.create_with_id', 'goods_in.store', 'goods_in.create_independent', 'goods_in.store_independent', 'goods_in.bulk', 'goods_in.edit', 'goods_in.update', 'goods_in.destroy'];
+
+            if (in_array($request->route()->getName(), $writeRoutes) && !in_array(Auth::user()->role, ['admin_logistic', 'super_admin'])) {
+                abort(403, 'You do not have permission to modify goods in data.');
             }
+
             return $next($request);
-        });
+        })->only(['create', 'store', 'createIndependent', 'storeIndependent', 'bulkGoodsOut', 'edit', 'update', 'destroy']);
     }
 
     public function index(Request $request)

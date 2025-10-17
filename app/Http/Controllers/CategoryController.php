@@ -10,15 +10,32 @@ class CategoryController extends Controller
 {
     public function store(Request $request)
     {
+        // Block admin visitor
+        if (Auth::user()->isReadOnlyAdmin()) {
+            if ($request->ajax()) {
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => 'You do not have permission to create categories.',
+                    ],
+                    403,
+                );
+            }
+            abort(403, 'You do not have permission to create categories.');
+        }
+
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255|unique:categories,name',
         ]);
         if ($validator->fails()) {
             if ($request->ajax()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => $validator->errors()->first()
-                ], 422);
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => $validator->errors()->first(),
+                    ],
+                    422,
+                );
             }
             return back()->withErrors($validator)->withInput();
         }

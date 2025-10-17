@@ -111,11 +111,13 @@
                     </div>
 
                     <!-- Spacer untuk mendorong tombol ke kanan -->
-                    <div class="ms-sm-auto d-flex flex-wrap gap-2">
-                        <a href="{{ route('purchase_requests.create') }}" class="btn btn-primary btn-sm flex-shrink-0">
-                            <i class="bi bi-plus-circle me-1"></i> Create Request
-                        </a>
-                    </div>
+                    @if (auth()->user()->canModifyData())
+                        <div class="ms-sm-auto d-flex flex-wrap gap-2">
+                            <a href="{{ route('purchase_requests.create') }}" class="btn btn-primary btn-sm flex-shrink-0">
+                                <i class="bi bi-plus-circle me-1"></i> Create Request
+                            </a>
+                        </div>
+                    @endif
                 </div>
 
                 <!-- Alerts -->
@@ -279,26 +281,28 @@
                                     </td>
                                     <td class="text-center">
                                         <div class="d-flex flex-nowrap gap-1 justify-content-center">
-                                            <a href="{{ route('purchase_requests.edit', $req->id) }}"
-                                                class="btn btn-warning btn-sm" title="Edit">
-                                                <i class="bi bi-pencil-square"></i>
-                                            </a>
                                             <button class="btn btn-info btn-sm btn-show-image"
                                                 data-img="{{ $req->img ? asset('storage/' . $req->img) : '' }}"
                                                 data-name="{{ $req->material_name }}" title="View Image">
                                                 <i class="bi bi-image"></i>
                                             </button>
-                                            <button class="btn btn-danger btn-sm btn-delete"
-                                                data-id="{{ $req->id }}" data-name="{{ $req->material_name }}"
-                                                title="Delete">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                            <form id="delete-form-{{ $req->id }}"
-                                                action="{{ route('purchase_requests.destroy', $req->id) }}"
-                                                method="POST" style="display:none;">
-                                                @csrf
-                                                @method('DELETE')
-                                            </form>
+                                            @if (auth()->user()->canModifyData())
+                                                <a href="{{ route('purchase_requests.edit', $req->id) }}"
+                                                    class="btn btn-warning btn-sm" title="Edit">
+                                                    <i class="bi bi-pencil-square"></i>
+                                                </a>
+                                                <button class="btn btn-danger btn-sm btn-delete"
+                                                    data-id="{{ $req->id }}" data-name="{{ $req->material_name }}"
+                                                    title="Delete">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                                <form id="delete-form-{{ $req->id }}"
+                                                    action="{{ route('purchase_requests.destroy', $req->id) }}"
+                                                    method="POST" style="display:none;">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                </form>
+                                            @endif
                                         </div>
                                     </td>
                                 </tr>

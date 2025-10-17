@@ -97,6 +97,10 @@ class ProjectController extends Controller
 
     public function store(Request $request)
     {
+        if (Auth::user()->isReadOnlyAdmin()) {
+            abort(403, 'You do not have permission to create projects.');
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:projects,name,NULL,id,deleted_at,NULL',
             'qty' => 'required|integer|min:1',
@@ -132,6 +136,10 @@ class ProjectController extends Controller
 
     public function storeQuick(Request $request)
     {
+        if (Auth::user()->isReadOnlyAdmin()) {
+            abort(403, 'You do not have permission to create projects.');
+        }
+
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255|unique:projects,name,NULL,id,deleted_at,NULL',
             'qty' => 'nullable|numeric|min:0',
@@ -174,6 +182,10 @@ class ProjectController extends Controller
 
     public function edit(Project $project)
     {
+        if (Auth::user()->isReadOnlyAdmin()) {
+            abort(403, 'You do not have permission to edit projects.');
+        }
+
         $project->load('parts');
         $departments = Department::orderBy('name')->get();
         $statuses = ProjectStatus::orderBy('name')->get();
@@ -182,6 +194,10 @@ class ProjectController extends Controller
 
     public function update(Request $request, Project $project)
     {
+        if (Auth::user()->isReadOnlyAdmin()) {
+            abort(403, 'You do not have permission to update projects.');
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:projects,name,' . $project->id . ',id,deleted_at,NULL',
             'qty' => 'required|integer|min:1',
@@ -221,6 +237,10 @@ class ProjectController extends Controller
     }
     public function destroy(Project $project)
     {
+        if (Auth::user()->isReadOnlyAdmin()) {
+            abort(403, 'You do not have permission to update projects.');
+        }
+
         // Validasi: Hanya pembuat proyek atau super_admin yang dapat menghapus
         if (Auth::user()->username !== $project->created_by && Auth::user()->role !== 'super_admin') {
             return redirect()->route('projects.index')->with('error', 'You are not authorized to delete this project.');

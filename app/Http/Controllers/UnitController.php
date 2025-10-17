@@ -10,15 +10,31 @@ class UnitController extends Controller
 {
     public function store(Request $request)
     {
+        if (Auth::user()->isReadOnlyAdmin()) {
+            if ($request->ajax()) {
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => 'You do not have permission to create units.',
+                    ],
+                    403,
+                );
+            }
+            abort(403, 'You do not have permission to create units.');
+        }
+
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255|unique:units,name',
         ]);
         if ($validator->fails()) {
             if ($request->ajax()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => $validator->errors()->first()
-                ], 422);
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => $validator->errors()->first(),
+                    ],
+                    422,
+                );
             }
             return back()->withErrors($validator)->withInput();
         }

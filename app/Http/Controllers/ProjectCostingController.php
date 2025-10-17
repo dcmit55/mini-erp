@@ -20,7 +20,7 @@ class ProjectCostingController extends Controller
     {
         $this->middleware('auth');
         $this->middleware(function ($request, $next) {
-            $rolesAllowed = ['super_admin', 'admin_finance'];
+            $rolesAllowed = ['super_admin', 'admin_finance', 'admin'];
             if (!in_array(Auth::user()->role, $rolesAllowed)) {
                 abort(403, 'Unauthorized');
             }

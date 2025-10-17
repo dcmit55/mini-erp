@@ -11,6 +11,11 @@ use Illuminate\Support\Facades\Validator;
 
 class TimingController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+    }
+
     public function index(Request $request)
     {
         $timings = Timing::with(['project.department', 'employee'])
@@ -69,6 +74,10 @@ class TimingController extends Controller
 
     public function create()
     {
+        if (Auth::user()->isReadOnlyAdmin()) {
+            abort(403, 'You do not have permission to create timing data.');
+        }
+
         $projects = Project::with(['parts', 'department'])->get();
 
         // HANYA ambil employee yang statusnya 'active'
@@ -80,6 +89,10 @@ class TimingController extends Controller
 
     public function storeMultiple(Request $request)
     {
+        if (Auth::user()->isReadOnlyAdmin()) {
+            return redirect()->route('timings.index')->with('error', 'You do not have permission to create timing data.');
+        }
+
         $attributes = [];
         $timings = $request->input('timings', []);
         foreach ($timings as $i => $timing) {
