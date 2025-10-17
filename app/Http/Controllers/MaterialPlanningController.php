@@ -18,8 +18,6 @@ class MaterialPlanningController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-
-        // ✅ Admin visitor bisa lihat
     }
 
     public function index(Request $request)

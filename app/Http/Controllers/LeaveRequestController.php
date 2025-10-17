@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
@@ -11,6 +12,15 @@ class LeaveRequestController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
+
+        // Admin HR, Super Admin, dan Admin (read-only) bisa akses
+        $this->middleware(function ($request, $next) {
+            $rolesAllowed = ['super_admin', 'admin_hr', 'admin'];
+            if (!in_array(Auth::user()->role, $rolesAllowed)) {
+                abort(403, 'Unauthorized access to HR module.');
+            }
+            return $next($request);
+        });
     }
 
     /**
@@ -42,10 +52,6 @@ class LeaveRequestController extends Controller
      */
     public function create()
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            abort(403, 'You do not have permission to create leave requests.');
-        }
-
         $employees = Employee::with('department')->orderBy('name')->get();
         $leaveTypes = LeaveRequest::getTypeEnumOptions();
 
@@ -102,10 +108,6 @@ class LeaveRequestController extends Controller
      */
     public function edit($id)
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            abort(403, 'You do not have permission to edit leave requests.');
-        }
-
         $leave = LeaveRequest::findOrFail($id);
         $employees = Employee::with('department')->orderBy('name')->get();
         $leaveTypes = LeaveRequest::getTypeEnumOptions();
@@ -161,6 +163,11 @@ class LeaveRequestController extends Controller
             abort(403, 'You do not have permission to approve leave requests.');
         }
 
+        // Hanya super_admin dan admin_hr yang bisa approve
+        if (!in_array(Auth::user()->role, ['super_admin', 'admin_hr'])) {
+            return back()->with('error', 'Only Super Admin and HR Admin can approve leave requests.');
+        }
+
         $request->validate([
             'approval_1' => 'nullable|in:pending,approved,rejected',
             'approval_2' => 'nullable|in:pending,approved,rejected',
@@ -176,7 +183,7 @@ class LeaveRequestController extends Controller
         }
 
         $leave->save();
-        
+
         return back()->with('success', 'Approval updated!');
     }
 
@@ -195,6 +202,11 @@ class LeaveRequestController extends Controller
     {
         if (Auth::user()->isReadOnlyAdmin()) {
             abort(403, 'You do not have permission to delete leave requests.');
+        }
+
+        // Hanya super_admin dan admin_hr yang bisa delete
+        if (!in_array(Auth::user()->role, ['super_admin', 'admin_hr'])) {
+            return redirect()->route('leave_requests.index')->with('error', 'Only Super Admin and HR Admin can delete leave requests.');
         }
 
         $leave = LeaveRequest::findOrFail($id);

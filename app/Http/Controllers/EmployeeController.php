@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use App\Models\Employee;
 use App\Models\Department;
@@ -14,6 +15,15 @@ class EmployeeController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
+
+        // Admin HR, Super Admin, dan Admin (read-only) bisa akses
+        $this->middleware(function ($request, $next) {
+            $rolesAllowed = ['super_admin', 'admin_hr', 'admin'];
+            if (!in_array(Auth::user()->role, $rolesAllowed)) {
+                abort(403, 'Unauthorized access to HR module.');
+            }
+            return $next($request);
+        });
     }
 
     /**
@@ -30,10 +40,6 @@ class EmployeeController extends Controller
 
     public function create()
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            abort(403, 'You do not have permission to create employees.');
-        }
-
         $departments = Department::orderBy('name')->get();
         $documentTypes = EmployeeDocument::getDocumentTypes();
         return view('employees.create', compact('departments', 'documentTypes'));
@@ -195,10 +201,6 @@ class EmployeeController extends Controller
 
     public function edit(Employee $employee)
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            abort(403, 'You do not have permission to edit employees.');
-        }
-
         $departments = Department::orderBy('name')->get();
         $documentTypes = EmployeeDocument::getDocumentTypes();
         $employee->load('documents');

@@ -83,6 +83,7 @@
                                         'admin_logistic',
                                         'admin_finance',
                                         'admin_animatronic',
+                                        'admin_hr',
                                         'admin',
                                         'general',
                                     ]))
@@ -118,7 +119,7 @@
                                 @endif
 
                                 <!-- Procurement Dropdown -->
-                                @if (in_array(auth()->user()->role, ['super_admin', 'admin_procurement', 'admin']))
+                                @if (in_array(auth()->user()->role, ['super_admin', 'admin_procurement', 'admin_hr', 'admin']))
                                     <li class="nav-item dropdown">
                                         <a class="nav-link dropdown-toggle {{ request()->is('purchase_requests*') ? 'active' : '' }}"
                                             href="#" id="procurementDropdown" role="button"
@@ -162,6 +163,7 @@
                                         'admin_logistic',
                                         'admin_finance',
                                         'admin_animatronic',
+                                        'admin_hr',
                                         'admin',
                                         'general',
                                     ]))
@@ -223,23 +225,36 @@
                                     </li>
                                 @endif
 
-                                <!-- Admin Dropdown -->
-                                @if (in_array(auth()->user()->role, ['super_admin', 'admin']))
+                                <!-- HR Dropdown -->
+                                @if (in_array(auth()->user()->role, ['super_admin', 'admin_hr', 'admin']))
                                     <li class="nav-item dropdown">
-                                        <a class="nav-link dropdown-toggle {{ request()->is('employees*') || request()->is('users*') || request()->routeIs('trash.index') ? 'active' : '' }}"
-                                            href="#" id="adminDropdown" role="button"
-                                            data-bs-toggle="dropdown" aria-expanded="false">
-                                            <i class="fas fa-user-shield"></i> Admin
+                                        <a class="nav-link dropdown-toggle {{ request()->is('employees*') || request()->routeIs('leave_requests.index') ? 'active' : '' }}"
+                                            href="#" id="hrDropdown" role="button" data-bs-toggle="dropdown"
+                                            aria-expanded="false">
+                                            <i class="fas fa-users"></i> HR
                                         </a>
-                                        <ul class="dropdown-menu" aria-labelledby="adminDropdown">
+                                        <ul class="dropdown-menu" aria-labelledby="hrDropdown">
                                             <li><a class="dropdown-item {{ request()->is('employees*') ? 'active' : '' }}"
                                                     href="{{ route('employees.index') }}">
-                                                    <i class="fas fa-users"></i> Employees
+                                                    <i class="fas fa-user-tie"></i> Employees
                                                 </a></li>
                                             <li><a class="dropdown-item {{ request()->routeIs('leave_requests.index') ? 'active' : '' }}"
                                                     href="{{ route('leave_requests.index') }}">
                                                     <i class="bi bi-calendar-plus"></i> Leave Requests
                                                 </a></li>
+                                        </ul>
+                                    </li>
+                                @endif
+
+                                <!-- Admin Dropdown (Tanpa Employee & Leave Request) -->
+                                @if (in_array(auth()->user()->role, ['super_admin', 'admin']))
+                                    <li class="nav-item dropdown">
+                                        <a class="nav-link dropdown-toggle {{ request()->is('users*') || request()->routeIs('trash.index') || request()->is('audit*') ? 'active' : '' }}"
+                                            href="#" id="adminDropdown" role="button"
+                                            data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="fas fa-user-shield"></i> Admin
+                                        </a>
+                                        <ul class="dropdown-menu" aria-labelledby="adminDropdown">
                                             <li><a class="dropdown-item {{ request()->is('users*') ? 'active' : '' }}"
                                                     href="{{ route('users.index') }}">
                                                     <i class="fas fa-user"></i> Users
@@ -248,18 +263,17 @@
                                                     href="{{ route('trash.index') }}">
                                                     <i class="fas fa-trash"></i> Trash
                                                 </a></li>
+                                            <!-- Audit Log (only for super_admin) -->
+                                            @if (Auth::user()->isSuperAdmin())
+                                                <li>
+                                                    <hr class="dropdown-divider">
+                                                </li>
+                                                <li><a class="dropdown-item {{ request()->is('audit*') ? 'active' : '' }}"
+                                                        href="{{ route('audit.index') }}">
+                                                        <i class="bi bi-shield-check"></i> Audit Log
+                                                    </a></li>
+                                            @endif
                                         </ul>
-                                    </li>
-                                @endif
-
-                                <!-- Audit Log (only for super_admin) -->
-                                @if (Auth::user()->isSuperAdmin())
-                                    <li class="nav-item">
-                                        <a class="nav-link {{ Request::is('audit*') ? 'active' : '' }}"
-                                            href="{{ route('audit.index') }}">
-                                            <i class="bi bi-shield-check"></i>
-                                            <span>Audit Log</span>
-                                        </a>
                                     </li>
                                 @endif
                             @endif

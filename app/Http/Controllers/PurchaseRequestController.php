@@ -21,7 +21,7 @@ class PurchaseRequestController extends Controller
         $this->middleware('auth');
 
         $this->middleware(function ($request, $next) {
-            $allowedRoles = ['super_admin', 'admin_procurement', 'admin'];
+            $allowedRoles = ['super_admin', 'admin_logistic', 'admin_procurement', 'admin_hr', 'admin'];
             if (!in_array(auth()->user()->role, $allowedRoles)) {
                 abort(403, 'Unauthorized access to Procurement module.');
             }

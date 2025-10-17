@@ -36,7 +36,7 @@
                                 <th>Approval 1</th>
                                 <th>Approval 2</th>
                                 <th>Submitted On</th>
-                                @if (auth()->check() && in_array(auth()->user()->role, ['super_admin', 'admin_finance', 'admin_logistic', 'admin_hrd']))
+                                @if (auth()->check() && in_array(auth()->user()->role, ['super_admin', 'admin_finance', 'admin_logistic', 'admin_hr']))
                                     <th>Action</th>
                                 @endif
                             </tr>
@@ -66,7 +66,7 @@
                                             {{ ucfirst($leave->approval_1) }}
                                         </span>
 
-                                        @if (auth()->check() && in_array(auth()->user()->role, ['super_admin', 'admin_finance', 'admin_logistic', 'admin_hrd']))
+                                        @if (auth()->check() && in_array(auth()->user()->role, ['super_admin', 'admin_finance', 'admin_logistic', 'admin_hr']))
                                             <form method="POST"
                                                 action="{{ route('leave_requests.updateApproval', $leave->id) }}"
                                                 class="d-inline">
@@ -94,7 +94,7 @@
                                             {{ ucfirst($leave->approval_2) }}
                                         </span>
 
-                                        @if (auth()->check() && in_array(auth()->user()->role, ['super_admin', 'admin_finance', 'admin_logistic', 'admin_hrd']))
+                                        @if (auth()->check() && in_array(auth()->user()->role, ['super_admin', 'admin_finance', 'admin_logistic', 'admin_hr']))
                                             <form method="POST"
                                                 action="{{ route('leave_requests.updateApproval', $leave->id) }}"
                                                 class="d-inline">
@@ -116,7 +116,7 @@
                                     </td>
 
                                     <td>{{ $leave->created_at->format('d-m-Y') }}</td>
-                                    @if (auth()->user()->canModifyData() && in_array(auth()->user()->role, ['super_admin', 'admin_finance', 'admin_hrd']))
+                                    @if (auth()->user()->canModifyData() && in_array(auth()->user()->role, ['super_admin', 'admin_finance', 'admin_hr']))
                                         <td>
                                             <div class="d-flex gap-1">
                                                 <a href="{{ route('leave_requests.edit', $leave->id) }}"

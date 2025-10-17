@@ -58,17 +58,9 @@ class InventoryController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        $this->middleware(function ($request, $next) {
-            $rolesAllowed = ['super_admin', 'admin_logistic', 'admin_finance', 'admin', 'general'];
-            if (!in_array(Auth::user()->role, $rolesAllowed)) {
-                abort(403, 'Unauthorized');
-            }
-            return $next($request);
-        });
-
         // Batasi create/edit/delete HANYA untuk super_admin & admin_logistic
         $this->middleware(function ($request, $next) {
-            $restrictedRoles = ['super_admin', 'admin_logistic'];
+            $restrictedRoles = ['super_admin', 'admin_logistic', 'admin_finance'];
             $restrictedRoutes = ['inventory.create', 'inventory.import', 'inventory.edit', 'inventory.destroy', 'inventory.store', 'inventory.update'];
 
             if (in_array($request->route()->getName(), $restrictedRoutes) && !in_array(Auth::user()->role, $restrictedRoles)) {

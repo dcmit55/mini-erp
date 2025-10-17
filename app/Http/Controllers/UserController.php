@@ -39,7 +39,7 @@ class UserController extends Controller
             [
                 'username' => ['required', 'unique:users', 'regex:/^[A-Za-z0-9._-]+$/'],
                 'password' => 'required|min:6',
-                'role' => 'required|in:super_admin,admin_logistic,admin_mascot,admin_costume,admin_finance,admin_animatronic,admin_procurement,admin,general',
+                'role' => 'required|in:super_admin,admin_logistic,admin_mascot,admin_costume,admin_finance,admin_animatronic,admin_procurement,admin_hr,admin,general',
                 'department_id' => 'required|exists:departments,id',
             ],
             [
@@ -76,7 +76,7 @@ class UserController extends Controller
     {
         $request->validate([
             'username' => 'required|unique:users,username,' . $id,
-            'role' => 'required',
+            'role' => 'required|in:super_admin,admin_logistic,admin_mascot,admin_costume,admin_finance,admin_animatronic,admin_procurement,admin_hr,admin,general', // ✅ Tambahkan 'admin_hr'
             'password' => 'nullable|min:6',
             'department_id' => 'required|exists:departments,id',
         ]);
