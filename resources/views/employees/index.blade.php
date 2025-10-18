@@ -78,7 +78,7 @@
                                 <th class="d-none d-lg-table-cell">Contact</th>
                                 <th class="d-none d-xl-table-cell">Hire Date</th>
                                 <th class="text-center">Documents</th>
-                                <th class="d-none d-sm-table-cell">Status</th>
+                                <th class="d-none d-sm-table-cell">Type & Status</th>
                                 <th width="140" class="text-center">Actions</th>
                             </tr>
                         </thead>
@@ -158,7 +158,13 @@
                                             <span class="badge bg-secondary small">No docs</span>
                                         @endif
                                     </td>
-                                    <td class="d-none d-sm-table-cell">
+                                    <td>
+                                        {{-- Employment Type Badge --}}
+                                        <span class="badge bg-{{ $employee->employment_type_badge['color'] }} mb-1">
+                                            {{ $employee->employment_type }}
+                                        </span>
+                                        <br>
+                                        {{-- Employment Status Badge --}}
                                         <span class="badge bg-{{ $employee->status_badge['color'] }}">
                                             {{ $employee->status_badge['text'] }}
                                         </span>

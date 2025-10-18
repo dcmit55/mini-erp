@@ -49,8 +49,8 @@
                             <img src="{{ $employee->photo_url }}" alt="{{ $employee->name }}" class="rounded-circle shadow"
                                 style="width: 120px; height: 120px; object-fit: cover;">
                             <span
-                                class="position-absolute bottom-0 end-0 badge bg-{{ $employee->status_badge['color'] }} rounded-pill">
-                                {{ $employee->status_badge['text'] }}
+                                class="position-absolute bottom-0 end-0 badge bg-{{ $employee->employment_type_badge['color'] }} rounded-pill">
+                                {{ $employee->employment_type }}
                             </span>
                         </div>
                         <h4 class="card-title mb-1">{{ $employee->name }}</h4>
@@ -208,7 +208,7 @@
                                 <label class="fw-semibold text-muted small">Salary</label>
                                 <div class="fw-medium">{{ $employee->formatted_salary }}</div>
                             </div>
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-12 mb-3">
                                 <label class="fw-semibold text-muted small">Leave Balance</label>
                                 <div class="fw-medium">
                                     <span
@@ -217,12 +217,24 @@
                                     </span>
                                 </div>
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="fw-semibold text-muted small">Status</label>
-                                <div>
-                                    <span class="badge bg-{{ $employee->status_badge['color'] }}">
-                                        {{ $employee->status_badge['text'] }}
-                                    </span>
+                            <div class="col-md-6">
+                                <div class="info-item mb-3">
+                                    <label class="text-muted small mb-1">Employment Type</label>
+                                    <div class="fw-semibold">
+                                        <span class="badge bg-{{ $employee->employment_type_badge['color'] }}">
+                                            {{ $employee->employment_type }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="info-item mb-3">
+                                    <label class="text-muted small mb-1">Status</label>
+                                    <div class="fw-semibold">
+                                        <span class="badge bg-{{ $employee->status_badge['color'] }}">
+                                            {{ $employee->status_badge['text'] }}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </div>

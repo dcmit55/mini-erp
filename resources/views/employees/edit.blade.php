@@ -75,7 +75,7 @@
                     </div>
 
                     <div class="row">
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label for="name" class="form-label">Employee Name <span
                                     class="text-danger">*</span></label>
                             <div class="input-group">
@@ -87,7 +87,23 @@
                                 <small class="text-danger">{{ $message }}</small>
                             @enderror
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
+                            <label for="employment_type" class="form-label">Employment Type <span
+                                    class="text-danger">*</span></label>
+                            <select name="employment_type" id="employment_type" class="form-select" required>
+                                <option value="">Select Employment Type</option>
+                                @foreach ($employmentTypes as $key => $label)
+                                    <option value="{{ $key }}"
+                                        {{ old('employment_type', $employee->employment_type) == $key ? 'selected' : '' }}>
+                                        {{ $label }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('employment_type')
+                                <small class="text-danger">{{ $message }}</small>
+                            @enderror
+                        </div>
+                        <div class="col-md-4 mb-3">
                             <label for="status" class="form-label">Employment Status <span
                                     class="text-danger">*</span></label>
                             <select name="status" id="status" class="form-select" required>

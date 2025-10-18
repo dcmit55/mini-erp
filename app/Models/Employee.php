@@ -13,7 +13,7 @@ class Employee extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $fillable = ['employee_no', 'name', 'photo', 'position', 'department_id', 'email', 'phone', 'address', 'gender', 'ktp_id', 'place_of_birth', 'date_of_birth', 'rekening', 'hire_date', 'salary', 'saldo_cuti', 'status', 'notes'];
+    protected $fillable = ['employee_no', 'name', 'employment_type', 'photo', 'position', 'department_id', 'email', 'phone', 'address', 'gender', 'ktp_id', 'place_of_birth', 'date_of_birth', 'rekening', 'hire_date', 'salary', 'saldo_cuti', 'status', 'notes'];
     protected $casts = [
         'hire_date' => 'date',
         'date_of_birth' => 'date',
@@ -167,5 +167,32 @@ class Employee extends Model
         $formatted = preg_replace('/(\d{4})(?=\d)/', '$1-', $clean);
 
         return $formatted;
+    }
+
+    // Tambahkan accessor untuk employment type badge
+    public function getEmploymentTypeBadgeAttribute()
+    {
+        $colors = [
+            'PKWT' => 'primary',
+            'PKWTT' => 'success',
+            'Daily Worker' => 'warning',
+            'Probation' => 'info',
+        ];
+
+        return [
+            'color' => $colors[$this->employment_type] ?? 'secondary',
+            'text' => $this->employment_type,
+        ];
+    }
+
+    // Static method untuk employment type options
+    public static function getEmploymentTypeOptions()
+    {
+        return [
+            'PKWT' => 'PKWT (Fixed-term Contract)',
+            'PKWTT' => 'PKWTT (Permanent)',
+            'Daily Worker' => 'Daily Worker',
+            'Probation' => 'Probation',
+        ];
     }
 }

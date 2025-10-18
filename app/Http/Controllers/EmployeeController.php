@@ -42,7 +42,8 @@ class EmployeeController extends Controller
     {
         $departments = Department::orderBy('name')->get();
         $documentTypes = EmployeeDocument::getDocumentTypes();
-        return view('employees.create', compact('departments', 'documentTypes'));
+        $employmentTypes = Employee::getEmploymentTypeOptions();
+        return view('employees.create', compact('departments', 'documentTypes', 'employmentTypes'));
     }
 
     public function store(Request $request)
@@ -53,6 +54,7 @@ class EmployeeController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:255',
+            'employment_type' => 'nullable|in:PKWT,PKWTT,Daily Worker,Probation',
             'employee_no' => [
                 'nullable',
                 'string',
@@ -88,7 +90,7 @@ class EmployeeController extends Controller
             'document_descriptions.*' => 'nullable|string',
         ]);
 
-        $employeeData = $request->only(['employee_no', 'name', 'position', 'department_id', 'email', 'phone', 'address', 'gender', 'ktp_id', 'place_of_birth', 'date_of_birth', 'rekening', 'hire_date', 'salary', 'saldo_cuti', 'status', 'notes']);
+        $employeeData = $request->only(['employee_no', 'name', 'employment_type', 'position', 'department_id', 'email', 'phone', 'address', 'gender', 'ktp_id', 'place_of_birth', 'date_of_birth', 'rekening', 'hire_date', 'salary', 'saldo_cuti', 'status', 'notes']);
 
         // Handle photo upload
         if ($request->hasFile('photo')) {
@@ -106,7 +108,7 @@ class EmployeeController extends Controller
 
                     EmployeeDocument::create([
                         'employee_id' => $employee->id,
-                        'document_type' => $request->document_types[$index] ?? 'lainnya',
+                        'document_type' => $request->document_types[$index] ?? 'others',
                         'document_name' => $request->document_names[$index] ?? $file->getClientOriginalName(),
                         'file_path' => $filePath,
                         'file_size' => $file->getSize(),
@@ -208,8 +210,9 @@ class EmployeeController extends Controller
     {
         $departments = Department::orderBy('name')->get();
         $documentTypes = EmployeeDocument::getDocumentTypes();
+        $employmentTypes = Employee::getEmploymentTypeOptions();
         $employee->load('documents');
-        return view('employees.edit', compact('employee', 'departments', 'documentTypes'));
+        return view('employees.edit', compact('employee', 'departments', 'documentTypes', 'employmentTypes'));
     }
 
     public function update(Request $request, Employee $employee)
@@ -225,6 +228,7 @@ class EmployeeController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:255',
+            'employment_type' => 'required|in:PKWT,PKWTT,Daily Worker,Probation',
             'employee_no' => [
                 'required',
                 'string',
@@ -260,7 +264,7 @@ class EmployeeController extends Controller
             'document_descriptions.*' => 'nullable|string',
         ]);
 
-        $employeeData = $request->only(['employee_no', 'name', 'position', 'department_id', 'email', 'phone', 'address', 'gender', 'ktp_id', 'place_of_birth', 'date_of_birth', 'rekening', 'hire_date', 'salary', 'saldo_cuti', 'status', 'notes']);
+        $employeeData = $request->only(['employee_no', 'name', 'employment_type', 'position', 'department_id', 'email', 'phone', 'address', 'gender', 'ktp_id', 'place_of_birth', 'date_of_birth', 'rekening', 'hire_date', 'salary', 'saldo_cuti', 'status', 'notes']);
 
         // Handle photo upload
         if ($request->hasFile('photo')) {
