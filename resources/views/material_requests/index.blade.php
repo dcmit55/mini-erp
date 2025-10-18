@@ -587,26 +587,14 @@
                         d.requested_at = $('#filter-requested-at').val();
                         d.custom_search = $('#custom-search').val();
                     },
-                    error: function(xhr, error, code) {
+                    error: function(xhr, error, thrown) {
                         console.error('DataTables AJAX Error:', {
-                            status: xhr.status,
+                            xhr: xhr,
                             error: error,
-                            code: code,
+                            thrown: thrown,
                             responseText: xhr.responseText
                         });
-
-                        // Show user-friendly error
-                        if (xhr.status === 0) {
-                            Swal.fire({
-                                icon: 'warning',
-                                title: 'Connection Issue',
-                                text: 'Unable to refresh table data. Please check your connection or reload the page.',
-                                toast: true,
-                                position: 'top-end',
-                                showConfirmButton: false,
-                                timer: 5000
-                            });
-                        }
+                        Swal.fire('Error', 'Failed to load data. Please refresh the page.', 'error');
                     }
                 },
                 columns: [{
