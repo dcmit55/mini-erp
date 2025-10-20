@@ -48,8 +48,10 @@ use App\Http\Controllers\MaterialPlanningController;
 |
 */
 
-//all accessible without login leave request
-Route::resource('leave_requests', LeaveRequestController::class);
+// Leave Requests - Public access untuk create & index
+Route::get('leave_requests', [LeaveRequestController::class, 'index'])->name('leave_requests.index');
+Route::get('leave_requests/create', [LeaveRequestController::class, 'create'])->name('leave_requests.create');
+Route::post('leave_requests', [LeaveRequestController::class, 'store'])->name('leave_requests.store');
 
 Auth::routes([
     'reset' => false,
@@ -193,16 +195,14 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/employee-documents/{document}/download', [EmployeeController::class, 'downloadDocument'])->name('employee-documents.download');
     Route::get('/employees/{employee}/documents', [EmployeeController::class, 'getDocuments'])->name('employees.documents');
 
-    // Employee leave balance check
-    Route::get('/employees/{employee}/leave-balance', [EmployeeController::class, 'getLeaveBalance'])
-        ->name('employees.leave-balance')
-        ->middleware('auth');
+    // Employee leave balance check - Authenticated only
+    Route::get('/employees/{employee}/leave-balance', [EmployeeController::class, 'getLeaveBalance'])->name('employees.leave-balance');
 
-    //leave requests
-    Route::post('leave_requests/{id}/approval', [LeaveRequestController::class, 'updateApproval'])
-        ->name('leave_requests.updateApproval')
-        ->middleware('auth');
-    // Route::resource('leave_requests', \App\Http\Controllers\LeaveRequestController::class)->middleware('auth');
+    // Leave Request - Authenticated only
+    Route::get('leave_requests/{id}/edit', [LeaveRequestController::class, 'edit'])->name('leave_requests.edit');
+    Route::put('leave_requests/{id}', [LeaveRequestController::class, 'update'])->name('leave_requests.update');
+    Route::delete('leave_requests/{id}', [LeaveRequestController::class, 'destroy'])->name('leave_requests.destroy');
+    Route::post('leave_requests/{id}/approval', [LeaveRequestController::class, 'updateApproval'])->name('leave_requests.updateApproval');
 
     //Timming
     Route::resource('timings', TimingController::class)->only(['index', 'create', 'store', 'show']);

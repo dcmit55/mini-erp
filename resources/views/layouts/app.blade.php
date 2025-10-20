@@ -226,25 +226,37 @@
                                 @endif
 
                                 <!-- HR Dropdown -->
-                                @if (in_array(auth()->user()->role, ['super_admin', 'admin_hr', 'admin']))
-                                    <li class="nav-item dropdown">
-                                        <a class="nav-link dropdown-toggle {{ request()->is('employees*') || request()->routeIs('leave_requests.index') ? 'active' : '' }}"
-                                            href="#" id="hrDropdown" role="button" data-bs-toggle="dropdown"
-                                            aria-expanded="false">
-                                            <i class="fas fa-users"></i> HR
+                                @auth
+                                    @if (in_array(auth()->user()->role, ['super_admin', 'admin_hr', 'admin']))
+                                        <li class="nav-item dropdown">
+                                            <a class="nav-link dropdown-toggle {{ request()->is('employees*') || request()->routeIs('leave_requests.index') ? 'active' : '' }}"
+                                                href="#" id="hrDropdown" role="button" data-bs-toggle="dropdown"
+                                                aria-expanded="false">
+                                                <i class="fas fa-users"></i> HR
+                                            </a>
+                                            <ul class="dropdown-menu" aria-labelledby="hrDropdown">
+                                                <li><a class="dropdown-item {{ request()->is('employees*') ? 'active' : '' }}"
+                                                        href="{{ route('employees.index') }}">
+                                                        <i class="bi bi-person-lines-fill"></i> Employees
+                                                    </a></li>
+                                                <li><a class="dropdown-item {{ request()->routeIs('leave_requests.index') ? 'active' : '' }}"
+                                                        href="{{ route('leave_requests.index') }}">
+                                                        <i class="bi bi-calendar-plus"></i> Leave Requests
+                                                    </a></li>
+                                            </ul>
+                                        </li>
+                                    @endif
+                                @endauth
+
+                                {{-- Guest Access - Show Leave Request link in navigation for non-authenticated users --}}
+                                @guest
+                                    <li class="nav-item">
+                                        <a class="nav-link {{ request()->routeIs('leave_requests.index') ? 'active' : '' }}"
+                                            href="{{ route('leave_requests.index') }}">
+                                            <i class="bi bi-calendar-plus"></i> Leave Request
                                         </a>
-                                        <ul class="dropdown-menu" aria-labelledby="hrDropdown">
-                                            <li><a class="dropdown-item {{ request()->is('employees*') ? 'active' : '' }}"
-                                                    href="{{ route('employees.index') }}">
-                                                    <i class="fas fa-user-tie"></i> Employees
-                                                </a></li>
-                                            <li><a class="dropdown-item {{ request()->routeIs('leave_requests.index') ? 'active' : '' }}"
-                                                    href="{{ route('leave_requests.index') }}">
-                                                    <i class="bi bi-calendar-plus"></i> Leave Requests
-                                                </a></li>
-                                        </ul>
                                     </li>
-                                @endif
+                                @endguest
 
                                 <!-- Admin Dropdown (Tanpa Employee & Leave Request) -->
                                 @if (in_array(auth()->user()->role, ['super_admin', 'admin']))

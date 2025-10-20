@@ -2,6 +2,14 @@
 
 @section('content')
     <div class="container mt-4">
+        @guest
+            <div class="alert alert-info alert-dismissible fade show" role="alert">
+                <i class="bi bi-info-circle me-2"></i>
+                <strong>Self-Service Leave Request</strong><br>
+                You can submit a leave request without login. Your request will be sent to HR for approval.
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        @endguest
         <div class="card shadow rounded">
             <div class="card-body">
                 <h2 class="mb-0 flex-shrink-0" style="font-size:1.3rem;">
