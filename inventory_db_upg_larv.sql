@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Oct 17, 2025 at 07:03 AM
+-- Generation Time: Oct 20, 2025 at 04:36 AM
 -- Server version: 8.0.30
 -- PHP Version: 8.3.26
 
@@ -132,7 +132,15 @@ INSERT INTO `audits` (`id`, `user_type`, `user_id`, `event`, `auditable_type`, `
 (85, 'App\\Models\\User', 3, 'created', 'App\\Models\\Inventory', 230, '[]', '{\"name\":\"test role123\",\"quantity\":\"1\",\"price\":0}', 'https://inventory-system-v2-upg-larv.test/inventories/quick-add', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-17 04:23:08', '2025-10-17 04:23:08'),
 (86, 'App\\Models\\User', 3, 'created', 'App\\Models\\Project', 254, '[]', '{\"name\":\"test role12345r\"}', 'https://inventory-system-v2-upg-larv.test/projects/quick-add', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-17 04:23:20', '2025-10-17 04:23:20'),
 (87, 'App\\Models\\User', 3, 'created', 'App\\Models\\Inventory', 231, '[]', '{\"name\":\"test ooiiumbg;\",\"quantity\":\"1\",\"price\":0}', 'https://inventory-system-v2-upg-larv.test/inventories/quick-add', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-17 04:24:20', '2025-10-17 04:24:20'),
-(88, 'App\\Models\\User', 3, 'created', 'App\\Models\\MaterialRequest', 526, '[]', '{\"inventory_id\":\"231\",\"project_id\":\"254\",\"requested_by\":\"tari\",\"remark\":null}', 'https://inventory-system-v2-upg-larv.test/material_requests', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-17 04:24:44', '2025-10-17 04:24:44');
+(88, 'App\\Models\\User', 3, 'created', 'App\\Models\\MaterialRequest', 526, '[]', '{\"inventory_id\":\"231\",\"project_id\":\"254\",\"requested_by\":\"tari\",\"remark\":null}', 'https://inventory-system-v2-upg-larv.test/material_requests', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-17 04:24:44', '2025-10-17 04:24:44'),
+(89, 'App\\Models\\User', 1, 'created', 'App\\Models\\MaterialRequest', 527, '[]', '{\"inventory_id\":\"75\",\"project_id\":\"21\",\"requested_by\":\"logitech\",\"remark\":\"test\"}', 'https://inventory-system-v2-upg-larv.test/material_requests', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-17 07:05:34', '2025-10-17 07:05:34'),
+(90, 'App\\Models\\User', 1, 'created', 'App\\Models\\MaterialRequest', 528, '[]', '{\"inventory_id\":\"74\",\"project_id\":\"23\",\"requested_by\":\"logitech\",\"remark\":\"test\"}', 'https://inventory-system-v2-upg-larv.test/material_requests', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-17 07:06:57', '2025-10-17 07:06:57'),
+(91, 'App\\Models\\User', 1, 'created', 'App\\Models\\MaterialRequest', 529, '[]', '{\"inventory_id\":\"88\",\"project_id\":\"41\",\"requested_by\":\"logitech\",\"remark\":\"test\"}', 'https://inventory-system-v2-upg-larv.test/material_requests', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-17 07:09:04', '2025-10-17 07:09:04'),
+(92, 'App\\Models\\User', 1, 'created', 'App\\Models\\MaterialRequest', 530, '[]', '{\"inventory_id\":\"75\",\"project_id\":\"39\",\"requested_by\":\"logitech\",\"remark\":\"etst\"}', 'https://inventory-system-v2-upg-larv.test/material_requests', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-17 07:12:58', '2025-10-17 07:12:58'),
+(93, 'App\\Models\\User', 1, 'created', 'App\\Models\\MaterialRequest', 531, '[]', '{\"inventory_id\":\"178\",\"project_id\":\"74\",\"requested_by\":\"logitech\",\"remark\":\"test\"}', 'https://inventory-system-v2-upg-larv.test/material_requests', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-17 07:24:34', '2025-10-17 07:24:34'),
+(94, 'App\\Models\\User', 1, 'created', 'App\\Models\\MaterialRequest', 532, '[]', '{\"inventory_id\":\"227\",\"project_id\":\"40\",\"requested_by\":\"logitech\",\"remark\":\"test\"}', 'https://inventory-system-v2-upg-larv.test/material_requests', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-17 07:26:41', '2025-10-17 07:26:41'),
+(95, 'App\\Models\\User', 1, 'created', 'App\\Models\\MaterialRequest', 533, '[]', '{\"inventory_id\":\"178\",\"project_id\":\"21\",\"requested_by\":\"logitech\",\"remark\":\"test\"}', 'https://inventory-system-v2-upg-larv.test/material_requests', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-18 01:23:49', '2025-10-18 01:23:49'),
+(96, 'App\\Models\\User', 1, 'updated', 'App\\Models\\MaterialRequest', 533, '{\"status\":\"pending\"}', '{\"status\":\"approved\"}', 'https://inventory-system-v2-upg-larv.test/material_requests/533/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-18 01:24:55', '2025-10-18 01:24:55');
 
 -- --------------------------------------------------------
 
@@ -324,6 +332,7 @@ CREATE TABLE `employees` (
   `id` bigint UNSIGNED NOT NULL,
   `employee_no` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `employment_type` enum('PKWT','PKWTT','Daily Worker','Probation') COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `photo` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `position` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `department_id` bigint UNSIGNED DEFAULT NULL,
@@ -337,7 +346,7 @@ CREATE TABLE `employees` (
   `rekening` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `hire_date` date DEFAULT NULL,
   `salary` decimal(15,2) DEFAULT NULL,
-  `saldo_cuti` int NOT NULL DEFAULT '12',
+  `saldo_cuti` decimal(5,2) DEFAULT '0.00',
   `status` enum('active','inactive','terminated') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active',
   `notes` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   `created_at` timestamp NULL DEFAULT NULL,
@@ -349,18 +358,18 @@ CREATE TABLE `employees` (
 -- Dumping data for table `employees`
 --
 
-INSERT INTO `employees` (`id`, `employee_no`, `name`, `photo`, `position`, `department_id`, `email`, `phone`, `address`, `gender`, `ktp_id`, `place_of_birth`, `date_of_birth`, `rekening`, `hire_date`, `salary`, `saldo_cuti`, `status`, `notes`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(1, 'DCM-0001', 'Bayu', 'employees/photos/Or1LKOhsJagVlleOCHYgETvniHSPooXfXvCzTxky.png', 'Mascot', 1, 'bayu@gmail.com', '+6281556677', NULL, NULL, NULL, NULL, NULL, '123456789', '2024-06-24', 1000000000.00, 12, 'active', 'test notes', '2025-07-11 06:58:24', '2025-07-24 07:04:14', NULL),
-(2, 'DCM-0099', 'Budi', 'employees/photos/6jfNv5dyqqCLvIDUpJguWkWNKnkIUo2093G00ROP.png', 'Sewer', 1, 'admin@gmail.com', '+628139328899', NULL, NULL, NULL, NULL, NULL, '12345678909899', '2025-07-25', 123456789.00, 12, 'active', 'ini bapak budi', '2025-07-12 04:28:00', '2025-07-24 03:41:44', NULL),
-(3, 'DCM-0003', 'aagymas', NULL, 'Sewer', 9, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 12, 'inactive', NULL, '2025-07-12 04:28:26', '2025-07-18 09:49:39', '2025-07-18 09:49:39'),
-(4, 'DCM-0004', 'Lucas', 'employees/photos/K7NDNb5b4s73ntpR4aSvCCyxFvX444C8mw34DWo5.jpg', 'Sewer', 11, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 12, 'terminated', NULL, '2025-07-12 04:28:42', '2025-07-24 06:50:46', NULL),
-(5, 'DCM-0005', 'tony stak', NULL, 'Sewer', NULL, 'tony@gmail.com', '234234', NULL, NULL, NULL, NULL, NULL, NULL, '2025-07-16', NULL, 12, 'active', NULL, '2025-07-15 03:18:42', '2025-07-24 02:42:28', NULL),
-(6, 'DCM-0006', 'sdcasc', NULL, 'ascasc', 6, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 12, 'active', NULL, '2025-07-16 09:09:28', '2025-07-24 02:42:28', NULL),
-(7, 'DCM-0007', 'ascaqsc', NULL, 'sdvsd', 5, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 12, 'active', NULL, '2025-07-16 09:11:22', '2025-07-18 09:50:17', '2025-07-18 09:50:17'),
-(14, 'DCM-0014', 'sdcsac', NULL, 'qwcq', 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 12, 'terminated', NULL, '2025-07-18 09:22:28', '2025-07-23 01:16:09', '2025-07-23 01:16:09'),
-(15, 'DCM-0015', 'jokowi', 'employees/photos/uZQ4UnVc6Qyhfg1aT8sexkErHq8jiJz0aXrQAHRu.png', 'Staff', 5, 'jokowi@gmail.com', '6287721988393', 'Jl Hang Tuah No 14, Batam, ID', 'male', '123456712345', 'Batam', '1999-02-20', '12345678909000', '2025-10-01', 1000000.00, 12, 'active', 'test nama', '2025-07-18 09:24:50', '2025-10-17 07:01:38', NULL),
-(16, 'DCM-0016', 'ascascas', NULL, 'sdcasdc', 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 12, 'inactive', NULL, '2025-07-18 09:43:26', '2025-07-18 09:50:35', '2025-07-18 09:50:35'),
-(17, 'DCM-0017', 'asxas', NULL, 'ascas', 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 12, 'active', NULL, '2025-07-18 09:43:59', '2025-07-18 09:50:31', '2025-07-18 09:50:31');
+INSERT INTO `employees` (`id`, `employee_no`, `name`, `employment_type`, `photo`, `position`, `department_id`, `email`, `phone`, `address`, `gender`, `ktp_id`, `place_of_birth`, `date_of_birth`, `rekening`, `hire_date`, `salary`, `saldo_cuti`, `status`, `notes`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(1, 'DCM-0001', 'Bayu', 'PKWT', 'employees/photos/RxqIcOOLPGVeF5o5Kz0j5Zv3RVjv72YLLOu8b7ng.jpg', 'Sewer Specialist', 1, 'bayu@gmail.com', '+6281556677', 'Jl Hang Tuah No 14, Batam', 'female', '123456712348', 'Batam', '1998-12-13', '123456789', '2024-06-24', 1000000000.00, 12.00, 'active', 'test notesss', '2025-07-11 06:58:24', '2025-10-18 05:46:23', NULL),
+(2, 'DCM-0099', 'Budi', NULL, 'employees/photos/6jfNv5dyqqCLvIDUpJguWkWNKnkIUo2093G00ROP.png', 'Sewer', 1, 'admin@gmail.com', '+628139328899', NULL, NULL, NULL, NULL, NULL, '12345678909899', '2025-07-25', 123456789.00, 9.00, 'active', 'ini bapak budi', '2025-07-12 04:28:00', '2025-10-20 03:22:58', NULL),
+(3, 'DCM-0003', 'aagymas', NULL, NULL, 'Sewer', 9, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 12.00, 'inactive', NULL, '2025-07-12 04:28:26', '2025-07-18 09:49:39', '2025-07-18 09:49:39'),
+(4, 'DCM-0004', 'Lucas', NULL, 'employees/photos/K7NDNb5b4s73ntpR4aSvCCyxFvX444C8mw34DWo5.jpg', 'Sewer', 11, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 12.00, 'terminated', NULL, '2025-07-12 04:28:42', '2025-07-24 06:50:46', NULL),
+(5, 'DCM-0005', 'tony stak', NULL, NULL, 'Sewer', NULL, 'tony@gmail.com', '234234', NULL, NULL, NULL, NULL, NULL, NULL, '2025-07-16', NULL, 12.00, 'active', NULL, '2025-07-15 03:18:42', '2025-07-24 02:42:28', NULL),
+(6, 'DCM-0006', 'sdcasc', NULL, NULL, 'ascasc', 6, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 12.00, 'active', NULL, '2025-07-16 09:09:28', '2025-07-24 02:42:28', NULL),
+(7, 'DCM-0007', 'ascaqsc', NULL, NULL, 'sdvsd', 5, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 12.00, 'active', NULL, '2025-07-16 09:11:22', '2025-07-18 09:50:17', '2025-07-18 09:50:17'),
+(14, 'DCM-0014', 'sdcsac', NULL, NULL, 'qwcq', 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 12.00, 'terminated', NULL, '2025-07-18 09:22:28', '2025-07-23 01:16:09', '2025-07-23 01:16:09'),
+(15, 'DCM-0015', 'jokowi', 'PKWT', 'employees/photos/uZQ4UnVc6Qyhfg1aT8sexkErHq8jiJz0aXrQAHRu.png', 'Staff', 5, 'jokowi@gmail.com', '6287721988393', 'Jl Hang Tuah No 14, Batam, ID', 'male', '123456712345', 'Batam', '1999-02-20', '12345678909000', '2025-10-01', 1000000.00, 12.00, 'active', 'test nama', '2025-07-18 09:24:50', '2025-10-18 05:31:40', NULL),
+(16, 'DCM-0016', 'ascascas', NULL, NULL, 'sdcasdc', 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 12.00, 'inactive', NULL, '2025-07-18 09:43:26', '2025-07-18 09:50:35', '2025-07-18 09:50:35'),
+(17, 'DCM-0017', 'asxas', NULL, NULL, 'ascas', 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 12.00, 'active', NULL, '2025-07-18 09:43:59', '2025-07-18 09:50:31', '2025-07-18 09:50:31');
 
 -- --------------------------------------------------------
 
@@ -392,7 +401,8 @@ INSERT INTO `employee_documents` (`id`, `employee_id`, `document_type`, `documen
 (9, 1, 'surat_pengalaman', 'aasssssfffrrr', 'employees/documents/xKmx3eWaKkS0N4Y0vhaHSD4010bneZ39sCWi9NcA.docx', '19870', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', NULL, '2025-07-24 07:18:45', '2025-07-24 07:18:45'),
 (10, 1, 'ktp', 'asxas', 'employees/documents/gsjAu0KE4SU5PU1qnuVyvKrfFyQMlpltIoFLAuOT.jpg', '259288', 'image/jpeg', 'sdcsdc', '2025-07-24 07:37:17', '2025-07-24 07:37:17'),
 (11, 15, 'ktp', 'Updated KTP', 'employees/documents/nGh9RYjxOCvRrWUfvuYsIilNkNEvPhesXDXCS6dZ.jpg', '259288', 'image/jpeg', 'test', '2025-10-17 06:47:38', '2025-10-17 06:47:38'),
-(12, 15, 'skck', 'Update SKCK', 'employees/documents/sApF8rHYbvPEdMyuDM5vGKBkxBMYBQpjMzD2syq2.png', '1508919', 'image/png', 'test', '2025-10-17 06:47:38', '2025-10-17 06:47:38');
+(12, 15, 'skck', 'Update SKCK', 'employees/documents/sApF8rHYbvPEdMyuDM5vGKBkxBMYBQpjMzD2syq2.png', '1508919', 'image/png', 'test', '2025-10-17 06:47:38', '2025-10-17 06:47:38'),
+(13, 1, 'foto', 'Update Foto', 'employees/documents/GTyPCo4J0ZHKOqsdmtgJ6lkBrVcIv2GEXJJTDayx.png', '141960', 'image/png', 'testsss', '2025-10-18 03:43:12', '2025-10-18 03:43:12');
 
 -- --------------------------------------------------------
 
@@ -940,7 +950,7 @@ CREATE TABLE `leave_requests` (
   `start_date` date NOT NULL,
   `end_date` date NOT NULL,
   `duration` decimal(5,2) NOT NULL DEFAULT '1.00',
-  `type` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'annual',
+  `type` enum('ANNUAL','MATERNITY','WEDDING','SONWED','BIRTHCHILD','UNPAID','DEATH','DEATH_2','BAPTISM') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'ANNUAL',
   `reason` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   `approval_1` enum('pending','approved','rejected') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
   `approval_2` enum('pending','approved','rejected') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
@@ -953,7 +963,14 @@ CREATE TABLE `leave_requests` (
 --
 
 INSERT INTO `leave_requests` (`id`, `employee_id`, `start_date`, `end_date`, `duration`, `type`, `reason`, `approval_1`, `approval_2`, `created_at`, `updated_at`) VALUES
-(1, 2, '2025-10-12', '2025-10-12', 0.50, 'Annual Leave', 'sakit', 'pending', 'pending', '2025-10-13 08:56:58', '2025-10-13 08:56:58');
+(4, 15, '2025-10-18', '2025-10-21', 3.00, 'ANNUAL', 'test', 'approved', 'approved', '2025-10-18 05:36:25', '2025-10-18 05:36:32'),
+(5, 2, '2025-10-20', '2025-10-21', 1.00, 'ANNUAL', 'test', 'approved', 'approved', '2025-10-20 01:35:43', '2025-10-20 01:35:59'),
+(6, 5, '2025-10-21', '2025-10-22', 1.00, 'ANNUAL', NULL, 'approved', 'approved', '2025-10-20 02:04:57', '2025-10-20 02:05:12'),
+(7, 2, '2025-10-20', '2025-10-21', 1.00, 'ANNUAL', 'test', 'approved', 'approved', '2025-10-20 02:39:52', '2025-10-20 03:09:55'),
+(8, 15, '2025-10-20', '2025-10-21', 1.00, 'DEATH', NULL, 'pending', 'pending', '2025-10-20 02:41:09', '2025-10-20 02:41:09'),
+(9, 2, '2025-10-20', '2025-10-20', 0.50, 'ANNUAL', 'test2', 'approved', 'approved', '2025-10-20 03:10:41', '2025-10-20 03:19:58'),
+(10, 2, '2025-10-20', '2025-10-20', 0.50, 'ANNUAL', 'test saldo', 'approved', 'approved', '2025-10-20 03:22:47', '2025-10-20 03:22:58'),
+(12, 15, '2025-10-22', '2025-10-22', 1.00, 'ANNUAL', '1', 'pending', 'pending', '2025-10-20 04:19:30', '2025-10-20 04:19:30');
 
 -- --------------------------------------------------------
 
@@ -1486,7 +1503,14 @@ INSERT INTO `material_requests` (`id`, `inventory_id`, `project_id`, `qty`, `pro
 INSERT INTO `material_requests` (`id`, `inventory_id`, `project_id`, `qty`, `processed_qty`, `requested_by`, `remark`, `status`, `approved_at`, `created_at`, `updated_at`, `deleted_at`) VALUES
 (524, 215, 43, 2.00, 0.00, 'logitech', 'Imported from Material Planning', 'pending', NULL, '2025-10-15 09:49:45', '2025-10-15 09:49:45', NULL),
 (525, 215, 190, 1.00, 0.00, 'asih', 'dcm', 'pending', NULL, '2025-10-17 03:51:42', '2025-10-17 03:51:56', '2025-10-17 03:51:56'),
-(526, 231, 254, 1.00, 0.00, 'tari', NULL, 'pending', NULL, '2025-10-17 04:24:44', '2025-10-17 04:24:44', NULL);
+(526, 231, 254, 1.00, 0.00, 'tari', NULL, 'pending', NULL, '2025-10-17 04:24:44', '2025-10-17 04:24:44', NULL),
+(527, 75, 21, 1.00, 0.00, 'logitech', 'test', 'pending', NULL, '2025-10-17 07:05:34', '2025-10-17 07:05:34', NULL),
+(528, 74, 23, 1.00, 0.00, 'logitech', 'test', 'pending', NULL, '2025-10-17 07:06:57', '2025-10-17 07:06:57', NULL),
+(529, 88, 41, 1.00, 0.00, 'logitech', 'test', 'pending', NULL, '2025-10-17 07:09:04', '2025-10-17 07:09:04', NULL),
+(530, 75, 39, 1.00, 0.00, 'logitech', 'etst', 'pending', NULL, '2025-10-17 07:12:58', '2025-10-17 07:12:58', NULL),
+(531, 178, 74, 1.00, 0.00, 'logitech', 'test', 'pending', NULL, '2025-10-17 07:24:34', '2025-10-17 07:24:34', NULL),
+(532, 227, 40, 1.00, 0.00, 'logitech', 'test', 'pending', NULL, '2025-10-17 07:26:41', '2025-10-17 07:26:41', NULL),
+(533, 178, 21, 1.00, 0.00, 'logitech', 'test', 'approved', '2025-10-18 01:24:55', '2025-10-18 01:23:48', '2025-10-18 01:24:55', NULL);
 
 -- --------------------------------------------------------
 
@@ -5001,7 +5025,10 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES
 (85, '2025_10_14_094016_add_remark_to_purchase_requests_table', 62),
 (86, '2025_10_17_094455_add_admin_role_to_users_table', 63),
 (87, '2025_10_17_102054_add_admin_hr_role_to_users_table', 64),
-(88, '2025_10_17_132326_add_personal_info_to_employees_table', 65);
+(88, '2025_10_17_132326_add_personal_info_to_employees_table', 65),
+(89, '2025_10_18_092700_add_employment_type_to_employees_table', 66),
+(90, '2025_10_20_093625_update_leave_request_type_to_enum', 67),
+(91, '2025_10_20_102806_change_saldo_cuti_to_decimal_in_employees_table', 68);
 
 -- --------------------------------------------------------
 
@@ -5443,7 +5470,8 @@ INSERT INTO `purchase_requests` (`id`, `type`, `material_name`, `inventory_id`, 
 (18, 'restock', 'cfcf2', 124, 45.00, 'm', 47.00, NULL, 3, 7.00, 42, 'Approved', '2025-12-12', NULL, 1, '2025-10-02 02:04:12', '2025-10-07 04:28:18'),
 (19, 'new_material', 'abcd', NULL, 12.00, 'cm', 0.00, 25, 19, 12000.00, 2, NULL, '2025-10-11', 'purchase_requests/XNoZc1ojZy4QeiGGqRszTv2XnnQHVKKF6VykRR1a.jpg', 1, '2025-10-07 06:23:09', '2025-10-07 07:03:03'),
 (20, 'restock', 'abata', 192, 34.00, 'cm', 38.00, 25, 21, 9999.00, 43, 'Approved', NULL, 'purchase_requests/SWmOpfy03EHCxFOPZvPxE1yM0RQIm5LgUYT7Fc7q.jpg', 1, '2025-10-07 07:11:24', '2025-10-07 07:12:48'),
-(21, 'new_material', 'test matttteeriaal', NULL, 21.00, 'Gulung', NULL, 43, NULL, NULL, NULL, 'Pending', NULL, NULL, 1, '2025-10-15 09:49:45', '2025-10-15 09:49:45');
+(21, 'new_material', 'test matttteeriaal', NULL, 21.00, 'Gulung', NULL, 43, NULL, NULL, NULL, 'Pending', NULL, NULL, 1, '2025-10-15 09:49:45', '2025-10-15 09:49:45'),
+(22, 'new_material', 'test mat445570', NULL, 2.00, '16', 0.00, NULL, NULL, NULL, NULL, 'Pending', NULL, NULL, 1, '2025-10-20 04:30:24', '2025-10-20 04:30:24');
 
 -- --------------------------------------------------------
 
@@ -5953,7 +5981,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `audits`
 --
 ALTER TABLE `audits`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=89;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=97;
 
 --
 -- AUTO_INCREMENT for table `categories`
@@ -5983,7 +6011,7 @@ ALTER TABLE `employees`
 -- AUTO_INCREMENT for table `employee_documents`
 --
 ALTER TABLE `employee_documents`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT for table `failed_jobs`
@@ -6031,7 +6059,7 @@ ALTER TABLE `inventory_transactions`
 -- AUTO_INCREMENT for table `leave_requests`
 --
 ALTER TABLE `leave_requests`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `locations`
@@ -6049,7 +6077,7 @@ ALTER TABLE `material_plannings`
 -- AUTO_INCREMENT for table `material_requests`
 --
 ALTER TABLE `material_requests`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=527;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=534;
 
 --
 -- AUTO_INCREMENT for table `material_usages`
@@ -6061,7 +6089,7 @@ ALTER TABLE `material_usages`
 -- AUTO_INCREMENT for table `migrations`
 --
 ALTER TABLE `migrations`
-  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=89;
+  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=92;
 
 --
 -- AUTO_INCREMENT for table `personal_access_tokens`
@@ -6103,7 +6131,7 @@ ALTER TABLE `project_statuses`
 -- AUTO_INCREMENT for table `purchase_requests`
 --
 ALTER TABLE `purchase_requests`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
 
 --
 -- AUTO_INCREMENT for table `shippings`
