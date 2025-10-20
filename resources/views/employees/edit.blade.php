@@ -310,14 +310,21 @@
                                 </div>
 
                                 <div class="col-md-6 mb-3">
-                                    <label for="saldo_cuti" class="form-label">Leave Balance</label>
+                                    <label for="saldo_cuti" class="form-label">
+                                        Leave Balance <span class="text-danger">*</span>
+                                    </label>
                                     <div class="input-group">
-                                        <span class="input-group-text"><i class="bi bi-calendar-check"></i></span>
-                                        <input type="number" class="form-control" id="saldo_cuti" name="saldo_cuti"
-                                            value="{{ old('saldo_cuti', $employee->saldo_cuti ?? 12) }}" min="0"
-                                            max="365">
+                                        <input type="number"
+                                            class="form-control @error('saldo_cuti') is-invalid @enderror" id="saldo_cuti"
+                                            name="saldo_cuti" min="0" max="999.99" step="0.5"
+                                            value="{{ old('saldo_cuti', isset($employee) ? number_format($employee->saldo_cuti, 2, '.', '') : 12) }}"
+                                            placeholder="12 or 11.5">
                                         <span class="input-group-text">days</span>
                                     </div>
+                                    <small class="text-muted">
+                                        <i class="bi bi-info-circle"></i> Annual leave balance in days (can use 0.5 for
+                                        half day)
+                                    </small>
                                     @error('saldo_cuti')
                                         <small class="text-danger d-block">{{ $message }}</small>
                                     @enderror

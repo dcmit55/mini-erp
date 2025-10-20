@@ -193,6 +193,11 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/employee-documents/{document}/download', [EmployeeController::class, 'downloadDocument'])->name('employee-documents.download');
     Route::get('/employees/{employee}/documents', [EmployeeController::class, 'getDocuments'])->name('employees.documents');
 
+    // Employee leave balance check
+    Route::get('/employees/{employee}/leave-balance', [EmployeeController::class, 'getLeaveBalance'])
+        ->name('employees.leave-balance')
+        ->middleware('auth');
+
     //leave requests
     Route::post('leave_requests/{id}/approval', [LeaveRequestController::class, 'updateApproval'])
         ->name('leave_requests.updateApproval')

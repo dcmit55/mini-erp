@@ -18,6 +18,7 @@ class Employee extends Model
         'hire_date' => 'date',
         'date_of_birth' => 'date',
         'salary' => 'decimal:2',
+        'saldo_cuti' => 'decimal:2',
     ];
 
     protected static function boot()

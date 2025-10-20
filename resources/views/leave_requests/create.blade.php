@@ -50,14 +50,22 @@
                                 class="form-control form-control-lg border border-dark bg-white" required>
                         </div>
                         <div class="col-md-3 mb-3">
-                            <label class="form-label fw-bold text-dark">Leave Duration</label>
+                            <label class="form-label fw-bold text-dark d-flex align-items-center">
+                                Leave Duration
+                                <span class="ms-1" data-bs-toggle="tooltip" title="Can use 0.5 for half day"
+                                    style="cursor: pointer;">
+                                    <i class="bi bi-info-circle text-muted"></i>
+                                </span>
+                            </label>
                             <div class="input-group">
                                 <input type="number" name="duration" id="duration"
-                                    class="form-control form-control-lg border border-dark bg-white" min="0.01"
-                                    step="0.01" required
-                                    value="{{ old('duration', isset($leave) ? $leave->duration : '') }}">
+                                    class="form-control form-control-lg border border-dark bg-white" min="0.5"
+                                    max="999.99" step="0.5" required
+                                    value="{{ old('duration', isset($leave) ? $leave->duration : '') }}"
+                                    placeholder="1 or 0.5">
                                 <span class="input-group-text">days</span>
                             </div>
+                            <small class="text-muted" id="leave-balance-info"></small>
                         </div>
                     </div>
                     <div class="row mb-3">
@@ -125,7 +133,6 @@
 @endpush
 
 @push('scripts')
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         $(document).ready(function() {
             // Inisialisasi Select2
@@ -144,16 +151,136 @@
                 $('#hire_date').val(selected.getAttribute('data-hiredate') || '');
             });
 
+            // Calculate duration - Support 0.5 day increments
             $('#start_date, #end_date').on('change', function() {
                 let start = $('#start_date').val();
                 let end = $('#end_date').val();
+
                 if (start && end) {
                     let d1 = new Date(start);
                     let d2 = new Date(end);
                     let diff = Math.floor((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
-                    $('#duration').val(diff > 0 ? diff + ' days' : '');
+
+                    if (diff > 0) {
+                        // Set full days
+                        $('#duration').val(diff);
+
+                        // Show info about half-day option
+                        const infoElement = $('#leave-balance-info');
+                        if (diff === 1) {
+                            infoElement.html(
+                                '<i class="bi bi-lightbulb text-info"></i> Tip: You can change to 0.5 for half day'
+                            );
+                        }
+                    } else {
+                        $('#duration').val('');
+                        if (diff < 0) {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Invalid Date Range',
+                                text: 'End date must be equal to or after start date',
+                                confirmButtonColor: '#dc3545'
+                            });
+                        }
+                    }
                 } else {
                     $('#duration').val('');
+                }
+            });
+
+            // Initialize tooltips
+            $(function() {
+                $('[data-bs-toggle="tooltip"]').tooltip();
+            });
+
+            // Validate duration input - support decimal
+            $('#duration').on('input', function() {
+                let value = parseFloat($(this).val());
+
+                // Validate decimal places (max 2 decimal places)
+                if ($(this).val().includes('.')) {
+                    let parts = $(this).val().split('.');
+                    if (parts[1].length > 2) {
+                        $(this).val(parseFloat($(this).val()).toFixed(2));
+                    }
+                }
+
+                // Check against leave balance for Annual Leave
+                const employeeId = $('#employee_id').val();
+                const leaveType = $('input[name="type"]:checked').val();
+                const infoElement = $('#leave-balance-info');
+
+                if (employeeId && leaveType === 'ANNUAL' && value) {
+                    $.ajax({
+                        url: `/employees/${employeeId}/leave-balance`,
+                        method: 'GET',
+                        success: function(response) {
+                            if (response.success) {
+                                const balance = parseFloat(response.balance);
+
+                                if (value > balance) {
+                                    $('#duration').addClass('is-invalid');
+                                    infoElement.html(
+                                        `<i class="bi bi-exclamation-triangle text-danger"></i> Insufficient balance! Available: <strong>${balance} days</strong>`
+                                    );
+                                } else {
+                                    $('#duration').removeClass('is-invalid');
+                                    infoElement.html(
+                                        `<i class="bi bi-info-circle"></i> Available balance: <strong>${balance} days</strong>`
+                                    );
+                                }
+                            }
+                        }
+                    });
+                }
+            });
+
+            // Show available leave balance for Annual Leave
+            $('#employee_id, input[name="type"]').on('change', function() {
+                const employeeId = $('#employee_id').val();
+                const leaveType = $('input[name="type"]:checked').val();
+                const infoElement = $('#leave-balance-info');
+
+                if (employeeId && leaveType === 'ANNUAL') {
+                    // Get employee data
+                    const selectedOption = $('#employee_id option:selected');
+                    const employeeName = selectedOption.text();
+
+                    // Fetch employee leave balance
+                    $.ajax({
+                        url: `/employees/${employeeId}/leave-balance`,
+                        method: 'GET',
+                        success: function(response) {
+                            if (response.success) {
+                                infoElement.html(
+                                    `<i class="bi bi-info-circle"></i> Available balance: <strong>${response.balance} days</strong>`
+                                );
+
+                                // Validate duration input
+                                $('#duration').attr('max', response.balance);
+                                $('#duration').on('input', function() {
+                                    const duration = parseFloat($(this).val());
+                                    if (duration > response.balance) {
+                                        $(this).addClass('is-invalid');
+                                        infoElement.html(
+                                            `<i class="bi bi-exclamation-triangle text-danger"></i> Insufficient balance! Available: <strong>${response.balance} days</strong>`
+                                        );
+                                    } else {
+                                        $(this).removeClass('is-invalid');
+                                        infoElement.html(
+                                            `<i class="bi bi-info-circle"></i> Available balance: <strong>${response.balance} days</strong>`
+                                        );
+                                    }
+                                });
+                            }
+                        },
+                        error: function() {
+                            infoElement.html('');
+                        }
+                    });
+                } else {
+                    infoElement.html('');
+                    $('#duration').removeAttr('max').removeClass('is-invalid');
                 }
             });
         });

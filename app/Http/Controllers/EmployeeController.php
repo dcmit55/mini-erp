@@ -80,7 +80,7 @@ class EmployeeController extends Controller
             'rekening' => 'nullable|string|max:30',
             'hire_date' => 'nullable|date',
             'salary' => 'nullable|numeric|min:0',
-            'saldo_cuti' => 'nullable|integer|min:0|max:365',
+            'saldo_cuti' => 'nullable|numeric|min:0|max:999.99',
             'status' => 'required|in:active,inactive,terminated',
             'notes' => 'nullable|string',
             'photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
@@ -254,7 +254,7 @@ class EmployeeController extends Controller
             'rekening' => 'nullable|string|max:30',
             'hire_date' => 'nullable|date',
             'salary' => 'nullable|numeric|min:0',
-            'saldo_cuti' => 'nullable|integer|min:0|max:365',
+            'saldo_cuti' => 'nullable|numeric|min:0|max:999.99',
             'status' => 'required|in:active,inactive,terminated',
             'notes' => 'nullable|string',
             'photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
@@ -404,26 +404,26 @@ class EmployeeController extends Controller
         ]);
     }
 
-    public function destroy(Employee $employee)
+    /**
+     * Get employee leave balance
+     */
+    public function getLeaveBalance(Employee $employee)
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            abort(403, 'You do not have permission to delete employees.');
-        }
+        return response()->json([
+            'success' => true,
+            'balance' => $employee->saldo_cuti ?? 0,
+            'employee_name' => $employee->name,
+        ]);
+    }
 
-        // Delete photo
-        if ($employee->photo && Storage::disk('public')->exists($employee->photo)) {
-            Storage::disk('public')->delete($employee->photo);
-        }
-
-        // Delete documents
-        foreach ($employee->documents as $document) {
-            if (Storage::disk('public')->exists($document->file_path)) {
-                Storage::disk('public')->delete($document->file_path);
-            }
-        }
-
-        $employee->delete();
-        return redirect()->route('employees.index')->with('success', 'Employee successfully deleted.');
+    // View timing
+    public function timing(Employee $employee)
+    {
+        $timings = $employee
+            ->timings()
+            ->with(['project.department'])
+            ->paginate(50);
+        return view('employees.timing', compact('employee', 'timings'));
     }
 
     public function deleteDocument(EmployeeDocument $document)
@@ -470,13 +470,25 @@ class EmployeeController extends Controller
         }
     }
 
-    // View timing
-    public function timing(Employee $employee)
+    public function destroy(Employee $employee)
     {
-        $timings = $employee
-            ->timings()
-            ->with(['project.department'])
-            ->paginate(50);
-        return view('employees.timing', compact('employee', 'timings'));
+        if (Auth::user()->isReadOnlyAdmin()) {
+            abort(403, 'You do not have permission to delete employees.');
+        }
+
+        // Delete photo
+        if ($employee->photo && Storage::disk('public')->exists($employee->photo)) {
+            Storage::disk('public')->delete($employee->photo);
+        }
+
+        // Delete documents
+        foreach ($employee->documents as $document) {
+            if (Storage::disk('public')->exists($document->file_path)) {
+                Storage::disk('public')->delete($document->file_path);
+            }
+        }
+
+        $employee->delete();
+        return redirect()->route('employees.index')->with('success', 'Employee successfully deleted.');
     }
 }

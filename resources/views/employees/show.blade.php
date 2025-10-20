@@ -208,13 +208,18 @@
                                 <label class="fw-semibold text-muted small">Salary</label>
                                 <div class="fw-medium">{{ $employee->formatted_salary }}</div>
                             </div>
-                            <div class="col-md-12 mb-3">
+                            <div class="col-md-6 mb-3">
                                 <label class="fw-semibold text-muted small">Leave Balance</label>
                                 <div class="fw-medium">
-                                    <span
-                                        class="badge bg-{{ $employee->saldo_cuti > 5 ? 'success' : ($employee->saldo_cuti > 0 ? 'warning' : 'danger') }}">
-                                        {{ $employee->saldo_cuti ?? 0 }} Days
-                                    </span>
+                                    {{ number_format($employee->saldo_cuti, 1) }}
+                                    day{{ $employee->saldo_cuti != 1 ? 's' : '' }}
+                                    @if ($employee->saldo_cuti < 3)
+                                        <span class="badge bg-danger ms-1">Low</span>
+                                    @elseif ($employee->saldo_cuti < 6)
+                                        <span class="badge bg-warning ms-1">Medium</span>
+                                    @else
+                                        <span class="badge bg-success ms-1">Good</span>
+                                    @endif
                                 </div>
                             </div>
                             <div class="col-md-6">

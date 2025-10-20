@@ -9,7 +9,7 @@
                 </h4>
                 @if (auth()->user()->canModifyData())
                     <a href="{{ route('leave_requests.create') }}" class="btn btn-primary">
-                        <i class="bi bi-plus-circle"></i>Add Leave Request
+                        <i class="bi bi-plus-circle"></i> Add Leave Request
                     </a>
                 @endif
             </div>
@@ -27,7 +27,6 @@
                                 <th>Name</th>
                                 <th>Department</th>
                                 <th>Position</th>
-                                <th>Date Of Join</th>
                                 <th>Start Date</th>
                                 <th>End Date</th>
                                 <th>Duration</th>
@@ -49,17 +48,15 @@
                                     <td>{{ $leave->employee->name ?? '-' }}</td>
                                     <td>{{ $leave->employee->department->name ?? '-' }}</td>
                                     <td>{{ $leave->employee->position ?? '-' }}</td>
-                                    <td>{{ $leave->employee && $leave->employee->hire_date ? \Carbon\Carbon::parse($leave->employee->hire_date)->format('d-m-Y') : '-' }}
-                                    </td>
                                     <td>{{ $leave->start_date ? \Carbon\Carbon::parse($leave->start_date)->format('d-M-Y') : '-' }}
                                     </td>
-                                    <td>{{ $leave->end_date ? \Carbon\Carbon::parse($leave->end_date)->format('d-m-Y') : '-' }}
+                                    <td>{{ $leave->end_date ? \Carbon\Carbon::parse($leave->end_date)->format('d-M-Y') : '-' }}
                                     </td>
                                     <td>{{ rtrim(rtrim(number_format($leave->duration, 2, '.', ''), '0'), '.') }} days</td>
                                     <td>{{ $leaveTypeLabels[strtoupper($leave->type)] ?? $leave->type }}</td>
                                     <td>{{ $leave->reason }}</td>
 
-                                    <!-- Leader Approval -->
+                                    <!-- HR Approval -->
                                     <td>
                                         <span
                                             class="badge bg-{{ $leave->approval_1 == 'approved' ? 'success' : ($leave->approval_1 == 'rejected' ? 'danger' : 'warning text-dark') }}">
@@ -71,7 +68,8 @@
                                                 action="{{ route('leave_requests.updateApproval', $leave->id) }}"
                                                 class="d-inline">
                                                 @csrf
-                                                <select name="approval_1" onchange="this.form.submit()"
+                                                <select name="approval_1"
+                                                    onchange="if(confirm('{{ strtoupper($leave->type) === 'ANNUAL' && $leave->approval_2 === 'approved' ? 'This will deduct employee leave balance. Continue?' : 'Update approval status?' }}')) { this.form.submit(); }"
                                                     class="form-select form-select-sm d-inline w-auto">
                                                     <option value="pending"
                                                         {{ $leave->approval_1 == 'pending' ? 'selected' : '' }}>Pending
@@ -99,7 +97,8 @@
                                                 action="{{ route('leave_requests.updateApproval', $leave->id) }}"
                                                 class="d-inline">
                                                 @csrf
-                                                <select name="approval_2" onchange="this.form.submit()"
+                                                <select name="approval_2"
+                                                    onchange="if(confirm('{{ strtoupper($leave->type) === 'ANNUAL' && $leave->approval_1 === 'approved' ? 'This will deduct employee leave balance. Continue?' : 'Update approval status?' }}')) { this.form.submit(); }"
                                                     class="form-select form-select-sm d-inline w-auto">
                                                     <option value="pending"
                                                         {{ $leave->approval_2 == 'pending' ? 'selected' : '' }}>Pending
@@ -115,7 +114,7 @@
                                         @endif
                                     </td>
 
-                                    <td>{{ $leave->created_at->format('d-m-Y') }}</td>
+                                    <td>{{ $leave->created_at->format('d-M-Y') }}</td>
                                     @if (auth()->user()->canModifyData() && in_array(auth()->user()->role, ['super_admin', 'admin_finance', 'admin_hr']))
                                         <td>
                                             <div class="d-flex gap-1">

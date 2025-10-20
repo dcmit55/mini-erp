@@ -4,25 +4,24 @@
     <div class="container-fluid py-4">
         <div class="card shadow-sm border-0 mb-4">
             <div class="card-body">
-                <!-- Header - Improved responsive layout -->
+                <!-- Header -->
                 <div class="d-flex flex-column flex-lg-row align-items-lg-center gap-3 mb-3">
                     <div class="d-flex align-items-center">
-                        <i class="fas fa-users gradient-icon me-2" style="font-size: 1.3rem;"></i>
+                        <i class="fas fa-users gradient-icon me-2" style="font-size: 1.5rem;"></i>
                         <h2 class="mb-0 flex-shrink-0" style="font-size:1.3rem;">Employees Management</h2>
                     </div>
 
-                    <!-- Stats Cards - Better mobile layout -->
-                    @if (auth()->user()->canModifyData())
-                        <div class="ms-lg-auto">
-                            <div class="d-flex flex-wrap gap-3 align-items-center justify-content-lg-end">
+                    <div class="ms-lg-auto">
+                        <div class="d-flex flex-wrap gap-2 align-items-center justify-content-lg-end">
+                            @if (auth()->user()->canModifyData())
                                 <a href="{{ route('employees.create') }}" class="btn btn-primary btn-sm">
                                     <i class="bi bi-plus-circle me-1"></i>
                                     <span class="d-none d-sm-inline">Add Employee</span>
                                     <span class="d-sm-none">Add</span>
                                 </a>
-                            </div>
+                            @endif
                         </div>
-                    @endif
+                    </div>
                 </div>
 
                 @if (session('success'))
@@ -32,43 +31,58 @@
                     </div>
                 @endif
 
-                <!-- Filters - Improved mobile layout -->
-                <div class="row g-2 mb-3">
-                    <div class="col-sm-6 col-lg-3">
-                        <select id="departmentFilter" class="form-select form-select-sm">
-                            <option value="">All Departments</option>
-                            @foreach ($employees->pluck('department.name')->unique()->filter() as $dept)
-                                <option value="{{ $dept }}">{{ ucfirst($dept) }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-sm-6 col-lg-3">
-                        <select id="statusFilter" class="form-select form-select-sm">
-                            <option value="">All Status</option>
-                            <option value="Active">Active</option>
-                            <option value="Inactive">Inactive</option>
-                            <option value="Terminated">Terminated</option>
-                        </select>
-                    </div>
-                    <div class="col-sm-6 col-lg-3">
-                        <select id="positionFilter" class="form-select form-select-sm">
-                            <option value="">All Positions</option>
-                            @foreach ($employees->pluck('position')->unique()->filter() as $position)
-                                <option value="{{ $position }}">{{ $position }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-sm-6 col-lg-3">
-                        <button type="button" class="btn btn-outline-secondary btn-sm w-100" id="clearFilters">
-                            <i class="bi bi-arrow-clockwise"></i> Clear Filters
-                        </button>
-                    </div>
+                <!-- Filters -->
+                <div class="mb-3">
+                    <form id="filter-form" class="row g-1">
+                        <div class="col-md-2">
+                            <select id="departmentFilter" class="form-select form-select-sm select2">
+                                <option value="">All Departments</option>
+                                @foreach ($employees->pluck('department.name')->unique()->filter() as $dept)
+                                    <option value="{{ $dept }}">{{ ucfirst($dept) }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <select id="employmentTypeFilter" class="form-select form-select-sm select2">
+                                <option value="">All Employment Types</option>
+                                <option value="PKWT">PKWT</option>
+                                <option value="PKWTT">PKWTT</option>
+                                <option value="Daily Worker">Daily Worker</option>
+                                <option value="Probation">Probation</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <select id="statusFilter" class="form-select form-select-sm select2">
+                                <option value="">All Status</option>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                                <option value="terminated">Terminated</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <select id="positionFilter" class="form-select form-select-sm select2">
+                                <option value="">All Positions</option>
+                                @foreach ($employees->pluck('position')->unique()->filter() as $position)
+                                    <option value="{{ $position }}">{{ $position }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="input-group">
+                                <input type="text" id="custom-search" class="form-control form-control-sm"
+                                    placeholder="Search employees...">
+                                <button type="button" id="reset-filters" class="btn btn-sm btn-secondary">
+                                    <i class="bi bi-x-circle"></i> Reset
+                                </button>
+                            </div>
+                        </div>
+                    </form>
                 </div>
 
-                <!-- DataTable - Improved responsive table -->
+                <!-- DataTable -->
                 <div class="table-responsive">
-                    <table class="table table-bordered table-hover align-middle" id="employees-table">
-                        <thead class="table-light">
+                    <table class="table table-striped table-hover table-bordered table-sm" id="employees-table">
+                        <thead class="align-middle text-nowrap">
                             <tr>
                                 <th width="60" class="text-center">Photo</th>
                                 <th>Employee No</th>
@@ -82,7 +96,7 @@
                                 <th width="140" class="text-center">Actions</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody class="align-middle">
                             @foreach ($employees as $employee)
                                 <tr data-employee-id="{{ $employee->id }}">
                                     <td class="text-center">
@@ -101,7 +115,6 @@
                                                 <i class="bi bi-envelope"></i> {{ Str::limit($employee->email, 15) }}
                                             </small>
                                         @endif
-                                        <!-- Mobile-only info -->
                                         <div class="d-md-none mt-1">
                                             <small class="badge bg-info">{{ $employee->position }}</small>
                                             @if ($employee->department)
@@ -147,7 +160,8 @@
                                     </td>
                                     <td class="text-center">
                                         @if ($employee->documents->count() > 0)
-                                            <button type="button" class="btn btn-sm btn-outline-success view-documents-btn"
+                                            <button type="button"
+                                                class="btn btn-sm btn-outline-success view-documents-btn"
                                                 data-employee-id="{{ $employee->id }}"
                                                 data-employee-name="{{ $employee->name }}" title="View Documents">
                                                 <i class="bi bi-file-earmark-text"></i>
@@ -159,12 +173,10 @@
                                         @endif
                                     </td>
                                     <td>
-                                        {{-- Employment Type Badge --}}
                                         <span class="badge bg-{{ $employee->employment_type_badge['color'] }} mb-1">
                                             {{ $employee->employment_type }}
                                         </span>
                                         <br>
-                                        {{-- Employment Status Badge --}}
                                         <span class="badge bg-{{ $employee->status_badge['color'] }}">
                                             {{ $employee->status_badge['text'] }}
                                         </span>
@@ -233,9 +245,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div id="documentsContent">
-                        <!-- Documents will be loaded here -->
-                    </div>
+                    <div id="documentsContent"></div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -247,30 +257,92 @@
 
 @push('styles')
     <style>
-        /* Enhanced DataTables Styling */
-        .dataTables_wrapper {
-            margin-top: 1rem;
+        .gradient-icon {
+            background: linear-gradient(135deg, #8F12FE 0%, #4A25AA 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
-        /* Table styling improvements */
-        #employees-table {
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        #filter-form {
+            background: #f8f9fa;
+            padding: .75rem;
+            border-radius: 0.5rem;
+            border: 1px solid #dee2e6;
         }
 
+        /* Pagination styling - sama seperti Goods Out */
+        .pagination {
+            --bs-pagination-padding-x: 0.75rem;
+            --bs-pagination-padding-y: 0.375rem;
+            --bs-pagination-color: #6c757d;
+            --bs-pagination-bg: #fff;
+            --bs-pagination-border-width: 1px;
+            --bs-pagination-border-color: #dee2e6;
+            --bs-pagination-border-radius: 0.375rem;
+            --bs-pagination-hover-color: #495057;
+            --bs-pagination-hover-bg: #e9ecef;
+            --bs-pagination-hover-border-color: #dee2e6;
+            --bs-pagination-focus-color: #495057;
+            --bs-pagination-focus-bg: #e9ecef;
+            --bs-pagination-focus-box-shadow: 0 0 0 0.25rem rgba(143, 18, 254, 0.25);
+            --bs-pagination-active-color: #fff;
+            --bs-pagination-active-bg: #8F12FE;
+            --bs-pagination-active-border-color: #4A25AA;
+            --bs-pagination-disabled-color: #6c757d;
+            --bs-pagination-disabled-bg: #fff;
+            --bs-pagination-disabled-border-color: #dee2e6;
+        }
+
+        .page-link {
+            transition: all 0.15s ease-in-out;
+        }
+
+        .page-link:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .page-item.active .page-link {
+            background: linear-gradient(135deg, #8F12FE 0%, #4A25AA 100%);
+            border-color: #8F12FE;
+            box-shadow: 0 2px 4px rgba(143, 18, 254, 0.3);
+        }
+
+        /* DataTables footer styling */
+        .datatables-footer-row {
+            border-top: 1px solid #eee;
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+        }
+
+        .datatables-left {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .vr-divider {
+            width: 1px;
+            height: 24px;
+            background: #dee2e6;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        .dataTables_paginate {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+        }
+
+        /* Table styling */
         #employees-table tbody td {
             padding: 10px 8px;
             vertical-align: middle;
             border-bottom: 1px solid #f1f3f4;
         }
 
-        /* Remove row hover and click behavior - only name is clickable */
-        #employees-table tbody tr {
-            transition: none;
-            cursor: default;
-        }
-
-        /* Make only name column clickable */
         .clickable-name {
             transition: all 0.2s ease;
             border-radius: 4px;
@@ -284,7 +356,6 @@
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
-        /* Employee photo styling */
         .employee-photo {
             border: 2px solid #fff;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -295,14 +366,12 @@
             transform: scale(1.1);
         }
 
-        /* Badge improvements */
         .badge {
             font-size: 0.7rem;
             padding: 3px 6px;
             border-radius: 4px;
         }
 
-        /* Button group improvements */
         .btn-group .btn {
             transition: all 0.2s ease;
         }
@@ -312,7 +381,6 @@
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
 
-        /* View documents button styling */
         .view-documents-btn {
             transition: all 0.2s ease;
         }
@@ -321,66 +389,6 @@
             transform: scale(1.05);
         }
 
-        /* Filter styling */
-        .form-select-sm {
-            border-radius: 6px;
-            border: 1px solid #e3e6f0;
-            transition: all 0.2s ease;
-        }
-
-        .form-select-sm:focus {
-            border-color: #8116ed;
-            box-shadow: 0 0 0 0.2rem rgba(129, 22, 237, 0.25);
-        }
-
-        /* Enhanced pagination buttons */
-        .dataTables_paginate .paginate_button {
-            padding: 0.5rem 0.875rem;
-            margin: 0 0.125rem;
-            border: 1px solid #e3e6f0;
-            border-radius: 6px;
-            background: white;
-            color: #495057;
-            text-decoration: none;
-            font-size: 0.875rem;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-
-        .dataTables_paginate .paginate_button:hover {
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            border-color: #adb5bd;
-            transform: translateY(-1px);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        #employees-table_wrapper .dataTables_paginate .paginate_button.current {
-            background: linear-gradient(135deg, #8116ed 0%, #6f42c1 100%) !important;
-            border-color: #8116ed !important;
-            color: #fff !important;
-            box-shadow: 0 4px 8px rgba(129, 22, 237, 0.3) !important;
-        }
-
-        /* Enhanced search input */
-        .dataTables_filter input {
-            padding: 0.5rem 1rem;
-            font-size: 0.875rem;
-            border: 1px solid #e3e6f0;
-            border-radius: 25px;
-            margin-left: 0.5rem;
-            background: #f8f9fa;
-            transition: all 0.3s ease;
-            min-width: 250px;
-        }
-
-        .dataTables_filter input:focus {
-            border-color: #8116ed;
-            background: white;
-            box-shadow: 0 0 0 0.2rem rgba(129, 22, 237, 0.25);
-            outline: none;
-        }
-
-        /* Documents modal styling */
         .document-item {
             border: 1px solid #e9ecef;
             border-radius: 8px;
@@ -396,12 +404,26 @@
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
-        .document-actions .btn {
-            margin: 0 2px;
-        }
+        /* Responsive adjustments */
+        @media (max-width: 767.98px) {
+            .datatables-footer-row {
+                flex-direction: column !important;
+                gap: 0.5rem;
+            }
 
-        /* Mobile responsive improvements */
-        @media (max-width: 768px) {
+            .datatables-left {
+                flex-direction: column !important;
+                gap: 0.5rem;
+            }
+
+            .vr-divider {
+                display: none;
+            }
+
+            .dataTables_paginate {
+                justify-content: center !important;
+            }
+
             #employees-table thead th {
                 font-size: 0.8rem;
                 padding: 8px 4px;
@@ -412,75 +434,29 @@
                 font-size: 0.85rem;
             }
 
-            .btn-group-vertical .btn {
-                margin: 1px 0;
-                font-size: 0.8rem;
-                padding: 4px 8px;
-            }
-
             .employee-photo {
                 width: 30px !important;
                 height: 30px !important;
             }
-
-            .badge {
-                font-size: 0.6rem;
-                padding: 2px 4px;
-            }
-
-            .dataTables_filter input {
-                min-width: 180px;
-                font-size: 0.8rem;
-            }
         }
 
-        @media (max-width: 576px) {
-            .container-fluid {
-                padding-left: 10px;
-                padding-right: 10px;
-            }
-
-            .card-body {
-                padding: 15px;
-            }
-
-            .dataTables_wrapper .row {
-                margin: 0;
-            }
-
-            .dataTables_wrapper .col-md-6 {
-                padding: 5px;
-            }
-
-            /* Stack elements vertically on mobile */
-            .dataTables_length,
-            .dataTables_filter {
-                text-align: center !important;
-                margin-bottom: 10px;
-            }
-
-            .dataTables_info,
-            .dataTables_paginate {
-                text-align: center !important;
-            }
-        }
-
-        /* Loading state */
-        .dataTables_processing {
-            background: rgba(255, 255, 255, 0.9);
-            border: 1px solid #e3e6f0;
-            border-radius: 8px;
-            color: #495057;
-            font-weight: 500;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        /* Enhanced alert styling */
         .alert-success {
             border: none;
             border-radius: 8px;
             background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
             border-left: 4px solid #28a745;
+        }
+
+        /* Tooltips */
+        .tooltip {
+            z-index: 9999 !important;
+        }
+
+        .tooltip-inner {
+            max-width: 200px;
+            padding: 0.3rem 0.6rem;
+            font-size: 0.775rem;
+            line-height: 1.2;
         }
     </style>
 @endpush
@@ -488,141 +464,135 @@
 @push('scripts')
     <script>
         $(document).ready(function() {
-            // Enhanced DataTables configuration
-            const dtConfig = {
-                processing: true,
+            // Initialize DataTable dengan konfigurasi sama seperti Goods Out
+            const table = $('#employees-table').DataTable({
+                processing: false,
                 searching: true,
                 paging: true,
                 info: true,
                 ordering: true,
                 lengthChange: true,
-                pageLength: 25,
+                pageLength: 15,
                 lengthMenu: [
-                    [10, 25, 50, 100, -1],
-                    [10, 25, 50, 100, 'All']
+                    [10, 15, 25, 50, 100],
+                    [10, 15, 25, 50, 100]
                 ],
                 language: {
-                    search: "Search employees:",
-                    info: "Showing _START_ to _END_ of _TOTAL_ employees",
-                    infoEmpty: "No employees available",
-                    infoFiltered: "(filtered from _MAX_ total employees)",
-                    emptyTable: "No employees found",
-                    zeroRecords: "No employees match your search criteria",
-                    processing: '<i class="fas fa-spinner fa-spin"></i> Loading employees...',
+                    search: "_INPUT_",
+                    searchPlaceholder: "Search in table...",
+                    emptyTable: '<div class="text-muted py-2">No employee data available</div>',
+                    zeroRecords: '<div class="text-muted py-2">No matching records found</div>',
+                    infoEmpty: "Showing 0 to 0 of 0 entries",
+                    infoFiltered: "(filtered from _MAX_ total entries)",
                     lengthMenu: "Show _MENU_ entries per page",
-                    paginate: {
-                        first: '<i class="bi bi-chevron-double-left"></i>',
-                        last: '<i class="bi bi-chevron-double-right"></i>',
-                        next: '<i class="bi bi-chevron-right"></i>',
-                        previous: '<i class="bi bi-chevron-left"></i>'
-                    }
+                    info: "Showing _START_ to _END_ of _TOTAL_ entries",
                 },
+                dom: 't<' +
+                    '"row datatables-footer-row align-items-center"' +
+                    '<"col-md-7 d-flex align-items-center gap-2 datatables-left"l<"vr-divider mx-2">i>' +
+                    '<"col-md-5 dataTables_paginate justify-content-end"p>' +
+                    '>',
                 columnDefs: [{
-                        targets: [0], // Photo column
+                        targets: [0], // Photo
                         orderable: false,
                         searchable: false,
-                        responsivePriority: 1
+                        className: "text-center"
                     },
                     {
-                        targets: [9], // Actions column
+                        targets: [7], // Documents
+                        orderable: false,
+                        className: "text-center"
+                    },
+                    {
+                        targets: [9], // Actions
                         orderable: false,
                         searchable: false,
-                        responsivePriority: 2
-                    },
-                    {
-                        targets: [7], // Documents column
-                        orderable: false,
-                        className: "text-center",
-                        responsivePriority: 3
-                    },
-                    {
-                        targets: [2], // Name column
-                        responsivePriority: 1
+                        className: "text-center"
                     }
                 ],
                 order: [
                     [2, 'asc']
-                ], // Default sort by name
-                responsive: {
-                    details: {
-                        type: 'column',
-                        target: 'tr'
-                    }
-                },
-                scrollX: false, // Disable horizontal scroll for better mobile experience
-                autoWidth: false,
-                stateSave: true,
-                dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>' +
-                    '<"row"<"col-sm-12"tr>>' +
-                    '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
-            };
-
-            // Initialize DataTable
-            const table = $('#employees-table').DataTable(dtConfig);
-
-            // Custom filtering
-            $('#departmentFilter').on('change', function() {
-                const value = this.value;
-                table.column(4).search(value).draw();
+                ], // Sort by name
+                responsive: true,
+                stateSave: false,
+                drawCallback: function() {
+                    $('[data-bs-toggle="tooltip"]').tooltip();
+                }
             });
 
-            $('#statusFilter').on('change', function() {
-                const value = this.value;
-                table.column(8).search(value).draw();
-            });
+            // Filter functionality
+            $('#departmentFilter, #employmentTypeFilter, #statusFilter, #positionFilter').on('change',
+                function() {
+                    applyFilters();
+                });
 
-            $('#positionFilter').on('change', function() {
-                const value = this.value;
-                table.column(3).search(value).draw();
-            });
+            $('#custom-search').on('input', debounce(function() {
+                table.search($(this).val()).draw();
+            }, 500));
 
-            // Clear filters
-            $('#clearFilters').on('click', function() {
-                $('#departmentFilter, #statusFilter, #positionFilter').val('');
+            function applyFilters() {
+                const dept = $('#departmentFilter').val();
+                const empType = $('#employmentTypeFilter').val();
+                const status = $('#statusFilter').val();
+                const position = $('#positionFilter').val();
+
+                // Filter department (column 4)
+                table.column(4).search(dept).draw();
+
+                // Filter employment type & status (column 8)
+                let typeStatusFilter = '';
+                if (empType && status) {
+                    typeStatusFilter = empType + '.*' + status;
+                } else if (empType) {
+                    typeStatusFilter = empType;
+                } else if (status) {
+                    typeStatusFilter = status;
+                }
+                table.column(8).search(typeStatusFilter, true, false).draw();
+
+                // Filter position (column 3)
+                table.column(3).search(position).draw();
+            }
+
+            // Reset filters
+            $('#reset-filters').on('click', function() {
+                $('#departmentFilter, #employmentTypeFilter, #statusFilter, #positionFilter').val('')
+                    .trigger(
+                        'change');
+                $('#custom-search').val('');
                 table.search('').columns().search('').draw();
             });
 
-            // Handle name click to view details (only name column)
+            // Handle name click
             $(document).on('click', '.clickable-name', function(e) {
                 e.stopPropagation();
-                const row = $(this).closest('tr');
-                const employeeId = row.data('employee-id');
+                const employeeId = $(this).closest('tr').data('employee-id');
                 if (employeeId) {
-                    // Add loading state
                     const originalContent = $(this).html();
                     $(this).html('<i class="spinner-border spinner-border-sm"></i> Loading...');
-
-                    // Navigate to employee details
                     window.location.href = `/employees/${employeeId}`;
                 }
             });
 
-            // Handle view documents button click
+            // Handle view documents
             $(document).on('click', '.view-documents-btn', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
 
                 const employeeId = $(this).data('employee-id');
                 const employeeName = $(this).data('employee-name');
-
-                // Show loading state
                 const originalHtml = $(this).html();
                 $(this).prop('disabled', true).html('<i class="spinner-border spinner-border-sm"></i>');
 
                 loadEmployeeDocuments(employeeId, employeeName, $(this), originalHtml);
             });
 
-            // Function to load employee documents
             function loadEmployeeDocuments(employeeId, employeeName, button, originalHtml) {
                 $.ajax({
                     url: `/employees/${employeeId}/documents`,
                     method: 'GET',
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
                     success: function(response) {
                         $('#modalEmployeeName').text(employeeName);
-
                         let documentsHtml = '';
 
                         if (response.documents && response.documents.length > 0) {
@@ -636,68 +606,102 @@
                                     });
 
                                 documentsHtml += `
-                            <div class="document-item">
-                                <div class="row align-items-center">
-                                    <div class="col-md-8">
-                                        <div class="d-flex align-items-center">
-                                            <i class="bi bi-file-earmark-${getFileIcon(doc.mime_type)} text-primary me-3 fs-4"></i>
-                                            <div>
-                                                <h6 class="mb-1">${doc.document_name}</h6>
-                                                <div class="small text-muted">
-                                                    <span class="badge bg-info me-2">${doc.document_type_label}</span>
-                                                    <span>${fileSize}</span>
-                                                    <span class="mx-1">•</span>
-                                                    <span>Uploaded ${uploadDate}</span>
+                                    <div class="document-item">
+                                        <div class="row align-items-center">
+                                            <div class="col-md-8">
+                                                <div class="d-flex align-items-center">
+                                                    <i class="bi bi-file-earmark-${getFileIcon(doc.mime_type)} text-primary me-3 fs-4"></i>
+                                                    <div>
+                                                        <h6 class="mb-1">${doc.document_name}</h6>
+                                                        <div class="small text-muted">
+                                                            <span class="badge bg-info me-2">${doc.document_type_label}</span>
+                                                            <span>${fileSize}</span>
+                                                            <span class="mx-1">•</span>
+                                                            <span>Uploaded ${uploadDate}</span>
+                                                        </div>
+                                                        ${doc.description ? `<p class="mb-0 mt-1 small text-secondary">${doc.description}</p>` : ''}
+                                                    </div>
                                                 </div>
-                                                ${doc.description ? `<p class="mb-0 mt-1 small text-secondary">${doc.description}</p>` : ''}
+                                            </div>
+                                            <div class="col-md-4 text-end">
+                                                <a href="${doc.file_url}" target="_blank" class="btn btn-outline-primary btn-sm">
+                                                    <i class="bi bi-eye"></i> View
+                                                </a>
+                                                <a href="/employee-documents/${doc.id}/download" class="btn btn-outline-success btn-sm">
+                                                    <i class="bi bi-download"></i> Download
+                                                </a>
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="col-md-4 text-end">
-                                        <div class="document-actions">
-                                            <a href="${doc.file_url}" target="_blank"
-                                               class="btn btn-outline-primary btn-sm" title="View Document">
-                                                <i class="bi bi-eye"></i> View
-                                            </a>
-                                            <a href="/employee-documents/${doc.id}/download"
-                                               class="btn btn-outline-success btn-sm" title="Download Document">
-                                                <i class="bi bi-download"></i> Download
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
+                                `;
                             });
                         } else {
                             documentsHtml = `
-                        <div class="text-center py-4">
-                            <i class="bi bi-file-earmark-x text-muted" style="font-size: 3rem;"></i>
-                            <div class="mt-3 text-muted">No documents found for this employee</div>
-                        </div>
-                    `;
+                                <div class="text-center py-4">
+                                    <i class="bi bi-file-earmark-x text-muted" style="font-size: 3rem;"></i>
+                                    <div class="mt-3 text-muted">No documents found</div>
+                                </div>
+                            `;
                         }
 
                         $('#documentsContent').html(documentsHtml);
                         $('#documentsModal').modal('show');
                     },
-                    error: function(xhr, status, error) {
-                        console.error('Error loading documents:', error);
-                        Swal.fire({
-                            title: 'Error!',
-                            text: 'Failed to load employee documents. Please try again.',
-                            icon: 'error',
-                            confirmButtonColor: '#dc3545'
-                        });
+                    error: function() {
+                        Swal.fire('Error!', 'Failed to load documents.', 'error');
                     },
                     complete: function() {
-                        // Restore button state
                         button.prop('disabled', false).html(originalHtml);
                     }
                 });
             }
 
-            // Helper function to format file size
+            // Delete employee
+            $(document).on('click', '.delete-employee-btn', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const employeeId = $(this).data('employee-id');
+                const employeeName = $(this).data('employee-name');
+
+                Swal.fire({
+                    title: 'Delete Employee',
+                    html: `Are you sure you want to delete <strong>"${employeeName}"</strong>?<br><br>
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i> This will delete all related data.
+                        </div>`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc3545',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Yes, Delete!',
+                    cancelButtonText: 'Cancel',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        const form = $(`
+                            <form action="/employees/${employeeId}" method="POST" style="display: none;">
+                                <input type="hidden" name="_token" value="${$('meta[name="csrf-token"]').attr('content')}">
+                                <input type="hidden" name="_method" value="DELETE">
+                            </form>
+                        `);
+                        $('body').append(form);
+                        form.submit();
+                    }
+                });
+            });
+
+            // Initialize Select2
+            $('.select2').select2({
+                theme: 'bootstrap-5',
+                placeholder: function() {
+                    return $(this).data('placeholder') || 'Select an option';
+                },
+                allowClear: true,
+                width: '100%'
+            });
+
+            // Helper functions
             function formatFileSize(bytes) {
                 if (bytes === 0) return '0 Bytes';
                 const k = 1024;
@@ -706,7 +710,6 @@
                 return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
             }
 
-            // Helper function to get file icon
             function getFileIcon(mimeType) {
                 if (mimeType.includes('pdf')) return 'pdf';
                 if (mimeType.includes('word') || mimeType.includes('document')) return 'word';
@@ -714,93 +717,19 @@
                 return 'text';
             }
 
-            // Enhanced delete confirmation with SweetAlert
-            $(document).on('click', '.delete-employee-btn', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-
-                const employeeId = $(this).data('employee-id');
-                const employeeName = $(this).data('employee-name');
-                const button = $(this);
-
-                Swal.fire({
-                    title: 'Delete Employee',
-                    html: `Are you sure you want to delete employee <strong>"${employeeName}"</strong>?<br><br>
-                   <div class="alert alert-warning">
-                       <i class="bi bi-exclamation-triangle"></i> This will also delete:
-                       <ul class="mb-0 mt-2">
-                           <li>Employee photo</li>
-                           <li>All documents</li>
-                           <li>Timing records</li>
-                       </ul>
-                   </div>
-                   <small class="text-muted">This action cannot be undone!</small>`,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#dc3545',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: '<i class="bi bi-trash"></i> Yes, Delete!',
-                    cancelButtonText: '<i class="bi bi-x-circle"></i> Cancel',
-                    reverseButtons: true,
-                    focusCancel: true,
-                    customClass: {
-                        confirmButton: 'btn btn-danger ms-2',
-                        cancelButton: 'btn btn-secondary me-2',
-                    },
-                    buttonsStyling: false
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        // Show loading state
-                        button.prop('disabled', true);
-                        button.html('<i class="spinner-border spinner-border-sm"></i>');
-
-                        // Create and submit form
-                        const form = $(`
-                    <form action="/employees/${employeeId}" method="POST" style="display: none;">
-                        <input type="hidden" name="_token" value="${$('meta[name="csrf-token"]').attr('content')}">
-                        <input type="hidden" name="_method" value="DELETE">
-                    </form>
-                `);
-
-                        $('body').append(form);
-
-                        // Show deleting progress
-                        Swal.fire({
-                            title: 'Deleting Employee...',
-                            html: 'Please wait while we delete the employee and all related data.',
-                            icon: 'info',
-                            allowOutsideClick: false,
-                            allowEscapeKey: false,
-                            showConfirmButton: false,
-                            didOpen: () => {
-                                Swal.showLoading();
-                            }
-                        });
-
-                        form.submit();
-                    }
-                });
-            });
+            function debounce(func, wait) {
+                let timeout;
+                return function() {
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => func.apply(this, arguments), wait);
+                };
+            }
 
             // Auto-dismiss alerts
-            setTimeout(function() {
-                $('.alert').fadeOut('slow');
-            }, 5000);
+            setTimeout(() => $('.alert').fadeOut('slow'), 5000);
 
-            // Add loading state to action buttons
-            $('.btn-primary, .btn-warning, .btn-info').on('click', function() {
-                const btn = $(this);
-                const originalHtml = btn.html();
-
-                btn.prop('disabled', true);
-                btn.html('<i class="spinner-border spinner-border-sm"></i>');
-
-                // Re-enable after navigation (fallback)
-                setTimeout(() => {
-                    btn.prop('disabled', false);
-                    btn.html(originalHtml);
-                }, 3000);
-            });
+            // Initialize tooltips
+            $('[data-bs-toggle="tooltip"]').tooltip();
         });
     </script>
 @endpush

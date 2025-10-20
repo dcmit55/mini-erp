@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
+use Illuminate\Support\Facades\DB;
 
 class LeaveRequestController extends Controller
 {
@@ -86,21 +87,43 @@ class LeaveRequestController extends Controller
             'end_date' => 'required|date|after_or_equal:start_date',
             'type' => 'required|string',
             'reason' => 'nullable|string',
-            'duration' => 'required|numeric|min:0.01',
+            'duration' => 'required|numeric|min:0.01|max:999.99',
         ]);
 
-        LeaveRequest::create([
-            'employee_id' => $request->employee_id,
-            'start_date' => $request->start_date,
-            'end_date' => $request->end_date,
-            'type' => $request->type,
-            'duration' => $request->duration,
-            'reason' => $request->reason,
-            'approval_1' => 'pending',
-            'approval_2' => 'pending',
-        ]);
+        DB::beginTransaction();
+        try {
+            // Check leave balance for Annual Leave
+            if (strtoupper($request->type) === 'ANNUAL') {
+                $employee = Employee::findOrFail($request->employee_id);
 
-        return redirect()->route('leave_requests.index')->with('success', 'Leave request submitted!');
+                if ($employee->saldo_cuti < $request->duration) {
+                    DB::rollBack();
+                    return back()
+                        ->withInput()
+                        ->withErrors(['duration' => "Insufficient leave balance. Employee has {$employee->saldo_cuti} days, but requesting {$request->duration} days."]);
+                }
+            }
+
+            LeaveRequest::create([
+                'employee_id' => $request->employee_id,
+                'start_date' => $request->start_date,
+                'end_date' => $request->end_date,
+                'type' => $request->type,
+                'duration' => $request->duration,
+                'reason' => $request->reason,
+                'approval_1' => 'pending',
+                'approval_2' => 'pending',
+            ]);
+
+            DB::commit();
+            return redirect()->route('leave_requests.index')->with('success', 'Leave request submitted successfully!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Leave request creation error: ' . $e->getMessage());
+            return back()
+                ->withInput()
+                ->withErrors(['error' => 'Failed to create leave request: ' . $e->getMessage()]);
+        }
     }
 
     /**
@@ -141,6 +164,7 @@ class LeaveRequestController extends Controller
             'end_date' => 'required|date|after_or_equal:start_date',
             'type' => 'required|string',
             'reason' => 'nullable|string',
+            'duration' => 'required|numeric|min:0.01|max:999.99',
         ]);
 
         $leave = LeaveRequest::findOrFail($id);
@@ -163,7 +187,6 @@ class LeaveRequestController extends Controller
             abort(403, 'You do not have permission to approve leave requests.');
         }
 
-        // Hanya super_admin dan admin_hr yang bisa approve
         if (!in_array(Auth::user()->role, ['super_admin', 'admin_hr'])) {
             return back()->with('error', 'Only Super Admin and HR Admin can approve leave requests.');
         }
@@ -173,18 +196,74 @@ class LeaveRequestController extends Controller
             'approval_2' => 'nullable|in:pending,approved,rejected',
         ]);
 
-        $leave = LeaveRequest::findOrFail($id);
-        if ($request->has('approval_1')) {
-            $leave->approval_1 = $request->approval_1;
+        DB::beginTransaction();
+        try {
+            $leave = LeaveRequest::with('employee')->findOrFail($id);
+
+            // Store previous status
+            $previousApproval1 = $leave->approval_1;
+            $previousApproval2 = $leave->approval_2;
+
+            // Update approvals
+            if ($request->has('approval_1')) {
+                $leave->approval_1 = $request->approval_1;
+            }
+            if ($request->has('approval_2')) {
+                $leave->approval_2 = $request->approval_2;
+            }
+            $leave->save();
+
+            // SIMPLIFIED: Direct ENUM comparison
+            $bothApproved = $leave->approval_1 === 'approved' && $leave->approval_2 === 'approved';
+            $wasNotBothApproved = !($previousApproval1 === 'approved' && $previousApproval2 === 'approved');
+            $isAnnualLeave = $leave->type === 'ANNUAL'; // ✅ Simple!
+
+            if ($bothApproved && $wasNotBothApproved && $isAnnualLeave) {
+                $employee = $leave->employee;
+
+                // ✅ PENTING: Gunakan bccomp untuk compare decimal dengan tepat
+                if (bccomp($employee->saldo_cuti, $leave->duration, 2) < 0) {
+                    DB::rollBack();
+                    return back()->with('error', 'Insufficient leave balance. Employee has ' . number_format($employee->saldo_cuti, 1) . ' days, but requesting ' . number_format($leave->duration, 1) . ' days.');
+                }
+
+                $oldBalance = $employee->saldo_cuti;
+
+                // ✅ Gunakan bcsub untuk pengurangan decimal yang akurat
+                $employee->saldo_cuti = bcsub($oldBalance, $leave->duration, 2);
+                $employee->save();
+
+                \Log::info('Leave Balance Deducted', [
+                    'employee_id' => $employee->id,
+                    'old_balance' => number_format($oldBalance, 2),
+                    'deduction' => number_format($leave->duration, 2),
+                    'new_balance' => number_format($employee->saldo_cuti, 2),
+                ]);
+
+                DB::commit();
+                return back()->with('success', 'Leave approved! Balance reduced by ' . number_format($leave->duration, 1) . ' day(s). Remaining: ' . number_format($employee->saldo_cuti, 1) . ' day(s).');
+            }
+
+            // Restore balance jika revoked
+            if ($approvalRevoked && ($previousApproval1 === 'approved' && $previousApproval2 === 'approved')) {
+                $employee = $leave->employee;
+                $oldBalance = $employee->saldo_cuti;
+
+                // ✅ Gunakan bcadd untuk penambahan decimal yang akurat
+                $employee->saldo_cuti = bcadd($oldBalance, $leave->duration, 2);
+                $employee->save();
+
+                DB::commit();
+                return back()->with('success', 'Approval revoked. Balance restored by ' . number_format($leave->duration, 1) . ' day(s).');
+            }
+
+            DB::commit();
+            return back()->with('success', 'Approval updated successfully!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Leave approval error: ' . $e->getMessage());
+            return back()->with('error', 'Failed to update: ' . $e->getMessage());
         }
-
-        if ($request->has('approval_2')) {
-            $leave->approval_2 = $request->approval_2;
-        }
-
-        $leave->save();
-
-        return back()->with('success', 'Approval updated!');
     }
 
     /**
