@@ -204,6 +204,30 @@
                                     @endif
                                 </div>
                             </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="fw-semibold text-muted small">Contract End Date</label>
+                                <div class="fw-medium">
+                                    @if ($employee->contract_end_date)
+                                        {{ $employee->contract_end_date->format('d M Y') }}
+                                        <small
+                                            class="text-muted">({{ $employee->contract_end_date->diffForHumans() }})</small>
+
+                                        {{-- create with accessor model --}}
+                                        @if ($employee->contract_status)
+                                            <span class="badge bg-{{ $employee->contract_status['color'] }} ms-2">
+                                                {{ $employee->contract_status['text'] }}
+                                                @if ($employee->contract_status['days_remaining'] > 0)
+                                                    ({{ $employee->contract_status['days_remaining'] }} days)
+                                                @endif
+                                            </span>
+                                        @endif
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
+                                </div>
+                            </div>
+
                             <div class="col-md-6 mb-3">
                                 <label class="fw-semibold text-muted small">Salary</label>
                                 <div class="fw-medium">{{ $employee->formatted_salary }}</div>

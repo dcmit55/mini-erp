@@ -310,6 +310,16 @@
                                 </div>
 
                                 <div class="col-md-6 mb-3">
+                                    <label for="contract_end_date" class="form-label">Contract End Date</label>
+                                    <input type="date" class="form-control" id="contract_end_date"
+                                        name="contract_end_date"
+                                        value="{{ old('contract_end_date', $employee->contract_end_date ? $employee->contract_end_date->format('Y-m-d') : '') }}">
+                                    @error('contract_end_date')
+                                        <small class="text-danger d-block">{{ $message }}</small>
+                                    @enderror
+                                </div>
+
+                                <div class="col-md-6 mb-3">
                                     <label for="saldo_cuti" class="form-label">
                                         Leave Balance <span class="text-danger">*</span>
                                     </label>
@@ -508,7 +518,7 @@
                             </a>
                             <button type="submit" class="btn btn-primary" id="employee-update-btn">
                                 <span class="spinner-border spinner-border-sm me-1 d-none" role="status"></span>
-                                <i class="bi bi-check-circle"></i> Update Employee
+                                Update Employee
                             </button>
                         </div>
                     </div>

@@ -91,7 +91,8 @@
                                 <th class="d-none d-lg-table-cell">Department</th>
                                 <th class="d-none d-lg-table-cell">Contact</th>
                                 <th class="d-none d-xl-table-cell">Hire Date</th>
-                                <th class="text-center">Documents</th>
+                                <th class="d-none d-xl-table-cell">Contract End</th>
+                                {{-- <th class="text-center">Documents</th> --}}
                                 <th class="d-none d-sm-table-cell">Type & Status</th>
                                 <th width="140" class="text-center">Actions</th>
                             </tr>
@@ -158,7 +159,28 @@
                                             <span class="text-muted">-</span>
                                         @endif
                                     </td>
-                                    <td class="text-center">
+                                    <td class="d-none d-xl-table-cell">
+                                        @if ($employee->contract_end_date)
+                                            <div class="small">{{ $employee->contract_end_date->format('d M Y') }}</div>
+                                            @php
+                                                $now = \Carbon\Carbon::now();
+                                                $daysRemaining = $now->diffInDays($employee->contract_end_date, false);
+                                            @endphp
+
+                                            @if ($daysRemaining < 0)
+                                                <small class="badge bg-danger">Expired</small>
+                                            @elseif ($daysRemaining <= 30)
+                                                <small class="badge bg-warning text-dark">{{ $daysRemaining }}d
+                                                    left</small>
+                                            @else
+                                                <small
+                                                    class="text-muted">{{ $employee->contract_end_date->diffForHumans() }}</small>
+                                            @endif
+                                        @else
+                                            <span class="text-muted">-</span>
+                                        @endif
+                                    </td>
+                                    {{-- <td class="text-center">
                                         @if ($employee->documents->count() > 0)
                                             <button type="button"
                                                 class="btn btn-sm btn-outline-success view-documents-btn"
@@ -171,7 +193,7 @@
                                         @else
                                             <span class="badge bg-secondary small">No docs</span>
                                         @endif
-                                    </td>
+                                    </td> --}}
                                     <td>
                                         <span class="badge bg-{{ $employee->employment_type_badge['color'] }} mb-1">
                                             {{ $employee->employment_type }}
@@ -234,7 +256,7 @@
     </div>
 
     <!-- Documents Modal -->
-    <div class="modal fade" id="documentsModal" tabindex="-1">
+    {{-- <div class="modal fade" id="documentsModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
@@ -252,7 +274,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div> --}}
 @endsection
 
 @push('styles')
@@ -498,11 +520,11 @@
                         searchable: false,
                         className: "text-center"
                     },
-                    {
-                        targets: [7], // Documents
-                        orderable: false,
-                        className: "text-center"
-                    },
+                    // {
+                    //     targets: [7], // Documents
+                    //     orderable: false,
+                    //     className: "text-center"
+                    // },
                     {
                         targets: [9], // Actions
                         orderable: false,

@@ -298,6 +298,15 @@
                                 </div>
 
                                 <div class="col-md-6 mb-3">
+                                    <label for="contract_end_date" class="form-label">Contract End Date</label>
+                                    <input type="date" class="form-control" id="contract_end_date"
+                                        name="contract_end_date" value="{{ old('contract_end_date') }}">
+                                    @error('contract_end_date')
+                                        <small class="text-danger d-block">{{ $message }}</small>
+                                    @enderror
+                                </div>
+
+                                <div class="col-md-6 mb-3">
                                     <label for="saldo_cuti" class="form-label">
                                         Leave Balance <span class="text-danger">*</span>
                                     </label>
@@ -889,6 +898,47 @@
                     }
                 }
             });
+
+            const hireDateInput = document.getElementById('hire_date');
+            const contractEndDateInput = document.getElementById('contract_end_date');
+
+            if (hireDateInput && contractEndDateInput) {
+                hireDateInput.addEventListener('change', function() {
+                    if (this.value) {
+                        contractEndDateInput.min = this.value;
+                    }
+                });
+
+                contractEndDateInput.addEventListener('change', function() {
+                    const hireDate = hireDateInput.value;
+                    const contractEndDate = this.value;
+
+                    if (hireDate && contractEndDate) {
+                        if (new Date(contractEndDate) < new Date(hireDate)) {
+                            showValidationError(this,
+                                'Contract end date must be after or equal to hire date');
+                        } else {
+                            this.classList.remove('is-invalid');
+                            this.classList.add('is-valid');
+
+                            // Calculate contract duration
+                            const diffTime = Math.abs(new Date(contractEndDate) - new Date(hireDate));
+                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                            const diffMonths = Math.floor(diffDays / 30);
+
+                            const feedback = document.createElement('small');
+                            feedback.className = 'text-success d-block mt-1 validation-feedback';
+                            feedback.textContent =
+                                `Contract duration: ${diffMonths} months (${diffDays} days)`;
+
+                            const existingFeedback = this.parentNode.querySelector('.validation-feedback');
+                            if (existingFeedback) existingFeedback.remove();
+
+                            this.parentNode.appendChild(feedback);
+                        }
+                    }
+                });
+            }
 
             // Format salary input
             const salaryInput = document.getElementById('salary');

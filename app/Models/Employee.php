@@ -13,9 +13,10 @@ class Employee extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $fillable = ['employee_no', 'name', 'employment_type', 'photo', 'position', 'department_id', 'email', 'phone', 'address', 'gender', 'ktp_id', 'place_of_birth', 'date_of_birth', 'rekening', 'hire_date', 'salary', 'saldo_cuti', 'status', 'notes'];
+    protected $fillable = ['employee_no', 'name', 'employment_type', 'photo', 'position', 'department_id', 'email', 'phone', 'address', 'gender', 'ktp_id', 'place_of_birth', 'date_of_birth', 'rekening', 'hire_date', 'contract_end_date', 'salary', 'saldo_cuti', 'status', 'notes'];
     protected $casts = [
         'hire_date' => 'date',
+        'contract_end_date' => 'date',
         'date_of_birth' => 'date',
         'salary' => 'decimal:2',
         'saldo_cuti' => 'decimal:2',
@@ -194,6 +195,57 @@ class Employee extends Model
             'PKWTT' => 'PKWTT (Permanent)',
             'Daily Worker' => 'Daily Worker',
             'Probation' => 'Probation',
+        ];
+    }
+
+    // Accessor untuk contract status
+    public function getContractStatusAttribute()
+    {
+        if (!$this->contract_end_date) {
+            return null;
+        }
+
+        $now = \Carbon\Carbon::now();
+        $daysRemaining = $now->diffInDays($this->contract_end_date, false);
+
+        if ($daysRemaining < 0) {
+            return [
+                'status' => 'expired',
+                'color' => 'danger',
+                'text' => 'Expired',
+                'days_remaining' => 0,
+            ];
+        } elseif ($daysRemaining <= 30) {
+            return [
+                'status' => 'expiring_soon',
+                'color' => 'warning',
+                'text' => 'Expiring Soon',
+                'days_remaining' => $daysRemaining,
+            ];
+        } else {
+            return [
+                'status' => 'active',
+                'color' => 'success',
+                'text' => 'Active',
+                'days_remaining' => $daysRemaining,
+            ];
+        }
+    }
+
+    // Accessor untuk formatted contract duration
+    public function getContractDurationAttribute()
+    {
+        if (!$this->hire_date || !$this->contract_end_date) {
+            return null;
+        }
+
+        $diffInMonths = $this->hire_date->diffInMonths($this->contract_end_date);
+        $diffInDays = $this->hire_date->diffInDays($this->contract_end_date);
+
+        return [
+            'months' => $diffInMonths,
+            'days' => $diffInDays,
+            'formatted' => "{$diffInMonths} months ({$diffInDays} days)",
         ];
     }
 }

@@ -79,6 +79,7 @@ class EmployeeController extends Controller
             'date_of_birth' => 'nullable|date|before:today',
             'rekening' => 'nullable|string|max:30',
             'hire_date' => 'nullable|date',
+            'contract_end_date' => 'nullable|date|after_or_equal:hire_date',
             'salary' => 'nullable|numeric|min:0',
             'saldo_cuti' => 'nullable|numeric|min:0|max:999.99',
             'status' => 'required|in:active,inactive,terminated',
@@ -90,7 +91,7 @@ class EmployeeController extends Controller
             'document_descriptions.*' => 'nullable|string',
         ]);
 
-        $employeeData = $request->only(['employee_no', 'name', 'employment_type', 'position', 'department_id', 'email', 'phone', 'address', 'gender', 'ktp_id', 'place_of_birth', 'date_of_birth', 'rekening', 'hire_date', 'salary', 'saldo_cuti', 'status', 'notes']);
+        $employeeData = $request->only(['employee_no', 'name', 'employment_type', 'position', 'department_id', 'email', 'phone', 'address', 'gender', 'ktp_id', 'place_of_birth', 'date_of_birth', 'rekening', 'hire_date', 'contract_end_date', 'salary', 'saldo_cuti', 'status', 'notes']);
 
         // Handle photo upload
         if ($request->hasFile('photo')) {
@@ -253,6 +254,7 @@ class EmployeeController extends Controller
             'date_of_birth' => 'nullable|date|before:today',
             'rekening' => 'nullable|string|max:30',
             'hire_date' => 'nullable|date',
+            'contract_end_date' => 'nullable|date|after_or_equal:hire_date',
             'salary' => 'nullable|numeric|min:0',
             'saldo_cuti' => 'nullable|numeric|min:0|max:999.99',
             'status' => 'required|in:active,inactive,terminated',
@@ -264,7 +266,7 @@ class EmployeeController extends Controller
             'document_descriptions.*' => 'nullable|string',
         ]);
 
-        $employeeData = $request->only(['employee_no', 'name', 'employment_type', 'position', 'department_id', 'email', 'phone', 'address', 'gender', 'ktp_id', 'place_of_birth', 'date_of_birth', 'rekening', 'hire_date', 'salary', 'saldo_cuti', 'status', 'notes']);
+        $employeeData = $request->only(['employee_no', 'name', 'employment_type', 'position', 'department_id', 'email', 'phone', 'address', 'gender', 'ktp_id', 'place_of_birth', 'date_of_birth', 'rekening', 'hire_date', 'contract_end_date', 'salary', 'saldo_cuti', 'status', 'notes']);
 
         // Handle photo upload
         if ($request->hasFile('photo')) {
