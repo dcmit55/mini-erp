@@ -2,16 +2,29 @@
 
 @section('content')
     <div class="container mt-4">
-        <div class="card shadow">
+        <div class="card shadow rounded">
             <div class="card-body">
-                <h2 class="mb-4 fw-bold">Create Leave Request</h2>
+                <h2 class="mb-0 flex-shrink-0" style="font-size:1.3rem;">
+                    Create Leave Request
+                </h2>
+                <hr>
+                @if ($errors->any())
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <strong>Whoops!</strong> There were some problems with your input.
+                        <ul class="mb-0">
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                @endif
                 <form method="POST" action="{{ route('leave_requests.store') }}">
                     @csrf
-                    <div class="row mb-3">
-                        <div class="col-md-3 mb-3">
-                            <label class="form-label fw-bold text-dark">Name</label>
-                            <select name="employee_id" id="employee_id"
-                                class="form-select select2 border border-dark bg-white" required>
+                    <div class="row">
+                        <div class="col-lg-3 mb-3">
+                            <label class="form-label">Name <span class="text-danger">*</span></label>
+                            <select name="employee_id" id="employee_id" class="form-select select2" required>
                                 <option value="">Select</option>
                                 @foreach ($employees as $emp)
                                     <option value="{{ $emp->id }}" data-department="{{ $emp->department->name ?? '' }}"
@@ -22,44 +35,38 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-3 mb-3">
-                            <label class="form-label fw-bold text-dark">Department</label>
-                            <input type="text" id="department"
-                                class="form-control form-control-lg border border-dark bg-white" readonly>
+                        <div class="col-lg-3 mb-3">
+                            <label class="form-label">Department</label>
+                            <input type="text" id="department" class="form-control" readonly>
                         </div>
-                        <div class="col-md-3 mb-3">
-                            <label class="form-label fw-bold text-dark">Position</label>
-                            <input type="text" id="position"
-                                class="form-control form-control-lg border border-dark bg-white" readonly>
+                        <div class="col-lg-3 mb-3">
+                            <label class="form-label">Position</label>
+                            <input type="text" id="position" class="form-control" readonly>
                         </div>
-                        <div class="col-md-3 mb-3">
-                            <label class="form-label fw-bold text-dark">Hire Date</label>
-                            <input type="text" id="hire_date"
-                                class="form-control form-control-lg border border-dark bg-white" readonly>
+                        <div class="col-lg-3 mb-3">
+                            <label class="form-label">Hire Date</label>
+                            <input type="text" id="hire_date" class="form-control" readonly>
                         </div>
                     </div>
-                    <div class="row mb-3">
-                        <div class="col-md-3 mb-3">
-                            <label class="form-label fw-bold text-dark">From Date</label>
-                            <input type="date" name="start_date" id="start_date"
-                                class="form-control form-control-lg border border-dark bg-white" required>
+                    <div class="row">
+                        <div class="col-lg-3 mb-3">
+                            <label class="form-label">From Date <span class="text-danger">*</span></label>
+                            <input type="date" name="start_date" id="start_date" class="form-control" required>
                         </div>
-                        <div class="col-md-3 mb-3">
-                            <label class="form-label fw-bold text-dark">To Date</label>
-                            <input type="date" name="end_date" id="end_date"
-                                class="form-control form-control-lg border border-dark bg-white" required>
+                        <div class="col-lg-3 mb-3">
+                            <label class="form-label">To Date <span class="text-danger">*</span></label>
+                            <input type="date" name="end_date" id="end_date" class="form-control" required>
                         </div>
-                        <div class="col-md-3 mb-3">
-                            <label class="form-label fw-bold text-dark d-flex align-items-center">
+                        <div class="col-lg-3 mb-3">
+                            <label class="form-label d-flex align-items-center">
                                 Leave Duration
-                                <span class="ms-1" data-bs-toggle="tooltip" title="Can use 0.5 for half day"
+                                <span class="ms-2" data-bs-toggle="tooltip" title="Can use 0.5 for half day"
                                     style="cursor: pointer;">
                                     <i class="bi bi-info-circle text-muted"></i>
                                 </span>
                             </label>
                             <div class="input-group">
-                                <input type="number" name="duration" id="duration"
-                                    class="form-control form-control-lg border border-dark bg-white" min="0.5"
+                                <input type="number" name="duration" id="duration" class="form-control" min="0.5"
                                     max="999.99" step="0.5" required
                                     value="{{ old('duration', isset($leave) ? $leave->duration : '') }}"
                                     placeholder="1 or 0.5">
@@ -68,20 +75,16 @@
                             <small class="text-muted" id="leave-balance-info"></small>
                         </div>
                     </div>
-                    <div class="row mb-3">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold text-dark">Reason</label>
-                            <textarea name="reason" class="form-control form-control-lg border border-dark bg-white" rows="5"></textarea>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold text-dark">Leave Type</label>
-                            <div class="row row-cols-1 row-cols-md-2 g-2">
+                    <div class="row mt-3">
+                        <div class="col-lg-12 mb-3">
+                            <label class="form-label">Leave Type <span class="text-danger">*</span></label>
+                            <div class="row row-cols-2 row-cols-md-2 g-2">
                                 @foreach ($leaveTypes as $type)
                                     <div class="col">
-                                        <div class="form-check mb-2">
+                                        <div class="form-check">
                                             <input class="form-check-input" type="radio" name="type"
                                                 id="type_{{ $type }}" value="{{ $type }}" required>
-                                            <label class="form-check-label fw-bold" for="type_{{ $type }}">
+                                            <label class="form-check-label" for="type_{{ $type }}">
                                                 {{ $leaveTypeLabels[$type] ?? $type }}
                                             </label>
                                         </div>
@@ -90,11 +93,15 @@
                             </div>
                         </div>
                     </div>
-                    <div class="d-flex gap-2 mt-3">
-                        <a href="{{ route('leave_requests.index') }}" class="btn px-4 py-2"
-                            style="background:#ff2222;color:#fff;font-weight:bold;">Cancel</a>
-                        <button type="submit" class="btn px-4 py-2"
-                            style="background:#33e133;color:#fff;font-weight:bold;">Submit</button>
+                    <div class="row ">
+                        <div class="col-lg-12 mb-3">
+                            <label class="form-label">Reason</label>
+                            <textarea name="reason" class="form-control" rows="4"></textarea>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2 mt-2 justify-content-end">
+                        <a href="{{ route('leave_requests.index') }}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-success">Submit</button>
                     </div>
                 </form>
             </div>
@@ -104,38 +111,12 @@
 
 @push('styles')
     <style>
-        .form-label {
-            font-size: 1.1rem;
-        }
-
-        .form-control-lg {
-            font-size: 1.1rem;
-        }
-    </style>
-
-    <!-- //RADIO BUTTON CUSTOM -->
-    <style>
-        .form-check-input[type="radio"] {
-            width: 1em;
-            height: 1em;
-            border: 0.5px solid #000000ff !important;
-            background-color: #fff;
-            box-shadow: 0 0 0 2px #000000ff;
-
-        }
-
-        .form-check-input[type="radio"]:checked {
-            background-color: #000000ff !important;
-            border-color: #000000ff !important;
-            box-shadow: 0 0 0 3px #000000ff;
-        }
     </style>
 @endpush
 
 @push('scripts')
     <script>
         $(document).ready(function() {
-            // Inisialisasi Select2
             $('#employee_id').select2({
                 width: '100%',
                 placeholder: 'Select',
@@ -143,7 +124,6 @@
                 theme: 'bootstrap-5'
             });
 
-            // Event untuk update field lain saat employee dipilih
             $('#employee_id').on('change', function() {
                 const selected = this.options[this.selectedIndex];
                 $('#department').val(selected.getAttribute('data-department') || '');
@@ -151,7 +131,6 @@
                 $('#hire_date').val(selected.getAttribute('data-hiredate') || '');
             });
 
-            // Calculate duration - Support 0.5 day increments
             $('#start_date, #end_date').on('change', function() {
                 let start = $('#start_date').val();
                 let end = $('#end_date').val();
@@ -162,10 +141,7 @@
                     let diff = Math.floor((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
 
                     if (diff > 0) {
-                        // Set full days
                         $('#duration').val(diff);
-
-                        // Show info about half-day option
                         const infoElement = $('#leave-balance-info');
                         if (diff === 1) {
                             infoElement.html(
@@ -188,24 +164,18 @@
                 }
             });
 
-            // Initialize tooltips
             $(function() {
                 $('[data-bs-toggle="tooltip"]').tooltip();
             });
 
-            // Validate duration input - support decimal
             $('#duration').on('input', function() {
                 let value = parseFloat($(this).val());
-
-                // Validate decimal places (max 2 decimal places)
                 if ($(this).val().includes('.')) {
                     let parts = $(this).val().split('.');
                     if (parts[1].length > 2) {
                         $(this).val(parseFloat($(this).val()).toFixed(2));
                     }
                 }
-
-                // Check against leave balance for Annual Leave
                 const employeeId = $('#employee_id').val();
                 const leaveType = $('input[name="type"]:checked').val();
                 const infoElement = $('#leave-balance-info');
@@ -217,7 +187,6 @@
                         success: function(response) {
                             if (response.success) {
                                 const balance = parseFloat(response.balance);
-
                                 if (value > balance) {
                                     $('#duration').addClass('is-invalid');
                                     infoElement.html(
@@ -235,18 +204,14 @@
                 }
             });
 
-            // Show available leave balance for Annual Leave
             $('#employee_id, input[name="type"]').on('change', function() {
                 const employeeId = $('#employee_id').val();
                 const leaveType = $('input[name="type"]:checked').val();
                 const infoElement = $('#leave-balance-info');
 
                 if (employeeId && leaveType === 'ANNUAL') {
-                    // Get employee data
                     const selectedOption = $('#employee_id option:selected');
                     const employeeName = selectedOption.text();
-
-                    // Fetch employee leave balance
                     $.ajax({
                         url: `/employees/${employeeId}/leave-balance`,
                         method: 'GET',
@@ -255,8 +220,6 @@
                                 infoElement.html(
                                     `<i class="bi bi-info-circle"></i> Available balance: <strong>${response.balance} days</strong>`
                                 );
-
-                                // Validate duration input
                                 $('#duration').attr('max', response.balance);
                                 $('#duration').on('input', function() {
                                     const duration = parseFloat($(this).val());
@@ -282,6 +245,17 @@
                     infoElement.html('');
                     $('#duration').removeAttr('max').removeClass('is-invalid');
                 }
+            });
+
+            // Prevent multiple submit & show loading spinner
+            $('form').on('submit', function(e) {
+                var $btn = $(this).find('button[type="submit"]');
+                if ($btn.prop('disabled')) {
+                    e.preventDefault();
+                    return false;
+                }
+                $btn.prop('disabled', true);
+                $btn.html('<span class="spinner-border spinner-border-sm me-2"></span>Submitting...');
             });
         });
     </script>

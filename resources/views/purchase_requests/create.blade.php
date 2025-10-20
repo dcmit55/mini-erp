@@ -4,7 +4,21 @@
     <div class="container-fluid mt-4">
         <div class="card shadow rounded">
             <div class="card-body">
-                <h4 class="mb-2">Purchase Request</h4>
+                <h2 class="mb-0 flex-shrink-0" style="font-size:1.3rem;">
+                    Create Purchase Request
+                </h2>
+                <hr>
+                @if ($errors->any())
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <strong>Whoops!</strong> There were some problems with your input.
+                        <ul class="mb-0">
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                @endif
                 <form method="POST" action="{{ route('purchase_requests.store') }}" enctype="multipart/form-data">
                     @csrf
                     <div id="requests-container">
@@ -121,7 +135,8 @@
     </div>
 
     <!-- Quick Add Project Modal -->
-    <div class="modal fade" id="addProjectModal" tabindex="-1" aria-labelledby="addProjectModalLabel" aria-hidden="true">
+    <div class="modal fade" id="addProjectModal" tabindex="-1" aria-labelledby="addProjectModalLabel"
+        aria-hidden="true">
         <div class="modal-dialog">
             <form id="quickAddProjectForm" method="POST" action="{{ route('projects.store.quick') }}">
                 @csrf
