@@ -1486,6 +1486,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Last Updated**: October 2025  
+**Initial release date**: July 2025
 **Version**: 2.0  
 **Laravel Version**: 11.x
