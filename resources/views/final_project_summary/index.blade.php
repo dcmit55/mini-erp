@@ -30,7 +30,9 @@
                         </select>
                     </div>
                     <div class="col-lg-2 d-flex align-items-end gap-2">
-                        <a href="{{ route('final_project_summary.index') }}" class="btn btn-secondary">Reset</a>
+                        <a href="{{ route('final_project_summary.index') }}" class="btn btn-outline-secondary btn-sm"
+                            title="Reset All Filters">
+                            <i class="fas fa-times me-1"></i> Reset</a>
                     </div>
                 </form>
                 <table class="table table-striped table-hover table-bordered align-middle rounded shadow-sm"

@@ -189,7 +189,9 @@
                             <input type="text" id="custom-search" class="form-control" placeholder="Search inventory...">
                         </div>
                         <div class="col-lg-2 d-flex align-items-end gap-2">
-                            <button type="button" id="reset-filter" class="btn btn-secondary">Reset</button>
+                            <button type="button" id="reset-filter" class="btn btn-outline-secondary btn-sm"
+                                title="Reset All Filters">
+                                <i class="fas fa-times me-1"></i> Reset</button>
                         </div>
                     </form>
                 </div>
@@ -374,7 +376,6 @@
                         orderable: false,
                         searchable: false,
                         width: '12%',
-                        className: 'text-center'
                     }
                 ],
                 order: [

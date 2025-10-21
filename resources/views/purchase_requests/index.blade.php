@@ -178,7 +178,8 @@
                             <input type="text" id="custom-search" class="form-control" placeholder="Search requests...">
                         </div>
                         <div class="col-lg-2 d-flex align-items-end gap-2">
-                            <button type="button" id="reset-filter" class="btn btn-secondary">Reset</button>
+                            <button type="button" id="reset-filter" class="btn btn-secondary"
+                                title="Reset All Filters">Reset</button>
                         </div>
                     </form>
                 </div>

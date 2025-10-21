@@ -77,7 +77,8 @@
                                     aria-hidden="true"></span>
                                 Filter
                             </button>
-                            <a href="{{ route('material_usage.index') }}" class="btn btn-secondary">Reset</a>
+                            <a href="{{ route('material_usage.index') }}" class="btn btn-outline-secondary btn-sm">
+                                <i class="fas fa-times me-1"></i> Reset</a>
                         </div>
                     </form>
                 </div>

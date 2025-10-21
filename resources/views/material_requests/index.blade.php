@@ -4,15 +4,15 @@
     <div class="container-fluid mt-4">
         <div class="card shadow rounded">
             <div class="card-body">
-                <div class="d-flex flex-column flex-lg-row align-items-lg-center gap-2 mb-3">
+                <div class="d-flex flex-column flex-sm-row align-items-sm-center gap-2 mb-3">
                     <!-- Header -->
-                    <div class="d-flex align-items-center mb-2 mb-lg-0">
+                    <div class="d-flex align-items-center mb-2 mb-sm-0">
                         <i class="fas fa-clipboard-list gradient-icon me-2" style="font-size: 1.5rem;"></i>
                         <h2 class="mb-0 flex-shrink-0" style="font-size:1.3rem;">Material Requests</h2>
                     </div>
 
                     <!-- Spacer untuk mendorong tombol ke kanan -->
-                    <div class="ms-lg-auto d-flex flex-wrap gap-2">
+                    <div class="ms-sm-auto d-flex flex-wrap gap-2">
                         <a href="{{ route('material_requests.create') }}" class="btn btn-primary btn-sm flex-shrink-0">
                             <i class="bi bi-plus-circle me-1"></i> Create Request
                         </a>
@@ -55,8 +55,8 @@
 
                 <!-- filter form -->
                 <div class="mb-3">
-                    <form id="filter-form" class="d-flex flex-wrap gap-2 align-items-end">
-                        <div class="flex-fill" style="min-width: 120px; max-width: 180px;">
+                    <form id="filter-form" class="row g-1">
+                        <div class="col-md-2">
                             <select id="filter-project" name="project" class="form-select form-select-sm select2">
                                 <option value="">All Projects</option>
                                 @foreach ($projects as $project)
@@ -64,7 +64,7 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="flex-fill" style="min-width: 120px; max-width: 180px;">
+                        <div class="col-md-2">
                             <select id="filter-material" name="material" class="form-select form-select-sm select2">
                                 <option value="">All Materials</option>
                                 @foreach ($materials as $material)
@@ -72,7 +72,7 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div style="min-width: 120px; max-width: 180px;">
+                        <div class="col-md-2">
                             <select id="filter-status" name="status" class="form-select form-select-sm select2">
                                 <option value="">All Status</option>
                                 <option value="pending">Pending</option>
@@ -81,7 +81,7 @@
                                 <option value="canceled">Canceled</option>
                             </select>
                         </div>
-                        <div style="min-width: 150px; max-width: 180px;">
+                        <div class="col-md-2">
                             <select id="filter-requested-by" name="requested_by" class="form-select form-select-sm select2">
                                 <option value="">All Requester</option>
                                 @foreach ($users as $user)
@@ -89,18 +89,18 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div style="min-width: 120px; max-width: 180px;">
+                        <div class="col-md-2">
                             <input type="text" id="filter-requested-at" name="requested_at"
                                 class="form-control form-control-sm" placeholder="Requested At Date">
                         </div>
-                        <div class="flex-fill" style="min-width: 140px; max-width: 200px;">
+                        <div class="col-md-1">
                             <input type="text" id="custom-search" name="search" class="form-control form-control-sm"
                                 placeholder="Search...">
                         </div>
-                        <div>
-                            <button type="button" id="reset-filters" class="btn btn-outline-secondary btn-sm px-3"
+                        <div class="col-md-1">
+                            <button type="button" id="reset-filters" class="btn btn-outline-secondary btn-sm"
                                 title="Reset All Filters">
-                                <i class="bi bi-arrow-clockwise"></i>
+                                <i class="fas fa-times me-1"></i> Reset
                             </button>
                         </div>
                     </form>
@@ -204,6 +204,13 @@
 @endsection
 @push('styles')
     <style>
+        .gradient-icon {
+            background: linear-gradient(135deg, #8F12FE 0%, #4A25AA 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
         #filter-form {
             background: #f8f9fa;
             padding: .75rem;
@@ -211,47 +218,10 @@
             border: 1px solid #dee2e6;
         }
 
-        /* Hanya styling untuk form elements biasa saja */
-        #filter-form .form-select-sm,
-        #filter-form .form-control-sm {
-            font-size: 0.875rem !important;
-            border: 1px solid #ced4da !important;
-            border-radius: 0.2rem !important;
-            line-height: 1.5 !important;
-            color: #495057 !important;
-        }
-
-        /* Untuk form-select dropdown arrow */
-        #filter-form .form-select-sm {
-            padding-right: 2.25rem !important;
-            background-position: right 0.75rem center !important;
-            background-size: 16px 12px !important;
-        }
-
-        /* Focus state untuk form elements biasa */
-        #filter-form .form-select-sm:focus,
-        #filter-form .form-control-sm:focus {
-            border-color: #86b7fe !important;
-            outline: 0 !important;
-            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
-        }
-
-        /* Placeholder styling */
-        #filter-form .form-control-sm::placeholder {
-            color: #6c757d !important;
-            opacity: 1 !important;
-        }
-
-        /* Mobile responsive */
-        @media (max-width: 991.98px) {
-            #filter-form {
-                flex-direction: column !important;
-                gap: 0.75rem !important;
-            }
-
-            #filter-form>div {
-                min-width: 100% !important;
-                max-width: 100% !important;
+        @media (max-width: 768px) {
+            .ms-sm-auto.d-flex.flex-wrap {
+                margin-bottom: 0.8rem !important;
+                /* Tambah margin bottom khusus mobile */
             }
         }
 
@@ -260,13 +230,11 @@
             white-space: nowrap;
             vertical-align: middle;
             text-align: left !important;
-            /* Force left alignment for all table headers */
         }
 
         #datatable td {
             vertical-align: middle;
             text-align: left !important;
-            /* Force left alignment for all table cells */
         }
 
         /* Batasi lebar kolom tertentu jika perlu */
@@ -330,13 +298,19 @@
             padding-bottom: 0.5rem;
         }
 
+        .datatables-left {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
         .dataTables_paginate {
             display: flex;
             justify-content: flex-end;
             align-items: center;
         }
 
-        /* Mobile responsive */
+        /* Responsive adjustments */
         @media (max-width: 767.98px) {
             .datatables-footer-row {
                 flex-direction: column !important;
@@ -450,7 +424,6 @@
 
         .tooltip {
             z-index: 9999 !important;
-            /* Ensure tooltips appear above everything */
         }
 
         .tooltip-inner {
@@ -470,13 +443,11 @@
         #datatable td {
             position: relative;
             overflow: visible !important;
-            /* Allow tooltips to overflow */
         }
 
         /* Specific styling for table container */
         .table-responsive {
             overflow: visible !important;
-            /* Allow tooltips to show outside table */
         }
 
         /* Override DataTables responsive styles that might clip tooltips */
@@ -491,7 +462,6 @@
                 font-size: 0.6rem;
             }
 
-            /* On mobile, prefer top/bottom placement */
             .table [data-bs-toggle="tooltip"] {
                 --bs-tooltip-placement: top;
             }
@@ -520,17 +490,11 @@
 
         /* Ensure specific alignment for quantity columns - Headers and Cells */
         #datatable thead th:nth-child(5),
-        /* Requested Qty Header */
         #datatable thead th:nth-child(6),
-        /* Remaining Qty Header */
         #datatable thead th:nth-child(7),
-        /* Processed Qty Header */
         #datatable tbody td:nth-child(5),
-        /* Requested Qty */
         #datatable tbody td:nth-child(6),
-        /* Remaining Qty */
         #datatable tbody td:nth-child(7) {
-            /* Processed Qty */
             text-align: left !important;
         }
 

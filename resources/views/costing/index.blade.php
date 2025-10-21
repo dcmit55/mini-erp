@@ -27,7 +27,9 @@
                                     aria-hidden="true"></span>
                                 Filter
                             </button>
-                            <a href="{{ route('costing.report') }}" class="btn btn-secondary">Reset</a>
+                            <a href="{{ route('costing.report') }}" class="btn btn-outline-secondary btn-sm"
+                                title="Reset All Filters">
+                                <i class="fas fa-times me-1"></i> Reset</a>
                         </div>
                     </form>
                 </div>

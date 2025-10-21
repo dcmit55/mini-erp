@@ -81,7 +81,8 @@
                         </div>
                         <div class="col-lg-2 align-self-end">
                             <button type="submit" class="btn btn-primary">Filter</button>
-                            <a href="{{ route('projects.index') }}" class="btn btn-secondary">Reset</a>
+                            <a href="{{ route('projects.index') }}" class="btn btn-secondary"
+                                title="Reset All Filters">Reset</a>
                         </div>
                     </form>
                 </div>

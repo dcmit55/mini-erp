@@ -73,15 +73,16 @@
                                 <option value="rejected">Rejected</option>
                             </select>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-3">
                             <div class="input-group">
                                 <input type="text" id="custom-search" class="form-control form-control-sm"
                                     placeholder="Search...">
                             </div>
                         </div>
-                        <div class="col-md-2">
-                            <button type="button" id="reset-filters" class="btn btn-sm btn-secondary">
-                                <i class="bi bi-x-circle"></i> Reset
+                        <div class="col-md-1">
+                            <button type="button" id="reset-filters" class="btn btn-outline-secondary btn-sm"
+                                title="Reset All Filters">
+                                <i class="fas fa-times me-1"></i> Reset
                             </button>
                         </div>
                     </form>

@@ -111,7 +111,7 @@
                                         <i class="fas fa-search me-1"></i> Filter
                                     </button>
                                     <a href="{{ route('material_planning.index') }}"
-                                        class="btn btn-outline-secondary btn-sm">
+                                        class="btn btn-outline-secondary btn-sm" title="Reset All Filters">
                                         <i class="fas fa-times me-1"></i> Reset
                                     </a>
                                 </div>

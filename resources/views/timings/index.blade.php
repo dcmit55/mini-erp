@@ -68,7 +68,8 @@
                         </select>
                     </div>
                     <div class="col-lg-2 d-flex align-items-end gap-2">
-                        <a href="{{ route('timings.index') }}" class="btn btn-secondary">Reset</a>
+                        <a href="{{ route('timings.index') }}" class="btn btn-secondary"
+                            title="Reset All Filters">Reset</a>
                     </div>
                 </form>
                 <div id="timing-error-alert" class="alert alert-danger d-none" role="alert"></div>
