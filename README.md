@@ -4,7 +4,7 @@
 [![PHP](https://img.shields.io/badge/PHP-8.1+-blue.svg)](https://php.net)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-Sistem manajemen inventori berbasis Laravel 11 yang fokus pada material requests, goods tracking, dan project costing. Sistem ini mengelola siklus lengkap dari permintaan material hingga operasi keluar-masuk barang dengan notifikasi real-time.
+Sistem manajemen inventori berbasis Laravel 11 yang pada saat ini fokus pada material requests, goods tracking, dan project costing. Sistem ini mengelola siklus lengkap dari permintaan material hingga operasi keluar-masuk barang dengan notifikasi real-time.
 
 ## 📋 Daftar Isi
 
@@ -313,9 +313,9 @@ MAIL_FROM_NAME="${APP_NAME}"
 ### 1. Material Request Flow
 
 ```
-User Request → Super Admin/Logistic Approve → Goods Out Created → Material Used
-     ↓                    ↓                           ↓                    ↓
-  pending            approved                    delivered            completed
+User Request → Logistic Approve → Goods Out Created → Material Used
+     ↓                ↓                     ↓                ↓
+  pending          approved             delivered         completed
 ```
 
 **Detail Proses**:
@@ -1475,7 +1475,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 👨‍💻 Author
 
-**iSyment Development Team**
+**IT DCM Team**
 
 ## 🙏 Acknowledgments
 
