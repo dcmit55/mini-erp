@@ -693,7 +693,7 @@
                 allowClear: true
             });
 
-            // ✅ Set placeholder untuk setiap select
+            // Set placeholder untuk setiap select
             $('#filter-project').attr('data-placeholder', 'All Projects');
             $('#filter-material').attr('data-placeholder', 'All Materials');
             $('#filter-status').attr('data-placeholder', 'All Status');

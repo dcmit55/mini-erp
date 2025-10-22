@@ -673,7 +673,7 @@
             initializeDepartmentCards();
         });
 
-        // ✅ Event listener untuk filter trends
+        // Event listener untuk filter trends
         document.querySelectorAll('.trends-filter').forEach(filter => {
             filter.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -689,7 +689,7 @@
             });
         });
 
-        // ✅ Updated Monthly Trends Chart dengan parameter months
+        // Updated Monthly Trends Chart dengan parameter months
         function initializeTrendsChart(months = 6) {
             const ctx = document.getElementById('trendsChart');
             if (!ctx) return;
@@ -763,7 +763,7 @@
             });
         }
 
-        // ✅ Function untuk update chart dengan filter baru
+        // Function untuk update chart dengan filter baru
         function updateTrendsChart(months) {
             if (!trendsChart) return;
 
@@ -854,12 +854,12 @@
                     const departmentId = this.dataset.departmentId;
                     const departmentName = this.dataset.departmentName;
 
-                    // ✅ Gunakan department name, bukan ID
+                    // Gunakan department name, bukan ID
                     window.location.href =
                         `{{ route('projects.index') }}?department=${encodeURIComponent(departmentName)}`;
                 });
 
-                // ✅ Tambahkan hover effect
+                // Tambahkan hover effect
                 card.addEventListener('mouseenter', function() {
                     this.style.transform = 'translateY(-2px)';
                 });

@@ -394,7 +394,7 @@
                                     errorMsg = xhr.responseText;
                                 }
 
-                                // ✅ PERBAIKAN: Handle permission errors differently
+                                // Handle permission errors differently
                                 if (xhr.status === 403) {
                                     iconType = 'warning';
                                     errorMsg = xhr.responseJSON?.message ||

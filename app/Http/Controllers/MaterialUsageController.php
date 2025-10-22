@@ -10,101 +10,231 @@ use App\Models\Inventory;
 use App\Models\Project;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\MaterialUsageExport;
+use Yajra\Datatables\Datatables;
 use Illuminate\Support\Facades\Auth;
 
 class MaterialUsageController extends Controller
 {
-    public function __construct()
+    /**
+     * Display a listing of material usage records
+     */
+    public function index(Request $request)
     {
-        $this->middleware('auth');
-        $this->middleware(function ($request, $next) {
-            $rolesAllowed = ['super_admin', 'admin_logistic', 'admin_mascot', 'admin_costume', 'admin_animatronic', 'admin_finance', 'admin_hr', 'admin', 'general'];
-            if (!in_array(Auth::user()->role, $rolesAllowed)) {
-                abort(403, 'Unauthorized');
+        // Check if AJAX request for DataTables
+        if ($request->ajax()) {
+            $query = MaterialUsage::with(['inventory', 'project'])->select('material_usages.*');
+
+            // Apply filters
+            if ($request->filled('material')) {
+                $query->where('inventory_id', $request->material);
             }
-            return $next($request);
-        });
+
+            if ($request->filled('project')) {
+                $query->where('project_id', $request->project);
+            }
+
+            if ($request->filled('search')) {
+                $search = $request->search;
+                $query
+                    ->whereHas('inventory', function ($q) use ($search) {
+                        $q->where('name', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('project', function ($q) use ($search) {
+                        $q->where('name', 'like', "%{$search}%");
+                    });
+            }
+
+            return Datatables::of($query)
+                ->addColumn('checkbox', function ($item) {
+                    return '<input type="checkbox" class="row-checkbox" value="' . $item->id . '">';
+                })
+                ->addColumn('material_name', function ($item) {
+                    return $item->inventory ? $item->inventory->name : 'N/A';
+                })
+                ->addColumn('project_name', function ($item) {
+                    return $item->project ? $item->project->name : 'No Project';
+                })
+                ->addColumn('goods_out_qty', function ($item) {
+                    return GoodsOut::where('inventory_id', $item->inventory_id)
+                        ->where(function ($q) use ($item) {
+                            if ($item->project_id) {
+                                $q->where('project_id', $item->project_id);
+                            } else {
+                                $q->whereNull('project_id');
+                            }
+                        })
+                        ->sum('quantity') ?? 0;
+                })
+                ->addColumn('goods_in_qty', function ($item) {
+                    return GoodsIn::where('inventory_id', $item->inventory_id)
+                        ->where(function ($q) use ($item) {
+                            if ($item->project_id) {
+                                $q->where('project_id', $item->project_id);
+                            } else {
+                                $q->whereNull('project_id');
+                            }
+                        })
+                        ->sum('quantity') ?? 0;
+                })
+                ->addColumn('used_qty', function ($item) {
+                    return $item->used_quantity ?? 0;
+                })
+                ->addColumn('unit', function ($item) {
+                    return $item->inventory ? $item->inventory->unit ?? '-' : '-';
+                })
+                ->addColumn('updated_at', function ($item) {
+                    return $item->updated_at->format('d M Y H:i');
+                })
+                ->addColumn('actions', function ($item) {
+                    $actions = '<div class="text-center">';
+
+                    if (Auth::user()->isSuperAdmin()) {
+                        $actions .=
+                            '<form action="' .
+                            route('material_usage.destroy', $item) .
+                            '" method="POST" class="d-inline delete-form" style="display:inline;">
+                            ' .
+                            csrf_field() .
+                            method_field('DELETE') .
+                            '
+                            <button type="button" class="btn btn-sm btn-danger btn-delete" title="Delete">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>';
+                    }
+
+                    $actions .= '</div>';
+                    return $actions;
+                })
+                ->rawColumns(['checkbox', 'actions'])
+                ->make(true);
+        }
+
+        // Get filter options untuk dropdown
+        $materials = Inventory::select('id', 'name')->orderBy('name')->get();
+        $projects = Project::select('id', 'name')->orderBy('name')->get();
+
+        return view('material_usage.index', compact('materials', 'projects'));
     }
 
-    public function index(Request $request)
+    /**
+     * Display the specified resource
+     */
+    public function show(MaterialUsage $materialUsage)
+    {
+        $materialUsage->load(['inventory', 'project']);
+
+        $goodsOutTotal =
+            GoodsOut::where('inventory_id', $materialUsage->inventory_id)
+                ->where(function ($q) use ($materialUsage) {
+                    if ($materialUsage->project_id) {
+                        $q->where('project_id', $materialUsage->project_id);
+                    } else {
+                        $q->whereNull('project_id');
+                    }
+                })
+                ->sum('quantity') ?? 0;
+
+        $goodsInTotal =
+            GoodsIn::where('inventory_id', $materialUsage->inventory_id)
+                ->where(function ($q) use ($materialUsage) {
+                    if ($materialUsage->project_id) {
+                        $q->where('project_id', $materialUsage->project_id);
+                    } else {
+                        $q->whereNull('project_id');
+                    }
+                })
+                ->sum('quantity') ?? 0;
+
+        return view('material_usage.show', compact('materialUsage', 'goodsOutTotal', 'goodsInTotal'));
+    }
+
+    /**
+     * Remove the specified resource from storage
+     */
+    public function destroy(MaterialUsage $materialUsage)
+    {
+        // Only super admin can delete
+        if (!Auth::user()->isSuperAdmin()) {
+            return redirect()->back()->with('error', 'Permission denied');
+        }
+
+        try {
+            $materialUsage->delete();
+            return redirect()->route('material_usage.index')->with('success', 'Material usage record deleted successfully!');
+        } catch (\Exception $e) {
+            return redirect()
+                ->back()
+                ->with('error', 'Failed to delete material usage record: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Export material usage data to Excel
+     */
+    public function export(Request $request)
     {
         $query = MaterialUsage::with(['inventory', 'project']);
 
-        // Apply filters
         if ($request->filled('material')) {
             $query->where('inventory_id', $request->material);
         }
 
         if ($request->filled('project')) {
-            if ($request->project === 'no_project') {
-                $query->whereNull('project_id');
-            } else {
-                $query->where('project_id', $request->project);
-            }
+            $query->where('project_id', $request->project);
         }
 
-        $usages = $query->get();
+        $usages = $query->get()->map(function ($usage) {
+            // Check if inventory exists before accessing properties
+            return [
+                'material' => $usage->inventory ? $usage->inventory->name : 'Unknown',
+                'project' => $usage->project ? $usage->project->name : 'No Project',
+                'goods_out_qty' =>
+                    GoodsOut::where('inventory_id', $usage->inventory_id)
+                        ->where(function ($q) use ($usage) {
+                            if ($usage->project_id) {
+                                $q->where('project_id', $usage->project_id);
+                            } else {
+                                $q->whereNull('project_id');
+                            }
+                        })
+                        ->sum('quantity') ?? 0,
+                'goods_in_qty' =>
+                    GoodsIn::where('inventory_id', $usage->inventory_id)
+                        ->where(function ($q) use ($usage) {
+                            if ($usage->project_id) {
+                                $q->where('project_id', $usage->project_id);
+                            } else {
+                                $q->whereNull('project_id');
+                            }
+                        })
+                        ->sum('quantity') ?? 0,
+                'used_qty' => $usage->used_quantity ?? 0,
+                'unit' => $usage->inventory ? $usage->inventory->unit ?? '-' : '-',
+                'updated_at' => $usage->updated_at->format('d M Y H:i'),
+            ];
+        });
 
-        // Add "No Project" option to filter
-        $projects = Project::orderBy('name')->get();
-        $projects->prepend(
-            (object) [
-                'id' => 'no_project',
-                'name' => 'No Project',
-            ],
-        );
+        $fileName = 'material_usage_' . now()->format('Y-m-d') . '.xlsx';
 
-        $materials = Inventory::orderBy('name')->get();
-
-        return view('material_usage.index', compact('usages', 'projects', 'materials'));
+        return \Excel::download(new \App\Exports\MaterialUsageExport($usages), $fileName);
     }
 
-    public function export(Request $request)
-    {
-        // Ambil filter dari request
-        $material = $request->material;
-        $project = $request->project;
-
-        // Filter data berdasarkan request
-        $query = MaterialUsage::with(['inventory', 'project']);
-
-        if ($material) {
-            $query->where('inventory_id', $material);
-        }
-
-        if ($project) {
-            $query->where('project_id', $project);
-        }
-
-        $usages = $query->get();
-
-        // Buat nama file dinamis
-        $fileName = 'material_usage';
-        if ($material) {
-            $materialName = Inventory::find($material)->name ?? 'Unknown Material';
-            $fileName .= '_material-' . str_replace(' ', '-', strtolower($materialName));
-        }
-        if ($project) {
-            $projectName = Project::find($project)->name ?? 'Unknown Project';
-            $fileName .= '_project-' . str_replace(' ', '-', strtolower($projectName));
-        }
-        $fileName .= '_' . now()->format('Y-m-d') . '.xlsx';
-
-        // Ekspor data menggunakan kelas MaterialUsageExport
-        return Excel::download(new MaterialUsageExport($usages), $fileName);
-    }
-
+    /**
+     * Get material usage by inventory (for detail page)
+     */
     public function getByInventory(Request $request)
     {
         $inventory_id = $request->query('inventory_id');
 
-        $usages = MaterialUsage::where('inventory_id', $inventoryId)
+        $usages = MaterialUsage::where('inventory_id', $inventory_id)
             ->with(['inventory', 'project'])
             ->get()
             ->map(function ($usage) {
-                $unit = $usage->inventory->unit ?? '';
+                // Check if inventory exists
+                $unit = $usage->inventory ? $usage->inventory->unit ?? '' : '';
                 return [
-                    'project_name' => $usage->project->name ?? 'No Project',
+                    'project_name' => $usage->project ? $usage->project->name : 'No Project',
                     'goods_out_quantity' => GoodsOut::where('inventory_id', $usage->inventory_id)
                         ->where(function ($q) use ($usage) {
                             if ($usage->project_id) {
@@ -114,27 +244,20 @@ class MaterialUsageController extends Controller
                             }
                         })
                         ->sum('quantity'),
-                    'goods_in_quantity' => GoodsIn::where('inventory_id', $usage->inventory_id)->where('project_id', $usage->project_id)->sum('quantity'),
+                    'goods_in_quantity' => GoodsIn::where('inventory_id', $usage->inventory_id)
+                        ->where(function ($q) use ($usage) {
+                            if ($usage->project_id) {
+                                $q->where('project_id', $usage->project_id);
+                            } else {
+                                $q->whereNull('project_id');
+                            }
+                        })
+                        ->sum('quantity'),
                     'used_quantity' => $usage->used_quantity,
                     'unit' => $unit,
                 ];
             });
 
         return response()->json($usages);
-    }
-
-    public function destroy(MaterialUsage $material_usage)
-    {
-        // Admin visitor tidak bisa delete
-        if (Auth::user()->isReadOnlyAdmin()) {
-            return redirect()->route('material_usage.index')->with('error', 'You do not have permission to delete material usage.');
-        }
-
-        if (Auth::user()->role !== 'super_admin') {
-            return redirect()->route('material_usage.index')->with('error', 'You are not authorized to delete this data.');
-        }
-
-        $material_usage->delete();
-        return redirect()->route('material_usage.index')->with('success', 'Material usage deleted successfully.');
     }
 }

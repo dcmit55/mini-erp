@@ -76,7 +76,7 @@ class UserController extends Controller
     {
         $request->validate([
             'username' => 'required|unique:users,username,' . $id,
-            'role' => 'required|in:super_admin,admin_logistic,admin_mascot,admin_costume,admin_finance,admin_animatronic,admin_procurement,admin_hr,admin,general', // ✅ Tambahkan 'admin_hr'
+            'role' => 'required|in:super_admin,admin_logistic,admin_mascot,admin_costume,admin_finance,admin_animatronic,admin_procurement,admin_hr,admin,general',
             'password' => 'nullable|min:6',
             'department_id' => 'required|exists:departments,id',
         ]);

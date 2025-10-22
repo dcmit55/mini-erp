@@ -347,7 +347,7 @@
                 }
             });
 
-            // ✅ AJAX Approval Update - Approval 1 (HR)
+            // AJAX Approval Update - Approval 1 (HR)
             $(document).on('change', '.approval-1-select', function(e) {
                 e.preventDefault();
 
@@ -394,7 +394,7 @@
                             },
                             success: function(response) {
                                 if (response.success) {
-                                    // ✅ Close SweetAlert immediately
+                                    // Close SweetAlert immediately
                                     Swal.close();
 
                                     // Update old status
@@ -430,7 +430,7 @@
                 });
             });
 
-            // ✅ AJAX Approval Update - Approval 2 (Super Admin)
+            // AJAX Approval Update - Approval 2 (Super Admin)
             $(document).on('change', '.approval-2-select', function(e) {
                 e.preventDefault();
 
@@ -477,7 +477,7 @@
                             },
                             success: function(response) {
                                 if (response.success) {
-                                    // ✅ Close SweetAlert immediately
+                                    // Close SweetAlert immediately
                                     Swal.close();
 
                                     // Update old status

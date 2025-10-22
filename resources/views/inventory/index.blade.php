@@ -472,7 +472,7 @@
                     reverseButtons: true
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        // ✅ Generate URL dengan template yang benar
+                        // Generate URL dengan template yang benar
                         const deleteUrl = '/inventory/' + id;
 
                         $.ajax({

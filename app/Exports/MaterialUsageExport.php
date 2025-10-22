@@ -7,17 +7,17 @@ use Maatwebsite\Excel\Concerns\FromView;
 
 class MaterialUsageExport implements FromView
 {
-    protected $usages;
+    protected $data;
 
-    public function __construct($usages)
+    public function __construct($data)
     {
-        $this->usages = $usages;
+        $this->data = $data;
     }
 
     public function view(): View
     {
         return view('material_usage.export', [
-            'usages' => $this->usages
+            'usages' => $this->data,
         ]);
     }
 }

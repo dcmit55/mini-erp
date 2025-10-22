@@ -78,8 +78,8 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('users', UserController::class);
 
     // Material Usage
+    Route::resource('material_usage', MaterialUsageController::class);
     Route::get('/material-usage/export', [MaterialUsageController::class, 'export'])->name('material_usage.export');
-    Route::get('/material-usage', [MaterialUsageController::class, 'index'])->name('material_usage.index');
     Route::delete('material-usage/{material_usage}', [MaterialUsageController::class, 'destroy'])->name('material_usage.destroy');
     Route::get('/material-usage/get-by-inventory', [MaterialUsageController::class, 'getByInventory'])->name('material_usage.get_by_inventory');
 

@@ -213,7 +213,7 @@ class LeaveRequestController extends Controller
         if ($isAuthenticated && $userRole === 'super_admin') {
             $html =
                 '
-            <select name="approval_2" 
+            <select name="approval_2"
                     class="form-select form-select-sm d-inline w-auto approval-2-select"
                     data-id="' .
                 $leave->id .
@@ -503,7 +503,7 @@ class LeaveRequestController extends Controller
 
             DB::commit();
 
-            // ✅ AJAX Response
+            //AJAX Response
             if ($request->ajax()) {
                 // Refresh approval badges HTML
                 $approval1Html = $this->formatApproval1($leave, true, $userRole);

@@ -196,7 +196,7 @@ class GoodsOutController extends Controller
                 <i class="bi bi-pencil-square"></i>
             </a>';
 
-            // ✅ PERBAIKAN: Check delete permission using model method
+            // Check delete permission using model method
             if ($goodsOut->canBeDeleted()) {
                 $tooltip = $goodsOut->getDeleteTooltip();
                 $buttons .=
@@ -678,7 +678,7 @@ class GoodsOutController extends Controller
     {
         $goodsOut = GoodsOut::findOrFail($id);
 
-        // ✅ PERBAIKAN: Check permission using model method
+        // Check permission using model method
         if (!$goodsOut->canBeDeleted()) {
             $message = "You don't have permission to delete this Goods Out.";
 
