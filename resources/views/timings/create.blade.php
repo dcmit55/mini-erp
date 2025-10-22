@@ -143,7 +143,7 @@
                                                     {{ old("timings.$i.status") == 'on progress' ? 'selected' : '' }}>On
                                                     Progress</option>
                                                 <option value="complete" style="color:green;"
-                                                    {{ old("timings.$i.status") == 'complete' ? 'selected' : '' }}>Finished
+                                                    {{ old("timings.$i.status") == 'complete' ? 'selected' : '' }}>Complete
                                                 </option>
                                             </select>
                                         </td>
