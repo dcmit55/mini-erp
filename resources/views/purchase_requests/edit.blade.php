@@ -111,12 +111,21 @@
                             @if ($request->img)
                                 <a id="img-preview-link" href="{{ asset('storage/' . $request->img) }}"
                                     data-fancybox="gallery" style="display: block;">
-                                    <img id="img-preview" src="{{ asset('storage/' . $request->img) }}" alt="Image Preview"
-                                        class="mt-2 rounded" style="max-width: 200px;">
+                                    <img id="img-preview" src="{{ asset('storage/' . $request->img) }}"
+                                        alt="Image Preview" class="mt-2 rounded" style="max-width: 200px;">
                                 </a>
                             @endif
 
                             @error('img')
+                                <small class="text-danger">{{ $message }}</small>
+                            @enderror
+                        </div>
+                        <div class="col-md-6">
+                            <label for="remark" class="form-label">Remark</label>
+                            <textarea name="remark" class="form-control" id="remark" rows="3"
+                                placeholder="Enter remarks or notes for this request">{{ old('remark', $request->remark) }}</textarea>
+                            <small class="text-muted">Optional: Add any notes or special instructions</small>
+                            @error('remark')
                                 <small class="text-danger">{{ $message }}</small>
                             @enderror
                         </div>

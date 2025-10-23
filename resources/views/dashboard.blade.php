@@ -81,7 +81,8 @@
                                     </div>
                                     <div class="metric-label text-muted">Active Projects</div>
                                     <div class="metric-trend small">
-                                        <span class="text-success"><i class="fas fa-arrow-up"></i> {{ $projectsThisMonth }}
+                                        <span class="text-success"><i class="fas fa-arrow-up"></i>
+                                            {{ $projectsThisMonth }}
                                             This Month</span>
                                     </div>
                                 </div>
@@ -172,7 +173,8 @@
                                     </div>
                                     <div class="metric-label text-muted">Completed Projects</div>
                                     <div class="metric-trend small">
-                                        <span class="text-success"><i class="fas fa-check-circle"></i> Total Finished</span>
+                                        <span class="text-success"><i class="fas fa-check-circle"></i> Total
+                                            Finished</span>
                                     </div>
                                 </div>
                             </div>
@@ -181,6 +183,99 @@
                 </div>
             @endif
         </div>
+
+        <!-- Low Stock Items Section -->
+        @if (isset($veryLowStockItems) && $veryLowStockItems->count() > 0)
+            <div class="col-xl-12">
+                <div class="card border-0 shadow-sm mt-4 mb-4">
+                    <h6 class="card-header bg-transparent border-0 py-3">
+                        <i class="fas fa-exclamation-triangle"></i> Low Stock Items
+                        <span class="badge bg-danger ms-2" id="lowStockCount">{{ $veryLowStockItems->count() }}</span>
+                    </h6>
+                    @php
+                        $categories = $veryLowStockItems->pluck('category')->filter()->unique('id')->values();
+                        $suppliers = $veryLowStockItems->pluck('supplier')->filter()->unique('id')->values();
+                    @endphp
+                    <div class="mb-3 row g-2 px-3">
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                            <select id="lowStockCategorySelect" class="form-select form-select-sm select2"
+                                data-placeholder="All Category">
+                                <option value="all">All Category</option>
+                                @foreach ($categories as $cat)
+                                    <option value="{{ \Illuminate\Support\Str::slug($cat->name) }}">
+                                        {{ $cat->name ?? 'Uncategorized' }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                            <select id="lowStockSupplierSelect" class="form-select form-select-sm select2"
+                                data-placeholder="All Supplier">
+                                <option value="all">All Supplier</option>
+                                @foreach ($suppliers as $sup)
+                                    <option value="{{ \Illuminate\Support\Str::slug($sup->name) }}">
+                                        {{ $sup->name ?? 'Unknown' }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-2">
+                            <button class="btn btn-sm btn-primary" id="btnLowStockFilter"><i
+                                    class="fas fa-filter me-1"></i>
+                                Filter</button>
+                            <button class="btn btn-sm btn-secondary" id="btnLowStockReset"><i
+                                    class="fas fa-redo me-1"></i>
+                                Reset</button>
+                        </div>
+                    </div>
+                    <div id="lowStockCardList" class="p-2"
+                        style="max-height: 350px; overflow-y: auto; overflow-x: hidden;">
+                        <div class="row g-3">
+                            @foreach ($veryLowStockItems as $item)
+                                <div
+                                    class="col-12 col-sm-6 col-md-4 col-lg-3 low-stock-item {{ \Illuminate\Support\Str::slug($item->category->name ?? 'uncategorized') }} supplier-{{ \Illuminate\Support\Str::slug($item->supplier->name ?? 'unknown') }}">
+                                    <div class="card border-1 border-danger shadow-sm low-stock-card position-relative h-100"
+                                        style="background: #fff8f8;">
+                                        <div class="card-body py-2 px-3 d-flex flex-column justify-content-between h-100">
+                                            <div class="d-flex align-items-start gap-2 mb-2">
+                                                <div class="rounded-circle bg-danger bg-opacity-10 d-flex align-items-center justify-content-center"
+                                                    style="width:36px;height:36px;">
+                                                    <i class="fas fa-box-open text-danger"></i>
+                                                </div>
+                                                <div>
+                                                    <div class="fw-bold text-dark">
+                                                        {{ $item->name }}
+                                                        @if ($item->quantity < 5)
+                                                            <span class="badge bg-danger ms-1">Very Low</span>
+                                                        @endif
+                                                    </div>
+                                                    <div class="small text-muted mt-1">
+                                                        <span class="badge bg-light text-dark me-1"><i
+                                                                class="fas fa-tag"></i>
+                                                            {{ $item->category->name ?? 'Uncategorized' }}</span>
+                                                        <span class="badge bg-light text-dark me-1"><i
+                                                                class="fas fa-user"></i>
+                                                            {{ $item->supplier->name ?? '-' }}</span>
+                                                    </div>
+                                                    <div class="small mt-1">
+                                                        <span class="fw-bold text-danger"><i
+                                                                class="fas fa-exclamation-circle"></i> Stok:
+                                                            {{ $item->quantity }}</span>
+                                                        <span class="text-muted">{{ $item->unit ?? '-' }}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <a href="{{ route('purchase_requests.create', ['inventory_id' => $item->id, 'type' => 'restock']) }}"
+                                                class="btn btn-sm btn-outline-danger w-100 mt-auto">
+                                                <i class="fas fa-plus"></i> Purchase Request
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endif
 
         <!-- Charts and Analytics Row -->
         <div class="row g-4 mb-4">
@@ -656,6 +751,55 @@
 @push('scripts')
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            // Inisialisasi Select2
+            $(".select2").select2({
+                theme: "bootstrap-5",
+                allowClear: true,
+                placeholder: function() {
+                    return $(this).data('placeholder');
+                }
+            }).on("select2:open", function() {
+                setTimeout(
+                    () => document.querySelector(".select2-search__field").focus(),
+                    100
+                );
+            });
+
+            let selectedCategory = 'all';
+            let selectedSupplier = 'all';
+
+            $('#lowStockCategorySelect').on('change', function() {
+                selectedCategory = $(this).val();
+            });
+            $('#lowStockSupplierSelect').on('change', function() {
+                selectedSupplier = $(this).val();
+            });
+
+            $('#btnLowStockFilter').on('click', function() {
+                let visibleCount = 0;
+                $('.low-stock-item').each(function() {
+                    let show = true;
+                    if (selectedCategory !== 'all' && !$(this).hasClass(selectedCategory)) show =
+                        false;
+                    if (selectedSupplier !== 'all' && !$(this).hasClass('supplier-' +
+                            selectedSupplier)) show = false;
+                    $(this).toggle(show);
+                    if (show) visibleCount++;
+                });
+                $('#lowStockCount').text(visibleCount);
+            });
+
+            $('#btnLowStockReset').on('click', function() {
+                $('#lowStockCategorySelect').val('all').trigger('change');
+                $('#lowStockSupplierSelect').val('all').trigger('change');
+                $('.low-stock-item').show();
+                $('#lowStockCount').text($('.low-stock-item').length);
+            });
+        });
+    </script>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {

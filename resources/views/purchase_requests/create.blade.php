@@ -6,6 +6,9 @@
             <div class="card-body">
                 <h2 class="mb-0 flex-shrink-0" style="font-size:1.3rem;">
                     Create Purchase Request
+                    @if (isset($selectedInventory) && isset($prefilledType))
+                        <small class="text-muted">Restock for {{ $selectedInventory->name }}</small>
+                    @endif
                 </h2>
                 <hr>
                 @if ($errors->any())
@@ -30,11 +33,12 @@
                                     <select name="requests[0][type]" class="form-select type-select" required>
                                         <option value="">Select Type</option>
                                         <option value="new_material"
-                                            {{ old('requests.0.type', '') == 'new_material' ? 'selected' : '' }}>New
-                                            Material
+                                            {{ old('requests.0.type', $prefilledType ?? '') == 'new_material' ? 'selected' : '' }}>
+                                            New Material
                                         </option>
                                         <option value="restock"
-                                            {{ old('requests.0.type', '') == 'restock' ? 'selected' : '' }}>Restock</option>
+                                            {{ old('requests.0.type', $prefilledType ?? '') == 'restock' ? 'selected' : '' }}>
+                                            Restock</option>
                                     </select>
                                 </div>
                                 <div class="col-md-8 material-name-group">
@@ -106,6 +110,21 @@
                                             </option>
                                         @endforeach
                                     </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Remark</label>
+                                    {{-- Remark readonly jika dari dashboard (low stock items) --}}
+                                    <textarea name="requests[0][remark]"
+                                        class="form-control remark-textarea {{ isset($selectedInventory) && isset($prefilledType) ? 'bg-light' : '' }}"
+                                        rows="3" placeholder="Enter remarks or notes for this request"
+                                        {{ isset($selectedInventory) && isset($prefilledType) ? 'readonly' : '' }}>{{ old('requests.0.remark', $defaultRemark ?? '') }}</textarea>
+                                    <small class="text-muted">
+                                        @if (isset($selectedInventory) && isset($prefilledType))
+                                            Auto-filled from dashboard (read-only)
+                                        @else
+                                            Optional: Add any notes or special instructions
+                                        @endif
+                                    </small>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Image (optional)</label>
@@ -254,9 +273,16 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-6 mb-3">
+                <div class="col-md-6">
                     <label class="form-label">Image (optional)</label>
                     <input type="file" name="requests[INDEX][img]" class="form-control" accept="image/*">
+                </div>
+                {{-- Field Remark untuk row dari index --}}
+                <div class="col-md-6">
+                    <label class="form-label">Remark</label>
+                    <textarea name="requests[INDEX][remark]" class="form-control remark-textarea" rows="3"
+                        placeholder="Enter remarks or notes for this request"></textarea>
+                    <small class="text-muted">Optional: Add any notes or special instructions</small>
                 </div>
                 <div class="col-12 text-end">
                     <button type="button" class="btn btn-danger btn-sm btn-remove-row">Remove</button>
@@ -287,6 +313,19 @@
         .request-row:hover {
             background-color: #f8f9fa;
         }
+
+        /* Styling untuk readonly remark field */
+        .remark-textarea[readonly] {
+            background-color: #f8f9fa;
+            cursor: not-allowed;
+            opacity: 0.8;
+        }
+
+        .remark-textarea[readonly]:focus {
+            background-color: #f8f9fa;
+            border-color: #ced4da;
+            box-shadow: none;
+        }
     </style>
 @endpush
 
@@ -306,6 +345,13 @@
 
             // Initialize select2 for the first row
             initializeRow(0);
+
+            // Auto-fill form jika ada data dari dashboard
+            @if (isset($selectedInventory) && isset($prefilledType))
+                autoFillFromDashboard();
+                //Remark readonly untuk request dari dashboard
+                protectReadonlyRemark();
+            @endif
 
             // Add more rows
             $('#add-more-btn').click(function() {
@@ -439,6 +485,57 @@
                     }
                 });
             });
+
+            // ketika user mengklik Purchase Request dari low stock items
+            function autoFillFromDashboard() {
+                const selectedInventory = @json($selectedInventory ?? null);
+                const prefilledType = @json($prefilledType ?? null);
+
+                if (selectedInventory && prefilledType) {
+                    const firstRow = $('.request-row').first();
+
+                    // Set type field
+                    firstRow.find('.type-select').val(prefilledType).trigger('change');
+
+                    // Tunggu sebentar agar DOM terupdate setelah change event
+                    setTimeout(function() {
+                        if (prefilledType === 'restock') {
+                            // Set material select untuk restock
+                            firstRow.find('.material-name-select').val(selectedInventory.id).trigger(
+                                'change');
+
+                            // Update fields berdasarkan inventory data
+                            firstRow.find('.unit-input').val(selectedInventory.unit || '');
+                            firstRow.find('.stock-level-input').val(selectedInventory.quantity || '');
+
+
+
+                            // PERUBAHAN: Required quantity dibiarkan kosong agar user mengisi sendiri
+                            // Tidak auto-fill quantity, biarkan user menentukan sendiri
+
+                        } else if (prefilledType === 'new_material') {
+                            // Set material name untuk new material
+                            firstRow.find('.material-name-input').val(selectedInventory.name);
+                            firstRow.find('.unit-select').val(selectedInventory.unit || '').trigger(
+                                'change');
+                            firstRow.find('.stock-level-input').val(selectedInventory.quantity || '');
+                        }
+
+                        // PERUBAHAN: Update notifikasi untuk memberitahu user mengisi quantity manual
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                title: 'Auto-filled!',
+                                text: `${selectedInventory.name} fill in the required quantity manually.`,
+                                icon: 'success',
+                                timer: 3000,
+                                showConfirmButton: false,
+                                toast: true,
+                                position: 'top-end'
+                            });
+                        }
+                    }, 500);
+                }
+            }
 
             // Helper function to initialize a row
             function initializeRow(index) {

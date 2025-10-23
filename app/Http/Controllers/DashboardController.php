@@ -55,6 +55,11 @@ class DashboardController extends Controller
 
         // Inventory Statistics
         $lowStockItems = Inventory::where('quantity', '<=', 10)->count();
+        // Data untuk low stock items di dashboard dengan relasi category dan supplier
+        $veryLowStockItems = Inventory::with(['category', 'supplier'])
+            ->where('quantity', '<', 3)
+            ->orderBy('quantity', 'asc')
+            ->get();
         $outOfStockItems = Inventory::where('quantity', '<=', 0)->count();
         $totalInventoryValue = Inventory::join('currencies', 'inventories.currency_id', '=', 'currencies.id')->selectRaw('SUM(inventories.quantity * inventories.price * currencies.exchange_rate) as total_value')->value('total_value') ?? 0;
 
@@ -108,6 +113,12 @@ class DashboardController extends Controller
             ->whereYear('created_at', Carbon::now()->year)
             ->sum('used_quantity');
 
-        return view('dashboard', compact('user', 'inventoryCount', 'projectCount', 'employeeCount', 'departmentCount', 'pendingRequests', 'approvedRequests', 'deliveredRequests', 'totalRequests', 'activeProjects', 'completedProjects', 'projectsThisMonth', 'lowStockItems', 'outOfStockItems', 'totalInventoryValue', 'recentGoodsIn', 'recentGoodsOut', 'recentRequests', 'topCategories', 'departmentStats', 'monthlyData', 'upcomingDeadlines', 'materialUsageThisMonth', 'totalCategories'));
+        // Filter veryLowStockItems based on roles
+        if (!in_array($user->role, ['super_admin', 'admin_logistic', 'admin_procurement', 'admin'])) {
+            $veryLowStockItems = collect(); // Empty collection if the user doesn't have permission
+        }
+
+        // Pass veryLowStockItems ke view untuk ditampilkan di dashboard
+        return view('dashboard', compact('user', 'inventoryCount', 'projectCount', 'employeeCount', 'departmentCount', 'pendingRequests', 'approvedRequests', 'deliveredRequests', 'totalRequests', 'activeProjects', 'completedProjects', 'projectsThisMonth', 'lowStockItems', 'veryLowStockItems', 'outOfStockItems', 'totalInventoryValue', 'recentGoodsIn', 'recentGoodsOut', 'recentRequests', 'topCategories', 'departmentStats', 'monthlyData', 'upcomingDeadlines', 'materialUsageThisMonth', 'totalCategories'));
     }
 }

@@ -208,6 +208,9 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('timings', TimingController::class)->only(['index', 'create', 'store', 'show']);
     Route::post('timings/store-multiple', [TimingController::class, 'storeMultiple'])->name('timings.storeMultiple');
     Route::post('/timings/ajax-search', [TimingController::class, 'ajaxSearch'])->name('timings.ajax_search');
+    Route::get('/timings-export', [TimingController::class, 'export'])->name('timings.export');
+    Route::post('/timings-import', [TimingController::class, 'import'])->name('timings.import');
+    Route::get('/timings-template', [TimingController::class, 'downloadTemplate'])->name('timings.template');
 
     //Final Project Summary
     Route::get('final_project_summary', [FinalProjectSummaryController::class, 'index'])->name('final_project_summary.index');

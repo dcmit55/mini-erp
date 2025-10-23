@@ -54,14 +54,42 @@ class PurchaseRequestController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function create()
+    public function create(Request $request)
     {
         $inventories = Inventory::orderBy('name')->get();
         $units = Unit::orderBy('name')->get();
         $projects = Project::orderBy('name')->get();
         $departments = Department::orderBy('name')->get();
 
-        return view('purchase_requests.create', compact('inventories', 'units', 'projects', 'departments'));
+        // PENAMBAHAN: Variabel untuk auto-fill data dari dashboard
+        // Menangani parameter inventory_id dan type dari URL query string
+        $selectedInventory = null;
+        $prefilledType = null;
+        $defaultRemark = null; //Default remark untuk auto-fill
+
+        // Cek apakah ada parameter untuk auto-fill dari dashboard
+        if ($request->has('inventory_id') && $request->has('type')) {
+            // Load inventory dengan relasi category dan supplier untuk ditampilkan di alert
+            $selectedInventory = Inventory::with(['category', 'supplier'])->find($request->inventory_id);
+            // Set type berdasarkan parameter, default ke restock untuk low stock items
+            $prefilledType = $request->type === 'restock' ? 'restock' : 'new_material';
+            // Set default remark untuk request dari dashboard (low stock items)
+            $defaultRemark = 'From low stock item';
+        }
+
+        // PENAMBAHAN: Pass variabel tambahan untuk auto-fill ke view
+        return view(
+            'purchase_requests.create',
+            compact(
+                'inventories',
+                'units',
+                'projects',
+                'departments',
+                'selectedInventory', // Data inventory yang dipilih dari dashboard
+                'prefilledType', // Type yang sudah ditentukan (restock/new_material)
+                'defaultRemark', // Default remark untuk auto-fill
+            ),
+        );
     }
 
     /**
@@ -78,6 +106,7 @@ class PurchaseRequestController extends Controller
             'requests.*.unit' => 'required',
             'requests.*.stock_level' => 'nullable|numeric|min:0',
             'requests.*.project_id' => 'nullable|exists:projects,id',
+            'requests.*.remark' => 'nullable|string|max:1000',
             'requests.*.img' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ]);
 
@@ -178,6 +207,7 @@ class PurchaseRequestController extends Controller
             'unit' => 'required',
             'stock_level' => 'nullable|numeric|min:0',
             'project_id' => 'nullable|exists:projects,id',
+            'remark' => 'nullable|string|max:1000',
             'img' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ]);
 

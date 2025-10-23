@@ -202,6 +202,7 @@
                                 <th>Delivery Date</th>
                                 <th>Requested By</th>
                                 <th>Requested At</th>
+                                <th>Remark</th>
                                 <th width="150">Actions</th>
                             </tr>
                         </thead>
@@ -278,6 +279,12 @@
                                             title="{{ $req->created_at ? $req->created_at->format('l, d F Y H:i:s') : '' }}"
                                             data-order="{{ $req->created_at ? $req->created_at->timestamp : 0 }}">
                                             {{ $req->created_at ? $req->created_at->format('d M Y, H:i') : '-' }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span data-bs-toggle="tooltip" data-bs-placement="left"
+                                            title="{{ $req->remark ?? 'No remark' }}">
+                                            {{ $req->remark ? Str::limit($req->remark, 30) : '-' }}
                                         </span>
                                     </td>
                                     <td class="text-center">

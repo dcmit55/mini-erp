@@ -17,12 +17,51 @@
                             <a href="{{ route('timings.create') }}" class="btn btn-primary btn-sm flex-shrink-0">
                                 <i class="bi bi-plus-circle me-1"></i> Input Timing
                             </a>
+                            <!-- Import Button -->
+                            <button type="button" class="btn btn-success btn-sm flex-shrink-0" data-bs-toggle="modal"
+                                data-bs-target="#importModal">
+                                <i class="bi bi-filetype-xls me-1"></i> Import
+                            </button>
+                            <!-- Export Button -->
+                            <button type="button" id="export-btn" class="btn btn-outline-success btn-sm flex-shrink-0">
+                                <i class="bi bi-file-earmark-excel me-1"></i> Export
+                            </button>
+                        </div>
+                    @else
+                        <div class="ms-lg-auto d-flex flex-wrap gap-2">
+                            <!-- Export Button for read-only users -->
+                            <button type="button" id="export-btn" class="btn btn-outline-success btn-sm flex-shrink-0">
+                                <i class="bi bi-file-earmark-excel me-1"></i> Export
+                            </button>
                         </div>
                     @endif
                 </div>
 
                 @if (session('success'))
                     <div class="alert alert-success">{{ session('success') }}</div>
+                @endif
+                @if (session('error'))
+                    <div class="alert alert-danger">{{ session('error') }}</div>
+                @endif
+                @if (session('errors') && count(session('errors')) > 0)
+                    <div class="alert alert-warning">
+                        <strong>Import Errors:</strong>
+                        <ul class="mb-0">
+                            @foreach (session('errors') as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+                @if (session('warnings') && count(session('warnings')) > 0)
+                    <div class="alert alert-info">
+                        <strong>Import Warnings:</strong>
+                        <ul class="mb-0">
+                            @foreach (session('warnings') as $warning)
+                                <li>{{ $warning }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
                 @endif
 
                 <form method="GET" class="row g-2 align-items-end mb-3">
@@ -94,6 +133,60 @@
                         @include('timings.timing_table', ['timings' => $timings])
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Modal -->
+    <div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="importModalLabel">
+                        <i class="bi bi-upload me-2"></i>Import Timing Data
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{{ route('timings.import') }}" method="POST" enctype="multipart/form-data" id="import-form">
+                    @csrf
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="xls_file" class="form-label">Choose Excel File</label>
+                            <input type="file" class="form-control" id="xls_file" name="xls_file" accept=".xlsx,.xls"
+                                required>
+                            <div class="form-text">
+                                Only .xlsx and .xls files are allowed. Maximum file size: 2MB
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <h6><i class="bi bi-info-circle me-1"></i>Import Guidelines:</h6>
+                            <ul class="mb-0 small">
+                                <li>Download the template first to see the required format</li>
+                                <li><strong>Date format:</strong> YYYY-MM-DD (e.g., 2024-01-15)</li>
+                                <li><strong>Time format:</strong> HH:MM or HH:mm (e.g., 08:30, 13:45)</li>
+                                <li><strong>Status:</strong> complete, on progress, or pending</li>
+                                <li><strong>Project and Employee:</strong> names must exist in the system</li>
+                                <li><strong>Department:</strong> should match the project's department</li>
+                                <li><strong>Parts:</strong> required for projects that have parts</li>
+                                <li><strong>Important:</strong> Ensure time columns are formatted as TEXT in Excel, not TIME
+                                    format</li>
+                            </ul>
+                        </div>
+
+                        <div class="text-center">
+                            <a href="{{ route('timings.template') }}" class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-download me-1"></i>Download Template
+                            </a>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="import-submit-btn">
+                            <i class="bi bi-upload me-1"></i>Import Data
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -237,6 +330,25 @@
 
         .no-data-row td i {
             margin-right: 0.5rem;
+        }
+
+        /* Custom badge colors */
+        .text-bg-pending {
+            background-color: #ffc107 !important;
+            color: #000 !important;
+        }
+
+        .gradient-icon {
+            background: linear-gradient(135deg, #8F12FE 0%, #4A25AA 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Loading state for import */
+        .spinner-border-sm {
+            width: 1rem;
+            height: 1rem;
         }
     </style>
 @endpush

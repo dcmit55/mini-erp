@@ -9,7 +9,7 @@ class PurchaseRequest extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['type', 'material_name', 'inventory_id', 'required_quantity', 'unit', 'stock_level', 'project_id', 'requested_by', 'supplier_id', 'price_per_unit', 'currency_id', 'approval_status', 'delivery_date', 'img'];
+    protected $fillable = ['type', 'material_name', 'inventory_id', 'required_quantity', 'unit', 'stock_level', 'project_id', 'requested_by', 'supplier_id', 'price_per_unit', 'currency_id', 'approval_status', 'delivery_date', 'remark', 'img'];
 
     protected $casts = [
         'delivery_date' => 'date',

@@ -9,10 +9,7 @@ class Timing extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
-        'tanggal', 'project_id', 'step', 'parts',
-        'employee_id', 'start_time', 'end_time', 'output_qty', 'status', 'remarks'
-    ];
+    protected $fillable = ['tanggal', 'project_id', 'step', 'parts', 'employee_id', 'start_time', 'end_time', 'output_qty', 'status', 'remarks'];
 
     public function project()
     {
