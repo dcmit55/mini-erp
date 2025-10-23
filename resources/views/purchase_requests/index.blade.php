@@ -10,7 +10,7 @@
         }
 
         .table-responsive {
-            overflow: hidden;
+            overflow-x: auto;
         }
 
         .pagination {
@@ -184,6 +184,16 @@
                     </form>
                 </div>
 
+                @php
+                    $canViewUnitPrice = in_array(auth()->user()->role, [
+                        'super_admin',
+                        'admin',
+                        'admin_procurement',
+                        'admin_logistic',
+                        'admin_finance',
+                    ]);
+                @endphp
+
                 <!-- Table -->
                 <div class="table-responsive">
                     <table class="table table-striped table-hover table-bordered" id="datatable">
@@ -192,14 +202,18 @@
                                 <th width="50">#</th>
                                 <th>Type</th>
                                 <th>Material Name</th>
-                                <th>Stock Level</th>
                                 <th>Required Qty</th>
                                 <th>Project</th>
                                 <th>Supplier</th>
-                                <th>Price Per Unit</th>
+                                @if ($canViewUnitPrice)
+                                    <th>Unit Price</th>
+                                @endif
                                 <th>Currency</th>
                                 <th>Approval Status</th>
-                                <th>Delivery Date</th>
+                                <th>Delivery Date
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top"
+                                        title="Delivery date to forwarder"></i>
+                                </th>
                                 <th>Requested By</th>
                                 <th>Requested At</th>
                                 <th>Remark</th>
@@ -209,14 +223,17 @@
                         <tbody class="align-middle">
                             @forelse ($requests as $index => $req)
                                 <tr data-id="{{ $req->id }}">
-                                    <td class="text-center">{{ $index + 1 }}</td>
+                                    <td class="text-center">{{ $loop->iteration }}</td>
                                     <td>{{ ucfirst(str_replace('_', ' ', $req->type)) }}</td>
-                                    <td>{{ $req->material_name }}</td>
                                     <td>
-                                        <span data-bs-toggle="tooltip" data-bs-placement="right"
-                                            title="{{ $req->unit }}">
-                                            {{ $req->stock_level !== null ? number_format($req->stock_level, 2) : '-' }}
-                                        </span>
+                                        <div>
+                                            @if ($req->stock_level !== null)
+                                                <i class="bi bi-info-circle text-secondary" style="cursor: pointer;"
+                                                    data-bs-toggle="tooltip" data-bs-placement="bottom"
+                                                    title="Current stock: {{ number_format($req->stock_level, 2) }} {{ $req->unit }}"></i>
+                                            @endif
+                                            {{ $req->material_name }}
+                                        </div>
                                     </td>
                                     <td>
                                         <span data-bs-toggle="tooltip" data-bs-placement="right"
@@ -226,46 +243,61 @@
                                     </td>
                                     <td>{{ $req->project->name ?? '-' }}</td>
                                     <td>
-                                        <select class="form-select form-select-sm supplier-select"
-                                            data-id="{{ $req->id }}">
-                                            <option value="">-</option>
-                                            @foreach ($suppliers as $supplier)
-                                                <option value="{{ $supplier->id }}"
-                                                    @if ($req->supplier_id == $supplier->id) selected @endif>
-                                                    {{ $supplier->name }}
-                                                </option>
-                                            @endforeach
-                                        </select>
+                                        @if ($canViewUnitPrice)
+                                            <select class="form-select form-select-sm supplier-select"
+                                                data-id="{{ $req->id }}">
+                                                <option value="">-</option>
+                                                @foreach ($suppliers as $supplier)
+                                                    <option value="{{ $supplier->id }}"
+                                                        @if ($req->supplier_id == $supplier->id) selected @endif>
+                                                        {{ $supplier->name }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        @else
+                                            {{ $req->supplier->name ?? '-' }}
+                                        @endif
+                                    </td>
+                                    @if ($canViewUnitPrice)
+                                        <td>
+                                            <input type="number" min="0" step="0.01"
+                                                class="form-control form-control-sm price-input"
+                                                value="{{ $req->price_per_unit ?? '' }}" data-id="{{ $req->id }}">
+                                        </td>
+                                    @endif
+                                    <td>
+                                        @if ($canViewUnitPrice)
+                                            <select class="form-select form-select-sm currency-select"
+                                                data-id="{{ $req->id }}">
+                                                <option value="">-</option>
+                                                @foreach ($currencies as $currency)
+                                                    <option value="{{ $currency->id }}"
+                                                        @if ($req->currency_id == $currency->id) selected @endif>
+                                                        {{ $currency->name }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        @else
+                                            {{ $req->currency->name ?? '-' }}
+                                        @endif
                                     </td>
                                     <td>
-                                        <input type="number" min="0" step="0.01"
-                                            class="form-control form-control-sm price-input"
-                                            value="{{ $req->price_per_unit ?? '' }}" data-id="{{ $req->id }}">
+                                        @if ($canViewUnitPrice)
+                                            <select class="form-select form-select-sm approval-select"
+                                                data-id="{{ $req->id }}">
+                                                <option value="">Pending</option>
+                                                <option value="Approved"
+                                                    @if ($req->approval_status == 'Approved') selected @endif>
+                                                    Approved</option>
+                                                <option value="Decline" @if ($req->approval_status == 'Decline') selected @endif>
+                                                    Decline</option>
+                                            </select>
+                                        @else
+                                            {{ $req->approval_status ?? 'Pending' }}
+                                        @endif
                                     </td>
                                     <td>
-                                        <select class="form-select form-select-sm currency-select"
-                                            data-id="{{ $req->id }}">
-                                            <option value="">-</option>
-                                            @foreach ($currencies as $currency)
-                                                <option value="{{ $currency->id }}"
-                                                    @if ($req->currency_id == $currency->id) selected @endif>
-                                                    {{ $currency->name }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                    </td>
-                                    <td>
-                                        <select class="form-select form-select-sm approval-select"
-                                            data-id="{{ $req->id }}">
-                                            <option value="">Pending</option>
-                                            <option value="Approved" @if ($req->approval_status == 'Approved') selected @endif>
-                                                Approved</option>
-                                            <option value="Decline" @if ($req->approval_status == 'Decline') selected @endif>
-                                                Decline</option>
-                                        </select>
-                                    </td>
-                                    <td>
-                                        @if (auth()->user()->role === 'super_admin' || auth()->user()->role === 'admin_procurement')
+                                        @if ($canViewUnitPrice && (auth()->user()->role === 'super_admin' || auth()->user()->role === 'admin_procurement'))
                                             <input type="date" class="form-control form-control-sm delivery-date-input"
                                                 value="{{ $req->delivery_date ? $req->delivery_date->format('Y-m-d') : '' }}"
                                                 data-id="{{ $req->id }}">
@@ -275,48 +307,66 @@
                                     </td>
                                     <td>{{ $req->user->username ?? '-' }}</td>
                                     <td>
-                                        <span data-bs-toggle="tooltip" data-bs-placement="left"
+                                        <span data-bs-toggle="tooltip" data-bs-placement="bottom"
                                             title="{{ $req->created_at ? $req->created_at->format('l, d F Y H:i:s') : '' }}"
                                             data-order="{{ $req->created_at ? $req->created_at->timestamp : 0 }}">
-                                            {{ $req->created_at ? $req->created_at->format('d M Y, H:i') : '-' }}
+                                            {{ $req->created_at ? $req->created_at->format('d M Y') : '-' }}
                                         </span>
                                     </td>
                                     <td>
-                                        <span data-bs-toggle="tooltip" data-bs-placement="left"
-                                            title="{{ $req->remark ?? 'No remark' }}">
-                                            {{ $req->remark ? Str::limit($req->remark, 30) : '-' }}
+                                        @php
+                                            $remark = $req->remark;
+                                            $isUrl = $remark && filter_var($remark, FILTER_VALIDATE_URL);
+                                        @endphp
+                                        <span data-bs-toggle="tooltip" data-bs-placement="bottom"
+                                            title="{{ $remark ?? 'No remark' }}">
+                                            @if ($isUrl)
+                                                <a href="{{ $remark }}" target="_blank" rel="noopener noreferrer">
+                                                    {{ \Illuminate\Support\Str::limit($remark, 30) }}
+                                                </a>
+                                            @else
+                                                {{ $remark ? \Illuminate\Support\Str::limit($remark, 30) : '-' }}
+                                            @endif
                                         </span>
                                     </td>
                                     <td class="text-center">
                                         <div class="d-flex flex-nowrap gap-1 justify-content-center">
-                                            <button class="btn btn-info btn-sm btn-show-image"
-                                                data-img="{{ $req->img ? asset('storage/' . $req->img) : '' }}"
-                                                data-name="{{ $req->material_name }}" title="View Image">
-                                                <i class="bi bi-image"></i>
-                                            </button>
-                                            @if (auth()->user()->canModifyData())
-                                                <a href="{{ route('purchase_requests.edit', $req->id) }}"
-                                                    class="btn btn-warning btn-sm" title="Edit">
-                                                    <i class="bi bi-pencil-square"></i>
-                                                </a>
-                                                <button class="btn btn-danger btn-sm btn-delete"
-                                                    data-id="{{ $req->id }}" data-name="{{ $req->material_name }}"
-                                                    title="Delete">
-                                                    <i class="bi bi-trash"></i>
+                                            @if ($canViewUnitPrice)
+                                                <button class="btn btn-info btn-sm btn-show-image"
+                                                    data-img="{{ $req->img ? asset('storage/' . $req->img) : '' }}"
+                                                    data-name="{{ $req->material_name }}" title="View Image">
+                                                    <i class="bi bi-image"></i>
                                                 </button>
-                                                <form id="delete-form-{{ $req->id }}"
-                                                    action="{{ route('purchase_requests.destroy', $req->id) }}"
-                                                    method="POST" style="display:none;">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                </form>
+                                                @if (auth()->user()->canModifyData())
+                                                    <a href="{{ route('purchase_requests.edit', $req->id) }}"
+                                                        class="btn btn-warning btn-sm" title="Edit">
+                                                        <i class="bi bi-pencil-square"></i>
+                                                    </a>
+                                                    <button class="btn btn-danger btn-sm btn-delete"
+                                                        data-id="{{ $req->id }}"
+                                                        data-name="{{ $req->material_name }}" title="Delete">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                    <form id="delete-form-{{ $req->id }}"
+                                                        action="{{ route('purchase_requests.destroy', $req->id) }}"
+                                                        method="POST" style="display:none;">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                    </form>
+                                                @endif
+                                            @else
+                                                <button class="btn btn-info btn-sm btn-show-image"
+                                                    data-img="{{ $req->img ? asset('storage/' . $req->img) : '' }}"
+                                                    data-name="{{ $req->material_name }}" title="View Image">
+                                                    <i class="bi bi-image"></i>
+                                                </button>
                                             @endif
                                         </div>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="13" class="text-center text-muted py-4">
+                                    <td colspan="{{ $canViewUnitPrice ? 14 : 13 }}" class="text-center text-muted py-4">
                                         <i class="bi bi-inbox" style="font-size: 2rem;"></i>
                                         <br>No purchase requests found
                                     </td>
@@ -351,8 +401,8 @@
         $(document).ready(function() {
             // Initialize DataTable
             const table = $('#datatable').DataTable({
-                responsive: true,
-                stateSave: false,
+                responsive: false,
+                stateSave: true,
                 pageLength: 15,
                 lengthMenu: [
                     [10, 15, 25, 50, 100],
@@ -368,32 +418,31 @@
                 },
                 dom: 't<"row datatables-footer-row align-items-center"<"col-md-7 d-flex align-items-center gap-2 datatables-left"l<"vr-divider mx-2">i><"col-md-5 dataTables_paginate justify-content-end"p>>',
                 columnDefs: [{
-                    targets: 12, // kolom "Requested At"
-                    type: 'num',
-                    render: function(data, type, row, meta) {
-                        // Ambil data-order dari span
-                        var orderValue = $(row[meta.col]).data('order');
-                        if (type === 'sort') {
-                            return orderValue || 0;
+                        targets: [0, 12, 13],
+                        orderable: false
+                    },
+                    {
+                        targets: 11, // kolom "Requested At"
+                        type: 'num',
+                        render: function(data, type, row, meta) {
+                            var orderValue = $(row[meta.col]).data('order');
+                            if (type === 'sort') {
+                                return orderValue || 0;
+                            }
+                            return data;
                         }
-                        return data;
                     }
-                }],
+                ],
                 order: [
-                    [12, 'desc']
+                    [11, 'desc'] // Urutkan berdasarkan kolom "Requested At" (latest)
                 ],
                 drawCallback: function() {
-                    // Reinitialize tooltips after table redraw
                     $('[data-bs-toggle="tooltip"]').tooltip();
-
-                    // Safely destroy existing Select2 instances
                     $('.supplier-select, .currency-select, .approval-select').each(function() {
                         if ($(this).hasClass('select2-hidden-accessible')) {
                             $(this).select2('destroy');
                         }
                     });
-
-                    // Reinitialize Select2 for inline selects in table
                     $('.supplier-select, .currency-select, .approval-select').select2({
                         theme: 'bootstrap-5',
                         allowClear: false,

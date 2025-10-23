@@ -3,9 +3,10 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\PreShipping; // <-- Tambahkan ini!
+use App\Models\PreShipping;
 use App\Models\Shipping;
 use App\Models\ShippingDetail;
+use Illuminate\Support\Facades\Auth;
 
 class ShippingController extends Controller
 {

@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Shipping;
 use App\Models\GoodsReceive;
 use App\Models\GoodsReceiveDetail;
+use Illuminate\Support\Facades\Auth;
 
 class GoodsReceiveController extends Controller
 {

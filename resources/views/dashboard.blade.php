@@ -714,6 +714,22 @@
         #trendsChart,
         #requestStatusChart {
             max-height: 300px;
+            min-height: 180px;
+        }
+
+        @media (max-width: 768px) {
+            #trendsChart {
+                min-height: 260px !important;
+                max-height: 320px !important;
+            }
+
+            .card-body>#trendsChart {
+                min-height: 260px !important;
+            }
+
+            .card-body {
+                padding-bottom: 0.5rem !important;
+            }
         }
 
         /* Animation for loading states */

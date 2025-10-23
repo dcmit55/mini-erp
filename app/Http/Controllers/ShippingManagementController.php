@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Shipping;
+use Illuminate\Support\Facades\Auth;
 
 class ShippingManagementController extends Controller
 {

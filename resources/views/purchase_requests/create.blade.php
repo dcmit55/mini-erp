@@ -4,13 +4,12 @@
     <div class="container-fluid mt-4">
         <div class="card shadow rounded">
             <div class="card-body">
-                <h2 class="mb-0 flex-shrink-0" style="font-size:1.3rem;">
+                <h2 class="mb-2 flex-shrink-0" style="font-size:1.3rem;">
                     Create Purchase Request
                     @if (isset($selectedInventory) && isset($prefilledType))
                         <small class="text-muted">Restock for {{ $selectedInventory->name }}</small>
                     @endif
                 </h2>
-                <hr>
                 @if ($errors->any())
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
                         <strong>Whoops!</strong> There were some problems with your input.
@@ -26,7 +25,8 @@
                     @csrf
                     <div id="requests-container">
                         <!-- First request form (always visible) -->
-                        <div class="request-row mb-4">
+                        <div class="request-row">
+                            <hr class="mt-0 mb-4">
                             <div class="row g-3">
                                 <div class="col-md-4">
                                     <label for="type" class="form-label">Type</label>
@@ -111,6 +111,10 @@
                                         @endforeach
                                     </select>
                                 </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Image (optional)</label>
+                                    <input type="file" name="requests[0][img]" class="form-control" accept="image/*">
+                                </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Remark</label>
                                     {{-- Remark readonly jika dari dashboard (low stock items) --}}
@@ -125,10 +129,6 @@
                                             Optional: Add any notes or special instructions
                                         @endif
                                     </small>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Image (optional)</label>
-                                    <input type="file" name="requests[0][img]" class="form-control" accept="image/*">
                                 </div>
                                 <div class="col-12 text-end">
                                     <button type="button" class="btn btn-danger btn-sm btn-remove-row"
@@ -209,8 +209,8 @@
 
     <!-- Template for cloning -->
     <template id="request-row-template">
-        <hr class="mt-0">
-        <div class="request-row mb-4">
+        <div class="request-row">
+            <hr class="mt-0 mb-4">
             <div class="row g-3">
                 <div class="col-md-4">
                     <label class="form-label">Type</label>

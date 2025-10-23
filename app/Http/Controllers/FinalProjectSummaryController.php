@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\GoodsOut;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class FinalProjectSummaryController extends Controller
 {
