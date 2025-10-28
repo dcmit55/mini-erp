@@ -60,7 +60,7 @@ class InventoryController extends Controller
         $this->middleware('auth');
         // Batasi create/edit/delete HANYA untuk super_admin & admin_logistic
         $this->middleware(function ($request, $next) {
-            $restrictedRoles = ['super_admin', 'admin_logistic', 'admin_finance'];
+            $restrictedRoles = ['super_admin', 'admin_logistic', 'admin_finance', 'admin_procurement', 'admin'];
             $restrictedRoutes = ['inventory.create', 'inventory.import', 'inventory.edit', 'inventory.destroy', 'inventory.store', 'inventory.update'];
 
             if (in_array($request->route()->getName(), $restrictedRoutes) && !in_array(Auth::user()->role, $restrictedRoles)) {
@@ -213,9 +213,9 @@ class InventoryController extends Controller
                 'name' => '<div class="fw-semibold">' . $inventory->name . '</div>',
                 'category' => $categoryBadge,
                 'quantity' => '<span class="' . $quantityClass . '"><span class="fw-semibold">' . $quantityValue . '</span> ' . $quantityUnit . '</span>',
-                'price' => in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance']) ? '<span class="fw-semibold">' . $priceValue . '</span> ' . $currencyName : '',
-                'domestic_freight' => in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance']) ? '<span class="fw-semibold text-info">' . $domesticFreightValue . '</span> ' . $currencyName : '',
-                'international_freight' => in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance']) ? '<span class="fw-semibold text-warning">' . $internationalFreightValue . '</span> ' . $currencyName : '',
+                'price' => in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance', 'admin']) ? '<span class="fw-semibold">' . $priceValue . '</span> ' . $currencyName : '',
+                'domestic_freight' => in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance', 'admin']) ? '<span class="fw-semibold text-info">' . $domesticFreightValue . '</span> ' . $currencyName : '',
+                'international_freight' => in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance', 'admin']) ? '<span class="fw-semibold text-warning">' . $internationalFreightValue . '</span> ' . $currencyName : '',
                 'supplier' => $inventory->supplier ? $inventory->supplier->name : '-',
                 'location' => $inventory->location ? $inventory->location->name : '-',
                 'remark' => '<div class="text-truncate" style="max-width: 250px;" title="' . strip_tags($inventory->remark ?? '-') . '">' . ($inventory->remark ?? '-') . '</div>',
@@ -268,7 +268,7 @@ class InventoryController extends Controller
                      </button>';
 
         // Edit & Delete buttons (hanya untuk admin)
-        if (in_array(auth()->user()->role, ['super_admin', 'admin_logistic'])) {
+        if (in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_procurement', 'admin_finance', 'admin'])) {
             $buttons .=
                 '<a href="' .
                 route('inventory.edit', $inventory->id) .
@@ -364,7 +364,7 @@ class InventoryController extends Controller
         $fileName .= '_' . Carbon::now()->format('Y-m-d') . '.xlsx';
 
         // Update InventoryExport untuk menerima role info
-        $showCurrencyAndPrice = in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance']);
+        $showCurrencyAndPrice = in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance', 'admin']);
 
         return Excel::download(new InventoryExport($inventories, $showCurrencyAndPrice), $fileName);
     }
@@ -379,8 +379,221 @@ class InventoryController extends Controller
         return view('inventory.create', compact('currencies', 'units', 'categories', 'suppliers', 'locations'));
     }
 
+    public function store(Request $request)
+    {
+        if (auth()->user()->role === 'admin') {
+            return redirect()->back()->with('error', 'You do not have permission to submit inventory data.');
+        }
+
+        $request->validate([
+            'name' => 'required|string|max:255|unique:inventories,name,NULL,id,deleted_at,NULL',
+            'category_id' => 'required|exists:categories,id',
+            'quantity' => 'required|numeric|min:0',
+            'unit' => 'required|string',
+            'new_unit' => 'required_if:unit,__new__|nullable|string|max:255',
+            'price' => 'nullable|numeric|min:0',
+            'unit_domestic_freight_cost' => 'nullable|numeric|min:0',
+            'unit_international_freight_cost' => 'nullable|numeric|min:0',
+            'supplier_id' => 'nullable|exists:suppliers,id',
+            'currency_id' => 'nullable|exists:currencies,id',
+            'location_id' => 'nullable|exists:locations,id',
+            'remark' => 'nullable|string|max:255',
+            'img' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+        ]);
+
+        $inventory = new Inventory();
+        $inventory->name = $request->name;
+        $inventory->category_id = $request->category_id;
+        $inventory->quantity = $request->quantity;
+        $inventory->unit = $request->unit;
+        $inventory->price = $request->price;
+        $inventory->unit_domestic_freight_cost = $request->unit_domestic_freight_cost;
+        $inventory->unit_international_freight_cost = $request->unit_international_freight_cost;
+        $inventory->supplier_id = $request->supplier_id;
+        $inventory->currency_id = $request->currency_id;
+        $inventory->location_id = $request->location_id;
+        $inventory->remark = $request->remark;
+
+        // Simpan unit baru jika ada
+        if ($request->unit === '__new__' && $request->new_unit) {
+            $unit = Unit::firstOrCreate(['name' => $request->new_unit]);
+            $inventory->unit = $unit->name;
+        }
+
+        // Upload Image if exists
+        if ($request->hasFile('img')) {
+            $imagePath = $request->file('img')->store('inventory_images', 'public');
+            if ($imagePath) {
+                $inventory->img = $imagePath;
+            }
+        }
+
+        $inventory->save();
+
+        // Warning message untuk field kosong
+        $warningMessage = null;
+        if (!$inventory->currency_id || !$inventory->price) {
+            $warningMessage = "Price or Currency is empty for <b>{$inventory->name}</b>. Please update it as soon as possible, as it will affect the cost calculation!";
+        }
+
+        return redirect()
+            ->route('inventory.index')
+            ->with([
+                'success' => "Inventory <b>{$inventory->name}</b> created successfully.",
+                'warning' => $warningMessage,
+            ]);
+    }
+
+    public function storeQuick(Request $request)
+    {
+        if (auth()->user()->role === 'admin') {
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'You do not have permission to store inventory data.',
+                ],
+                403,
+            );
+        }
+
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255|unique:inventories,name,NULL,id,deleted_at,NULL',
+            'quantity' => 'required|numeric|min:0',
+            'unit' => 'required|string|max:255',
+            'price' => 'nullable|numeric|min:0',
+            'remark' => 'nullable|string|max:255',
+        ]);
+        if ($validator->fails()) {
+            if ($request->ajax()) {
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => $validator->errors()->first(),
+                    ],
+                    422,
+                );
+            }
+            return back()->withErrors($validator)->withInput();
+        }
+
+        $unit = Unit::firstOrCreate(['name' => $request->unit]);
+
+        $material = Inventory::create([
+            'name' => $request->name,
+            'quantity' => $request->quantity,
+            'unit' => $unit->name,
+            'price' => $request->price ?? 0,
+            'remark' => $request->remark ? $request->remark . ' <span style="color: orange;">(From Quick Add)</span>' : '<span style="color: orange;">(From Quick Add)</span>',
+        ]);
+
+        return response()->json(['success' => true, 'material' => $material]);
+    }
+
+    public function json(Request $request)
+    {
+        // return Inventory::select('id', 'name')->get();
+        // Mengembalikan data inventory dalam format JSON
+        $q = $request->q;
+        $query = Inventory::select('id', 'name');
+        if ($q) {
+            // Escape karakter khusus untuk LIKE query
+            $escapedQ = addcslashes($q, '%_\\');
+            $query->where('name', 'like', '%' . $escapedQ . '%');
+        }
+        return response()->json($query->get());
+        // bisa juga pakai paginate/dataTables untuk ribuan data
+    }
+
+    public function edit($id)
+    {
+        $inventory = Inventory::findOrFail($id);
+        $currencies = Currency::orderBy('name')->get();
+        $units = Unit::orderBy('name')->get();
+        $categories = Category::orderBy('name')->get();
+        $suppliers = Supplier::orderBy('name')->get();
+        $locations = Location::orderBy('name')->get();
+        return view('inventory.edit', compact('inventory', 'currencies', 'units', 'categories', 'suppliers', 'locations'));
+    }
+
+    public function update(Request $request, Inventory $inventory)
+    {
+        if (auth()->user()->role === 'admin') {
+            return redirect()->back()->with('error', 'You do not have permission to edit inventory data.');
+        }
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255|unique:inventories,name,' . $inventory->id . ',id,deleted_at,NULL',
+            'category_id' => 'required|exists:categories,id',
+            'quantity' => 'required|numeric|min:0',
+            'unit' => 'required|string',
+            'new_unit' => 'required_if:unit,__new__|nullable|string|max:255',
+            'currency_id' => 'nullable|exists:currencies,id',
+            'price' => 'nullable|numeric|min:0',
+            'unit_domestic_freight_cost' => 'nullable|numeric|min:0',
+            'unit_international_freight_cost' => 'nullable|numeric|min:0',
+            'supplier_id' => 'nullable|exists:suppliers,id',
+            'location_id' => 'nullable|exists:locations,id',
+            'remark' => 'nullable|string|max:255',
+            'img' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        $inventory->update(
+            array_merge($validated, [
+                'remark' => $validated['remark'], // Simpan remark asli tanpa tag tambahan
+            ]),
+        );
+
+        // Update data inventory
+        $inventory->name = $request->name;
+        $inventory->category_id = $request->category_id;
+        $inventory->quantity = $request->quantity;
+        $inventory->unit = $request->unit;
+        $inventory->currency_id = $request->currency_id;
+        $inventory->price = $request->price;
+        $inventory->unit_domestic_freight_cost = $request->unit_domestic_freight_cost;
+        $inventory->unit_international_freight_cost = $request->unit_international_freight_cost;
+        $inventory->supplier_id = $request->supplier_id;
+        $inventory->location_id = $request->location_id;
+        $inventory->remark = $request->remark;
+
+        // Simpan unit baru jika ada
+        if ($request->unit === '__new__' && $request->new_unit) {
+            $unit = Unit::firstOrCreate(['name' => $request->new_unit]);
+            $inventory->unit = $unit->name;
+        } else {
+            $inventory->unit = $request->unit;
+        }
+
+        // Upload image jika ada
+        if ($request->hasFile('img')) {
+            if ($inventory->img && Storage::disk('public')->exists($inventory->img)) {
+                Storage::disk('public')->delete($inventory->img);
+            }
+            $imgPath = $request->file('img')->store('inventory_images', 'public');
+            $inventory->img = $imgPath;
+        }
+
+        $inventory->save();
+
+        $warningMessage = null;
+        if (!$inventory->currency_id || !$inventory->price) {
+            $warningMessage = "Price or Currency is empty for <b>{$inventory->name}</b>. Please update it as soon as possible, as it will affect the cost calculation!";
+        }
+
+        return redirect()
+            ->route('inventory.index')
+            ->with([
+                'success' => "Inventory <b>{$inventory->name}</b> updated successfully.",
+                'warning' => $warningMessage,
+            ]);
+    }
+
     public function import(Request $request)
     {
+        if (auth()->user()->role === 'admin') {
+            return redirect()->back()->with('error', 'You do not have permission to import inventory data.');
+        }
+
         $request->validate([
             'xls_file' => 'required|mimes:xls,xlsx',
         ]);
@@ -494,197 +707,6 @@ class InventoryController extends Controller
         return Excel::download(new ImportInventoryTemplate(), 'inventory_template.xlsx');
     }
 
-    public function store(Request $request)
-    {
-        $request->validate([
-            'name' => 'required|string|max:255|unique:inventories,name,NULL,id,deleted_at,NULL',
-            'category_id' => 'required|exists:categories,id',
-            'quantity' => 'required|numeric|min:0',
-            'unit' => 'required|string',
-            'new_unit' => 'required_if:unit,__new__|nullable|string|max:255',
-            'price' => 'nullable|numeric|min:0',
-            'unit_domestic_freight_cost' => 'nullable|numeric|min:0',
-            'unit_international_freight_cost' => 'nullable|numeric|min:0',
-            'supplier_id' => 'nullable|exists:suppliers,id',
-            'currency_id' => 'nullable|exists:currencies,id',
-            'location_id' => 'nullable|exists:locations,id',
-            'remark' => 'nullable|string|max:255',
-            'img' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-        ]);
-
-        $inventory = new Inventory();
-        $inventory->name = $request->name;
-        $inventory->category_id = $request->category_id;
-        $inventory->quantity = $request->quantity;
-        $inventory->unit = $request->unit;
-        $inventory->price = $request->price;
-        $inventory->unit_domestic_freight_cost = $request->unit_domestic_freight_cost;
-        $inventory->unit_international_freight_cost = $request->unit_international_freight_cost;
-        $inventory->supplier_id = $request->supplier_id;
-        $inventory->currency_id = $request->currency_id;
-        $inventory->location_id = $request->location_id;
-        $inventory->remark = $request->remark;
-
-        // Simpan unit baru jika ada
-        if ($request->unit === '__new__' && $request->new_unit) {
-            $unit = Unit::firstOrCreate(['name' => $request->new_unit]);
-            $inventory->unit = $unit->name;
-        }
-
-        // Upload Image if exists
-        if ($request->hasFile('img')) {
-            $imagePath = $request->file('img')->store('inventory_images', 'public');
-            if ($imagePath) {
-                $inventory->img = $imagePath;
-            }
-        }
-
-        $inventory->save();
-
-        // Warning message untuk field kosong
-        $warningMessage = null;
-        if (!$inventory->currency_id || !$inventory->price) {
-            $warningMessage = "Price or Currency is empty for <b>{$inventory->name}</b>. Please update it as soon as possible, as it will affect the cost calculation!";
-        }
-
-        return redirect()
-            ->route('inventory.index')
-            ->with([
-                'success' => "Inventory <b>{$inventory->name}</b> created successfully.",
-                'warning' => $warningMessage,
-            ]);
-    }
-
-    public function storeQuick(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255|unique:inventories,name,NULL,id,deleted_at,NULL',
-            'quantity' => 'required|numeric|min:0',
-            'unit' => 'required|string|max:255',
-            'price' => 'nullable|numeric|min:0',
-            'remark' => 'nullable|string|max:255',
-        ]);
-        if ($validator->fails()) {
-            if ($request->ajax()) {
-                return response()->json(
-                    [
-                        'success' => false,
-                        'message' => $validator->errors()->first(),
-                    ],
-                    422,
-                );
-            }
-            return back()->withErrors($validator)->withInput();
-        }
-
-        $unit = Unit::firstOrCreate(['name' => $request->unit]);
-
-        $material = Inventory::create([
-            'name' => $request->name,
-            'quantity' => $request->quantity,
-            'unit' => $unit->name,
-            'price' => $request->price ?? 0,
-            'remark' => $request->remark ? $request->remark . ' <span style="color: orange;">(From Quick Add)</span>' : '<span style="color: orange;">(From Quick Add)</span>',
-        ]);
-
-        return response()->json(['success' => true, 'material' => $material]);
-    }
-
-    public function json(Request $request)
-    {
-        // return Inventory::select('id', 'name')->get();
-        // Mengembalikan data inventory dalam format JSON
-        $q = $request->q;
-        $query = Inventory::select('id', 'name');
-        if ($q) {
-            // Escape karakter khusus untuk LIKE query
-            $escapedQ = addcslashes($q, '%_\\');
-            $query->where('name', 'like', '%' . $escapedQ . '%');
-        }
-        return response()->json($query->get());
-        // bisa juga pakai paginate/dataTables untuk ribuan data
-    }
-
-    public function edit($id)
-    {
-        $inventory = Inventory::findOrFail($id);
-        $currencies = Currency::orderBy('name')->get();
-        $units = Unit::orderBy('name')->get();
-        $categories = Category::orderBy('name')->get();
-        $suppliers = Supplier::orderBy('name')->get();
-        $locations = Location::orderBy('name')->get();
-        return view('inventory.edit', compact('inventory', 'currencies', 'units', 'categories', 'suppliers', 'locations'));
-    }
-
-    public function update(Request $request, Inventory $inventory)
-    {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:inventories,name,' . $inventory->id . ',id,deleted_at,NULL',
-            'category_id' => 'required|exists:categories,id',
-            'quantity' => 'required|numeric|min:0',
-            'unit' => 'required|string',
-            'new_unit' => 'required_if:unit,__new__|nullable|string|max:255',
-            'currency_id' => 'nullable|exists:currencies,id',
-            'price' => 'nullable|numeric|min:0',
-            'unit_domestic_freight_cost' => 'nullable|numeric|min:0',
-            'unit_international_freight_cost' => 'nullable|numeric|min:0',
-            'supplier_id' => 'nullable|exists:suppliers,id',
-            'location_id' => 'nullable|exists:locations,id',
-            'remark' => 'nullable|string|max:255',
-            'img' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
-
-        $inventory->update(
-            array_merge($validated, [
-                'remark' => $validated['remark'], // Simpan remark asli tanpa tag tambahan
-            ]),
-        );
-
-        // Update data inventory
-        $inventory->name = $request->name;
-        $inventory->category_id = $request->category_id;
-        $inventory->quantity = $request->quantity;
-        $inventory->unit = $request->unit;
-        $inventory->currency_id = $request->currency_id;
-        $inventory->price = $request->price;
-        $inventory->unit_domestic_freight_cost = $request->unit_domestic_freight_cost;
-        $inventory->unit_international_freight_cost = $request->unit_international_freight_cost;
-        $inventory->supplier_id = $request->supplier_id;
-        $inventory->location_id = $request->location_id;
-        $inventory->remark = $request->remark;
-
-        // Simpan unit baru jika ada
-        if ($request->unit === '__new__' && $request->new_unit) {
-            $unit = Unit::firstOrCreate(['name' => $request->new_unit]);
-            $inventory->unit = $unit->name;
-        } else {
-            $inventory->unit = $request->unit;
-        }
-
-        // Upload image jika ada
-        if ($request->hasFile('img')) {
-            if ($inventory->img && Storage::disk('public')->exists($inventory->img)) {
-                Storage::disk('public')->delete($inventory->img);
-            }
-            $imgPath = $request->file('img')->store('inventory_images', 'public');
-            $inventory->img = $imgPath;
-        }
-
-        $inventory->save();
-
-        $warningMessage = null;
-        if (!$inventory->currency_id || !$inventory->price) {
-            $warningMessage = "Price or Currency is empty for <b>{$inventory->name}</b>. Please update it as soon as possible, as it will affect the cost calculation!";
-        }
-
-        return redirect()
-            ->route('inventory.index')
-            ->with([
-                'success' => "Inventory <b>{$inventory->name}</b> updated successfully.",
-                'warning' => $warningMessage,
-            ]);
-    }
-
     public function detail($id)
     {
         $inventory = Inventory::findOrFail($id);
@@ -696,6 +718,16 @@ class InventoryController extends Controller
 
     public function destroy($id)
     {
+        if (auth()->user()->role === 'admin') {
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'You do not have permission to delete inventory data.',
+                ],
+                403,
+            );
+        }
+
         $inventory = Inventory::findOrFail($id);
         $name = $inventory->name;
         $inventory->delete();

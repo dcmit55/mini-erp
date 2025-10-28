@@ -10,8 +10,7 @@
                         <i class="fas fa-coins gradient-icon me-2" style="font-size: 1.5rem;"></i>
                         <h2 class="mb-0 flex-shrink-0" style="font-size:1.3rem;">Currency List</h2>
                     </div>
-                    @if (auth()->user()->canModifyData() &&
-                            in_array(auth()->user()->role, ['super_admin', 'admin_finance', 'admin_logistic']))
+                    @if (in_array(auth()->user()->role, ['super_admin', 'admin_finance', 'admin_logistic', 'admin']))
                         <div class="align-self-start align-self-md-center">
                             <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal"
                                 data-bs-target="#currencyModal">

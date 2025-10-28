@@ -17,6 +17,12 @@
                         </ul>
                     </div>
                 @endif
+                @if (session('error'))
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        {!! session('error') !!}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                @endif
                 <form method="POST" action="{{ route('inventory.store') }}" enctype="multipart/form-data">
                     @csrf
 
@@ -106,8 +112,8 @@
                         <div class="col-lg-4">
                             <label for="unit_international_freight_cost" class="form-label">
                                 International Freight Cost
-                                <i class="fas fa-info-circle text-warning" data-bs-toggle="tooltip" data-bs-placement="top"
-                                    title="Cost for international shipping per unit"></i>
+                                <i class="fas fa-info-circle text-warning" data-bs-toggle="tooltip"
+                                    data-bs-placement="top" title="Cost for international shipping per unit"></i>
                             </label>
                             <input type="number" step="any" class="form-control"
                                 id="unit_international_freight_cost" name="unit_international_freight_cost"

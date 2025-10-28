@@ -564,7 +564,7 @@
                                                     <i class="fas fa-dollar-sign me-2 text-muted"></i>Price Information
                                                 </th>
                                                 <td>
-                                                    @if (in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance']))
+                                                    @if (in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance', 'admin_procurement', 'admin']))
                                                         <div class="row">
                                                             <div class="col-md-4">
                                                                 <small class="text-muted">Unit Price:</small><br>

@@ -19,12 +19,15 @@
                         <a href="{{ route('material_requests.bulk_create') }}" class="btn btn-info btn-sm flex-shrink-0">
                             <i class="bi bi-plus-circle me-1"></i> Bulk Request
                         </a>
-                        @if (auth()->user()->isLogisticAdmin())
-                            <button id="bulk-goods-out-btn" class="btn btn-success btn-sm flex-shrink-0" disabled>
-                                <i class="bi bi-box-arrow-in-right me-1"></i>
-                                <span id="bulk-goods-out-text">Bulk Goods Out</span>
-                                <span id="bulk-goods-out-count" class="badge bg-light text-dark ms-1 d-none">0</span>
-                            </button>
+                        @if (auth()->user()->isLogisticAdmin() || auth()->user()->isReadOnlyAdmin())
+                            <span id="bulk-goods-out-tooltip-wrapper" data-bs-toggle="tooltip" data-bs-placement="bottom"
+                                title="To perform Bulk Goods Out, please select material requests with Approved status.">
+                                <button id="bulk-goods-out-btn" class="btn btn-success btn-sm flex-shrink-0" disabled>
+                                    <i class="bi bi-box-arrow-in-right me-1"></i>
+                                    <span id="bulk-goods-out-text">Bulk Goods Out</span>
+                                    <span id="bulk-goods-out-count" class="badge bg-light text-dark ms-1 d-none">0</span>
+                                </button>
+                            </span>
                         @endif
                         <a href="{{ route('material_requests.export', request()->query()) }}"
                             class="btn btn-outline-success btn-sm flex-shrink-0">
@@ -722,18 +725,35 @@
                 const selectedCount = $('.select-row:checked').length;
                 const bulkBtn = $('#bulk-goods-out-btn');
                 const countBadge = $('#bulk-goods-out-count');
+                const tooltipWrapper = $('#bulk-goods-out-tooltip-wrapper');
 
-                // Batch DOM updates
                 requestAnimationFrame(() => {
                     if (selectedCount > 0) {
                         bulkBtn.prop('disabled', false);
                         countBadge.removeClass('d-none').text(selectedCount);
+
+                        // Remove tooltip title so it won't show on hover
+                        tooltipWrapper.removeAttr('data-bs-original-title');
                     } else {
                         bulkBtn.prop('disabled', true);
                         countBadge.addClass('d-none').text('0');
+
+                        // Set tooltip title, but DO NOT call .tooltip('show')
+                        tooltipWrapper.attr(
+                            'data-bs-original-title',
+                            'To perform Bulk Goods Out, please select material requests with Approved status.'
+                        );
                     }
                 });
             }
+
+            // Initialize tooltip on page load (trigger: hover only)
+            $(function() {
+                $('#bulk-goods-out-tooltip-wrapper').tooltip({
+                    trigger: 'hover focus',
+                    placement: 'bottom'
+                });
+            });
 
             // Handle checkbox changes with debouncing
             const debouncedCheckboxUpdate = debounce(updateBulkGoodsOutButton, 50);

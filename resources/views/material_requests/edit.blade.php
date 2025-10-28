@@ -6,6 +6,12 @@
             <div class="card-body">
                 <h2 class="mb-0 flex-shrink-0" style="font-size:1.3rem;">Edit Material Request</h2>
                 <hr>
+                @if (session('error'))
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        {!! session('error') !!}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                @endif
                 @if ($errors->any())
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
                         @foreach ($errors->all() as $error)
@@ -124,7 +130,8 @@
 
                     <a href="{{ route('material_requests.index') }}" class="btn btn-secondary">Cancel</a>
                     <button type="submit" class="btn btn-primary" id="update-request-btn">
-                        <span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>
+                        <span class="spinner-border spinner-border-sm me-1 d-none" role="status"
+                            aria-hidden="true"></span>
                         Update Request
                     </button>
                 </form>

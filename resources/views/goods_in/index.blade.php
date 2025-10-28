@@ -173,18 +173,19 @@
                                 <td>
                                     <div class="d-flex flex-wrap gap-1">
                                         @if (auth()->user()->username === $goodsIn->returned_by ||
-                                                in_array(auth()->user()->role, ['admin_logistic', 'super_admin']))
+                                                in_array(auth()->user()->role, ['admin_logistic', 'super_admin', 'admin_finance', 'admin']))
                                             <a href="{{ route('goods_in.edit', $goodsIn->id) }}"
                                                 class="btn btn-sm btn-warning" data-bs-toggle="tooltip"
                                                 data-bs-placement="bottom" title="Edit"><i
                                                     class="bi bi-pencil-square"></i></a>
                                         @endif
-                                        @if (!$goodsIn->goods_out_id && in_array(auth()->user()->role, ['admin_logistic', 'super_admin']))
+                                        @if (!$goodsIn->goods_out_id && in_array(auth()->user()->role, ['admin_logistic', 'super_admin', 'admin_finance', 'admin']))
                                             <form action="{{ route('goods_in.destroy', $goodsIn->id) }}" method="POST"
                                                 class="delete-form">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="button" class="btn btn-sm btn-danger btn-delete"
+                                                    @if (auth()->user()->isReadOnlyAdmin()) disabled @endif
                                                     data-bs-toggle="tooltip" data-bs-placement="bottom" title="Delete">
                                                     <span class="spinner-border spinner-border-sm me-1 d-none"
                                                         role="status" aria-hidden="true"></span>

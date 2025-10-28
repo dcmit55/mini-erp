@@ -15,6 +15,12 @@
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 @endif
+                @if (session('error'))
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        {!! session('error') !!}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                @endif
                 @if ($errors->any())
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
                         <strong>Whoops!</strong> There were some problems with your input.
@@ -121,7 +127,8 @@
                                         Employment Status <span class="text-danger">*</span>
                                     </label>
                                     <select name="status" id="status" class="form-select" required>
-                                        <option value="active" {{ old('status', 'active') == 'active' ? 'selected' : '' }}>
+                                        <option value="active"
+                                            {{ old('status', 'active') == 'active' ? 'selected' : '' }}>
                                             Active
                                         </option>
                                         <option value="inactive" {{ old('status') == 'inactive' ? 'selected' : '' }}>

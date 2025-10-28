@@ -82,6 +82,7 @@
                                         'admin_costume',
                                         'admin_logistic',
                                         'admin_finance',
+                                        'admin_procurement',
                                         'admin_animatronic',
                                         'admin_hr',
                                         'admin',
@@ -119,7 +120,7 @@
                                 @endif
 
                                 <!-- Procurement Dropdown -->
-                                @if (in_array(auth()->user()->role, ['super_admin', 'admin_procurement', 'admin_hr', 'admin']))
+                                @if (in_array(auth()->user()->role, ['super_admin', 'admin_procurement', 'admin_hr', 'admin', 'admin_logistic', 'admin_finance']))
                                     <li class="nav-item dropdown">
                                         <a class="nav-link dropdown-toggle {{ request()->is('purchase_requests*') ? 'active' : '' }}"
                                             href="#" id="procurementDropdown" role="button"
@@ -162,6 +163,7 @@
                                         'admin_costume',
                                         'admin_logistic',
                                         'admin_finance',
+                                        'admin_procurement',
                                         'admin_animatronic',
                                         'admin_hr',
                                         'admin',

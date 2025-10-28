@@ -76,7 +76,7 @@ class DashboardController extends Controller
 
         $recentRequests = MaterialRequest::with(['inventory', 'project', 'user'])
             ->orderBy('created_at', 'desc')
-            ->limit(5)
+            ->limit(10)
             ->get();
 
         // Top Categories by Inventory Count
@@ -105,18 +105,13 @@ class DashboardController extends Controller
             ->where('deadline', '<=', Carbon::now()->addDays(30))
             ->with('department')
             ->orderBy('deadline')
-            ->limit(5)
+            ->limit(10)
             ->get();
 
         // Material Usage This Month
         $materialUsageThisMonth = MaterialUsage::whereMonth('created_at', Carbon::now()->month)
             ->whereYear('created_at', Carbon::now()->year)
             ->sum('used_quantity');
-
-        // Filter veryLowStockItems based on roles
-        if (!in_array($user->role, ['super_admin', 'admin_logistic', 'admin_procurement', 'admin'])) {
-            $veryLowStockItems = collect(); // Empty collection if the user doesn't have permission
-        }
 
         // Pass veryLowStockItems ke view untuk ditampilkan di dashboard
         return view('dashboard', compact('user', 'inventoryCount', 'projectCount', 'employeeCount', 'departmentCount', 'pendingRequests', 'approvedRequests', 'deliveredRequests', 'totalRequests', 'activeProjects', 'completedProjects', 'projectsThisMonth', 'lowStockItems', 'veryLowStockItems', 'outOfStockItems', 'totalInventoryValue', 'recentGoodsIn', 'recentGoodsOut', 'recentRequests', 'topCategories', 'departmentStats', 'monthlyData', 'upcomingDeadlines', 'materialUsageThisMonth', 'totalCategories'));

@@ -182,10 +182,6 @@ class ProjectController extends Controller
 
     public function edit(Project $project)
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            abort(403, 'You do not have permission to edit projects.');
-        }
-
         $project->load('parts');
         $departments = Department::orderBy('name')->get();
         $statuses = ProjectStatus::orderBy('name')->get();

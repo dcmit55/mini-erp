@@ -184,99 +184,6 @@
             @endif
         </div>
 
-        <!-- Low Stock Items Section -->
-        @if (isset($veryLowStockItems) && $veryLowStockItems->count() > 0)
-            <div class="col-xl-12">
-                <div class="card border-0 shadow-sm mt-4 mb-4">
-                    <h6 class="card-header bg-transparent border-0 py-3">
-                        <i class="fas fa-exclamation-triangle"></i> Low Stock Items
-                        <span class="badge bg-danger ms-2" id="lowStockCount">{{ $veryLowStockItems->count() }}</span>
-                    </h6>
-                    @php
-                        $categories = $veryLowStockItems->pluck('category')->filter()->unique('id')->values();
-                        $suppliers = $veryLowStockItems->pluck('supplier')->filter()->unique('id')->values();
-                    @endphp
-                    <div class="mb-3 row g-2 px-3">
-                        <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                            <select id="lowStockCategorySelect" class="form-select form-select-sm select2"
-                                data-placeholder="All Category">
-                                <option value="all">All Category</option>
-                                @foreach ($categories as $cat)
-                                    <option value="{{ \Illuminate\Support\Str::slug($cat->name) }}">
-                                        {{ $cat->name ?? 'Uncategorized' }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                            <select id="lowStockSupplierSelect" class="form-select form-select-sm select2"
-                                data-placeholder="All Supplier">
-                                <option value="all">All Supplier</option>
-                                @foreach ($suppliers as $sup)
-                                    <option value="{{ \Illuminate\Support\Str::slug($sup->name) }}">
-                                        {{ $sup->name ?? 'Unknown' }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-12 col-sm-6 col-md-4 col-lg-2">
-                            <button class="btn btn-sm btn-primary" id="btnLowStockFilter"><i
-                                    class="fas fa-filter me-1"></i>
-                                Filter</button>
-                            <button class="btn btn-sm btn-secondary" id="btnLowStockReset"><i
-                                    class="fas fa-redo me-1"></i>
-                                Reset</button>
-                        </div>
-                    </div>
-                    <div id="lowStockCardList" class="p-2"
-                        style="max-height: 350px; overflow-y: auto; overflow-x: hidden;">
-                        <div class="row g-3">
-                            @foreach ($veryLowStockItems as $item)
-                                <div
-                                    class="col-12 col-sm-6 col-md-4 col-lg-3 low-stock-item {{ \Illuminate\Support\Str::slug($item->category->name ?? 'uncategorized') }} supplier-{{ \Illuminate\Support\Str::slug($item->supplier->name ?? 'unknown') }}">
-                                    <div class="card border-1 border-danger shadow-sm low-stock-card position-relative h-100"
-                                        style="background: #fff8f8;">
-                                        <div class="card-body py-2 px-3 d-flex flex-column justify-content-between h-100">
-                                            <div class="d-flex align-items-start gap-2 mb-2">
-                                                <div class="rounded-circle bg-danger bg-opacity-10 d-flex align-items-center justify-content-center"
-                                                    style="width:36px;height:36px;">
-                                                    <i class="fas fa-box-open text-danger"></i>
-                                                </div>
-                                                <div>
-                                                    <div class="fw-bold text-dark">
-                                                        {{ $item->name }}
-                                                        @if ($item->quantity < 5)
-                                                            <span class="badge bg-danger ms-1">Very Low</span>
-                                                        @endif
-                                                    </div>
-                                                    <div class="small text-muted mt-1">
-                                                        <span class="badge bg-light text-dark me-1"><i
-                                                                class="fas fa-tag"></i>
-                                                            {{ $item->category->name ?? 'Uncategorized' }}</span>
-                                                        <span class="badge bg-light text-dark me-1"><i
-                                                                class="fas fa-user"></i>
-                                                            {{ $item->supplier->name ?? '-' }}</span>
-                                                    </div>
-                                                    <div class="small mt-1">
-                                                        <span class="fw-bold text-danger"><i
-                                                                class="fas fa-exclamation-circle"></i> Stok:
-                                                            {{ $item->quantity }}</span>
-                                                        <span class="text-muted">{{ $item->unit ?? '-' }}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <a href="{{ route('purchase_requests.create', ['inventory_id' => $item->id, 'type' => 'restock']) }}"
-                                                class="btn btn-sm btn-outline-danger w-100 mt-auto">
-                                                <i class="fas fa-plus"></i> Purchase Request
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    </div>
-                </div>
-            </div>
-        @endif
-
         <!-- Charts and Analytics Row -->
         <div class="row g-4 mb-4">
             <!-- Monthly Trends Chart -->
@@ -332,9 +239,9 @@
             </div>
         </div>
 
-        <!-- Activity and Insights Row -->
+        <!-- Activity and Insights -->
         <div class="row g-4 mb-4">
-            <!-- Recent Activities -->
+            <!-- Recent Material Requests -->
             <div class="col-xl-6">
                 <div class="card border-0 shadow-sm h-100">
                     <div class="card-header bg-transparent border-0 py-3">
@@ -344,9 +251,9 @@
                                 All</a>
                         </div>
                     </div>
-                    <div class="card-body p-0">
+                    <div class="card-body p-0" style="max-height: 400px; overflow-y: auto;">
                         <div class="list-group list-group-flush">
-                            @foreach ($recentRequests as $request)
+                            @foreach ($recentRequests->take(10) as $request)
                                 <div class="list-group-item border-0 py-3">
                                     <div class="d-flex align-items-center">
                                         <div class="flex-shrink-0">
@@ -374,9 +281,132 @@
                 </div>
             </div>
 
-            <!-- Upcoming Deadlines -->
-            <div class="col-xl-6">
+            <!-- Low Stock Items Section -->
+            @php
+                $canCreatePurchase = in_array($user->role, [
+                    'super_admin',
+                    'admin_logistic',
+                    'admin_procurement',
+                    'admin',
+                ]);
+            @endphp
+            @if (isset($veryLowStockItems) && $veryLowStockItems->count() > 0)
+                <div class="col-xl-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-header bg-transparent border-0 py-3">
+                            <div class="d-flex align-items-center justify-content-between flex-wrap low-stock-header">
+                                <h5 class="card-title mb-0 fw-bold text-danger">
+                                    Low Stock Items
+                                    <span class="badge bg-danger"
+                                        id="lowStockCount">{{ $veryLowStockItems->count() }}</span>
+                                </h5>
+                                <!-- Filter Controls -->
+                                <div class="d-flex gap-2 low-stock-filter-controls">
+                                    <select id="lowStockCategorySelect" class="form-select form-select-sm select2"
+                                        data-placeholder="All Category" style="min-width:90px;max-width:140px;">
+                                        <option value="all">All Category</option>
+                                        @foreach ($veryLowStockItems->pluck('category')->filter()->unique('id')->values() as $cat)
+                                            <option value="{{ \Illuminate\Support\Str::slug($cat->name) }}">
+                                                {{ $cat->name ?? 'Uncategorized' }}</option>
+                                        @endforeach
+                                    </select>
+                                    <select id="lowStockSupplierSelect" class="form-select form-select-sm select2"
+                                        data-placeholder="All Supplier" style="min-width:90px;max-width:140px;">
+                                        <option value="all">All Supplier</option>
+                                        @foreach ($veryLowStockItems->pluck('supplier')->filter()->unique('id')->values() as $sup)
+                                            <option value="{{ \Illuminate\Support\Str::slug($sup->name) }}">
+                                                {{ $sup->name ?? 'Unknown' }}</option>
+                                        @endforeach
+                                    </select>
+                                    <button class="btn btn-sm btn-outline-primary" id="btnLowStockFilter"><i
+                                            class="fas fa-filter me-1"></i></button>
+                                    <button class="btn btn-sm btn-outline-secondary" id="btnLowStockReset"><i
+                                            class="fas fa-redo me-1"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body p-0" style="max-height: 370px; overflow-y: auto;">
+                            <div id="lowStockListGroup" class="list-group list-group-flush">
+                                @foreach ($veryLowStockItems as $item)
+                                    <div
+                                        class="list-group-item border-0 py-3 low-stock-item {{ \Illuminate\Support\Str::slug($item->category->name ?? 'uncategorized') }} supplier-{{ \Illuminate\Support\Str::slug($item->supplier->name ?? 'unknown') }}">
+                                        <div class="d-flex align-items-center">
+                                            <div class="flex-shrink-0">
+                                                <div class="activity-icon bg-danger bg-opacity-10 text-danger rounded-circle d-flex align-items-center justify-content-center"
+                                                    style="width: 40px; height: 40px;">
+                                                    <i class="fas fa-box-open"></i>
+                                                </div>
+                                            </div>
+                                            <div class="flex-grow-1 ms-3">
+                                                <div class="fw-semibold text-dark">
+                                                    {{ $item->name }}
+                                                    @if ($item->quantity < 2)
+                                                        <span class="badge bg-danger ms-1">Critical</span>
+                                                    @elseif ($item->quantity < 5)
+                                                        <span class="badge bg-warning text-dark ms-1">Very Low</span>
+                                                    @endif
+                                                </div>
+                                                <div class="small text-muted">
+                                                    <span class="me-2"><i class="fas fa-tag"></i>
+                                                        {{ $item->category->name ?? 'Uncategorized' }}</span>
+                                                    <span class="me-2"><i class="fas fa-user"></i>
+                                                        {{ $item->supplier->name ?? '-' }}</span>
+                                                    <span class="me-2"><i class="fas fa-exclamation-circle"></i> Stok:
+                                                        {{ $item->quantity }} {{ $item->unit ?? '-' }}</span>
+                                                </div>
+                                            </div>
+                                            <div class="flex-shrink-0 ms-2">
+                                                @if ($canCreatePurchase)
+                                                    <a href="{{ route('purchase_requests.create', ['inventory_id' => $item->id, 'type' => 'restock']) }}"
+                                                        class="btn btn-sm btn-outline-danger"
+                                                        title="Create Purchase Request">
+                                                        <i class="fas fa-plus"></i>
+                                                    </a>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endif
+        </div>
+
+        {{-- Upcoming Deadlines & Department Overview --}}
+        <div class="row g-4 mb-4">
+            <!-- Department Overview -->
+            <div class="col-xl-8 d-flex flex-column">
                 <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header bg-transparent border-0 py-3">
+                        <h5 class="card-title mb-0 fw-bold">Department Overview</h5>
+                    </div>
+                    <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                        <div class="row g-3">
+                            @foreach ($departmentStats as $dept)
+                                <div class="col-md-6 col-lg-4">
+                                    <div class="dept-card bg-light rounded-3 p-3 text-center"
+                                        data-department-id="{{ $dept->id }}"
+                                        data-department-name="{{ $dept->name }}">
+                                        <div class="dept-icon mb-2">
+                                            <i class="fas fa-building text-brand-icon fs-3"></i>
+                                        </div>
+                                        <h6 class="fw-bold mb-1">{{ ucfirst($dept->name) }}</h6>
+                                        <div class="small text-muted">
+                                            {{ $dept->projects_count }} Projects • {{ $dept->users_count }} Users
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upcoming Deadlines -->
+            <div class="col-xl-4 d-flex flex-column">
+                <div class="card border-0 shadow-sm h-100 mb-0">
                     <div class="card-header bg-transparent border-0 py-3">
                         <div class="d-flex align-items-center justify-content-between">
                             <h5 class="card-title mb-0 fw-bold">Upcoming Deadlines</h5>
@@ -384,7 +414,7 @@
                                 Projects</a>
                         </div>
                     </div>
-                    <div class="card-body p-0">
+                    <div class="card-body p-0" style="height: 100%; max-height: 400px; overflow-y: auto;">
                         @if ($upcomingDeadlines->count() > 0)
                             <div class="list-group list-group-flush">
                                 @foreach ($upcomingDeadlines as $project)
@@ -420,83 +450,6 @@
                                 <p>No upcoming deadlines in the next 30 days</p>
                             </div>
                         @endif
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Department Overview and Quick Actions -->
-        <div class="row g-4 mb-4">
-            <!-- Department Overview dengan JavaScript handling -->
-            <div class="col-xl-8">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-transparent border-0 py-3">
-                        <h5 class="card-title mb-0 fw-bold">Department Overview</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row g-3">
-                            @foreach ($departmentStats as $dept)
-                                <div class="col-md-6 col-lg-4">
-                                    <div class="dept-card bg-light rounded-3 p-3 text-center"
-                                        data-department-id="{{ $dept->id }}"
-                                        data-department-name="{{ $dept->name }}">
-                                        <div class="dept-icon mb-2">
-                                            <i class="fas fa-building text-brand-icon fs-3"></i>
-                                        </div>
-                                        <h6 class="fw-bold mb-1">{{ ucfirst($dept->name) }}</h6>
-                                        <div class="small text-muted">
-                                            {{ $dept->projects_count }} Projects • {{ $dept->users_count }} Users
-                                        </div>
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Quick Actions -->
-            <div class="col-xl-4">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-transparent border-0 py-3">
-                        <h5 class="card-title mb-0 fw-bold">Quick Actions</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="d-grid gap-2">
-                            @if (in_array($user->role, ['super_admin', 'admin_logistic']))
-                                <a href="{{ route('inventory.index') }}" class="btn btn-outline-brand">
-                                    <i class="fas fa-boxes me-2"></i> Manage Inventory
-                                </a>
-                                <a href="{{ route('goods_out.index') }}" class="btn btn-outline-success">
-                                    <i class="fas fa-shipping-fast me-2"></i> Goods Out
-                                </a>
-                            @endif
-
-                            @if (in_array($user->role, ['super_admin', 'admin_mascot', 'admin_costume', 'admin_animatronic', 'general']))
-                                <a href="{{ route('projects.index') }}" class="btn btn-outline-warning">
-                                    <i class="fas fa-project-diagram me-2"></i> View Projects
-                                </a>
-                            @endif
-
-                            @if (in_array($user->role, [
-                                    'super_admin',
-                                    'admin_mascot',
-                                    'admin_costume',
-                                    'admin_logistic',
-                                    'admin_animatronic',
-                                    'general',
-                                ]))
-                                <a href="{{ route('material_requests.index') }}" class="btn btn-outline-danger">
-                                    <i class="fas fa-clipboard-list me-2"></i> Material Requests
-                                </a>
-                            @endif
-
-                            @if (in_array($user->role, ['super_admin', 'admin_finance']))
-                                <a href="{{ route('costing.report') }}" class="btn btn-outline-info">
-                                    <i class="fas fa-chart-bar me-2"></i> Cost Reports
-                                </a>
-                            @endif
-                        </div>
                     </div>
                 </div>
             </div>
@@ -694,42 +647,11 @@
             background-color: #f8f9fa;
         }
 
-        /* Responsive adjustments */
-        @media (max-width: 768px) {
-            .metric-value {
-                font-size: 1.5rem !important;
-            }
-
-            .dashboard-clock-container {
-                text-align: center !important;
-                margin-top: 1rem;
-            }
-
-            .avatar-wrapper {
-                margin-bottom: 1rem;
-            }
-        }
-
         /* Chart container styling */
         #trendsChart,
         #requestStatusChart {
             max-height: 300px;
             min-height: 180px;
-        }
-
-        @media (max-width: 768px) {
-            #trendsChart {
-                min-height: 260px !important;
-                max-height: 320px !important;
-            }
-
-            .card-body>#trendsChart {
-                min-height: 260px !important;
-            }
-
-            .card-body {
-                padding-bottom: 0.5rem !important;
-            }
         }
 
         /* Animation for loading states */
@@ -760,6 +682,65 @@
 
         .shadow-lg {
             box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12) !important;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .metric-value {
+                font-size: 1.5rem !important;
+            }
+
+            .dashboard-clock-container {
+                text-align: center !important;
+                margin-top: 1rem;
+            }
+
+            .avatar-wrapper {
+                margin-bottom: 1rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .low-stock-header {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 0.5rem !important;
+            }
+
+            .low-stock-filter-controls {
+                width: 100%;
+                flex-wrap: wrap;
+                gap: 0.5rem !important;
+                margin-top: 0.5rem;
+            }
+
+            .low-stock-filter-controls select {
+                width: 100% !important;
+                min-width: 0 !important;
+                max-width: 100% !important;
+            }
+
+            .low-stock-filter-controls button {
+                width: auto !important;
+                min-width: 36px !important;
+                max-width: 48% !important;
+                display: inline-block !important;
+            }
+        }
+
+        @media (max-width: 768px) {
+            #trendsChart {
+                min-height: 260px !important;
+                max-height: 320px !important;
+            }
+
+            .card-body>#trendsChart {
+                min-height: 260px !important;
+            }
+
+            .card-body {
+                padding-bottom: 0.5rem !important;
+            }
         }
     </style>
 @endpush

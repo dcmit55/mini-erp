@@ -16,6 +16,13 @@
                     </button>
                 </div>
 
+                @if (session('error'))
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        {!! session('error') !!}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                @endif
+
                 @if ($errors->any())
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
                         <strong>Whoops!</strong> There were some problems with your input.
@@ -527,7 +534,7 @@
             });
             $('.material-select').trigger('change');
 
-            // Untuk modal Quick Add Material 
+            // Untuk modal Quick Add Material
             $('#quickAddMaterialForm').closest('.modal').on('shown.bs.modal', function() {
                 const $input = $(this).find('#search-material-autocomplete');
                 const $result = $(this).find('#search-material-result');

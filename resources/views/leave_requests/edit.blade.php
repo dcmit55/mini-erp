@@ -8,6 +8,12 @@
                     Edit Leave Request
                 </h2>
                 <hr>
+                @if (session('error'))
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        {!! session('error') !!}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                @endif
                 @if ($errors->any())
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
                         <strong>Whoops!</strong> There were some problems with your input.
@@ -39,34 +45,29 @@
                         </div>
                         <div class="col-lg-3 mb-3">
                             <label class="form-label">Department</label>
-                            <input type="text" id="department"
-                                class="form-control" readonly
+                            <input type="text" id="department" class="form-control" readonly
                                 value="{{ $leave->employee && $leave->employee->department ? $leave->employee->department->name : '' }}">
                         </div>
                         <div class="col-lg-3 mb-3">
                             <label class="form-label">Position</label>
-                            <input type="text" id="position"
-                                class="form-control" readonly
+                            <input type="text" id="position" class="form-control" readonly
                                 value="{{ $leave->employee ? $leave->employee->position : '' }}">
                         </div>
                         <div class="col-lg-3 mb-3">
                             <label class="form-label">Hire Date</label>
-                            <input type="text" id="hire_date"
-                                class="form-control" readonly
+                            <input type="text" id="hire_date" class="form-control" readonly
                                 value="{{ $leave->employee && $leave->employee->hire_date ? \Carbon\Carbon::parse($leave->employee->hire_date)->format('d-m-Y') : '' }}">
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-lg-3 mb-3">
                             <label class="form-label">From Date <span class="text-danger">*</span></label>
-                            <input type="date" name="start_date" id="start_date"
-                                class="form-control" required
+                            <input type="date" name="start_date" id="start_date" class="form-control" required
                                 value="{{ old('start_date', $leave->start_date ? $leave->start_date->format('Y-m-d') : '') }}">
                         </div>
                         <div class="col-lg-3 mb-3">
                             <label class="form-label">To Date <span class="text-danger">*</span></label>
-                            <input type="date" name="end_date" id="end_date"
-                                class="form-control" required
+                            <input type="date" name="end_date" id="end_date" class="form-control" required
                                 value="{{ old('end_date', $leave->end_date ? $leave->end_date->format('Y-m-d') : '') }}">
                         </div>
                         <div class="col-lg-3 mb-3">
@@ -78,8 +79,7 @@
                                 </span>
                             </label>
                             <div class="input-group">
-                                <input type="number" name="duration" id="duration"
-                                    class="form-control" min="0.5"
+                                <input type="number" name="duration" id="duration" class="form-control" min="0.5"
                                     max="999.99" step="0.5" required value="{{ old('duration', $leave->duration) }}"
                                     placeholder="1 or 0.5">
                                 <span class="input-group-text">days</span>
@@ -89,8 +89,7 @@
                     </div>
                     <div class="row mt-2">
                         <div class="col-lg-12 mb-3">
-                            <label class="form-label">Leave Type <span
-                                    class="text-danger">*</span></label>
+                            <label class="form-label">Leave Type <span class="text-danger">*</span></label>
                             <div class="row row-cols-2 row-cols-md-2 g-2">
                                 @foreach ($leaveTypes as $type)
                                     <div class="col">
@@ -114,8 +113,7 @@
                         </div>
                     </div>
                     <div class="d-flex gap-2 mt-2 justify-content-end">
-                        <a href="{{ route('leave_requests.index') }}"
-                            class="btn btn-secondary">Cancel</a>
+                        <a href="{{ route('leave_requests.index') }}" class="btn btn-secondary">Cancel</a>
                         <button type="submit" class="btn btn-success">Update</button>
                     </div>
                 </form>

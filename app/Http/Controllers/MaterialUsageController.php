@@ -35,13 +35,13 @@ class MaterialUsageController extends Controller
 
             if ($request->filled('search')) {
                 $search = $request->search;
-                $query
-                    ->whereHas('inventory', function ($q) use ($search) {
-                        $q->where('name', 'like', "%{$search}%");
-                    })
-                    ->orWhereHas('project', function ($q) use ($search) {
-                        $q->where('name', 'like', "%{$search}%");
+                $query->where(function ($q) use ($search) {
+                    $q->whereHas('inventory', function ($q2) use ($search) {
+                        $q2->where('name', 'like', "%{$search}%");
+                    })->orWhereHas('project', function ($q2) use ($search) {
+                        $q2->where('name', 'like', "%{$search}%");
                     });
+                });
             }
 
             return Datatables::of($query)
@@ -150,38 +150,28 @@ class MaterialUsageController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage
-     */
-    public function destroy(MaterialUsage $materialUsage)
-    {
-        // Only super admin can delete
-        if (!Auth::user()->isSuperAdmin()) {
-            return redirect()->back()->with('error', 'Permission denied');
-        }
-
-        try {
-            $materialUsage->delete();
-            return redirect()->route('material_usage.index')->with('success', 'Material usage record deleted successfully!');
-        } catch (\Exception $e) {
-            return redirect()
-                ->back()
-                ->with('error', 'Failed to delete material usage record: ' . $e->getMessage());
-        }
-    }
-
-    /**
      * Export material usage data to Excel
      */
     public function export(Request $request)
     {
         $query = MaterialUsage::with(['inventory', 'project']);
 
+        $filterParts = [];
+
         if ($request->filled('material')) {
             $query->where('inventory_id', $request->material);
+            $materialName = Inventory::find($request->material)->name ?? 'UnknownMaterial';
+            $filterParts[] = 'material-' . str_replace(' ', '-', strtolower($materialName));
         }
 
         if ($request->filled('project')) {
             $query->where('project_id', $request->project);
+            $projectName = Project::find($request->project)->name ?? 'UnknownProject';
+            $filterParts[] = 'project-' . str_replace(' ', '-', strtolower($projectName));
+        }
+
+        if ($request->filled('search')) {
+            $filterParts[] = 'search-' . str_replace(' ', '-', strtolower(substr($request->search, 0, 10)));
         }
 
         $usages = $query->get()->map(function ($usage) {
@@ -215,7 +205,11 @@ class MaterialUsageController extends Controller
             ];
         });
 
-        $fileName = 'material_usage_' . now()->format('Y-m-d') . '.xlsx';
+        $fileName = 'material_usage';
+        if (!empty($filterParts)) {
+            $fileName .= '_' . implode('_', $filterParts);
+        }
+        $fileName .= '_' . now()->format('Y-m-d') . '.xlsx';
 
         return \Excel::download(new \App\Exports\MaterialUsageExport($usages), $fileName);
     }
@@ -259,5 +253,25 @@ class MaterialUsageController extends Controller
             });
 
         return response()->json($usages);
+    }
+
+    /**
+     * Remove the specified resource from storage
+     */
+    public function destroy(MaterialUsage $materialUsage)
+    {
+        // Only super admin can delete
+        if (!Auth::user()->isSuperAdmin()) {
+            return redirect()->back()->with('error', 'Permission denied');
+        }
+
+        try {
+            $materialUsage->delete();
+            return redirect()->route('material_usage.index')->with('success', 'Material usage record deleted successfully!');
+        } catch (\Exception $e) {
+            return redirect()
+                ->back()
+                ->with('error', 'Failed to delete material usage record: ' . $e->getMessage());
+        }
     }
 }

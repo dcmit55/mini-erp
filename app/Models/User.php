@@ -25,7 +25,7 @@ class User extends Authenticatable
 
     public function isLogisticAdmin()
     {
-        return in_array($this->role, ['admin_logistic', 'super_admin']);
+        return in_array($this->role, ['admin_logistic', 'super_admin', 'admin_finance']);
     }
 
     public function isSuperAdmin()
@@ -34,7 +34,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user is read-only admin (visitor)
+     * Check if user is read-only admin 
      */
     public function isReadOnlyAdmin()
     {

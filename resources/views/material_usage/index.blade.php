@@ -14,8 +14,7 @@
 
                     <!-- Spacer untuk mendorong tombol ke kanan -->
                     <div class="ms-sm-auto d-flex flex-wrap gap-2">
-                        <a href="{{ route('material_usage.export', request()->query()) }}"
-                            class="btn btn-outline-success btn-sm flex-shrink-0">
+                        <a href="#" id="export-btn" class="btn btn-outline-success btn-sm flex-shrink-0">
                             <i class="bi bi-file-earmark-excel me-1"></i> Export
                         </a>
                     </div>
@@ -45,16 +44,18 @@
                 <div class="mb-3">
                     <form id="filter-form" class="row g-1">
                         <div class="col-md-3">
-                            <select id="filter-material" name="material" class="form-select form-select-sm select2">
-                                <option value="">All Materials</option>
+                            <select id="filter-material" name="material" class="form-select form-select-sm select2"
+                                data-placeholder="All Materials">
+                                <option value=""></option>
                                 @foreach ($materials as $material)
                                     <option value="{{ $material->id }}">{{ $material->name }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="col-md-3">
-                            <select id="filter-project" name="project" class="form-select form-select-sm select2">
-                                <option value="">All Projects</option>
+                            <select id="filter-project" name="project" class="form-select form-select-sm select2"
+                                data-placeholder="All Projects">
+                                <option value=""></option>
                                 @foreach ($projects as $project)
                                     <option value="{{ $project->id }}">{{ $project->name }}</option>
                                 @endforeach
@@ -259,7 +260,7 @@
 
             // Initialize DataTable dengan server-side processing
             const table = $('#datatable').DataTable({
-                processing: true,
+                processing: false,
                 serverSide: true,
                 ajax: {
                     url: '{{ route('material_usage.index') }}',
@@ -319,7 +320,7 @@
                         previous: '<i class="bi bi-chevron-left"></i>',
                         next: '<i class="bi bi-chevron-right"></i>',
                         last: '<i class="bi bi-skip-end"></i>'
-                    }
+                    },
                 },
                 dom: 't<' +
                     '"row datatables-footer-row align-items-center"' +
@@ -363,6 +364,17 @@
             $(document).on('change', '.row-checkbox', function() {
                 const allChecked = $('.row-checkbox').length === $('.row-checkbox:checked').length;
                 $('#select-all').prop('checked', allChecked);
+            });
+
+            $('#export-btn').on('click', function(e) {
+                e.preventDefault();
+                const params = {
+                    material: $('#filter-material').val(),
+                    project: $('#filter-project').val(),
+                    search: $('#custom-search').val()
+                };
+                const query = $.param(params);
+                window.location.href = '{{ route('material_usage.export') }}' + '?' + query;
             });
 
             // Delete button handler

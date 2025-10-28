@@ -19,22 +19,6 @@ class PurchaseRequestController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-
-        $this->middleware(function ($request, $next) {
-            $allowedRoles = ['super_admin', 'admin_logistic', 'admin_procurement', 'admin_hr', 'admin'];
-            if (!in_array(auth()->user()->role, $allowedRoles)) {
-                abort(403, 'Unauthorized access to Procurement module.');
-            }
-            return $next($request);
-        });
-
-        // Batasi create/edit/delete
-        $this->middleware(function ($request, $next) {
-            if (Auth::user()->isReadOnlyAdmin()) {
-                abort(403, 'You do not have permission to modify purchase requests.');
-            }
-            return $next($request);
-        })->only(['create', 'store', 'edit', 'update', 'destroy', 'quickUpdate', 'storeFromPlanning']);
     }
 
     /**
@@ -97,6 +81,10 @@ class PurchaseRequestController extends Controller
      */
     public function store(Request $request)
     {
+        if (auth()->user()->isReadOnlyAdmin()) {
+            return redirect()->back()->with('error', 'You do not have permission to modify purchase requests.');
+        }
+
         $request->validate([
             'requests' => 'required|array|min:1',
             'requests.*.type' => 'required|in:new_material,restock',
@@ -199,6 +187,10 @@ class PurchaseRequestController extends Controller
      */
     public function update(Request $request, $id)
     {
+        if (auth()->user()->isReadOnlyAdmin()) {
+            return redirect()->back()->with('error', 'You do not have permission to modify purchase requests.');
+        }
+
         $request->validate([
             'type' => 'required|in:new_material,restock',
             'material_name' => 'required_if:type,new_material',
@@ -243,6 +235,10 @@ class PurchaseRequestController extends Controller
 
     public function quickUpdate(Request $request, $id)
     {
+        if (auth()->user()->isReadOnlyAdmin()) {
+            return redirect()->back()->with('error', 'You do not have permission to modify purchase requests.');
+        }
+
         $request->validate([
             'supplier_id' => 'nullable|exists:suppliers,id',
             'price_per_unit' => 'nullable|numeric|min:0',
@@ -274,6 +270,10 @@ class PurchaseRequestController extends Controller
 
     public function destroy($id)
     {
+        if (auth()->user()->isReadOnlyAdmin()) {
+            return redirect()->back()->with('error', 'You do not have permission to modify purchase requests.');
+        }
+
         $purchaseRequest = PurchaseRequest::findOrFail($id);
         $purchaseRequest->delete();
 

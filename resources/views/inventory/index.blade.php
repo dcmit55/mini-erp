@@ -108,7 +108,7 @@
 
                     <!-- Spacer untuk mendorong tombol ke kanan -->
                     <div class="ms-sm-auto d-flex flex-wrap gap-2">
-                        @if (in_array(auth()->user()->role, ['super_admin', 'admin_logistic']))
+                        @if (auth()->user()->isLogisticAdmin() || auth()->user()->isReadOnlyAdmin())
                             <a href="{{ route('inventory.create') }}" class="btn btn-primary btn-sm flex-shrink-0">
                                 <i class="bi bi-plus-circle me-1"></i> Create Inventory
                             </a>
@@ -153,7 +153,7 @@
                                 @endforeach
                             </select>
                         </div>
-                        @if (in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance']))
+                        @if (in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance', 'admin_procurement', 'admin']))
                             <div class="col-lg-2">
                                 <select name="currency_filter" id="currency_filter" class="form-select select2">
                                     <option value="">All Currencies</option>
@@ -205,7 +205,7 @@
                                 <th>Name</th>
                                 <th>Category</th>
                                 <th>Quantity</th>
-                                @if (in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance']))
+                                @if (in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance', 'admin', 'admin_procurement']))
                                     <th>Unit Price</th>
                                 @endif
                                 <th>Supplier</th>
@@ -333,7 +333,7 @@
                         name: 'quantity',
                         width: '10%',
                     },
-                    @if (in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance']))
+                    @if (in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance', 'admin', 'admin_procurement', 'admin']))
                         {
                             data: 'price',
                             name: 'price',
