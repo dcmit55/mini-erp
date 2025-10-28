@@ -431,7 +431,7 @@
                     }
                 ],
                 order: [
-                    [11, 'desc'] // Urutkan berdasarkan kolom "Requested At" (latest)
+                    [] // Urutkan berdasarkan kolom "Requested At" (latest)
                 ],
                 drawCallback: function() {
                     $('[data-bs-toggle="tooltip"]').tooltip();

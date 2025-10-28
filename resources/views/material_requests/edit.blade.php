@@ -14,10 +14,13 @@
                 @endif
                 @if ($errors->any())
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        <strong>Whoops!</strong> There were some problems with your input.
+                        <ul class="mb-0">
+                            @foreach ($errors->all() as $error)
+                                <li>{!! $error !!}</li>
+                            @endforeach
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </ul>
                     </div>
                 @endif
                 <form action="{{ route('material_requests.update', $request->id) }}" method="POST">
@@ -125,6 +128,9 @@
                                 <option value="canceled" {{ $request->status === 'canceled' ? 'selected' : '' }}>Canceled
                                 </option>
                             </select>
+                            @if (!in_array(auth()->user()->role, ['admin_logistic', 'super_admin']))
+                                <input type="hidden" name="status" value="{{ $request->status }}">
+                            @endif
                         </div>
                     </div>
 

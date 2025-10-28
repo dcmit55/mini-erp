@@ -22,7 +22,9 @@ class MaterialUsageController extends Controller
     {
         // Check if AJAX request for DataTables
         if ($request->ajax()) {
-            $query = MaterialUsage::with(['inventory', 'project'])->select('material_usages.*');
+            $query = MaterialUsage::with(['inventory', 'project'])
+                ->select('material_usages.*')
+                ->latest();
 
             // Apply filters
             if ($request->filled('material')) {

@@ -47,7 +47,7 @@ class GoodsOutController extends Controller
 
     public function getDataTablesData(Request $request)
     {
-        $query = GoodsOut::with(['inventory', 'project', 'goodsIns', 'materialRequest', 'user.department']);
+        $query = GoodsOut::with(['inventory', 'project', 'goodsIns', 'materialRequest', 'user.department'])->latest();
 
         // Apply filters
         if ($request->filled('material_filter')) {

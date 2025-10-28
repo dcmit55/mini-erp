@@ -179,7 +179,9 @@
                                                 data-bs-placement="bottom" title="Edit"><i
                                                     class="bi bi-pencil-square"></i></a>
                                         @endif
-                                        @if (!$goodsIn->goods_out_id && in_array(auth()->user()->role, ['admin_logistic', 'super_admin', 'admin_finance', 'admin']))
+                                        @if (
+                                            !$goodsIn->goods_out_id &&
+                                                in_array(auth()->user()->role, ['admin_logistic', 'super_admin', 'admin_finance', 'admin']))
                                             <form action="{{ route('goods_in.destroy', $goodsIn->id) }}" method="POST"
                                                 class="delete-form">
                                                 @csrf

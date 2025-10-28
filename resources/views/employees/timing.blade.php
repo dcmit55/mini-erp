@@ -65,7 +65,7 @@
                 pageLength: 25,
                 lengthMenu: [10, 25, 50, 100],
                 order: [
-                    [0, 'desc']
+                    []
                 ],
                 language: {
                     emptyTable: "No timing data found",

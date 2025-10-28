@@ -133,7 +133,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/units/json', [UnitController::class, 'json'])->name('units.json');
 
     // Suppliers
-    Route::post('/suppliers', [SupplierController::class, 'store'])->name('suppliers.store');
+    Route::resource('suppliers', SupplierController::class);
+    Route::post('/suppliers/quick-store', [SupplierController::class, 'quickStore'])->name('suppliers.quick_store');
 
     // Locations
     Route::post('/locations', [LocationController::class, 'store'])->name('locations.store');

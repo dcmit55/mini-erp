@@ -27,7 +27,7 @@ class TimingController extends Controller
     public function index(Request $request)
     {
         $timings = Timing::with(['project.department', 'employee.department'])
-            ->orderByDesc('created_at')
+            ->latest()
             ->get();
 
         $projects = Project::with('department')->orderBy('name')->get();

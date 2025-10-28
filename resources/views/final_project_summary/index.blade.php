@@ -207,7 +207,7 @@
                 }
             ],
             order: [
-                [0, 'asc']
+                []
             ],
             drawCallback: function(settings) {
                 console.log('DataTables redrawn with', settings.fnRecordsTotal(), 'records');

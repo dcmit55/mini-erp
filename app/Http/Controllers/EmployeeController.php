@@ -33,6 +33,7 @@ class EmployeeController extends Controller
     {
         $employees = Employee::with(['department', 'documents'])
             ->withCount('documents')
+            ->latest()
             ->get();
 
         return view('employees.index', compact('employees'));
@@ -424,6 +425,7 @@ class EmployeeController extends Controller
         $timings = $employee
             ->timings()
             ->with(['project.department'])
+            ->latest()
             ->paginate(50);
         return view('employees.timing', compact('employee', 'timings'));
     }

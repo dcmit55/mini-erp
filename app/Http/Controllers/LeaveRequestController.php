@@ -41,7 +41,7 @@ class LeaveRequestController extends Controller
 
     private function getDataTablesData(Request $request, $isAuthenticated, $userRole)
     {
-        $query = LeaveRequest::with(['employee.department']);
+        $query = LeaveRequest::with(['employee.department'])->latest();
 
         // Apply filters
         if ($request->filled('employee_filter')) {
@@ -240,11 +240,6 @@ class LeaveRequestController extends Controller
                 ($leave->approval_2 == 'rejected' ? 'selected' : '') .
                 '>Rejected</option>
             </select>';
-
-            // Show indicator when both approved
-            if ($leave->type === 'ANNUAL' && $leave->approval_1 === 'approved' && $leave->approval_2 === 'approved') {
-                $html .= '<small class="d-block text-success mt-1"><i class="bi bi-check-circle"></i> Balance deducted</small>';
-            }
 
             return $html;
         }

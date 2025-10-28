@@ -538,15 +538,17 @@
                 e.preventDefault();
                 let form = $(this);
                 $.ajax({
-                    url: form.attr('action'),
+                    url: '{{ route('suppliers.quick_store') }}',
                     method: 'POST',
                     data: form.serialize(),
                     headers: {
                         'X-CSRF-TOKEN': '{{ csrf_token() }}'
                     },
                     success: function(supplier) {
-                        let newOption = new Option(supplier.name, supplier.id, true, true);
-                        $('#supplier_id').append(newOption).val(supplier.id).trigger('change');
+                        let newOption = new Option(supplier.supplier.name, supplier.supplier.id,
+                            true, true);
+                        $('#supplier_id').append(newOption).val(supplier.supplier.id).trigger(
+                            'change');
                         $('#addSupplierModal').modal('hide');
                         form[0].reset();
                     },

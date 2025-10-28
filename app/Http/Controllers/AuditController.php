@@ -33,7 +33,7 @@ class AuditController extends Controller
 
     private function getDataTablesData(Request $request)
     {
-        $query = Audit::with(['user'])->orderBy('created_at', 'desc');
+        $query = Audit::with(['user'])->latest();
 
         // Apply filters
         if ($request->filled('event')) {

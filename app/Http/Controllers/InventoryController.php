@@ -80,7 +80,7 @@ class InventoryController extends Controller
         // Untuk non-AJAX request, return view dengan data master
         $categories = Category::orderBy('name')->get();
         $currencies = Currency::orderBy('name')->get();
-        $suppliers = Supplier::orderBy('name')->get();
+        $suppliers = Supplier::nonBlacklisted()->orderBy('name')->get();
         $locations = Location::orderBy('name')->get();
 
         return view('inventory.index', compact('categories', 'currencies', 'suppliers', 'locations'));
@@ -88,7 +88,7 @@ class InventoryController extends Controller
 
     public function getDataTablesData(Request $request)
     {
-        $query = Inventory::query()->with(['category', 'supplier', 'location', 'currency']);
+        $query = Inventory::query()->with(['category', 'supplier', 'location', 'currency'])->latest();
 
         // Apply filters dari form filter
         if ($request->filled('category_filter')) {
@@ -374,7 +374,7 @@ class InventoryController extends Controller
         $currencies = Currency::orderBy('name')->get();
         $units = Unit::orderBy('name')->get();
         $categories = Category::orderBy('name')->get();
-        $suppliers = Supplier::orderBy('name')->get();
+        $suppliers = Supplier::nonBlacklisted()->orderBy('name')->get();
         $locations = Location::orderBy('name')->get();
         return view('inventory.create', compact('currencies', 'units', 'categories', 'suppliers', 'locations'));
     }
@@ -510,7 +510,7 @@ class InventoryController extends Controller
         $currencies = Currency::orderBy('name')->get();
         $units = Unit::orderBy('name')->get();
         $categories = Category::orderBy('name')->get();
-        $suppliers = Supplier::orderBy('name')->get();
+        $suppliers = Supplier::nonBlacklisted()->orderBy('name')->get();
         $locations = Location::orderBy('name')->get();
         return view('inventory.edit', compact('inventory', 'currencies', 'units', 'categories', 'suppliers', 'locations'));
     }

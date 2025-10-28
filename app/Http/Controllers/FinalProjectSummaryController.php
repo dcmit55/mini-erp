@@ -18,7 +18,7 @@ class FinalProjectSummaryController extends Controller
 
     public function index(Request $request)
     {
-        $query = Project::query();
+        $query = Project::query()->latest();
 
         // Filter department
         $departments = Department::orderBy('name')->pluck('name', 'id');

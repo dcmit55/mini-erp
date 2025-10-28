@@ -31,7 +31,7 @@ class GoodsInController extends Controller
 
     public function index(Request $request)
     {
-        $query = GoodsIn::with(['goodsOut.inventory', 'goodsOut.project', 'inventory', 'project']);
+        $query = GoodsIn::with(['goodsOut.inventory', 'goodsOut.project', 'inventory', 'project'])->latest();
 
         // Apply filters
         if ($request->has('material') && $request->material !== null) {

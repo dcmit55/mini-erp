@@ -75,6 +75,35 @@
                                     </a>
                                 </li>
 
+                                @php
+                                    if (!function_exists('isDropdownActive')) {
+                                        function isDropdownActive($prefixes)
+                                        {
+                                            foreach ($prefixes as $prefix) {
+                                                if (request()->is($prefix)) {
+                                                    return true;
+                                                }
+                                            }
+                                            return false;
+                                        }
+                                    }
+
+                                    $logisticsPrefixes = [
+                                        'inventory*',
+                                        'material_requests*',
+                                        'goods_out*',
+                                        'goods_in*',
+                                        'material_usage*',
+                                    ];
+                                    $procurementPrefixes = [
+                                        'suppliers*',
+                                        'purchase_requests*',
+                                        'pre-shippings*',
+                                        'shipping-management*',
+                                        'goods-receive*',
+                                    ];
+                                @endphp
+
                                 <!-- Logistics Dropdown -->
                                 @if (in_array(auth()->user()->role, [
                                         'super_admin',
@@ -89,7 +118,7 @@
                                         'general',
                                     ]))
                                     <li class="nav-item dropdown">
-                                        <a class="nav-link dropdown-toggle {{ request()->is('inventory*') || request()->is('material_requests*') || request()->is('goods_out*') || request()->is('goods_in*') || request()->is('material-usage*') ? 'active' : '' }}"
+                                        <a class="nav-link dropdown-toggle {{ isDropdownActive($logisticsPrefixes) ? 'active' : '' }}"
                                             href="#" id="logisticsDropdown" role="button"
                                             data-bs-toggle="dropdown" aria-expanded="false">
                                             <i class="fas fa-boxes"></i> Logistics
@@ -98,6 +127,10 @@
                                             <li><a class="dropdown-item {{ request()->is('inventory*') ? 'active' : '' }}"
                                                     href="{{ route('inventory.index') }}">
                                                     <i class="fas fa-warehouse"></i> Inventory Listing
+                                                </a></li>
+                                            <li><a class="dropdown-item {{ request()->is('suppliers*') ? 'active' : '' }}"
+                                                    href="{{ route('suppliers.index') }}">
+                                                    <i class="fas fa-truck"></i> Suppliers
                                                 </a></li>
                                             <li><a class="dropdown-item {{ request()->is('material_requests*') ? 'active' : '' }}"
                                                     href="{{ route('material_requests.index') }}">
@@ -111,7 +144,7 @@
                                                     href="{{ route('goods_in.index') }}">
                                                     <i class="fas fa-dolly"></i> Goods In
                                                 </a></li>
-                                            <li><a class="dropdown-item {{ request()->is('material-usage*') ? 'active' : '' }}"
+                                            <li><a class="dropdown-item {{ request()->is('material_usage*') ? 'active' : '' }}"
                                                     href="{{ route('material_usage.index') }}">
                                                     <i class="fas fa-chart-line"></i> Material Usage
                                                 </a></li>
@@ -120,14 +153,27 @@
                                 @endif
 
                                 <!-- Procurement Dropdown -->
-                                @if (in_array(auth()->user()->role, ['super_admin', 'admin_procurement', 'admin_hr', 'admin', 'admin_logistic', 'admin_finance']))
+                                @if (in_array(auth()->user()->role, [
+                                        'super_admin',
+                                        'admin_procurement',
+                                        'admin_hr',
+                                        'admin',
+                                        'admin_logistic',
+                                        'admin_finance',
+                                    ]))
                                     <li class="nav-item dropdown">
-                                        <a class="nav-link dropdown-toggle {{ request()->is('purchase_requests*') ? 'active' : '' }}"
+                                        <a class="nav-link dropdown-toggle {{ isDropdownActive($procurementPrefixes) ? 'active' : '' }}"
                                             href="#" id="procurementDropdown" role="button"
                                             data-bs-toggle="dropdown" aria-expanded="false">
                                             <i class="fas fa-shopping-cart"></i> Procurement
                                         </a>
                                         <ul class="dropdown-menu" aria-labelledby="procurementDropdown">
+                                            <li>
+                                                <a class="dropdown-item {{ request()->is('suppliers*') ? 'active' : '' }}"
+                                                    href="{{ route('suppliers.index') }}">
+                                                    <i class="fas fa-truck"></i> Suppliers
+                                                </a>
+                                            </li>
                                             <li>
                                                 <a class="dropdown-item {{ request()->is('purchase_requests*') ? 'active' : '' }}"
                                                     href="{{ route('purchase_requests.index') }}">
@@ -170,7 +216,7 @@
                                         'general',
                                     ]))
                                     <li class="nav-item dropdown">
-                                        <a class="nav-link dropdown-toggle {{ request()->is('projects*') || request()->is('timings*') || request()->is('employees/*/timing*') ? 'active' : '' }}"
+                                        <a class="nav-link dropdown-toggle {{ request()->is('projects*') || request()->is('timings*') || request()->is('employees/*/timing*') || request()->is('material-planning*') ? 'active' : '' }}"
                                             href="#" id="productionsDropdown" role="button"
                                             data-bs-toggle="dropdown" aria-expanded="false">
                                             <i class="fas fa-cogs"></i> Productions
@@ -260,7 +306,7 @@
                                     </li>
                                 @endguest
 
-                                <!-- Admin Dropdown (Tanpa Employee & Leave Request) -->
+                                <!-- Admin Dropdown -->
                                 @if (in_array(auth()->user()->role, ['super_admin', 'admin']))
                                     <li class="nav-item dropdown">
                                         <a class="nav-link dropdown-toggle {{ request()->is('users*') || request()->routeIs('trash.index') || request()->is('audit*') ? 'active' : '' }}"

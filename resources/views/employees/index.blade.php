@@ -534,7 +534,7 @@
                     }
                 ],
                 order: [
-                    [2, 'asc']
+                    []
                 ], // Sort by name
                 responsive: true,
                 stateSave: false,

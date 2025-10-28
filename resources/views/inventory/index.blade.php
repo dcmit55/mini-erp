@@ -379,7 +379,7 @@
                     }
                 ],
                 order: [
-                    [8, 'desc']
+                    []
                 ],
                 pageLength: 15,
                 lengthMenu: [
