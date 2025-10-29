@@ -127,6 +127,9 @@ class PurchaseRequestController extends Controller
                     $data['stock_level'] = $inventory->quantity;
                 }
 
+                // Auto-fill qty_to_buy with required_quantity
+                $data['qty_to_buy'] = $data['required_quantity'] ?? null;
+
                 // Handle image upload if present
                 if (isset($request->file('requests')[$key]['img'])) {
                     $file = $request->file('requests')[$key]['img'];
@@ -135,6 +138,7 @@ class PurchaseRequestController extends Controller
 
                 // Add the user ID
                 $data['requested_by'] = Auth::id();
+
                 $data['approval_status'] = 'Pending'; // Set default status
 
                 // Create the purchase request
@@ -240,11 +244,14 @@ class PurchaseRequestController extends Controller
         }
 
         $request->validate([
+            'material_name' => 'nullable|string|max:255',
+            'qty_to_buy' => 'nullable|numeric|min:0',
             'supplier_id' => 'nullable|exists:suppliers,id',
             'price_per_unit' => 'nullable|numeric|min:0',
             'currency_id' => 'nullable|exists:currencies,id',
             'approval_status' => 'nullable|in:Pending,Approved,Decline',
             'delivery_date' => 'nullable|date',
+            'remark' => 'nullable|string|max:1000',
         ]);
 
         // Cek supplier ada
@@ -264,7 +271,13 @@ class PurchaseRequestController extends Controller
         }
 
         $purchaseRequest = PurchaseRequest::findOrFail($id);
-        $purchaseRequest->update($request->only(['supplier_id', 'price_per_unit', 'currency_id', 'approval_status', 'delivery_date']));
+
+        $data = $request->only(['qty_to_buy', 'supplier_id', 'price_per_unit', 'currency_id', 'approval_status', 'delivery_date', 'remark']);
+        if ($purchaseRequest->type === 'new_material' && $request->filled('material_name')) {
+            $data['material_name'] = $request->material_name;
+        }
+        $purchaseRequest->update($data);
+
         return response()->json(['success' => true]);
     }
 
@@ -302,7 +315,7 @@ class PurchaseRequestController extends Controller
                 'material_name' => $planning->material_name,
                 'project_id' => $planning->project_id,
                 'required_quantity' => $planning->qty_needed,
-                'unit' => optional($planning->unit)->name ?? 'pcs',
+                'unit' => optional($planning->unit)->name ?? '-',
                 'requested_by' => $user->id, // Gunakan user ID, bukan planning->requested_by
                 'remark' => 'Imported from Material Planning',
                 'type' => $inventoryId ? 'restock' : 'new_material',

@@ -201,7 +201,7 @@
                                 <th>Type</th>
                                 <th>Material Name</th>
                                 <th>Required Qty</th>
-                                <th>Project</th>
+                                <th>Qty to Buy</th>
                                 <th>Supplier</th>
                                 @if ($canViewUnitPrice)
                                     <th>Unit Price</th>
@@ -212,9 +212,10 @@
                                     <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top"
                                         title="Delivery date to forwarder"></i>
                                 </th>
+                                <th>Project</th>
                                 <th>Requested By</th>
-                                <th>Requested At</th>
                                 <th>Remark</th>
+                                <th>Requested At</th>
                                 <th width="150">Actions</th>
                             </tr>
                         </thead>
@@ -223,8 +224,9 @@
                                 <tr data-id="{{ $req->id }}">
                                     <td class="text-center">{{ $loop->iteration }}</td>
                                     <td>{{ ucfirst(str_replace('_', ' ', $req->type)) }}</td>
-                                    <td>
-                                        <div>
+                                    <td class="material-name-cell" data-value="{{ $req->material_name }}"
+                                        data-type="{{ $req->type }}" style="cursor: pointer;">
+                                        <div class="d-flex align-items-center gap-1">
                                             @if ($req->stock_level !== null)
                                                 <i class="bi bi-info-circle text-secondary" style="cursor: pointer;"
                                                     data-bs-toggle="tooltip" data-bs-placement="bottom"
@@ -239,7 +241,11 @@
                                             {{ number_format($req->required_quantity, 2) }}
                                         </span>
                                     </td>
-                                    <td>{{ $req->project->name ?? '-' }}</td>
+                                    <td>
+                                        <input type="number" min="0" step="0.01"
+                                            class="form-control form-control-sm qty-to-buy-input"
+                                            value="{{ $req->qty_to_buy ?? '' }}" data-id="{{ $req->id }}">
+                                    </td>
                                     <td>
                                         @if ($canViewUnitPrice)
                                             <select class="form-select form-select-sm supplier-select"
@@ -303,28 +309,25 @@
                                             {{ $req->delivery_date ? $req->delivery_date->format('d M Y') : '-' }}
                                         @endif
                                     </td>
+                                    <td>{{ $req->project->name ?? '-' }}</td>
                                     <td>{{ $req->user->username ?? '-' }}</td>
+                                    <td class="remark-cell" data-value="{{ $req->remark }}">
+                                        @php
+                                            $isUrl = $req->remark && filter_var($req->remark, FILTER_VALIDATE_URL);
+                                        @endphp
+                                        @if ($isUrl)
+                                            <a href="{{ $req->remark }}" target="_blank" rel="noopener noreferrer">
+                                                {{ \Illuminate\Support\Str::limit($req->remark, 30) }}
+                                            </a>
+                                        @else
+                                            {{ $req->remark ? \Illuminate\Support\Str::limit($req->remark, 30) : '-' }}
+                                        @endif
+                                    </td>
                                     <td>
                                         <span data-bs-toggle="tooltip" data-bs-placement="bottom"
                                             title="{{ $req->created_at ? $req->created_at->format('l, d F Y H:i:s') : '' }}"
                                             data-order="{{ $req->created_at ? $req->created_at->timestamp : 0 }}">
                                             {{ $req->created_at ? $req->created_at->format('d M Y') : '-' }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        @php
-                                            $remark = $req->remark;
-                                            $isUrl = $remark && filter_var($remark, FILTER_VALIDATE_URL);
-                                        @endphp
-                                        <span data-bs-toggle="tooltip" data-bs-placement="bottom"
-                                            title="{{ $remark ?? 'No remark' }}">
-                                            @if ($isUrl)
-                                                <a href="{{ $remark }}" target="_blank" rel="noopener noreferrer">
-                                                    {{ \Illuminate\Support\Str::limit($remark, 30) }}
-                                                </a>
-                                            @else
-                                                {{ $remark ? \Illuminate\Support\Str::limit($remark, 30) : '-' }}
-                                            @endif
                                         </span>
                                     </td>
                                     <td class="text-center">
@@ -570,6 +573,25 @@
                 });
             }
 
+            $(document).on('change', '.qty-to-buy-input', function() {
+                let id = $(this).data('id');
+                $.ajax({
+                    url: '/purchase_requests/' + id + '/quick-update',
+                    method: 'POST',
+                    data: {
+                        qty_to_buy: $(this).val(),
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function(response) {
+                        // Optional: show success toast
+                    },
+                    error: function(xhr) {
+                        Swal.fire('Error', xhr.responseJSON?.message || 'Failed to update',
+                            'error');
+                    }
+                });
+            });
+
             // Event handlers for inline editing
             $(document).on('change', '.supplier-select', function() {
                 let id = $(this).data('id');
@@ -605,6 +627,128 @@
                     delivery_date: $(this).val()
                 });
             });
+
+            // Double click to edit material name
+            $(document).on('dblclick', '.material-name-cell', function() {
+                const $cell = $(this);
+                const id = $cell.closest('tr').data('id');
+                const type = $cell.data('type');
+                const currentValue = $cell.data('value') || $cell.text().trim();
+
+                // Hanya untuk type new_material
+                if (type !== 'new_material') return;
+
+                // Prevent duplicate input
+                if ($cell.find('input').length) return;
+
+                $cell.html(`
+                    <input type="text" class="form-control form-control-sm material-name-edit-input"
+                        data-id="${id}" style="width:100%;" value="${currentValue}">
+                `);
+                $cell.find('input').focus();
+            });
+
+            $(document).on('blur', '.material-name-edit-input', function() {
+                saveMaterialNameInline($(this));
+            });
+            $(document).on('keydown', '.material-name-edit-input', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    $(this).blur();
+                }
+            });
+
+            function saveMaterialNameInline($input) {
+                const id = $input.data('id');
+                const newValue = $input.val();
+                const $cell = $input.closest('.material-name-cell');
+
+                $.ajax({
+                    url: '/purchase_requests/' + id + '/quick-update',
+                    method: 'POST',
+                    data: {
+                        material_name: newValue,
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function() {
+                        $cell.html(`
+                <div class="d-flex align-items-center gap-1">
+                    ${$cell.data('type') === 'new_material' && $cell.data('stock_level') !== null ?
+                        `<i class="bi bi-info-circle text-secondary" style="cursor: pointer;"
+                                    data-bs-toggle="tooltip" data-bs-placement="bottom"
+                                    title="Current stock: ${$cell.data('stock_level')}"></i>` : ''}
+                    ${newValue}
+                </div>
+            `);
+                        $cell.data('value', newValue);
+                        $('[data-bs-toggle="tooltip"]').tooltip();
+                    },
+                    error: function(xhr) {
+                        Swal.fire('Error', xhr.responseJSON?.message ||
+                            'Failed to update material name', 'error');
+                        $cell.text($cell.data('value') || '-');
+                    }
+                });
+            }
+
+            // Double click to edit remark
+            $(document).on('dblclick', '.remark-cell', function() {
+                const $cell = $(this);
+                const id = $cell.closest('tr').data('id');
+                const currentValue = $cell.data('value') || $cell.text().trim();
+
+                // Prevent duplicate input
+                if ($cell.find('input').length) return;
+
+                // Replace cell content with input
+                $cell.html(`
+                    <textarea class="form-control form-control-sm remark-edit-input"
+                        data-id="${id}" style="min-width:120px;">${currentValue}</textarea>
+                `);
+                $cell.find('textarea').focus();
+            });
+
+            // Save remark on blur or Enter
+            $(document).on('blur', '.remark-edit-input', function() {
+                saveRemarkInline($(this));
+            });
+            $(document).on('keydown', '.remark-edit-input', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    $(this).blur();
+                }
+            });
+
+            function saveRemarkInline($input) {
+                const id = $input.data('id');
+                const newValue = $input.val();
+                const $cell = $input.closest('.remark-cell');
+
+                $.ajax({
+                    url: '/purchase_requests/' + id + '/quick-update',
+                    method: 'POST',
+                    data: {
+                        remark: newValue,
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function() {
+                        // If remark is a URL, render as clickable link
+                        if (newValue && /^https?:\/\/\S+$/i.test(newValue)) {
+                            $cell.html(
+                                `<a href="${newValue}" target="_blank" rel="noopener noreferrer">${newValue}</a>`
+                            );
+                        } else {
+                            $cell.text(newValue || '-');
+                        }
+                        $cell.data('value', newValue);
+                    },
+                    error: function(xhr) {
+                        Swal.fire('Error', xhr.responseJSON?.message || 'Failed to update remark',
+                            'error');
+                        $cell.text($cell.data('value') || '-');
+                    }
+                });
+            }
 
             // Delete functionality
             $(document).on('click', '.btn-delete', function() {
