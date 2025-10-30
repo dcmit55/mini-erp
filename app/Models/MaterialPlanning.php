@@ -4,12 +4,19 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
-class MaterialPlanning extends Model
+class MaterialPlanning extends Model implements AuditableContract
 {
+    use \OwenIt\Auditing\Auditable;
+
     protected $guarded = [];
 
     protected $dates = ['created_at', 'updated_at', 'eta_date'];
+
+    protected $auditInclude = ['project_id', 'order_type', 'material_name', 'qty_needed', 'unit_id', 'eta_date'];
+
+    protected $auditTimestamps = true;
 
     public function project()
     {

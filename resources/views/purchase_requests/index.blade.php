@@ -225,7 +225,7 @@
                                     <td class="text-center">{{ $loop->iteration }}</td>
                                     <td>{{ ucfirst(str_replace('_', ' ', $req->type)) }}</td>
                                     <td class="material-name-cell" data-value="{{ $req->material_name }}"
-                                        data-type="{{ $req->type }}" style="cursor: pointer;">
+                                        data-type="{{ $req->type }}">
                                         <div class="d-flex align-items-center gap-1">
                                             @if ($req->stock_level !== null)
                                                 <i class="bi bi-info-circle text-secondary" style="cursor: pointer;"

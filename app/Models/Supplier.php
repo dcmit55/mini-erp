@@ -20,6 +20,10 @@ class Supplier extends Model implements Auditable
 
     protected $appends = ['status_badge', 'formatted_referral_link'];
 
+    protected $auditInclude = ['supplier_code', 'name', 'contact_person', 'address', 'location_id', 'referral_link', 'lead_time_days', 'status', 'remark'];
+
+    protected $auditTimestamps = true;
+
     /**
      * Relasi ke LocationSupplier
      */

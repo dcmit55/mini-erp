@@ -5,16 +5,17 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
-class Currency extends Model
+class Currency extends Model implements AuditableContract
 {
-    use SoftDeletes;
-    use HasFactory;
+    use SoftDeletes, HasFactory, \OwenIt\Auditing\Auditable;
 
-    protected $fillable = [
-        'name',
-        'exchange_rate',
-    ];
+    protected $fillable = ['name', 'exchange_rate'];
+
+    protected $auditInclude = ['name', 'exchange_rate'];
+
+    protected $auditTimestamps = true;
 
     public function inventories()
     {

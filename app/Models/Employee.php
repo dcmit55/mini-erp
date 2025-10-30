@@ -8,12 +8,14 @@ use App\Models\Timing;
 use App\Models\EmployeeDocument;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
-class Employee extends Model
+class Employee extends Model implements AuditableContract
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, \OwenIt\Auditing\Auditable;
 
     protected $fillable = ['employee_no', 'name', 'employment_type', 'photo', 'position', 'department_id', 'email', 'phone', 'address', 'gender', 'ktp_id', 'place_of_birth', 'date_of_birth', 'rekening', 'hire_date', 'contract_end_date', 'salary', 'saldo_cuti', 'status', 'notes'];
+
     protected $casts = [
         'hire_date' => 'date',
         'contract_end_date' => 'date',
@@ -21,6 +23,10 @@ class Employee extends Model
         'salary' => 'decimal:2',
         'saldo_cuti' => 'decimal:2',
     ];
+
+    protected $auditInclude = ['employee_no', 'name', 'employment_type', 'position', 'department_id', 'email', 'phone', 'address', 'gender', 'ktp_id', 'place_of_birth', 'date_of_birth', 'rekening', 'hire_date', 'contract_end_date', 'salary', 'saldo_cuti', 'status'];
+
+    protected $auditTimestamps = true;
 
     protected static function boot()
     {

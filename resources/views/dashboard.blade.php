@@ -241,7 +241,7 @@
 
         <!-- Activity and Insights -->
         <div class="row g-4 mb-4">
-            <!-- Recent Material Requests -->
+            <!-- Recent Material Requests Section -->
             <div class="col-xl-6">
                 <div class="card border-0 shadow-sm h-100">
                     <div class="card-header bg-transparent border-0 py-3">
@@ -295,7 +295,7 @@
                     <div class="card border-0 shadow-sm h-100">
                         <div class="card-header bg-transparent border-0 py-3">
                             <div class="d-flex align-items-center justify-content-between flex-wrap low-stock-header">
-                                <h5 class="card-title mb-0 fw-bold text-danger">
+                                <h5 class="card-title mb-0 fw-bold">
                                     Low Stock Items
                                     <span class="badge bg-danger"
                                         id="lowStockCount">{{ $veryLowStockItems->count() }}</span>
@@ -325,7 +325,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="card-body p-0" style="max-height: 370px; overflow-y: auto;">
+                        <div class="card-body p-0" style="max-height: 400px; overflow-y: auto;">
                             <div id="lowStockListGroup" class="list-group list-group-flush">
                                 @foreach ($veryLowStockItems as $item)
                                     <div
@@ -349,7 +349,7 @@
                                                 <div class="small text-muted">
                                                     <span class="me-2"><i class="fas fa-tag"></i>
                                                         {{ $item->category->name ?? 'Uncategorized' }}</span>
-                                                    <span class="me-2"><i class="fas fa-user"></i>
+                                                    <span class="me-2"><i class="fas fa-truck"></i>
                                                         {{ $item->supplier->name ?? '-' }}</span>
                                                     <span class="me-2"><i class="fas fa-exclamation-circle"></i> Stok:
                                                         {{ $item->quantity }} {{ $item->unit ?? '-' }}</span>
@@ -601,6 +601,11 @@
             background: linear-gradient(45deg, #7A0FE8, #3D1F8F);
             border-color: #7A0FE8;
             box-shadow: 0 4px 15px rgba(143, 18, 254, 0.3);
+        }
+
+        .card {
+            border-radius: 12px !important;
+            overflow: hidden !important;
         }
 
         .card-hover {
@@ -986,7 +991,7 @@
             }
 
             updateClock();
-            setInterval(updateClock, 10000);
+            setInterval(updateClock, 1000);
         }
 
         function initializeDepartmentCards() {

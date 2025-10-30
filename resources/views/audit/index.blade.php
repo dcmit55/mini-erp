@@ -30,7 +30,14 @@
                             <option value="App\Models\GoodsOut">Goods Out</option>
                             <option value="App\Models\GoodsIn">Goods In</option>
                             <option value="App\Models\Project">Project</option>
+                            <option value="App\Models\ProjectPart">Project Part</option>
                             <option value="App\Models\User">User</option>
+                            <option value="App\Models\Employee">Employee</option>
+                            <option value="App\Models\Currency">Currency</option>
+                            <option value="App\Models\PurchaseRequest">Purchase Request</option>
+                            <option value="App\Models\MaterialPlanning">Material Planning</option>
+                            <option value="App\Models\Supplier">Supplier</option>
+                            <option value="App\Models\LeaveRequest">Leave Request</option>
                         </select>
                     </div>
                     <div class="col-md-2">
@@ -87,6 +94,22 @@
         </div>
     </div>
 @endsection
+
+@push('styles')
+    <style>
+        #changesModal table {
+            table-layout: fixed;
+            width: 100%;
+        }
+
+        #changesModal td {
+            word-break: break-all;
+            white-space: pre-line;
+            max-width: 250px;
+            vertical-align: top;
+        }
+    </style>
+@endpush
 
 @push('scripts')
     <script>
@@ -163,10 +186,19 @@
 
             $.get(`{{ url('audit/changes') }}/${auditId}`)
                 .done(function(data) {
+                    // Map warna badge sesuai event
+                    const eventBadgeClasses = {
+                        created: 'bg-success',
+                        updated: 'bg-warning',
+                        deleted: 'bg-danger',
+                        restored: 'bg-info'
+                    };
+                    const badgeClass = eventBadgeClasses[data.event] || 'bg-secondary';
+
                     let html = `
                         <div class="mb-3">
                             <strong>Model:</strong> ${data.model}<br>
-                            <strong>Event:</strong> <span class="badge bg-primary">${data.event}</span><br>
+                            <strong>Event:</strong> <span class="badge ${badgeClass}">${data.event}</span><br>
                             <strong>Date:</strong> ${data.created_at}
                         </div>
                     `;
@@ -182,6 +214,9 @@
                     } else if (data.event === 'deleted') {
                         html += '<h6>Deleted Values:</h6>';
                         html += formatValues(data.old_values);
+                    } else if (data.event === 'restored') {
+                        html += '<h6>Restored Values:</h6>';
+                        html += formatValues(data.new_values);
                     }
 
                     $('#changesContent').html(html);

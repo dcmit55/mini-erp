@@ -35,7 +35,6 @@ class AuditController extends Controller
     {
         $query = Audit::with(['user'])->latest();
 
-        // Apply filters
         if ($request->filled('event')) {
             $query->where('event', $request->event);
         }
@@ -90,26 +89,100 @@ class AuditController extends Controller
             return '-';
         }
 
-        $html =
-            '<button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#changesModal" onclick="showChanges(' .
+        return '<button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#changesModal" onclick="showChanges(' .
             $audit->id .
             ')">
                     <i class="bi bi-eye"></i> View Changes
                 </button>';
-
-        return $html;
     }
 
     public function getChanges($id)
     {
         $audit = Audit::findOrFail($id);
 
+        // Format foreign keys dengan nama
+        $oldValues = $audit->old_values;
+        $newValues = $audit->new_values;
+
+        $modelType = class_basename($audit->auditable_type);
+
+        // Map foreign keys ke nama untuk berbagai model
+        $this->formatForeignKeys($modelType, $oldValues, $newValues);
+
         return response()->json([
-            'old_values' => $audit->old_values,
-            'new_values' => $audit->new_values,
+            'old_values' => $oldValues,
+            'new_values' => $newValues,
             'event' => $audit->event,
-            'model' => class_basename($audit->auditable_type),
+            'model' => $modelType,
             'created_at' => $audit->created_at->format('d M Y, H:i:s'),
         ]);
+    }
+
+    private function formatForeignKeys($modelType, &$oldValues, &$newValues)
+    {
+        $foreignKeyMappings = [
+            'Employee' => [
+                'department_id' => ['model' => \App\Models\Department::class, 'field' => 'name'],
+            ],
+            'User' => [
+                'department_id' => ['model' => \App\Models\Department::class, 'field' => 'name'],
+            ],
+            'PurchaseRequest' => [
+                'inventory_id' => ['model' => \App\Models\Inventory::class, 'field' => 'name'],
+                'project_id' => ['model' => \App\Models\Project::class, 'field' => 'name'],
+                'supplier_id' => ['model' => \App\Models\Supplier::class, 'field' => 'name'],
+                'currency_id' => ['model' => \App\Models\Currency::class, 'field' => 'name'],
+                'requested_by' => ['model' => \App\Models\User::class, 'field' => 'username'],
+            ],
+            'MaterialPlanning' => [
+                'project_id' => ['model' => \App\Models\Project::class, 'field' => 'name'],
+                'unit_id' => ['model' => \App\Models\Unit::class, 'field' => 'name'],
+                'requested_by' => ['model' => \App\Models\User::class, 'field' => 'username'],
+            ],
+            'Supplier' => [
+                'location_id' => ['model' => \App\Models\LocationSupplier::class, 'field' => 'name'],
+            ],
+            'LeaveRequest' => [
+                'employee_id' => ['model' => \App\Models\Employee::class, 'field' => 'name'],
+            ],
+            'ProjectPart' => [
+                'project_id' => ['model' => \App\Models\Project::class, 'field' => 'name'],
+            ],
+        ];
+
+        if (!isset($foreignKeyMappings[$modelType])) {
+            return;
+        }
+
+        foreach ($foreignKeyMappings[$modelType] as $fieldName => $mapping) {
+            $this->replaceForeignKeyValue($oldValues, $fieldName, $mapping);
+            $this->replaceForeignKeyValue($newValues, $fieldName, $mapping);
+        }
+    }
+
+    private function replaceForeignKeyValue(&$values, $fieldName, $mapping)
+    {
+        if (!isset($values[$fieldName])) {
+            return;
+        }
+
+        $id = $values[$fieldName];
+        if (empty($id)) {
+            return;
+        }
+
+        try {
+            $modelClass = $mapping['model'];
+            $fieldToGet = $mapping['field'];
+
+            $record = $modelClass::find($id);
+            if ($record) {
+                $values[$fieldName] = "{$record->{$fieldToGet}} (ID: {$id})";
+            } else {
+                $values[$fieldName] = "(ID: {$id}) - [Deleted]";
+            }
+        } catch (\Exception $e) {
+            // Jika error, biarkan nilai asli
+        }
     }
 }

@@ -11,7 +11,7 @@ class Project extends Model implements Auditable
 {
     use HasFactory, SoftDeletes, \OwenIt\Auditing\Auditable;
 
-    protected $auditInclude = ['name', 'description', 'status'];
+    protected $auditInclude = ['name', 'qty', 'department_id', 'project_status_id', 'start_date', 'deadline', 'finish_date', 'img', 'created_by'];
 
     protected $auditTimestamps = true;
 

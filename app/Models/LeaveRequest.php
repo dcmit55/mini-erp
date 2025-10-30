@@ -1,10 +1,14 @@
 <?php
 
 namespace App\Models;
-use Illuminate\Database\Eloquent\Model;
 
-class LeaveRequest extends Model
+use Illuminate\Database\Eloquent\Model;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+
+class LeaveRequest extends Model implements AuditableContract
 {
+    use \OwenIt\Auditing\Auditable;
+
     protected $fillable = ['employee_id', 'start_date', 'end_date', 'duration', 'type', 'reason', 'approval_1', 'approval_2'];
 
     protected $casts = [
@@ -12,6 +16,10 @@ class LeaveRequest extends Model
         'end_date' => 'date',
         'duration' => 'decimal:2',
     ];
+
+    protected $auditInclude = ['employee_id', 'start_date', 'end_date', 'duration', 'type', 'reason', 'approval_1', 'approval_2'];
+
+    protected $auditTimestamps = true;
 
     public function employee()
     {

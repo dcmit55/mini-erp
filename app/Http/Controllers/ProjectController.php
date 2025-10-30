@@ -218,19 +218,36 @@ class ProjectController extends Controller
 
         $project->update($validated);
 
-        // Update parts: hapus semua lalu simpan ulang
+        // Audit perubahan parts
+        $oldParts = $project->parts()->pluck('part_name')->toArray();
         $project->parts()->delete();
+        $newParts = [];
         if ($request->parts) {
             foreach ($request->parts as $part) {
                 if ($part) {
                     $project->parts()->create(['part_name' => $part]);
+                    $newParts[] = $part;
                 }
             }
         }
+        // Manual audit untuk perubahan parts
+        if ($oldParts !== $newParts) {
+            \OwenIt\Auditing\Models\Audit::create([
+                'user_id' => Auth::id(),
+                'auditable_type' => Project::class,
+                'auditable_id' => $project->id,
+                'event' => 'updated',
+                'old_values' => ['parts' => $oldParts],
+                'new_values' => ['parts' => $newParts],
+                'url' => url()->current(),
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+            ]);
+        }
 
-        // Tambahkan baris berikut agar redirect ke modul project
         return redirect()->route('projects.index')->with('success', 'Project updated successfully!');
     }
+    
     public function destroy(Project $project)
     {
         if (Auth::user()->isReadOnlyAdmin()) {

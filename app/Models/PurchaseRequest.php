@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
-class PurchaseRequest extends Model
+class PurchaseRequest extends Model implements AuditableContract
 {
-    use HasFactory;
+    use HasFactory, \OwenIt\Auditing\Auditable;
 
     protected $fillable = ['type', 'material_name', 'inventory_id', 'required_quantity', 'qty_to_buy', 'unit', 'stock_level', 'project_id', 'requested_by', 'supplier_id', 'price_per_unit', 'currency_id', 'approval_status', 'delivery_date', 'remark', 'img'];
 
@@ -20,6 +21,10 @@ class PurchaseRequest extends Model
     protected $attributes = [
         'approval_status' => 'Pending',
     ];
+
+    protected $auditInclude = ['type', 'material_name', 'inventory_id', 'required_quantity', 'qty_to_buy', 'supplier_id', 'price_per_unit', 'currency_id', 'approval_status', 'delivery_date', 'remark'];
+
+    protected $auditTimestamps = true;
 
     public function inventory()
     {

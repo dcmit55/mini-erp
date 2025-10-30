@@ -8,15 +8,20 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
-class User extends Authenticatable
+class User extends Authenticatable implements AuditableContract
 {
-    use HasApiTokens, SoftDeletes;
+    use HasApiTokens, SoftDeletes, \OwenIt\Auditing\Auditable;
     use HasFactory, Notifiable;
 
     protected $fillable = ['username', 'password', 'role', 'department_id'];
 
     protected $hidden = ['password', 'remember_token'];
+
+    protected $auditInclude = ['username', 'role', 'department_id'];
+
+    protected $auditTimestamps = true;
 
     public function isRole($role)
     {
@@ -34,7 +39,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user is read-only admin 
+     * Check if user is read-only admin
      */
     public function isReadOnlyAdmin()
     {
