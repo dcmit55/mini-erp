@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Oct 29, 2025 at 02:26 AM
+-- Generation Time: Oct 30, 2025 at 02:31 AM
 -- Server version: 8.0.30
 -- PHP Version: 8.3.26
 
@@ -165,14 +165,29 @@ INSERT INTO `audits` (`id`, `user_type`, `user_id`, `event`, `auditable_type`, `
 (118, 'App\\Models\\User', 1, 'created', 'App\\Models\\Supplier', 33, '[]', '{\"supplier_code\":\"SUP3344\",\"name\":\"dcm12\",\"contact_person\":\"09947833\",\"address\":\"tetgass\",\"location_id\":\"1\",\"referral_link\":\"https:\\/\\/example.com\\/ref\\/abc112\",\"lead_time_days\":\"2\",\"status\":\"active\",\"remark\":null,\"id\":33}', 'https://inventory-system-v2-upg-larv.test/suppliers', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-28 02:50:42', '2025-10-28 02:50:42'),
 (119, 'App\\Models\\User', 1, 'created', 'App\\Models\\Supplier', 34, '[]', '{\"supplier_code\":\"SUP1745\",\"name\":\"test sup001\",\"contact_person\":\"N\\/A\",\"address\":\"N\\/A\",\"location_id\":1,\"referral_link\":\"http:\\/\\/example.com\",\"lead_time_days\":\"0\",\"status\":\"active\",\"remark\":null,\"id\":34}', 'https://inventory-system-v2-upg-larv.test/suppliers/quick-store', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-28 06:16:15', '2025-10-28 06:16:15');
 INSERT INTO `audits` (`id`, `user_type`, `user_id`, `event`, `auditable_type`, `auditable_id`, `old_values`, `new_values`, `url`, `ip_address`, `user_agent`, `tags`, `created_at`, `updated_at`) VALUES
-(120, 'App\\Models\\User', 1, 'deleted', 'App\\Models\\Supplier', 34, '{\"id\":34,\"supplier_code\":\"SUP1745\",\"name\":\"test sup001\",\"contact_person\":\"N\\/A\",\"address\":\"N\\/A\",\"referral_link\":\"http:\\/\\/example.com\",\"lead_time_days\":\"0\",\"status\":\"active\",\"remark\":null,\"location_id\":1}', '[]', 'https://inventory-system-v2-upg-larv.test/suppliers/34', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-28 06:22:59', '2025-10-28 06:22:59'),
 (121, 'App\\Models\\User', 1, 'created', 'App\\Models\\Supplier', 35, '[]', '{\"supplier_code\":null,\"name\":\"test supp09\",\"contact_person\":null,\"address\":null,\"location_id\":null,\"referral_link\":null,\"lead_time_days\":null,\"status\":\"active\",\"remark\":null,\"id\":35}', 'https://inventory-system-v2-upg-larv.test/suppliers/quick-store', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-28 06:23:20', '2025-10-28 06:23:20'),
 (122, 'App\\Models\\User', 1, 'created', 'App\\Models\\Supplier', 36, '[]', '{\"supplier_code\":\"SUP123\",\"name\":\"dcm87\",\"contact_person\":null,\"address\":null,\"location_id\":\"1\",\"referral_link\":null,\"lead_time_days\":\"8\",\"status\":\"active\",\"remark\":null,\"id\":36}', 'https://inventory-system-v2-upg-larv.test/suppliers', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-28 06:40:00', '2025-10-28 06:40:00'),
 (123, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Supplier', 36, '{\"supplier_code\":\"SUP123\"}', '{\"supplier_code\":\"SUP\"}', 'https://inventory-system-v2-upg-larv.test/suppliers/36', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-28 06:41:46', '2025-10-28 06:41:46'),
 (124, 'App\\Models\\User', 1, 'created', 'App\\Models\\Supplier', 39, '[]', '{\"supplier_code\":null,\"name\":\"test suplier990\",\"contact_person\":null,\"address\":null,\"location_id\":\"1\",\"referral_link\":null,\"lead_time_days\":\"7\",\"status\":\"active\",\"remark\":null,\"id\":39}', 'https://inventory-system-v2-upg-larv.test/suppliers', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-28 06:47:55', '2025-10-28 06:47:55'),
 (125, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Supplier', 36, '{\"supplier_code\":\"SUP\"}', '{\"supplier_code\":null}', 'https://inventory-system-v2-upg-larv.test/suppliers/36', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-28 06:48:03', '2025-10-28 06:48:03'),
 (126, 'App\\Models\\User', 1, 'updated', 'App\\Models\\MaterialRequest', 532, '{\"remark\":\"test\"}', '{\"remark\":\"testtt\"}', 'https://inventory-system-v2-upg-larv.test/material_requests/532', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-28 08:31:10', '2025-10-28 08:31:10'),
-(127, 'App\\Models\\User', 3, 'updated', 'App\\Models\\MaterialRequest', 526, '{\"remark\":null}', '{\"remark\":\"test\"}', 'https://inventory-system-v2-upg-larv.test/material_requests/526', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-28 08:58:35', '2025-10-28 08:58:35');
+(127, 'App\\Models\\User', 3, 'updated', 'App\\Models\\MaterialRequest', 526, '{\"remark\":null}', '{\"remark\":\"test\"}', 'https://inventory-system-v2-upg-larv.test/material_requests/526', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-28 08:58:35', '2025-10-28 08:58:35'),
+(129, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Project', 253, '[]', '[]', 'https://inventory-system-v2-upg-larv.test/projects/253', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-29 04:32:55', '2025-10-29 04:32:55'),
+(130, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Project', 234, '[]', '[]', 'https://inventory-system-v2-upg-larv.test/projects/234', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-29 04:33:54', '2025-10-29 04:33:54'),
+(131, 'App\\Models\\User', 1, 'restored', 'App\\Models\\Inventory', 121, '[]', '{\"name\":\"dfdfv2\",\"quantity\":\"3.00\",\"price\":\"221.00\",\"currency_id\":1,\"supplier_id\":7,\"location_id\":14,\"category_id\":1}', 'https://inventory-system-v2-upg-larv.test/trash/restore', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-29 04:37:42', '2025-10-29 04:37:42'),
+(132, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Project', 234, '{\"qty\":3,\"department_id\":17,\"project_status_id\":1,\"img\":null,\"start_date\":null,\"deadline\":\"2025-10-30\",\"finish_date\":null}', '{\"qty\":\"4\",\"department_id\":\"4\",\"project_status_id\":\"2\",\"img\":\"projects\\/HPb2GHkCEiC4YyxMqa8i7CC3kx9gtQv8Xk7ovxUA.jpg\",\"start_date\":\"2025-10-28\",\"deadline\":\"2025-10-31\",\"finish_date\":\"2025-11-08\"}', 'https://inventory-system-v2-upg-larv.test/projects/234', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-29 08:54:25', '2025-10-29 08:54:25'),
+(133, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Project', 234, '{\"img\":\"projects\\/HPb2GHkCEiC4YyxMqa8i7CC3kx9gtQv8Xk7ovxUA.jpg\"}', '{\"img\":\"projects\\/3yLbqOe34UKrhbJCC7Zv04Hq0EfzScTMeibcfVdz.jpg\"}', 'https://inventory-system-v2-upg-larv.test/projects/234', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-29 08:56:30', '2025-10-29 08:56:30'),
+(134, 'App\\Models\\User', 1, 'created', 'App\\Models\\ProjectPart', 14, '[]', '{\"part_name\":\"tangan\",\"project_id\":234,\"id\":14}', 'https://inventory-system-v2-upg-larv.test/projects/234', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-29 08:56:30', '2025-10-29 08:56:30'),
+(135, 'App\\Models\\User', 1, 'created', 'App\\Models\\ProjectPart', 15, '[]', '{\"part_name\":\"Kaki\",\"project_id\":234,\"id\":15}', 'https://inventory-system-v2-upg-larv.test/projects/234', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-29 08:56:30', '2025-10-29 08:56:30'),
+(136, NULL, 1, 'updated', 'App\\Models\\Project', 234, '{\"parts\":[\"tangan\"]}', '{\"parts\":[\"tangan\",\"Kaki\"]}', 'https://inventory-system-v2-upg-larv.test/projects/234', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-29 08:56:30', '2025-10-29 08:56:30'),
+(137, 'App\\Models\\User', 1, 'created', 'App\\Models\\Project', 255, '[]', '{\"name\":\"test audit\",\"qty\":\"2\",\"img\":\"projects\\/Cxuem5n38OgdjVhcPsq3GqEFzv2erOqH60399F6A.png\",\"start_date\":\"2025-10-28\",\"deadline\":\"2025-10-31\",\"finish_date\":\"2025-11-05\",\"department_id\":\"4\",\"project_status_id\":\"2\",\"created_by\":\"logitech\"}', 'https://inventory-system-v2-upg-larv.test/projects', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-29 09:28:01', '2025-10-29 09:28:01'),
+(138, 'App\\Models\\User', 1, 'created', 'App\\Models\\ProjectPart', 16, '[]', '{\"part_name\":\"Baju\",\"project_id\":255,\"id\":16}', 'https://inventory-system-v2-upg-larv.test/projects', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-29 09:28:02', '2025-10-29 09:28:02'),
+(139, 'App\\Models\\User', 1, 'created', 'App\\Models\\ProjectPart', 17, '[]', '{\"part_name\":\"Celana\",\"project_id\":255,\"id\":17}', 'https://inventory-system-v2-upg-larv.test/projects', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-29 09:28:02', '2025-10-29 09:28:02'),
+(140, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Project', 235, '{\"start_date\":null,\"deadline\":\"2025-10-25\"}', '{\"start_date\":\"2025-10-15\",\"deadline\":\"2025-11-01\"}', 'https://inventory-system-v2-upg-larv.test/projects/235', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-29 09:33:11', '2025-10-29 09:33:11'),
+(141, 'App\\Models\\User', 1, 'created', 'App\\Models\\ProjectPart', 18, '[]', '{\"part_name\":\"test part\",\"project_id\":235,\"id\":18}', 'https://inventory-system-v2-upg-larv.test/projects/235', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-29 09:33:11', '2025-10-29 09:33:11'),
+(142, 'App\\Models\\User', 1, 'created', 'App\\Models\\ProjectPart', 19, '[]', '{\"part_name\":\"test part2\",\"project_id\":235,\"id\":19}', 'https://inventory-system-v2-upg-larv.test/projects/235', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-29 09:33:11', '2025-10-29 09:33:11'),
+(143, NULL, 1, 'updated', 'App\\Models\\Project', 235, '{\"parts\":[]}', '{\"parts\":[\"test part\",\"test part2\"]}', 'https://inventory-system-v2-upg-larv.test/projects/235', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-29 09:33:11', '2025-10-29 09:33:11'),
+(144, 'App\\Models\\User', 1, 'restored', 'App\\Models\\Project', 81, '[]', '{\"created_by\":\"logitech\",\"name\":\"test lliuy\",\"qty\":1,\"department_id\":13,\"project_status_id\":null,\"img\":null,\"start_date\":null,\"deadline\":null,\"finish_date\":null}', 'https://inventory-system-v2-upg-larv.test/trash/restore', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-30 01:42:54', '2025-10-30 01:42:54');
 
 -- --------------------------------------------------------
 
@@ -863,7 +878,7 @@ INSERT INTO `inventories` (`id`, `name`, `quantity`, `unit`, `price`, `unit_dome
 (118, 'sstty3', 23.00, 'km ', 2.00, NULL, NULL, 1, 5, 8, NULL, NULL, 'qrcodes/qr_684654814c85e.svg', NULL, '2025-06-09 03:26:57', '2025-06-09 03:26:57', NULL, NULL),
 (119, 'Kabel 1', 16.00, 'm', 32.00, NULL, NULL, 27, 6, 8, NULL, 'images/qcZ4QvOAYT6jR42NYeSwbEg0v743FOKOg9FIRHWR.jpg', 'qrcodes/qr_68465ce8af7e6.svg', NULL, '2025-06-09 04:02:48', '2025-06-09 04:05:22', 17, NULL),
 (120, 'dfdfv', 2.00, 'cm', 220.00, NULL, NULL, 1, 7, 8, NULL, 'inventory_images/iT55LEivHK5bq7V22s33BHpx6oToHXdwUzlOV1pu.jpg', 'qrcodes/qr_6849459ba1cc8.svg', NULL, '2025-06-09 07:55:49', '2025-06-11 09:00:11', 18, NULL),
-(121, 'dfdfv2', 3.00, 'cm', 221.00, NULL, NULL, 1, 7, 14, NULL, NULL, 'qrcodes/qr_6846938603adb.svg', NULL, '2025-06-09 07:55:50', '2025-07-03 08:13:09', 1, '2025-07-03 08:13:09'),
+(121, 'dfdfv2', 3.00, 'cm', 221.00, NULL, NULL, 1, 7, 14, NULL, NULL, 'qrcodes/qr_6846938603adb.svg', NULL, '2025-06-09 07:55:50', '2025-10-29 04:37:42', 1, NULL),
 (122, 'dfdfv3', 4.00, 'cm', 222.00, NULL, NULL, 1, 7, 7, NULL, NULL, 'qrcodes/qr_6846938607bbf.svg', NULL, '2025-06-09 07:55:50', '2025-06-09 07:55:50', 18, NULL),
 (123, 'cfcfg', 46.00, 'Gulung', 23.00, NULL, NULL, 6, 8, 14, NULL, NULL, 'qrcodes/qr_68469435e8196.svg', NULL, '2025-06-09 07:58:45', '2025-07-03 08:13:40', 19, NULL),
 (124, 'cfcf2', 47.00, 'm', 24.00, NULL, NULL, 6, 8, 7, 'ssdd', 'inventory_images/0MeJsnXbAZ7rzDmfJNDgvnKgmleTctwosPynXGQQ.jpg', 'qrcodes/qr_6849406ee4ada.svg', NULL, '2025-06-09 07:59:27', '2025-06-11 08:38:06', 20, NULL),
@@ -5274,7 +5289,7 @@ INSERT INTO `projects` (`id`, `created_by`, `name`, `qty`, `department_id`, `pro
 (78, 'logitech', 'test00998', 1, 10, 1, NULL, NULL, NULL, NULL, '2025-09-18 07:25:12', '2025-09-18 07:35:12', NULL),
 (79, 'logitech', 'testprogg', 123, 4, NULL, NULL, NULL, NULL, NULL, '2025-09-26 06:53:39', '2025-09-26 06:53:39', NULL),
 (80, 'logitech', 'opaaaa', 1, 14, NULL, NULL, NULL, NULL, NULL, '2025-09-26 06:54:45', '2025-09-26 06:54:45', NULL),
-(81, 'logitech', 'test lliuy', 1, 13, NULL, NULL, NULL, NULL, NULL, '2025-09-26 07:03:16', '2025-10-09 07:03:15', '2025-10-09 07:03:15'),
+(81, 'logitech', 'test lliuy', 1, 13, NULL, NULL, NULL, NULL, NULL, '2025-09-26 07:03:16', '2025-10-30 01:42:54', NULL),
 (82, 'logitech', 'projk67', 1, 4, NULL, NULL, NULL, NULL, NULL, '2025-10-09 07:31:52', '2025-10-09 07:31:52', NULL),
 (83, 'lark-sync', 'Butter Baby Mascot', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-10-15 09:53:10', '2025-10-15 09:53:10', NULL),
 (84, 'lark-sync', 'NUSH Plush 25 cm', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-10-15 09:53:10', '2025-10-15 09:53:10', NULL),
@@ -5427,8 +5442,8 @@ INSERT INTO `projects` (`id`, `created_by`, `name`, `qty`, `department_id`, `pro
 (231, 'lark-sync', 'Angklung SYF Costume', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-10-15 09:53:10', '2025-10-15 09:53:10', NULL),
 (232, 'lark-sync', 'Handbell SYF Costume', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-10-15 09:53:10', '2025-10-15 09:53:10', NULL),
 (233, 'lark-sync', 'Pepperoni Pizza Plushie 20cm', 1, 17, 3, NULL, NULL, '2025-10-25', NULL, '2025-10-15 09:53:11', '2025-10-24 03:05:10', NULL),
-(234, 'lark-sync', 'Dinosaur Plushie', 1, 17, 2, NULL, NULL, '2025-10-30', NULL, '2025-10-15 09:53:11', '2025-10-24 03:05:22', NULL),
-(235, 'lark-sync', 'Motion - Iamzenith', 1, 17, 2, NULL, NULL, '2025-10-25', NULL, '2025-10-15 09:53:11', '2025-10-24 03:05:36', NULL),
+(234, 'lark-sync', 'Dinosaur Plushie', 4, 4, 2, 'projects/3yLbqOe34UKrhbJCC7Zv04Hq0EfzScTMeibcfVdz.jpg', '2025-10-28', '2025-10-31', '2025-11-08', '2025-10-15 09:53:11', '2025-10-29 08:56:30', NULL),
+(235, 'lark-sync', 'Motion - Iamzenith', 1, 17, 2, NULL, '2025-10-15', '2025-11-01', NULL, '2025-10-15 09:53:11', '2025-10-29 09:33:11', NULL),
 (236, 'lark-sync', 'Kleig', 1, 17, 3, NULL, NULL, '2025-10-28', NULL, '2025-10-15 09:53:11', '2025-10-24 03:05:44', NULL),
 (237, 'lark-sync', 'Ora Mascot', 1, 17, 2, NULL, NULL, '2025-10-27', NULL, '2025-10-15 09:53:11', '2025-10-24 03:06:28', NULL),
 (238, 'lark-sync', 'Tancho mascot', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-10-15 09:53:11', '2025-10-15 09:53:11', NULL),
@@ -5446,8 +5461,9 @@ INSERT INTO `projects` (`id`, `created_by`, `name`, `qty`, `department_id`, `pro
 (250, 'lark-sync', 'STARLIT DANCER', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-10-15 09:53:11', '2025-10-15 09:53:11', NULL),
 (251, 'lark-sync', 'FAIRY GODMOTHER', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-10-15 09:53:11', '2025-10-15 09:53:11', NULL),
 (252, 'lark-sync', 'UNDEAD MUMMY', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-10-15 09:53:11', '2025-10-15 09:53:11', NULL),
-(253, 'logitech', 'TEST PTYOOOO', 2, 14, 2, NULL, NULL, '2025-10-27', NULL, '2025-10-16 09:56:53', '2025-10-24 03:04:59', NULL),
-(254, 'tari', 'test role12345r', 2, 4, 2, NULL, NULL, '2025-10-29', NULL, '2025-10-17 04:23:20', '2025-10-24 03:04:49', NULL);
+(253, 'logitech', 'TEST PTYOOOO12', 2, 15, 2, NULL, '2025-10-26', '2025-11-01', NULL, '2025-10-16 09:56:53', '2025-10-29 04:32:55', NULL),
+(254, 'tari', 'test role12345r', 2, 4, 2, NULL, NULL, '2025-10-29', NULL, '2025-10-17 04:23:20', '2025-10-24 03:04:49', NULL),
+(255, 'logitech', 'test audit', 2, 4, 2, 'projects/Cxuem5n38OgdjVhcPsq3GqEFzv2erOqH60399F6A.png', '2025-10-28', '2025-10-31', '2025-11-05', '2025-10-29 09:28:01', '2025-10-29 09:28:01', NULL);
 
 -- --------------------------------------------------------
 
@@ -5487,7 +5503,14 @@ INSERT INTO `project_parts` (`id`, `project_id`, `part_name`, `created_at`, `upd
 (7, 64, 'Lampu', '2025-07-11 09:06:01', '2025-07-11 09:06:01'),
 (8, 64, 'CVT', '2025-07-11 09:06:01', '2025-07-11 09:06:01'),
 (9, 66, 'vasc', '2025-07-17 01:23:08', '2025-07-17 01:23:08'),
-(10, 66, 'sdcvw', '2025-07-17 01:23:08', '2025-07-17 01:23:08');
+(10, 66, 'sdcvw', '2025-07-17 01:23:08', '2025-07-17 01:23:08'),
+(12, 253, 'Tangan', '2025-10-29 04:32:55', '2025-10-29 04:32:55'),
+(14, 234, 'tangan', '2025-10-29 08:56:30', '2025-10-29 08:56:30'),
+(15, 234, 'Kaki', '2025-10-29 08:56:30', '2025-10-29 08:56:30'),
+(16, 255, 'Baju', '2025-10-29 09:28:01', '2025-10-29 09:28:01'),
+(17, 255, 'Celana', '2025-10-29 09:28:02', '2025-10-29 09:28:02'),
+(18, 235, 'test part', '2025-10-29 09:33:11', '2025-10-29 09:33:11'),
+(19, 235, 'test part2', '2025-10-29 09:33:11', '2025-10-29 09:33:11');
 
 -- --------------------------------------------------------
 
@@ -5824,7 +5847,7 @@ INSERT INTO `users` (`id`, `username`, `password`, `role`, `department_id`, `rem
 (12, 'robotic', '$2y$10$vHm8Z3MUcMduaDKkvRywze3pF8fba89f7eiSxkGfYvuYwsHonavZi', 'admin_animatronic', NULL, NULL, '2025-07-04 08:34:47', '2025-07-04 08:34:47', NULL),
 (13, 'dcm', '$2y$10$STdJRYnoGxHcjiGCwJ6.d.t4M16wo76VGJfqVKpkFqVctg3Xx5RUi', 'general', NULL, NULL, '2025-07-18 07:56:41', '2025-07-18 07:56:41', NULL),
 (14, 'asxa', '$2y$10$Z6MYYTuHtr9BN0ssuqG4r.irDzEoKGpW0u7zTBtLEwfGfNblyvndG', 'admin_mascot', NULL, NULL, '2025-07-18 09:47:02', '2025-07-18 09:47:02', NULL),
-(15, 'abcd', '$2y$10$PoHaBl72LWj5Y3tRdUzCj.uiQcKilBwTFKIOTrMDCZHKUaHKx2jFe', 'general', NULL, NULL, '2025-07-19 04:24:31', '2025-07-19 04:24:31', NULL),
+(15, 'abcde123', '$2y$10$PoHaBl72LWj5Y3tRdUzCj.uiQcKilBwTFKIOTrMDCZHKUaHKx2jFe', 'general', 14, NULL, '2025-07-19 04:24:31', '2025-10-29 04:39:14', NULL),
 (16, 'wali band', '$2y$10$yymOlYiKbdhNAEgxa0g4s.RFyRqcPbD.CK6Yn2ANaKrcDN4H6jCcq', 'general', 15, NULL, '2025-07-19 04:56:23', '2025-10-17 03:50:54', '2025-10-17 03:50:54'),
 (17, 'user', '$2y$10$6UeoMLNl/6/WwMRW3QA9Yeqa2z1D7crTqcS3lK9rK/p1l9FXKMdJK', 'admin_logistic', 7, NULL, '2025-07-19 05:26:28', '2025-07-19 05:26:28', NULL),
 (18, 'asasd', '$2y$10$c.6MbWuLsEFL3nIpJ3sPTeilGrq2Iolhghm04APhWNPHXQC55eRWC', 'admin_mascot', 15, NULL, '2025-07-19 05:29:21', '2025-07-19 05:29:21', NULL),
@@ -6101,7 +6124,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `audits`
 --
 ALTER TABLE `audits`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=128;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=145;
 
 --
 -- AUTO_INCREMENT for table `categories`
@@ -6233,7 +6256,7 @@ ALTER TABLE `pre_shippings`
 -- AUTO_INCREMENT for table `projects`
 --
 ALTER TABLE `projects`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=255;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=256;
 
 --
 -- AUTO_INCREMENT for table `project_costings`
@@ -6245,7 +6268,7 @@ ALTER TABLE `project_costings`
 -- AUTO_INCREMENT for table `project_parts`
 --
 ALTER TABLE `project_parts`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
 
 --
 -- AUTO_INCREMENT for table `project_statuses`
