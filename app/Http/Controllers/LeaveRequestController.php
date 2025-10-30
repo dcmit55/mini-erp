@@ -285,10 +285,6 @@ class LeaveRequestController extends Controller
      */
     public function store(Request $request)
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            abort(403, 'You do not have permission to modify supplier data.');
-        }
-        
         $request->validate([
             'employee_id' => 'required|exists:employees,id',
             'start_date' => 'required|date',
