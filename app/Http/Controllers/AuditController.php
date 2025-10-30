@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use OwenIt\Auditing\Models\Audit;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Yajra\DataTables\Facades\DataTables;
 
 class AuditController extends Controller
@@ -56,6 +57,9 @@ class AuditController extends Controller
         }
 
         return DataTables::of($query)
+            ->addColumn('checkbox', function ($audit) {
+                return '<input type="checkbox" class="select-audit" value="' . $audit->id . '">';
+            })
             ->addColumn('user_name', function ($audit) {
                 return $audit->user ? $audit->user->username : '(System)';
             })
@@ -79,7 +83,14 @@ class AuditController extends Controller
             ->addColumn('formatted_date', function ($audit) {
                 return $audit->created_at->format('d M Y, H:i:s');
             })
-            ->rawColumns(['event_badge', 'changes'])
+            ->addColumn('actions', function ($audit) {
+                return '<button type="button" class="btn btn-danger btn-sm delete-audit-btn" data-id="' .
+                    $audit->id .
+                    '" title="Delete">
+                    <i class="bi bi-trash3"></i>
+                </button>';
+            })
+            ->rawColumns(['checkbox', 'event_badge', 'changes', 'actions'])
             ->make(true);
     }
 
@@ -183,6 +194,197 @@ class AuditController extends Controller
             }
         } catch (\Exception $e) {
             // Jika error, biarkan nilai asli
+        }
+    }
+
+    /**
+     * Delete single audit record
+     */
+    public function destroy($id)
+    {
+        try {
+            $audit = Audit::findOrFail($id);
+            $modelName = class_basename($audit->auditable_type);
+            $eventName = ucfirst($audit->event);
+
+            $audit->delete();
+
+            if (request()->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "Audit log for <b>{$modelName}</b> ({$eventName}) deleted successfully!",
+                ]);
+            }
+
+            return redirect()->route('audit.index')->with('success', 'Audit log deleted successfully!');
+        } catch (\Exception $e) {
+            \Log::error('Error deleting audit log: ' . $e->getMessage());
+
+            if (request()->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Failed to delete audit log: ' . $e->getMessage()], 500);
+            }
+
+            return redirect()
+                ->back()
+                ->with('error', 'Failed to delete audit log: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Bulk delete audit records
+     */
+    public function bulkDelete(Request $request)
+    {
+        try {
+            $ids = $request->input('ids', []);
+
+            if (empty($ids)) {
+                return response()->json(['success' => false, 'message' => 'No audit records selected.'], 422);
+            }
+
+            // Validasi semua ID ada di database
+            $validIds = Audit::whereIn('id', $ids)->pluck('id')->toArray();
+
+            if (count($validIds) === 0) {
+                return response()->json(['success' => false, 'message' => 'No valid audit records found.'], 404);
+            }
+
+            // Gunakan transaction untuk delete multiple records
+            DB::beginTransaction();
+
+            try {
+                // Get details sebelum delete untuk logging
+                $auditsToDelete = Audit::whereIn('id', $validIds)->get();
+
+                // Hitung per model dan event
+                $deleteSummary = [];
+                foreach ($auditsToDelete as $audit) {
+                    $modelName = class_basename($audit->auditable_type);
+                    $key = "{$modelName} ({$audit->event})";
+                    $deleteSummary[$key] = ($deleteSummary[$key] ?? 0) + 1;
+                }
+
+                // Delete records
+                $deletedCount = Audit::whereIn('id', $validIds)->delete();
+
+                DB::commit();
+
+                \Log::info('Bulk delete audit logs', [
+                    'count' => $deletedCount,
+                    'summary' => $deleteSummary,
+                    'deleted_by' => Auth::user()->username,
+                ]);
+
+                // Format message
+                $summaryText = implode(', ', array_map(fn($k, $v) => "{$v} {$k}", array_keys($deleteSummary), $deleteSummary));
+
+                return response()->json([
+                    'success' => true,
+                    'message' => "Successfully deleted {$deletedCount} audit log(s): {$summaryText}",
+                    'deleted_count' => $deletedCount,
+                ]);
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
+        } catch (\Exception $e) {
+            \Log::error('Error in bulk delete audit logs: ' . $e->getMessage());
+
+            return response()->json(['success' => false, 'message' => 'Failed to delete audit logs: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Delete audit logs by date range
+     */
+    public function deleteByDateRange(Request $request)
+    {
+        try {
+            $request->validate([
+                'date_from' => 'required|date',
+                'date_to' => 'required|date|after_or_equal:date_from',
+            ]);
+
+            DB::beginTransaction();
+
+            try {
+                $auditsBefore = Audit::whereBetween('created_at', [$request->date_from . ' 00:00:00', $request->date_to . ' 23:59:59'])->count();
+
+                if ($auditsBefore === 0) {
+                    return response()->json(['success' => false, 'message' => 'No audit records found in the specified date range.'], 404);
+                }
+
+                $deletedCount = Audit::whereBetween('created_at', [$request->date_from . ' 00:00:00', $request->date_to . ' 23:59:59'])->delete();
+
+                DB::commit();
+
+                \Log::info('Delete audit logs by date range', [
+                    'from' => $request->date_from,
+                    'to' => $request->date_to,
+                    'deleted_count' => $deletedCount,
+                    'deleted_by' => Auth::user()->username,
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => "Successfully deleted {$deletedCount} audit log(s) from {$request->date_from} to {$request->date_to}",
+                    'deleted_count' => $deletedCount,
+                ]);
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['success' => false, 'errors' => $e->errors()], 422);
+        } catch (\Exception $e) {
+            \Log::error('Error deleting audit logs by date range: ' . $e->getMessage());
+
+            return response()->json(['success' => false, 'message' => 'Failed to delete audit logs: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Purge old audit logs (older than X days)
+     */
+    public function purgeOldLogs(Request $request)
+    {
+        try {
+            $request->validate([
+                'days' => 'required|integer|min:1|max:365',
+            ]);
+
+            $days = $request->days;
+            $dateThreshold = now()->subDays($days);
+
+            DB::beginTransaction();
+
+            try {
+                $deletedCount = Audit::where('created_at', '<', $dateThreshold)->delete();
+
+                DB::commit();
+
+                \Log::info('Purge old audit logs', [
+                    'days' => $days,
+                    'before_date' => $dateThreshold,
+                    'deleted_count' => $deletedCount,
+                    'purged_by' => Auth::user()->username,
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => "Successfully purged {$deletedCount} audit log(s) older than {$days} days",
+                    'deleted_count' => $deletedCount,
+                ]);
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['success' => false, 'errors' => $e->errors()], 422);
+        } catch (\Exception $e) {
+            \Log::error('Error purging old audit logs: ' . $e->getMessage());
+
+            return response()->json(['success' => false, 'message' => 'Failed to purge audit logs: ' . $e->getMessage()], 500);
         }
     }
 }

@@ -68,8 +68,16 @@ Route::post('/register', [RegisterController::class, 'register']);
 
 Route::middleware(['auth'])->group(function () {
     // Audit
-    Route::get('/audit', [App\Http\Controllers\AuditController::class, 'index'])->name('audit.index');
-    Route::get('/audit/changes/{id}', [App\Http\Controllers\AuditController::class, 'getChanges'])->name('audit.changes');
+    Route::prefix('audit')
+        ->name('audit.')
+        ->group(function () {
+            Route::get('/', [\App\Http\Controllers\AuditController::class, 'index'])->name('index');
+            Route::get('/changes/{id}', [\App\Http\Controllers\AuditController::class, 'getChanges'])->name('getChanges');
+            Route::delete('/{id}', [\App\Http\Controllers\AuditController::class, 'destroy'])->name('destroy');
+            Route::post('/bulk-delete', [\App\Http\Controllers\AuditController::class, 'bulkDelete'])->name('bulkDelete');
+            Route::post('/delete-by-date', [\App\Http\Controllers\AuditController::class, 'deleteByDateRange'])->name('deleteByDateRange');
+            Route::post('/purge-old', [\App\Http\Controllers\AuditController::class, 'purgeOldLogs'])->name('purgeOldLogs');
+        });
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
