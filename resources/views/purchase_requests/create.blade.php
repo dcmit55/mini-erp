@@ -145,9 +145,11 @@
                     </div>
 
                     <div class="d-flex justify-content-between my-4">
-                        <button type="button" class="btn btn-outline-primary btn-sm" id="add-more-btn">
-                            <i class="fas fa-plus-circle"></i> Add More Request
-                        </button>
+                        @if (!isset($selectedInventory) || !isset($prefilledType))
+                            <button type="button" class="btn btn-outline-primary btn-sm" id="add-more-btn">
+                                <i class="fas fa-plus-circle"></i> Add More Request
+                            </button>
+                        @endif
                         <button type="submit" class="btn btn-primary" id="submit-request-btn">
                             <span class="spinner-border spinner-border-sm me-1 d-none" role="status"
                                 aria-hidden="true"></span>

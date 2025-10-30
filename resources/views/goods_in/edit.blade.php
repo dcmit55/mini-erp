@@ -108,7 +108,7 @@
                         </div>
                         <div class="col-lg-12 mb-3">
                             <label for="remark" class="form-label">Remark</label>
-                            <textarea name="remark" id="remark" class="form-control">{{ old('remark', $goodsIn->remark ?? '') }}</textarea>
+                            <textarea name="remark" id="remark" class="form-control">{{ old('remark', $goods_in->remark) }}</textarea>
                         </div>
                     </div>
                     <a href="{{ route('goods_in.index') }}" class="btn btn-secondary">Cancel</a>

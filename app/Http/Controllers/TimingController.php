@@ -552,4 +552,97 @@ class TimingController extends Controller
         $errors[] = "Row {$rowIndex}: Invalid {$timeType} time format '{$timeString}'. Expected formats: HH:MM, HH:MM:SS, H:MM AM/PM, etc.";
         return false;
     }
+
+    public function edit(Timing $timing)
+    {
+        $projects = Project::with(['parts', 'department'])->get();
+        $employees = Employee::where('status', 'active')->orderBy('name')->get();
+        $departments = Department::orderBy('name')->pluck('name', 'id');
+
+        return view('timings.edit', compact('timing', 'projects', 'employees', 'departments'));
+    }
+
+    public function update(Request $request, Timing $timing)
+    {
+        if (Auth::user()->isReadOnlyAdmin()) {
+            return redirect()->route('timings.index')->with('error', 'You do not have permission to update timing data.');
+        }
+
+        $attributes = [
+            'tanggal' => 'Date',
+            'project_id' => 'Project',
+            'step' => 'Step',
+            'parts' => 'Part',
+            'employee_id' => 'Employee',
+            'start_time' => 'Start Time',
+            'end_time' => 'End Time',
+            'output_qty' => 'Output Qty',
+            'status' => 'Status',
+            'remarks' => 'Remarks',
+        ];
+
+        $validator = Validator::make(
+            $request->all(),
+            [
+                'tanggal' => 'required|date',
+                'project_id' => 'required|exists:projects,id',
+                'step' => 'required',
+                'parts' => 'nullable|string',
+                'employee_id' => 'required|exists:employees,id',
+                'start_time' => 'required',
+                'end_time' => 'required',
+                'output_qty' => 'required|numeric|min:0',
+                'status' => 'required|in:complete,on progress,pending',
+                'remarks' => 'nullable',
+            ],
+            [],
+            $attributes,
+        );
+
+        // Custom validation
+        $project = Project::find($request->project_id);
+        $projectsWithParts = Project::has('parts')->pluck('id')->toArray();
+
+        if ($project && in_array($project->id, $projectsWithParts) && empty($request->parts)) {
+            $validator->errors()->add('parts', 'Part is required for this project.');
+        }
+
+        $employee = Employee::find($request->employee_id);
+        if (!$employee || $employee->status !== 'active') {
+            $validator->errors()->add('employee_id', 'Selected employee is not active or does not exist.');
+        }
+
+        if ($request->start_time && $request->end_time && $request->end_time < $request->start_time) {
+            $validator->errors()->add('end_time', 'End Time cannot be earlier than Start Time.');
+        }
+
+        if ($validator->fails()) {
+            return back()->withErrors($validator)->withInput();
+        }
+
+        $data = $validator->validated();
+        if (!in_array($data['project_id'], $projectsWithParts)) {
+            $data['parts'] = 'No Part';
+        }
+
+        $timing->update($data);
+
+        return redirect()->route('timings.index')->with('success', 'Timing data updated successfully.');
+    }
+
+    public function destroy(Timing $timing)
+    {
+        if (!Auth::user()->isSuperAdmin()) {
+            return redirect()->route('timings.index')->with('error', 'Only super admin can delete timing data.');
+        }
+
+        try {
+            $timing->delete();
+            return redirect()->route('timings.index')->with('success', 'Timing data deleted successfully.');
+        } catch (\Exception $e) {
+            return redirect()
+                ->route('timings.index')
+                ->with('error', 'Failed to delete timing data: ' . $e->getMessage());
+        }
+    }
 }

@@ -127,6 +127,7 @@
                             <th>Qty</th>
                             <th>Status</th>
                             <th>Remarks</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody id="timing-rows">

@@ -47,9 +47,7 @@ class MaterialUsageController extends Controller
             }
 
             return Datatables::of($query)
-                ->addColumn('checkbox', function ($item) {
-                    return '<input type="checkbox" class="row-checkbox" value="' . $item->id . '">';
-                })
+                ->addIndexColumn()
                 ->addColumn('material_name', function ($item) {
                     return $item->inventory ? $item->inventory->name : 'N/A';
                 })

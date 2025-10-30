@@ -80,9 +80,7 @@
                         data-material-usage-table="1">
                         <thead class="table-dark align-middle text-nowrap">
                             <tr>
-                                <th width="50">
-                                    <input type="checkbox" id="select-all" title="Select All">
-                                </th>
+                                <th width="50">#</th>
                                 <th>Material</th>
                                 <th>Project</th>
                                 <th>Goods Out Qty</th>
@@ -271,9 +269,10 @@
                     }
                 },
                 columns: [{
-                        data: 'checkbox',
+                        data: 'DT_RowIndex',
                         orderable: false,
-                        searchable: false
+                        searchable: false,
+                        className: 'text-center'
                     },
                     {
                         data: 'material_name'

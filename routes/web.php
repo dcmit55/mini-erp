@@ -214,7 +214,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('leave_requests/{id}/approval', [LeaveRequestController::class, 'updateApproval'])->name('leave_requests.updateApproval');
 
     //Timming
-    Route::resource('timings', TimingController::class)->only(['index', 'create', 'store', 'show']);
+    Route::resource('timings', TimingController::class);
     Route::post('timings/store-multiple', [TimingController::class, 'storeMultiple'])->name('timings.storeMultiple');
     Route::post('/timings/ajax-search', [TimingController::class, 'ajaxSearch'])->name('timings.ajax_search');
     Route::get('/timings-export', [TimingController::class, 'export'])->name('timings.export');
