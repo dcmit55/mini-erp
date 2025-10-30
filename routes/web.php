@@ -122,15 +122,16 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/material_requests/{id}/quick-update', [MaterialRequestController::class, 'quickUpdate'])->name('material_requests.quick_update');
 
     // Material Planning
-    Route::middleware(['auth'])
-        ->group(function () {
-            Route::get('/material-planning', [MaterialPlanningController::class, 'index'])->name('material_planning.index');
-            Route::get('/material-planning/create', [MaterialPlanningController::class, 'create'])->name('material_planning.create');
-            Route::post('/material-planning', [MaterialPlanningController::class, 'store'])->name('material_planning.store');
-            Route::delete('/material-planning/project/{projectId}', [MaterialPlanningController::class, 'destroyProject'])->name('material_planning.destroy_project');
-            Route::delete('/material-planning/{id}', [MaterialPlanningController::class, 'destroy'])->name('material_planning.destroy');
-        })
-        ->withoutMiddleware(['auth']);
+    Route::middleware(['auth'])->group(function () {
+        Route::get('/material-planning', [MaterialPlanningController::class, 'index'])->name('material_planning.index');
+        Route::get('/material-planning/create', [MaterialPlanningController::class, 'create'])->name('material_planning.create');
+        Route::post('/material-planning', [MaterialPlanningController::class, 'store'])->name('material_planning.store');
+        Route::delete('/material-planning/project/{projectId}', [MaterialPlanningController::class, 'destroyProject'])->name('material_planning.destroy_project');
+        Route::delete('/material-planning/{id}', [MaterialPlanningController::class, 'destroy'])->name('material_planning.destroy');
+        Route::get('/material-planning/related-items/{projectId}', [MaterialPlanningController::class, 'getRelatedItems'])
+            ->name('material_planning.related_items')
+            ->where('projectId', '[0-9]+');
+    });
 
     // Categories
     Route::post('/categories/quick-add', [CategoryController::class, 'store'])->name('categories.store');

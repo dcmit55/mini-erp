@@ -12,29 +12,20 @@
                     </div>
 
                     <!-- Spacer untuk mendorong tombol ke kanan -->
-                    @if (auth()->user()->canModifyData())
-                        <div class="ms-lg-auto d-flex flex-wrap gap-2">
-                            <a href="{{ route('timings.create') }}" class="btn btn-primary btn-sm flex-shrink-0">
-                                <i class="bi bi-plus-circle me-1"></i> Input Timing
-                            </a>
-                            <!-- Import Button -->
-                            <button type="button" class="btn btn-success btn-sm flex-shrink-0" data-bs-toggle="modal"
-                                data-bs-target="#importModal">
-                                <i class="bi bi-filetype-xls me-1"></i> Import
-                            </button>
-                            <!-- Export Button -->
-                            <button type="button" id="export-btn" class="btn btn-outline-success btn-sm flex-shrink-0">
-                                <i class="bi bi-file-earmark-excel me-1"></i> Export
-                            </button>
-                        </div>
-                    @else
-                        <div class="ms-lg-auto d-flex flex-wrap gap-2">
-                            <!-- Export Button for read-only users -->
-                            <button type="button" id="export-btn" class="btn btn-outline-success btn-sm flex-shrink-0">
-                                <i class="bi bi-file-earmark-excel me-1"></i> Export
-                            </button>
-                        </div>
-                    @endif
+                    <div class="ms-lg-auto d-flex flex-wrap gap-2">
+                        <a href="{{ route('timings.create') }}" class="btn btn-primary btn-sm flex-shrink-0">
+                            <i class="bi bi-plus-circle me-1"></i> Input Timing
+                        </a>
+                        <!-- Import Button -->
+                        <button type="button" class="btn btn-success btn-sm flex-shrink-0" data-bs-toggle="modal"
+                            data-bs-target="#importModal">
+                            <i class="bi bi-filetype-xls me-1"></i> Import
+                        </button>
+                        <!-- Export Button -->
+                        <button type="button" id="export-btn" class="btn btn-outline-success btn-sm flex-shrink-0">
+                            <i class="bi bi-file-earmark-excel me-1"></i> Export
+                        </button>
+                    </div>
                 </div>
 
                 @if (session('success'))
@@ -480,6 +471,24 @@
                         });
                     }, 400); // 400ms debounce
                 });
+
+            $('#export-btn').on('click', function() {
+                // Ambil filter dari form
+                const params = new URLSearchParams();
+                const search = $('input[name="search"]').val();
+                const project_id = $('select[name="project_id"]').val();
+                const department = $('select[name="department"]').val();
+                const employee_id = $('select[name="employee_id"]').val();
+
+                if (search) params.set('search', search);
+                if (project_id) params.set('project_id', project_id);
+                if (department) params.set('department', department);
+                if (employee_id) params.set('employee_id', employee_id);
+
+                // Redirect ke route export dengan query string
+                window.location.href = '{{ route('timings.export') }}' + (params.toString() ? '?' + params
+                    .toString() : '');
+            });
         });
     </script>
 @endpush

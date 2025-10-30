@@ -1,5 +1,4 @@
 <?php
-// filepath: c:\xampp\htdocs\inventory-system-v2-upg-larv-oct\app\Http\Controllers\MaterialPlanningController.php
 
 namespace App\Http\Controllers;
 
@@ -12,6 +11,7 @@ use App\Models\Department;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Models\PurchaseRequest;
 
 class MaterialPlanningController extends Controller
 {
@@ -285,6 +285,63 @@ class MaterialPlanningController extends Controller
                 [
                     'success' => false,
                     'message' => 'Failed to delete material planning: ' . $e->getMessage(),
+                ],
+                500,
+            );
+        }
+    }
+
+    public function getRelatedItems($projectId)
+    {
+        try {
+            // Validasi project exists
+            $project = Project::findOrFail($projectId);
+
+            \Log::info("Fetching related items for project ID: {$projectId}");
+
+            // Query Purchase Request yang match dengan project ini
+            $relatedItems = PurchaseRequest::where('project_id', $projectId)
+                ->whereIn('approval_status', ['pending', 'approved', 'Pending', 'Approved'])
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            \Log::info('Found ' . $relatedItems->count() . ' related items');
+
+            // Format data untuk response
+            $items = $relatedItems->map(function ($item) {
+                return [
+                    'id' => $item->id,
+                    'material_name' => $item->material_name,
+                    'qty_needed' => $item->required_quantity,
+                    'unit' => $item->unit ?? '-',
+                    'eta_date' => $item->delivery_date ?? '-',
+                    'supplier' => $item->supplier ?? '-',
+                    'price_per_unit' => $item->price_per_unit ?? '-',
+                    'approval_status' => ucfirst(strtolower($item->approval_status)),
+                    'requested_by' => $item->requested_by ?? 'N/A',
+                    'currency' => $item->currency_id ?? 'IDR',
+                    'type' => $item->type ?? 'material_req',
+                ];
+            });
+
+            \Log::info('Mapped items count: ' . $items->count());
+
+            return response()->json([
+                'success' => true,
+                'count' => $items->count(),
+                'items' => $items,
+                'project_name' => $project->name,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error in getRelatedItems: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Error loading related items: ' . $e->getMessage(),
+                    'items' => [],
+                    'count' => 0,
                 ],
                 500,
             );

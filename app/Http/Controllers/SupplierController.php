@@ -12,9 +12,22 @@ use Illuminate\Support\Facades\Log;
 class SupplierController extends Controller
 {
     public function __construct()
-    {
-        $this->middleware('auth');
-    }
+{
+    $this->middleware('auth');
+
+    // Only allowed roles can create/edit/delete
+    $allowedRoles = ['super_admin', 'admin_procurement', 'admin_logistic', 'admin_finance', 'admin'];
+    $writeMethods = ['create', 'store', 'edit', 'update', 'destroy', 'quickStore'];
+
+    $this->middleware(function ($request, $next) use ($allowedRoles, $writeMethods) {
+        $user = Auth::user();
+        if (in_array($request->route()->getActionMethod(), $writeMethods) &&
+            !in_array($user->role, $allowedRoles)) {
+            abort(403, 'You do not have permission to modify supplier data.');
+        }
+        return $next($request);
+    });
+}
 
     /**
      * Display a listing of the suppliers.

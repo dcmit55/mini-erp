@@ -111,7 +111,7 @@
                                 selesai)</label>
                             <input type="date" name="finish_date" id="finish_date"
                                 value="{{ old('finish_date', isset($project) ? $project->finish_date : '') }}"
-                                class="form-control" @if (!auth()->user() || auth()->user()->role !== 'super_admin') readonly @endif>
+                                class="form-control">
                             @error('finish_date')
                                 <small class="text-danger">{{ $message }}</small>
                             @enderror
