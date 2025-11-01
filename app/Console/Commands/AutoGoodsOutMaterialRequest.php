@@ -3,9 +3,9 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use App\Models\MaterialRequest;
-use App\Models\Inventory;
-use App\Models\GoodsOut;
+use App\Models\Logistic\MaterialRequest;
+use App\Models\Logistic\Inventory;
+use App\Models\Logistic\GoodsOut;
 use App\Helpers\MaterialUsageHelper;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;

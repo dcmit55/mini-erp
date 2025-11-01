@@ -13,14 +13,14 @@
 
 namespace App\Models{
 /**
- * 
+ *
  *
  * @property int $id
  * @property string $name
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property \Illuminate\Support\Carbon|null $deleted_at
- * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Inventory> $inventories
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Logistic\Inventory> $inventories
  * @property-read int|null $inventories_count
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Category newModelQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Category newQuery()
@@ -39,7 +39,7 @@ namespace App\Models{
 
 namespace App\Models{
 /**
- * 
+ *
  *
  * @property int $id
  * @property string $name
@@ -48,7 +48,7 @@ namespace App\Models{
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property \Illuminate\Support\Carbon|null $deleted_at
  * @property-read \App\Models\TFactory|null $use_factory
- * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Inventory> $inventories
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Logistic\Inventory> $inventories
  * @property-read int|null $inventories_count
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Currency newModelQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Currency newQuery()
@@ -68,13 +68,13 @@ namespace App\Models{
 
 namespace App\Models{
 /**
- * 
+ *
  *
  * @property int $id
  * @property string $name
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
- * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\User> $users
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Admin\User> $users
  * @property-read int|null $users_count
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Department newModelQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Department newQuery()
@@ -89,7 +89,7 @@ namespace App\Models{
 
 namespace App\Models{
 /**
- * 
+ *
  *
  * @property int $id
  * @property string $employee_no
@@ -108,8 +108,8 @@ namespace App\Models{
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property \Illuminate\Support\Carbon|null $deleted_at
- * @property-read \App\Models\Department|null $department
- * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\EmployeeDocument> $documents
+ * @property-read \App\Models\Admin\Department|null $department
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Hr\EmployeeDocument> $documents
  * @property-read int|null $documents_count
  * @property-read mixed $employee_number_only
  * @property-read mixed $formatted_rekening
@@ -148,7 +148,7 @@ namespace App\Models{
 
 namespace App\Models{
 /**
- * 
+ *
  *
  * @property int $id
  * @property int $employee_id
@@ -160,7 +160,7 @@ namespace App\Models{
  * @property string|null $description
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
- * @property-read \App\Models\Employee $employee
+ * @property-read \App\Models\Hr\Employee $employee
  * @property-read mixed $download_filename
  * @property-read mixed $file_url
  * @property-read mixed $formatted_document_type
@@ -185,7 +185,7 @@ namespace App\Models{
 
 namespace App\Models{
 /**
- * 
+ *
  *
  * @property int $id
  * @property int|null $goods_out_id
@@ -199,9 +199,9 @@ namespace App\Models{
  * @property string|null $remark
  * @property \Illuminate\Support\Carbon|null $deleted_at
  * @property-read \App\Models\TFactory|null $use_factory
- * @property-read \App\Models\GoodsOut|null $goodsOut
- * @property-read \App\Models\Inventory|null $inventory
- * @property-read \App\Models\Project|null $project
+ * @property-read \App\Models\Logistic\GoodsOut|null $goodsOut
+ * @property-read \App\Models\Logistic\Inventory|null $inventory
+ * @property-read \App\Models\Production\Project|null $project
  * @method static \Illuminate\Database\Eloquent\Builder<static>|GoodsIn newModelQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|GoodsIn newQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|GoodsIn onlyTrashed()
@@ -225,7 +225,7 @@ namespace App\Models{
 
 namespace App\Models{
 /**
- * 
+ *
  *
  * @property int $id
  * @property int|null $material_request_id
@@ -239,12 +239,12 @@ namespace App\Models{
  * @property \Illuminate\Support\Carbon|null $deleted_at
  * @property-read mixed $remaining_quantity
  * @property-read \App\Models\TFactory|null $use_factory
- * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\GoodsIn> $goodsIns
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Logistic\GoodsIn> $goodsIns
  * @property-read int|null $goods_ins_count
- * @property-read \App\Models\Inventory $inventory
- * @property-read \App\Models\MaterialRequest|null $materialRequest
- * @property-read \App\Models\Project|null $project
- * @property-read \App\Models\User|null $user
+ * @property-read \App\Models\Logistic\Inventory $inventory
+ * @property-read \App\Models\Logistic\MaterialRequest|null $materialRequest
+ * @property-read \App\Models\Production\Project|null $project
+ * @property-read \App\Models\Admin\User|null $user
  * @method static \Illuminate\Database\Eloquent\Builder<static>|GoodsOut newModelQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|GoodsOut newQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|GoodsOut onlyTrashed()
@@ -267,18 +267,18 @@ namespace App\Models{
 
 namespace App\Models{
 /**
- * 
+ *
  *
  * @property int $id
  * @property string $name
  * @property string $quantity
  * @property string $unit
  * @property string|null $price
- * @property \App\Models\Supplier|null $supplier
+ * @property \App\Models\Procurement\Supplier|null $supplier
  * @property int|null $currency_id
  * @property int|null $supplier_id
  * @property int|null $location_id
- * @property \App\Models\Location|null $location
+ * @property \App\Models\Logistic\Location|null $location
  * @property string|null $remark
  * @property string|null $img
  * @property string|null $qrcode_path
@@ -287,10 +287,10 @@ namespace App\Models{
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property int|null $category_id
  * @property \Illuminate\Support\Carbon|null $deleted_at
- * @property-read \App\Models\Category|null $category
- * @property-read \App\Models\Currency|null $currency
+ * @property-read \App\Models\Logistic\Category|null $category
+ * @property-read \App\Models\Finance\Currency|null $currency
  * @property-read \App\Models\TFactory|null $use_factory
- * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\GoodsOut> $goodsOuts
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Logistic\GoodsOut> $goodsOuts
  * @property-read int|null $goods_outs_count
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Inventory newModelQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Inventory newQuery()
@@ -322,7 +322,7 @@ namespace App\Models{
 
 namespace App\Models{
 /**
- * 
+ *
  *
  * @property int $id
  * @property string $name
@@ -341,7 +341,7 @@ namespace App\Models{
 
 namespace App\Models{
 /**
- * 
+ *
  *
  * @property int $id
  * @property int $inventory_id
@@ -357,11 +357,11 @@ namespace App\Models{
  * @property \Illuminate\Support\Carbon|null $deleted_at
  * @property-read mixed $department_name
  * @property-read mixed $remaining_qty
- * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\GoodsOut> $goodsOuts
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Logistic\GoodsOut> $goodsOuts
  * @property-read int|null $goods_outs_count
- * @property-read \App\Models\Inventory $inventory
- * @property-read \App\Models\Project $project
- * @property-read \App\Models\User|null $user
+ * @property-read \App\Models\Logistic\Inventory $inventory
+ * @property-read \App\Models\Production\Project $project
+ * @property-read \App\Models\Admin\User|null $user
  * @method static \Illuminate\Database\Eloquent\Builder<static>|MaterialRequest newModelQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|MaterialRequest newQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|MaterialRequest onlyTrashed()
@@ -386,7 +386,7 @@ namespace App\Models{
 
 namespace App\Models{
 /**
- * 
+ *
  *
  * @property int $id
  * @property int $inventory_id
@@ -395,8 +395,8 @@ namespace App\Models{
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property \Illuminate\Support\Carbon|null $deleted_at
- * @property-read \App\Models\Inventory $inventory
- * @property-read \App\Models\Project $project
+ * @property-read \App\Models\Logistic\Inventory $inventory
+ * @property-read \App\Models\Production\Project $project
  * @method static \Illuminate\Database\Eloquent\Builder<static>|MaterialUsage newModelQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|MaterialUsage newQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|MaterialUsage onlyTrashed()
@@ -416,7 +416,7 @@ namespace App\Models{
 
 namespace App\Models{
 /**
- * 
+ *
  *
  * @property int $id
  * @property string $created_by
@@ -430,10 +430,10 @@ namespace App\Models{
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property \Illuminate\Support\Carbon|null $deleted_at
- * @property-read \App\Models\Department|null $department
+ * @property-read \App\Models\Admin\Department|null $department
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\MaterialUsage> $materialUsages
  * @property-read int|null $material_usages_count
- * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\ProjectPart> $parts
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Production\ProjectPart> $parts
  * @property-read int|null $parts_count
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Project newModelQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Project newQuery()
@@ -459,14 +459,14 @@ namespace App\Models{
 
 namespace App\Models{
 /**
- * 
+ *
  *
  * @property int $id
  * @property int $project_id
  * @property string $part_name
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
- * @property-read \App\Models\Project $project
+ * @property-read \App\Models\Production\Project $project
  * @method static \Illuminate\Database\Eloquent\Builder<static>|ProjectPart newModelQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|ProjectPart newQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|ProjectPart query()
@@ -481,7 +481,7 @@ namespace App\Models{
 
 namespace App\Models{
 /**
- * 
+ *
  *
  * @property int $id
  * @property string $name
@@ -500,7 +500,7 @@ namespace App\Models{
 
 namespace App\Models{
 /**
- * 
+ *
  *
  * @property int $id
  * @property string $tanggal
@@ -515,9 +515,9 @@ namespace App\Models{
  * @property string|null $remarks
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
- * @property-read \App\Models\Employee $employee
+ * @property-read \App\Models\Hr\Employee $employee
  * @property-read \App\Models\TFactory|null $use_factory
- * @property-read \App\Models\Project $project
+ * @property-read \App\Models\Production\Project $project
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Timing newModelQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Timing newQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Timing query()
@@ -540,7 +540,7 @@ namespace App\Models{
 
 namespace App\Models{
 /**
- * 
+ *
  *
  * @property int $id
  * @property string $name
@@ -560,7 +560,7 @@ namespace App\Models{
 
 namespace App\Models{
 /**
- * 
+ *
  *
  * @property int $id
  * @property string $username
@@ -571,7 +571,7 @@ namespace App\Models{
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property \Illuminate\Support\Carbon|null $deleted_at
- * @property-read \App\Models\Department|null $department
+ * @property-read \App\Models\Admin\Department|null $department
  * @property-read \App\Models\TFactory|null $use_factory
  * @property-read \Illuminate\Notifications\DatabaseNotificationCollection<int, \Illuminate\Notifications\DatabaseNotification> $notifications
  * @property-read int|null $notifications_count

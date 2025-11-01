@@ -16,7 +16,7 @@ class MaterialUsageExport implements FromView
 
     public function view(): View
     {
-        return view('material_usage.export', [
+        return view('logistic.material_usage.export', [
             'usages' => $this->data,
         ]);
     }

@@ -3,7 +3,7 @@
 namespace App\Events;
 
 use Illuminate\Support\Facades\Log;
-use App\Models\MaterialRequest;
+use App\Models\Logistic\MaterialRequest;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Broadcasting\InteractsWithSockets;

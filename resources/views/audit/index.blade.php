@@ -38,19 +38,19 @@
                     <div class="col-md-2">
                         <select class="form-select form-select-sm" id="modelFilter">
                             <option value="">All Models</option>
-                            <option value="App\Models\Inventory">Inventory</option>
-                            <option value="App\Models\MaterialRequest">Material Request</option>
-                            <option value="App\Models\GoodsOut">Goods Out</option>
-                            <option value="App\Models\GoodsIn">Goods In</option>
-                            <option value="App\Models\Project">Project</option>
-                            <option value="App\Models\ProjectPart">Project Part</option>
-                            <option value="App\Models\User">User</option>
-                            <option value="App\Models\Employee">Employee</option>
-                            <option value="App\Models\Currency">Currency</option>
-                            <option value="App\Models\PurchaseRequest">Purchase Request</option>
-                            <option value="App\Models\MaterialPlanning">Material Planning</option>
-                            <option value="App\Models\Supplier">Supplier</option>
-                            <option value="App\Models\LeaveRequest">Leave Request</option>
+                            <option value="App\Models\Logistic\Inventory">Inventory</option>
+                            <option value="App\Models\Logistic\MaterialRequest">Material Request</option>
+                            <option value="App\Models\Logistic\GoodsOut">Goods Out</option>
+                            <option value="App\Models\Logistic\GoodsIn">Goods In</option>
+                            <option value="App\Models\Production\Project">Project</option>
+                            <option value="App\Models\Production\ProjectPart">Project Part</option>
+                            <option value="App\Models\Admin\User">User</option>
+                            <option value="App\Models\Hr\Employee">Employee</option>
+                            <option value="App\Models\Finance\Currency">Currency</option>
+                            <option value="App\Models\Procurement\PurchaseRequest">Purchase Request</option>
+                            <option value="App\Models\Production\MaterialPlanning">Material Planning</option>
+                            <option value="App\Models\Procurement\Supplier">Supplier</option>
+                            <option value="App\Models\Hr\LeaveRequest">Leave Request</option>
                         </select>
                     </div>
                     <div class="col-md-2">

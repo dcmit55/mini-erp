@@ -16,7 +16,7 @@ class TimingExport implements FromView
 
     public function view(): View
     {
-        return view('timings.export', [
+        return view('production.timings.export', [
             'timings' => $this->timings,
         ]);
     }

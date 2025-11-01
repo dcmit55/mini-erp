@@ -5,8 +5,8 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use App\Services\LarkIntegration;
-use App\Models\Project;
-use App\Models\Department;
+use App\Models\Production\Project;
+use App\Models\Admin\Department;
 
 class FetchLarkJobOrders extends Command
 {

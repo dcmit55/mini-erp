@@ -16,7 +16,7 @@ class GoodsOutExport implements FromView
 
     public function view(): View
     {
-        return view('goods_out.export', [
+        return view('logistic.goods_out.export', [
             'goodsOuts' => $this->goodsOuts
         ]);
     }

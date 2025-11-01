@@ -4,14 +4,14 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Carbon\Carbon;
-use App\Models\Inventory;
-use App\Models\GoodsIn;
-use App\Models\GoodsOut;
-use App\Models\Project;
-use App\Models\User;
-use App\Models\MaterialUsage;
-use App\Models\MaterialRequest;
-use App\Models\Currency;
+use App\Models\Logistic\Inventory;
+use App\Models\Logistic\GoodsIn;
+use App\Models\Logistic\GoodsOut;
+use App\Models\Production\Project;
+use App\Models\Admin\User;
+use App\Models\Logistic\MaterialUsage;
+use App\Models\Logistic\MaterialRequest;
+use App\Models\Finance\Currency;
 
 class PurgeSoftDeletes extends Command
 {

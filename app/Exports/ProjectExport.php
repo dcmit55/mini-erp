@@ -16,7 +16,7 @@ class ProjectExport implements FromView
 
     public function view(): View
     {
-        return view('projects.export', [
+        return view('production.projects.export', [
             'projects' => $this->projects
         ]);
     }

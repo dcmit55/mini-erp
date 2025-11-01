@@ -4,15 +4,15 @@ namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use App\Models\Inventory;
-use App\Models\Project;
-use App\Models\MaterialRequest;
-use App\Models\GoodsIn;
-use App\Models\GoodsOut;
-use App\Models\MaterialUsage;
-use App\Models\Employee;
-use App\Models\Department;
-use App\Models\Category;
+use App\Models\Logistic\Inventory;
+use App\Models\Production\Project;
+use App\Models\Logistic\MaterialRequest;
+use App\Models\Logistic\GoodsIn;
+use App\Models\Logistic\GoodsOut;
+use App\Models\Logistic\MaterialUsage;
+use App\Models\Hr\Employee;
+use App\Models\Admin\Department;
+use App\Models\Logistic\Category;
 use Carbon\Carbon;
 
 class DashboardController extends Controller

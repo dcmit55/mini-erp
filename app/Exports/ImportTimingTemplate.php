@@ -7,8 +7,8 @@ use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
-use App\Models\Employee;
-use App\Models\Project;
+use App\Models\Hr\Employee;
+use App\Models\Production\Project;
 
 class ImportTimingTemplate implements FromArray, WithHeadings, WithStyles, WithColumnWidths
 {
@@ -33,7 +33,7 @@ class ImportTimingTemplate implements FromArray, WithHeadings, WithStyles, WithC
     public function styles(Worksheet $sheet)
     {
         return [
-           
+
             1 => [
                 'font' => [
                     'bold' => true, // Cetak tebal

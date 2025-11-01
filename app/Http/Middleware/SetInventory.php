@@ -4,7 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use App\Models\Inventory;
+use App\Models\Logistic\Inventory;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 

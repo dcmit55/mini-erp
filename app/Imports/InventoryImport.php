@@ -2,12 +2,12 @@
 
 namespace App\Imports;
 
-use App\Models\Inventory;
-use App\Models\Category;
-use App\Models\Unit;
-use App\Models\Currency;
-use App\Models\Supplier;
-use App\Models\Location;
+use App\Models\Logistic\Inventory;
+use App\Models\Logistic\Category;
+use App\Models\Logistic\Unit;
+use App\Models\Finance\Currency;
+use App\Models\Procurement\Supplier;
+use App\Models\Logistic\Location;
 use Maatwebsite\Excel\Concerns\ToModel;
 
 class InventoryImport implements ToModel

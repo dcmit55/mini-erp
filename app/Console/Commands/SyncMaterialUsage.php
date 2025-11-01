@@ -3,8 +3,8 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use App\Models\Inventory;
-use App\Models\Project;
+use App\Models\Logistic\Inventory;
+use App\Models\Production\Project;
 use App\Helpers\MaterialUsageHelper;
 
 class SyncMaterialUsage extends Command

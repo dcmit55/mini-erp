@@ -1,10 +1,10 @@
 <?php
-// app/Helpers/MaterialUsageHelper.php
+
 namespace App\Helpers;
 
-use App\Models\MaterialUsage;
-use App\Models\GoodsOut;
-use App\Models\GoodsIn;
+use App\Models\Logistic\MaterialUsage;
+use App\Models\Logistic\GoodsOut;
+use App\Models\Logistic\GoodsIn;
 
 class MaterialUsageHelper
 {

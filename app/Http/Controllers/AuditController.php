@@ -133,31 +133,31 @@ class AuditController extends Controller
     {
         $foreignKeyMappings = [
             'Employee' => [
-                'department_id' => ['model' => \App\Models\Department::class, 'field' => 'name'],
+                'department_id' => ['model' => \App\Models\Admin\Department::class, 'field' => 'name'],
             ],
             'User' => [
-                'department_id' => ['model' => \App\Models\Department::class, 'field' => 'name'],
+                'department_id' => ['model' => \App\Models\Admin\Department::class, 'field' => 'name'],
             ],
             'PurchaseRequest' => [
-                'inventory_id' => ['model' => \App\Models\Inventory::class, 'field' => 'name'],
-                'project_id' => ['model' => \App\Models\Project::class, 'field' => 'name'],
-                'supplier_id' => ['model' => \App\Models\Supplier::class, 'field' => 'name'],
-                'currency_id' => ['model' => \App\Models\Currency::class, 'field' => 'name'],
-                'requested_by' => ['model' => \App\Models\User::class, 'field' => 'username'],
+                'inventory_id' => ['model' => \App\Models\Logistic\Inventory::class, 'field' => 'name'],
+                'project_id' => ['model' => \App\Models\Production\Project::class, 'field' => 'name'],
+                'supplier_id' => ['model' => \App\Models\Procurement\Supplier::class, 'field' => 'name'],
+                'currency_id' => ['model' => \App\Models\Finance\Currency::class, 'field' => 'name'],
+                'requested_by' => ['model' => \App\Models\Admin\User::class, 'field' => 'username'],
             ],
             'MaterialPlanning' => [
-                'project_id' => ['model' => \App\Models\Project::class, 'field' => 'name'],
-                'unit_id' => ['model' => \App\Models\Unit::class, 'field' => 'name'],
-                'requested_by' => ['model' => \App\Models\User::class, 'field' => 'username'],
+                'project_id' => ['model' => \App\Models\Production\Project::class, 'field' => 'name'],
+                'unit_id' => ['model' => \App\Models\Logistic\Unit::class, 'field' => 'name'],
+                'requested_by' => ['model' => \App\Models\Admin\User::class, 'field' => 'username'],
             ],
             'Supplier' => [
-                'location_id' => ['model' => \App\Models\LocationSupplier::class, 'field' => 'name'],
+                'location_id' => ['model' => \App\Models\Procurement\LocationSupplier::class, 'field' => 'name'],
             ],
             'LeaveRequest' => [
-                'employee_id' => ['model' => \App\Models\Employee::class, 'field' => 'name'],
+                'employee_id' => ['model' => \App\Models\Hr\Employee::class, 'field' => 'name'],
             ],
             'ProjectPart' => [
-                'project_id' => ['model' => \App\Models\Project::class, 'field' => 'name'],
+                'project_id' => ['model' => \App\Models\Production\Project::class, 'field' => 'name'],
             ],
         ];
 

@@ -1,7 +1,7 @@
 <?php
 namespace App\Events;
 
-use App\Models\MaterialRequest;
+use App\Models\Logistic\MaterialRequest;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Foundation\Events\Dispatchable;
