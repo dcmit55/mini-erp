@@ -16,11 +16,13 @@
                         <a href="{{ route('projects.create') }}" class="btn btn-primary btn-sm flex-shrink-0">
                             <i class="bi bi-plus-circle me-1"></i> Create Project
                         </a>
-                        <button type="button" class="btn btn-info btn-sm flex-shrink-0 artisan-action"
-                            data-action="lark-fetch-job-orders" data-bs-toggle="tooltip" data-bs-placement="bottom"
-                            title="Sync job orders from Lark">
-                            <i class="fas fa-sync me-1"></i> Sync from Lark
-                        </button>
+                        @if (in_array(auth()->user()->role, ['super_admin', 'admin']))
+                            <button type="button" class="btn btn-info btn-sm flex-shrink-0 artisan-action"
+                                data-action="lark-fetch-job-orders" data-bs-toggle="tooltip" data-bs-placement="bottom"
+                                title="Sync job orders from Lark">
+                                <i class="fas fa-sync me-1"></i> Sync from Lark
+                            </button>
+                        @endif
                         <a href="{{ route('projects.export', request()->query()) }}"
                             class="btn btn-outline-success btn-sm flex-shrink-0">
                             <i class="bi bi-file-earmark-excel me-1"></i> Export
@@ -168,6 +170,10 @@
         .artisan-action:disabled {
             opacity: 0.6;
             cursor: not-allowed;
+        }
+
+        .btn:disabled {
+            cursor: not-allowed !important;
         }
     </style>
 @endpush

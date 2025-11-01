@@ -267,6 +267,17 @@ Route::middleware(['auth'])->group(function () {
 
 Route::get('/artisan/{action}', function ($action) {
     try {
+        // Check if user is super_admin
+        if (auth()->user()->role !== 'super_admin') {
+            return response()->json(
+                [
+                    'status' => 'error',
+                    'message' => 'You do not have the required permissions to perform this operation. This action is restricted to system administrators.',
+                ],
+                403,
+            );
+        }
+
         // Normalize action name - convert hyphen to colon untuk Lark command
         $actionMap = [
             'storage-link' => 'storage:link',
