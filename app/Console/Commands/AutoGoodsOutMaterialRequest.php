@@ -12,6 +12,7 @@ use Carbon\Carbon;
 
 class AutoGoodsOutMaterialRequest extends Command
 {
+    // php artisan material-request:auto-goods-out
     protected $signature = 'material-request:auto-goods-out';
     protected $description = 'Auto Goods Out for approved Material Requests older than 2x24 hours';
 

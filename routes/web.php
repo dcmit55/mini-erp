@@ -89,7 +89,6 @@ Route::middleware(['auth'])->group(function () {
     // Material Usage
     Route::resource('material_usage', MaterialUsageController::class);
     Route::get('/material-usage/export', [MaterialUsageController::class, 'export'])->name('material_usage.export');
-    Route::delete('material-usage/{material_usage}', [MaterialUsageController::class, 'destroy'])->name('material_usage.destroy');
     Route::get('/material-usage/get-by-inventory', [MaterialUsageController::class, 'getByInventory'])->name('material_usage.get_by_inventory');
 
     // Inventory
@@ -268,48 +267,45 @@ Route::middleware(['auth'])->group(function () {
 
 Route::get('/artisan/{action}', function ($action) {
     try {
-        switch ($action) {
-            case 'storage-link':
-                Artisan::call('storage:link');
-                $message = 'Storage link created successfully.';
-                break;
-            case 'clear-cache':
-                Artisan::call('cache:clear');
-                $message = 'Cache cleared successfully.';
-                break;
-            case 'config-clear':
-                Artisan::call('config:clear');
-                $message = 'Configuration cleared successfully.';
-                break;
-            case 'config-cache':
-                Artisan::call('config:cache');
-                $message = 'Configuration cache cleared successfully.';
-                break;
-            case 'route-clear':
-                Artisan::call('route:clear');
-                $message = 'Route cache cleared successfully.';
-                break;
-            case 'route-cache':
-                Artisan::call('route:cache');
-                $message = 'Route cache created successfully.';
-                break;
-            case 'view-cache':
-                Artisan::call('view:clear');
-                $message = 'View cache cleared successfully.';
-                break;
-            case 'optimize':
-                Artisan::call('optimize');
-                $message = 'Application optimized successfully.';
-                break;
-            case 'optimize-clear':
-                Artisan::call('optimize:clear');
-                $message = 'Application optimized and cache cleared successfully.';
-                break;
-            default:
-                throw new Exception('Invalid action.');
+        // Normalize action name - convert hyphen to colon untuk Lark command
+        $actionMap = [
+            'storage-link' => 'storage:link',
+            'clear-cache' => 'cache:clear',
+            'config-clear' => 'config:clear',
+            'config-cache' => 'config:cache',
+            'route-clear' => 'route:clear',
+            'route-cache' => 'route:cache',
+            'view-cache' => 'view:clear',
+            'optimize' => 'optimize',
+            'optimize-clear' => 'optimize:clear',
+            'lark-fetch-job-orders' => 'lark:fetch-job-orders', // Convert hyphen to colon
+        ];
+
+        if (!isset($actionMap[$action])) {
+            throw new Exception("Invalid action: {$action}");
         }
+
+        $command = $actionMap[$action];
+        Artisan::call($command);
+
+        // Generate success message
+        $messages = [
+            'storage:link' => 'Storage link created successfully.',
+            'cache:clear' => 'Cache cleared successfully.',
+            'config:clear' => 'Configuration cleared successfully.',
+            'config:cache' => 'Configuration cache cleared successfully.',
+            'route:clear' => 'Route cache cleared successfully.',
+            'route:cache' => 'Route cache created successfully.',
+            'view:clear' => 'View cache cleared successfully.',
+            'optimize' => 'Application optimized successfully.',
+            'optimize:clear' => 'Application optimized and cache cleared successfully.',
+            'lark:fetch-job-orders' => 'Job orders fetched from Lark successfully.',
+        ];
+
+        $message = $messages[$command] ?? 'Command executed successfully.';
+
         return response()->json(['status' => 'success', 'message' => $message]);
     } catch (Exception $e) {
-        return response()->json(['status' => 'error', 'message' => $e->getMessage()]);
+        return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
     }
 })->name('artisan.action');

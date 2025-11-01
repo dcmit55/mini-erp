@@ -10,6 +10,7 @@ use App\Models\Admin\Department;
 
 class FetchLarkJobOrders extends Command
 {
+    // php artisan lark:fetch-job-orders
     protected $signature = 'lark:fetch-job-orders {--force : Force sync all data including previously deleted ones} {--debug : Show detailed field information}';
     protected $description = 'Fetch job orders from Lark and sync to projects table';
 

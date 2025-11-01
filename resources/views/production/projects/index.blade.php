@@ -16,6 +16,11 @@
                         <a href="{{ route('projects.create') }}" class="btn btn-primary btn-sm flex-shrink-0">
                             <i class="bi bi-plus-circle me-1"></i> Create Project
                         </a>
+                        <button type="button" class="btn btn-info btn-sm flex-shrink-0 artisan-action"
+                            data-action="lark-fetch-job-orders" data-bs-toggle="tooltip" data-bs-placement="bottom"
+                            title="Sync job orders from Lark">
+                            <i class="fas fa-sync me-1"></i> Sync from Lark
+                        </button>
                         <a href="{{ route('projects.export', request()->query()) }}"
                             class="btn btn-outline-success btn-sm flex-shrink-0">
                             <i class="bi bi-file-earmark-excel me-1"></i> Export
@@ -154,6 +159,18 @@
         </div>
     </div>
 @endsection
+@push('styles')
+    <style>
+        .artisan-action {
+            transition: all 0.3s ease;
+        }
+
+        .artisan-action:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+    </style>
+@endpush
 @push('scripts')
     <script>
         $(document).ready(function() {
@@ -221,7 +238,67 @@
                 }
             });
         });
-        document.addEventListener("DOMContentLoaded", function() {
+
+        // Artisan Actions
+        function initializeArtisanActions() {
+            document.querySelectorAll('.artisan-action').forEach(button => {
+                button.addEventListener('click', function() {
+                    const action = this.dataset.action;
+
+                    Swal.fire({
+                        title: 'Processing...',
+                        text: `Executing ${action}...`,
+                        icon: 'info',
+                        scrollbarPadding: false,
+                        allowOutsideClick: false,
+                        showConfirmButton: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+
+                    fetch(`/artisan/${action}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'success') {
+                                Swal.fire({
+                                    title: 'Success!',
+                                    text: data.message,
+                                    icon: 'success',
+                                    confirmButtonText: 'OK'
+                                }).then(() => {
+                                    // Reload halaman setelah sync berhasil
+                                    if (action === 'lark:fetch-job-orders') {
+                                        location.reload();
+                                    }
+                                });
+                            } else {
+                                Swal.fire({
+                                    title: 'Error!',
+                                    text: data.message,
+                                    icon: 'error',
+                                    confirmButtonText: 'OK'
+                                });
+                            }
+                        })
+                        .catch(error => {
+                            Swal.fire({
+                                title: 'Error!',
+                                text: 'An error occurred. Please try again.',
+                                icon: 'error',
+                                confirmButtonText: 'OK'
+                            });
+                            console.error('Error:', error);
+                        });
+                });
+            });
+        }
+
+        // Initialize saat DOM ready
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeArtisanActions();
+
+            // Initialize tooltips
             var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
             tooltipTriggerList.forEach(function(tooltipTriggerEl) {
                 new bootstrap.Tooltip(tooltipTriggerEl);
