@@ -36,6 +36,7 @@ use App\Http\Controllers\Procurement\PreShippingController;
 use App\Models\Procurement\PreShipping;
 use App\Http\Controllers\Hr\LeaveRequestController;
 use App\Http\Controllers\Production\MaterialPlanningController;
+use App\Http\Controllers\Hr\AttendanceController;
 
 /*
 |--------------------------------------------------------------------------
@@ -248,6 +249,21 @@ Route::middleware(['auth'])->group(function () {
     // Goods Receive
     Route::post('/goods-receive/store', [GoodsReceiveController::class, 'store'])->name('goods-receive.store');
     Route::get('/goods-receive', [GoodsReceiveController::class, 'index'])->name('goods-receive.index');
+
+    // Attendance
+    Route::prefix('attendance')
+        ->name('attendance.')
+        ->group(function () {
+            Route::get('/', [AttendanceController::class, 'index'])->name('index');
+            Route::post('/store', [AttendanceController::class, 'store'])->name('store');
+            Route::post('/bulk-update', [AttendanceController::class, 'bulkUpdate'])->name('bulk-update');
+            Route::post('/initialize', [AttendanceController::class, 'initializeDefault'])->name('initialize');
+
+            // Attendance List/History
+            Route::get('/list', [AttendanceController::class, 'list'])->name('list');
+            Route::get('/export', [AttendanceController::class, 'exportList'])->name('export');
+            Route::delete('/{id}', [AttendanceController::class, 'destroy'])->name('destroy');
+        });
 });
 
 Route::get('/artisan/{action}', function ($action) {
