@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Oct 30, 2025 at 02:31 AM
+-- Generation Time: Nov 01, 2025 at 04:48 AM
 -- Server version: 8.0.30
 -- PHP Version: 8.3.26
 
@@ -20,6 +20,43 @@ SET time_zone = "+00:00";
 --
 -- Database: `inventory_db_upg_larv`
 --
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `attendances`
+--
+
+CREATE TABLE `attendances` (
+  `id` bigint UNSIGNED NOT NULL,
+  `employee_id` bigint UNSIGNED NOT NULL,
+  `date` date NOT NULL,
+  `status` enum('present','absent','late') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'present',
+  `late_time` time DEFAULT NULL,
+  `recorded_time` time NOT NULL,
+  `recorded_by` bigint UNSIGNED NOT NULL,
+  `notes` text COLLATE utf8mb4_unicode_ci,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `attendances`
+--
+
+INSERT INTO `attendances` (`id`, `employee_id`, `date`, `status`, `late_time`, `recorded_time`, `recorded_by`, `notes`, `created_at`, `updated_at`) VALUES
+(1, 1, '2025-11-01', 'absent', NULL, '09:56:42', 1, NULL, '2025-11-01 02:24:11', '2025-11-01 02:56:42'),
+(2, 2, '2025-11-01', 'late', '09:56:00', '09:56:52', 1, NULL, '2025-11-01 02:24:11', '2025-11-01 02:56:52'),
+(3, 6, '2025-11-01', 'absent', NULL, '09:56:58', 1, NULL, '2025-11-01 02:24:11', '2025-11-01 02:56:58'),
+(4, 15, '2025-11-01', 'present', NULL, '09:57:11', 1, NULL, '2025-11-01 02:24:11', '2025-11-01 02:57:11'),
+(5, 5, '2025-11-01', 'absent', NULL, '09:56:59', 1, NULL, '2025-11-01 02:56:59', '2025-11-01 02:56:59'),
+(6, 4, '2025-11-01', 'present', NULL, '09:57:12', 1, NULL, '2025-11-01 02:57:09', '2025-11-01 02:57:12'),
+(7, 1, '2025-11-02', 'late', NULL, '10:00:06', 1, NULL, '2025-11-01 02:59:50', '2025-11-01 03:00:06'),
+(8, 2, '2025-11-02', 'late', NULL, '10:00:06', 1, NULL, '2025-11-01 02:59:50', '2025-11-01 03:00:06'),
+(9, 6, '2025-11-02', 'late', NULL, '10:00:06', 1, NULL, '2025-11-01 02:59:50', '2025-11-01 03:00:07'),
+(10, 15, '2025-11-02', 'late', NULL, '10:00:06', 1, NULL, '2025-11-01 02:59:50', '2025-11-01 03:00:06'),
+(11, 4, '2025-11-02', 'late', NULL, '10:00:06', 1, NULL, '2025-11-01 03:00:06', '2025-11-01 03:00:06'),
+(12, 5, '2025-11-02', 'late', NULL, '10:00:06', 1, NULL, '2025-11-01 03:00:07', '2025-11-01 03:00:07');
 
 -- --------------------------------------------------------
 
@@ -187,7 +224,38 @@ INSERT INTO `audits` (`id`, `user_type`, `user_id`, `event`, `auditable_type`, `
 (141, 'App\\Models\\User', 1, 'created', 'App\\Models\\ProjectPart', 18, '[]', '{\"part_name\":\"test part\",\"project_id\":235,\"id\":18}', 'https://inventory-system-v2-upg-larv.test/projects/235', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-29 09:33:11', '2025-10-29 09:33:11'),
 (142, 'App\\Models\\User', 1, 'created', 'App\\Models\\ProjectPart', 19, '[]', '{\"part_name\":\"test part2\",\"project_id\":235,\"id\":19}', 'https://inventory-system-v2-upg-larv.test/projects/235', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-29 09:33:11', '2025-10-29 09:33:11'),
 (143, NULL, 1, 'updated', 'App\\Models\\Project', 235, '{\"parts\":[]}', '{\"parts\":[\"test part\",\"test part2\"]}', 'https://inventory-system-v2-upg-larv.test/projects/235', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-29 09:33:11', '2025-10-29 09:33:11'),
-(144, 'App\\Models\\User', 1, 'restored', 'App\\Models\\Project', 81, '[]', '{\"created_by\":\"logitech\",\"name\":\"test lliuy\",\"qty\":1,\"department_id\":13,\"project_status_id\":null,\"img\":null,\"start_date\":null,\"deadline\":null,\"finish_date\":null}', 'https://inventory-system-v2-upg-larv.test/trash/restore', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-30 01:42:54', '2025-10-30 01:42:54');
+(144, 'App\\Models\\User', 1, 'restored', 'App\\Models\\Project', 81, '[]', '{\"created_by\":\"logitech\",\"name\":\"test lliuy\",\"qty\":1,\"department_id\":13,\"project_status_id\":null,\"img\":null,\"start_date\":null,\"deadline\":null,\"finish_date\":null}', 'https://inventory-system-v2-upg-larv.test/trash/restore', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-30 01:42:54', '2025-10-30 01:42:54'),
+(145, 'App\\Models\\User', 1, 'updated', 'App\\Models\\User', 1, '[]', '[]', 'https://inventory-system-v2-upg-larv.test/logout', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-30 04:14:00', '2025-10-30 04:14:00'),
+(146, 'App\\Models\\User', 1, 'updated', 'App\\Models\\User', 1, '[]', '[]', 'https://inventory-system-v2-upg-larv.test/logout', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-30 04:18:33', '2025-10-30 04:18:33'),
+(147, 'App\\Models\\User', 19, 'created', 'App\\Models\\LeaveRequest', 16, '[]', '{\"employee_id\":\"2\",\"start_date\":\"2025-10-30 00:00:00\",\"end_date\":\"2025-10-31 00:00:00\",\"type\":\"ANNUAL\",\"duration\":\"2\",\"reason\":\"test\",\"approval_1\":\"pending\",\"approval_2\":\"pending\"}', 'https://inventory-system-v2-upg-larv.test/leave_requests', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-30 04:19:03', '2025-10-30 04:19:03'),
+(148, 'App\\Models\\User', 1, 'updated', 'App\\Models\\User', 1, '[]', '[]', 'https://inventory-system-v2-upg-larv.test/logout', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-30 04:24:31', '2025-10-30 04:24:31'),
+(149, NULL, NULL, 'created', 'App\\Models\\LeaveRequest', 17, '[]', '{\"employee_id\":\"15\",\"start_date\":\"2025-10-30 00:00:00\",\"end_date\":\"2025-10-31 00:00:00\",\"type\":\"ANNUAL\",\"duration\":\"2\",\"reason\":null,\"approval_1\":\"pending\",\"approval_2\":\"pending\"}', 'https://inventory-system-v2-upg-larv.test/leave_requests', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-30 04:49:24', '2025-10-30 04:49:24'),
+(150, 'App\\Models\\User', 1, 'updated', 'App\\Models\\User', 1, '[]', '[]', 'https://inventory-system-v2-upg-larv.test/logout', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-30 04:51:55', '2025-10-30 04:51:55'),
+(151, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Finance\\Currency', 1, '{\"exchange_rate\":\"16286.50\"}', '{\"exchange_rate\":\"16280\"}', 'https://inventory-system-v2-upg-larv.test/currencies/1', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-30 08:54:39', '2025-10-30 08:54:39'),
+(152, 'App\\Models\\User', 1, 'created', 'App\\Models\\Finance\\Currency', 62, '[]', '{\"name\":\"testcurkkk\",\"exchange_rate\":\"1\"}', 'https://inventory-system-v2-upg-larv.test/currencies', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-30 08:54:51', '2025-10-30 08:54:51'),
+(153, 'App\\Models\\User', 1, 'created', 'App\\Models\\Finance\\Currency', 63, '[]', '{\"name\":\"testcuryyyyk\",\"exchange_rate\":\"123\"}', 'https://inventory-system-v2-upg-larv.test/currencies', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-30 08:56:15', '2025-10-30 08:56:15'),
+(154, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Project', 25, '{\"project_status_id\":null,\"img\":null,\"start_date\":null,\"deadline\":null,\"finish_date\":null}', '{\"project_status_id\":\"2\",\"img\":\"projects\\/TeWSjMaX4L6utwJSwtluhQnCXBnbp2OoMMTEpglR.jpg\",\"start_date\":\"2025-10-26\",\"deadline\":\"2025-11-08\",\"finish_date\":\"2025-11-08\"}', 'https://inventory-system-v2-upg-larv.test/projects/25', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-30 09:31:05', '2025-10-30 09:31:05'),
+(155, 'App\\Models\\User', 1, 'created', 'App\\Models\\ProjectPart', 20, '[]', '{\"part_name\":\"Kepala\",\"project_id\":25,\"id\":20}', 'https://inventory-system-v2-upg-larv.test/projects/25', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-30 09:31:05', '2025-10-30 09:31:05'),
+(156, 'App\\Models\\User', 1, 'created', 'App\\Models\\ProjectPart', 21, '[]', '{\"part_name\":\"Pundak\",\"project_id\":25,\"id\":21}', 'https://inventory-system-v2-upg-larv.test/projects/25', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-30 09:31:05', '2025-10-30 09:31:05'),
+(157, 'App\\Models\\User', 1, 'created', 'App\\Models\\ProjectPart', 22, '[]', '{\"part_name\":\"Lutut\",\"project_id\":25,\"id\":22}', 'https://inventory-system-v2-upg-larv.test/projects/25', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-30 09:31:05', '2025-10-30 09:31:05'),
+(158, 'App\\Models\\User', 1, 'created', 'App\\Models\\ProjectPart', 23, '[]', '{\"part_name\":\"Kaki\",\"project_id\":25,\"id\":23}', 'https://inventory-system-v2-upg-larv.test/projects/25', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-30 09:31:05', '2025-10-30 09:31:05'),
+(159, NULL, 1, 'updated', 'App\\Models\\Project', 25, '{\"parts\":[]}', '{\"parts\":[\"Kepala\",\"Pundak\",\"Lutut\",\"Kaki\"]}', 'https://inventory-system-v2-upg-larv.test/projects/25', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-30 09:31:05', '2025-10-30 09:31:05'),
+(160, 'App\\Models\\User', 1, 'deleted', 'App\\Models\\Hr\\LeaveRequest', 17, '{\"employee_id\":15,\"start_date\":\"2025-10-30\",\"end_date\":\"2025-10-31\",\"duration\":\"2.00\",\"type\":\"ANNUAL\",\"reason\":null,\"approval_1\":\"pending\",\"approval_2\":\"pending\"}', '[]', 'https://inventory-system-v2-upg-larv.test/leave_requests/17', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-30 09:54:23', '2025-10-30 09:54:23'),
+(161, 'App\\Models\\User', 1, 'deleted', 'App\\Models\\Hr\\LeaveRequest', 16, '{\"employee_id\":2,\"start_date\":\"2025-10-30\",\"end_date\":\"2025-10-31\",\"duration\":\"2.00\",\"type\":\"ANNUAL\",\"reason\":\"test\",\"approval_1\":\"pending\",\"approval_2\":\"pending\"}', '[]', 'https://inventory-system-v2-upg-larv.test/leave_requests/16', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-30 09:54:31', '2025-10-30 09:54:31'),
+(162, 'App\\Models\\User', 1, 'created', 'App\\Models\\Procurement\\Supplier', 40, '[]', '{\"supplier_code\":null,\"name\":\"testsuppppli\",\"contact_person\":null,\"address\":null,\"location_id\":null,\"referral_link\":null,\"lead_time_days\":null,\"status\":\"active\",\"remark\":null}', 'https://inventory-system-v2-upg-larv.test/suppliers/quick-store', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-10-31 06:57:24', '2025-10-31 06:57:24'),
+(163, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 21, '{\"qty_to_buy\":null}', '{\"qty_to_buy\":\"12\"}', 'https://inventory-system-v2-upg-larv.test/purchase_requests/21/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-11-01 02:24:38', '2025-11-01 02:24:38'),
+(164, 'App\\Models\\User', 1, 'created', 'App\\Models\\Production\\Project', 322, '[]', '{\"name\":\"Legoland Kai\",\"qty\":1,\"department_id\":17,\"created_by\":\"lark-sync\"}', 'https://inventory-system-v2-upg-larv.test/artisan/lark-fetch-job-orders', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-11-01 03:49:27', '2025-11-01 03:49:27'),
+(165, 'App\\Models\\User', 1, 'created', 'App\\Models\\Production\\Project', 323, '[]', '{\"name\":\"Legoland Pirate\",\"qty\":1,\"department_id\":17,\"created_by\":\"lark-sync\"}', 'https://inventory-system-v2-upg-larv.test/artisan/lark-fetch-job-orders', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-11-01 03:49:28', '2025-11-01 03:49:28'),
+(166, 'App\\Models\\User', 1, 'deleted', 'App\\Models\\Production\\Project', 323, '{\"created_by\":\"lark-sync\",\"name\":\"Legoland Pirate\",\"qty\":1,\"department_id\":17,\"project_status_id\":null,\"img\":null,\"start_date\":null,\"deadline\":null,\"finish_date\":null}', '[]', 'https://inventory-system-v2-upg-larv.test/projects/323', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-11-01 03:50:02', '2025-11-01 03:50:02'),
+(167, 'App\\Models\\User', 1, 'created', 'App\\Models\\Production\\Project', 324, '[]', '{\"name\":\"Legoland Pirate\",\"qty\":1,\"department_id\":17,\"created_by\":\"lark-sync\"}', 'https://inventory-system-v2-upg-larv.test/artisan/lark-fetch-job-orders', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-11-01 03:50:11', '2025-11-01 03:50:11'),
+(168, 'App\\Models\\User', 1, 'created', 'App\\Models\\Production\\Project', 325, '[]', '{\"name\":\"Chingay Ingot hat\",\"qty\":1,\"department_id\":17,\"created_by\":\"lark-sync\"}', 'https://inventory-system-v2-upg-larv.test/artisan/lark-fetch-job-orders', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-11-01 04:08:46', '2025-11-01 04:08:46'),
+(169, 'App\\Models\\User', 1, 'created', 'App\\Models\\Production\\Project', 326, '[]', '{\"name\":\"Johnnie Walker Batch 1 - COB LED Add-Ons\",\"qty\":1,\"department_id\":17,\"created_by\":\"lark-sync\"}', 'https://inventory-system-v2-upg-larv.test/artisan/lark-fetch-job-orders', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-11-01 04:30:44', '2025-11-01 04:30:44'),
+(170, 'App\\Models\\User', 1, 'created', 'App\\Models\\Production\\Project', 327, '[]', '{\"name\":\"Johnnie Walker Batch 2 - COB LED Add-Ons\",\"qty\":1,\"department_id\":17,\"created_by\":\"lark-sync\"}', 'https://inventory-system-v2-upg-larv.test/artisan/lark-fetch-job-orders', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-11-01 04:30:44', '2025-11-01 04:30:44'),
+(171, 'App\\Models\\User', 1, 'created', 'App\\Models\\Production\\Project', 328, '[]', '{\"name\":\"Chingay - Lotus Dance\",\"qty\":1,\"department_id\":17,\"created_by\":\"lark-sync\"}', 'https://inventory-system-v2-upg-larv.test/artisan/lark-fetch-job-orders', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-11-01 04:30:44', '2025-11-01 04:30:44'),
+(172, 'App\\Models\\User', 1, 'created', 'App\\Models\\Production\\Project', 329, '[]', '{\"name\":\"Chingay - Present Box\",\"qty\":1,\"department_id\":17,\"created_by\":\"lark-sync\"}', 'https://inventory-system-v2-upg-larv.test/artisan/lark-fetch-job-orders', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-11-01 04:30:44', '2025-11-01 04:30:44'),
+(173, 'App\\Models\\User', 1, 'created', 'App\\Models\\Production\\Project', 330, '[]', '{\"name\":\"Chingay - Fish Lantern\",\"qty\":1,\"department_id\":17,\"created_by\":\"lark-sync\"}', 'https://inventory-system-v2-upg-larv.test/artisan/lark-fetch-job-orders', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-11-01 04:34:22', '2025-11-01 04:34:22'),
+(174, 'App\\Models\\User', 1, 'created', 'App\\Models\\Production\\Project', 331, '[]', '{\"name\":\"Johnnie Walker Batch 3 - COB LED Add-Ons #6 to #10\",\"qty\":1,\"department_id\":17,\"created_by\":\"lark-sync\"}', 'https://inventory-system-v2-upg-larv.test/artisan/lark-fetch-job-orders', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-11-01 04:43:25', '2025-11-01 04:43:25'),
+(175, 'App\\Models\\User', 1, 'updated', 'App\\Models\\User', 1, '[]', '[]', 'https://inventory-system-v2-upg-larv.test/logout', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', NULL, '2025-11-01 04:43:43', '2025-11-01 04:43:43');
 
 -- --------------------------------------------------------
 
@@ -301,7 +369,7 @@ CREATE TABLE `currencies` (
 --
 
 INSERT INTO `currencies` (`id`, `name`, `exchange_rate`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(1, 'USD', '16286.50', '2025-05-07 20:10:36', '2025-06-11 06:42:27', NULL),
+(1, 'USD', '16280', '2025-05-07 20:10:36', '2025-10-30 08:54:39', NULL),
 (2, 'IDR', '1', '2025-05-07 20:10:53', '2025-05-07 23:21:32', NULL),
 (5, 'SGD', '12671.96', '2025-05-07 23:21:45', '2025-06-09 02:28:10', NULL),
 (6, 'RMB', '2265.72', '2025-05-07 23:21:54', '2025-06-09 02:28:43', NULL),
@@ -333,7 +401,9 @@ INSERT INTO `currencies` (`id`, `name`, `exchange_rate`, `created_at`, `updated_
 (58, 'asdcasas', '344', '2025-07-18 09:39:26', '2025-07-18 09:39:26', NULL),
 (59, 'testasdas', '567', '2025-07-19 02:12:45', '2025-07-19 02:12:45', NULL),
 (60, 'okeee', '12312', '2025-07-19 02:26:45', '2025-07-19 02:26:45', NULL),
-(61, 'KMB', '12', '2025-10-25 03:41:41', '2025-10-25 03:41:41', NULL);
+(61, 'KMB', '12', '2025-10-25 03:41:41', '2025-10-25 03:41:41', NULL),
+(62, 'testcurkkk', '1', '2025-10-30 08:54:51', '2025-10-30 08:54:51', NULL),
+(63, 'testcuryyyyk', '123', '2025-10-30 08:56:15', '2025-10-30 08:56:15', NULL);
 
 -- --------------------------------------------------------
 
@@ -369,7 +439,8 @@ INSERT INTO `departments` (`id`, `name`, `created_at`, `updated_at`) VALUES
 (14, 'cdm', '2025-07-19 03:27:17', '2025-07-19 03:27:17'),
 (15, 'HR', '2025-07-19 03:44:50', '2025-07-19 03:44:50'),
 (16, 'abat', '2025-07-19 03:48:04', '2025-07-19 03:48:04'),
-(17, 'Lark Imported', '2025-10-15 09:53:10', '2025-10-15 09:53:10');
+(17, 'Lark Imported', '2025-10-15 09:53:10', '2025-10-15 09:53:10'),
+(18, 'test Dept5566', '2025-10-30 08:36:38', '2025-10-30 08:36:38');
 
 -- --------------------------------------------------------
 
@@ -5133,7 +5204,10 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES
 (111, '2025_10_23_100009_add_soft_deletes_to_suppliers_table', 75),
 (112, '2025_10_24_112207_create_location_supplier', 75),
 (113, '2025_10_28_094543_create_location_supplier_table', 76),
-(114, '2025_10_28_094551_add_fields_to_suppliers_table', 76);
+(114, '2025_10_28_094551_add_fields_to_suppliers_table', 76),
+(115, '2025_10_29_082844_add_qty_to_buy_and_remark_to_purchase_requests_table', 77),
+(116, '2025_10_29_104736_create_attendances', 77),
+(117, '2025_10_30_160000_add_late_time_to_attendances_table', 77);
 
 -- --------------------------------------------------------
 
@@ -5191,7 +5265,7 @@ CREATE TABLE `pre_shippings` (
 --
 
 INSERT INTO `pre_shippings` (`id`, `purchase_request_id`, `group_key`, `domestic_waybill_no`, `same_supplier_selection`, `percentage_if_same_supplier`, `domestic_cost`, `cost_allocation_method`, `allocation_percentage`, `allocated_cost`, `created_at`, `updated_at`) VALUES
-(1, 1, 'GRP_5_20251004', '22', 0, NULL, 50.00, 'quantity', NULL, 50.00, '2025-09-15 07:53:28', '2025-10-07 04:13:56'),
+(1, 1, 'GRP_5_20251004', '22', 0, NULL, 50.00, 'quantity', NULL, 50.00, '2025-09-15 07:53:28', '2025-10-31 07:03:56'),
 (2, 3, 'GRP_7_20251002', '#D123', 0, NULL, 250.00, 'value', NULL, 59.39, '2025-09-15 07:53:28', '2025-10-07 04:14:26'),
 (3, 4, 'GRP_16_20251001', NULL, 0, NULL, NULL, 'quantity', NULL, NULL, '2025-09-15 07:53:28', '2025-10-03 07:56:26'),
 (4, 7, 'GRP_21_20251008', NULL, 0, NULL, NULL, 'quantity', NULL, NULL, '2025-09-15 08:00:38', '2025-10-03 07:56:26'),
@@ -5244,7 +5318,7 @@ INSERT INTO `projects` (`id`, `created_by`, `name`, `qty`, `department_id`, `pro
 (21, '', 'Test', 5, 2, NULL, 'projects/MzmRuUIHFFQVV1HRgM77EbYwWK3BCftJ7HMdoRm1.png', NULL, '2025-05-24', NULL, '2025-05-19 07:45:58', '2025-07-16 02:35:07', NULL),
 (23, '', 'Test 3', 2, 2, NULL, 'projects/iJdBsy9olbY2oyMq4lJnZskulz3RrdnM725oWiDY.png', NULL, '2025-05-24', NULL, '2025-05-19 07:46:43', '2025-07-16 02:35:07', NULL),
 (24, '', 'Project 3', 2, 1, NULL, 'projects/ejZvq2QTLy8z5bM6y7UEUeAIPMTWeEuUNshlhA63.jpg', NULL, '2025-05-23', NULL, '2025-05-19 07:47:19', '2025-07-16 02:35:07', NULL),
-(25, '', 'Bobo', 1, 1, NULL, NULL, NULL, NULL, NULL, '2025-05-19 07:50:24', '2025-07-16 02:35:07', NULL),
+(25, '', 'Bobo', 1, 1, 2, 'projects/TeWSjMaX4L6utwJSwtluhQnCXBnbp2OoMMTEpglR.jpg', '2025-10-26', '2025-11-08', '2025-11-08', '2025-05-19 07:50:24', '2025-10-30 09:31:05', NULL),
 (26, '', 'Qucking', 12, 1, NULL, 'projects/h2aE72Y5oPCkEnDCqAqhiMOriqWt0Ulh6uyXhO2X.png', NULL, '2025-05-31', NULL, '2025-05-19 07:51:55', '2025-07-16 02:35:07', NULL),
 (27, '', 'Mascot 7', 1, 2, NULL, NULL, NULL, NULL, NULL, '2025-05-19 08:02:52', '2025-07-16 02:35:07', NULL),
 (31, '', 'test99', 9, 1, NULL, NULL, NULL, NULL, NULL, '2025-05-19 09:07:05', '2025-07-16 02:35:07', NULL),
@@ -5442,7 +5516,7 @@ INSERT INTO `projects` (`id`, `created_by`, `name`, `qty`, `department_id`, `pro
 (231, 'lark-sync', 'Angklung SYF Costume', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-10-15 09:53:10', '2025-10-15 09:53:10', NULL),
 (232, 'lark-sync', 'Handbell SYF Costume', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-10-15 09:53:10', '2025-10-15 09:53:10', NULL),
 (233, 'lark-sync', 'Pepperoni Pizza Plushie 20cm', 1, 17, 3, NULL, NULL, '2025-10-25', NULL, '2025-10-15 09:53:11', '2025-10-24 03:05:10', NULL),
-(234, 'lark-sync', 'Dinosaur Plushie', 4, 4, 2, 'projects/3yLbqOe34UKrhbJCC7Zv04Hq0EfzScTMeibcfVdz.jpg', '2025-10-28', '2025-10-31', '2025-11-08', '2025-10-15 09:53:11', '2025-10-29 08:56:30', NULL),
+(234, 'lark-sync', 'Dinosaur Plushie', 1, 17, 2, 'projects/3yLbqOe34UKrhbJCC7Zv04Hq0EfzScTMeibcfVdz.jpg', '2025-10-28', '2025-10-31', '2025-11-08', '2025-10-15 09:53:11', '2025-11-01 03:40:54', NULL),
 (235, 'lark-sync', 'Motion - Iamzenith', 1, 17, 2, NULL, '2025-10-15', '2025-11-01', NULL, '2025-10-15 09:53:11', '2025-10-29 09:33:11', NULL),
 (236, 'lark-sync', 'Kleig', 1, 17, 3, NULL, NULL, '2025-10-28', NULL, '2025-10-15 09:53:11', '2025-10-24 03:05:44', NULL),
 (237, 'lark-sync', 'Ora Mascot', 1, 17, 2, NULL, NULL, '2025-10-27', NULL, '2025-10-15 09:53:11', '2025-10-24 03:06:28', NULL),
@@ -5463,7 +5537,83 @@ INSERT INTO `projects` (`id`, `created_by`, `name`, `qty`, `department_id`, `pro
 (252, 'lark-sync', 'UNDEAD MUMMY', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-10-15 09:53:11', '2025-10-15 09:53:11', NULL),
 (253, 'logitech', 'TEST PTYOOOO12', 2, 15, 2, NULL, '2025-10-26', '2025-11-01', NULL, '2025-10-16 09:56:53', '2025-10-29 04:32:55', NULL),
 (254, 'tari', 'test role12345r', 2, 4, 2, NULL, NULL, '2025-10-29', NULL, '2025-10-17 04:23:20', '2025-10-24 03:04:49', NULL),
-(255, 'logitech', 'test audit', 2, 4, 2, 'projects/Cxuem5n38OgdjVhcPsq3GqEFzv2erOqH60399F6A.png', '2025-10-28', '2025-10-31', '2025-11-05', '2025-10-29 09:28:01', '2025-10-29 09:28:01', NULL);
+(255, 'logitech', 'test audit', 2, 4, 2, 'projects/Cxuem5n38OgdjVhcPsq3GqEFzv2erOqH60399F6A.png', '2025-10-28', '2025-10-31', '2025-11-05', '2025-10-29 09:28:01', '2025-10-29 09:28:01', NULL),
+(256, 'lark-sync', 'Reemo Mascot', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(257, 'lark-sync', 'Johnnie Walker LED Tailcoat and Hat 1st Set', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(258, 'lark-sync', 'Johnnie Walker LED Tailcoat and Hat Set #2, 3, 4, 5', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(259, 'lark-sync', 'SMRT NOT Mascot', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(260, 'lark-sync', 'SMRT NOT Mascot Fibreglass Statue', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(261, 'lark-sync', 'SMRT NOT Mascot LED Face', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(262, 'lark-sync', 'Pharoah Costume', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(263, 'lark-sync', 'WALK OF FAME DANCER', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(264, 'lark-sync', 'STAR SPOTLIGHT', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(265, 'lark-sync', 'FLOAT PUSHER/ROLLING MARQUEE', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(266, 'lark-sync', 'Foxy Puppet', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(267, 'lark-sync', 'Blaze Plush Toy', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(268, 'lark-sync', 'Ablaze', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(269, 'lark-sync', 'Pirate', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(270, 'lark-sync', 'Duopharma Tiger Bon Bon Mascot', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(271, 'lark-sync', 'Duck Astronaut Mascot', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(272, 'lark-sync', 'Jumpshot Pink Warriors Mascot', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(273, 'lark-sync', 'Unique Fire Extinguisher Mascot', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(274, 'lark-sync', 'Tawan Tadau Inflatable Mascot', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(275, 'lark-sync', 'Puffy Rewrap', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(276, 'lark-sync', 'Xiao Hai', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(277, 'lark-sync', 'Penguin', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(278, 'lark-sync', 'Poofy', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(279, 'lark-sync', '3D Fan Repair 3D printing', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(280, 'lark-sync', 'Cute Bunny V3', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(281, 'lark-sync', 'Droid Standee', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(282, 'lark-sync', 'God of Fortune', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(283, 'lark-sync', 'Puffy', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(284, 'lark-sync', 'Hand Transformers', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(285, 'lark-sync', 'Arkham Knight Helmet', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(286, 'lark-sync', '3D Print Parts and Accessories for Stilt Stale Guards', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(287, 'lark-sync', 'Squeaky Mascot Overlay', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(288, 'lark-sync', 'Hat', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(289, 'lark-sync', 'Staff', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(290, 'lark-sync', '3D Print Parts for Belt Buckle, Hat Ball and Rose for Epaulettes', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(291, 'lark-sync', 'COB LED Add-Ons', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(292, 'lark-sync', 'Robozeta', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(293, 'lark-sync', 'Nanyang Pri Chinese Orchestra Costumes', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(294, 'lark-sync', 'Mediacorp - Horse', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(295, 'lark-sync', 'Hyrox \"Rox\"', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(296, 'lark-sync', 'Shangri La Rasa Ria - Tadau - Inflatable', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(297, 'lark-sync', 'West View Primary Dance - Red Riding Hood', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(298, 'lark-sync', 'West View Primary Dance - Wolf Costume', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(299, 'lark-sync', 'Punggol Green Primary School Mascot - School Bag', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(300, 'lark-sync', 'KPTM Sting Mascot', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(301, 'lark-sync', 'Dawn Sentinel  Animatronics (kenton)', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(302, 'lark-sync', 'Dawn Sentinel Animatronics', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(303, 'lark-sync', 'KLIVE Bear Mascot Overlay', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(304, 'lark-sync', 'NUSH Mini Polo T with hanger', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(305, 'lark-sync', 'Judy Swan', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(306, 'lark-sync', 'School Eraser Flag Props - Singapore, USA, Italy', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(307, 'lark-sync', 'Jurong Pri - Cheerleader Dance Costume', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(308, 'lark-sync', 'Santa Rock', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(309, 'lark-sync', 'Jagger Jinglebell', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(310, 'lark-sync', 'EL Lights Elves (Female)', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(311, 'lark-sync', 'Outer Dress', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(312, 'lark-sync', 'Body Harness', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(313, 'lark-sync', 'Sleeveless Top', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(314, 'lark-sync', 'Leggings', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(315, 'lark-sync', 'Beret', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(316, 'lark-sync', 'Jaga Statue Repair', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(317, 'lark-sync', 'Flare Mascot', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(318, 'lark-sync', 'Shaw Plaza - 2 Meter Gingerbread man plushie', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(319, 'lark-sync', 'Shaw Plaza - Santa Claus Plushie DIY Kit', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(320, 'lark-sync', 'Rudy Repair', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(321, 'lark-sync', 'Chingay - Stilts', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:40:54', '2025-11-01 03:40:54', NULL),
+(322, 'lark-sync', 'Legoland Kai', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:49:27', '2025-11-01 03:49:27', NULL),
+(323, 'lark-sync', 'Legoland Pirate', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:49:28', '2025-11-01 03:50:02', '2025-11-01 03:50:02'),
+(324, 'lark-sync', 'Legoland Pirate', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 03:50:11', '2025-11-01 03:50:11', NULL),
+(325, 'lark-sync', 'Chingay Ingot hat', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 04:08:46', '2025-11-01 04:08:46', NULL),
+(326, 'lark-sync', 'Johnnie Walker Batch 1 - COB LED Add-Ons', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 04:30:44', '2025-11-01 04:30:44', NULL),
+(327, 'lark-sync', 'Johnnie Walker Batch 2 - COB LED Add-Ons', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 04:30:44', '2025-11-01 04:30:44', NULL),
+(328, 'lark-sync', 'Chingay - Lotus Dance', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 04:30:44', '2025-11-01 04:30:44', NULL),
+(329, 'lark-sync', 'Chingay - Present Box', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 04:30:44', '2025-11-01 04:30:44', NULL),
+(330, 'lark-sync', 'Chingay - Fish Lantern', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 04:34:22', '2025-11-01 04:34:22', NULL),
+(331, 'lark-sync', 'Johnnie Walker Batch 3 - COB LED Add-Ons #6 to #10', 1, 17, NULL, NULL, NULL, NULL, NULL, '2025-11-01 04:43:25', '2025-11-01 04:43:25', NULL);
 
 -- --------------------------------------------------------
 
@@ -5510,7 +5660,11 @@ INSERT INTO `project_parts` (`id`, `project_id`, `part_name`, `created_at`, `upd
 (16, 255, 'Baju', '2025-10-29 09:28:01', '2025-10-29 09:28:01'),
 (17, 255, 'Celana', '2025-10-29 09:28:02', '2025-10-29 09:28:02'),
 (18, 235, 'test part', '2025-10-29 09:33:11', '2025-10-29 09:33:11'),
-(19, 235, 'test part2', '2025-10-29 09:33:11', '2025-10-29 09:33:11');
+(19, 235, 'test part2', '2025-10-29 09:33:11', '2025-10-29 09:33:11'),
+(20, 25, 'Kepala', '2025-10-30 09:31:05', '2025-10-30 09:31:05'),
+(21, 25, 'Pundak', '2025-10-30 09:31:05', '2025-10-30 09:31:05'),
+(22, 25, 'Lutut', '2025-10-30 09:31:05', '2025-10-30 09:31:05'),
+(23, 25, 'Kaki', '2025-10-30 09:31:05', '2025-10-30 09:31:05');
 
 -- --------------------------------------------------------
 
@@ -5585,7 +5739,7 @@ INSERT INTO `purchase_requests` (`id`, `type`, `material_name`, `inventory_id`, 
 (18, 'restock', 'cfcf2', 124, 45.00, NULL, 'm', 47.00, NULL, 3, 7.00, 42, 'Approved', '2025-12-12', NULL, NULL, 1, '2025-10-02 02:04:12', '2025-10-07 04:28:18'),
 (19, 'new_material', 'abcd', NULL, 12.00, NULL, 'cm', 0.00, 25, 19, 12000.00, 2, NULL, '2025-10-11', NULL, 'purchase_requests/XNoZc1ojZy4QeiGGqRszTv2XnnQHVKKF6VykRR1a.jpg', 1, '2025-10-07 06:23:09', '2025-10-07 07:03:03'),
 (20, 'restock', 'abata', 192, 34.00, NULL, 'cm', 38.00, 25, 21, 9999.00, 43, 'Approved', NULL, 'https://github.com/itskulen/bigscreenproject/wiki', 'purchase_requests/SWmOpfy03EHCxFOPZvPxE1yM0RQIm5LgUYT7Fc7q.jpg', 1, '2025-10-07 07:11:24', '2025-10-29 02:06:23'),
-(21, 'new_material', 'test matttteeriaal', NULL, 21.00, NULL, 'Gulung', NULL, 43, NULL, NULL, NULL, 'Pending', NULL, 'test', NULL, 1, '2025-10-15 09:49:45', '2025-10-23 07:59:42'),
+(21, 'new_material', 'test matttteeriaal', NULL, 21.00, 12.00, 'Gulung', NULL, 43, NULL, NULL, NULL, 'Pending', NULL, 'test', NULL, 1, '2025-10-15 09:49:45', '2025-11-01 02:24:38'),
 (22, 'new_material', 'test material99', NULL, 2.00, 0.00, '16', 0.00, NULL, 21, 12.00, NULL, 'Pending', NULL, 'https://www.larksuite.com/approval/admin/approvalList', NULL, 1, '2025-10-20 04:30:24', '2025-10-29 02:21:42'),
 (23, 'new_material', 'test123789', NULL, 1.00, 1.00, 'cm', 0.00, 188, 21, NULL, NULL, 'Pending', NULL, 'test2.com', NULL, 1, '2025-10-29 01:50:58', '2025-10-29 02:23:45');
 
@@ -5701,7 +5855,8 @@ INSERT INTO `suppliers` (`id`, `supplier_code`, `name`, `contact_person`, `addre
 (34, 'SUP1745', 'test sup001', 'N/A', 'N/A', 'http://example.com', '0', 'active', NULL, '2025-10-28 06:16:15', '2025-10-28 06:22:59', '2025-10-28 06:22:59', 1),
 (35, NULL, 'test supp09', NULL, NULL, NULL, NULL, 'active', NULL, '2025-10-28 06:23:20', '2025-10-28 06:23:20', NULL, NULL),
 (36, NULL, 'dcm87', NULL, NULL, NULL, '8', 'active', NULL, '2025-10-28 06:40:00', '2025-10-28 06:48:03', NULL, 1),
-(39, NULL, 'test suplier990', NULL, NULL, NULL, '7', 'active', NULL, '2025-10-28 06:47:55', '2025-10-28 06:47:55', NULL, 1);
+(39, NULL, 'test suplier990', NULL, NULL, NULL, '7', 'active', NULL, '2025-10-28 06:47:55', '2025-10-28 06:47:55', NULL, 1),
+(40, NULL, 'testsuppppli', NULL, NULL, NULL, NULL, 'active', NULL, '2025-10-31 06:57:24', '2025-10-31 06:57:24', NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -5753,7 +5908,9 @@ INSERT INTO `timings` (`id`, `tanggal`, `project_id`, `step`, `parts`, `employee
 (21, '2025-07-23', 14, 'cutting', 'No Part', 2, '09:23:00', '10:23:00', -1, 'on progress', NULL, '2025-07-23 02:24:13', '2025-07-23 02:24:13'),
 (22, '2025-07-24', 14, 'asa', 'No Part', 1, '14:13:00', '22:13:00', 1, 'on progress', NULL, '2025-07-23 07:13:28', '2025-07-23 07:13:28'),
 (23, '2025-07-24', 15, 'obras', 'No Part', 2, '14:25:00', '14:26:00', 2, 'pending', NULL, '2025-07-23 07:26:09', '2025-07-23 07:26:09'),
-(24, '2025-10-22', 64, 'jahit', 'Ban', 1, '14:35:00', '15:35:00', 1, 'complete', 'test', '2025-10-22 07:35:11', '2025-10-22 07:35:11');
+(24, '2025-10-22', 64, 'jahit', 'Ban', 1, '14:35:00', '15:35:00', 1, 'complete', 'test', '2025-10-22 07:35:11', '2025-10-22 07:35:11'),
+(25, '2025-10-28', 25, 'Jahit', 'Kepala', 1, '16:31:00', '17:31:00', 1, 'on progress', 'test', '2025-10-30 09:32:17', '2025-10-30 09:32:17'),
+(26, '2025-10-28', 25, 'Obras', 'Pundak', 2, '16:31:00', '17:31:00', 1, 'on progress', 'test', '2025-10-30 09:32:17', '2025-10-30 09:32:17');
 
 -- --------------------------------------------------------
 
@@ -5836,7 +5993,7 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `username`, `password`, `role`, `department_id`, `remember_token`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(1, 'logitech', '$2y$10$d92eVtlqhO1zea7Ofb/jKuR6s.LKe7GYqVQkAMTEDzm.sk34iBC5C', 'super_admin', 5, 'L26qDGvPyb10bgDAyqknLKilJQ2JU5CnH7bFnjF3ekWY0OADNX3Cdv1dvYeS', '2025-05-05 23:37:44', '2025-07-17 08:21:38', NULL),
+(1, 'logitech', '$2y$10$d92eVtlqhO1zea7Ofb/jKuR6s.LKe7GYqVQkAMTEDzm.sk34iBC5C', 'super_admin', 5, 'cvGdZWqimAdgk35C3wkrnvuJbfv77Y0G6skjCnyVSUrLq6Z42NFTLNnvukp9', '2025-05-05 23:37:44', '2025-07-17 08:21:38', NULL),
 (2, 'laura', '$2y$10$agrAQMX7Zu08uOYtHcQQYeWTO1kge9xJWT.mIFMBX/XhItIyToAIy', 'admin_mascot', 2, 'Nfa241J1MnRyi3oNkMALeNYrhAmDukOtEdY8gpit2vTEk5AZVjsX52zFdAli', '2025-05-06 00:07:01', '2025-07-17 02:34:01', NULL),
 (3, 'tari', '$2y$10$Q2V3kGCkazSCAtjXQ3No4./RayNoZAMEVfNdmFr//vXHBqP87xrs6', 'admin_costume', 1, NULL, '2025-05-06 00:07:27', '2025-07-17 02:34:07', NULL),
 (4, 'dyla', '$2y$10$IbH1.hfTsurL05wNwT6VTepZnmQn1cyxoa.UwIjIN739.0hV11h.a', 'admin_logistic', 12, NULL, '2025-05-06 00:07:43', '2025-07-17 02:34:37', NULL),
@@ -5857,6 +6014,14 @@ INSERT INTO `users` (`id`, `username`, `password`, `role`, `department_id`, `rem
 --
 -- Indexes for dumped tables
 --
+
+--
+-- Indexes for table `attendances`
+--
+ALTER TABLE `attendances`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `attendances_employee_id_date_unique` (`employee_id`,`date`),
+  ADD KEY `attendances_recorded_by_foreign` (`recorded_by`);
 
 --
 -- Indexes for table `audits`
@@ -6121,10 +6286,16 @@ ALTER TABLE `users`
 --
 
 --
+-- AUTO_INCREMENT for table `attendances`
+--
+ALTER TABLE `attendances`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+
+--
 -- AUTO_INCREMENT for table `audits`
 --
 ALTER TABLE `audits`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=145;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=176;
 
 --
 -- AUTO_INCREMENT for table `categories`
@@ -6136,13 +6307,13 @@ ALTER TABLE `categories`
 -- AUTO_INCREMENT for table `currencies`
 --
 ALTER TABLE `currencies`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=62;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=64;
 
 --
 -- AUTO_INCREMENT for table `departments`
 --
 ALTER TABLE `departments`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 
 --
 -- AUTO_INCREMENT for table `employees`
@@ -6202,7 +6373,7 @@ ALTER TABLE `inventory_transactions`
 -- AUTO_INCREMENT for table `leave_requests`
 --
 ALTER TABLE `leave_requests`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
 
 --
 -- AUTO_INCREMENT for table `locations`
@@ -6238,7 +6409,7 @@ ALTER TABLE `material_usages`
 -- AUTO_INCREMENT for table `migrations`
 --
 ALTER TABLE `migrations`
-  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=115;
+  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=118;
 
 --
 -- AUTO_INCREMENT for table `personal_access_tokens`
@@ -6256,7 +6427,7 @@ ALTER TABLE `pre_shippings`
 -- AUTO_INCREMENT for table `projects`
 --
 ALTER TABLE `projects`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=256;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=332;
 
 --
 -- AUTO_INCREMENT for table `project_costings`
@@ -6268,7 +6439,7 @@ ALTER TABLE `project_costings`
 -- AUTO_INCREMENT for table `project_parts`
 --
 ALTER TABLE `project_parts`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
 
 --
 -- AUTO_INCREMENT for table `project_statuses`
@@ -6298,13 +6469,13 @@ ALTER TABLE `shipping_details`
 -- AUTO_INCREMENT for table `suppliers`
 --
 ALTER TABLE `suppliers`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=40;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
 
 --
 -- AUTO_INCREMENT for table `timings`
 --
 ALTER TABLE `timings`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
 
 --
 -- AUTO_INCREMENT for table `units`
@@ -6321,6 +6492,13 @@ ALTER TABLE `users`
 --
 -- Constraints for dumped tables
 --
+
+--
+-- Constraints for table `attendances`
+--
+ALTER TABLE `attendances`
+  ADD CONSTRAINT `attendances_employee_id_foreign` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `attendances_recorded_by_foreign` FOREIGN KEY (`recorded_by`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `employees`
