@@ -33,19 +33,17 @@
                         </div>
                     </form>
                 </div>
-                <table class="table table-hover table-bordered table-striped" id="datatable">
-                    <thead class="align-middle">
+                <table class="table table-hover align-middle table-sm" id="datatable">
+                    <thead class="table-light">
                         <tr>
-                            <th></th>
                             <th>Project Name</th>
                             <th>Department</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody class="align-middle">
+                    <tbody>
                         @foreach ($projects as $project)
                             <tr>
-                                <td class="text-center">{{ $loop->iteration }}</td>
                                 <td>{{ $project->name }}</td>
                                 <td>{{ ucfirst($project->department->name) ?? '-' }}</td>
                                 <td>
@@ -71,8 +69,8 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <table class="table table-bordered align-middle">
-                        <thead>
+                    <table class="table table-sm align-middle table-hover">
+                        <thead class="table-light text-nowrap">
                             <tr>
                                 <th>Material</th>
                                 <th>Quantity</th>

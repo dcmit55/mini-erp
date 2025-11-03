@@ -25,8 +25,8 @@
                 <form action="{{ route('timings.storeMultiple') }}" method="POST">
                     @csrf
                     <div class="table-responsive">
-                        <table class="table table-bordered align-middle mb-0" style="min-width:100%;">
-                            <thead class="table-light align-middle">
+                        <table class="table table-sm table-hover align-middle mb-0" style="min-width:100%;">
+                            <thead class="table-light">
                                 <tr>
                                     <th style="width:9%;">Date</th>
                                     <th style="width:13%;">Project</th>

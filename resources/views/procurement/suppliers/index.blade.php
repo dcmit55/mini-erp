@@ -9,10 +9,6 @@
             background-clip: text;
         }
 
-        .table-responsive {
-            overflow: hidden;
-        }
-
         .pagination {
             --bs-pagination-padding-x: 0.75rem;
             --bs-pagination-padding-y: 0.375rem;
@@ -165,10 +161,10 @@
 
                 <!-- Table -->
                 <div class="table-responsive">
-                    <table class="table table-bordered table-striped table-hover" id="datatable">
-                        <thead>
+                    <table class="table table-sm table-hover align-middle" id="datatable">
+                        <thead class="table-light">
                             <tr>
-                                <th>No</th>
+                                <th class="text-center"></th>
                                 <th>Supplier Code</th>
                                 <th>Name</th>
                                 <th>Location</th>
@@ -180,10 +176,10 @@
                                 <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody class="align-middle">
+                        <tbody>
                             @foreach ($suppliers as $index => $supplier)
                                 <tr>
-                                    <td>{{ $index + 1 }}</td>
+                                    <td class="text-center">{{ $loop->iteration }}</td>
                                     <td>{{ $supplier->supplier_code }}</td>
                                     <td>{{ $supplier->name }}</td>
                                     <td>{{ $supplier->location ? $supplier->location->name : '-' }}</td>

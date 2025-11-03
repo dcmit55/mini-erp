@@ -290,7 +290,7 @@
                     <div class="card-body">
                         @if ($employee->documents->count() > 0)
                             <div class="table-responsive">
-                                <table class="table table-hover">
+                                <table class="table table-hover table-sm align-middle">
                                     <thead class="table-light">
                                         <tr>
                                             <th>Type</th>
@@ -361,7 +361,7 @@
                     <div class="card-body">
                         @if ($employee->timings->count() > 0)
                             <div class="table-responsive">
-                                <table class="table table-sm">
+                                <table class="table table-sm table-hover align-middle">
                                     <thead class="table-light">
                                         <tr>
                                             <th>Date</th>

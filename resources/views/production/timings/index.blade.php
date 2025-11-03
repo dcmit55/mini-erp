@@ -103,8 +103,7 @@
                     </div>
                 </form>
                 <div id="timing-error-alert" class="alert alert-danger d-none" role="alert"></div>
-                <table class="table table-striped table-hover table-bordered align-middle rounded shadow-sm"
-                    id="timing-table">
+                <table class="table table-sm table-hover align-middle rounded" id="timing-table">
                     <thead class="table-light">
                         <tr>
                             <th>Date</th>

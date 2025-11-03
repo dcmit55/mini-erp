@@ -45,8 +45,8 @@
                     </div>
                 @endif
 
-                <table class="table table-hover table-bordered table-striped" id="datatable">
-                    <thead class="align-middle">
+                <table class="table table-sm table-hover align-middle" id="datatable">
+                    <thead class="table-light">
                         <tr>
                             <th></th>
                             <th>Name</th>
@@ -55,7 +55,7 @@
                             <th>Action</th>
                         </tr>
                     </thead>
-                    <tbody class="align-middle">
+                    <tbody>
                         @foreach ($currencies as $currency)
                             <tr>
                                 <td class="text-center">{{ $loop->iteration }}</td>
@@ -68,13 +68,13 @@
                                             data-id="{{ $currency->id }}" data-name="{{ $currency->name }}"
                                             data-exchange-rate="{{ $currency->exchange_rate }}" data-bs-toggle="modal"
                                             data-bs-target="#currencyModal" title="Update Currency">
-                                            <i class="bi bi-pencil-square"></i> Update
+                                            <i class="bi bi-pencil-square"></i>
                                         </button>
                                         <form action="{{ route('currencies.destroy', $currency->id) }}" method="POST"
                                             class="delete-form">
                                             @csrf @method('DELETE')
                                             <button type="button" class="btn btn-sm btn-danger btn-delete"
-                                                title="Delete"><i class="bi bi-trash3-fill"></i> Delete</button>
+                                                title="Delete"><i class="bi bi-trash3-fill"></i></button>
                                         </form>
                                     </div>
                                 </td>

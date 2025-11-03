@@ -41,7 +41,7 @@
                     @if(!empty($partOutputs) && count($partOutputs))
                         <hr>
                         <h5 class="mt-4 mb-3 text-secondary">Total Output per Part</h5>
-                        <table class="table table-striped table-bordered rounded">
+                        <table class="table table-sm table-hover align-middle">
                             <thead class="table-light">
                                 <tr>
                                     <th>Part Name</th>

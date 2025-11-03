@@ -110,9 +110,9 @@
                 </div>
 
                 <!-- Table -->
-                <table class="table table-striped table-hover table-bordered table-sm" id="datatable"
+                <table class="table table-hover table-sm align-middle" id="datatable"
                     data-material-request-table="1">
-                    <thead class="align-middle text-nowrap">
+                    <thead class="table-light text-nowrap">
                         <tr>
                             <th></th>
                             <th style="display:none">ID</th>
@@ -136,7 +136,7 @@
                             <th>Action</th>
                         </tr>
                     </thead>
-                    <tbody class="align-middle">
+                    <tbody>
                         {{-- Data akan dimuat via AJAX --}}
                     </tbody>
                 </table>
@@ -445,11 +445,6 @@
         /* Ensure table cells have enough space for tooltips */
         #datatable td {
             position: relative;
-            overflow: visible !important;
-        }
-
-        /* Specific styling for table container */
-        .table-responsive {
             overflow: visible !important;
         }
 

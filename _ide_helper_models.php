@@ -117,7 +117,7 @@ namespace App\Models{
  * @property-read mixed $photo_url
  * @property-read mixed $status_badge
  * @property-read \App\Models\TFactory|null $use_factory
- * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Timing> $timings
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Production\Timing> $timings
  * @property-read int|null $timings_count
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Employee newModelQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Employee newQuery()

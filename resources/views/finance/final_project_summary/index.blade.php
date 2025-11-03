@@ -35,7 +35,7 @@
                             <i class="fas fa-times me-1"></i> Reset</a>
                     </div>
                 </form>
-                <table class="table table-striped table-hover table-bordered align-middle rounded shadow-sm"
+                <table class="table table-sm table-hover align-middle rounded shadow-sm"
                     id="projects-table">
                     <thead class="table-light">
                         <tr>

@@ -5,8 +5,8 @@
         <h4>Shipping Management</h4>
         <div class="card">
             <div class="card-body">
-                <table class="table table-bordered align-middle">
-                    <thead class="table-dark">
+                <table class="table table-sm table-hover align-middle">
+                    <thead class="table-light">
                         <tr>
                             <th></th>
                             <th>Int. Waybill No</th>

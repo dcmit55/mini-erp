@@ -121,7 +121,7 @@
                 </div>
 
                 <div class="table-responsive">
-                    <table class="table table-hover border" id="planning-table">
+                    <table class="table table-sm table-hover" id="planning-table">
                         <thead class="table-light">
                             <tr>
                                 <th class="bg-light" width="20%">Job Order / Project Name</th>
@@ -156,8 +156,7 @@
                                     </td>
                                     <td class="text-center">
                                         @if ($stats && $stats['created_date'])
-                                            <span class="badge bg-success text-white" data-bs-toggle="tooltip"
-                                                title="Data Created ">
+                                            <span class="badge bg-success text-white">
                                                 <i class="fas fa-calendar-plus me-1"></i>
                                                 {{ \Carbon\Carbon::parse($stats['created_date'])->format('d M Y') }}
                                             </span>
@@ -171,9 +170,8 @@
                                     </td>
                                     <td class="text-center">
                                         @if ($stats && $stats['last_update'])
-                                            <span class="badge bg-warning text-dark" data-bs-toggle="tooltip"
-                                                title="Last Update ">
-                                                <i class="fas fa-calendar-edit me-1"></i>
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="fas fa-calendar me-1"></i>
                                                 {{ \Carbon\Carbon::parse($stats['last_update'])->format('d M Y') }}
                                             </span>
                                             <br>

@@ -872,7 +872,7 @@
                             <!-- Content -->
                             <div id="usage-content" style="display: none;">
                                 <div class="table-responsive">
-                                    <table class="table usage-table" id="materialUsageDataTable">
+                                    <table class="table usage-table align-middle" id="materialUsageDataTable">
                                         <thead>
                                             <tr>
                                                 <th><i class="fas fa-project-diagram me-1"></i>Project</th>

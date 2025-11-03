@@ -226,8 +226,8 @@
 
                             <!-- Items Table -->
                             <div class="table-responsive">
-                                <table class="table table-sm table-hover">
-                                    <thead class="table-dark">
+                                <table class="table table-sm align-middle table-hover">
+                                    <thead class="table-primary">
                                         <tr>
                                             <th>Material Name</th>
                                             <th>Project</th>

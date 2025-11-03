@@ -5,7 +5,7 @@ namespace App\Models\Hr;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use App\Models\Timing;
+use App\Models\Production\Timing;
 use App\Models\Hr\EmployeeDocument;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;

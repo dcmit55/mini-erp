@@ -62,8 +62,8 @@
             'employees' => 'Employee',
         ] as $var => $label)
                     <h5 class="mt-4">{{ $label }}</h5>
-                    <table class="table table-bordered table-sm align-middle" id="table-{{ $var }}">
-                        <thead class="table-light align-middle">
+                    <table class="table table-hover table-sm align-middle" id="table-{{ $var }}">
+                        <thead class="table-light">
                             <tr>
                                 <th></th>
                                 <th>ID</th>
@@ -72,7 +72,7 @@
                                 <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody class="align-middle">
+                        <tbody>
                             @foreach ($$var as $item)
                                 <tr>
                                     <td class="text-center">

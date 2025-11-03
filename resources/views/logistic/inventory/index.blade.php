@@ -9,11 +9,6 @@
             background-clip: text;
         }
 
-
-        .table-responsive {
-            overflow: hidden;
-        }
-
         .pagination {
             --bs-pagination-padding-x: 0.75rem;
             --bs-pagination-padding-y: 0.375rem;
@@ -198,8 +193,8 @@
 
                 <!-- Table -->
                 <div class="table-responsive">
-                    <table class="table table-striped table-hover table-bordered" id="datatable">
-                        <thead class="table-dark align-middle text-nowrap">
+                    <table class="table table-hover align-middle table-sm" id="datatable">
+                        <thead class="table-light text-nowrap">
                             <tr>
                                 <th width="50">#</th>
                                 <th>Name</th>

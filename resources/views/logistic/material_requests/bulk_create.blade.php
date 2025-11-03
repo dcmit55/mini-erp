@@ -38,7 +38,7 @@
                 <form method="POST" action="{{ route('material_requests.bulk_store') }}">
                     @csrf
                     <div class="table-responsive">
-                        <table class="table table-bordered align-middle" id="bulk-material-table" style="min-width: 100%;">
+                        <table class="table table-hover align-middle table-sm" id="bulk-material-table" style="min-width: 100%;">
                             <thead class="table-light">
                                 <tr>
                                     <th style="width: 25%;">Project <span class="text-danger">*</span></th>

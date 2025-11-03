@@ -85,7 +85,7 @@ class FinalProjectSummaryController extends Controller
 
         $partOutputs = [];
         if ($parts->count()) {
-            $timings = \App\Models\Timing::where('project_id', $project->id)->select('parts', DB::raw('SUM(output_qty) as total_qty'))->groupBy('parts')->pluck('total_qty', 'parts');
+            $timings = \App\Models\Production\Timing::where('project_id', $project->id)->select('parts', DB::raw('SUM(output_qty) as total_qty'))->groupBy('parts')->pluck('total_qty', 'parts');
 
             foreach ($parts as $part) {
                 $qty = $timings[$part->part_name] ?? 0;
@@ -96,7 +96,7 @@ class FinalProjectSummaryController extends Controller
             }
         }
 
-        $manpowerCount = \App\Models\Timing::where('project_id', $project->id)->distinct('employee_id')->count('employee_id');
+        $manpowerCount = \App\Models\Production\Timing::where('project_id', $project->id)->distinct('employee_id')->count('employee_id');
 
         return view('finance.final_project_summary.show', compact('project', 'grandTotal', 'dayCount', 'partOutputs', 'manpowerCount'));
     }

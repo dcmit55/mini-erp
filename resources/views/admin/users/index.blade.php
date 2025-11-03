@@ -40,16 +40,16 @@
                     </div>
                 @endif
                 <!-- Table -->
-                <table class="table table-bordered table-striped table-hover" id="datatable">
-                    <thead class="text-center align-middle">
+                <table class="table table-sm table-hover align-middle" id="datatable">
+                    <thead class="table-light">
                         <tr>
-                            <th>ID</th>
+                            <th class="text-center">ID</th>
                             <th>Username</th>
                             <th>Role</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody class="align-middle">
+                    <tbody>
                         @foreach ($users as $user)
                             <tr>
                                 <td class="text-center">{{ $user->id }}</td>

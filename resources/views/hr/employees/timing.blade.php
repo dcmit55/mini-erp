@@ -10,8 +10,8 @@
                         {{ $employee->name }}
                     </h2>
                 </div>
-                <table class="table table-bordered">
-                    <thead>
+                <table class="table table-sm table-hover align-middle">
+                    <thead class="table-light">
                         <tr>
                             <th>Tanggal</th>
                             <th>Project</th>

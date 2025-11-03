@@ -90,8 +90,8 @@
 
                 <!-- Table -->
                 <div class="table-responsive">
-                    <table class="table table-striped table-hover table-bordered table-sm" id="datatable">
-                        <thead class="align-middle text-nowrap">
+                    <table class="table table-hover table-sm align-middle" id="datatable">
+                        <thead class="table-light text-nowrap">
                             <tr>
                                 <th>#</th>
                                 <th>Name</th>
@@ -110,7 +110,7 @@
                                 @endif
                             </tr>
                         </thead>
-                        <tbody class="align-middle">
+                        <tbody>
                             <!-- DataTables will populate this -->
                         </tbody>
                     </table>

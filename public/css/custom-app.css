@@ -291,6 +291,16 @@ body.swal2-shown {
     }
 }
 
+.table-sm {
+    border-radius: 0.25rem;
+    border: 1px solid #dee2e6;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    -webkit-border-radius: 0.25rem;
+    -moz-border-radius: 0.25rem;
+    -ms-border-radius: 0.25rem;
+    -o-border-radius: 0.25rem;
+}
+
 td .btn {
     text-align: center;
 }

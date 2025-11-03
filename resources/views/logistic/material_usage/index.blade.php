@@ -76,9 +76,9 @@
 
                 {{-- DataTable dengan server-side processing --}}
                 <div class="table-responsive">
-                    <table class="table table-striped table-hover table-bordered table-sm" id="datatable"
+                    <table class="table table-hover table-sm align-middle" id="datatable"
                         data-material-usage-table="1">
-                        <thead class="table-dark align-middle text-nowrap">
+                        <thead class="table-light text-nowrap">
                             <tr>
                                 <th width="50">#</th>
                                 <th>Material</th>
@@ -91,7 +91,7 @@
                                 <th width="80">Actions</th>
                             </tr>
                         </thead>
-                        <tbody class="align-middle">
+                        <tbody>
                             {{-- Data akan dimuat via AJAX --}}
                         </tbody>
                     </table>
@@ -220,15 +220,6 @@
             text-align: left;
         }
 
-        #datatable thead th {
-            text-align: left !important;
-            white-space: nowrap;
-        }
-
-        #datatable tbody td {
-            text-align: left !important;
-        }
-
         /* Center align checkbox and actions */
         #datatable thead th:nth-child(1),
         #datatable tbody td:nth-child(1),
@@ -282,19 +273,15 @@
                     },
                     {
                         data: 'goods_out_qty',
-                        className: 'text-center'
                     },
                     {
                         data: 'goods_in_qty',
-                        className: 'text-center'
                     },
                     {
                         data: 'used_qty',
-                        className: 'text-center'
                     },
                     {
                         data: 'unit',
-                        className: 'text-center'
                     },
                     {
                         data: 'updated_at'

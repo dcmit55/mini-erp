@@ -95,8 +95,8 @@
                 </div>
 
                 <!-- Table -->
-                <table class="table table-bordered table-striped table-hover" id="datatable">
-                    <thead class="align-middle">
+                <table class="table table-sm table-hover align-middle" id="datatable">
+                    <thead class="table-light">
                         <tr>
                             <th></th>
                             <th>Name</th>
@@ -108,7 +108,7 @@
                             <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody class="align-middle">
+                    <tbody>
                         @foreach ($projects as $project)
                             <tr>
                                 <td class="text-center">{{ $loop->iteration }}</td>

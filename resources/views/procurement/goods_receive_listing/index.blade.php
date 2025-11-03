@@ -4,8 +4,8 @@
         <h4 class="mb-4">Goods Receive Modules</h4>
         <div class="card shadow-sm rounded-4">
             <div class="card-body">
-                <table class="table table-bordered align-middle rounded-3 overflow-hidden">
-                    <thead class="table-dark">
+                <table class="table align-middle table-hover table-sm">
+                    <thead class="table-light text-nowrap">
                         <tr>
                             <th>Int. Waybill No</th>
                             <th>Arrived Date</th>

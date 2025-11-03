@@ -82,8 +82,8 @@
 
                 <!-- DataTable -->
                 <div class="table-responsive">
-                    <table class="table table-striped table-hover table-bordered table-sm" id="employees-table">
-                        <thead class="align-middle text-nowrap">
+                    <table class="table table-hover table-sm align-middle" id="employees-table">
+                        <thead class="table-light text-nowrap">
                             <tr>
                                 <th width="60" class="text-center">Photo</th>
                                 <th>Employee No</th>
@@ -98,7 +98,7 @@
                                 <th width="140" class="text-center">Actions</th>
                             </tr>
                         </thead>
-                        <tbody class="align-middle">
+                        <tbody>
                             @foreach ($employees as $employee)
                                 <tr data-employee-id="{{ $employee->id }}">
                                     <td class="text-center">

@@ -9,10 +9,6 @@
             background-clip: text;
         }
 
-        .table-responsive {
-            overflow-x: auto;
-        }
-
         .pagination {
             --bs-pagination-padding-x: 0.75rem;
             --bs-pagination-padding-y: 0.375rem;
@@ -194,8 +190,8 @@
 
                 <!-- Table -->
                 <div class="table-responsive">
-                    <table class="table table-striped table-hover table-bordered" id="datatable">
-                        <thead class="table-dark align-middle text-nowrap">
+                    <table class="table table-hover align-middle table-sm" id="datatable">
+                        <thead class="table-light text-nowrap">
                             <tr>
                                 <th width="50">#</th>
                                 <th>Type</th>
@@ -418,20 +414,9 @@
                 },
                 dom: 't<"row datatables-footer-row align-items-center"<"col-md-7 d-flex align-items-center gap-2 datatables-left"l<"vr-divider mx-2">i><"col-md-5 dataTables_paginate justify-content-end"p>>',
                 columnDefs: [{
-                        targets: [0, 12, 13],
+                        targets: [0, 12, 14],
                         orderable: false
                     },
-                    {
-                        targets: 11, // kolom "Requested At"
-                        type: 'num',
-                        render: function(data, type, row, meta) {
-                            var orderValue = $(row[meta.col]).data('order');
-                            if (type === 'sort') {
-                                return orderValue || 0;
-                            }
-                            return data;
-                        }
-                    }
                 ],
                 order: [
                     [] // Urutkan berdasarkan kolom "Requested At" (latest)

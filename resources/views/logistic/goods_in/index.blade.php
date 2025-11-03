@@ -105,8 +105,8 @@
                 </div>
 
                 <!-- Table -->
-                <table class="table table-striped table-hover table-bordered" id="datatable">
-                    <thead class="align-middle text-nowrap">
+                <table class="table table-hover table-sm align-middle" id="datatable">
+                    <thead class="table-light text-nowrap">
                         <tr>
                             <th></th>
                             <th>Material</th>
