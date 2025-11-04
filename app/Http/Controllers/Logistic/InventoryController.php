@@ -12,6 +12,7 @@ use App\Models\Production\Project;
 use App\Models\Logistic\Category;
 use App\Models\Finance\Currency;
 use App\Models\Procurement\Supplier;
+use App\Models\Procurement\LocationSupplier;
 use App\Models\Logistic\Location;
 use Illuminate\Http\Request;
 use App\Exports\InventoryExport;
@@ -89,7 +90,9 @@ class InventoryController extends Controller
 
     public function getDataTablesData(Request $request)
     {
-        $query = Inventory::query()->with(['category', 'supplier', 'location', 'currency'])->latest();
+        $query = Inventory::query()
+            ->with(['category', 'supplier', 'location', 'currency'])
+            ->latest();
 
         // Apply filters dari form filter
         if ($request->filled('category_filter')) {
@@ -377,7 +380,9 @@ class InventoryController extends Controller
         $categories = Category::orderBy('name')->get();
         $suppliers = Supplier::nonBlacklisted()->orderBy('name')->get();
         $locations = Location::orderBy('name')->get();
-        return view('logistic.inventory.create', compact('currencies', 'units', 'categories', 'suppliers', 'locations'));
+        $supplierLocations = LocationSupplier::orderBy('name')->get();
+
+        return view('logistic.inventory.create', compact('currencies', 'units', 'categories', 'suppliers', 'locations', 'supplierLocations'));
     }
 
     public function store(Request $request)
@@ -513,7 +518,9 @@ class InventoryController extends Controller
         $categories = Category::orderBy('name')->get();
         $suppliers = Supplier::nonBlacklisted()->orderBy('name')->get();
         $locations = Location::orderBy('name')->get();
-        return view('logistic.inventory.edit', compact('inventory', 'currencies', 'units', 'categories', 'suppliers', 'locations'));
+        $supplierLocations = LocationSupplier::orderBy('name')->get();
+
+        return view('logistic.inventory.edit', compact('inventory', 'currencies', 'units', 'categories', 'suppliers', 'locations', 'supplierLocations'));
     }
 
     public function update(Request $request, Inventory $inventory)

@@ -163,7 +163,7 @@
                         </div>
 
                         <div class="col-lg-6 mb-3">
-                            <label for="location_id" class="form-label">Location (Optional)</label>
+                            <label for="location_id" class="form-label">Material Location (Optional)</label>
                             <button type="button" class="btn btn-outline-primary"
                                 style="--bs-btn-padding-y: .25rem; --bs-btn-padding-x: .5rem; --bs-btn-font-size: .55rem;"
                                 data-bs-toggle="modal" data-bs-target="#addLocationModal">+ Add Location</button>
@@ -289,7 +289,7 @@
     <!-- Modal Add Supplier -->
     <div class="modal fade" id="addSupplierModal" tabindex="-1">
         <div class="modal-dialog">
-            <form id="supplierForm" method="POST" action="{{ route('suppliers.store') }}">
+            <form id="supplierForm" method="POST" action="{{ route('suppliers.quick_store') }}">
                 @csrf
                 <div class="modal-content">
                     <div class="modal-header">
@@ -297,13 +297,43 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <div>
+                        <!-- Supplier Name -->
+                        <div class="mb-3">
                             <label for="supplier_name" class="form-label">Supplier Name <span
                                     class="text-danger">*</span></label>
                             <input type="text" id="supplier_name" name="name" class="form-control" required>
                         </div>
+                        <!-- Location -->
+                        <div class="mb-3">
+                            <label for="supplier_location_id" class="form-label">Supplier Location <span
+                                    class="text-danger">*</span></label>
+                            <select id="supplier_location_id" name="location_id" class="form-select select2" required>
+                                <option value="">Select Location</option>
+                                @foreach ($supplierLocations as $location)
+                                    <option value="{{ $location->id }}">{{ $location->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <!-- Lead Time -->
+                        <div class="mb-3">
+                            <label for="supplier_lead_time_days" class="form-label">Lead Time <span
+                                    class="text-danger">*</span>
+                                <i class="bi bi-info-circle text-info" data-bs-toggle="tooltip"
+                                    data-bs-placement="top"
+                                    title="Lead Time refers to the number of days required by the supplier to deliver goods after an order is placed. This value is typically based on past delivery records or can be confirmed directly with the supplier. Accurate lead time helps ensure timely procurement and project planning.">
+                                </i>
+                            </label>
+                            <div class="input-group">
+                                <input type="number" id="supplier_lead_time_days" name="lead_time_days"
+                                    class="form-control" required min="1" placeholder="For Example 8">
+                                <span class="input-group-text">days</span>
+                            </div>
+                        </div>
+                        <!-- Status (hidden, always active) -->
+                        <input type="hidden" name="status" value="active">
                     </div>
-                    <div class="modal-footer"><button type="submit" class="btn btn-primary">Save</button>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary">Save</button>
                     </div>
                 </div>
             </form>
@@ -533,12 +563,24 @@
                 }, 100);
             });
 
+            $('#supplier_location_id').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Select Location',
+                allowClear: true,
+                dropdownParent: $('#addSupplierModal')
+            }).on('select2:open', function() {
+                setTimeout(function() {
+                    document.querySelector('.select2-container--open .select2-search__field')
+                        .focus();
+                }, 100);
+            });
+
             // Submit form supplier via AJAX
             $('#supplierForm').on('submit', function(e) {
                 e.preventDefault();
                 let form = $(this);
                 $.ajax({
-                    url: '{{ route('suppliers.quick_store') }}',
+                    url: form.attr('action'),
                     method: 'POST',
                     data: form.serialize(),
                     headers: {

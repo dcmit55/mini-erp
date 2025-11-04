@@ -65,7 +65,7 @@
 
                         <!-- Location -->
                         <div class="col-12 col-md-6 mb-3">
-                            <label for="location_id" class="form-label"> Location <span class="text-danger">*</span>
+                            <label for="location_id" class="form-label">Supplier Location <span class="text-danger">*</span>
                             </label>
                             <select name="location_id" id="location_id" class="form-select select2 w-100">
                                 <option value="">Select Location</option>
@@ -106,8 +106,11 @@
 
                         <!-- Lead Time Days -->
                         <div class="col-lg-4 mb-3">
-                            <label for="lead_time_days" class="form-label">Lead Time <span
-                                    class="text-danger">*</span></label>
+                            <label for="lead_time_days" class="form-label">Lead Time <span class="text-danger">*</span>
+                                <i class="bi bi-info-circle text-info" data-bs-toggle="tooltip" data-bs-placement="top"
+                                    title="Lead Time refers to the number of days required by the supplier to deliver goods after an order is placed. This value is typically based on past delivery records or can be confirmed directly with the supplier. Accurate lead time helps ensure timely procurement and project planning.">
+                                </i>
+                            </label>
                             <div class="input-group">
                                 <input type="number" class="form-control" id="lead_time_days" name="lead_time_days"
                                     value="{{ old('lead_time_days') }}" placeholder="For Example 8" required
@@ -126,7 +129,8 @@
                             <label for="status" class="form-label">Status <span class="text-danger">*</span></label>
                             <select name="status" id="status" class="form-select" required>
                                 <option value="">Select Status</option>
-                                <option value="active" {{ old('status') == 'active' ? 'selected' : '' }}>Active</option>
+                                <option value="active" {{ old('status', 'active') == 'active' ? 'selected' : '' }}>Active
+                                </option>
                                 <option value="inactive" {{ old('status') == 'inactive' ? 'selected' : '' }}>Inactive
                                 </option>
                                 <option value="blacklisted" {{ old('status') == 'blacklisted' ? 'selected' : '' }}>

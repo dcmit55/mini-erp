@@ -13,22 +13,21 @@ use Illuminate\Support\Facades\Log;
 class SupplierController extends Controller
 {
     public function __construct()
-{
-    $this->middleware('auth');
+    {
+        $this->middleware('auth');
 
-    // Only allowed roles can create/edit/delete
-    $allowedRoles = ['super_admin', 'admin_procurement', 'admin_logistic', 'admin_finance', 'admin'];
-    $writeMethods = ['create', 'store', 'edit', 'update', 'destroy', 'quickStore'];
+        // Only allowed roles can create/edit/delete
+        $allowedRoles = ['super_admin', 'admin_procurement', 'admin_logistic', 'admin_finance', 'admin'];
+        $writeMethods = ['create', 'store', 'edit', 'update', 'destroy', 'quickStore'];
 
-    $this->middleware(function ($request, $next) use ($allowedRoles, $writeMethods) {
-        $user = Auth::user();
-        if (in_array($request->route()->getActionMethod(), $writeMethods) &&
-            !in_array($user->role, $allowedRoles)) {
-            abort(403, 'You do not have permission to modify supplier data.');
-        }
-        return $next($request);
-    });
-}
+        $this->middleware(function ($request, $next) use ($allowedRoles, $writeMethods) {
+            $user = Auth::user();
+            if (in_array($request->route()->getActionMethod(), $writeMethods) && !in_array($user->role, $allowedRoles)) {
+                abort(403, 'You do not have permission to modify supplier data.');
+            }
+            return $next($request);
+        });
+    }
 
     /**
      * Display a listing of the suppliers.
@@ -136,20 +135,22 @@ class SupplierController extends Controller
 
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255|unique:suppliers,name',
+            'location_id' => 'required|exists:location_supplier,id',
+            'lead_time_days' => 'required|numeric|min:1',
+            'status' => 'in:active', // always active
         ]);
         if ($validator->fails()) {
             return response()->json(['success' => false, 'message' => $validator->errors()->first()], 422);
         }
 
-        // Generate default values for required fields
         $supplier = Supplier::create([
             'supplier_code' => null,
             'name' => $request->name,
             'contact_person' => null,
             'address' => null,
-            'location_id' => null,
+            'location_id' => $request->location_id,
             'referral_link' => null,
-            'lead_time_days' => null,
+            'lead_time_days' => $request->lead_time_days,
             'status' => 'active',
             'remark' => null,
         ]);

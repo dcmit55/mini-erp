@@ -68,8 +68,8 @@
 
                         <!-- Location -->
                         <div class="col-lg-6 mb-3">
-                            <label for="location_id" class="form-label">Location</label>
-                            <select name="location_id" id="location_id" class="form-select select2">
+                            <label for="location_id" class="form-label">Supplier Location <span class="text-danger">*</span></label>
+                            <select name="location_id" id="location_id" class="form-select select2" required>
                                 <option value="">Select Location</option>
                                 @foreach ($locations as $location)
                                     <option value="{{ $location->id }}"
@@ -99,8 +99,8 @@
                             <label for="referral_link" class="form-label">Referral Link</label>
                             <input type="url" class="form-control" id="referral_link" name="referral_link"
                                 value="{{ old('referral_link', $supplier->referral_link) }}"
-                                placeholder="https://example.com/ref/abc123">
-                            <small class="text-muted">Must be a valid URL, example: https://example.com/ref/abc123</small>
+                                placeholder="https://example.com/abc123">
+                            <small class="text-muted">Must be a valid URL, example: https://example.com/abc123</small>
                             @error('referral_link')
                                 <small class="text-danger d-block">{{ $message }}</small>
                             @enderror
@@ -108,8 +108,11 @@
 
                         <!-- Lead Time Days -->
                         <div class="col-lg-4 mb-3">
-                            <label for="lead_time_days" class="form-label">Lead Time <span
-                                    class="text-danger">*</span></label>
+                            <label for="lead_time_days" class="form-label">Lead Time <span class="text-danger">*</span>
+                                <i class="bi bi-info-circle text-info" data-bs-toggle="tooltip" data-bs-placement="top"
+                                    title="Lead Time refers to the number of days required by the supplier to deliver goods after an order is placed. This value is typically based on past delivery records or can be confirmed directly with the supplier. Accurate lead time helps ensure timely procurement and project planning.">
+                                </i>
+                            </label>
                             <div class="input-group">
                                 <input type="number" class="form-control" id="lead_time_days" name="lead_time_days"
                                     value="{{ old('lead_time_days', $supplier->lead_time_days) }}"
