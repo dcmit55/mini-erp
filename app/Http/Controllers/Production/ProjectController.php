@@ -22,23 +22,25 @@ class ProjectController extends Controller
 
     public function index(Request $request)
     {
-        $query = Project::with('department', 'status');
+        $query = Project::with('departments', 'status');
 
         // Apply Filters
         if ($request->has('quantity') && $request->quantity !== null) {
             $query->where('qty', $request->quantity);
         }
 
-        // Filter by department
+        // Filter by department (multi-department support)
         if ($request->has('department') && $request->department !== null) {
             $departmentFilter = $request->department;
 
             // Check if it's numeric (ID) or string (name)
             if (is_numeric($departmentFilter)) {
-                $query->where('department_id', $departmentFilter);
+                $query->whereHas('departments', function ($q) use ($departmentFilter) {
+                    $q->where('departments.id', $departmentFilter);
+                });
             } else {
-                $query->whereHas('department', function ($q) use ($departmentFilter) {
-                    $q->where('name', $departmentFilter);
+                $query->whereHas('departments', function ($q) use ($departmentFilter) {
+                    $q->where('departments.name', $departmentFilter);
                 });
             }
         }
@@ -63,14 +65,22 @@ class ProjectController extends Controller
         $department = $request->department;
 
         // Filter data berdasarkan request
-        $query = Project::query();
+        $query = Project::with('departments');
 
         if ($quantity) {
             $query->where('qty', $quantity);
         }
 
         if ($department) {
-            $query->where('department', $department);
+            if (is_numeric($department)) {
+                $query->whereHas('departments', function ($q) use ($department) {
+                    $q->where('departments.id', $department);
+                });
+            } else {
+                $query->whereHas('departments', function ($q) use ($department) {
+                    $q->where('departments.name', $department);
+                });
+            }
         }
 
         $projects = $query->get();
@@ -109,7 +119,8 @@ class ProjectController extends Controller
             'start_date' => 'nullable|date',
             'deadline' => 'nullable|date',
             'finish_date' => 'nullable|date',
-            'department_id' => 'required|exists:departments,id',
+            'department_ids' => 'required|array|min:1',
+            'department_ids.*' => 'exists:departments,id',
             'project_status_id' => 'required|exists:project_statuses,id',
         ]);
 
@@ -122,6 +133,9 @@ class ProjectController extends Controller
                 'created_by' => Auth::user()->username,
             ]),
         );
+
+        // Attach departments
+        $project->departments()->attach($request->department_ids);
 
         // Simpan parts jika ada
         if ($request->parts) {
@@ -144,16 +158,16 @@ class ProjectController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255|unique:projects,name,NULL,id,deleted_at,NULL',
             'qty' => 'nullable|numeric|min:0',
-            'department_id' => 'required|exists:departments,id',
+            'department_ids' => 'required|array|min:1',
+            'department_ids.*' => 'exists:departments,id',
         ]);
 
         if ($validator->fails()) {
             if ($request->ajax()) {
-                // Kirim error pertama atau semua error
                 return response()->json(
                     [
                         'success' => false,
-                        'message' => $validator->errors()->first(), // atau implode(', ', $validator->all())
+                        'message' => $validator->errors()->first(),
                     ],
                     422,
                 );
@@ -164,9 +178,10 @@ class ProjectController extends Controller
         $project = Project::create([
             'name' => $request->name,
             'qty' => $request->qty,
-            'department_id' => $request->department_id,
             'created_by' => Auth::user()->username,
         ]);
+
+        $project->departments()->attach($request->department_ids);
 
         if ($request->ajax()) {
             return response()->json(['success' => true, 'project' => $project]);
@@ -177,13 +192,12 @@ class ProjectController extends Controller
 
     public function json()
     {
-        // return Project::select('id', 'name')->get();
-        return response()->json(Project::select('id', 'name')->get()); // bisa juga pakai paginate/dataTables untuk ribuan data
+        return response()->json(Project::select('id', 'name')->get());
     }
 
     public function edit(Project $project)
     {
-        $project->load('parts');
+        $project->load('parts', 'departments');
         $departments = Department::orderBy('name')->get();
         $statuses = ProjectStatus::orderBy('name')->get();
         return view('production.projects.edit', compact('project', 'departments', 'statuses'));
@@ -202,7 +216,8 @@ class ProjectController extends Controller
             'start_date' => 'nullable|date',
             'deadline' => 'nullable|date',
             'finish_date' => 'nullable|date',
-            'department_id' => 'required|exists:departments,id',
+            'department_ids' => 'required|array|min:1',
+            'department_ids.*' => 'exists:departments,id',
             'project_status_id' => 'required|exists:project_statuses,id',
         ]);
 
@@ -219,6 +234,9 @@ class ProjectController extends Controller
 
         $project->update($validated);
 
+        // Sync departments
+        $project->departments()->sync($request->department_ids);
+
         // Audit perubahan parts
         $oldParts = $project->parts()->pluck('part_name')->toArray();
         $project->parts()->delete();
@@ -231,6 +249,7 @@ class ProjectController extends Controller
                 }
             }
         }
+
         // Manual audit untuk perubahan parts
         if ($oldParts !== $newParts) {
             \OwenIt\Auditing\Models\Audit::create([

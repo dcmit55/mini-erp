@@ -50,23 +50,22 @@
                             @enderror
                         </div>
                         <div class="col-lg-4 mb-3">
-                            <label for="department_id" class="form-label">Department <span
+                            <label for="department_ids" class="form-label">Department <span
                                     class="text-danger">*</span></label>
                             <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal"
                                 style="--bs-btn-padding-y: .25rem; --bs-btn-padding-x: .5rem; --bs-btn-font-size: .55rem;"
                                 data-bs-target="#addDepartmentModal">
                                 + Add Department
                             </button>
-                            <select name="department_id" id="department_id" class="form-select select2" required>
-                                <option value="">Select Department</option>
+                            <select name="department_ids[]" id="department_ids" class="form-select select2" multiple
+                                required>
                                 @foreach ($departments as $dept)
-                                    <option value="{{ $dept->id }}"
-                                        {{ old('department_id', $project->department_id ?? '') == $dept->id ? 'selected' : '' }}>
+                                    <option value="{{ $dept->id }}">
                                         {{ $dept->name }}
                                     </option>
                                 @endforeach
                             </select>
-                            @error('department_id')
+                            @error('department_ids')
                                 <small class="text-danger">{{ $message }}</small>
                             @enderror
                         </div>
@@ -330,6 +329,15 @@
         });
 
         $(document).ready(function() {
+            // Initialize Select2 with multiple support
+            $('#department_ids').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Select departments',
+                allowClear: true,
+                closeOnSelect: false // Keep dropdown open after selection
+            });
+
+            // Department Quick Add
             $('#departmentForm').on('submit', function(e) {
                 e.preventDefault();
                 let form = $(this);
@@ -346,10 +354,9 @@
                         'X-CSRF-TOKEN': '{{ csrf_token() }}'
                     },
                     success: function(department) {
-                        // Tambahkan ke select2 dan pilih otomatis
+                        // Add to select2 and select automatically
                         let newOption = new Option(department.name, department.id, true, true);
-                        $('#department_id').append(newOption).val(department.id).trigger(
-                            'change');
+                        $('#department_ids').append(newOption).trigger('change');
                         $('#addDepartmentModal').modal('hide');
                         form[0].reset();
                         errorDiv.hide().text('');
@@ -361,6 +368,7 @@
                     }
                 });
             });
+
             // Reset error saat modal dibuka ulang
             $('#addDepartmentModal').on('shown.bs.modal', function() {
                 $('#department-error').hide().text('');

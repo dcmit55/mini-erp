@@ -115,12 +115,19 @@
                                 <td>{{ $project->name }}</td>
                                 <td>{{ $project->qty }}</td>
                                 <td>
-                                    {{ ucfirst($project->department->name) ?? '-' }}
+                                    @if ($project->departments->isNotEmpty())
+                                        @foreach ($project->departments as $dept)
+                                            <span class="badge bg-primary me-1" style="font-weight:500;">
+                                                {{ ucfirst($dept->name) }}
+                                            </span>
+                                        @endforeach
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
                                 </td>
                                 <td>{{ $project->start_date ? \Carbon\Carbon::parse($project->start_date)->translatedFormat('d F Y') : '-' }}
                                 </td>
-                                <td>
-                                    {{ $project->deadline ? \Carbon\Carbon::parse($project->deadline)->translatedFormat('d F Y') : '-' }}
+                                <td>{{ $project->deadline ? \Carbon\Carbon::parse($project->deadline)->translatedFormat('d F Y') : '-' }}
                                 </td>
                                 <td>
                                     @if ($project->status)

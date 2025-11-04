@@ -15,11 +15,11 @@ class Project extends Model implements Auditable
 {
     use HasFactory, SoftDeletes, \OwenIt\Auditing\Auditable;
 
-    protected $auditInclude = ['name', 'qty', 'department_id', 'project_status_id', 'start_date', 'deadline', 'finish_date', 'img', 'created_by'];
+    protected $auditInclude = ['name', 'qty', 'project_status_id', 'start_date', 'deadline', 'finish_date', 'img', 'created_by'];
 
     protected $auditTimestamps = true;
 
-    protected $fillable = ['name', 'qty', 'department_id', 'project_status_id', 'start_date', 'deadline', 'finish_date', 'img', 'created_by'];
+    protected $fillable = ['name', 'qty', 'project_status_id', 'start_date', 'deadline', 'finish_date', 'img', 'created_by'];
 
     public function materialUsages()
     {
@@ -31,9 +31,17 @@ class Project extends Model implements Auditable
         return $this->hasMany(ProjectPart::class);
     }
 
+    // Ubah relasi dari belongsTo ke belongsToMany
+    public function departments()
+    {
+        return $this->belongsToMany(Department::class, 'department_project')->withTimestamps();
+    }
+
+    // Untuk backward compatibility (jika ada kode lama yang masih pakai ->department)
+    // Bisa dihapus jika sudah yakin tidak ada kode lama
     public function department()
     {
-        return $this->belongsTo(Department::class);
+        return $this->departments()->first();
     }
 
     public function status()
@@ -43,7 +51,7 @@ class Project extends Model implements Auditable
 
     public function scopeNotArchived($query)
     {
-        $archiveId = 1; // Ganti sesuai id status "archive" di tabel project_statuses
+        $archiveId = 1;
         return $query->where(function ($q) use ($archiveId) {
             $q->whereNull('project_status_id')->orWhere('project_status_id', '!=', $archiveId);
         });

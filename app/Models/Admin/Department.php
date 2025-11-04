@@ -14,8 +14,9 @@ class Department extends Model
         return $this->hasMany(User::class);
     }
 
+    // Ubah relasi dari hasMany ke belongsToMany
     public function projects()
     {
-        return $this->hasMany(Project::class);
+        return $this->belongsToMany(Project::class, 'department_project')->withTimestamps();
     }
 }
