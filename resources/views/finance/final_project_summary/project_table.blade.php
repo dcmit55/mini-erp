@@ -1,7 +1,13 @@
 @forelse($projects as $project)
     <tr>
         <td class="fw-semibold">{{ $project->name }}</td>
-        <td>{{ ucfirst($project->department->name) }}</td>
+        <td>
+            @if ($project->departments->count())
+                {{ $project->departments->pluck('name')->map(fn($name) => ucfirst($name))->implode(', ') }}
+            @else
+                -
+            @endif
+        </td>
         <td>
             <a href="{{ route('final_project_summary.show', $project) }}" class="btn btn-success btn-sm">
                 <i class="bi bi-eye"></i> View Final Summary

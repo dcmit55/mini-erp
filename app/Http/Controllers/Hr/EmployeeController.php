@@ -425,7 +425,7 @@ class EmployeeController extends Controller
     {
         $timings = $employee
             ->timings()
-            ->with(['project.department'])
+            ->with(['project.departments'])
             ->latest()
             ->paginate(50);
         return view('hr.employees.timing', compact('employee', 'timings'));

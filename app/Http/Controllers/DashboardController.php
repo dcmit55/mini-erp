@@ -103,7 +103,7 @@ class DashboardController extends Controller
             ->whereNull('finish_date')
             ->where('deadline', '>=', Carbon::now())
             ->where('deadline', '<=', Carbon::now()->addDays(30))
-            ->with('department')
+            ->with('departments')
             ->orderBy('deadline')
             ->limit(10)
             ->get();

@@ -31,7 +31,11 @@
                                 <td>{{ $timing->tanggal }}</td>
                                 <td>{{ $timing->project->name ?? '-' }}</td>
                                 <td>
-                                    {{ $timing->project && $timing->project->department ? $timing->project->department->name : '-' }}
+                                    @if ($timing->project && $timing->project->departments->count())
+                                        {{ $timing->project->departments->pluck('name')->implode(', ') }}
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
                                 </td>
                                 <td>{{ $timing->step }}</td>
                                 <td>{{ $timing->parts }}</td>

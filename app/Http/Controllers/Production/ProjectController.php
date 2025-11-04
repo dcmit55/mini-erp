@@ -164,13 +164,7 @@ class ProjectController extends Controller
 
         if ($validator->fails()) {
             if ($request->ajax()) {
-                return response()->json(
-                    [
-                        'success' => false,
-                        'message' => $validator->errors()->first(),
-                    ],
-                    422,
-                );
+                return response()->json(['success' => false, 'message' => $validator->errors()->first()], 422);
             }
             return back()->withErrors($validator)->withInput();
         }
@@ -181,13 +175,10 @@ class ProjectController extends Controller
             'created_by' => Auth::user()->username,
         ]);
 
+        // Attach departments
         $project->departments()->attach($request->department_ids);
 
-        if ($request->ajax()) {
-            return response()->json(['success' => true, 'project' => $project]);
-        }
-
-        return back()->with('success', 'Project added successfully!');
+        return response()->json(['success' => true, 'project' => $project]);
     }
 
     public function json()

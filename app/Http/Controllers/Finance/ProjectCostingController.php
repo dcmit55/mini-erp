@@ -40,7 +40,7 @@ class ProjectCostingController extends Controller
             });
         }
 
-        $projects = $query->with('department')->orderBy('name')->get();
+        $projects = $query->with('departments')->orderBy('name')->get();
 
         // Pass data for filters
         $departments = Department::orderBy('name')->pluck('name');

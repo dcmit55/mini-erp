@@ -34,7 +34,7 @@ class FinalProjectSummaryController extends Controller
             $query->where('name', 'like', '%' . $request->search . '%');
         }
 
-        $projects = $query->with('department')->orderBy('name')->get();
+        $projects = $query->with('departments')->orderBy('name')->get();
 
         return view('finance.final_project_summary.index', compact('projects', 'departments'));
     }

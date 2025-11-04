@@ -30,7 +30,8 @@
                             <select name="project_id" class="form-select select2" required>
                                 <option value="">Select Project</option>
                                 @foreach ($projects as $project)
-                                    <option value="{{ $project->id }}" data-department="{{ $project->department->name }}"
+                                    <option value="{{ $project->id }}"
+                                        data-department="{{ $project->departments->pluck('name')->implode(', ') }}"
                                         data-parts='@json($project->parts->pluck('part_name'))'
                                         {{ old('project_id', $timing->project_id) == $project->id ? 'selected' : '' }}>
                                         {{ $project->name }}

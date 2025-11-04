@@ -40,11 +40,12 @@
                                     + Quick Add Project
                                 </button>
                             </div>
-                            <select name="project_id" class="form-select select2" required>
+                            <select name="project_id" id="project_id" class="form-select select2" required>
+                                <option value="">Select an option</option>
                                 @foreach ($projects as $proj)
                                     <option value="{{ $proj->id }}"
                                         data-department="{{ $proj->departments->pluck('name')->implode(', ') }}"
-                                        {{ $proj->id == $request->project_id ? 'selected' : '' }}>
+                                        {{ old('project_id', $request->project_id) == $proj->id ? 'selected' : '' }}>
                                         {{ $proj->name }}
                                     </option>
                                 @endforeach
@@ -215,24 +216,42 @@
                 @csrf
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">Quick Add Project</h5>
+                        <h5 class="modal-title" id="addProjectModalLabel">Quick Add Project</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <label>Project Name</label>
-                        <input type="text" name="name" class="form-control" required>
-                        <label class="mt-2">Qty <span class="text-danger">*</span></label>
-                        <input type="number" step="any" name="qty" class="form-control" required>
-                        <label class="mt-2">Department</label>
-                        <select name="department_id" class="form-select" required>
-                            <option value="">Select Department</option>
-                            @foreach ($departments as $dept)
-                                <option value="{{ $dept->id }}">{{ $dept->name }}</option>
-                            @endforeach
-                        </select>
+                        <div id="project-error" class="alert alert-danger d-none"></div>
+
+                        <!-- Project Name -->
+                        <div class="mb-3">
+                            <label for="project_name" class="form-label">Project Name <span
+                                    class="text-danger">*</span></label>
+                            <input type="text" id="project_name" name="name" class="form-control" required>
+                        </div>
+
+                        <!-- Quantity -->
+                        <div class="mb-3">
+                            <label for="project_qty" class="form-label">Quantity</label>
+                            <input type="number" id="project_qty" name="qty" class="form-control" min="0"
+                                step="any">
+                        </div>
+
+                        <!-- Departments -->
+                        <div class="mb-3">
+                            <label for="project_departments" class="form-label">Department <span
+                                    class="text-danger">*</span></label>
+                            <select id="project_departments" name="department_ids[]" class="form-select select2"
+                                multiple="multiple" required>
+                                @foreach ($departments as $dept)
+                                    <option value="{{ $dept->id }}">{{ $dept->name }}</option>
+                                @endforeach
+                            </select>
+                            <small class="form-text text-muted">Select one or more departments</small>
+                        </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="submit" class="btn btn-success">Add Project</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save</button>
                     </div>
                 </div>
             </form>
@@ -322,10 +341,13 @@
             });
 
             // Form submit handler
-            // Quick Add Project
+            // Quick Add Project with Auto-Select
             $('#quickAddProjectForm').on('submit', function(e) {
                 e.preventDefault();
                 let form = $(this);
+                let errorDiv = $('#project-error');
+                errorDiv.hide().text('').addClass('d-none');
+
                 $.ajax({
                     url: form.attr('action'),
                     method: 'POST',
@@ -333,25 +355,67 @@
                     headers: {
                         'X-CSRF-TOKEN': '{{ csrf_token() }}'
                     },
-                    success: function(res) {
-                        if (res.success && res.project) {
-                            let newOption = new Option(res.project.name, res.project.id, true,
-                                true);
-                            $('select[name="project_id"]').append(newOption).val(res.project.id)
-                                .trigger('change');
+                    success: function(response) {
+                        if (response.success && response.project) {
+                            const projectId = response.project.id;
+                            const projectName = response.project.name;
+                            // if controller returns departments: build string
+                            const deptString = response.project.departments ? response.project
+                                .departments.map(d => d.name).join(', ') : '';
+
+                            const $projectSelect = $('select[name="project_id"]');
+
+                            if ($projectSelect.find(`option[value="${projectId}"]`).length ===
+                                0) {
+                                let newOption = new Option(projectName, projectId, false,
+                                    false);
+                                $(newOption).attr('data-department', deptString);
+                                $projectSelect.append(newOption);
+                            }
+
+                            $projectSelect.val(projectId).trigger('change');
                             $('#addProjectModal').modal('hide');
                             form[0].reset();
-                        } else {
-                            Swal.fire('Error', 'Failed to add project. Please try again.',
-                                'error');
+                            form.find('.select2').val(null).trigger('change');
                         }
                     },
                     error: function(xhr) {
                         let msg = xhr.responseJSON?.message ||
                             'Failed to add project. Please try again.';
-                        Swal.fire('Error', msg, 'error');
+                        errorDiv.html(msg).removeClass('d-none').show();
                     }
                 });
+            });
+
+            // Initialize Select2 untuk project departments di modal
+            $('#addProjectModal').on('shown.bs.modal', function() {
+                if (!$('#project_departments').data('select2')) {
+                    $('#project_departments').select2({
+                        theme: 'bootstrap-5',
+                        placeholder: 'Select departments',
+                        allowClear: true,
+                        closeOnSelect: false,
+                        dropdownParent: $('#addProjectModal')
+                    });
+                }
+            });
+
+            // Update department text ketika project di-select
+            $('select[name="project_id"]').on('change', function() {
+                const selected = $(this).find(':selected');
+                const department = selected.data('department');
+                const $departmentDiv = $('#department');
+
+                if ($departmentDiv.length > 0) {
+                    $departmentDiv.removeClass('d-none text-danger text-warning');
+
+                    if ($(this).val() && department) {
+                        $departmentDiv.text(
+                            `Department: ${department.charAt(0).toUpperCase() + department.slice(1)}`);
+                    } else {
+                        $departmentDiv.addClass('d-none').text('Department');
+                    }
+                }
             });
 
             // Quick Add Material

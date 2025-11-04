@@ -66,8 +66,8 @@
                                             <option value="{{ $proj->id }}"
                                                 {{ request('project_filter') == $proj->id ? 'selected' : '' }}>
                                                 {{ $proj->name }}
-                                                @if ($proj->department)
-                                                    ({{ $proj->department->name }})
+                                                @if ($proj->departments->count())
+                                                    ({{ $proj->departments->pluck('name')->implode(', ') }})
                                                 @endif
                                             </option>
                                         @endforeach
@@ -146,10 +146,12 @@
                                         <span class="fw-medium">{{ $project ? $project->name : 'Unknown Project' }}</span>
                                     </td>
                                     <td>
-                                        @if ($project && $project->department)
-                                            <span class="badge bg-info text-dark">
-                                                {{ $project->department->name }}
-                                            </span>
+                                        @if ($project && $project->departments->count())
+                                            @foreach ($project->departments as $dept)
+                                                <span class="badge bg-info text-dark">
+                                                    {{ $dept->name }}
+                                                </span>
+                                            @endforeach
                                         @else
                                             <span class="text-muted">-</span>
                                         @endif

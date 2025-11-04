@@ -58,7 +58,7 @@
                                                 <option value="">Select Project</option>
                                                 @foreach ($projects as $project)
                                                     <option value="{{ $project->id }}"
-                                                        data-department="{{ $project->department->name }}"
+                                                        data-department="{{ $project->departments->pluck('name')->implode(', ') }}"
                                                         data-parts='@json($project->parts->pluck('part_name'))'
                                                         {{ old("timings.$i.project_id") == $project->id ? 'selected' : '' }}>
                                                         {{ $project->name }}

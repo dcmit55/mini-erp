@@ -37,13 +37,6 @@ class Project extends Model implements Auditable
         return $this->belongsToMany(Department::class, 'department_project')->withTimestamps();
     }
 
-    // Untuk backward compatibility (jika ada kode lama yang masih pakai ->department)
-    // Bisa dihapus jika sudah yakin tidak ada kode lama
-    public function department()
-    {
-        return $this->departments()->first();
-    }
-
     public function status()
     {
         return $this->belongsTo(ProjectStatus::class, 'project_status_id');

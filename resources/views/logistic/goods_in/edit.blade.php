@@ -52,7 +52,7 @@
                                     </option>
                                     @foreach ($projects as $project)
                                         <option value="{{ $project->id }}"
-                                            data-department="{{ $project->department ? $project->department->name : '' }}"
+                                            data-department="{{ $project->departments->pluck('name')->implode(', ') }}"
                                             {{ $goods_in->project_id == $project->id ? 'selected' : '' }}>
                                             {{ $project->name }}
                                         </option>

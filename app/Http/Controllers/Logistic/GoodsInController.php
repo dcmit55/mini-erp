@@ -272,7 +272,7 @@ class GoodsInController extends Controller
     public function edit(GoodsIn $goods_in)
     {
         $inventories = Inventory::orderBy('name')->get();
-        $projects = Project::with('department')->orderBy('name')->get();
+        $projects = Project::with('departments')->orderBy('name')->get();
         $userDept = null;
         if ($goods_in->returned_by) {
             $userDept = User::with('department')->where('username', $goods_in->returned_by)->first();

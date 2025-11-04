@@ -27,11 +27,11 @@ class TimingController extends Controller
 
     public function index(Request $request)
     {
-        $timings = Timing::with(['project.department', 'employee.department'])
+        $timings = Timing::with(['project.departments', 'employee.department'])
             ->latest()
             ->get();
 
-        $projects = Project::with('department')->orderBy('name')->get();
+        $projects = Project::with('departments')->orderBy('name')->get();
         $departments = Department::orderBy('name')->pluck('name', 'id');
         $employees = Employee::orderBy('name')->get();
 
@@ -40,7 +40,7 @@ class TimingController extends Controller
 
     public function ajaxSearch(Request $request)
     {
-        $query = Timing::with(['project.department', 'employee.department']);
+        $query = Timing::with(['project.departments', 'employee.department']);
 
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
@@ -51,7 +51,7 @@ class TimingController extends Controller
             $query->where('project_id', $request->project_id);
         }
         if ($request->filled('department')) {
-            $query->whereHas('project.department', function ($q) use ($request) {
+            $query->whereHas('project.departments', function ($q) use ($request) {
                 $q->where('name', $request->department);
             });
         }
@@ -87,7 +87,7 @@ class TimingController extends Controller
             abort(403, 'You do not have permission to create timing data.');
         }
 
-        $projects = Project::with(['parts', 'department'])->get();
+        $projects = Project::with(['parts', 'departments'])->get();
 
         // HANYA ambil employee yang statusnya 'active'
         $employees = Employee::where('status', 'active')->orderBy('name')->get();
@@ -187,7 +187,7 @@ class TimingController extends Controller
     public function export(Request $request)
     {
         // Apply same filters as index with eager loading for employee.department
-        $query = Timing::with(['project.department', 'employee.department']);
+        $query = Timing::with(['project.departments', 'employee.department']);
 
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
@@ -198,7 +198,7 @@ class TimingController extends Controller
             $query->where('project_id', $request->project_id);
         }
         if ($request->filled('department')) {
-            $query->whereHas('project.department', function ($q) use ($request) {
+            $query->whereHas('project.departments', function ($q) use ($request) {
                 $q->where('name', $request->department);
             });
         }
@@ -330,18 +330,21 @@ class TimingController extends Controller
                 }
 
                 // Find Project with department relationship
-                $project = Project::with('department')->where('name', $projectName)->first();
+                $project = Project::with('departments')->where('name', $projectName)->first();
                 if (!$project) {
                     $errors[] = "Row {$rowIndex}: Project '{$projectName}' not found";
                     continue;
                 }
 
                 // Get department from project
-                $projectDepartment = $project->department ? $project->department->name : null;
-                if (!$projectDepartment) {
-                    $errors[] = "Row {$rowIndex}: Project '{$projectName}' does not have a department assigned";
+                $projectDepartments = $project->departments;
+                if ($projectDepartments->isEmpty()) {
+                    $errors[] = "Row {$rowIndex}: Project '{$projectName}' does not have department(s) assigned";
                     continue;
                 }
+
+                // Ambil department pertama atau gabung semua
+                $projectDepartment = $projectDepartments->pluck('name')->implode(', ');
 
                 // Find Employee
                 $employee = Employee::where('name', $employeeName)->first();
@@ -358,8 +361,12 @@ class TimingController extends Controller
 
                 // Department will be taken from project, not from import data or employee
                 // Note: Department is not stored in timings table, it's accessed via project relationship
-                if (!empty($departmentName) && $departmentName !== $projectDepartment) {
-                    $warnings[] = "Row {$rowIndex}: Department '{$departmentName}' from import will be ignored. Using project department '{$projectDepartment}'.";
+                if (!empty($departmentName)) {
+                    // Check if provided department matches any of project's departments
+                    $departmentExists = $projectDepartments->pluck('name')->contains($departmentName);
+                    if (!$departmentExists) {
+                        $warnings[] = "Row {$rowIndex}: Department '{$departmentName}' from import will be ignored. Using project departments: {$projectDepartment}";
+                    }
                 }
 
                 // Validate and parse time format with detailed error messages

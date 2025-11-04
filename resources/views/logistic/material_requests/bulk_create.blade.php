@@ -74,8 +74,7 @@
                                                 class="form-select select2 material-select" required>
                                                 <option value="">Select Material</option>
                                                 @foreach ($inventories as $inventory)
-                                                    <option value="{{ $inventory->id }}"
-                                                        data-unit="{{ $inventory->unit }}"
+                                                    <option value="{{ $inventory->id }}" data-unit="{{ $inventory->unit }}"
                                                         data-stock="{{ $inventory->quantity }}"
                                                         {{ old("requests.$index.inventory_id") == $inventory->id ? 'selected' : '' }}>
                                                         {{ $inventory->name }}
@@ -194,25 +193,45 @@
                         @csrf
                         <div class="modal-content">
                             <div class="modal-header">
-                                <h5 class="modal-title">Quick Add Project</h5>
+                                <h5 class="modal-title" id="quickAddProjectModalLabel">Quick Add Project</h5>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal"
                                     aria-label="Close"></button>
                             </div>
                             <div class="modal-body">
-                                <label>Project Name <span class="text-danger">*</span></label>
-                                <input type="text" name="name" class="form-control" required>
-                                <label class="mt-2">Qty <span class="text-danger">*</span></label>
-                                <input type="number" step="any" name="qty" class="form-control" required>
-                                <label class="mt-2">Department <span class="text-danger">*</span></label>
-                                <select name="department_id" class="form-select" required>
-                                    <option value="">Select Department</option>
-                                    @foreach ($departments as $dept)
-                                        <option value="{{ $dept->id }}">{{ $dept->name }}</option>
-                                    @endforeach
-                                </select>
+                                <div id="project-error" class="alert alert-danger d-none"></div>
+
+                                <!-- Project Name -->
+                                <div class="mb-3">
+                                    <label for="project_name" class="form-label">Project Name <span
+                                            class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="project_name" name="name" required
+                                        placeholder="Enter project name">
+                                </div>
+
+                                <!-- Quantity -->
+                                <div class="mb-3">
+                                    <label for="project_qty" class="form-label">Quantity <span
+                                            class="text-danger">*</span></label>
+                                    <input type="number" class="form-control" id="project_qty" name="qty" required
+                                        min="1" placeholder="Enter quantity">
+                                </div>
+
+                                <!-- Departments -->
+                                <div class="mb-3">
+                                    <label for="project_departments" class="form-label">Department <span
+                                            class="text-danger">*</span></label>
+                                    <select name="department_ids[]" id="project_departments" class="form-select" multiple
+                                        required>
+                                        @foreach ($departments as $dept)
+                                            <option value="{{ $dept->id }}">{{ $dept->name }}</option>
+                                        @endforeach
+                                    </select>
+                                    <small class="text-muted">You can select multiple departments</small>
+                                </div>
                             </div>
                             <div class="modal-footer">
-                                <button type="submit" class="btn btn-success">Add Project</button>
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Save Project</button>
                             </div>
                         </div>
                     </form>
@@ -447,17 +466,42 @@
                             $('.project-select').last().val(res.project.id).trigger('change');
                             $('#quickAddProjectForm').closest('.modal').modal('hide');
                             form[0].reset();
+
+                            // Reset select2 untuk departments jika ada
+                            $('#project_departments').val(null).trigger('change');
+
+                            Swal.fire('Success', 'Project added successfully!', 'success');
                         } else {
-                            Swal.fire('Error', 'Failed to add project. Please try again.',
-                                'error');
+                            Swal.fire('Error', res.message ||
+                                'Failed to add project. Please try again.', 'error');
                         }
                     },
                     error: function(xhr) {
                         let msg = xhr.responseJSON?.message ||
                             'Failed to add project. Please try again.';
+                        if (xhr.responseJSON?.errors) {
+                            // Tampilkan validation errors
+                            let errorList = Object.values(xhr.responseJSON.errors).flat().join(
+                                '<br>');
+                            msg = errorList;
+                        }
                         Swal.fire('Error', msg, 'error');
                     }
                 });
+            });
+
+            // Inisialisasi Select2 untuk multiple department di modal Quick Add Project
+            $('#project_departments').select2({
+                theme: 'bootstrap-5',
+                width: '100%',
+                placeholder: 'Select Department',
+                allowClear: true,
+                dropdownParent: $('#quickAddProjectModal')
+            }).on('select2:open', function() {
+                setTimeout(function() {
+                    document.querySelector('.select2-container--open .select2-search__field')
+                        .focus();
+                }, 100);
             });
 
             // Quick Add Material (Bulk)

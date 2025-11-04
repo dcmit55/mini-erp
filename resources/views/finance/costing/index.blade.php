@@ -45,7 +45,13 @@
                         @foreach ($projects as $project)
                             <tr>
                                 <td>{{ $project->name }}</td>
-                                <td>{{ ucfirst($project->department->name) ?? '-' }}</td>
+                                <td>
+                                    @if ($project->departments->count())
+                                        {{ $project->departments->pluck('name')->map(fn($name) => ucfirst($name))->implode(', ') }}
+                                    @else
+                                        -
+                                    @endif
+                                </td>
                                 <td>
                                     <button class="btn btn-primary btn-sm" onclick="viewCosting('{{ $project->id }}')"
                                         title="View Report"><i class="bi bi-eye"></i></button>

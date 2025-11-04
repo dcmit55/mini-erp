@@ -24,12 +24,12 @@ class MaterialPlanningController extends Controller
     public function index(Request $request)
     {
         // Buat query dasar dengan relasi yang diperlukan
-        $query = MaterialPlanning::with(['project.department', 'unit', 'requester']);
+        $query = MaterialPlanning::with(['project.departments', 'unit', 'requester']);
 
         // Apply filter berdasarkan department jika ada
         if ($request->filled('department_filter')) {
-            $query->whereHas('project', function ($q) use ($request) {
-                $q->where('department_id', $request->department_filter);
+            $query->whereHas('project.departments', function ($q) use ($request) {
+                $q->where('departments.id', $request->department_filter);
             });
         }
 
@@ -55,13 +55,13 @@ class MaterialPlanningController extends Controller
         $plannings = $query->orderBy('eta_date')->get()->groupBy('project_id');
 
         // Dapatkan data projects dengan department
-        $projects = Project::with('department')->whereIn('id', $plannings->keys())->get()->keyBy('id');
+        $projects = Project::with('departments')->whereIn('id', $plannings->keys())->get()->keyBy('id');
 
         // Dapatkan semua departments untuk filter
         $departments = Department::orderBy('name')->get();
 
         // Dapatkan semua projects untuk filter
-        $allProjects = Project::with('department')->orderBy('name')->get();
+        $allProjects = Project::with('departments')->orderBy('name')->get();
 
         // Hitung created date dan last update untuk setiap project
         $projectStats = [];

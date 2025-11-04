@@ -428,8 +428,12 @@
                                             </div>
                                             <div class="flex-grow-1 ms-3">
                                                 <div class="fw-semibold">{{ $project->name }}</div>
-                                                <div class="small text-muted">
-                                                    {{ $project->department->name ?? 'N/A' }} Department
+                                                <div class="small text-muted"> Department:
+                                                    @if ($project->departments && $project->departments->count())
+                                                        {{ $project->departments->pluck('name')->implode(', ') }}
+                                                    @else
+                                                        N/A
+                                                    @endif
                                                 </div>
                                             </div>
                                             <div class="flex-shrink-0">

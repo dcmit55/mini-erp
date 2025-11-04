@@ -363,7 +363,7 @@ class GoodsOutController extends Controller
     public function createIndependent()
     {
         $inventories = Inventory::orderBy('name')->get();
-        $projects = Project::with('department', 'status')->notArchived()->orderBy('name')->get();
+        $projects = Project::with('departments', 'status')->notArchived()->orderBy('name')->get();
         $users = User::with('department')->orderBy('username')->get();
         return view('logistic.goods_out.create_independent', compact('inventories', 'projects', 'users'));
     }
@@ -549,7 +549,7 @@ class GoodsOutController extends Controller
     {
         $goodsOut = GoodsOut::with('inventory', 'project', 'materialRequest')->findOrFail($id);
         $inventories = Inventory::orderBy('name')->get();
-        $projects = Project::with('department', 'status')->notArchived()->orderBy('name')->get();
+        $projects = Project::with('departments', 'status')->notArchived()->orderBy('name')->get();
         $users = User::with('department')->orderBy('username')->get();
 
         $fromMaterialRequest = $goodsOut->material_request_id ? true : false;

@@ -3,7 +3,6 @@
 namespace App\Models\Procurement;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Procurement\GoodsReceiveDetail;
 use App\Models\Procurement\ShippingDetail;
 
 class GoodsReceiveDetail extends Model

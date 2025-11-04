@@ -39,8 +39,8 @@ class MaterialPlanning extends Model implements AuditableContract
     // Scope untuk filter berdasarkan department
     public function scopeByDepartment($query, $departmentId)
     {
-        return $query->whereHas('project', function ($q) use ($departmentId) {
-            $q->where('department_id', $departmentId);
+        return $query->whereHas('project.departments', function ($q) use ($departmentId) {
+            $q->where('departments.id', $departmentId);
         });
     }
 
