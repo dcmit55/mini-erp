@@ -38,7 +38,8 @@
                 <form method="POST" action="{{ route('material_requests.bulk_store') }}">
                     @csrf
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle table-sm" id="bulk-material-table" style="min-width: 100%;">
+                        <table class="table table-hover align-middle table-sm" id="bulk-material-table"
+                            style="min-width: 100%;">
                             <thead class="table-light">
                                 <tr>
                                     <th style="width: 25%;">Project <span class="text-danger">*</span></th>
@@ -57,7 +58,7 @@
                                                 <option value="">Select Project</option>
                                                 @foreach ($projects as $project)
                                                     <option value="{{ $project->id }}"
-                                                        data-department="{{ $project->department->name }}"
+                                                        data-department="{{ $project->departments->pluck('name')->implode(', ') }}"
                                                         {{ old("requests.$index.project_id") == $project->id ? 'selected' : '' }}>
                                                         {{ $project->name }}
                                                     </option>
@@ -73,7 +74,8 @@
                                                 class="form-select select2 material-select" required>
                                                 <option value="">Select Material</option>
                                                 @foreach ($inventories as $inventory)
-                                                    <option value="{{ $inventory->id }}" data-unit="{{ $inventory->unit }}"
+                                                    <option value="{{ $inventory->id }}"
+                                                        data-unit="{{ $inventory->unit }}"
                                                         data-stock="{{ $inventory->quantity }}"
                                                         {{ old("requests.$index.inventory_id") == $inventory->id ? 'selected' : '' }}>
                                                         {{ $inventory->name }}

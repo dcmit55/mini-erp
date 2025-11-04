@@ -42,7 +42,8 @@
                             </div>
                             <select name="project_id" class="form-select select2" required>
                                 @foreach ($projects as $proj)
-                                    <option value="{{ $proj->id }}" data-department="{{ $proj->department->name }}"
+                                    <option value="{{ $proj->id }}"
+                                        data-department="{{ $proj->departments->pluck('name')->implode(', ') }}"
                                         {{ $proj->id == $request->project_id ? 'selected' : '' }}>
                                         {{ $proj->name }}
                                     </option>
