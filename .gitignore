@@ -14,3 +14,6 @@ npm-debug.log
 yarn-error.log
 /.idea
 /.vscode
+
+# Ignore custom layout changes
+resources/views/layouts/app.blade.php

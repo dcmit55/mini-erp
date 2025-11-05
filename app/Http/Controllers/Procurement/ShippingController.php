@@ -14,6 +14,13 @@ class ShippingController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
+        $allowedRoles = ['super_admin', 'admin_procurement', 'admin_logistic'];
+        $this->middleware(function ($request, $next) use ($allowedRoles) {
+            if (!in_array(auth()->user()->role, $allowedRoles)) {
+                abort(403, 'Unauthorized');
+            }
+            return $next($request);
+        });
     }
 
     public function create(Request $request)
