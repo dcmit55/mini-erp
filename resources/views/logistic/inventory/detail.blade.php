@@ -524,7 +524,7 @@
                             <div class="col-lg-6 mb-4">
                                 <h5 class="mb-3 d-flex align-items-center">
                                     <i class="fas fa-info-circle me-2 text-primary"></i>
-                                    Material Details
+                                    Info
                                 </h5>
                                 <div class="table-responsive">
                                     <table class="table detail-table table-hover">
@@ -633,7 +633,7 @@
                             <div class="col-lg-6 mb-4">
                                 <h5 class="mb-3 d-flex align-items-center">
                                     <i class="fas fa-image me-2 text-primary"></i>
-                                    Material Image
+                                    Image
                                 </h5>
                                 <div class="image-container">
                                     @if ($inventory->img)

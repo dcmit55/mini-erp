@@ -110,8 +110,7 @@
                 </div>
 
                 <!-- Table -->
-                <table class="table table-hover table-sm align-middle" id="datatable"
-                    data-material-request-table="1">
+                <table class="table table-hover table-sm align-middle" id="datatable" data-material-request-table="1">
                     <thead class="table-light text-nowrap">
                         <tr>
                             <th></th>
@@ -189,16 +188,18 @@
     <!-- Material Detail Modal -->
     <div class="modal fade" id="materialDetailModal" tabindex="-1" aria-labelledby="materialDetailModalLabel"
         aria-hidden="true">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="materialDetailModalLabel">Material Details</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body" id="material-detail-modal-body">
-                    <!-- Detail akan dimuat via AJAX -->
-                    <div class="text-center py-4">
-                        <div class="spinner-border" role="status"></div>
+                    <div class="table-responsive">
+                        <!-- Konten detail akan dimuat via AJAX -->
+                        <div class="text-center py-4">
+                            <div class="spinner-border" role="status"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -527,6 +528,11 @@
 
         .text-primary {
             color: #6610f2 !important;
+        }
+
+        #materialDetailModal .modal-body {
+            overflow-x: auto !important;
+            max-width: 100vw;
         }
     </style>
 @endpush

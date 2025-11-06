@@ -367,16 +367,15 @@
         }
 
         .clickable-name {
-            transition: all 0.2s ease;
-            border-radius: 4px;
-            padding: 4px 8px;
-            margin: -4px -8px;
+            transition: color 0.2s;
         }
 
         .clickable-name:hover {
-            background-color: #e3f2fd;
-            transform: scale(1.02);
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            background: linear-gradient(45deg, #8F12FE, #4A25AA);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         .employee-photo {
