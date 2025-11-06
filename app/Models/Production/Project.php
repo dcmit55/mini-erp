@@ -15,11 +15,35 @@ class Project extends Model implements Auditable
 {
     use HasFactory, SoftDeletes, \OwenIt\Auditing\Auditable;
 
-    protected $auditInclude = ['name', 'qty', 'project_status_id', 'start_date', 'deadline', 'finish_date', 'img', 'created_by'];
+    protected $auditInclude = ['name', 'qty', 'project_status_id', 'start_date', 'deadline', 'finish_date', 'img', 'created_by', 'stage', 'submission_form'];
 
     protected $auditTimestamps = true;
 
-    protected $fillable = ['name', 'qty', 'project_status_id', 'start_date', 'deadline', 'finish_date', 'img', 'created_by'];
+    protected $fillable = ['name', 'qty', 'project_status_id', 'start_date', 'deadline', 'finish_date', 'img', 'created_by', 'lark_record_id', 'last_sync_at', 'stage', 'submission_form'];
+
+    // BOOT METHOD
+    protected static function boot()
+    {
+        parent::boot();
+
+        // Saat project di-delete (soft delete), hapus juga related records
+        static::deleting(function ($project) {
+            // Delete material usages
+            $project->materialUsages()->delete();
+
+            // Delete project parts
+            $project->parts()->delete();
+        });
+
+        // Saat project di-force delete (permanent), hapus juga related records
+        static::forceDeleting(function ($project) {
+            // Force delete material usages
+            $project->materialUsages()->forceDelete();
+
+            // Force delete project parts
+            $project->parts()->forceDelete();
+        });
+    }
 
     public function materialUsages()
     {

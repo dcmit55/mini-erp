@@ -52,7 +52,7 @@ class ProjectController extends Controller
 
         $projects = $query->latest()->get();
         $departments = Department::orderBy('name')->get();
-        $allQuantities = Project::pluck('qty')->unique()->sort()->values();
+        $allQuantities = Project::where('qty', '>', 0)->pluck('qty')->unique()->sort()->values();
         $statuses = ProjectStatus::orderBy('name')->get();
 
         return view('production.projects.index', compact('projects', 'departments', 'allQuantities', 'statuses'));
@@ -201,7 +201,7 @@ class ProjectController extends Controller
         }
 
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:projects,name,' . $project->id . ',id,deleted_at,NULL',
+            'name' => ['required', 'string', 'max:255', \Illuminate\Validation\Rule::unique('projects')->ignore($project->id)->whereNull('deleted_at')],
             'qty' => 'required|integer|min:1',
             'img' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
             'start_date' => 'nullable|date',

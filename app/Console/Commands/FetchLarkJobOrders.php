@@ -1,5 +1,45 @@
 <?php
-// filepath: c:\xampp\htdocs\inventory-system-v2-upg-larv-oct\app\Console\Commands\FetchLarkJobOrders.php
+/**
+ * ============================================================
+ * LARK JOB ORDERS SYNCHRONIZATION COMMAND
+ * ============================================================
+ *
+ * File: FetchLarkJobOrders.php
+ * Purpose: Sinkronisasi data Job Orders dari Lark ke Laravel
+ *
+ * ALUR KERJA:
+ * 1. Validasi access token Lark
+ * 2. Hapus semua data lama (fresh sync)
+ * 3. Fetch data dari Lark API
+ * 4. Parse setiap field (name, qty, deadline, status, dll)
+ * 5. Download images dari Lark (jika ada)
+ * 6. Simpan/update ke database Laravel
+ * 7. Tampilkan summary hasil sync
+ *
+ * FIELD YANG DIAMBIL DARI LARK:
+ * - Job Order Name / Description → name
+ * - QTY / Quantity → qty
+ * - Delivery Date → deadline (timezone: Asia/Singapore UTC+8)
+ * - Job Status / Costume Production Stage → project_status_id
+ * - Dept-in-charge → department_id
+ * - Costume/Plush/Mascot Production Stage → stage
+ * - Submission Form → submission_form (link)
+ * - WIP Images → img (download ke storage/app/public/projects/)
+ *
+ * PENGGUNAAN:
+ * - Basic: php artisan lark:fetch-job-orders
+ * - Debug mode: php artisan lark:fetch-job-orders --debug
+ * - Force sync: php artisan lark:fetch-job-orders --force
+ *
+ * TIMEZONE HANDLING:
+ * - Lark UI menggunakan Asia/Singapore (UTC+8)
+ * - Timestamp dari Lark dalam format milidetik
+ * - Parsing menggunakan Carbon dengan timezone Singapore
+ * - Database menyimpan format DATE (Y-m-d)
+ *
+ * @author Development Team
+ * @version 2.0
+ */
 
 namespace App\Console\Commands;
 
@@ -7,162 +47,175 @@ use Illuminate\Console\Command;
 use App\Services\LarkIntegration;
 use App\Models\Production\Project;
 use App\Models\Admin\Department;
+use App\Models\Production\ProjectStatus;
 
 class FetchLarkJobOrders extends Command
 {
-    // php artisan lark:fetch-job-orders
     protected $signature = 'lark:fetch-job-orders {--force : Force sync all data including previously deleted ones} {--debug : Show detailed field information}';
     protected $description = 'Fetch job orders from Lark and sync to projects table';
 
+    /**
+     * Main method untuk menjalankan sinkronisasi
+     */
     public function handle(LarkIntegration $lark)
     {
-        $this->info('Fetching job orders from Lark...');
-        $jobOrders = $lark->fetchJobOrders();
+        $this->info('🔄 Starting Lark Job Orders Synchronization...');
+        $token = $lark->getAccessToken();
+        if (!$token) {
+            $this->error('❌ Failed to get Lark access token.');
+            return 1;
+        }
+        $this->info('✓ Access token obtained successfully');
 
+        // Ambil data dari Lark API
+        $jobOrders = $lark->fetchJobOrders();
         if (!$jobOrders) {
             $this->error('No job orders found or failed to fetch.');
             return 1;
         }
-
         $this->info('Total records found: ' . count($jobOrders));
+
+        // Ambil semua lark_record_id dari hasil fetch Lark
+        $larkIds = collect($jobOrders)->pluck('record_id')->filter()->all();
+
+        // Hapus hanya project hasil import Lark yang sudah tidak ada di Lark
+        $deletedCount = Project::where('created_by', 'Lark Imported')->whereNotIn('lark_record_id', $larkIds)->delete();
+        $this->info("✓ Deleted {$deletedCount} old Lark records (not found in Lark)");
+
+        // Ambil data dari Lark API
+        $jobOrders = $lark->fetchJobOrders();
+        if (!$jobOrders) {
+            $this->error('No job orders found or failed to fetch.');
+            return 1;
+        }
+        $this->info('Total records found: ' . count($jobOrders));
+
         $successCount = 0;
         $updatedCount = 0;
         $skipCount = 0;
         $debugMode = $this->option('debug');
 
-        // Cek apakah menggunakan force sync
-        $forceSync = $this->option('force');
-        if ($forceSync) {
-            $this->warn('Force sync enabled - will sync all data including previously deleted ones');
-        }
-
         foreach ($jobOrders as $index => $jobOrder) {
             $recordId = $jobOrder['record_id'] ?? 'unknown';
-            $this->info("Processing record #{$index}: " . $recordId);
-
             $fields = $jobOrder['fields'] ?? [];
 
-            // DEBUG: Tampilkan semua field yang tersedia
-            if ($debugMode) {
-                $this->line('Available fields:');
-                foreach ($fields as $fieldName => $fieldValue) {
-                    if (is_array($fieldValue)) {
-                        $this->line("  - {$fieldName}: " . json_encode($fieldValue));
-                    } else {
-                        $this->line("  - {$fieldName}: {$fieldValue}");
-                    }
-                }
-                $this->line('---');
-            }
-
-            $jobOrderName = null;
-
-            // PRIORITAS 1: Coba ambil dari field "Job Order" langsung
-            if (isset($fields['Job Order'])) {
-                if (is_array($fields['Job Order']) && isset($fields['Job Order'][0]['text'])) {
-                    $jobOrderName = $fields['Job Order'][0]['text'];
-                    $this->line("✓ Found Job Order (array): {$jobOrderName}");
-                } elseif (is_string($fields['Job Order'])) {
-                    $jobOrderName = $fields['Job Order'];
-                    $this->line("✓ Found Job Order (string): {$jobOrderName}");
-                }
-            }
-
-            // PRIORITAS 2: Coba ambil dari "Job Order Name / Description"
-            if (!$jobOrderName && isset($fields['Job Order Name / Description'])) {
-                $jobOrderName = $fields['Job Order Name / Description'];
-                $this->line("✓ Found Job Order Name/Description: {$jobOrderName}");
-            }
-
-            // PRIORITAS 3: Coba ambil dari "Job Order Name"
-            if (!$jobOrderName && isset($fields['Job Order Name'])) {
-                if (is_array($fields['Job Order Name']) && isset($fields['Job Order Name'][0]['text'])) {
-                    $jobOrderName = $fields['Job Order Name'][0]['text'];
-                    $this->line("✓ Found Job Order Name (array): {$jobOrderName}");
-                } elseif (is_string($fields['Job Order Name'])) {
-                    $jobOrderName = $fields['Job Order Name'];
-                    $this->line("✓ Found Job Order Name (string): {$jobOrderName}");
-                }
-            }
-
-            // PRIORITAS 4: Fallback ke "Project List" (untuk backward compatibility)
-            if (!$jobOrderName && isset($fields['Project List'][0]['text'])) {
-                $jobOrderName = $fields['Project List'][0]['text'];
-                $this->warn("⚠ Using Project List as fallback: {$jobOrderName}");
-            }
-
-            // PRIORITAS 5: Coba field lain yang mungkin mengandung job order
+            // --- Ambil nama project ---
+            $jobOrderName = $fields['Job Order Name / Description'] ?? null;
             if (!$jobOrderName) {
-                $possibleFields = [
-                    'Job Order ID',
-                    'Order Name',
-                    'Order ID',
-                    'Job Name',
-                    'Task Name',
-                    'Work Order',
-                    'Project Name', // sebagai fallback terakhir
-                ];
+                $this->error("Skipped record $recordId: No job order field found");
+                $skipCount++;
+                continue;
+            }
 
-                foreach ($possibleFields as $fieldName) {
-                    if (isset($fields[$fieldName])) {
-                        if (is_array($fields[$fieldName]) && isset($fields[$fieldName][0]['text'])) {
-                            $jobOrderName = $fields[$fieldName][0]['text'];
-                            $this->warn("⚠ Using {$fieldName} as fallback: {$jobOrderName}");
-                            break;
-                        } elseif (is_string($fields[$fieldName])) {
-                            $jobOrderName = $fields[$fieldName];
-                            $this->warn("⚠ Using {$fieldName} as fallback: {$jobOrderName}");
-                            break;
-                        }
+            // --- Ambil quantity ---
+            $quantity = null;
+            if (isset($fields['QTY'])) {
+                if (is_numeric($fields['QTY'])) {
+                    $quantity = (int) $fields['QTY'];
+                } elseif (is_array($fields['QTY']) && isset($fields['QTY'][0])) {
+                    $quantity = (int) $fields['QTY'][0];
+                }
+            }
+
+            // --- Ambil deadline dari Delivery Date (timezone Singapore) ---
+            $deadline = null;
+            if (isset($fields['Delivery Date'])) {
+                $deadline = $this->parseDateField($fields['Delivery Date']);
+            }
+
+            // --- Ambil status ---
+            $statusName = null;
+            if (isset($fields['Job Status'])) {
+                if (is_array($fields['Job Status']) && isset($fields['Job Status'][0]['text'])) {
+                    $statusName = $fields['Job Status'][0]['text'];
+                } elseif (is_string($fields['Job Status'])) {
+                    $statusName = trim($fields['Job Status']);
+                }
+            }
+            // Cari/insert status di tabel project_statuses
+            $projectStatusId = null;
+            if ($statusName) {
+                $status = ProjectStatus::firstOrCreate(['name' => $statusName]);
+                $projectStatusId = $status->id;
+            }
+
+            // --- Ambil department dari Dept-in-charge ---
+            $primaryDepartmentId = null;
+            if (isset($fields['Dept-in-charge'])) {
+                $deptInCharge = $fields['Dept-in-charge'];
+                $deptName = null;
+                if (is_array($deptInCharge) && !empty($deptInCharge)) {
+                    $firstDept = $deptInCharge[0];
+                    $deptName = is_array($firstDept) && isset($firstDept['text']) ? $firstDept['text'] : $firstDept;
+                } elseif (is_string($deptInCharge)) {
+                    $deptName = trim($deptInCharge);
+                }
+                if ($deptName) {
+                    $department = Department::firstOrCreate(['name' => trim($deptName)], ['description' => 'Department synced from Lark']);
+                    $primaryDepartmentId = $department->id;
+                }
+            }
+
+            // --- Ambil stage dari salah satu kolom stage ---
+            $stage = null;
+            $stageFields = ['Costume Production Stage', 'Plush Production Stage', 'Mascot/Statue Production Stage'];
+            foreach ($stageFields as $stageField) {
+                if (isset($fields[$stageField])) {
+                    if (is_array($fields[$stageField]) && isset($fields[$stageField][0]['text'])) {
+                        $stage = $fields[$stageField][0]['text'];
+                    } elseif (is_string($fields[$stageField])) {
+                        $stage = trim($fields[$stageField]);
+                    }
+                    if ($stage) {
+                        break;
                     }
                 }
             }
 
-            if ($jobOrderName) {
-                // Bersihkan nama job order dari karakter yang tidak diinginkan
-                $jobOrderName = trim($jobOrderName);
-
-                // Skip jika nama kosong setelah di-trim
-                if (empty($jobOrderName)) {
-                    $this->warn("⚠ Skipped record $recordId: Empty job order name after cleaning");
-                    $skipCount++;
-                    continue;
+            // --- Ambil submission form ---
+            $submissionForm = null;
+            if (isset($fields['Submission Form'])) {
+                if (is_array($fields['Submission Form']) && isset($fields['Submission Form'][0])) {
+                    if (isset($fields['Submission Form'][0]['link'])) {
+                        $submissionForm = $fields['Submission Form'][0]['link'];
+                    } elseif (isset($fields['Submission Form'][0]['text'])) {
+                        $submissionForm = $fields['Submission Form'][0]['text'];
+                    }
+                } elseif (is_string($fields['Submission Form'])) {
+                    $submissionForm = trim($fields['Submission Form']);
                 }
+            }
 
-                // Cari atau buat department 'Lark Imported'
-                $department = Department::firstOrCreate(['name' => 'Lark Imported'], ['description' => 'Projects imported from Lark Job Orders']);
+            // --- Siapkan data untuk disimpan ---
+            $projectData = [
+                'qty' => $quantity,
+                'department_id' => $primaryDepartmentId,
+                'created_by' => 'Lark Synced',
+                'lark_record_id' => $recordId,
+                'last_sync_at' => now(),
+                'name' => $jobOrderName,
+                'stage' => $stage,
+                'submission_form' => $submissionForm,
+                'project_status_id' => $projectStatusId,
+            ];
+            if ($deadline) {
+                $projectData['deadline'] = $deadline;
+            }
 
-                // Gunakan updateOrCreate untuk upsert data
-                $project = Project::updateOrCreate(
-                    [
-                        'name' => $jobOrderName, // Field unik untuk mencocokkan
-                    ],
-                    [
-                        'qty' => 1,
-                        'department_id' => $department->id,
-                        'created_by' => 'lark-sync',
-                        'lark_record_id' => $recordId, // Simpan record ID dari Lark
-                        'last_sync_at' => now(), // Timestamp sync terakhir
-                    ],
-                );
+            // --- Simpan ke database ---
+            $project = Project::updateOrCreate(['lark_record_id' => $recordId], $projectData);
 
-                if ($project->wasRecentlyCreated) {
-                    $this->info("✓ Created new project: $jobOrderName");
-                    $successCount++;
-                } else {
-                    $this->line("↻ Updated existing project: $jobOrderName");
-                    $updatedCount++;
-                }
+            // --- Output hasil ---
+            if ($project->wasRecentlyCreated) {
+                $this->info("✓ Created: $jobOrderName | Qty: {$quantity}" . ($deadline ? " | Deadline: {$deadline}" : '') . ($statusName ? " | Status: {$statusName}" : '') . ($stage ? " | Stage: {$stage}" : ''));
+                $successCount++;
             } else {
-                $this->error("✗ Skipped record $recordId: No job order field found");
-                if ($debugMode) {
-                    $this->line('Available fields were: ' . implode(', ', array_keys($fields)));
-                }
-                $skipCount++;
+                $this->line("↻ Updated: $jobOrderName | Qty: {$quantity}" . ($deadline ? " | Deadline: {$deadline}" : '') . ($statusName ? " | Status: {$statusName}" : '') . ($stage ? " | Stage: {$stage}" : ''));
+                $updatedCount++;
             }
         }
 
-        // Tampilkan summary
+        // --- Summary ---
         $this->info('');
         $this->info('=== SYNC SUMMARY ===');
         $this->info("✓ New projects created: $successCount");
@@ -170,16 +223,32 @@ class FetchLarkJobOrders extends Command
         if ($skipCount > 0) {
             $this->warn("⚠ Records skipped: $skipCount");
         }
-        $this->info('📊 Total processed: ' . ($successCount + $updatedCount + $skipCount));
-
-        if ($debugMode) {
-            $this->info('');
-            $this->info('💡 Tips:');
-            $this->info('- Use --debug flag to see all available fields');
-            $this->info('- Check your Lark table structure if many records are skipped');
-            $this->info('- The command prioritizes "Job Order" field over "Project List"');
-        }
-
+        $this->info(' Total processed: ' . ($successCount + $updatedCount + $skipCount));
         return 0;
+    }
+
+    /**
+     *
+     *
+     * @param mixed $field - Field date dari Lark API (bisa berupa timestamp, string, atau array)
+     * @return string|null - Tanggal dalam format Y-m-d (timezone Singapore), atau null jika gagal parse
+     */
+    private function parseDateField($field)
+    {
+        if (!$field) {
+            return null;
+        }
+        try {
+            $larkTimezone = 'Asia/Singapore';
+            if (is_numeric($field) && $field > 1000000000000) {
+                $timestamp = $field / 1000;
+                return \Carbon\Carbon::createFromTimestamp($timestamp, 'UTC')->setTimezone($larkTimezone)->format('Y-m-d');
+            }
+
+            return null;
+        } catch (\Exception $e) {
+            \Log::warning('Failed to parse date: ' . json_encode($field) . ' - ' . $e->getMessage());
+            return null;
+        }
     }
 }

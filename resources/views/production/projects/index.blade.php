@@ -96,15 +96,19 @@
 
                 <!-- Table -->
                 <table class="table table-sm table-hover align-middle" id="datatable">
-                    <thead class="table-light">
+                    <thead class="table-light align-middle">
                         <tr>
                             <th></th>
+                            <th class="text-center">ID</th>
                             <th>Name</th>
                             <th>Quantity</th>
                             <th>Department</th>
                             <th>Start Date</th>
                             <th>Deadline</th>
                             <th>Status</th>
+                            <th>Stage</th>
+                            <th>Submission Form</th>
+                            <th>Created By</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -112,12 +116,13 @@
                         @foreach ($projects as $project)
                             <tr>
                                 <td class="text-center">{{ $loop->iteration }}</td>
+                                <td class="text-center">{{ $project->id }}</td>
                                 <td>{{ $project->name }}</td>
-                                <td>{{ $project->qty }}</td>
+                                <td>{{ $project->qty === null ? '-' : $project->qty }}</td>
                                 <td>
                                     @if ($project->departments->isNotEmpty())
                                         @foreach ($project->departments as $dept)
-                                            <span class="badge bg-primary me-1" style="font-weight:500;">
+                                            <span class="badge bg-primary" style="font-weight:500;">
                                                 {{ ucfirst($dept->name) }}
                                             </span>
                                         @endforeach
@@ -138,6 +143,20 @@
                                         <span class="text-muted">-</span>
                                     @endif
                                 </td>
+                                <td>{{ $project->stage ?? '-' }}</td>
+                                <td>
+                                    @if ($project->submission_form)
+                                        <a href="{{ $project->submission_form }}" target="_blank"
+                                            class="btn btn-sm btn-info">
+                                            <i class="bi bi-box-arrow-up-right"></i> Open Form
+                                        </a>
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ $project->created_by ?? '-' }}</span>
+                                </td>
                                 <td>
                                     <div class="d-flex flex-wrap gap-1">
                                         <a href="{{ route('projects.edit', $project) }}" class="btn btn-sm btn-warning"
@@ -153,7 +172,8 @@
                                                         class="bi bi-trash3"></i></button>
                                             </form>
                                         @endif
-                                        <button type="button" class="btn btn-info btn-sm btn-show-image" title="View Image"
+                                        <button type="button" class="btn btn-info btn-sm btn-show-image"
+                                            title="View Image"
                                             data-img="{{ $project->img ? asset('storage/' . $project->img) : '' }}"
                                             data-name="{{ $project->name }}">
                                             <i class="bi bi-file-earmark-image"></i>
