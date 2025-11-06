@@ -37,6 +37,7 @@ use App\Models\Procurement\PreShipping;
 use App\Http\Controllers\Hr\LeaveRequestController;
 use App\Http\Controllers\Production\MaterialPlanningController;
 use App\Http\Controllers\Hr\AttendanceController;
+use App\Http\Controllers\Logistic\GoodsMovementController;
 
 /*
 |--------------------------------------------------------------------------
@@ -240,9 +241,22 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/shippings/create', [ShippingController::class, 'create'])->name('shippings.create');
     Route::post('/shippings/store', [ShippingController::class, 'store'])->name('shippings.store');
 
+    // Goods Movement
+    Route::resource('goods-movement', GoodsMovementController::class);
+    Route::post('goods-movement/{goods_movement}/update-status', [GoodsMovementController::class, 'updateStatus'])->name('goods-movement.updateStatus');
+    Route::post('goods-movement/{goods_movement}/update-sender-receiver-status', [GoodsMovementController::class, 'updateSenderReceiverStatus'])->name('goods-movement.updateSenderReceiverStatus');
+    // Route untuk transfer to inventory
+    Route::post('goods-movement-item/{itemId}/transfer-to-inventory', [GoodsMovementController::class, 'transferToInventory'])->name('goods-movement.transferToInventory');
+    // AKHIR TAMBAHAN
+    Route::post('goods-movement/parse-whatsapp', [GoodsMovementController::class, 'parseWhatsApp'])->name('goods-movement.parseWhatsApp');
+    Route::get('goods-movement/export/csv', [GoodsMovementController::class, 'export'])->name('goods-movement.export');
+    Route::get('goods-movement/api/movement-type-values', [GoodsMovementController::class, 'getMovementTypeValues'])->name('goods-movement.getMovementTypeValues');
+    Route::get('goods-movement/api/projects', [GoodsMovementController::class, 'getProjects'])->name('goods-movement.getProjects');
+    Route::get('goods-movement/api/goods-receives', [GoodsMovementController::class, 'getGoodsReceives'])->name('goods-movement.getGoodsReceives');
+    Route::get('goods-movement/api/goods-receive-items', [GoodsMovementController::class, 'getGoodsReceiveItems'])->name('goods-movement.getGoodsReceiveItems');
+
     // Shipping Management
     Route::get('/shipping-management', [ShippingManagementController::class, 'index'])->name('shipping-management.index');
-    Route::get('/shipping-management/detail/{id}', [ShippingManagementController::class, 'detail']);
     Route::get('/shipping-management/detail/{id}', [ShippingManagementController::class, 'detail'])->name('shipping-management.detail');
 
     // Goods Receive
