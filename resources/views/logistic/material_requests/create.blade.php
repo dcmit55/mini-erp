@@ -156,10 +156,19 @@
                     <div class="modal-body pt-2">
                         <label>Material Name <span class="text-danger">*</span></label>
                         <input type="text" name="name" class="form-control" required>
+
                         <label class="mt-2">Quantity <span class="text-danger">*</span></label>
                         <input type="number" step="any" name="quantity" class="form-control" required>
+
+                        <!-- Unit menjadi Select2 -->
                         <label class="mt-2">Unit <span class="text-danger">*</span></label>
-                        <input type="text" name="unit" class="form-control" required>
+                        <select name="unit" id="unit-select-modal" class="form-select select2" required>
+                            <option value="">Select Unit</option>
+                            @foreach ($units ?? [] as $unit)
+                                <option value="{{ $unit->name }}">{{ $unit->name }}</option>
+                            @endforeach
+                        </select>
+
                         <label class="mt-2">Remark (optional)</label>
                         <textarea name="remark" class="form-control" rows="2"></textarea>
                     </div>
@@ -271,7 +280,6 @@
         $(document).ready(function() {
             $('.select2').select2({
                 width: '100%',
-                placeholder: 'Select an option',
                 allowClear: true,
                 theme: 'bootstrap-5',
             }).on('select2:open', function() {
@@ -363,6 +371,30 @@
                 setTimeout(function() {
                     $('#addMaterialModal').modal('show');
                 }, 360); // beri jeda agar modal tidak tumpang tindih
+            });
+
+            // Initialize Select2 untuk unit di modal
+            function initializeUnitSelect2() {
+                $('#unit-select-modal').select2({
+                    theme: 'bootstrap-5',
+                    placeholder: 'Select Unit',
+                    allowClear: true,
+                    dropdownParent: $('#addMaterialModal')
+                }).on('select2:open', function() {
+                    setTimeout(function() {
+                        document.querySelector('.select2-container--open .select2-search__field')
+                            ?.focus();
+                    }, 100);
+                });
+            }
+
+            // Re-initialize Select2 saat modal ditampilkan
+            $('#addMaterialModal').on('shown.bs.modal', function() {
+                // Destroy existing Select2 instance jika ada
+                if ($('#unit-select-modal').data('select2')) {
+                    $('#unit-select-modal').select2('destroy');
+                }
+                initializeUnitSelect2();
             });
 
             // Quick Add Material

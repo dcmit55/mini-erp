@@ -7,6 +7,7 @@ use App\Models\Logistic\MaterialRequest;
 use App\Models\Logistic\Inventory;
 use App\Models\Production\Project;
 use App\Models\Admin\Department;
+use App\Models\Logistic\Unit;
 use Illuminate\Http\Request;
 use App\Events\MaterialRequestUpdated;
 use App\Models\Admin\User;
@@ -297,6 +298,7 @@ class MaterialRequestController extends Controller
         $inventories = Inventory::orderBy('name')->get();
         $projects = Project::with('departments', 'status')->notArchived()->orderBy('name')->get();
         $departments = Department::orderBy('name')->get();
+        $units = Unit::orderBy('name')->get();
 
         // Periksa apakah parameter material_id ada
         $selectedMaterial = null;
@@ -304,7 +306,7 @@ class MaterialRequestController extends Controller
             $selectedMaterial = Inventory::find($request->material_id);
         }
 
-        return view('logistic.material_requests.create', compact('inventories', 'projects', 'selectedMaterial', 'departments'));
+        return view('logistic.material_requests.create', compact('inventories', 'projects', 'selectedMaterial', 'departments', 'units'));
     }
 
     public function store(Request $request)
@@ -370,8 +372,9 @@ class MaterialRequestController extends Controller
         $inventories = Inventory::orderBy('name')->get();
         $projects = Project::with('departments', 'status')->notArchived()->orderBy('name')->get();
         $departments = Department::orderBy('name')->get();
+        $units = Unit::orderBy('name')->get();
 
-        return view('logistic.material_requests.bulk_create', compact('inventories', 'projects', 'departments'));
+        return view('logistic.material_requests.bulk_create', compact('inventories', 'projects', 'departments', 'units'));
     }
 
     public function bulkStore(Request $request)
@@ -455,6 +458,7 @@ class MaterialRequestController extends Controller
     {
         $materialRequest = MaterialRequest::with('inventory', 'project')->findOrFail($id);
         $departments = Department::orderBy('name')->get();
+        $units = Unit::orderBy('name')->get();
 
         $filters = [
             'project' => $request->input('filter_project'),
@@ -499,6 +503,7 @@ class MaterialRequestController extends Controller
             'inventories' => $inventories,
             'projects' => $projects,
             'departments' => $departments,
+            'units' => $units,
         ]);
     }
 

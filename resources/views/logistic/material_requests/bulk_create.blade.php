@@ -11,7 +11,7 @@
                     <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal"
                         data-bs-target="#quickAddProjectModal">+
                         Quick Add Project</button>
-                    <button type="button" class="btn btn-sm btn-outline-primary" id="btnQuickAddMaterial">
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddMaterial">
                         + Quick Add Material
                     </button>
                 </div>
@@ -147,8 +147,8 @@
                 </div>
             </div>
             <!-- Add Material Modal -->
-            <div class="modal fade" id="quickAddMaterialModal" tabindex="-1"
-                aria-labelledby="quickAddMaterialModalLabel" aria-hidden="true">
+            <div class="modal fade" id="addMaterialModal" tabindex="-1" aria-labelledby="addMaterialModalLabel"
+                aria-hidden="true">
                 <div class="modal-dialog">
                     <form id="quickAddMaterialForm" method="POST" action="{{ route('inventories.store.quick') }}">
                         @csrf
@@ -169,12 +169,20 @@
                                     data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
                             <div class="modal-body pt-2">
-                                <label>Name <span class="text-danger">*</span></label>
+                                <label>Material Name <span class="text-danger">*</span></label>
                                 <input type="text" name="name" class="form-control" required>
+
                                 <label class="mt-2">Quantity <span class="text-danger">*</span></label>
                                 <input type="number" step="any" name="quantity" class="form-control" required>
+
                                 <label class="mt-2">Unit <span class="text-danger">*</span></label>
-                                <input type="text" name="unit" class="form-control" required>
+                                    <select name="unit" id="unit-select-modal" class="form-select select2" required>
+                                        <option value="">Select Unit</option>
+                                        @foreach ($units ?? [] as $unit)
+                                            <option value="{{ $unit->name }}">{{ $unit->name }}</option>
+                                        @endforeach
+                                    </select>
+
                                 <label class="mt-2">Remark (optional)</label>
                                 <textarea name="remark" class="form-control" rows="2"></textarea>
                             </div>
@@ -185,6 +193,7 @@
                     </form>
                 </div>
             </div>
+
             <!-- Add Project Modal -->
             <div class="modal fade" id="quickAddProjectModal" tabindex="-1" aria-labelledby="quickAddProjectModalLabel"
                 aria-hidden="true">
@@ -426,19 +435,6 @@
             // Trigger change event on page load to restore old values
             $('.material-select').trigger('change');
 
-            // Untuk halaman create, edit, bulk create
-            $('#btnQuickAddMaterial').off('click').on('click', function(e) {
-                e.preventDefault();
-                $('#confirmAddMaterialModal').modal('show');
-            });
-
-            $('#btnConfirmAddMaterial').off('click').on('click', function() {
-                $('#confirmAddMaterialModal').modal('hide');
-                setTimeout(function() {
-                    $('#addMaterialModal, #quickAddMaterialModal').modal('show');
-                }, 360);
-            });
-
             // Quick Add Project (Bulk)
             $('#quickAddProjectForm').on('submit', function(e) {
                 e.preventDefault();
@@ -504,7 +500,44 @@
                 }, 100);
             });
 
-            // Quick Add Material (Bulk)
+            // Quick Add Material Button with Confirmation
+            $('#btnAddMaterial').off('click').on('click', function(e) {
+                e.preventDefault();
+                $('#confirmAddMaterialModal').modal('show');
+            });
+
+            $('#btnConfirmAddMaterial').off('click').on('click', function() {
+                $('#confirmAddMaterialModal').modal('hide');
+                setTimeout(function() {
+                    $('#addMaterialModal, #quickAddMaterialModal').modal('show');
+                }, 360);
+            });
+
+            // Initialize Select2 untuk unit di modal
+            function initializeUnitSelect2() {
+                $('#unit-select-modal').select2({
+                    theme: 'bootstrap-5',
+                    placeholder: 'Select Unit',
+                    allowClear: true,
+                    dropdownParent: $('#addMaterialModal')
+                }).on('select2:open', function() {
+                    setTimeout(function() {
+                        document.querySelector('.select2-container--open .select2-search__field')
+                            ?.focus();
+                    }, 100);
+                });
+            }
+
+            // Re-initialize Select2 saat modal ditampilkan
+            $('#addMaterialModal').on('shown.bs.modal', function() {
+                // Destroy existing Select2 instance jika ada
+                if ($('#unit-select-modal').data('select2')) {
+                    $('#unit-select-modal').select2('destroy');
+                }
+                initializeUnitSelect2();
+            });
+
+            // Quick Add Material (existing code, no changes needed)
             $('#quickAddMaterialForm').on('submit', function(e) {
                 e.preventDefault();
                 let form = $(this);
@@ -517,26 +550,20 @@
                     },
                     success: function(res) {
                         if (res.success && res.material) {
-                            $('.material-select').each(function() {
-                                let exists = $(this).find('option[value="' + res
-                                    .material.id + '"]').length;
-                                if (!exists) {
-                                    let newOption = new Option(res.material.name, res
-                                        .material.id, false, false);
-                                    $(this).append(newOption);
-                                }
-                            });
-                            $('.material-select').last().val(res.material.id).trigger('change');
-                            $('#quickAddMaterialForm').closest('.modal').modal('hide');
+                            let newOption = new Option(res.material.name, res.material.id, true,
+                                true);
+                            $('select[name="inventory_id"]').append(newOption).val(res.material
+                                .id).trigger('change');
+                            $('#addMaterialModal').modal('hide');
                             form[0].reset();
                         } else {
-                            Swal.fire('Error', 'Failed to add Material. Please try again.',
+                            Swal.fire('Error', 'Failed to add material. Please try again.',
                                 'error');
                         }
                     },
                     error: function(xhr) {
                         let msg = xhr.responseJSON?.message ||
-                            'Failed to add Material. Please try again.';
+                            'Failed to add material. Please try again.';
                         Swal.fire('Error', msg, 'error');
                     }
                 });
