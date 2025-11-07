@@ -113,8 +113,19 @@
                                     <td>{{ $item->deleted_at }}</td>
                                     <td>
                                         <div class="d-flex flex-wrap gap-1">
-                                            @if ($var === 'goodsIns')
-                                                <form action="{{ route('goods_in.restore', $item) }}" method="POST"
+                                            @if ($var === 'goodsOuts')
+                                                {{-- Custom restore untuk Goods Out --}}
+                                                <form action="{{ route('goods_out.restore', $item->id) }}" method="POST"
+                                                    class="restore-form">
+                                                    @csrf
+                                                    <button type="button" class="btn btn-success btn-sm restore-btn"
+                                                        title="Restore with Inventory Update">
+                                                        <i class="bi bi-bootstrap-reboot"></i>
+                                                    </button>
+                                                </form>
+                                            @elseif ($var === 'goodsIns')
+                                                {{-- Custom restore untuk Goods In --}}
+                                                <form action="{{ route('goods_in.restore', $item->id) }}" method="POST"
                                                     class="restore-form">
                                                     @csrf
                                                     <button type="button" class="btn btn-success btn-sm restore-btn"

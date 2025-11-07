@@ -165,6 +165,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/goods_out/store_independent', [GoodsOutController::class, 'storeIndependent'])->name('goods_out.store_independent');
     Route::post('/material-requests/bulk-goods-out', [GoodsOutController::class, 'bulkGoodsOut'])->name('goods_out.bulk');
     Route::get('/goods_out/details', [GoodsOutController::class, 'getDetails'])->name('goods_out.details');
+    Route::post('/goods-out/{id}/restore', [GoodsOutController::class, 'restore'])->name('goods_out.restore');
 
     // Goods In
     Route::get('/goods_in/export', [GoodsInController::class, 'export'])->name('goods_in.export');
