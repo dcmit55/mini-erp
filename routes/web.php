@@ -178,6 +178,7 @@ Route::middleware(['auth'])->group(function () {
     Route::put('goods_in/{goods_in}', [GoodsInController::class, 'update'])->name('goods_in.update');
     Route::delete('goods_in/{goods_in}', [GoodsInController::class, 'destroy'])->name('goods_in.destroy');
     Route::post('/goods-out/bulk-goods-in', [GoodsInController::class, 'bulkGoodsIn'])->name('goods_in.bulk');
+    Route::post('/goods-in/{id}/restore', [GoodsInController::class, 'restore'])->name('goods_in.restore');
 
     // Costings
     Route::get('/costing-report', [ProjectCostingController::class, 'index'])->name('costing.report');

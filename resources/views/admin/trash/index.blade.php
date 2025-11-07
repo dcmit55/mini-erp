@@ -113,25 +113,39 @@
                                     <td>{{ $item->deleted_at }}</td>
                                     <td>
                                         <div class="d-flex flex-wrap gap-1">
-                                            <form action="{{ route('trash.restore') }}" method="POST"
-                                                class="restore-form">
-                                                @csrf
-                                                <input type="hidden" name="model"
-                                                    value="{{ [
-                                                        'inventories' => 'inventory',
-                                                        'projects' => 'project',
-                                                        'materialRequests' => 'material_request',
-                                                        'goodsOuts' => 'goods_out',
-                                                        'goodsIns' => 'goods_in',
-                                                        'materialUsages' => 'material_usage',
-                                                        'currencies' => 'currency',
-                                                        'users' => 'user',
-                                                        'employees' => 'employee',
-                                                    ][$var] }}">
-                                                <input type="hidden" name="id" value="{{ $item->id }}">
-                                                <button class="btn btn-success btn-sm restore-btn" type="button"
-                                                    title="Restore"><i class="bi bi-bootstrap-reboot"></i></button>
-                                            </form>
+                                            @if ($var === 'goodsIns')
+                                                <form action="{{ route('goods_in.restore', $item) }}" method="POST"
+                                                    class="restore-form">
+                                                    @csrf
+                                                    <button type="button" class="btn btn-success btn-sm restore-btn"
+                                                        title="Restore with Inventory Update">
+                                                        <i class="bi bi-bootstrap-reboot"></i>
+                                                    </button>
+                                                </form>
+                                            @else
+                                                {{-- Standard restore untuk model lain --}}
+                                                <form action="{{ route('trash.restore') }}" method="POST"
+                                                    class="restore-form">
+                                                    @csrf
+                                                    <input type="hidden" name="model"
+                                                        value="{{ [
+                                                            'inventories' => 'inventory',
+                                                            'projects' => 'project',
+                                                            'materialRequests' => 'material_request',
+                                                            'goodsOuts' => 'goods_out',
+                                                            'goodsIns' => 'goods_in',
+                                                            'materialUsages' => 'material_usage',
+                                                            'currencies' => 'currency',
+                                                            'users' => 'user',
+                                                            'employees' => 'employee',
+                                                        ][$var] }}">
+                                                    <input type="hidden" name="id" value="{{ $item->id }}">
+                                                    <button class="btn btn-success btn-sm restore-btn" type="button"
+                                                        title="Restore">
+                                                        <i class="bi bi-bootstrap-reboot"></i>
+                                                    </button>
+                                                </form>
+                                            @endif
                                             <form action="{{ route('trash.forceDelete') }}" method="POST"
                                                 class="delete-form">
                                                 @csrf

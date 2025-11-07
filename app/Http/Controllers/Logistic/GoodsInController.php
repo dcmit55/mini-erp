@@ -13,6 +13,7 @@ use App\Models\Admin\User;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\GoodsInExport;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class GoodsInController extends Controller
 {
@@ -328,24 +329,79 @@ class GoodsInController extends Controller
             ->with('success', "Goods In <b>{$inventory->name}</b> from <b>{$projectName}</b> updated successfully!");
     }
 
+    public function restore(Request $request, $id)
+    {
+        // ✨ Ubah ke parameter $id
+        $goods_in = GoodsIn::onlyTrashed()->findOrFail($id); // ✨ Query manual
+
+        DB::beginTransaction();
+        try {
+            $inventory = $goods_in->inventory;
+            $projectId = $goods_in->project_id;
+            $inventoryId = $goods_in->inventory_id;
+
+            // ✨ Restore record
+            $goods_in->restore();
+
+            // ✨ Kembalikan stok inventory
+            if ($inventory) {
+                $inventory->quantity += $goods_in->quantity;
+                $inventory->save();
+            }
+
+            // ✨ Re-sync Material Usage
+            MaterialUsageHelper::sync($inventoryId, $projectId);
+
+            DB::commit();
+
+            $inventoryName = $inventory ? $inventory->name : 'Unknown Material';
+            $projectName = $goods_in->project ? $goods_in->project->name : 'No Project';
+
+            return redirect()
+                ->route('trash.index')
+                ->with('success', "Goods In <b>{$inventoryName}</b> for <b>{$projectName}</b> restored successfully!");
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()
+                ->route('trash.index')
+                ->with('error', 'Failed to restore Goods In: ' . $e->getMessage());
+        }
+    }
+
     public function destroy(GoodsIn $goods_in)
     {
-        // Cek apakah Goods In terkait dengan Goods Out
-        if ($goods_in->goods_out_id) {
-            return redirect()->route('goods_in.index')->with('error', 'Cannot delete Goods In that is linked to a Goods Out.');
+        DB::beginTransaction();
+        try {
+            $inventory = $goods_in->inventory;
+            $goodsOut = $goods_in->goodsOut;
+            $projectId = $goods_in->project_id;
+            $inventoryId = $goods_in->inventory_id;
+
+            // ✨ Kembalikan stok inventory
+            if ($inventory) {
+                $inventory->quantity -= $goods_in->quantity;
+                $inventory->save();
+            }
+
+            // Hapus Goods In
+            $goods_in->delete();
+
+            // ✨ Sinkronkan Material Usage (akan otomatis update)
+            MaterialUsageHelper::sync($inventoryId, $projectId);
+
+            DB::commit();
+
+            $inventoryName = $inventory ? $inventory->name : 'Unknown Material';
+            $projectName = $goods_in->project ? $goods_in->project->name : 'No Project';
+
+            return redirect()
+                ->route('goods_in.index')
+                ->with('success', "Goods In <b>{$inventoryName}</b> for <b>{$projectName}</b> deleted successfully!");
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()
+                ->route('goods_in.index')
+                ->with('error', 'Failed to delete Goods In: ' . $e->getMessage());
         }
-
-        // Hapus Goods In
-        $goods_in->delete();
-
-        // Sinkronkan Material Usage
-        MaterialUsageHelper::sync($goods_in->inventory_id, $goods_in->project_id);
-
-        $inventoryName = $goods_in->inventory ? $goods_in->inventory->name : 'Unknown Material';
-        $projectName = $goods_in->project ? $goods_in->project->name : 'No Project';
-
-        return redirect()
-            ->route('goods_in.index')
-            ->with('success', "Goods In <b>{$inventoryName}</b> for <b>{$projectName}</b> deleted successfully!");
     }
 }

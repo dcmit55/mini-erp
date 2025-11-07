@@ -150,7 +150,7 @@
                                                 </a></li>
                                             <li><a class="dropdown-item {{ request()->is('goods-movement*') ? 'active' : '' }}"
                                                     href="{{ route('goods-movement.index') }}">
-                                                    <i class="fas fa-dolly me-2"></i>Goods Movement
+                                                    <i class="fas fa-dolly"></i> Goods Movement
                                                 </a></li>
                                         </ul>
                                     </li>
