@@ -4,75 +4,84 @@
     <div class="container-fluid mt-4">
         <div class="card shadow rounded">
             <div class="card-header bg-transparent border-0 py-3">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0 fw-bold text-primary">
-                        <i class="bi bi-shield-check me-2"></i>Audit Log
-                    </h5>
-                    <div class="btn-group" role="group">
-                        <button type="button" class="btn btn-danger btn-sm" id="bulkDeleteBtn" disabled>
-                            <i class="bi bi-trash3 me-1"></i> Bulk Delete
-                        </button>
-                        <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal"
-                            data-bs-target="#deleteByDateModal">
-                            <i class="bi bi-calendar-x me-1"></i> Delete by Date
-                        </button>
-                        <button type="button" class="btn btn-secondary btn-sm" data-bs-toggle="modal"
-                            data-bs-target="#purgeOldModal">
-                            <i class="bi bi-hourglass-split me-1"></i> Purge Old Logs
-                        </button>
+                <div class="d-flex flex-column flex-lg-row align-items-lg-center gap-3 mb-0">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-shield-check gradient-icon me-2" style="font-size: 1.5rem;"></i>
+                        <h2 class="mb-0 flex-shrink-0" style="font-size:1.3rem;">Audit Log</h2>
+                    </div>
+
+                    <div class="ms-lg-auto">
+                        <div class="d-flex flex-wrap gap-2 align-items-center justify-content-lg-end">
+                            <button type="button" class="btn btn-danger btn-sm" id="bulkDeleteBtn" disabled>
+                                <i class="bi bi-trash3 me-1"></i> Bulk Delete
+                            </button>
+                            <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal"
+                                data-bs-target="#deleteByDateModal">
+                                <i class="bi bi-calendar-x me-1"></i> Delete by Date
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" data-bs-toggle="modal"
+                                data-bs-target="#purgeOldModal">
+                                <i class="bi bi-hourglass-split me-1"></i> Purge Old Logs
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
             <div class="card-body">
-                <!-- Filters -->
-                <div class="row mb-3">
-                    <div class="col-md-2">
-                        <select class="form-select form-select-sm" id="eventFilter">
-                            <option value="">All Events</option>
-                            <option value="created">Created</option>
-                            <option value="updated">Updated</option>
-                            <option value="deleted">Deleted</option>
-                            <option value="restored">Restored</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <select class="form-select form-select-sm" id="modelFilter">
-                            <option value="">All Models</option>
-                            <option value="App\Models\Logistic\Inventory">Inventory</option>
-                            <option value="App\Models\Logistic\MaterialRequest">Material Request</option>
-                            <option value="App\Models\Logistic\GoodsOut">Goods Out</option>
-                            <option value="App\Models\Logistic\GoodsIn">Goods In</option>
-                            <option value="App\Models\Production\Project">Project</option>
-                            <option value="App\Models\Production\ProjectPart">Project Part</option>
-                            <option value="App\Models\Admin\User">User</option>
-                            <option value="App\Models\Hr\Employee">Employee</option>
-                            <option value="App\Models\Finance\Currency">Currency</option>
-                            <option value="App\Models\Procurement\PurchaseRequest">Purchase Request</option>
-                            <option value="App\Models\Production\MaterialPlanning">Material Planning</option>
-                            <option value="App\Models\Procurement\Supplier">Supplier</option>
-                            <option value="App\Models\Hr\LeaveRequest">Leave Request</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <input type="date" class="form-control form-control-sm" id="dateFrom" placeholder="From Date">
-                    </div>
-                    <div class="col-md-2">
-                        <input type="date" class="form-control form-control-sm" id="dateTo" placeholder="To Date">
-                    </div>
-                    <div class="col-md-2">
-                        <button type="button" class="btn btn-primary btn-sm" id="filterBtn">
-                            <i class="bi bi-funnel"></i> Filter
-                        </button>
-                        <button type="button" class="btn btn-secondary btn-sm" id="clearBtn">
-                            <i class="bi bi-x-circle"></i> Clear
-                        </button>
-                    </div>
+                <!-- ✨ BARU: Filter Form - sesuai Employee -->
+                <div class="mb-3">
+                    <form id="filter-form" class="row g-1">
+                        <div class="col-md-2">
+                            <select id="eventFilter" class="form-select form-select-sm select2">
+                                <option value="">All Events</option>
+                                <option value="created">Created</option>
+                                <option value="updated">Updated</option>
+                                <option value="deleted">Deleted</option>
+                                <option value="restored">Restored</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select id="modelFilter" class="form-select form-select-sm select2">
+                                <option value="">All Models</option>
+                                <option value="App\Models\Logistic\Inventory">Inventory</option>
+                                <option value="App\Models\Logistic\MaterialRequest">Material Request</option>
+                                <option value="App\Models\Logistic\GoodsOut">Goods Out</option>
+                                <option value="App\Models\Logistic\GoodsIn">Goods In</option>
+                                <option value="App\Models\Production\Project">Project</option>
+                                <option value="App\Models\Production\ProjectPart">Project Part</option>
+                                <option value="App\Models\Admin\User">User</option>
+                                <option value="App\Models\Hr\Employee">Employee</option>
+                                <option value="App\Models\Finance\Currency">Currency</option>
+                                <option value="App\Models\Procurement\PurchaseRequest">Purchase Request</option>
+                                <option value="App\Models\Production\MaterialPlanning">Material Planning</option>
+                                <option value="App\Models\Procurement\Supplier">Supplier</option>
+                                <option value="App\Models\Hr\LeaveRequest">Leave Request</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <input type="date" id="dateFrom" class="form-control form-control-sm"
+                                placeholder="From Date">
+                        </div>
+                        <div class="col-md-2">
+                            <input type="date" id="dateTo" class="form-control form-control-sm" placeholder="To Date">
+                        </div>
+                        <div class="col-md-2">
+                            <input type="text" id="custom-search" class="form-control form-control-sm"
+                                placeholder="Search...">
+                        </div>
+                        <div class="col-md-1">
+                            <button type="button" id="reset-filters" class="btn btn-outline-secondary btn-sm w-100"
+                                title="Reset All Filters">
+                                <i class="fas fa-times me-1"></i> Reset
+                            </button>
+                        </div>
+                    </form>
                 </div>
 
                 <!-- DataTable -->
                 <div class="table-responsive">
                     <table class="table table-hover table-sm align-middle" id="auditTable">
-                        <thead class="table-light">
+                        <thead class="table-light text-nowrap">
                             <tr>
                                 <th><input type="checkbox" id="selectAllCheckbox"></th>
                                 <th>Date/Time</th>
@@ -110,7 +119,8 @@
     </div>
 
     <!-- Delete by Date Range Modal -->
-    <div class="modal fade" id="deleteByDateModal" tabindex="-1" aria-labelledby="deleteByDateLabel" aria-hidden="true">
+    <div class="modal fade" id="deleteByDateModal" tabindex="-1" aria-labelledby="deleteByDateLabel"
+        aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header bg-warning">
@@ -178,6 +188,122 @@
 
 @push('styles')
     <style>
+        .gradient-icon {
+            background: linear-gradient(135deg, #8F12FE 0%, #4A25AA 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Filter Form Styling - sesuai Employee */
+        #filter-form {
+            background: #f8f9fa;
+            padding: .75rem;
+            border-radius: 0.5rem;
+            border: 1px solid #dee2e6;
+        }
+
+        /* Pagination styling */
+        .pagination {
+            --bs-pagination-padding-x: 0.75rem;
+            --bs-pagination-padding-y: 0.375rem;
+            --bs-pagination-color: #6c757d;
+            --bs-pagination-bg: #fff;
+            --bs-pagination-border-width: 1px;
+            --bs-pagination-border-color: #dee2e6;
+            --bs-pagination-border-radius: 0.375rem;
+            --bs-pagination-hover-color: #495057;
+            --bs-pagination-hover-bg: #e9ecef;
+            --bs-pagination-hover-border-color: #dee2e6;
+            --bs-pagination-focus-color: #495057;
+            --bs-pagination-focus-bg: #e9ecef;
+            --bs-pagination-focus-box-shadow: 0 0 0 0.25rem rgba(143, 18, 254, 0.25);
+            --bs-pagination-active-color: #fff;
+            --bs-pagination-active-bg: #8F12FE;
+            --bs-pagination-active-border-color: #4A25AA;
+            --bs-pagination-disabled-color: #6c757d;
+            --bs-pagination-disabled-bg: #fff;
+            --bs-pagination-disabled-border-color: #dee2e6;
+        }
+
+        .page-link {
+            transition: all 0.15s ease-in-out;
+        }
+
+        .page-link:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .page-item.active .page-link {
+            background: linear-gradient(135deg, #8F12FE 0%, #4A25AA 100%);
+            border-color: #8F12FE;
+            box-shadow: 0 2px 4px rgba(143, 18, 254, 0.3);
+        }
+
+        .vr-divider {
+            width: 1px;
+            height: 24px;
+            background: #dee2e6;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        .datatables-footer-row {
+            border-top: 1px solid #eee;
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+        }
+
+        .datatables-left {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .dataTables_paginate {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+        }
+
+        /* Table styling */
+        #auditTable tbody td {
+            padding: 10px 8px;
+            vertical-align: middle;
+            border-bottom: 1px solid #f1f3f4;
+        }
+
+        @media (max-width: 767.98px) {
+            .datatables-footer-row {
+                flex-direction: column !important;
+                gap: 0.5rem;
+            }
+
+            .datatables-left {
+                flex-direction: column !important;
+                gap: 0.5rem;
+            }
+
+            .vr-divider {
+                display: none;
+            }
+
+            .dataTables_paginate {
+                justify-content: center !important;
+            }
+
+            #auditTable thead th {
+                font-size: 0.8rem;
+                padding: 8px 4px;
+            }
+
+            #auditTable tbody td {
+                padding: 8px 4px;
+                font-size: 0.85rem;
+            }
+        }
+
         #changesModal table {
             table-layout: fixed;
             width: 100%;
@@ -195,17 +321,20 @@
 @push('scripts')
     <script>
         $(document).ready(function() {
+            // ✨ Initialize DataTable dengan server-side processing - sesuai Employee
             const table = $('#auditTable').DataTable({
-                processing: true,
+                processing: false,
                 serverSide: true,
-                searching: false,
+                searching: false, // ✨ Disable default search, gunakan custom
                 ajax: {
                     url: "{{ route('audit.index') }}",
                     data: function(d) {
+                        // ✨ Add filter parameters
                         d.event = $('#eventFilter').val();
                         d.auditable_type = $('#modelFilter').val();
                         d.date_from = $('#dateFrom').val();
                         d.date_to = $('#dateTo').val();
+                        d.custom_search = $('#custom-search').val();
                     }
                 },
                 columns: [{
@@ -254,18 +383,56 @@
                 lengthMenu: [
                     [10, 25, 50, 100],
                     [10, 25, 50, 100]
-                ]
+                ],
+                language: {
+                    emptyTable: '<div class="text-muted py-2">No audit logs available</div>',
+                    zeroRecords: '<div class="text-muted py-2">No matching records found</div>',
+                    infoEmpty: "Showing 0 to 0 of 0 entries",
+                    infoFiltered: "(filtered from _MAX_ total entries)",
+                    lengthMenu: "Show _MENU_ entries per page",
+                    info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                },
+                dom: 't<' +
+                    '"row datatables-footer-row align-items-center"' +
+                    '<"col-md-7 d-flex align-items-center gap-2 datatables-left"l<"vr-divider mx-2">i>' +
+                    '<"col-md-5 dataTables_paginate justify-content-end"p>' +
+                    '>',
+                responsive: true,
+                stateSave: false,
+                drawCallback: function() {
+                    $('[data-bs-toggle="tooltip"]').tooltip();
+                }
             });
 
-            // Filter functionality
-            $('#filterBtn').on('click', function() {
+            // ✨ Filter functionality - sesuai Employee
+            $('#eventFilter, #modelFilter').on('change', function() {
                 table.ajax.reload();
             });
 
-            $('#clearBtn').on('click', function() {
-                $('#eventFilter, #modelFilter, #dateFrom, #dateTo').val('');
+            $('#dateFrom, #dateTo').on('change', function() {
                 table.ajax.reload();
             });
+
+            $('#custom-search').on('input', debounce(function() {
+                table.ajax.reload();
+            }, 500));
+
+            // ✨ Reset filters - sesuai Employee
+            $('#reset-filters').on('click', function() {
+                $('#eventFilter, #modelFilter').val('').trigger('change');
+                $('#dateFrom, #dateTo').val('');
+                $('#custom-search').val('');
+                table.ajax.reload();
+            });
+
+            // ✨ Debounce function
+            function debounce(func, wait) {
+                let timeout;
+                return function() {
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => func.apply(this, arguments), wait);
+                };
+            }
 
             // Select All Checkbox
             $(document).on('click', '#selectAllCheckbox', function() {
@@ -441,6 +608,15 @@
                         });
                     }
                 });
+            });
+
+            // Initialize Select2
+            $('.select2').select2({
+                theme: 'bootstrap-5',
+                placeholder: function() {
+                    return $(this).data('placeholder');
+                },
+                allowClear: true
             });
         });
 

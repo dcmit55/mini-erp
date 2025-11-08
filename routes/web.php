@@ -198,6 +198,8 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/trash/force-delete', [TrashController::class, 'forceDelete'])->name('trash.forceDelete');
     Route::post('/trash/bulk-action', [TrashController::class, 'bulkAction'])->name('trash.bulkAction');
     Route::get('/trash/{id}/details', [TrashController::class, 'show'])->name('trash.show');
+    Route::post('/trash/delete-by-date', [TrashController::class, 'deleteByDateRange'])->name('trash.deleteByDateRange');
+    Route::post('/trash/purge-old', [TrashController::class, 'purgeOldTrash'])->name('trash.purgeOldTrash');
 
     // Employees
     Route::resource('employees', EmployeeController::class);

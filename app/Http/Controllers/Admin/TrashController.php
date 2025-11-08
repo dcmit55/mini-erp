@@ -15,6 +15,7 @@ use App\Models\Admin\User;
 use App\Models\Hr\Employee;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class TrashController extends Controller
 {
@@ -116,20 +117,268 @@ class TrashController extends Controller
         return back()->with('error', 'Invalid model');
     }
 
-    private function getModelClass($model)
+    /**
+     * Delete trash by date range
+     */
+    public function deleteByDateRange(Request $request)
     {
-        return match ($model) {
-            'inventory' => Inventory::class,
-            'project' => Project::class,
-            'material_request' => MaterialRequest::class,
-            'goods_out' => GoodsOut::class,
-            'goods_in' => GoodsIn::class,
-            'material_usage' => MaterialUsage::class,
-            'currency' => Currency::class,
-            'user' => User::class,
-            'employee' => Employee::class,
-            default => null,
-        };
+        try {
+            $request->validate([
+                'date_from' => 'required|date',
+                'date_to' => 'required|date|after_or_equal:date_from',
+            ]);
+
+            DB::beginTransaction();
+
+            try {
+                $models = [Inventory::class, Project::class, MaterialRequest::class, GoodsOut::class, GoodsIn::class, MaterialUsage::class, Currency::class, User::class, Employee::class];
+
+                $deleteSummary = [];
+                $totalDeleted = 0;
+
+                foreach ($models as $modelClass) {
+                    $modelName = class_basename($modelClass);
+
+                    // Count record yang akan dihapus
+                    $count = $modelClass
+                        ::onlyTrashed()
+                        ->whereBetween('deleted_at', [$request->date_from . ' 00:00:00', $request->date_to . ' 23:59:59'])
+                        ->count();
+
+                    if ($count > 0) {
+                        // Delete permanent
+                        $modelClass
+                            ::onlyTrashed()
+                            ->whereBetween('deleted_at', [$request->date_from . ' 00:00:00', $request->date_to . ' 23:59:59'])
+                            ->forceDelete();
+
+                        $deleteSummary[$modelName] = $count;
+                        $totalDeleted += $count;
+
+                        // Hapus file jika ada (untuk Inventory & Project)
+                        if ($modelName === 'Inventory') {
+                            $this->deleteInventoryFiles($modelClass, $request->date_from, $request->date_to);
+                        } elseif ($modelName === 'Project') {
+                            $this->deleteProjectFiles($modelClass, $request->date_from, $request->date_to);
+                        }
+                    }
+                }
+
+                if ($totalDeleted === 0) {
+                    return response()->json(
+                        [
+                            'success' => false,
+                            'message' => 'No trash records found in the specified date range.',
+                        ],
+                        404,
+                    );
+                }
+
+                DB::commit();
+
+                \Log::info('Delete trash by date range', [
+                    'from' => $request->date_from,
+                    'to' => $request->date_to,
+                    'total_deleted' => $totalDeleted,
+                    'summary' => $deleteSummary,
+                    'deleted_by' => Auth::user()->username,
+                ]);
+
+                // Format summary message
+                $summaryText = implode(', ', array_map(fn($model, $count) => "{$count} {$model}", array_keys($deleteSummary), $deleteSummary));
+
+                return response()->json([
+                    'success' => true,
+                    'message' => "Successfully deleted {$totalDeleted} trash record(s) from {$request->date_from} to {$request->date_to}: {$summaryText}",
+                    'deleted_count' => $totalDeleted,
+                    'summary' => $deleteSummary,
+                ]);
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(
+                [
+                    'success' => false,
+                    'errors' => $e->errors(),
+                ],
+                422,
+            );
+        } catch (\Exception $e) {
+            \Log::error('Error deleting trash by date range: ' . $e->getMessage());
+
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Failed to delete trash: ' . $e->getMessage(),
+                ],
+                500,
+            );
+        }
+    }
+
+    /**
+     * Purge old trash (older than X days)
+     */
+    public function purgeOldTrash(Request $request)
+    {
+        try {
+            $request->validate([
+                'days' => 'required|integer|min:1|max:365',
+            ]);
+
+            $days = $request->days;
+            $dateThreshold = now()->subDays($days);
+
+            DB::beginTransaction();
+
+            try {
+                $models = [Inventory::class, Project::class, MaterialRequest::class, GoodsOut::class, GoodsIn::class, MaterialUsage::class, Currency::class, User::class, Employee::class];
+
+                $deleteSummary = [];
+                $totalDeleted = 0;
+
+                foreach ($models as $modelClass) {
+                    $modelName = class_basename($modelClass);
+
+                    // Count record yang akan dihapus
+                    $count = $modelClass::onlyTrashed()->where('deleted_at', '<', $dateThreshold)->count();
+
+                    if ($count > 0) {
+                        // Delete permanent
+                        $modelClass::onlyTrashed()->where('deleted_at', '<', $dateThreshold)->forceDelete();
+
+                        $deleteSummary[$modelName] = $count;
+                        $totalDeleted += $count;
+
+                        // Hapus file jika ada
+                        if ($modelName === 'Inventory') {
+                            $this->deleteInventoryFilesByThreshold($modelClass, $dateThreshold);
+                        } elseif ($modelName === 'Project') {
+                            $this->deleteProjectFilesByThreshold($modelClass, $dateThreshold);
+                        }
+                    }
+                }
+
+                DB::commit();
+
+                \Log::info('Purge old trash', [
+                    'days' => $days,
+                    'before_date' => $dateThreshold,
+                    'total_deleted' => $totalDeleted,
+                    'summary' => $deleteSummary,
+                    'purged_by' => Auth::user()->username,
+                ]);
+
+                // Format summary message
+                $summaryText = implode(', ', array_map(fn($model, $count) => "{$count} {$model}", array_keys($deleteSummary), $deleteSummary));
+
+                return response()->json([
+                    'success' => true,
+                    'message' => "Successfully purged {$totalDeleted} trash record(s) older than {$days} days: {$summaryText}",
+                    'deleted_count' => $totalDeleted,
+                    'summary' => $deleteSummary,
+                ]);
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(
+                [
+                    'success' => false,
+                    'errors' => $e->errors(),
+                ],
+                422,
+            );
+        } catch (\Exception $e) {
+            \Log::error('Error purging old trash: ' . $e->getMessage());
+
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Failed to purge trash: ' . $e->getMessage(),
+                ],
+                500,
+            );
+        }
+    }
+
+    /**
+     * Delete inventory files by date range
+     */
+    private function deleteInventoryFiles($modelClass, $dateFrom, $dateTo)
+    {
+        $inventories = $modelClass
+            ::onlyTrashed()
+            ->whereBetween('deleted_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
+            ->get(['id', 'img']);
+
+        foreach ($inventories as $inventory) {
+            if ($inventory->img && Storage::disk('public')->exists($inventory->img)) {
+                Storage::disk('public')->delete($inventory->img);
+            }
+            $qrCodePath = public_path('storage/qrcodes/' . $inventory->id . '.svg');
+            if (file_exists($qrCodePath)) {
+                @unlink($qrCodePath);
+            }
+        }
+    }
+
+    /**
+     * Delete project files by date range
+     */
+    private function deleteProjectFiles($modelClass, $dateFrom, $dateTo)
+    {
+        $projects = $modelClass
+            ::onlyTrashed()
+            ->whereBetween('deleted_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
+            ->get(['id', 'img']);
+
+        foreach ($projects as $project) {
+            if ($project->img && Storage::disk('public')->exists($project->img)) {
+                Storage::disk('public')->delete($project->img);
+            }
+        }
+    }
+
+    /**
+     * Delete inventory files by threshold
+     */
+    private function deleteInventoryFilesByThreshold($modelClass, $dateThreshold)
+    {
+        $inventories = $modelClass
+            ::onlyTrashed()
+            ->where('deleted_at', '<', $dateThreshold)
+            ->get(['id', 'img']);
+
+        foreach ($inventories as $inventory) {
+            if ($inventory->img && Storage::disk('public')->exists($inventory->img)) {
+                Storage::disk('public')->delete($inventory->img);
+            }
+            $qrCodePath = public_path('storage/qrcodes/' . $inventory->id . '.svg');
+            if (file_exists($qrCodePath)) {
+                @unlink($qrCodePath);
+            }
+        }
+    }
+
+    /**
+     * Delete project files by threshold
+     */
+    private function deleteProjectFilesByThreshold($modelClass, $dateThreshold)
+    {
+        $projects = $modelClass
+            ::onlyTrashed()
+            ->where('deleted_at', '<', $dateThreshold)
+            ->get(['id', 'img']);
+
+        foreach ($projects as $project) {
+            if ($project->img && Storage::disk('public')->exists($project->img)) {
+                Storage::disk('public')->delete($project->img);
+            }
+        }
     }
 
     public function bulkAction(Request $request)
@@ -163,6 +412,21 @@ class TrashController extends Controller
                         $successInfo[] = ucfirst($model) . " <b>{$info}</b> restored!";
                     } elseif ($action === 'delete') {
                         try {
+                            // Hapus files sebelum force delete
+                            if ($model === 'inventory') {
+                                if ($item->img && Storage::disk('public')->exists($item->img)) {
+                                    Storage::disk('public')->delete($item->img);
+                                }
+                                $qrCodePath = public_path('storage/qrcodes/' . $item->id . '.svg');
+                                if (file_exists($qrCodePath)) {
+                                    @unlink($qrCodePath);
+                                }
+                            } elseif ($model === 'project') {
+                                if ($item->img && Storage::disk('public')->exists($item->img)) {
+                                    Storage::disk('public')->delete($item->img);
+                                }
+                            }
+
                             $item->forceDelete();
                             $successInfo[] = ucfirst($model) . " <b>{$info}</b>";
                         } catch (\Illuminate\Database\QueryException $e) {
@@ -188,5 +452,21 @@ class TrashController extends Controller
             return back()->with('error', $finalMessage);
         }
         return back()->with('success', $finalMessage);
+    }
+
+    private function getModelClass($model)
+    {
+        return match ($model) {
+            'inventory' => Inventory::class,
+            'project' => Project::class,
+            'material_request' => MaterialRequest::class,
+            'goods_out' => GoodsOut::class,
+            'goods_in' => GoodsIn::class,
+            'material_usage' => MaterialUsage::class,
+            'currency' => Currency::class,
+            'user' => User::class,
+            'employee' => Employee::class,
+            default => null,
+        };
     }
 }

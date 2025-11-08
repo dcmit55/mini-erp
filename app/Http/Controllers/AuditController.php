@@ -36,24 +36,36 @@ class AuditController extends Controller
     {
         $query = Audit::with(['user'])->latest();
 
+        // Event filter
         if ($request->filled('event')) {
             $query->where('event', $request->event);
         }
 
+        // Model filter
         if ($request->filled('auditable_type')) {
             $query->where('auditable_type', $request->auditable_type);
         }
 
-        if ($request->filled('user_id')) {
-            $query->where('user_id', $request->user_id);
-        }
-
+        // Date range filter
         if ($request->filled('date_from')) {
             $query->whereDate('created_at', '>=', $request->date_from);
         }
 
         if ($request->filled('date_to')) {
             $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        // Custom search - cari di multiple columns
+        if ($request->filled('custom_search')) {
+            $search = $request->custom_search;
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('user', function ($userQuery) use ($search) {
+                    $userQuery->where('username', 'like', "%{$search}%");
+                })
+                    ->orWhere('auditable_type', 'like', "%{$search}%")
+                    ->orWhere('event', 'like', "%{$search}%")
+                    ->orWhere('ip_address', 'like', "%{$search}%");
+            });
         }
 
         return DataTables::of($query)

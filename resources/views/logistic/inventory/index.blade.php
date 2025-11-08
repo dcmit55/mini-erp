@@ -9,6 +9,15 @@
             background-clip: text;
         }
 
+        /* Filter Form Styling */
+        #filter-form {
+            background: #f8f9fa;
+            padding: .75rem;
+            border-radius: 0.5rem;
+            border: 1px solid #dee2e6;
+        }
+
+        /* Pagination styling */
         .pagination {
             --bs-pagination-padding-x: 0.75rem;
             --bs-pagination-padding-y: 0.375rem;
@@ -60,10 +69,23 @@
             padding-bottom: 0.5rem;
         }
 
+        .datatables-left {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
         .dataTables_paginate {
             display: flex;
             justify-content: flex-end;
             align-items: center;
+        }
+
+        /* Table styling */
+        #datatable tbody td {
+            padding: 10px 8px;
+            vertical-align: middle;
+            border-bottom: 1px solid #f1f3f4;
         }
 
         @media (max-width: 767.98px) {
@@ -85,36 +107,54 @@
                 justify-content: center !important;
             }
 
+            #datatable thead th {
+                font-size: 0.8rem;
+                padding: 8px 4px;
+            }
+
+            #datatable tbody td {
+                padding: 8px 4px;
+                font-size: 0.85rem;
+            }
+        }
+
+        .alert-success {
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            border-left: 4px solid #28a745;
         }
     </style>
 @endpush
 
 @section('content')
-    <div class="container-fluid mt-4">
-        <!-- Card Wrapper -->
-        <div class="card shadow rounded">
+    <div class="container-fluid py-4">
+        <div class="card shadow-sm border-0 mb-4">
             <div class="card-body">
-                <div class="d-flex flex-column flex-sm-row align-items-sm-center gap-2 mb-3">
-                    <!-- Header -->
-                    <div class="d-flex align-items-center mb-2 mb-sm-0">
+                <!-- Header -->
+                <div class="d-flex flex-column flex-lg-row align-items-lg-center gap-3 mb-3">
+                    <div class="d-flex align-items-center">
                         <i class="fas fa-warehouse gradient-icon me-2" style="font-size: 1.5rem;"></i>
                         <h2 class="mb-0 flex-shrink-0" style="font-size:1.3rem;">Inventory List</h2>
                     </div>
 
-                    <!-- Spacer untuk mendorong tombol ke kanan -->
-                    <div class="ms-sm-auto d-flex flex-wrap gap-2">
-                        @if (auth()->user()->isLogisticAdmin() || auth()->user()->isReadOnlyAdmin())
-                            <a href="{{ route('inventory.create') }}" class="btn btn-primary btn-sm flex-shrink-0">
-                                <i class="bi bi-plus-circle me-1"></i> Create Inventory
-                            </a>
-                            <button type="button" class="btn btn-success btn-sm flex-shrink-0" data-bs-toggle="modal"
-                                data-bs-target="#importModal">
-                                <i class="bi bi-filetype-xls me-1"></i> Import
+                    <div class="ms-lg-auto">
+                        <div class="d-flex flex-wrap gap-2 align-items-center justify-content-lg-end">
+                            @if (auth()->user()->isLogisticAdmin() || auth()->user()->isReadOnlyAdmin())
+                                <a href="{{ route('inventory.create') }}" class="btn btn-primary btn-sm">
+                                    <i class="bi bi-plus-circle me-1"></i>
+                                    <span class="d-none d-sm-inline">Create Inventory</span>
+                                    <span class="d-sm-none">Add</span>
+                                </a>
+                                <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal"
+                                    data-bs-target="#importModal">
+                                    <i class="bi bi-filetype-xls me-1"></i> Import
+                                </button>
+                            @endif
+                            <button type="button" id="export-btn" class="btn btn-outline-success btn-sm">
+                                <i class="bi bi-file-earmark-excel me-1"></i> Export
                             </button>
-                        @endif
-                        <button type="button" id="export-btn" class="btn btn-outline-success btn-sm flex-shrink-0">
-                            <i class="bi bi-file-earmark-excel me-1"></i> Export
-                        </button>
+                        </div>
                     </div>
                 </div>
 
@@ -138,10 +178,11 @@
                     </div>
                 @endif
 
+                <!-- Filter Form - sesuai Employee -->
                 <div class="mb-3">
-                    <form id="filter-form" class="row g-2">
-                        <div class="col-lg-2">
-                            <select name="category_filter" id="category_filter" class="form-select select2">
+                    <form id="filter-form" class="row g-1">
+                        <div class="col-md-2">
+                            <select id="categoryFilter" class="form-select form-select-sm select2">
                                 <option value="">All Categories</option>
                                 @foreach ($categories as $category)
                                     <option value="{{ $category->id }}">{{ $category->name }}</option>
@@ -149,8 +190,8 @@
                             </select>
                         </div>
                         @if (in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance', 'admin_procurement', 'admin']))
-                            <div class="col-lg-2">
-                                <select name="currency_filter" id="currency_filter" class="form-select select2">
+                            <div class="col-md-2">
+                                <select id="currencyFilter" class="form-select form-select-sm select2">
                                     <option value="">All Currencies</option>
                                     @foreach ($currencies as $currency)
                                         <option value="{{ $currency->id }}">{{ $currency->name }}</option>
@@ -158,35 +199,31 @@
                                 </select>
                             </div>
                         @endif
-                        <div class="col-lg-2">
-                            <select name="supplier_filter" id="supplier_filter" class="form-select select2">
+                        <div class="col-md-2">
+                            <select id="supplierFilter" class="form-select form-select-sm select2">
                                 <option value="">All Suppliers</option>
                                 @foreach ($suppliers as $supplier)
                                     <option value="{{ $supplier->id }}">{{ $supplier->name }}</option>
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-lg-2">
-                            <select name="location_filter" id="location_filter" class="form-select select2">
+                        <div class="col-md-2">
+                            <select id="locationFilter" class="form-select form-select-sm select2">
                                 <option value="">All Locations</option>
                                 @foreach ($locations as $location)
                                     <option value="{{ $location->id }}">{{ $location->name }}</option>
                                 @endforeach
                             </select>
                         </div>
-                        {{-- <div class="col-lg-2">
-                            <input type="number" id="min_quantity" class="form-control" placeholder="Min Qty">
-                        </div> --}}
-                        <div class="col-lg-2">
-                            <input type="number" id="max_quantity" class="form-control" placeholder="Filter by Max Qty">
+                        <div class="col-md-3">
+                            <input type="text" id="customSearch" class="form-control form-control-sm"
+                                placeholder="Search inventory...">
                         </div>
-                        <div class="col-lg-2">
-                            <input type="text" id="custom-search" class="form-control" placeholder="Search inventory...">
-                        </div>
-                        <div class="col-lg-2 d-flex align-items-end gap-2">
-                            <button type="button" id="reset-filter" class="btn btn-outline-secondary btn-sm"
+                        <div class="col-md-1">
+                            <button type="button" id="resetFilters" class="btn btn-outline-secondary btn-sm w-100"
                                 title="Reset All Filters">
-                                <i class="fas fa-times me-1"></i> Reset</button>
+                                <i class="fas fa-times me-1"></i> Reset
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -296,13 +333,11 @@
                     url: "{{ route('inventory.index') }}",
                     data: function(d) {
                         // Add filter parameters
-                        d.category_filter = $('#category_filter').val();
-                        d.currency_filter = $('#currency_filter').val();
-                        d.supplier_filter = $('#supplier_filter').val();
-                        d.location_filter = $('#location_filter').val();
-                        d.min_quantity = $('#min_quantity').val();
-                        d.max_quantity = $('#max_quantity').val();
-                        d.custom_search = $('#custom-search').val();
+                        d.category_filter = $('#categoryFilter').val();
+                        d.currency_filter = $('#currencyFilter').val();
+                        d.supplier_filter = $('#supplierFilter').val();
+                        d.location_filter = $('#locationFilter').val();
+                        d.custom_search = $('#customSearch').val();
                     }
                 },
                 columns: [{
@@ -328,7 +363,14 @@
                         name: 'quantity',
                         width: '10%',
                     },
-                    @if (in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance', 'admin', 'admin_procurement', 'admin']))
+                    @if (in_array(auth()->user()->role, [
+                            'super_admin',
+                            'admin_logistic',
+                            'admin_finance',
+                            'admin',
+                            'admin_procurement',
+                            'admin',
+                        ]))
                         {
                             data: 'price',
                             name: 'price',
@@ -382,7 +424,7 @@
                     [10, 15, 25, 50, 100]
                 ],
                 language: {
-                    emptyTable: '<div class="text-muted py-2"></i>No inventory data available</div>',
+                    emptyTable: '<div class="text-muted py-2">No inventory data available</div>',
                     zeroRecords: '<div class="text-muted py-2">No matching records found</div>',
                     infoEmpty: "Showing 0 to 0 of 0 entries",
                     infoFiltered: "(filtered from _MAX_ total entries)",
@@ -395,46 +437,46 @@
                     '<"col-md-5 dataTables_paginate justify-content-end"p>' +
                     '>',
                 responsive: true,
-                stateSave: false, // Disable state saving karena kita pakai filter sendiri
+                stateSave: false,
                 drawCallback: function() {
-                    // Reinitialize tooltips after table redraw
                     $('[data-bs-toggle="tooltip"]').tooltip();
                 }
             });
 
-            // Filter functionality
-            $('#category_filter, #currency_filter, #supplier_filter, #location_filter').on('change', function() {
+            // ✨ Filter functionality - sesuai Employee
+            $('#categoryFilter, #currencyFilter, #supplierFilter, #locationFilter').on('change', function() {
                 table.ajax.reload();
             });
 
-            $('#min_quantity, #max_quantity').on('input', function() {
+            $('#customSearch').on('input', debounce(function() {
+                table.ajax.reload();
+            }, 500));
+
+            // ✨ Reset filters - sesuai Employee
+            $('#resetFilters').on('click', function() {
+                $('#categoryFilter, #currencyFilter, #supplierFilter, #locationFilter').val('')
+                    .trigger('change');
+                $('#customSearch').val('');
                 table.ajax.reload();
             });
 
-            $('#custom-search').on('input', function() {
-                $('#datatable').DataTable().ajax.reload();
-            });
-
-            // Reset filter
-            $('#reset-filter').on('click', function() {
-                $('#category_filter, #currency_filter, #supplier_filter, #location_filter').val('').trigger(
-                    'change');
-                $('#min_quantity').val('');
-                $('#max_quantity').val('');
-                $('#custom-search').val('');
-                table.ajax.reload();
-            });
+            // ✨ Debounce function
+            function debounce(func, wait) {
+                let timeout;
+                return function() {
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => func.apply(this, arguments), wait);
+                };
+            }
 
             // Export functionality
             $('#export-btn').on('click', function() {
                 const filters = {
-                    category_filter: $('#category_filter').val(),
-                    currency_filter: $('#currency_filter').val(),
-                    supplier_filter: $('#supplier_filter').val(),
-                    location_filter: $('#location_filter').val(),
-                    min_quantity: $('#min_quantity').val(),
-                    max_quantity: $('#max_quantity').val(),
-                    custom_search: $('#custom-search').val()
+                    category_filter: $('#categoryFilter').val(),
+                    currency_filter: $('#currencyFilter').val(),
+                    supplier_filter: $('#supplierFilter').val(),
+                    location_filter: $('#locationFilter').val(),
+                    custom_search: $('#customSearch').val()
                 };
 
                 const queryParams = new URLSearchParams();
@@ -467,12 +509,11 @@
                     reverseButtons: true
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        // Generate URL dengan template yang benar
                         const deleteUrl = '/inventory/' + id;
 
                         $.ajax({
                             url: deleteUrl,
-                            method: 'DELETE', // Atau gunakan 'method' instead of 'type'
+                            method: 'DELETE',
                             data: {
                                 _token: $('meta[name="csrf-token"]').attr('content')
                             },
@@ -505,7 +546,7 @@
                 });
             });
 
-            // --- Spinner Import Button in Modal ---
+            // Spinner Import Button in Modal
             const importBtn = document.getElementById('import-btn');
             const importSpinner = importBtn ? importBtn.querySelector('.spinner-border') : null;
             const importForm = importBtn ? importBtn.closest('form') : null;

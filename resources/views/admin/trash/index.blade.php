@@ -24,6 +24,16 @@
                                 <i class="bi bi-trash3 me-1"></i> Bulk Delete Permanently
                             </button>
                         </form>
+
+                        <!-- ✨ BARU: Additional Actions -->
+                        <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal"
+                            data-bs-target="#deleteByDateModal">
+                            <i class="bi bi-calendar-x me-1"></i> Delete by Date
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-toggle="modal"
+                            data-bs-target="#purgeOldModal">
+                            <i class="bi bi-hourglass-split me-1"></i> Purge Old Trash
+                        </button>
                     </div>
                 </div>
 
@@ -187,7 +197,76 @@
             </div>
         </div>
     </div>
+
+    <!-- ✨ BARU: Delete by Date Range Modal -->
+    <div class="modal fade" id="deleteByDateModal" tabindex="-1" aria-labelledby="deleteByDateLabel"
+        aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title" id="deleteByDateLabel">Delete Trash by Date Range</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="deleteByDateForm">
+                        @csrf
+                        <div class="mb-3">
+                            <label class="form-label">From Date</label>
+                            <input type="date" class="form-control" id="deleteDateFrom" name="date_from" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">To Date</label>
+                            <input type="date" class="form-control" id="deleteDateTo" name="date_to" required>
+                        </div>
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            All trash records deleted within the specified date range will be <strong>permanently
+                                deleted</strong> and cannot be recovered.
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteByDateBtn">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ✨ BARU: Purge Old Trash Modal -->
+    <div class="modal fade" id="purgeOldModal" tabindex="-1" aria-labelledby="purgeOldLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger">
+                    <h5 class="modal-title" id="purgeOldLabel">Purge Old Trash</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="purgeOldForm">
+                        @csrf
+                        <div class="mb-3">
+                            <label class="form-label">Delete trash older than (days)</label>
+                            <input type="number" class="form-control" id="purgeDays" name="days" min="1"
+                                max="365" value="30" required>
+                            <small class="text-muted">Enter number of days. Trash older than this will be permanently
+                                deleted.</small>
+                        </div>
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-circle-fill"></i>
+                            <strong>Warning:</strong> All trash records older than the specified days will be
+                            <strong>permanently deleted</strong> and cannot be recovered. This action cannot be undone.
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmPurgeBtn">Purge</button>
+                </div>
+            </div>
+        </div>
+    </div>
 @endsection
+
 @push('scripts')
     <script>
         $(document).ready(function() {
@@ -251,6 +330,80 @@
                     $('#bulk-action-type').val('delete');
                     $('#bulk-action-form').submit();
                 }
+            });
+
+            // ✨ BARU: Delete by Date Range
+            $('#confirmDeleteByDateBtn').on('click', function() {
+                const formData = $('#deleteByDateForm').serialize();
+
+                if (!$('#deleteDateFrom').val() || !$('#deleteDateTo').val()) {
+                    Swal.fire('Error', 'Please fill in both date fields.', 'error');
+                    return;
+                }
+
+                Swal.fire({
+                    title: 'Delete Trash by Date Range?',
+                    html: `<strong>${$('#deleteDateFrom').val()}</strong> to <strong>${$('#deleteDateTo').val()}</strong><br>All matching trash records will be permanently deleted.`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Yes, delete them!',
+                    reverseButtons: true,
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: "{{ route('trash.deleteByDateRange') }}",
+                            method: 'POST',
+                            data: formData,
+                            success: function(response) {
+                                Swal.fire('Success', response.message, 'success');
+                                $('#deleteByDateModal').modal('hide');
+                                setTimeout(() => location.reload(), 1500);
+                            },
+                            error: function(xhr) {
+                                Swal.fire('Error', xhr.responseJSON?.message ||
+                                    'Failed to delete trash.', 'error');
+                            }
+                        });
+                    }
+                });
+            });
+
+            // ✨ BARU: Purge Old Trash
+            $('#confirmPurgeBtn').on('click', function() {
+                const days = $('#purgeDays').val();
+
+                Swal.fire({
+                    title: 'Purge Old Trash?',
+                    html: `Trash older than <strong>${days} days</strong> will be permanently deleted. This cannot be undone.`,
+                    icon: 'error',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Yes, purge them!',
+                    reverseButtons: true,
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: "{{ route('trash.purgeOldTrash') }}",
+                            method: 'POST',
+                            data: {
+                                days: days,
+                                _token: '{{ csrf_token() }}'
+                            },
+                            success: function(response) {
+                                Swal.fire('Success', response.message, 'success');
+                                $('#purgeOldModal').modal('hide');
+                                setTimeout(() => location.reload(), 1500);
+                            },
+                            error: function(xhr) {
+                                Swal.fire('Error', xhr.responseJSON?.message ||
+                                    'Failed to purge trash.', 'error');
+                            }
+                        });
+                    }
+                });
             });
 
             // Event delegation for Restore button SweetAlert2
