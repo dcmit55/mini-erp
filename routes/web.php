@@ -210,6 +210,11 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/employee-documents/{document}/download', [EmployeeController::class, 'downloadDocument'])->name('employee-documents.download');
     Route::get('/employees/{employee}/documents', [EmployeeController::class, 'getDocuments'])->name('employees.documents');
 
+    // Skillsets
+    Route::post('/skillsets/store', [App\Http\Controllers\Hr\SkillsetController::class, 'store'])->name('skillsets.store');
+    Route::get('/skillsets/json', [App\Http\Controllers\Hr\SkillsetController::class, 'json'])->name('skillsets.json');
+    Route::get('/skillsets/search', [App\Http\Controllers\Hr\SkillsetController::class, 'search'])->name('skillsets.search');
+
     // Employee leave balance check - Authenticated only
     Route::get('/employees/{employee}/leave-balance', [EmployeeController::class, 'getLeaveBalance'])->name('employees.leave-balance');
 

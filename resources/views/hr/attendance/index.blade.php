@@ -10,7 +10,7 @@
                 <div class="d-flex align-items-center gap-2">
                     <i class="bi bi-calendar-check-fill text-primary" style="font-size: 2rem;"></i>
                     <div>
-                        <h2 class="mb-0">Attendance Input</h2>
+                        <h2 class="mb-0">Daily Attendance</h2>
                         <p class="text-muted mb-0 small">Daily employee attendance management</p>
                     </div>
                 </div>
@@ -67,6 +67,46 @@
             </div>
         </div>
 
+        <!-- ✨ SKILL GAP NOTIFICATION (compact version) -->
+        @if ($skillGapAnalysis['total_affected_employees'] > 0)
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="alert
+                        {{ $skillGapAnalysis['has_critical_impact'] ? 'alert-danger' : 'alert-warning' }}
+                        alert-dismissible fade show d-flex align-items-center"
+                        role="alert">
+                        <div class="me-3">
+                            <i class="bi {{ $skillGapAnalysis['has_critical_impact'] ? 'bi-exclamation-triangle-fill' : 'bi-exclamation-circle-fill' }}"
+                                style="font-size: 2rem;"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            @if ($skillGapAnalysis['has_critical_impact'])
+                                <h5 class="alert-heading mb-1">Critical Skill Gap Detected!</h5>
+                            @else
+                                <h5 class="alert-heading mb-1">Skill Gap Alert</h5>
+                            @endif
+                            <p class="mb-2">
+                                <strong>{{ $skillGapAnalysis['total_affected_employees'] }} employee(s)</strong>
+                                are absent or late today, affecting
+                                <strong>{{ count($skillGapAnalysis['missing_skills']) }} skillset(s)</strong>
+                                @if ($skillGapAnalysis['has_critical_impact'])
+                                    (including <strong
+                                        class="text-danger">{{ count($skillGapAnalysis['critical_skills']) }} critical
+                                        skills</strong>)
+                                @endif
+                            </p>
+                            <button type="button"
+                                class="btn btn-sm
+                                {{ $skillGapAnalysis['has_critical_impact'] ? 'btn-danger' : 'btn-warning' }}"
+                                data-bs-toggle="modal" data-bs-target="#skillGapModal">View Detailed Analysis
+                            </button>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                </div>
+            </div>
+        @endif
+
         <!-- Filters -->
         <div class="card shadow-sm mb-4 rounded-3">
             <div class="card-body">
@@ -118,7 +158,8 @@
                                 placeholder="Employee name..." value="{{ request('search') }}">
                         </div>
                         <div class="col-12 col-md-1 d-flex align-items-end">
-                            <button type="submit" class="btn btn-primary rounded-pill px-3 py-2" style="min-width: 120px;">
+                            <button type="submit" class="btn btn-primary rounded-pill px-3 py-2"
+                                style="min-width: 120px;">
                                 <i class="bi bi-funnel"></i> Filter
                             </button>
                         </div>
@@ -128,17 +169,20 @@
                     <div class="col-12">
                         <div class="row g-2 justify-content-center justify-content-md-start">
                             <div class="col-4 col-md-auto">
-                                <button type="button" class="btn btn-info btn-sm rounded-pill px-3" id="btn-bulk-present">
+                                <button type="button" class="btn btn-info btn-sm rounded-pill px-3"
+                                    id="btn-bulk-present">
                                     <i class="bi bi-check-all"></i> Bulk: Present
                                 </button>
                             </div>
                             <div class="col-4 col-md-auto">
-                                <button type="button" class="btn btn-danger btn-sm rounded-pill px-3" id="btn-bulk-absent">
+                                <button type="button" class="btn btn-danger btn-sm rounded-pill px-3"
+                                    id="btn-bulk-absent">
                                     <i class="bi bi-x-circle"></i> Bulk: Absent
                                 </button>
                             </div>
                             <div class="col-4 col-md-auto">
-                                <button type="button" class="btn btn-warning btn-sm rounded-pill px-3" id="btn-bulk-late">
+                                <button type="button" class="btn btn-warning btn-sm rounded-pill px-3"
+                                    id="btn-bulk-late">
                                     <i class="bi bi-clock"></i> Bulk: Late
                                 </button>
                             </div>
@@ -254,6 +298,148 @@
         </div>
     </div>
 
+    <!-- ✨ SKILL GAP MODAL -->
+    @if ($skillGapAnalysis['total_affected_employees'] > 0)
+        <div class="modal fade" id="skillGapModal" tabindex="-1" aria-labelledby="skillGapModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div
+                        class="modal-header
+                        {{ $skillGapAnalysis['has_critical_impact'] ? 'bg-danger text-white' : 'bg-warning' }}">
+                        <h5 class="modal-title" id="skillGapModalLabel">
+                            <i
+                                class="bi {{ $skillGapAnalysis['has_critical_impact'] ? 'bi-exclamation-triangle-fill' : 'bi-exclamation-circle-fill' }}"></i>
+                            @if ($skillGapAnalysis['has_critical_impact'])
+                                Critical Skill Gap Analysis
+                            @else
+                                Skill Gap Analysis
+                            @endif
+                        </h5>
+                        <button type="button"
+                            class="btn-close
+                            {{ $skillGapAnalysis['has_critical_impact'] ? 'btn-close-white' : '' }}"
+                            data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- Summary Info -->
+                        <div
+                            class="alert
+                            {{ $skillGapAnalysis['has_critical_impact'] ? 'alert-danger' : 'alert-warning' }} mb-4">
+                            <h6 class="alert-heading">
+                                <i class="bi bi-info-circle"></i> Summary
+                            </h6>
+                            <ul class="mb-0">
+                                <li><strong>{{ $skillGapAnalysis['total_affected_employees'] }} employees</strong> are
+                                    absent or late today</li>
+                                <li><strong>{{ count($skillGapAnalysis['missing_skills']) }} skillsets</strong> are
+                                    affected</li>
+                                @if ($skillGapAnalysis['has_critical_impact'])
+                                    <li class="text-danger">
+                                        <strong>{{ count($skillGapAnalysis['critical_skills']) }} critical skills</strong>
+                                        (2+ employees with same skill unavailable)
+                                    </li>
+                                @endif
+                            </ul>
+                        </div>
+
+                        <!-- Skill Cards -->
+                        <div class="row g-3">
+                            @foreach ($skillGapAnalysis['missing_skills'] as $skill)
+                                <div class="col-md-6">
+                                    <div
+                                        class="card
+                                        {{ $skill['count'] >= 2 ? 'border-danger' : 'border-warning' }}
+                                        h-100">
+                                        <div
+                                            class="card-header
+                                            {{ $skill['count'] >= 2 ? 'bg-danger text-white' : 'bg-warning' }}">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <h6 class="mb-0">
+                                                    <i class="bi bi-stars"></i> {{ $skill['name'] }}
+                                                    @if ($skill['count'] >= 2)
+                                                        <span class="badge bg-white text-danger ms-2">Critical</span>
+                                                    @endif
+                                                </h6>
+                                                @if ($skill['category'])
+                                                    <span
+                                                        class="badge
+                                                        {{ $skill['count'] >= 2 ? 'bg-white text-danger' : 'bg-dark' }}">
+                                                        {{ $skill['category'] }}
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        </div>
+                                        <div class="card-body">
+                                            <p class="mb-3">
+                                                <i class="bi bi-people-fill"></i>
+                                                <strong>{{ $skill['count'] }} employee(s)</strong> with this skill are
+                                                unavailable
+                                            </p>
+
+                                            <h6 class="text-muted mb-2">Affected Employees:</h6>
+                                            <div class="list-group list-group-flush">
+                                                @foreach ($skill['employees'] as $emp)
+                                                    <div class="list-group-item px-0 py-2">
+                                                        <div class="d-flex justify-content-between align-items-center">
+                                                            <div>
+                                                                <strong>{{ $emp['name'] }}</strong>
+                                                                <br>
+                                                                <small class="text-muted">
+                                                                    Proficiency:
+                                                                    <span
+                                                                        class="badge
+                                                                        {{ $emp['proficiency'] === 'advanced' ? 'bg-success' : ($emp['proficiency'] === 'intermediate' ? 'bg-warning' : 'bg-light text-dark') }}">
+                                                                        {{ ucfirst($emp['proficiency']) }}
+                                                                    </span>
+                                                                </small>
+                                                            </div>
+                                                            <span
+                                                                class="badge
+                                                                {{ $emp['status'] === 'absent' ? 'bg-danger' : 'bg-warning' }}">
+                                                                {{ ucfirst($emp['status']) }}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+
+                        <!-- Action Recommendations -->
+                        @if ($skillGapAnalysis['has_critical_impact'])
+                            <div class="alert alert-danger mt-4 mb-0">
+                                <h6 class="alert-heading">
+                                    <i class="bi bi-shield-exclamation"></i> Action Required
+                                </h6>
+                                <ul class="mb-0">
+                                    <li>Consider reassigning tasks to available employees with similar skills</li>
+                                    <li>Contact backup personnel who have the required critical skills</li>
+                                    <li>Reschedule non-urgent tasks that depend on missing skills</li>
+                                    <li>Document the impact for management review</li>
+                                </ul>
+                            </div>
+                        @endif
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="bi bi-x-circle"></i> Close
+                        </button>
+                        <button type="button"
+                            class="btn
+                            {{ $skillGapAnalysis['has_critical_impact'] ? 'btn-danger' : 'btn-warning' }}"
+                            onclick="window.print();">
+                            <i class="bi bi-printer"></i> Print Analysis
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <!-- Toast Notification -->
     <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
         <div id="toast" class="toast hide" role="alert">
@@ -334,6 +520,42 @@
 
             .col-12.col-md-2.text-md-end {
                 margin-top: 8px !important;
+            }
+        }
+
+        /* Skill Gap Alert Styling */
+        .alert-danger .btn-close-white {
+            filter: brightness(0) invert(1);
+        }
+
+        /* Modal Skill Cards */
+        .modal-xl {
+            max-width: 1200px;
+        }
+
+        .card.border-danger {
+            border-width: 2px;
+        }
+
+        .card.border-warning {
+            border-width: 2px;
+        }
+
+        /* Print styles */
+        @media print {
+
+            .modal-header,
+            .modal-footer {
+                display: none !important;
+            }
+
+            .modal-body {
+                padding: 0 !important;
+            }
+
+            .card {
+                break-inside: avoid;
+                page-break-inside: avoid;
             }
         }
     </style>
@@ -594,6 +816,8 @@
                 .on('change', function() {
                     $('#filter-form').submit();
                 });
+
+
         });
     </script>
 @endpush

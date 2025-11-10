@@ -337,7 +337,45 @@
                         </div>
                     </div>
 
-                    <!-- ===== SECTION 6: FINANCIAL INFORMATION ===== -->
+                    <!-- ===== SECTION 6: SKILLSETS ===== -->
+                    <div class="form-section mb-4">
+                        <div class="section-header">
+                            <h5 class="section-title">
+                                <i class="bi bi-stars me-2"></i>Skillsets & Competencies
+                            </h5>
+                            <p class="section-subtitle">Employee skills and proficiency levels</p>
+                        </div>
+                        <div class="section-body">
+                            <div class="row">
+                                <div class="col-12 mb-3">
+                                    <label class="form-label">Select Skillsets</label>
+                                    <select id="skillsets-select" name="skillsets[]"
+                                        class="form-select select2-skillsets" multiple>
+                                        @foreach ($skillsets as $skillset)
+                                            <option value="{{ $skillset->id }}"
+                                                data-category="{{ $skillset->category }}"
+                                                data-proficiency="{{ $skillset->proficiency_required }}">
+                                                {{ $skillset->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <small class="text-muted mt-1 d-block">
+                                        <i class="bi bi-info-circle"></i> Select multiple skills. Can't find a skill?
+                                        <a href="#" id="btn-add-skillset" class="text-primary">
+                                            <i class="bi bi-plus-circle"></i> Add New Skillset
+                                        </a>
+                                    </small>
+                                </div>
+                            </div>
+
+                            <!-- Dynamic Skillset Details -->
+                            <div id="skillset-details-container" class="mt-3">
+                                <!-- Will be populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ===== SECTION 7: FINANCIAL INFORMATION ===== -->
                     <div class="form-section mb-4">
                         <div class="section-header">
                             <h5 class="section-title">
@@ -374,7 +412,7 @@
                         </div>
                     </div>
 
-                    <!-- ===== SECTION 7: DOCUMENTS ===== -->
+                    <!-- ===== SECTION 8: DOCUMENTS ===== -->
                     <div class="form-section mb-4">
                         <div class="section-header">
                             <h5 class="section-title">
@@ -454,6 +492,71 @@
                                 <i class="bi bi-check-circle"></i> Save Employee
                             </button>
                         </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Add Skillset Modal -->
+    <div class="modal fade" id="quickAddSkillsetModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="quickAddSkillsetForm">
+                    @csrf
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="bi bi-plus-circle text-primary"></i> Add New Skillset
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="skillset-alert" class="alert alert-dismissible fade" style="display: none;"
+                            role="alert">
+                            <div id="skillset-alert-message"></div>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Skillset Name <span class="text-danger">*</span></label>
+                            <input type="text" name="name" id="skillset-name" class="form-control"
+                                placeholder="e.g., Sewing, Airbrushing" required>
+                            <div class="invalid-feedback"></div>
+                            <div class="valid-feedback"></div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Category</label>
+                            <select name="category" id="skillset-category" class="form-select">
+                                <option value="">Select Category</option>
+                                @foreach ($skillCategories as $key => $value)
+                                    <option value="{{ $key }}">{{ $value }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Minimum Proficiency Required <span
+                                    class="text-danger">*</span></label>
+                            <select name="proficiency_required" id="skillset-proficiency" class="form-select" required>
+                                <option value="basic" selected>Basic</option>
+                                <option value="intermediate">Intermediate</option>
+                                <option value="advanced">Advanced</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea name="description" id="skillset-description" class="form-control" rows="3"
+                                placeholder="Brief description of this skill..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="btn-save-skillset">
+                            <span class="spinner-border spinner-border-sm me-1 d-none" id="skillset-spinner"></span>
+                            <i class="bi bi-check-circle"></i> Add Skillset
+                        </button>
                     </div>
                 </form>
             </div>
@@ -1187,6 +1290,191 @@
                     }
                 });
             }
+        });
+
+        // SKILLSETS FUNCTIONALITY
+        $(document).ready(function() {
+            // Initialize Select2 for skillsets
+            $('.select2-skillsets').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Select skillsets...',
+                allowClear: true,
+                width: '100%',
+                templateResult: formatSkillsetOption,
+                templateSelection: formatSkillsetSelection
+            });
+
+            // Format skillset option dengan category badge
+            function formatSkillsetOption(skillset) {
+                if (!skillset.id) return skillset.text;
+
+                const category = $(skillset.element).data('category');
+                if (!category) return skillset.text;
+
+                const categoryColors = {
+                    'Production': 'primary',
+                    'Technical': 'info',
+                    'Quality Control': 'success',
+                    'Maintenance': 'warning',
+                    'Administrative': 'secondary'
+                };
+
+                const color = categoryColors[category] || 'secondary';
+
+                return $(`
+            <div>
+                ${skillset.text}
+                <span class="badge bg-${color} ms-2" style="font-size: 0.7rem;">${category}</span>
+            </div>
+        `);
+            }
+
+            function formatSkillsetSelection(skillset) {
+                return skillset.text;
+            }
+
+            // Handle skillset selection change
+            $('#skillsets-select').on('change', function() {
+                updateSkillsetDetails();
+            });
+
+            function updateSkillsetDetails() {
+                const selectedSkillsets = $('#skillsets-select').select2('data');
+                const container = $('#skillset-details-container');
+
+                if (selectedSkillsets.length === 0) {
+                    container.html(
+                        '<div class="alert alert-info"><i class="bi bi-info-circle"></i> No skillsets selected</div>'
+                        );
+                    return;
+                }
+
+                let html = '<div class="row g-3">';
+
+                selectedSkillsets.forEach((skillset, index) => {
+                    const proficiency = $(skillset.element).data('proficiency');
+                    const category = $(skillset.element).data('category');
+
+                    html += `
+                <div class="col-md-3">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-3">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h6 class="mb-0">${skillset.text}</h6>
+                                ${category ? `<span class="badge bg-primary">${category}</span>` : ''}
+                            </div>
+
+                            <div class="mb-2">
+                                <label class="form-label small mb-1">Proficiency Level</label>
+                                <select name="skillset_proficiency[${index}]" class="form-select form-select-sm">
+                                    <option value="basic" ${proficiency === 'basic' ? 'selected' : ''}>Basic</option>
+                                    <option value="intermediate" ${proficiency === 'intermediate' ? 'selected' : ''}>Intermediate</option>
+                                    <option value="advanced" ${proficiency === 'advanced' ? 'selected' : ''}>Advanced</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="form-label small mb-1">Date Acquired</label>
+                                <input type="date" name="skillset_acquired_date[${index}]"
+                                    class="form-control form-control-sm"
+                                    value="${new Date().toISOString().split('T')[0]}"
+                                    max="${new Date().toISOString().split('T')[0]}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+                });
+
+                html += '</div>';
+                container.html(html);
+            }
+
+            // Open Quick Add Skillset Modal
+            $('#btn-add-skillset').on('click', function(e) {
+                e.preventDefault();
+                $('#quickAddSkillsetModal').modal('show');
+            });
+
+            // Handle Quick Add Skillset Form Submit
+            $('#quickAddSkillsetForm').on('submit', function(e) {
+                e.preventDefault();
+
+                const form = $(this);
+                const submitBtn = $('#btn-save-skillset');
+                const spinner = $('#skillset-spinner');
+                const alert = $('#skillset-alert');
+                const alertMessage = $('#skillset-alert-message');
+
+                // Clear previous alerts
+                alert.hide().removeClass('alert-success alert-danger');
+
+                // Show loading
+                submitBtn.prop('disabled', true);
+                spinner.removeClass('d-none');
+
+                $.ajax({
+                    url: '{{ route('skillsets.store') }}',
+                    method: 'POST',
+                    data: form.serialize(),
+                    success: function(response) {
+                        if (response.success) {
+                            // Add new option to select2
+                            const newOption = new Option(
+                                response.skillset.name,
+                                response.skillset.id,
+                                false,
+                                true
+                            );
+
+                            $(newOption).attr('data-category', response.skillset.category);
+                            $(newOption).attr('data-proficiency', response.skillset
+                                .proficiency_required);
+
+                            $('#skillsets-select').append(newOption).trigger('change');
+
+                            // Show success message
+                            alertMessage.html(
+                                `<i class="bi bi-check-circle"></i> ${response.message}`);
+                            alert.addClass('alert-success').fadeIn();
+
+                            // Reset form
+                            form[0].reset();
+
+                            // Close modal after delay
+                            setTimeout(() => {
+                                $('#quickAddSkillsetModal').modal('hide');
+                                alert.fadeOut();
+                            }, 1500);
+                        }
+                    },
+                    error: function(xhr) {
+                        let errorMsg = 'Failed to add skillset';
+
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMsg = xhr.responseJSON.message;
+                        } else if (xhr.responseJSON && xhr.responseJSON.errors) {
+                            const errors = Object.values(xhr.responseJSON.errors).flat();
+                            errorMsg = errors.join('<br>');
+                        }
+
+                        alertMessage.html(
+                            `<i class="bi bi-exclamation-triangle"></i> ${errorMsg}`);
+                        alert.addClass('alert-danger').fadeIn();
+                    },
+                    complete: function() {
+                        submitBtn.prop('disabled', false);
+                        spinner.addClass('d-none');
+                    }
+                });
+            });
+
+            // Reset modal on close
+            $('#quickAddSkillsetModal').on('hidden.bs.modal', function() {
+                $('#quickAddSkillsetForm')[0].reset();
+                $('#skillset-alert').hide();
+                $('.is-valid, .is-invalid').removeClass('is-valid is-invalid');
+            });
         });
     </script>
 @endpush

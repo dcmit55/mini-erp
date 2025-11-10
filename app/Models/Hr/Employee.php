@@ -2,11 +2,11 @@
 
 namespace App\Models\Hr;
 
-
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\Production\Timing;
 use App\Models\Hr\EmployeeDocument;
+use App\Models\Hr\Skillset;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
@@ -254,5 +254,54 @@ class Employee extends Model implements AuditableContract
             'days' => $diffInDays,
             'formatted' => "{$diffInMonths} months ({$diffInDays} days)",
         ];
+    }
+
+    // Relationship to skillsets
+    public function skillsets()
+    {
+        return $this->belongsToMany(Skillset::class, 'employee_skillset')->withPivot('proficiency_level', 'acquired_date', 'last_used_date', 'notes')->withTimestamps();
+    }
+
+    // Accessor untuk formatted skillsets dengan proficiency
+    public function getFormattedSkillsetsAttribute()
+    {
+        return $this->skillsets->map(function ($skillset) {
+            return [
+                'id' => $skillset->id,
+                'name' => $skillset->name,
+                'category' => $skillset->category,
+                'proficiency' => $skillset->pivot->proficiency_level,
+                'proficiency_badge' => $this->getProficiencyBadge($skillset->pivot->proficiency_level),
+                'acquired_date' => $skillset->pivot->acquired_date,
+            ];
+        });
+    }
+
+    // Helper untuk proficiency badge
+    public function getProficiencyBadge($level)
+    {
+        $colors = [
+            'basic' => 'light text-dark',
+            'intermediate' => 'warning',
+            'advanced' => 'success',
+        ];
+
+        return [
+            'color' => $colors[$level] ?? 'secondary',
+            'text' => ucfirst($level),
+        ];
+    }
+
+    // Check if employee has specific skill
+    public function hasSkill($skillName)
+    {
+        return $this->skillsets()->where('name', $skillName)->exists();
+    }
+
+    // Get employee's skill proficiency
+    public function getSkillProficiency($skillName)
+    {
+        $skill = $this->skillsets()->where('name', $skillName)->first();
+        return $skill ? $skill->pivot->proficiency_level : null;
     }
 }

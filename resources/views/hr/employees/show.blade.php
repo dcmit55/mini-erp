@@ -278,6 +278,69 @@
                     </div>
                 </div>
 
+                <!-- Skillsets Section -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0"><i class="bi bi-stars"></i> Skillsets & Competencies</h6>
+                    </div>
+                    <div class="card-body">
+                        @if ($employee->skillsets->count() > 0)
+                            <div class="row g-2">
+                                @foreach ($employee->skillsets as $skillset)
+                                    <div class="col-md-6 col-lg-4">
+                                        <div class="card border h-100">
+                                            <div class="card-body p-3">
+                                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                                    <h6 class="mb-0">{{ $skillset->name }}</h6>
+                                                    @if ($skillset->category)
+                                                        <span class="badge bg-{{ $skillset->category_badge['color'] }}">
+                                                            {{ $skillset->category }}
+                                                        </span>
+                                                    @endif
+                                                </div>
+
+                                                <div class="mb-2">
+                                                    <small class="text-muted d-block">Proficiency Level</small>
+                                                    <span
+                                                        class="badge bg-{{ $employee->getProficiencyBadge($skillset->pivot->proficiency_level)['color'] }}">
+                                                        {{ ucfirst($skillset->pivot->proficiency_level) }}
+                                                    </span>
+                                                </div>
+
+                                                @if ($skillset->pivot->acquired_date)
+                                                    <div class="mb-2">
+                                                        <small class="text-muted d-block">Acquired</small>
+                                                        <small>
+                                                            <i class="bi bi-calendar-check"></i>
+                                                            {{ \Carbon\Carbon::parse($skillset->pivot->acquired_date)->format('d M Y') }}
+                                                        </small>
+                                                    </div>
+                                                @endif
+
+                                                @if ($skillset->pivot->last_used_date)
+                                                    <div>
+                                                        <small class="text-muted d-block">Last Used</small>
+                                                        <small>
+                                                            <i class="bi bi-clock-history"></i>
+                                                            {{ \Carbon\Carbon::parse($skillset->pivot->last_used_date)->diffForHumans() }}
+                                                        </small>
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @else
+                            <div class="text-center py-3 text-muted">
+                                <i class="bi bi-stars" style="font-size: 2rem;"></i>
+                                <p class="mb-0 mt-2">No skillsets recorded</p>
+                                <small>Add skillsets when editing employee profile</small>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
                 <!-- Documents Section -->
                 <div class="card border-0 shadow-sm mb-4">
                     <div class="card-header bg-light d-flex justify-content-between align-items-center">

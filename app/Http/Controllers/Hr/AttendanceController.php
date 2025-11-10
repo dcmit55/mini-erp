@@ -9,6 +9,7 @@ use Carbon\Carbon;
 use App\Models\Hr\Attendance;
 use App\Models\Hr\Employee;
 use App\Models\Admin\Department;
+use App\Models\Hr\Skillset;
 
 class AttendanceController extends Controller
 {
@@ -30,7 +31,7 @@ class AttendanceController extends Controller
         $positions = Employee::select('position')->distinct()->whereNotNull('position')->orderBy('position')->pluck('position');
 
         // Query employees with filters
-        $employees = Employee::with(['department'])
+        $employees = Employee::with(['department', 'skillsets'])
             ->when($department_id, function ($query) use ($department_id) {
                 return $query->where('department_id', $department_id);
             })
@@ -70,7 +71,83 @@ class AttendanceController extends Controller
             'late' => $employees->where('attendance_status', 'late')->count(),
         ];
 
-        return view('hr.attendance.index', compact('employees', 'departments', 'positions', 'date', 'department_id', 'position', 'status', 'search', 'summary'));
+        // Calculate skill gap analysis
+        $skillGapAnalysis = $this->calculateSkillGap($date, $employees);
+
+        return view('hr.attendance.index', compact('employees', 'departments', 'positions', 'date', 'department_id', 'position', 'status', 'search', 'summary', 'skillGapAnalysis'));
+    }
+
+    /**
+     * Calculate skill gap for absent/late employees
+     */
+    private function calculateSkillGap($date, $employees)
+    {
+        // Get absent and late employees
+        $absentOrLate = $employees->filter(function ($employee) {
+            return in_array($employee->attendance_status, ['absent', 'late']);
+        });
+
+        if ($absentOrLate->isEmpty()) {
+            return [
+                'total_affected_employees' => 0,
+                'missing_skills' => [],
+                'critical_skills' => [],
+            ];
+        }
+
+        // Collect all missing skills
+        $missingSkills = [];
+        $skillCounts = [];
+
+        foreach ($absentOrLate as $employee) {
+            foreach ($employee->skillsets as $skillset) {
+                $skillName = $skillset->name;
+                $proficiency = $skillset->pivot->proficiency_level;
+
+                if (!isset($missingSkills[$skillName])) {
+                    $missingSkills[$skillName] = [
+                        'skillset_id' => $skillset->id,
+                        'name' => $skillName,
+                        'category' => $skillset->category,
+                        'employees' => [],
+                        'proficiency_levels' => [],
+                        'count' => 0,
+                    ];
+                }
+
+                $missingSkills[$skillName]['employees'][] = [
+                    'id' => $employee->id,
+                    'name' => $employee->name,
+                    'status' => $employee->attendance_status,
+                    'proficiency' => $proficiency,
+                ];
+
+                $missingSkills[$skillName]['proficiency_levels'][] = $proficiency;
+                $missingSkills[$skillName]['count']++;
+
+                if (!isset($skillCounts[$skillName])) {
+                    $skillCounts[$skillName] = 0;
+                }
+                $skillCounts[$skillName]++;
+            }
+        }
+
+        // Identify critical skills (skills that are missing from 2+ employees)
+        $criticalSkills = array_filter($missingSkills, function ($skill) {
+            return $skill['count'] >= 2;
+        });
+
+        // Sort by count (most impacted first)
+        uasort($missingSkills, function ($a, $b) {
+            return $b['count'] - $a['count'];
+        });
+
+        return [
+            'total_affected_employees' => $absentOrLate->count(),
+            'missing_skills' => $missingSkills,
+            'critical_skills' => $criticalSkills,
+            'has_critical_impact' => !empty($criticalSkills),
+        ];
     }
 
     /**

@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use App\Models\Hr\Employee;
 use App\Models\Admin\Department;
+use App\Models\Hr\Skillset;
 use App\Models\Hr\EmployeeDocument;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -45,7 +46,11 @@ class EmployeeController extends Controller
         $departments = Department::orderBy('name')->get();
         $documentTypes = EmployeeDocument::getDocumentTypes();
         $employmentTypes = Employee::getEmploymentTypeOptions();
-        return view('hr.employees.create', compact('departments', 'documentTypes', 'employmentTypes'));
+        $skillsets = Skillset::active()->orderBy('name')->get();
+        $skillCategories = Skillset::getCategoryOptions();
+        $proficiencyOptions = Skillset::getProficiencyOptions();
+
+        return view('hr.employees.create', compact('departments', 'documentTypes', 'employmentTypes', 'skillsets', 'skillCategories', 'proficiencyOptions'));
     }
 
     public function store(Request $request)
@@ -91,6 +96,12 @@ class EmployeeController extends Controller
             'document_types.*' => 'nullable|string',
             'document_names.*' => 'nullable|string|max:255',
             'document_descriptions.*' => 'nullable|string',
+            'skillsets' => 'nullable|array',
+            'skillsets.*' => 'exists:skillsets,id',
+            'skillset_proficiency' => 'nullable|array',
+            'skillset_proficiency.*' => 'in:basic,intermediate,advanced',
+            'skillset_acquired_date' => 'nullable|array',
+            'skillset_acquired_date.*' => 'nullable|date',
         ]);
 
         $employeeData = $request->only(['employee_no', 'name', 'employment_type', 'position', 'department_id', 'email', 'phone', 'address', 'gender', 'ktp_id', 'place_of_birth', 'date_of_birth', 'rekening', 'hire_date', 'contract_end_date', 'salary', 'saldo_cuti', 'status', 'notes']);
@@ -103,12 +114,24 @@ class EmployeeController extends Controller
 
         $employee = Employee::create($employeeData);
 
+        // Attach skillsets with pivot data
+        if ($request->filled('skillsets')) {
+            $skillsetData = [];
+            foreach ($request->skillsets as $index => $skillsetId) {
+                $skillsetData[$skillsetId] = [
+                    'proficiency_level' => $request->skillset_proficiency[$index] ?? 'basic',
+                    'acquired_date' => $request->skillset_acquired_date[$index] ?? now(),
+                    'last_used_date' => now(),
+                ];
+            }
+            $employee->skillsets()->attach($skillsetData);
+        }
+
         // Handle document uploads
         if ($request->hasFile('documents')) {
             foreach ($request->file('documents') as $index => $file) {
                 if ($file && $file->isValid()) {
                     $filePath = $file->store('employees/documents', 'public');
-
                     EmployeeDocument::create([
                         'employee_id' => $employee->id,
                         'document_type' => $request->document_types[$index] ?? 'others',
@@ -122,7 +145,9 @@ class EmployeeController extends Controller
             }
         }
 
-        return redirect()->route('employees.index')->with('success', 'Employee successfully added.');
+        return redirect()
+            ->route('employees.index')
+            ->with('success', 'Employee successfully added with ' . count($request->skillsets ?? []) . ' skillset(s).');
     }
 
     public function show(Employee $employee)
@@ -130,6 +155,7 @@ class EmployeeController extends Controller
         $employee->load([
             'department',
             'documents',
+            'skillsets',
             'timings' => function ($query) {
                 $query->with('project')->latest()->limit(10);
             },
@@ -214,8 +240,12 @@ class EmployeeController extends Controller
         $departments = Department::orderBy('name')->get();
         $documentTypes = EmployeeDocument::getDocumentTypes();
         $employmentTypes = Employee::getEmploymentTypeOptions();
-        $employee->load('documents');
-        return view('hr.employees.edit', compact('employee', 'departments', 'documentTypes', 'employmentTypes'));
+        $skillsets = Skillset::active()->orderBy('name')->get();
+        $skillCategories = Skillset::getCategoryOptions();
+        $proficiencyOptions = Skillset::getProficiencyOptions();
+        $employee->load('documents', 'skillsets'); // load skillsets
+
+        return view('hr.employees.edit', compact('employee', 'departments', 'documentTypes', 'employmentTypes', 'skillsets', 'skillCategories', 'proficiencyOptions'));
     }
 
     public function update(Request $request, Employee $employee)
@@ -266,6 +296,12 @@ class EmployeeController extends Controller
             'document_types.*' => 'nullable|string',
             'document_names.*' => 'nullable|string|max:255',
             'document_descriptions.*' => 'nullable|string',
+            'skillsets' => 'nullable|array',
+            'skillsets.*' => 'exists:skillsets,id',
+            'skillset_proficiency' => 'nullable|array',
+            'skillset_proficiency.*' => 'in:basic,intermediate,advanced',
+            'skillset_acquired_date' => 'nullable|array',
+            'skillset_acquired_date.*' => 'nullable|date',
         ]);
 
         $employeeData = $request->only(['employee_no', 'name', 'employment_type', 'position', 'department_id', 'email', 'phone', 'address', 'gender', 'ktp_id', 'place_of_birth', 'date_of_birth', 'rekening', 'hire_date', 'contract_end_date', 'salary', 'saldo_cuti', 'status', 'notes']);
@@ -281,6 +317,21 @@ class EmployeeController extends Controller
         }
 
         $employee->update($employeeData);
+
+        // Sync skillsets with pivot data
+        if ($request->has('skillsets')) {
+            $skillsetData = [];
+            if ($request->filled('skillsets')) {
+                foreach ($request->skillsets as $index => $skillsetId) {
+                    $skillsetData[$skillsetId] = [
+                        'proficiency_level' => $request->skillset_proficiency[$index] ?? 'basic',
+                        'acquired_date' => $request->skillset_acquired_date[$index] ?? now(),
+                        'last_used_date' => now(),
+                    ];
+                }
+            }
+            $employee->skillsets()->sync($skillsetData);
+        }
 
         // Handle new document uploads
         if ($request->hasFile('documents')) {
