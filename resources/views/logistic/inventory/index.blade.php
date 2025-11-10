@@ -215,6 +215,14 @@
                                 @endforeach
                             </select>
                         </div>
+                        <div class="col-md-2">
+                            <select id="unitFilter" class="form-select form-select-sm select2">
+                                <option value="">All Units</option>
+                                @foreach (\App\Models\Logistic\Unit::orderBy('name')->get() as $unit)
+                                    <option value="{{ $unit->name }}">{{ $unit->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
                         <div class="col-md-3">
                             <input type="text" id="customSearch" class="form-control form-control-sm"
                                 placeholder="Search inventory...">
@@ -327,6 +335,7 @@
             // Initialize DataTable dengan server-side processing
             const table = $('#datatable').DataTable({
                 processing: false,
+                stateSave: true,
                 serverSide: true,
                 searching: false,
                 ajax: {
@@ -337,6 +346,7 @@
                         d.currency_filter = $('#currencyFilter').val();
                         d.supplier_filter = $('#supplierFilter').val();
                         d.location_filter = $('#locationFilter').val();
+                        d.unitFilter = $('#unitFilter').val();
                         d.custom_search = $('#customSearch').val();
                     }
                 },
@@ -443,18 +453,19 @@
                 }
             });
 
-            // ✨ Filter functionality - sesuai Employee
-            $('#categoryFilter, #currencyFilter, #supplierFilter, #locationFilter').on('change', function() {
-                table.ajax.reload();
-            });
+            // Filter functionality
+            $('#categoryFilter, #currencyFilter, #supplierFilter, #locationFilter, #unitFilter').on('change',
+                function() {
+                    table.ajax.reload();
+                });
 
             $('#customSearch').on('input', debounce(function() {
                 table.ajax.reload();
             }, 500));
 
-            // ✨ Reset filters - sesuai Employee
+            // Reset filters
             $('#resetFilters').on('click', function() {
-                $('#categoryFilter, #currencyFilter, #supplierFilter, #locationFilter').val('')
+                $('#categoryFilter, #currencyFilter, #supplierFilter, #locationFilter, #unitFilter').val('')
                     .trigger('change');
                 $('#customSearch').val('');
                 table.ajax.reload();

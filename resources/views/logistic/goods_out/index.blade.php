@@ -68,8 +68,8 @@
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <input type="date" id="requested_at_filter" class="form-control form-control-sm"
-                                placeholder="Requested Date">
+                            <input type="text" id="proceeded_at_filter" class="form-control form-control-sm"
+                                placeholder="Proceeded At Date" autocomplete="off">
                         </div>
                         <div class="col-md-3">
                             <input type="text" id="custom-search" class="form-control form-control-sm"
@@ -127,6 +127,10 @@
             padding: .75rem;
             border-radius: 0.5rem;
             border: 1px solid #dee2e6;
+        }
+
+        .form-control {
+            border: 1px solid #ced4da !important;
         }
 
         /* Pagination styling */
@@ -242,13 +246,14 @@
                 processing: false,
                 serverSide: true,
                 searching: false,
+                stateSave: true,
                 ajax: {
                     url: "{{ route('goods_out.index') }}",
                     data: function(d) {
                         d.material_filter = $('#material_filter').val();
                         d.project_filter = $('#project_filter').val();
                         d.requested_by_filter = $('#requested_by_filter').val();
-                        d.requested_at_filter = $('#requested_at_filter').val();
+                        d.proceeded_at_filter = $('#proceeded_at_filter').val();
                         d.custom_search = $('#custom-search').val();
                     }
                 },
@@ -328,10 +333,31 @@
             });
 
             // Filter functionality
-            $('#material_filter, #project_filter, #requested_by_filter, #requested_at_filter').on('change',
+            $('#material_filter, #project_filter, #requested_by_filter, #proceeded_at_filter').on('change',
                 function() {
                     table.ajax.reload();
                 });
+
+            // Initialize flatpickr for proceeded at date filter
+            if (window.flatpickr) {
+                flatpickr("#proceeded_at_filter", {
+                    dateFormat: "Y-m-d",
+                    allowInput: true,
+                    locale: "default"
+                });
+            } else {
+                // Fallback: enhance UX for native input
+                const dateInput = document.getElementById('proceeded_at_filter');
+                if (dateInput) {
+                    dateInput.onfocus = function() {
+                        this.type = 'date';
+                    };
+                    dateInput.onblur = function() {
+                        if (!this.value) this.type = 'text';
+                    };
+                    if (!dateInput.value) dateInput.type = 'text';
+                }
+            }
 
             $('#custom-search').on('input', debounce(function() {
                 table.ajax.reload();
@@ -340,7 +366,7 @@
             // Reset filter
             $('#reset-filters').on('click', function() {
                 $('#material_filter, #project_filter, #requested_by_filter').val('').trigger('change');
-                $('#requested_at_filter').val('');
+                $('#proceeded_at_filter').val('');
                 $('#custom-search').val('');
                 table.ajax.reload();
             });

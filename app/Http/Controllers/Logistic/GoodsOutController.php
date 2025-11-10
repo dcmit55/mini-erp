@@ -63,8 +63,8 @@ class GoodsOutController extends Controller
             $query->where('requested_by', $request->requested_by_filter);
         }
 
-        if ($request->filled('requested_at_filter')) {
-            $query->whereDate('created_at', $request->requested_at_filter);
+        if ($request->filled('proceeded_at_filter')) {
+            $query->whereDate('created_at', $request->proceeded_at_filter);
         }
 
         // Custom search functionality

@@ -222,6 +222,10 @@
             border: 1px solid #dee2e6;
         }
 
+        .form-control {
+            border: 1px solid #ced4da !important;
+        }
+
         @media (max-width: 768px) {
             .ms-sm-auto.d-flex.flex-wrap {
                 margin-bottom: 0.8rem !important;
@@ -544,6 +548,7 @@
                 processing: false, // Hide processing indicator
                 serverSide: true, // Enable server-side processing
                 searching: false,
+                stateSave: true,
                 ajax: {
                     url: "{{ route('material_requests.index') }}",
                     data: function(d) {

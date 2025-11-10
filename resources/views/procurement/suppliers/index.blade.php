@@ -9,6 +9,20 @@
             background-clip: text;
         }
 
+        /* Filter Form Styling - sesuai Goods Out */
+        #filter-form {
+            background: #f8f9fa;
+            padding: .75rem;
+            border-radius: 0.5rem;
+            border: 1px solid #dee2e6;
+        }
+
+        .form-control,
+        .form-select {
+            border: 1px solid #ced4da !important;
+        }
+
+        /* Pagination styling */
         .pagination {
             --bs-pagination-padding-x: 0.75rem;
             --bs-pagination-padding-y: 0.375rem;
@@ -60,10 +74,23 @@
             padding-bottom: 0.5rem;
         }
 
+        .datatables-left {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
         .dataTables_paginate {
             display: flex;
             justify-content: flex-end;
             align-items: center;
+        }
+
+        /* Table styling */
+        #datatable tbody td {
+            padding: 10px 8px;
+            vertical-align: middle;
+            border-bottom: 1px solid #f1f3f4;
         }
 
         @media (max-width: 767.98px) {
@@ -84,6 +111,28 @@
             .dataTables_paginate {
                 justify-content: center !important;
             }
+
+            #datatable thead th {
+                font-size: 0.8rem;
+                padding: 8px 4px;
+            }
+
+            #datatable tbody td {
+                padding: 8px 4px;
+                font-size: 0.85rem;
+            }
+        }
+
+        /* Tooltips */
+        .tooltip {
+            z-index: 9999 !important;
+        }
+
+        .tooltip-inner {
+            max-width: 200px;
+            padding: 0.3rem 0.6rem;
+            font-size: 0.775rem;
+            line-height: 1.2;
         }
     </style>
 @endpush
@@ -128,208 +177,265 @@
                     </div>
                 @endif
 
+                <!-- ✨ BARU: Filter Form (sesuai Goods Out) -->
                 <div class="mb-3">
-                    <form id="filter-form" method="GET" action="{{ route('suppliers.index') }}" class="row g-2">
-                        <div class="col-lg-3">
-                            <select name="location_id" id="location_filter" class="form-select select2">
+                    <form id="filter-form" class="row g-1">
+                        <div class="col-md-2">
+                            <select id="location_filter" class="form-select form-select-sm select2">
                                 <option value="">All Locations</option>
                                 @foreach ($locations as $location)
-                                    <option value="{{ $location->id }}"
-                                        {{ request('location_id') == $location->id ? 'selected' : '' }}>
-                                        {{ $location->name }}
-                                    </option>
+                                    <option value="{{ $location->id }}">{{ $location->name }}</option>
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-lg-3">
-                            <select name="status" id="status_filter" class="form-select select2">
+                        <div class="col-md-2">
+                            <select id="status_filter" class="form-select form-select-sm select2">
                                 <option value="">All Status</option>
-                                <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Active</option>
-                                <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Inactive
-                                </option>
-                                <option value="blacklisted" {{ request('status') == 'blacklisted' ? 'selected' : '' }}>
-                                    Blacklisted</option>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                                <option value="blacklisted">Blacklisted</option>
                             </select>
                         </div>
-                        <!-- Submit and Reset Buttons -->
-                        <div class="col-lg-2 d-flex gap-2">
-
-                            <a href="{{ route('suppliers.index') }}" class="btn btn-secondary w-3">Reset</a>
+                        <div class="col-md-6">
+                            <input type="text" id="custom-search" class="form-control form-control-sm"
+                                placeholder="Search by name, code, or contact person...">
                         </div>
-
+                        <div class="col-md-2">
+                            <button type="button" id="reset-filters" class="btn btn-outline-secondary btn-sm w-100"
+                                title="Reset All Filters">
+                                <i class="fas fa-times me-1"></i> Reset
+                            </button>
+                        </div>
+                    </form>
                 </div>
 
-                <!-- Table -->
+                <!-- ✨ BARU: DataTable dengan Server-Side Processing -->
                 <div class="table-responsive">
-                    <table class="table table-sm table-hover align-middle" id="datatable">
-                        <thead class="table-light">
+                    <table class="table table-hover table-sm align-middle" id="datatable">
+                        <thead class="table-light text-nowrap">
                             <tr>
-                                <th class="text-center"></th>
+                                <th>#</th>
                                 <th>Supplier Code</th>
                                 <th>Name</th>
                                 <th>Location</th>
-                                <th>Address</th>
-                                <th>Referral Link</th>
+                                <th>Contact Person</th>
                                 <th>Lead Time</th>
-                                <th>Remark</th>
                                 <th>Status</th>
+                                <th>Remark</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach ($suppliers as $index => $supplier)
-                                <tr>
-                                    <td class="text-center">{{ $loop->iteration }}</td>
-                                    <td>{{ $supplier->supplier_code }}</td>
-                                    <td>{{ $supplier->name }}</td>
-                                    <td>{{ $supplier->location ? $supplier->location->name : '-' }}</td>
-                                    <td>{{ $supplier->address }}</td>
-                                    <td>
-                                        @if ($supplier->referral_link)
-                                            <a href="{{ $supplier->formatted_referral_link }}" target="_blank"
-                                                rel="noopener" data-bs-toggle="tooltip"
-                                                title="{{ $supplier->referral_link }}">
-                                                <i class="bi bi-link-45deg gradient-icon"
-                                                    style="font-size: 1.5rem; vertical-align: middle;"></i>
-                                            </a>
-                                        @else
-                                            <span class="text-muted">-</span>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        {{ $supplier->lead_time_days ? $supplier->lead_time_days . ' days' : '-' }}
-                                    </td>
-                                    <td>{{ $supplier->remark }}</td>
-                                    <td>
-                                        <span class="badge bg-{{ $supplier->status_badge }}">
-                                            {{ ucfirst($supplier->status) }}
-                                        </span>
-                                    </td>
-                                    <td class="text-center">
-                                        <div class="d-flex justify-content-center gap-1">
-                                            <a href="{{ route('suppliers.edit', $supplier->id) }}"
-                                                class="btn btn-warning btn-sm" data-bs-toggle="tooltip"
-                                                data-bs-placement="bottom" title="Edit">
-                                                <i class="bi bi-pencil-square"></i>
-                                            </a>
-                                            <button type="button" class="btn btn-sm btn-danger btn-delete"
-                                                data-id="{{ $supplier->id }}" data-name="{{ $supplier->name }}"
-                                                data-bs-toggle="tooltip" data-bs-placement="bottom" title="Delete">
-                                                <i class="bi bi-trash3"></i>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            @endforeach
+                            <!-- DataTables akan populate ini -->
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
-    @endsection
+    </div>
+@endsection
 
-    @push('scripts')
-        <script>
-            $(document).ready(function() {
-                // Initialize DataTable tanpa server-side processing (non-AJAX)
-                $('#datatable').DataTable({
-                    paging: true,
-
-                    info: true,
-                    lengthMenu: [10, 15, 25, 50, 100],
-                    pageLength: 15,
-                    order: [
-                        []
-                    ],
-                    responsive: true
-                });
-
-                // Auto-submit form on filter change
-                $('#location_filter, #status_filter').on('change', function() {
-                    $('#filter-form').submit();
-                });
-
-
-                // Delete functionality dengan AJAX
-                $(document).on('click', '.btn-delete', function() {
-                    const id = $(this).data('id');
-                    const name = $(this).data('name');
-
-                    Swal.fire({
-                        title: 'Are you sure?',
-                        text: `You want to delete supplier "${name}"?`,
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonColor: '#d33',
-                        cancelButtonColor: '#3085d6',
-                        confirmButtonText: 'Yes, delete it!',
-                        reverseButtons: true
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            const deleteUrl = '/suppliers/' + id;
-
-                            $.ajax({
-                                url: deleteUrl,
-                                method: 'DELETE',
-                                data: {
-                                    _token: $('meta[name="csrf-token"]').attr('content')
-                                },
-                                headers: {
-                                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr(
-                                        'content'),
-                                    'Content-Type': 'application/json',
-                                    'Accept': 'application/json'
-                                },
-                                success: function(response) {
-                                    Swal.fire({
-                                        title: 'Deleted!',
-                                        html: `Supplier "${name}" has been deleted.`,
-                                        icon: 'success'
-                                    }).then(() => {
-                                        window.location
-                                            .reload(); // Reload page to update table
-                                    });
-                                },
-                                error: function(xhr) {
-                                    console.error('Delete error:', xhr);
-                                    let errorMsg = 'Something went wrong.';
-                                    if (xhr.responseJSON && xhr.responseJSON.message) {
-                                        errorMsg = xhr.responseJSON.message;
-                                    } else if (xhr.responseText) {
-                                        errorMsg = xhr.responseText;
-                                    }
-                                    Swal.fire('Error!', errorMsg, 'error');
-                                }
-                            });
-                        }
-                    });
-                });
-
-                // Initialize Select2
-                $('.select2').select2({
-                    theme: 'bootstrap-5',
-                    placeholder: function() {
-                        return $(this).data('placeholder');
+@push('scripts')
+    <script>
+        $(document).ready(function() {
+            // ✨ Initialize DataTable dengan server-side processing
+            const table = $('#datatable').DataTable({
+                processing: false,
+                serverSide: true,
+                searching: false,
+                stateSave: true,
+                ajax: {
+                    url: "{{ route('suppliers.index') }}",
+                    data: function(d) {
+                        d.location_filter = $('#location_filter').val();
+                        d.status_filter = $('#status_filter').val();
+                        d.custom_search = $('#custom-search').val();
+                    }
+                },
+                columns: [{
+                        data: 'DT_RowIndex',
+                        name: 'DT_RowIndex',
+                        orderable: false,
+                        searchable: false,
+                        className: 'text-center'
                     },
-                    allowClear: true
-                }).on('select2:open', function() {
-                    // Auto-focus search field
-                    setTimeout(() => {
-                        const searchField = document.querySelector('.select2-search__field');
-                        if (searchField) searchField.focus();
-                    }, 100);
-                });
-
-                // Initialize Bootstrap Tooltip
-                $('[data-bs-toggle="tooltip"]').tooltip();
+                    {
+                        data: 'supplier_code',
+                        name: 'supplier_code'
+                    },
+                    {
+                        data: 'name',
+                        name: 'name'
+                    },
+                    {
+                        data: 'location',
+                        name: 'location'
+                    },
+                    {
+                        data: 'contact_person',
+                        name: 'contact_person'
+                    },
+                    {
+                        data: 'lead_time_days',
+                        name: 'lead_time_days',
+                        className: 'text-center'
+                    },
+                    {
+                        data: 'status_badge',
+                        name: 'status'
+                    },
+                    {
+                        data: 'remark',
+                        name: 'remark'
+                    },
+                    {
+                        data: 'actions',
+                        name: 'actions',
+                        orderable: false,
+                        searchable: false
+                    }
+                ],
+                order: [
+                    []
+                ],
+                pageLength: 15,
+                lengthMenu: [
+                    [10, 15, 25, 50, 100],
+                    [10, 15, 25, 50, 100]
+                ],
+                language: {
+                    emptyTable: '<div class="text-muted py-2">No suppliers data available</div>',
+                    zeroRecords: '<div class="text-muted py-2">No matching records found</div>',
+                    infoEmpty: "Showing 0 to 0 of 0 entries",
+                    infoFiltered: "(filtered from _MAX_ total entries)",
+                    lengthMenu: "Show _MENU_ entries per page",
+                    info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                },
+                dom: 't<' +
+                    '"row datatables-footer-row align-items-center"' +
+                    '<"col-md-7 d-flex align-items-center gap-2 datatables-left"l<"vr-divider mx-2">i>' +
+                    '<"col-md-5 dataTables_paginate justify-content-end"p>' +
+                    '>',
+                responsive: true,
+                stateSave: false,
+                drawCallback: function() {
+                    $('[data-bs-toggle="tooltip"]').tooltip();
+                }
             });
 
-            document.addEventListener("DOMContentLoaded", function() {
-                // Initialize Bootstrap Tooltips
-                var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-                tooltipTriggerList.forEach(function(tooltipTriggerEl) {
-                    new bootstrap.Tooltip(tooltipTriggerEl);
+            // ✨ Filter functionality
+            $('#location_filter, #status_filter').on('change', function() {
+                table.ajax.reload();
+            });
+
+            $('#custom-search').on('input', debounce(function() {
+                table.ajax.reload();
+            }, 500));
+
+            // ✨ Reset filters
+            $('#reset-filters').on('click', function() {
+                $('#location_filter, #status_filter').val('').trigger('change');
+                $('#custom-search').val('');
+                table.ajax.reload();
+            });
+
+            // ✨ Debounce function
+            function debounce(func, wait) {
+                let timeout;
+                return function() {
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => func.apply(this, arguments), wait);
+                };
+            }
+
+            // ✨ Delete functionality dengan AJAX
+            $(document).on('click', '.btn-delete', function() {
+                const id = $(this).data('id');
+                const name = $(this).data('name');
+
+                Swal.fire({
+                    title: 'Are you sure?',
+                    text: `You want to delete supplier "${name}"?`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Yes, delete it!',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        const deleteUrl = `/suppliers/${id}`;
+
+                        $.ajax({
+                            url: deleteUrl,
+                            method: 'DELETE',
+                            data: {
+                                _token: $('meta[name="csrf-token"]').attr('content')
+                            },
+                            headers: {
+                                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr(
+                                    'content'),
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json'
+                            },
+                            success: function(response) {
+                                Swal.fire('Deleted!',
+                                    `Supplier <b>${name}</b> has been deleted.`,
+                                    'success');
+                                table.ajax.reload(null, false);
+                            },
+                            error: function(xhr) {
+                                console.error('Delete error:', xhr);
+                                let errorMsg = 'Something went wrong!';
+                                let iconType = 'error';
+
+                                if (xhr.responseJSON?.message) {
+                                    errorMsg = xhr.responseJSON.message;
+                                } else if (xhr.responseText) {
+                                    errorMsg = xhr.responseText;
+                                }
+
+                                if (xhr.status === 403) {
+                                    iconType = 'warning';
+                                    errorMsg = xhr.responseJSON?.message ||
+                                        'You don\'t have permission to perform this action.';
+                                }
+
+                                Swal.fire(
+                                    xhr.status === 403 ? 'Access Denied!' :
+                                    'Error!',
+                                    errorMsg,
+                                    iconType
+                                );
+                            }
+                        });
+                    }
                 });
             });
-        </script>
-    @endpush
+
+            // ✨ Initialize Select2
+            $('.select2').select2({
+                theme: 'bootstrap-5',
+                placeholder: function() {
+                    return $(this).data('placeholder') || 'Select an option';
+                },
+                allowClear: true,
+                width: '100%'
+            }).on('select2:open', function() {
+                // Auto-focus search field
+                setTimeout(() => {
+                    const searchField = document.querySelector('.select2-search__field');
+                    if (searchField) searchField.focus();
+                }, 100);
+            });
+
+            // ✨ Initialize Bootstrap Tooltip
+            $('[data-bs-toggle="tooltip"]').tooltip();
+
+            // ✨ Auto-dismiss alerts
+            setTimeout(() => {
+                $('.alert').fadeOut('slow');
+            }, 5000);
+        });
+    </script>
+@endpush

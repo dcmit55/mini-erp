@@ -206,6 +206,7 @@
             const table = $('#dataTable').DataTable({
                 processing: true,
                 serverSide: true,
+                stateSave: true,
                 ajax: {
                     url: '{{ route("goods-movement.index") }}',
                     data: function(d) {

@@ -31,52 +31,176 @@ class GoodsInController extends Controller
         })->only(['store', 'storeIndependent', 'update', 'destroy']);
     }
 
+    // Server-side processing untuk index
     public function index(Request $request)
+    {
+        // Jika AJAX request, return DataTables data
+        if ($request->ajax()) {
+            return $this->getDataTablesData($request);
+        }
+
+        // Untuk non-AJAX requests, return view dengan master data untuk filters
+        $materials = Inventory::orderBy('name')->get();
+        $projects = Project::orderBy('name')->get();
+        $users = User::orderBy('username')->get();
+
+        return view('logistic.goods_in.index', compact('materials', 'projects', 'users'));
+    }
+
+    // Method untuk server-side processing
+    private function getDataTablesData(Request $request)
     {
         $query = GoodsIn::with(['goodsOut.inventory', 'goodsOut.project', 'inventory', 'project'])->latest();
 
         // Apply filters
-        if ($request->has('material') && $request->material !== null) {
-            $query->where('inventory_id', $request->material);
+        if ($request->filled('material_filter')) {
+            $query->where('inventory_id', $request->material_filter);
         }
 
-        if ($request->has('project') && $request->project !== null) {
-            $query->where('project_id', $request->project);
+        if ($request->filled('project_filter')) {
+            $query->where('project_id', $request->project_filter);
         }
 
-        if ($request->has('qty') && $request->qty !== null) {
-            $query->where('quantity', $request->qty);
+        if ($request->filled('returned_by_filter')) {
+            $query->where('returned_by', $request->returned_by_filter);
         }
 
-        if ($request->has('returned_by') && $request->returned_by !== null) {
-            $query->where('returned_by', $request->returned_by);
+        if ($request->filled('returned_at_filter')) {
+            $query->whereDate('returned_at', $request->returned_at_filter);
         }
 
-        if ($request->has('returned_at') && $request->returned_at !== null) {
-            $query->whereDate('returned_at', $request->returned_at);
+        // Custom search functionality
+        if ($request->filled('custom_search')) {
+            $searchValue = $request->input('custom_search');
+            $query->where(function ($q) use ($searchValue) {
+                $q->whereHas('inventory', function ($q) use ($searchValue) {
+                    $q->where('name', 'LIKE', '%' . $searchValue . '%');
+                })
+                    ->orWhereHas('project', function ($q) use ($searchValue) {
+                        $q->where('name', 'LIKE', '%' . $searchValue . '%');
+                    })
+                    ->orWhere('returned_by', 'LIKE', '%' . $searchValue . '%')
+                    ->orWhere('remark', 'LIKE', '%' . $searchValue . '%');
+            });
         }
 
-        $goodsIns = $query->orderBy('created_at', 'desc')->get();
+        // Sorting
+        $columns = ['id', 'inventory_id', 'quantity', 'project_id', 'returned_by', 'returned_at', 'remark'];
 
-        // Pass data for filters
-        $materials = Inventory::orderBy('name')->get();
-        $projects = Project::orderBy('name')->get();
-        $quantities = GoodsIn::select('quantity')->distinct()->pluck('quantity');
-        $users = User::with('department')->get()->keyBy('username');
+        if ($request->filled('order')) {
+            $orderColumnIndex = $request->input('order.0.column');
+            $orderDirection = $request->input('order.0.dir', 'asc');
 
-        return view('logistic.goods_in.index', compact('goodsIns', 'materials', 'projects', 'quantities', 'users'));
+            if (isset($columns[$orderColumnIndex])) {
+                $query->orderBy($columns[$orderColumnIndex], $orderDirection);
+            } else {
+                $query->orderBy('returned_at', 'desc');
+            }
+        } else {
+            $query->orderBy('returned_at', 'desc');
+        }
+
+        // Get total and filtered counts
+        $totalRecords = GoodsIn::count();
+        $filteredRecords = $query->count();
+
+        // Pagination
+        $start = $request->input('start', 0);
+        $length = $request->input('length', 15);
+        $goodsIns = $query->skip($start)->take($length)->get();
+
+        // Format data for DataTables
+        $data = [];
+        foreach ($goodsIns as $index => $goodsIn) {
+            $data[] = [
+                'DT_RowIndex' => $start + $index + 1,
+                'material' => $goodsIn->goodsOut && $goodsIn->goodsOut->inventory ? $goodsIn->goodsOut->inventory->name : ($goodsIn->inventory ? $goodsIn->inventory->name : '(no material)'),
+                'quantity' => $this->formatQuantity($goodsIn),
+                'project' => $goodsIn->goodsOut && $goodsIn->goodsOut->project ? $goodsIn->goodsOut->project->name : ($goodsIn->project ? $goodsIn->project->name : '(no project)'),
+                'returned_by' => $this->formatReturnedBy($goodsIn),
+                'returned_at' => $goodsIn->returned_at->format('d M Y, H:i'),
+                'remark' => $goodsIn->remark ?? '-',
+                'actions' => $this->getActionButtons($goodsIn),
+                'DT_RowId' => 'row-' . $goodsIn->id,
+            ];
+        }
+
+        return response()->json([
+            'draw' => intval($request->input('draw')),
+            'recordsTotal' => $totalRecords,
+            'recordsFiltered' => $filteredRecords,
+            'data' => $data,
+        ]);
+    }
+
+    // Helper method untuk format quantity
+    private function formatQuantity($goodsIn)
+    {
+        $unit = $goodsIn->goodsOut && $goodsIn->goodsOut->inventory ? $goodsIn->goodsOut->inventory->unit : ($goodsIn->inventory ? $goodsIn->inventory->unit : '');
+
+        $quantity = number_format($goodsIn->quantity, 2);
+        $quantity = rtrim(rtrim($quantity, '0'), '.');
+
+        return '<span data-bs-toggle="tooltip" data-bs-placement="right" title="' . $unit . '">' . $quantity . '</span>';
+    }
+
+    // Helper method untuk format returned by
+    private function formatReturnedBy($goodsIn)
+    {
+        $user = User::where('username', $goodsIn->returned_by)->first();
+        $department = $user && $user->department ? $user->department->name : '';
+
+        if ($department) {
+            return '<span data-bs-toggle="tooltip" data-bs-placement="right" title="' . ucfirst($department) . '">' . ucfirst($goodsIn->returned_by) . '</span>';
+        }
+
+        return ucfirst($goodsIn->returned_by);
+    }
+
+    // Helper method untuk action buttons
+    private function getActionButtons($goodsIn)
+    {
+        $buttons = '<div class="d-flex flex-nowrap gap-1">';
+
+        // Edit button
+        if (auth()->user()->username === $goodsIn->returned_by || in_array(auth()->user()->role, ['admin_logistic', 'super_admin', 'admin_finance', 'admin'])) {
+            $buttons .=
+                '<a href="' .
+                route('goods_in.edit', $goodsIn->id) .
+                '" class="btn btn-sm btn-warning" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Edit">
+                <i class="bi bi-pencil-square"></i>
+            </a>';
+        }
+
+        // Delete button - only for independent goods in (not linked to goods out)
+        if (!$goodsIn->goods_out_id && in_array(auth()->user()->role, ['admin_logistic', 'super_admin', 'admin_finance', 'admin'])) {
+            $buttons .=
+                '<button type="button" class="btn btn-sm btn-danger btn-delete"
+                data-id="' .
+                $goodsIn->id .
+                '"
+                data-material="' .
+                ($goodsIn->inventory ? $goodsIn->inventory->name : 'Unknown') .
+                '"
+                title="Delete">
+                <i class="bi bi-trash3"></i>
+            </button>';
+        }
+
+        $buttons .= '</div>';
+        return $buttons;
     }
 
     public function export(Request $request)
     {
-        // Ambil filter dari request
+        // Dapatkan filter dari request
         $material = $request->material;
         $project = $request->project;
         $qty = $request->qty;
         $returnedBy = $request->returned_by;
         $returnedAt = $request->returned_at;
 
-        // Filter data berdasarkan request
+        // Query dengan filter
         $query = GoodsIn::with(['goodsOut.project', 'project']);
 
         if ($material) {
@@ -101,7 +225,7 @@ class GoodsInController extends Controller
 
         $goodsIns = $query->get();
 
-        // Buat nama file dinamis
+        // Generate dynamic file name
         $fileName = 'goods_in';
         if ($material) {
             $materialName = Inventory::find($material)->name ?? 'Unknown Material';
@@ -122,7 +246,7 @@ class GoodsInController extends Controller
         }
         $fileName .= '_' . now()->format('Y-m-d') . '.xlsx';
 
-        // Ekspor data menggunakan kelas GoodsInExport
+        // Download Excel file
         return Excel::download(new GoodsInExport($goodsIns), $fileName);
     }
 
@@ -331,8 +455,8 @@ class GoodsInController extends Controller
 
     public function restore(Request $request, $id)
     {
-        // ✨ Ubah ke parameter $id
-        $goods_in = GoodsIn::onlyTrashed()->findOrFail($id); // ✨ Query manual
+        // Ubah ke parameter $id
+        $goods_in = GoodsIn::onlyTrashed()->findOrFail($id); // Query manual
 
         DB::beginTransaction();
         try {
@@ -340,16 +464,16 @@ class GoodsInController extends Controller
             $projectId = $goods_in->project_id;
             $inventoryId = $goods_in->inventory_id;
 
-            // ✨ Restore record
+            // Restore record
             $goods_in->restore();
 
-            // ✨ Kembalikan stok inventory
+            // Kembalikan stok inventory
             if ($inventory) {
                 $inventory->quantity += $goods_in->quantity;
                 $inventory->save();
             }
 
-            // ✨ Re-sync Material Usage
+            // Re-sync Material Usage
             MaterialUsageHelper::sync($inventoryId, $projectId);
 
             DB::commit();
@@ -377,7 +501,7 @@ class GoodsInController extends Controller
             $projectId = $goods_in->project_id;
             $inventoryId = $goods_in->inventory_id;
 
-            // ✨ Kembalikan stok inventory
+            // Kembalikan stok inventory
             if ($inventory) {
                 $inventory->quantity -= $goods_in->quantity;
                 $inventory->save();
@@ -386,7 +510,7 @@ class GoodsInController extends Controller
             // Hapus Goods In
             $goods_in->delete();
 
-            // ✨ Sinkronkan Material Usage (akan otomatis update)
+            // Sinkronkan Material Usage (akan otomatis update)
             MaterialUsageHelper::sync($inventoryId, $projectId);
 
             DB::commit();

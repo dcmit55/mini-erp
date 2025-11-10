@@ -113,6 +113,9 @@ class InventoryController extends Controller
         if ($request->filled('max_quantity')) {
             $query->where('quantity', '<=', $request->max_quantity);
         }
+        if ($request->filled('unitFilter')) {
+            $query->where('unit', $request->unitFilter);
+        }
 
         if ($request->filled('custom_search')) {
             $searchValue = $request->input('custom_search');
@@ -321,6 +324,9 @@ class InventoryController extends Controller
         }
         if ($request->filled('max_quantity')) {
             $query->where('quantity', '<=', $request->max_quantity);
+        }
+        if ($request->filled('unitFilter')) {
+            $query->where('unit', $request->unitFilter);
         }
         if ($request->filled('custom_search')) {
             $searchValue = $request->input('custom_search');

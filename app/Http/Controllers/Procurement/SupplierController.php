@@ -30,36 +30,141 @@ class SupplierController extends Controller
     }
 
     /**
-     * Display a listing of the suppliers.
+     * Display a listing of the suppliers with Server-side processing
      */
     public function index(Request $request)
     {
-        $query = Supplier::with('location');
+        // Jika AJAX request, return DataTables data
+        if ($request->ajax()) {
+            return $this->getDataTablesData($request);
+        }
+
+        // Untuk non-AJAX requests, return view dengan master data untuk filters
+        $locations = LocationSupplier::orderBy('name')->get();
+
+        return view('procurement.suppliers.index', compact('locations'));
+    }
+
+    // Method untuk server-side processing
+    private function getDataTablesData(Request $request)
+    {
+        $query = Supplier::with('location')->latest();
 
         // Apply filters
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('supplier_code', 'like', "%{$search}%")
-                    ->orWhere('contact_person', 'like', "%{$search}%");
+        if ($request->filled('location_filter')) {
+            $query->where('location_id', $request->location_filter);
+        }
+
+        if ($request->filled('status_filter')) {
+            $query->where('status', $request->status_filter);
+        }
+
+        // Custom search functionality - cari di multiple columns
+        if ($request->filled('custom_search')) {
+            $searchValue = $request->input('custom_search');
+            $query->where(function ($q) use ($searchValue) {
+                $q->where('name', 'LIKE', '%' . $searchValue . '%')
+                    ->orWhere('supplier_code', 'LIKE', '%' . $searchValue . '%')
+                    ->orWhere('contact_person', 'LIKE', '%' . $searchValue . '%')
+                    ->orWhere('address', 'LIKE', '%' . $searchValue . '%');
             });
         }
 
-        if ($request->filled('location_id')) {
-            $query->where('location_id', $request->location_id);
+        // Sorting
+        $columns = ['id', 'supplier_code', 'name', 'location_id', 'contact_person', 'lead_time_days', 'status', 'remark'];
+
+        if ($request->filled('order')) {
+            $orderColumnIndex = $request->input('order.0.column');
+            $orderDirection = $request->input('order.0.dir', 'asc');
+
+            if (isset($columns[$orderColumnIndex])) {
+                $query->orderBy($columns[$orderColumnIndex], $orderDirection);
+            } else {
+                $query->orderBy('created_at', 'desc');
+            }
+        } else {
+            $query->orderBy('created_at', 'desc');
         }
 
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
+        // Get total and filtered counts
+        $totalRecords = Supplier::count();
+        $filteredRecords = $query->count();
+
+        // Pagination
+        $start = $request->input('start', 0);
+        $length = $request->input('length', 15);
+        $suppliers = $query->skip($start)->take($length)->get();
+
+        // Format data for DataTables
+        $data = [];
+        foreach ($suppliers as $index => $supplier) {
+            $data[] = [
+                'DT_RowIndex' => $start + $index + 1,
+                'supplier_code' => $supplier->supplier_code ?? '-',
+                'name' => $supplier->name,
+                'location' => $supplier->location ? $supplier->location->name : '-',
+                'contact_person' => $supplier->contact_person ?? '-',
+                'lead_time_days' => $supplier->lead_time_days ? $supplier->lead_time_days . ' days' : '-',
+                'status_badge' => $this->getStatusBadge($supplier),
+                'remark' => $supplier->remark ?? '-',
+                'actions' => $this->getActionButtons($supplier),
+                'DT_RowId' => 'row-' . $supplier->id,
+            ];
         }
 
-        // Ambil semua data supplier tanpa paginate
-        $suppliers = $query->latest()->get();
+        return response()->json([
+            'draw' => intval($request->input('draw')),
+            'recordsTotal' => $totalRecords,
+            'recordsFiltered' => $filteredRecords,
+            'data' => $data,
+        ]);
+    }
 
-        $locations = LocationSupplier::orderBy('name')->get();
+    // Helper method untuk status badge
+    private function getStatusBadge($supplier)
+    {
+        $badgeClass = match ($supplier->status) {
+            'active' => 'badge bg-success',
+            'inactive' => 'badge bg-secondary',
+            'blacklisted' => 'badge bg-danger',
+            default => 'badge bg-secondary',
+        };
 
-        return view('procurement.suppliers.index', compact('suppliers', 'locations'));
+        return '<span class="' . $badgeClass . '">' . ucfirst($supplier->status) . '</span>';
+    }
+
+    // Helper method untuk action buttons
+    private function getActionButtons($supplier)
+    {
+        $buttons = '<div class="d-flex flex-nowrap gap-1">';
+
+        // Edit button - for authorized users
+        if (in_array(auth()->user()->role, ['super_admin', 'admin_procurement', 'admin_logistic', 'admin_finance', 'admin'])) {
+            $buttons .=
+                '<a href="' .
+                route('suppliers.edit', $supplier->id) .
+                '" class="btn btn-sm btn-warning" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Edit">
+                <i class="bi bi-pencil-square"></i>
+            </a>';
+        }
+
+        // Delete button - for authorized users
+        if (in_array(auth()->user()->role, ['super_admin', 'admin_procurement', 'admin_logistic', 'admin_finance', 'admin'])) {
+            $buttons .=
+                '<button type="button" class="btn btn-sm btn-danger btn-delete"
+                data-id="' .
+                $supplier->id .
+                '"
+                data-name="' .
+                $supplier->name .
+                '"
+                data-bs-toggle="tooltip" data-bs-placement="bottom" title="Delete">
+                <i class="bi bi-trash3"></i>
+            </button>';
+        }
+
+        $buttons .= '</div>';
+        return $buttons;
     }
 
     /**
