@@ -204,7 +204,7 @@ class PurchaseRequestController extends Controller
             'unit' => 'required',
             'stock_level' => 'nullable|numeric|min:0',
             'project_id' => 'nullable|exists:projects,id',
-            'remark' => 'nullable|string|max:1000',
+            'remark' => 'nullable|string',
             'img' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ]);
 
@@ -252,7 +252,7 @@ class PurchaseRequestController extends Controller
             'currency_id' => 'nullable|exists:currencies,id',
             'approval_status' => 'nullable|in:Pending,Approved,Decline',
             'delivery_date' => 'nullable|date',
-            'remark' => 'nullable|string|max:1000',
+            'remark' => 'nullable|string',
         ]);
 
         // Cek supplier ada

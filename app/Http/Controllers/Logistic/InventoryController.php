@@ -409,7 +409,7 @@ class InventoryController extends Controller
             'supplier_id' => 'nullable|exists:suppliers,id',
             'currency_id' => 'nullable|exists:currencies,id',
             'location_id' => 'nullable|exists:locations,id',
-            'remark' => 'nullable|string|max:255',
+            'remark' => 'nullable|string',
             'img' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ]);
 
@@ -473,7 +473,7 @@ class InventoryController extends Controller
             'quantity' => 'required|numeric|min:0',
             'unit' => 'required|string|max:255',
             'price' => 'nullable|numeric|min:0',
-            'remark' => 'nullable|string|max:255',
+            'remark' => 'nullable|string',
         ]);
         if ($validator->fails()) {
             if ($request->ajax()) {
@@ -547,7 +547,7 @@ class InventoryController extends Controller
             'unit_international_freight_cost' => 'nullable|numeric|min:0',
             'supplier_id' => 'nullable|exists:suppliers,id',
             'location_id' => 'nullable|exists:locations,id',
-            'remark' => 'nullable|string|max:255',
+            'remark' => 'nullable|string',
             'img' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
