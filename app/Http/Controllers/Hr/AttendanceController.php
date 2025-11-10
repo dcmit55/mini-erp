@@ -361,53 +361,19 @@ class AttendanceController extends Controller
             );
         }
     }
+
+    // Attendance List View
     public function list(Request $request)
     {
-        $department_id = $request->input('department_id');
-        $position = $request->input('position');
-        $status = $request->input('status');
-        $search = $request->input('search');
-        $date_from = $request->input('date_from');
-        $date_to = $request->input('date_to');
-        $per_page = $request->input('per_page', 25);
+        // If AJAX request, return DataTables data
+        if ($request->ajax()) {
+            return $this->getDataTablesDataList($request);
+        }
 
-        // Get all departments for filter
         $departments = Department::all();
-
-        // Get unique positions
         $positions = Employee::select('position')->distinct()->whereNotNull('position')->orderBy('position')->pluck('position');
 
-        // Query attendances with relationships
-        $attendances = Attendance::with(['employee.department', 'recordedBy'])
-            ->when($department_id, function ($query) use ($department_id) {
-                return $query->whereHas('employee', function ($q) use ($department_id) {
-                    $q->where('department_id', $department_id);
-                });
-            })
-            ->when($position, function ($query) use ($position) {
-                return $query->whereHas('employee', function ($q) use ($position) {
-                    $q->where('position', $position);
-                });
-            })
-            ->when($status, function ($query) use ($status) {
-                return $query->where('status', $status);
-            })
-            ->when($search, function ($query) use ($search) {
-                return $query->whereHas('employee', function ($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%")->orWhere('employee_no', 'like', "%{$search}%");
-                });
-            })
-            ->when($date_from, function ($query) use ($date_from) {
-                return $query->whereDate('date', '>=', $date_from);
-            })
-            ->when($date_to, function ($query) use ($date_to) {
-                return $query->whereDate('date', '<=', $date_to);
-            })
-            ->orderBy('date', 'desc')
-            ->orderBy('created_at', 'desc')
-            ->paginate($per_page);
-
-        // Calculate statistics
+        // Calculate statistics for cards
         $stats = [
             'total_records' => Attendance::count(),
             'today_present' => Attendance::whereDate('date', now())->where('status', 'present')->count(),
@@ -415,7 +381,126 @@ class AttendanceController extends Controller
             'today_late' => Attendance::whereDate('date', now())->where('status', 'late')->count(),
         ];
 
-        return view('hr.attendance.list', compact('attendances', 'departments', 'positions', 'department_id', 'position', 'status', 'search', 'date_from', 'date_to', 'per_page', 'stats'));
+        return view('hr.attendance.list', compact('departments', 'positions', 'stats'));
+    }
+
+    /**
+     * Server-side processing for attendance list
+     */
+    private function getDataTablesDataList(Request $request)
+    {
+        $query = Attendance::with(['employee.department', 'recordedBy'])->latest('date');
+
+        // Apply filters
+        if ($request->filled('department_filter')) {
+            $query->whereHas('employee', function ($q) use ($request) {
+                $q->where('department_id', $request->department_filter);
+            });
+        }
+
+        if ($request->filled('position_filter')) {
+            $query->whereHas('employee', function ($q) use ($request) {
+                $q->where('position', $request->position_filter);
+            });
+        }
+
+        if ($request->filled('status_filter')) {
+            $query->where('status', $request->status_filter);
+        }
+
+        if ($request->filled('date_from_filter')) {
+            $query->whereDate('date', '>=', $request->date_from_filter);
+        }
+
+        if ($request->filled('date_to_filter')) {
+            $query->whereDate('date', '<=', $request->date_to_filter);
+        }
+
+        // Custom search
+        if ($request->filled('custom_search')) {
+            $searchValue = $request->input('custom_search');
+            $query->where(function ($q) use ($searchValue) {
+                $q->whereHas('employee', function ($sq) use ($searchValue) {
+                    $sq->where('name', 'like', "%{$searchValue}%")->orWhere('employee_no', 'like', "%{$searchValue}%");
+                })->orWhere('notes', 'like', "%{$searchValue}%");
+            });
+        }
+
+        // Sorting
+        $columns = ['id', 'date', 'employee_id', 'status', 'recorded_time'];
+        if ($request->filled('order')) {
+            $orderColumnIndex = $request->input('order.0.column');
+            $orderDirection = $request->input('order.0.dir', 'desc');
+
+            if (isset($columns[$orderColumnIndex])) {
+                $query->orderBy($columns[$orderColumnIndex], $orderDirection);
+            }
+        } else {
+            $query->orderBy('date', 'desc')->orderBy('created_at', 'desc');
+        }
+
+        // Get total and filtered counts
+        $totalRecords = Attendance::count();
+        $filteredRecords = $query->count();
+
+        // Pagination
+        $start = $request->input('start', 0);
+        $length = $request->input('length', 25);
+        $attendances = $query->skip($start)->take($length)->get();
+
+        // Format data for DataTables
+        $data = [];
+        foreach ($attendances as $index => $attendance) {
+            $statusBadge = $this->getStatusBadge($attendance->status);
+
+            $data[] = [
+                'DT_RowIndex' => $start + $index + 1,
+                'date' => '<strong>' . $attendance->date->format('d M Y') . '</strong><br><small class="text-muted">' . $attendance->date->format('l') . '</small>',
+                'employee' => $attendance->employee ? '<div><strong>' . $attendance->employee->name . '</strong><br><small class="text-muted">' . ($attendance->employee->employee_no ?? '-') . '</small></div>' : '<span class="text-warning">Unknown Employee</span>',
+                'department' => $attendance->employee ? $attendance->employee->department->name ?? 'N/A' : 'N/A',
+                'position' => $attendance->employee ? $attendance->employee->position ?? 'N/A' : 'N/A',
+                'status' => $statusBadge,
+                'arrival_time' => $attendance->status == 'late' && $attendance->late_time ? '<span class="text-warning fw-bold"><i class="bi bi-clock"></i> ' . \Carbon\Carbon::parse($attendance->late_time)->format('H:i') . '</span>' : '<span class="text-muted">-</span>',
+                'recorded_time' => '<i class="bi bi-clock-history"></i> ' . \Carbon\Carbon::parse($attendance->recorded_time)->format('h:i A'),
+                'recorded_by' => '<small>' . ($attendance->recordedBy->name ?? 'System') . '</small>',
+                'notes' => $attendance->notes ? '<span class="text-truncate d-inline-block" style="max-width: 150px;" data-bs-toggle="tooltip" title="' . $attendance->notes . '">' . $attendance->notes . '</span>' : '<span class="text-muted">-</span>',
+                'actions' => $this->getAttendanceActionButtons($attendance),
+            ];
+        }
+
+        return response()->json([
+            'draw' => intval($request->input('draw')),
+            'recordsTotal' => $totalRecords,
+            'recordsFiltered' => $filteredRecords,
+            'data' => $data,
+        ]);
+    }
+
+    private function getStatusBadge($status)
+    {
+        $badges = [
+            'present' => '<span class="badge bg-success rounded-pill px-3 py-2 shadow-sm"><i class="bi bi-check-circle"></i> Present</span>',
+            'absent' => '<span class="badge bg-danger rounded-pill px-3 py-2 shadow-sm"><i class="bi bi-x-circle"></i> Absent</span>',
+            'late' => '<span class="badge bg-warning rounded-pill px-3 py-2 shadow-sm"><i class="bi bi-clock"></i> Late</span>',
+        ];
+
+        return $badges[$status] ?? '<span class="badge bg-secondary">Unknown</span>';
+    }
+
+    private function getAttendanceActionButtons($attendance)
+    {
+        return '<button type="button" class="btn btn-sm btn-danger btn-delete rounded-pill shadow-sm"
+        data-id="' .
+            $attendance->id .
+            '"
+        data-name="' .
+            ($attendance->employee->name ?? 'Unknown Employee') .
+            '"
+        data-date="' .
+            $attendance->date->format('Y-m-d') .
+            '">
+        <i class="bi bi-trash"></i>
+    </button>';
     }
 
     /**

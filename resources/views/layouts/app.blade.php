@@ -292,7 +292,7 @@
                                                         <i class="bi bi-person-lines-fill"></i> Employees
                                                     </a></li>
                                                 <li><a class="dropdown-item {{ request()->routeIs('attendance.list') ? 'active' : '' }}"
-                                                        href="{{ route('attendance.list') }}">
+                                                        href="{{ route('attendance.index') }}">
                                                         <i class="bi bi-person-lines-fill"></i> Attendance
                                                     </a></li>
                                                 <li><a class="dropdown-item {{ request()->routeIs('leave_requests.index') ? 'active' : '' }}"

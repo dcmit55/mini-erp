@@ -4,112 +4,132 @@
 
 @section('content')
     <div class="container-fluid py-4">
-        <!-- Header -->
-        <div class="row mb-4 align-items-center">
-            <div class="col-md-6">
-                <div class="d-flex align-items-center gap-2">
-                    <i class="bi bi-calendar-check-fill text-primary" style="font-size: 2rem;"></i>
-                    <div>
-                        <h2 class="mb-0">Daily Attendance</h2>
-                        <p class="text-muted mb-0 small">Daily employee attendance management</p>
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <!-- Header -->
+                <div class="row mb-4 align-items-center">
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-calendar-check gradient-icon me-2" style="font-size: 1.5rem;"></i>
+                            <div>
+                                <h5 class="mb-0 flex-shrink-0" style="font-size:1.3rem;">Daily Attendance</h5>
+                                <p class="text-muted mb-0 small">Daily employee attendance management</p>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
-            <div class="col-md-6 text-end">
-                <div class="d-flex justify-content-end align-items-center gap-2">
-                    <!-- Button to List -->
-                    <a href="{{ route('attendance.list') }}" class="btn btn-outline-primary px-3 py-2"
-                        style="min-width: 10px;">
-                        <i class="bi bi-list-ul"></i> Back To Attendance List
-                    </a>
-                    <!-- Current Time Card -->
-                    <div class="bg-primary text-white rounded px-3 py-2 text-center" style="min-width: 160px;">
-                        <h5 class="mb-0" id="current-time">{{ now()->format('H:i:s') }}</h5>
-                        <small>{{ now()->format('l, M d, Y') }}</small>
-                    </div>
-                </div>
-            </div>
-        </div>
+                    <div class="col-md-6 text-md-end mt-3 mt-md-0">
+                        <div class="d-flex flex-wrap justify-content-md-end gap-2">
+                            <!-- Button to List -->
+                            <a href="{{ route('attendance.list') }}" class="btn btn-outline-primary btn-sm shadow-sm">
+                                <i class="bi bi-list-ul me-1"></i> Attendance List
+                            </a>
 
-        <!-- Summary Cards -->
-        <div class="row mb-4 g-3">
-            <div class="col-6 col-md-3">
-                <div class="card border-0 shadow-sm rounded-3 h-100">
-                    <div class="card-body text-center">
-                        <h6 class="text-muted mb-2">Total Employees</h6>
-                        <h3 class="mb-0 fw-bold text-primary">{{ $summary['total'] }}</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-md-3">
-                <div class="card border-0 shadow-sm rounded-3 h-100">
-                    <div class="card-body text-center">
-                        <h6 class="text-muted mb-2">Present</h6>
-                        <h3 class="mb-0 fw-bold text-success">{{ $summary['present'] }}</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-md-3">
-                <div class="card border-0 shadow-sm rounded-3 h-100">
-                    <div class="card-body text-center">
-                        <h6 class="text-muted mb-2">Absent</h6>
-                        <h3 class="mb-0 fw-bold text-danger">{{ $summary['absent'] }}</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-md-3">
-                <div class="card border-0 shadow-sm rounded-3 h-100">
-                    <div class="card-body text-center">
-                        <h6 class="text-muted mb-2">Late</h6>
-                        <h3 class="mb-0 fw-bold text-warning">{{ $summary['late'] }}</h3>
-                    </div>
-                </div>
-            </div>
-        </div>
+                            <!-- Current Time Display -->
+                            <div class="d-flex align-items-center bg-light border rounded px-3 py-1 shadow-sm"
+                                style="min-width: 180px;">
+                                <i class="bi bi-clock text-primary me-2"></i>
+                                <div class="d-flex flex-column">
+                                    <small class="text-muted mb-0" style="font-size: 0.7rem; line-height: 1;">Current
+                                        Time</small>
+                                    <strong id="current-time"
+                                        style="font-size: 0.95rem; line-height: 1.2;">{{ now()->format('H:i:s') }}</strong>
+                                </div>
+                            </div>
 
-        <!-- ✨ SKILL GAP NOTIFICATION (compact version) -->
-        @if ($skillGapAnalysis['total_affected_employees'] > 0)
-            <div class="row mb-4">
-                <div class="col-12">
-                    <div class="alert
+                            <!-- Current Date Display -->
+                            <div class="d-flex align-items-center bg-primary text-white rounded px-3 py-1 shadow-sm"
+                                style="min-width: 180px;">
+                                <i class="bi bi-calendar3 me-2"></i>
+                                <div class="d-flex flex-column">
+                                    <small class="mb-0" style="font-size: 0.7rem; line-height: 1; opacity: 0.9;">Today's
+                                        Date</small>
+                                    <strong
+                                        style="font-size: 0.95rem; line-height: 1.2;">{{ now()->format('d M Y') }}</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="row mb-4 g-3">
+                    <div class="col-6 col-md-3">
+                        <div class="card border-0 shadow-sm rounded-3 h-100">
+                            <div class="card-body text-center">
+                                <h6 class="text-muted mb-2">Total Employees</h6>
+                                <h3 class="mb-0 fw-bold text-primary">{{ $summary['total'] }}</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="card border-0 shadow-sm rounded-3 h-100">
+                            <div class="card-body text-center">
+                                <h6 class="text-muted mb-2">Present</h6>
+                                <h3 class="mb-0 fw-bold text-success">{{ $summary['present'] }}</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="card border-0 shadow-sm rounded-3 h-100">
+                            <div class="card-body text-center">
+                                <h6 class="text-muted mb-2">Absent</h6>
+                                <h3 class="mb-0 fw-bold text-danger">{{ $summary['absent'] }}</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="card border-0 shadow-sm rounded-3 h-100">
+                            <div class="card-body text-center">
+                                <h6 class="text-muted mb-2">Late</h6>
+                                <h3 class="mb-0 fw-bold text-warning">{{ $summary['late'] }}</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ✨ SKILL GAP NOTIFICATION (compact version) -->
+                @if ($skillGapAnalysis['total_affected_employees'] > 0)
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="alert
                         {{ $skillGapAnalysis['has_critical_impact'] ? 'alert-danger' : 'alert-warning' }}
                         alert-dismissible fade show d-flex align-items-center"
-                        role="alert">
-                        <div class="me-3">
-                            <i class="bi {{ $skillGapAnalysis['has_critical_impact'] ? 'bi-exclamation-triangle-fill' : 'bi-exclamation-circle-fill' }}"
-                                style="font-size: 2rem;"></i>
-                        </div>
-                        <div class="flex-grow-1">
-                            @if ($skillGapAnalysis['has_critical_impact'])
-                                <h5 class="alert-heading mb-1">Critical Skill Gap Detected!</h5>
-                            @else
-                                <h5 class="alert-heading mb-1">Skill Gap Alert</h5>
-                            @endif
-                            <p class="mb-2">
-                                <strong>{{ $skillGapAnalysis['total_affected_employees'] }} employee(s)</strong>
-                                are absent or late today, affecting
-                                <strong>{{ count($skillGapAnalysis['missing_skills']) }} skillset(s)</strong>
-                                @if ($skillGapAnalysis['has_critical_impact'])
-                                    (including <strong
-                                        class="text-danger">{{ count($skillGapAnalysis['critical_skills']) }} critical
-                                        skills</strong>)
-                                @endif
-                            </p>
-                            <button type="button"
-                                class="btn btn-sm
+                                role="alert">
+                                <div class="me-3">
+                                    <i class="bi {{ $skillGapAnalysis['has_critical_impact'] ? 'bi-exclamation-triangle-fill' : 'bi-exclamation-circle-fill' }}"
+                                        style="font-size: 2rem;"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    @if ($skillGapAnalysis['has_critical_impact'])
+                                        <h5 class="alert-heading mb-1">Critical Skill Gap Detected!</h5>
+                                    @else
+                                        <h5 class="alert-heading mb-1">Skill Gap Alert</h5>
+                                    @endif
+                                    <p class="mb-2">
+                                        <strong>{{ $skillGapAnalysis['total_affected_employees'] }} employee(s)</strong>
+                                        are absent or late today, affecting
+                                        <strong>{{ count($skillGapAnalysis['missing_skills']) }} skillset(s)</strong>
+                                        @if ($skillGapAnalysis['has_critical_impact'])
+                                            (including <strong
+                                                class="text-danger">{{ count($skillGapAnalysis['critical_skills']) }}
+                                                critical
+                                                skills</strong>)
+                                        @endif
+                                    </p>
+                                    <button type="button"
+                                        class="btn btn-sm
                                 {{ $skillGapAnalysis['has_critical_impact'] ? 'btn-danger' : 'btn-warning' }}"
-                                data-bs-toggle="modal" data-bs-target="#skillGapModal">View Detailed Analysis
-                            </button>
+                                        data-bs-toggle="modal" data-bs-target="#skillGapModal">View Detailed Analysis
+                                    </button>
+                                </div>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                    aria-label="Close"></button>
+                            </div>
                         </div>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
-                </div>
-            </div>
-        @endif
+                @endif
 
-        <!-- Filters -->
-        <div class="card shadow-sm mb-4 rounded-3">
-            <div class="card-body">
+                <!-- Filters -->
                 <form id="filter-form" method="GET" action="{{ route('attendance.index') }}">
                     <div class="row g-3">
                         <div class="col-6 col-md-2">
@@ -454,6 +474,66 @@
 
 @push('styles')
     <style>
+        /* ✨ Current Time & Date Cards */
+        .bg-light.border {
+            background-color: #f8f9fa !important;
+            border-color: #dee2e6 !important;
+            transition: all 0.3s ease;
+        }
+
+        .bg-light.border:hover {
+            background-color: #e9ecef !important;
+            border-color: #adb5bd !important;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important;
+        }
+
+        .bg-primary.rounded {
+            background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%) !important;
+            transition: all 0.3s ease;
+        }
+
+        .bg-primary.rounded:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(13, 110, 253, 0.3) !important;
+        }
+
+        /* Button consistent styling */
+        .btn-outline-primary.btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-outline-primary.btn-sm:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(13, 110, 253, 0.2);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 767.98px) {
+            .d-flex.flex-wrap.gap-2 {
+                flex-direction: column !important;
+                align-items: stretch !important;
+            }
+
+            .bg-light.border,
+            .bg-primary.rounded,
+            .btn-outline-primary.btn-sm {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        /* Gradient icon */
+        .gradient-icon {
+            background: linear-gradient(135deg, #8F12FE 0%, #4A25AA 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Avatar circle */
         .avatar-circle {
             width: 50px;
             height: 50px;
@@ -465,6 +545,7 @@
             font-size: 18px;
         }
 
+        /* Status button */
         .status-btn {
             transition: all 0.3s;
         }
@@ -474,6 +555,7 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
         }
 
+        /* Employee card */
         .employee-card {
             transition: box-shadow 0.2s;
         }
@@ -482,6 +564,7 @@
             box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.12);
         }
 
+        /* Mobile responsive */
         @media (max-width: 767px) {
             .d-flex.flex-row.flex-wrap.gap-2 {
                 gap: 8px !important;
