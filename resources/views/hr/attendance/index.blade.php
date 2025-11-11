@@ -87,7 +87,7 @@
                     </div>
                 </div>
 
-                <!-- ✨ SKILL GAP NOTIFICATION (compact version) -->
+                <!-- SKILL GAP NOTIFICATION (compact version) -->
                 @if ($skillGapAnalysis['total_affected_employees'] > 0)
                     <div class="row mb-4">
                         <div class="col-12">
@@ -170,7 +170,7 @@
                         <div class="col-6 col-md-2">
                             <label class="form-label fw-bold">Date</label>
                             <input type="date" name="date" class="form-control rounded-pill"
-                                value="{{ $date }}" required>
+                                value="{{ $date }}" max="{{ now()->format('Y-m-d') }}" required>
                         </div>
                         <div class="col-12 col-md-3">
                             <label class="form-label fw-bold">Search</label>
@@ -233,8 +233,6 @@
                                         <input type="checkbox" class="form-check-input employee-checkbox"
                                             value="{{ $employee->id }}">
                                     </div>
-                                    <!-- Avatar -->
-
                                     <!-- Employee Info -->
                                     <div class="col-12 col-md-4 d-flex justify-content: flex-start align-items-center"
                                         style="gap: 16px;">
@@ -318,15 +316,14 @@
         </div>
     </div>
 
-    <!-- ✨ SKILL GAP MODAL -->
+    <!-- Modal Skill Gap -->
     @if ($skillGapAnalysis['total_affected_employees'] > 0)
         <div class="modal fade" id="skillGapModal" tabindex="-1" aria-labelledby="skillGapModalLabel"
             aria-hidden="true">
             <div class="modal-dialog modal-xl modal-dialog-scrollable">
                 <div class="modal-content">
                     <div
-                        class="modal-header
-                        {{ $skillGapAnalysis['has_critical_impact'] ? 'bg-danger text-white' : 'bg-warning' }}">
+                        class="modal-header {{ $skillGapAnalysis['has_critical_impact'] ? 'bg-danger text-white' : 'bg-warning' }}">
                         <h5 class="modal-title" id="skillGapModalLabel">
                             <i
                                 class="bi {{ $skillGapAnalysis['has_critical_impact'] ? 'bi-exclamation-triangle-fill' : 'bi-exclamation-circle-fill' }}"></i>
@@ -337,120 +334,20 @@
                             @endif
                         </h5>
                         <button type="button"
-                            class="btn-close
-                            {{ $skillGapAnalysis['has_critical_impact'] ? 'btn-close-white' : '' }}"
+                            class="btn-close {{ $skillGapAnalysis['has_critical_impact'] ? 'btn-close-white' : '' }}"
                             data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <!-- Summary Info -->
-                        <div
-                            class="alert
-                            {{ $skillGapAnalysis['has_critical_impact'] ? 'alert-danger' : 'alert-warning' }} mb-4">
-                            <h6 class="alert-heading">
-                                <i class="bi bi-info-circle"></i> Summary
-                            </h6>
-                            <ul class="mb-0">
-                                <li><strong>{{ $skillGapAnalysis['total_affected_employees'] }} employees</strong> are
-                                    absent or late today</li>
-                                <li><strong>{{ count($skillGapAnalysis['missing_skills']) }} skillsets</strong> are
-                                    affected</li>
-                                @if ($skillGapAnalysis['has_critical_impact'])
-                                    <li class="text-danger">
-                                        <strong>{{ count($skillGapAnalysis['critical_skills']) }} critical skills</strong>
-                                        (2+ employees with same skill unavailable)
-                                    </li>
-                                @endif
-                            </ul>
-                        </div>
-
-                        <!-- Skill Cards -->
-                        <div class="row g-3">
-                            @foreach ($skillGapAnalysis['missing_skills'] as $skill)
-                                <div class="col-md-6">
-                                    <div
-                                        class="card
-                                        {{ $skill['count'] >= 2 ? 'border-danger' : 'border-warning' }}
-                                        h-100">
-                                        <div
-                                            class="card-header
-                                            {{ $skill['count'] >= 2 ? 'bg-danger text-white' : 'bg-warning' }}">
-                                            <div class="d-flex justify-content-between align-items-start">
-                                                <h6 class="mb-0">
-                                                    <i class="bi bi-stars"></i> {{ $skill['name'] }}
-                                                    @if ($skill['count'] >= 2)
-                                                        <span class="badge bg-white text-danger ms-2">Critical</span>
-                                                    @endif
-                                                </h6>
-                                                @if ($skill['category'])
-                                                    <span
-                                                        class="badge
-                                                        {{ $skill['count'] >= 2 ? 'bg-white text-danger' : 'bg-dark' }}">
-                                                        {{ $skill['category'] }}
-                                                    </span>
-                                                @endif
-                                            </div>
-                                        </div>
-                                        <div class="card-body">
-                                            <p class="mb-3">
-                                                <i class="bi bi-people-fill"></i>
-                                                <strong>{{ $skill['count'] }} employee(s)</strong> with this skill are
-                                                unavailable
-                                            </p>
-
-                                            <h6 class="text-muted mb-2">Affected Employees:</h6>
-                                            <div class="list-group list-group-flush">
-                                                @foreach ($skill['employees'] as $emp)
-                                                    <div class="list-group-item px-0 py-2">
-                                                        <div class="d-flex justify-content-between align-items-center">
-                                                            <div>
-                                                                <strong>{{ $emp['name'] }}</strong>
-                                                                <br>
-                                                                <small class="text-muted">
-                                                                    Proficiency:
-                                                                    <span
-                                                                        class="badge
-                                                                        {{ $emp['proficiency'] === 'advanced' ? 'bg-success' : ($emp['proficiency'] === 'intermediate' ? 'bg-warning' : 'bg-light text-dark') }}">
-                                                                        {{ ucfirst($emp['proficiency']) }}
-                                                                    </span>
-                                                                </small>
-                                                            </div>
-                                                            <span
-                                                                class="badge
-                                                                {{ $emp['status'] === 'absent' ? 'bg-danger' : 'bg-warning' }}">
-                                                                {{ ucfirst($emp['status']) }}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                @endforeach
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-
-                        <!-- Action Recommendations -->
-                        @if ($skillGapAnalysis['has_critical_impact'])
-                            <div class="alert alert-danger mt-4 mb-0">
-                                <h6 class="alert-heading">
-                                    <i class="bi bi-shield-exclamation"></i> Action Required
-                                </h6>
-                                <ul class="mb-0">
-                                    <li>Consider reassigning tasks to available employees with similar skills</li>
-                                    <li>Contact backup personnel who have the required critical skills</li>
-                                    <li>Reschedule non-urgent tasks that depend on missing skills</li>
-                                    <li>Document the impact for management review</li>
-                                </ul>
-                            </div>
-                        @endif
+                        @include('hr.attendance.skill-gap-modal', [
+                            'skillGapAnalysis' => $skillGapAnalysis,
+                        ])
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                             <i class="bi bi-x-circle"></i> Close
                         </button>
                         <button type="button"
-                            class="btn
-                            {{ $skillGapAnalysis['has_critical_impact'] ? 'btn-danger' : 'btn-warning' }}"
+                            class="btn {{ $skillGapAnalysis['has_critical_impact'] ? 'btn-danger' : 'btn-warning' }}"
                             onclick="window.print();">
                             <i class="bi bi-printer"></i> Print Analysis
                         </button>
@@ -459,6 +356,45 @@
             </div>
         </div>
     @endif
+
+    <!-- Modal Input Bulk Late Time - Individual per Employee -->
+    <div class="modal fade" id="bulk-late-modal" tabindex="-1" aria-labelledby="bulkLateModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title" id="bulkLateModalLabel">
+                        <i class="bi bi-clock"></i> Mark Employees as Late - Enter Individual Times
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="bulk-late-form">
+                    <div class="modal-body">
+                        <div class="alert alert-info mb-3">
+                            <i class="bi bi-info-circle"></i>
+                            <strong><span id="bulk-late-employee-count">0</span> employee(s)</strong> will be marked as
+                            late.
+                            <br>
+                            <small>Enter the time each employee arrived for their status to be recorded.</small>
+                        </div>
+
+                        <!-- Dynamic employee late time inputs -->
+                        <div id="bulk-late-employee-inputs" class="row g-3">
+                            <!-- Will be populated by JavaScript -->
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="bi bi-x-circle"></i> Cancel
+                        </button>
+                        <button type="submit" class="btn btn-warning">
+                            <i class="bi bi-check-circle"></i> Mark All as Late
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <!-- Toast Notification -->
     <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
@@ -646,6 +582,23 @@
 
 @push('scripts')
     <script>
+        // Show Toast Notification
+        function showToast(message, type) {
+            const toast = $('#toast');
+            const toastBody = toast.find('.toast-body');
+
+            toastBody.text(message);
+
+            // Set color based on type
+            toast.find('.toast-header').removeClass('bg-success bg-danger bg-warning text-white text-dark');
+            if (type === 'success') toast.find('.toast-header').addClass('bg-success text-white');
+            if (type === 'error') toast.find('.toast-header').addClass('bg-danger text-white');
+            if (type === 'warning') toast.find('.toast-header').addClass('bg-warning text-dark');
+
+            const bsToast = new bootstrap.Toast(toast[0]);
+            bsToast.show();
+        }
+
         function openLateModal(btn) {
             $('#late-employee-id').val($(btn).data('employee-id'));
             $('#late-value').val('');
@@ -787,7 +740,7 @@
                 }
             });
 
-            // Bulk Update
+            // Bulk Update dengan Individual Late Time Input per Employee
             $('.btn[id^="btn-bulk-"]').on('click', function() {
                 const selectedIds = $('.employee-checkbox:checked').map(function() {
                     return $(this).val();
@@ -800,73 +753,167 @@
 
                 const status = $(this).attr('id').replace('btn-bulk-', '');
 
+                // Jika status late, tampilkan modal dengan individual time inputs
+                if (status === 'late') {
+                    $('#bulk-late-employee-count').text(selectedIds.length);
+                    generateBulkLateInputs(selectedIds);
+                    $('#bulk-late-modal').modal('show');
+
+                    // Store selected IDs di data attribute
+                    $('#bulk-late-modal').data('selected-ids', selectedIds);
+                    return;
+                }
+
+                // Untuk status lain (present, absent)
                 if (confirm(`Mark ${selectedIds.length} employee(s) as ${status}?`)) {
                     bulkUpdateAttendance(selectedIds, status);
                 }
             });
 
-            // Update Single Attendance
-            function updateAttendance(employeeId, status, button) {
+            // Generate individual time input untuk setiap employee
+            function generateBulkLateInputs(employeeIds) {
+                const container = $('#bulk-late-employee-inputs');
+                let html = '';
+
+                employeeIds.forEach((empId, index) => {
+                    // Get employee name dari DOM
+                    const empCard = $(`.employee-card[data-employee-id="${empId}"]`);
+                    const empName = empCard.find('.fw-bold').text() || `Employee ${empId}`;
+
+                    html += `
+                    <div class="col-md-6">
+                        <div class="card border-1 bg-light">
+                            <div class="card-body p-3">
+                                <label class="form-label small mb-2">
+                                    <strong>${empName}</strong>
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="bi bi-clock"></i>
+                                    </span>
+                                    <input type="time"
+                                        class="form-control late-time-input"
+                                        name="late_time[${empId}]"
+                                        data-employee-id="${empId}"
+                                        required>
+                                </div>
+                                <small class="text-muted d-block mt-1">
+                                    Enter arrival time (HH:MM format)
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                });
+
+                container.html(html);
+            }
+
+            // Handle Bulk Late Submit dengan individual times
+            $('#bulk-late-form').on('submit', function(e) {
+                e.preventDefault();
+
+                const selectedIds = $('#bulk-late-modal').data('selected-ids');
+                const lateTimeInputs = {};
+                let allFilled = true;
+
+                // Collect all late times
+                $('.late-time-input').each(function() {
+                    const empId = $(this).data('employee-id');
+                    const time = $(this).val();
+
+                    if (!time) {
+                        $(this).addClass('is-invalid');
+                        allFilled = false;
+                    } else {
+                        $(this).removeClass('is-invalid');
+                        lateTimeInputs[empId] = time;
+                    }
+                });
+
+                if (!allFilled) {
+                    showToast('Please enter late time for all employees', 'warning');
+                    return;
+                }
+
+                // Build confirmation message
+                const confirmMsg = buildBulkLateConfirmation(selectedIds, lateTimeInputs);
+
+                if (confirm(confirmMsg)) {
+                    bulkUpdateAttendanceWithIndividualTimes(selectedIds, lateTimeInputs);
+                    $('#bulk-late-modal').modal('hide');
+                }
+            });
+
+            // Build confirmation message dengan detail waktu
+            function buildBulkLateConfirmation(selectedIds, lateTimeInputs) {
+                let msg = `Mark ${selectedIds.length} employee(s) as late?\n\n`;
+
+                selectedIds.forEach(empId => {
+                    const empCard = $(`.employee-card[data-employee-id="${empId}"]`);
+                    const empName = empCard.find('.fw-bold').text() || `Employee ${empId}`;
+                    const time = lateTimeInputs[empId];
+
+                    msg += `• ${empName}: ${time}\n`;
+                });
+
+                return msg;
+            }
+
+            // Bulk Update dengan individual late times per employee
+            function bulkUpdateAttendanceWithIndividualTimes(employeeIds, lateTimeInputs) {
+                const currentDate = '{{ $date }}';
+
+                // Siapkan data untuk AJAX
+                const data = {
+                    _token: '{{ csrf_token() }}',
+                    date: currentDate,
+                    status: 'late',
+                    employees_with_times: [] // Array of {employee_id, late_time}
+                };
+
+                // Convert ke format yang dikirim ke server
+                employeeIds.forEach(empId => {
+                    data.employees_with_times.push({
+                        employee_id: empId,
+                        late_time: lateTimeInputs[empId]
+                    });
+                });
+
                 $.ajax({
-                    url: '{{ route('attendance.store') }}',
+                    url: '{{ route('attendance.bulk-update-individual') }}', // Route baru
                     type: 'POST',
-                    data: {
-                        _token: '{{ csrf_token() }}',
-                        employee_id: employeeId,
-                        date: currentDate,
-                        status: status
-                    },
-                    beforeSend: function() {
-                        button.prop('disabled', true);
-                    },
+                    data: JSON.stringify(data),
+                    contentType: 'application/json',
                     success: function(response) {
-                        // Temukan grup tombol status (gunakan parent .d-flex.flex-row.gap-2)
-                        const buttonGroup = button.closest('.d-flex.flex-row.gap-2');
-                        // Reset semua tombol ke outline dan non-aktif
-                        buttonGroup.find('.status-btn')
-                            .removeClass(
-                                'active btn-success btn-danger btn-warning btn-outline-success btn-outline-danger btn-outline-warning'
-                            )
-                            .each(function() {
-                                const btnStatus = $(this).data('status');
-                                $(this).addClass('btn-outline-' + (btnStatus === 'present' ?
-                                    'success' : btnStatus === 'absent' ? 'danger' :
-                                    'warning'));
-                            });
-                        // Aktifkan tombol yang dipilih
-                        button.removeClass('btn-outline-success btn-outline-danger btn-outline-warning')
-                            .addClass(
-                                status === 'present' ? 'btn-success active' :
-                                status === 'absent' ? 'btn-danger active' :
-                                status === 'late' ? 'btn-warning active' : ''
-                            );
                         showToast(response.message, 'success');
-                        // Update recorded time
-                        const recordedTimeText =
-                            `<i class="bi bi-clock-history"></i> Recorded at: ${response.data.recorded_time}`;
-                        button.closest('.row').find('.col-md-2.text-md-end').html(
-                            `<small class="text-muted">${recordedTimeText}</small>`);
+                        setTimeout(() => location.reload(), 1500);
                     },
                     error: function(xhr) {
-                        showToast('Failed to update attendance', 'error');
-                    },
-                    complete: function() {
-                        button.prop('disabled', false);
+                        const errorMsg = xhr.responseJSON?.message || 'Failed to bulk update';
+                        showToast(errorMsg, 'error');
                     }
                 });
             }
 
             // Bulk Update Attendance
-            function bulkUpdateAttendance(employeeIds, status) {
+            function bulkUpdateAttendance(employeeIds, status, lateTime = null) {
+                const data = {
+                    _token: '{{ csrf_token() }}',
+                    employee_ids: employeeIds,
+                    date: currentDate,
+                    status: status
+                };
+
+                // Tambah late_time jika ada
+                if (status === 'late' && lateTime) {
+                    data.bulk_late_time = lateTime;
+                }
+
                 $.ajax({
                     url: '{{ route('attendance.bulk-update') }}',
                     type: 'POST',
-                    data: {
-                        _token: '{{ csrf_token() }}',
-                        employee_ids: employeeIds,
-                        date: currentDate,
-                        status: status
-                    },
+                    data: data,
                     success: function(response) {
                         showToast(response.message, 'success');
                         setTimeout(() => location.reload(), 1000);
@@ -877,21 +924,252 @@
                 });
             }
 
-            // Show Toast Notification
-            function showToast(message, type) {
-                const toast = $('#toast');
-                const toastBody = toast.find('.toast-body');
+            // Update Single Attendance - PERBAIKAN
+            function updateAttendance(employeeId, status, button) {
+                // Jika status late, prompt untuk input time
+                let lateTime = null;
+                if (status === 'late') {
+                    lateTime = prompt('Enter late time (HH:MM):', '09:00');
+                    if (!lateTime) {
+                        showToast('Late time is required', 'warning');
+                        return;
+                    }
+                }
 
-                toastBody.text(message);
+                $.ajax({
+                    url: '{{ route('attendance.store') }}',
+                    type: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        employee_id: employeeId,
+                        date: currentDate,
+                        status: status,
+                        late_time: lateTime
+                    },
+                    beforeSend: function() {
+                        button.prop('disabled', true);
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            const rowCard = $('.employee-card[data-employee-id="' + employeeId + '"]');
+                            const btnGroup = rowCard.find('.d-flex.flex-row.gap-2');
 
-                // Set color based on type
-                toast.find('.toast-header').removeClass('bg-success bg-danger bg-warning text-white text-dark');
-                if (type === 'success') toast.find('.toast-header').addClass('bg-success text-white');
-                if (type === 'error') toast.find('.toast-header').addClass('bg-danger text-white');
-                if (type === 'warning') toast.find('.toast-header').addClass('bg-warning text-dark');
+                            // Reset all buttons
+                            btnGroup.find('.status-btn').removeClass(
+                                'btn-primary btn-success btn-warning btn-danger active');
+                            btnGroup.find('.status-btn').addClass('btn-outline-primary');
 
-                const bsToast = new bootstrap.Toast(toast[0]);
-                bsToast.show();
+                            // Activate corresponding button dengan class yang tepat
+                            const activeBtn = btnGroup.find('[data-status="' + status + '"]');
+                            const btnClass = status === 'present' ? 'btn-success active' :
+                                status === 'absent' ? 'btn-danger active' :
+                                'btn-warning active';
+
+                            activeBtn.removeClass('btn-outline-primary').addClass(btnClass);
+
+                            // Update recorded time
+                            if (response.data && response.data.recorded_time) {
+                                rowCard.find('.recorded-time-badge').html(
+                                    '<i class="bi bi-check-circle text-success"></i> ' + response
+                                    .data.recorded_time
+                                );
+                            }
+
+                            showToast(response.message || 'Attendance updated successfully', 'success');
+
+                            // Update UI Components
+                            updateSummaryCards();
+
+                            // Update Skill Gap dari response
+                            if (response.skillGapAnalysis) {
+                                updateSkillGapUI(response.skillGapAnalysis);
+                            }
+                        }
+                    },
+                    error: function(xhr) {
+                        const errorMsg = xhr.responseJSON?.message || 'Failed to update attendance';
+                        showToast(errorMsg, 'error');
+                    },
+                    complete: function() {
+                        button.prop('disabled', false);
+                    }
+                });
+            }
+
+            // Function untuk update Summary Cards real-time
+            function updateSummaryCards() {
+                // Hitung status dari semua employee cards di halaman
+                const totalEmployees = $('.employee-card').length;
+                const presentCount = $('.employee-card').filter(function() {
+                    return $(this).find('[data-status="present"]').hasClass('btn-success') ||
+                        $(this).find('[data-status="present"]').hasClass('active');
+                }).length;
+
+                const absentCount = $('.employee-card').filter(function() {
+                    return $(this).find('[data-status="absent"]').hasClass('btn-danger') ||
+                        $(this).find('[data-status="absent"]').hasClass('active');
+                }).length;
+
+                const lateCount = $('.employee-card').filter(function() {
+                    return $(this).find('[data-status="late"]').hasClass('btn-warning') ||
+                        $(this).find('[data-status="late"]').hasClass('active');
+                }).length;
+
+                console.log('Summary Update:', {
+                    totalEmployees,
+                    presentCount,
+                    absentCount,
+                    lateCount
+                });
+
+                // Update summary cards dengan animasi
+                updateCardValue('primary', totalEmployees); // Total
+                updateCardValue('success', presentCount); // Present
+                updateCardValue('danger', absentCount); // Absent
+                updateCardValue('warning', lateCount); // Late
+            }
+
+            // Helper function untuk update card value dengan animasi
+            function updateCardValue(colorClass, newValue) {
+                const selector = `h3.text-${colorClass}`;
+                const cardText = document.querySelector(selector);
+
+                if (cardText) {
+                    const oldValue = parseInt(cardText.textContent.trim());
+
+                    if (oldValue !== newValue) {
+                        // Animasi: fade out, update, fade in
+                        const card = cardText.closest('.card');
+                        if (card) {
+                            $(card).fadeOut(100, function() {
+                                cardText.textContent = newValue;
+                                $(card).fadeIn(100);
+                            });
+                        } else {
+                            cardText.textContent = newValue;
+                        }
+                    }
+                } else {
+                    console.warn(`Card selector "${selector}" not found`);
+                }
+            }
+
+            // Function untuk update Skill Gap Notification real-time
+            function updateSkillGapNotification() {
+                const currentDate = '{{ $date }}';
+
+                $.ajax({
+                    url: '{{ route('attendance.index') }}',
+                    type: 'GET',
+                    data: {
+                        date: currentDate,
+                        ajax_skill_gap: true // Flag untuk return hanya skill gap
+                    },
+                    success: function(response) {
+                        if (response.skillGapAnalysis) {
+                            updateSkillGapUI(response.skillGapAnalysis);
+                        }
+                    },
+                    error: function() {
+                        // Silent fail - skill gap tidak ter-update tapi attendance sudah terubah
+                    }
+                });
+            }
+
+            // Function untuk update Skill Gap UI dengan selector yang lebih akurat
+            function updateSkillGapUI(skillGapAnalysis) {
+                // Cari alert container dengan lebih spesifik
+                const alertContainer = $('.alert').filter(function() {
+                    return $(this).find('.alert-heading').text().includes('Skill Gap') ||
+                        $(this).find('.alert-heading').text().includes('Critical Skill Gap');
+                });
+
+                if (skillGapAnalysis.total_affected_employees > 0) {
+                    // Jika alert tidak ada (baru ada skill gap), reload page
+                    if (alertContainer.length === 0) {
+                        console.log('Skill Gap alert not found, reloading page...');
+                        setTimeout(() => location.reload(), 1000);
+                        return;
+                    }
+
+                    // Update alert dengan animasi fade
+                    alertContainer.fadeOut(150, function() {
+                        // Update counts
+                        const strongElements = $(this).find('strong');
+
+                        // Update employee count (first strong)
+                        if (strongElements.length > 0) {
+                            $(strongElements[0]).text(skillGapAnalysis.total_affected_employees);
+                        }
+
+                        // Update skillset count (second strong)
+                        if (strongElements.length > 1) {
+                            $(strongElements[1]).text(Object.keys(skillGapAnalysis.missing_skills).length);
+                        }
+
+                        // Update header text
+                        const header = $(this).find('h5.alert-heading');
+                        if (skillGapAnalysis.has_critical_impact) {
+                            header.html(
+                                '<i class="bi bi-exclamation-triangle-fill"></i> Critical Skill Gap Detected!'
+                            );
+                        } else {
+                            header.html('<i class="bi bi-info-circle"></i> Skill Gap Alert');
+                        }
+
+                        // Update alert color
+                        $(this).removeClass('alert-warning alert-danger');
+                        $(this).addClass(skillGapAnalysis.has_critical_impact ? 'alert-danger' :
+                            'alert-warning');
+
+                        // Update modal content jika modal sudah dibuka
+                        if ($('#skillGapModal').length > 0 && $('#skillGapModal').hasClass('show')) {
+                            refreshSkillGapModal(skillGapAnalysis);
+                        }
+
+                        $(this).fadeIn(150);
+                    });
+                } else {
+                    // Hide alert jika tidak ada skill gap lagi
+                    if (alertContainer.length > 0) {
+                        alertContainer.fadeOut(200, function() {
+                            $(this).remove();
+                        });
+                    }
+                }
+            }
+
+            // Function untuk refresh modal content
+            function refreshSkillGapModal(skillGapAnalysis) {
+                const modalBody = $('#skillGapModal .modal-body');
+                const modalHeader = $('#skillGapModal .modal-header');
+
+                // Update modal header color
+                modalHeader.removeClass('bg-warning bg-danger');
+                if (skillGapAnalysis.has_critical_impact) {
+                    modalHeader.addClass('bg-danger text-white');
+                } else {
+                    modalHeader.addClass('bg-warning');
+                }
+
+                // Fetch updated modal content
+                $.get('{{ route('attendance.index') }}', {
+                    date: '{{ $date }}',
+                    ajax_skill_gap_modal: true
+                }, function(html) {
+                    // Extract modal body content dari response
+                    const tempDiv = $('<div>').html(html);
+                    const newContent = tempDiv.find('.alert, .row.g-3').first().parent().html();
+
+                    if (newContent) {
+                        modalBody.fadeOut(150, function() {
+                            $(this).html(html);
+                            $(this).fadeIn(150);
+                        });
+                    }
+                }).fail(function(err) {
+                    console.error('Failed to refresh skill gap modal:', err);
+                });
             }
 
             // Auto-submit filter on change
@@ -899,8 +1177,6 @@
                 .on('change', function() {
                     $('#filter-form').submit();
                 });
-
-
         });
     </script>
 @endpush

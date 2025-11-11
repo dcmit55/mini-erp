@@ -15,7 +15,7 @@ class Attendance extends Model
 
     protected $casts = [
         'date' => 'date',
-        'recorded_time' => 'datetime:H:i:s',
+        'recorded_time' => 'datetime', // Biarkan Laravel handle otomatis
     ];
 
     // Relationship ke Employee

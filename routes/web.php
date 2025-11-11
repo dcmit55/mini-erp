@@ -279,6 +279,7 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/', [AttendanceController::class, 'index'])->name('index');
             Route::post('/store', [AttendanceController::class, 'store'])->name('store');
             Route::post('/bulk-update', [AttendanceController::class, 'bulkUpdate'])->name('bulk-update');
+            Route::post('/bulk-update-individual', [AttendanceController::class, 'bulkUpdateIndividual'])->name('bulk-update-individual');
             Route::post('/initialize', [AttendanceController::class, 'initializeDefault'])->name('initialize');
 
             // Attendance List/History

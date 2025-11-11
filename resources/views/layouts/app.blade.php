@@ -281,24 +281,39 @@
                                 @auth
                                     @if (in_array(auth()->user()->role, ['super_admin', 'admin_hr', 'admin']))
                                         <li class="nav-item dropdown">
-                                            <a class="nav-link dropdown-toggle {{ request()->is('employees*') || request()->routeIs('leave_requests.index') ? 'active' : '' }}"
+                                            <a class="nav-link dropdown-toggle {{ request()->is('employees*') || request()->routeIs('leave_requests.index') || request()->is('attendance*') ? 'active' : '' }}"
                                                 href="#" id="hrDropdown" role="button" data-bs-toggle="dropdown"
                                                 aria-expanded="false">
                                                 <i class="fas fa-users"></i> HR
                                             </a>
                                             <ul class="dropdown-menu" aria-labelledby="hrDropdown">
-                                                <li><a class="dropdown-item {{ request()->is('employees*') ? 'active' : '' }}"
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('employees*') ? 'active' : '' }}"
                                                         href="{{ route('employees.index') }}">
                                                         <i class="bi bi-person-lines-fill"></i> Employees
-                                                    </a></li>
-                                                <li><a class="dropdown-item {{ request()->routeIs('attendance.list') ? 'active' : '' }}"
-                                                        href="{{ route('attendance.index') }}">
-                                                        <i class="bi bi-person-lines-fill"></i> Attendance
-                                                    </a></li>
-                                                <li><a class="dropdown-item {{ request()->routeIs('leave_requests.index') ? 'active' : '' }}"
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->routeIs('leave_requests.index') ? 'active' : '' }}"
                                                         href="{{ route('leave_requests.index') }}">
-                                                        <i class="bi bi-calendar-plus"></i> Leave Requests
-                                                    </a></li>
+                                                        <i class="bi bi-calendar-check"></i> Leave Requests
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <hr class="dropdown-divider">
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('attendance*') ? 'active' : '' }}"
+                                                        href="{{ route('attendance.index') }}">
+                                                        <i class="bi bi-calendar2-check"></i> Daily Attendance
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('attendance/list*') ? 'active' : '' }}"
+                                                        href="{{ route('attendance.list') }}">
+                                                        <i class="bi bi-list-ul"></i> Attendance History
+                                                    </a>
+                                                </li>
                                             </ul>
                                         </li>
                                     @endif

@@ -21,6 +21,49 @@ class AttendanceController extends Controller
         $status = $request->input('status');
         $search = $request->input('search');
 
+        // Handle AJAX request untuk skill gap recalculation
+        if ($request->input('ajax_skill_gap')) {
+            $employees = Employee::with(['department', 'skillsets'])
+                ->where('status', 'active')
+                ->orderBy('name')
+                ->get();
+
+            $attendances = Attendance::whereDate('date', $date)->get()->keyBy('employee_id');
+
+            $employees = $employees->map(function ($employee) use ($attendances) {
+                $attendance = $attendances->get($employee->id);
+                $employee->attendance = $attendance;
+                $employee->attendance_status = $attendance ? $attendance->status : 'present';
+                return $employee;
+            });
+
+            $skillGapAnalysis = $this->calculateSkillGap($date, $employees);
+
+            return response()->json([
+                'skillGapAnalysis' => $skillGapAnalysis,
+            ]);
+        }
+
+        // Handle AJAX request untuk modal content
+        if ($request->input('ajax_skill_gap_modal')) {
+            $employees = Employee::with(['department', 'skillsets'])
+                ->where('status', 'active')
+                ->orderBy('name')
+                ->get();
+            $attendances = Attendance::whereDate('date', $date)->get()->keyBy('employee_id');
+
+            $employees = $employees->map(function ($employee) use ($attendances) {
+                $attendance = $attendances->get($employee->id);
+                $employee->attendance = $attendance;
+                $employee->attendance_status = $attendance ? $attendance->status : 'present';
+                return $employee;
+            });
+
+            $skillGapAnalysis = $this->calculateSkillGap($date, $employees);
+
+            return view('hr.attendance.skill-gap-modal', compact('skillGapAnalysis'));
+        }
+
         // Set default Present jika belum ada data untuk tanggal ini
         $this->autoInitializeAttendance($date);
 
@@ -32,6 +75,7 @@ class AttendanceController extends Controller
 
         // Query employees with filters
         $employees = Employee::with(['department', 'skillsets'])
+            ->where('status', 'active')
             ->when($department_id, function ($query) use ($department_id) {
                 return $query->where('department_id', $department_id);
             })
@@ -82,6 +126,11 @@ class AttendanceController extends Controller
      */
     private function calculateSkillGap($date, $employees)
     {
+        // Filter hanya active employees
+        $employees = $employees->filter(function ($employee) {
+            return $employee->status === 'active';
+        });
+
         // Get absent and late employees
         $absentOrLate = $employees->filter(function ($employee) {
             return in_array($employee->attendance_status, ['absent', 'late']);
@@ -106,7 +155,6 @@ class AttendanceController extends Controller
 
                 if (!isset($missingSkills[$skillName])) {
                     $missingSkills[$skillName] = [
-                        'skillset_id' => $skillset->id,
                         'name' => $skillName,
                         'category' => $skillset->category,
                         'employees' => [],
@@ -116,7 +164,6 @@ class AttendanceController extends Controller
                 }
 
                 $missingSkills[$skillName]['employees'][] = [
-                    'id' => $employee->id,
                     'name' => $employee->name,
                     'status' => $employee->attendance_status,
                     'proficiency' => $proficiency,
@@ -199,12 +246,37 @@ class AttendanceController extends Controller
      */
     public function store(Request $request)
     {
+        // Validate employee is active
+        $employee = Employee::findOrFail($request->employee_id);
+
+        if ($employee->status !== 'active') {
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => "Cannot record attendance for {$employee->name}. Employee status is {$employee->status}.",
+                ],
+                422,
+            );
+        }
+
         $request->validate([
             'employee_id' => 'required|exists:employees,id',
-            'date' => 'required|date',
+            'date' => [
+                'required',
+                'date',
+                'date_format:Y-m-d',
+                function ($attribute, $value, $fail) {
+                    $inputDate = Carbon::parse($value)->startOfDay();
+                    $today = now()->startOfDay();
+
+                    if ($inputDate->isAfter($today)) {
+                        $fail('Attendance date cannot be in the future.');
+                    }
+                },
+            ],
             'status' => 'required|in:present,absent,late',
             'notes' => 'nullable|string|max:500',
-            'late_time' => 'nullable|date_format:H:i',
+            'late_time' => 'required_if:status,late|nullable|date_format:H:i',
         ]);
 
         try {
@@ -215,11 +287,19 @@ class AttendanceController extends Controller
                 'notes' => $request->notes,
             ];
 
-            // If status is late and has late_time, save it
-            if ($request->status === 'late' && $request->late_time) {
-                $data['late_time'] = $request->late_time;
+            if ($request->status === 'late' && $request->filled('late_time')) {
+                try {
+                    $data['late_time'] = Carbon::createFromFormat('H:i', $request->late_time)->format('H:i:s');
+                } catch (\Exception $e) {
+                    return response()->json(
+                        [
+                            'success' => false,
+                            'message' => 'Invalid late time format',
+                        ],
+                        422,
+                    );
+                }
             } else {
-                // Clear late_time if status is not late
                 $data['late_time'] = null;
             }
 
@@ -231,7 +311,21 @@ class AttendanceController extends Controller
                 $data,
             );
 
-            $employee = Employee::find($request->employee_id);
+            // Only load active employees for skill gap
+            $employees = Employee::with(['department', 'skillsets'])
+                ->where('status', 'active')
+                ->orderBy('name')
+                ->get();
+            $attendances = Attendance::whereDate('date', $request->date)->get()->keyBy('employee_id');
+
+            $employees = $employees->map(function ($emp) use ($attendances) {
+                $att = $attendances->get($emp->id);
+                $emp->attendance = $att;
+                $emp->attendance_status = $att ? $att->status : 'present';
+                return $emp;
+            });
+
+            $skillGapAnalysis = $this->calculateSkillGap($request->date, $employees);
 
             return response()->json([
                 'success' => true,
@@ -241,6 +335,7 @@ class AttendanceController extends Controller
                     'recorded_time' => Carbon::parse($attendance->recorded_time)->format('h:i A'),
                     'late_time' => $attendance->late_time ? Carbon::parse($attendance->late_time)->format('H:i') : null,
                 ],
+                'skillGapAnalysis' => $skillGapAnalysis,
             ]);
         } catch (\Exception $e) {
             return response()->json(
@@ -263,7 +358,21 @@ class AttendanceController extends Controller
             'employee_ids' => 'required|array',
             'employee_ids.*' => 'exists:employees,id',
             'status' => 'required|in:present,absent,late',
+            'bulk_late_time' => 'required_if:status,late|nullable|date_format:H:i',
         ]);
+
+        // ✨ PERBAIKAN: Check if all employees are active
+        $inactiveEmployees = Employee::whereIn('id', $request->employee_ids)->where('status', '!=', 'active')->pluck('name')->toArray();
+
+        if (!empty($inactiveEmployees)) {
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Cannot update attendance for inactive/terminated employees: ' . implode(', ', $inactiveEmployees),
+                ],
+                422,
+            );
+        }
 
         try {
             DB::beginTransaction();
@@ -271,17 +380,42 @@ class AttendanceController extends Controller
             $recordedTime = now()->format('H:i:s');
             $recordedBy = auth()->id();
 
+            // Parse late_time jika status adalah late
+            $lateTime = null;
+            if ($request->status === 'late' && $request->filled('bulk_late_time')) {
+                try {
+                    $lateTime = Carbon::createFromFormat('H:i', $request->bulk_late_time)->format('H:i:s');
+                } catch (\Exception $e) {
+                    DB::rollBack();
+                    return response()->json(
+                        [
+                            'success' => false,
+                            'message' => 'Invalid late time format',
+                        ],
+                        422,
+                    );
+                }
+            }
+
             foreach ($request->employee_ids as $employeeId) {
+                $data = [
+                    'status' => $request->status,
+                    'recorded_time' => $recordedTime,
+                    'recorded_by' => $recordedBy,
+                ];
+
+                if ($request->status === 'late') {
+                    $data['late_time'] = $lateTime;
+                } else {
+                    $data['late_time'] = null;
+                }
+
                 Attendance::updateOrCreate(
                     [
                         'employee_id' => $employeeId,
                         'date' => $request->date,
                     ],
-                    [
-                        'status' => $request->status,
-                        'recorded_time' => $recordedTime,
-                        'recorded_by' => $recordedBy,
-                    ],
+                    $data,
                 );
             }
 
@@ -290,10 +424,98 @@ class AttendanceController extends Controller
             $count = count($request->employee_ids);
             return response()->json([
                 'success' => true,
-                'message' => "{$count} employees marked as {$request->status}",
+                'message' => "{$count} employees marked as {$request->status}" . ($request->status === 'late' && $lateTime ? " at {$request->bulk_late_time}" : ''),
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Failed to bulk update: ' . $e->getMessage(),
+                ],
+                500,
+            );
+        }
+    }
+
+    /**
+     * Bulk update attendances dengan individual late times
+     */
+    public function bulkUpdateIndividual(Request $request)
+    {
+        $request->validate([
+            'date' => 'required|date',
+            'status' => 'required|in:late', // Hanya untuk late status
+            'employees_with_times' => 'required|array|min:1',
+            'employees_with_times.*.employee_id' => 'required|exists:employees,id',
+            'employees_with_times.*.late_time' => 'required|date_format:H:i',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $recordedTime = now()->format('H:i:s');
+            $recordedBy = auth()->id();
+            $successCount = 0;
+            $errors = [];
+
+            foreach ($request->employees_with_times as $item) {
+                try {
+                    $employeeId = $item['employee_id'];
+
+                    // Parse late_time dengan format H:i
+                    $lateTime = Carbon::createFromFormat('H:i', $item['late_time'])->format('H:i:s');
+
+                    Attendance::updateOrCreate(
+                        [
+                            'employee_id' => $employeeId,
+                            'date' => $request->date,
+                        ],
+                        [
+                            'status' => 'late',
+                            'late_time' => $lateTime,
+                            'recorded_time' => $recordedTime,
+                            'recorded_by' => $recordedBy,
+                        ],
+                    );
+
+                    $successCount++;
+                } catch (\Exception $e) {
+                    $employee = Employee::find($item['employee_id']);
+                    $errors[] = ($employee->name ?? 'Employee ' . $item['employee_id']) . ': ' . $e->getMessage();
+                }
+            }
+
+            DB::commit();
+
+            if ($successCount > 0) {
+                $message = "{$successCount} employee(s) marked as late with individual times";
+
+                if (!empty($errors)) {
+                    \Log::warning('Bulk late update partial errors', $errors);
+                    $message .= ' (' . count($errors) . ' failed)';
+                }
+
+                return response()->json([
+                    'success' => true,
+                    'message' => $message,
+                    'success_count' => $successCount,
+                    'error_count' => count($errors),
+                ]);
+            } else {
+                DB::rollBack();
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => 'Failed to update any attendance records',
+                    ],
+                    422,
+                );
+            }
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Bulk late update error: ' . $e->getMessage());
+
             return response()->json(
                 [
                     'success' => false,

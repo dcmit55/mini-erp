@@ -106,11 +106,13 @@
                         </div>
                         <div class="col-md-1 mt-0">
                             <label for="date_from_filter" class="form-label small text-muted mb-1">From Date</label>
-                            <input type="date" id="date_from_filter" class="form-control form-control-sm">
+                            <input type="date" id="date_from_filter" class="form-control form-control-sm"
+                                max="{{ now()->format('Y-m-d') }}">
                         </div>
                         <div class="col-md-1 mt-0">
                             <label for="date_to_filter" class="form-label small text-muted mb-1">To Date</label>
-                            <input type="date" id="date_to_filter" class="form-control form-control-sm">
+                            <input type="date" id="date_to_filter" class="form-control form-control-sm"
+                                max="{{ now()->format('Y-m-d') }}">
                         </div>
                         <div class="col-md-3 mt-0">
                             <label for="custom-search" class="form-label small text-muted mb-1">Search</label>
