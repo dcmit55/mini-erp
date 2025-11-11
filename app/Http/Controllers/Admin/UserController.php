@@ -9,6 +9,7 @@ use App\Models\Admin\Department;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\DB;
 
 class UserController extends Controller
 {
@@ -103,11 +104,12 @@ class UserController extends Controller
 
         $user->save();
 
-        // Jika password diubah, invalidate user sessions
+        // Jika password diubah, hapus semua session user
         if ($passwordChanged) {
-            $user->invalidateSessions();
+            // Force logout via database - hapus semua sessions
+            $this->forceLogoutUser($user->id);
 
-            // Jika user yang login adalah user yang diubah passwordnya, logout
+            // Jika user yang login adalah user yang diubah passwordnya, logout juga
             if (Auth::id() === $user->id) {
                 Auth::logout();
                 Session::flush();
@@ -119,7 +121,7 @@ class UserController extends Controller
 
             return redirect()
                 ->route('users.index')
-                ->with('success', 'User with username ' . $oldUsername . ' updated successfully. Their session has been invalidated.');
+                ->with('success', 'Password with username ' . $oldUsername . ' updated successfully. They have been logged out from all devices.');
         }
 
         return redirect()
@@ -134,13 +136,40 @@ class UserController extends Controller
             return redirect()->route('users.index')->with('error', 'You cannot delete your own account.');
         }
 
-        // Invalidate sessions saat user dihapus
-        $user->invalidateSessions();
+        // Force logout via database saat user dihapus
+        $this->forceLogoutUser($user->id);
+
         $username = $user->username;
         $user->delete();
 
         return redirect()
             ->route('users.index')
-            ->with('success', 'User with username ' . $username . ' deleted successfully.');
+            ->with('success', 'User with username ' . $username . ' deleted successfully. They have been logged out from all devices.');
+    }
+
+    /**
+     * Force logout user dari semua device/browser
+     * dengan menghapus semua session mereka dari database
+     */
+    private function forceLogoutUser($userId)
+    {
+        try {
+            // Hapus semua sessions untuk user ini dari database
+            DB::table('sessions')->where('user_id', $userId)->delete();
+
+            // Hapus semua tokens Sanctum
+            DB::table('personal_access_tokens')->where('tokenable_id', $userId)->where('tokenable_type', 'App\\Models\\Admin\\User')->delete();
+
+            // Clear cache
+            Cache::forget("user_password_hash_{$userId}");
+
+            $user = User::find($userId);
+            if ($user) {
+                \Log::info("Force logout executed for user: {$user->username} (ID: {$userId})");
+            }
+        } catch (\Exception $e) {
+            \Log::error("Error forcing logout for user {$userId}: " . $e->getMessage());
+            throw $e;
+        }
     }
 }

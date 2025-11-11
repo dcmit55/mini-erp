@@ -40,50 +40,6 @@ class User extends Authenticatable implements AuditableContract
         Cache::put($this->getPasswordCacheKey(), $this->password, now()->addDays(30));
     }
 
-    /**
-     * Check if password was changed
-     * More robust checking
-     */
-    public function isPasswordChanged()
-    {
-        try {
-            $cachedHash = Cache::get($this->getPasswordCacheKey());
-
-            // Jika tidak ada cache, berarti user baru, tidak perlu logout
-            if (!$cachedHash) {
-                return false;
-            }
-
-            // Jika cache ada tapi berbeda dengan password di DB, password sudah berubah
-            return $cachedHash !== $this->password;
-        } catch (\Exception $e) {
-            \Log::error("Error checking password change for user {$this->id}: " . $e->getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * Invalidate user sessions (force logout)
-     * Handle multiple logout methods
-     */
-    public function invalidateSessions()
-    {
-        try {
-            // 1. Clear cache untuk force logout
-            Cache::forget($this->getPasswordCacheKey());
-
-            // 2. Hapus semua token Sanctum
-            $this->tokens()->delete();
-
-            // 3. Clear session data jika ada
-            Session()->forget("user_{$this->id}_password_hash");
-
-            \Log::info("Sessions invalidated for user {$this->username}");
-        } catch (\Exception $e) {
-            \Log::error("Error invalidating sessions for user {$this->id}: " . $e->getMessage());
-        }
-    }
-
     public function isRole($role)
     {
         return $this->role === $role;
