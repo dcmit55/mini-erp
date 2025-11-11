@@ -274,7 +274,7 @@ class LeaveRequestController extends Controller
      */
     public function create()
     {
-        $employees = Employee::with('department')->orderBy('name')->get();
+        $employees = Employee::with('department')->where('status', 'active')->orderBy('name')->get();
         $leaveTypes = LeaveRequest::getTypeEnumOptions();
         $leaveTypeLabels = LeaveRequest::getTypeLabels();
 
@@ -286,6 +286,15 @@ class LeaveRequestController extends Controller
      */
     public function store(Request $request)
     {
+        // Validate employee is active
+        $employee = Employee::findOrFail($request->employee_id);
+
+        if ($employee->status !== 'active') {
+            return back()
+                ->withInput()
+                ->withErrors(['employee_id' => "Cannot create leave request for {$employee->name}. Employee status is {$employee->status}."]);
+        }
+
         $request->validate([
             'employee_id' => 'required|exists:employees,id',
             'start_date' => 'required|date',
@@ -299,8 +308,6 @@ class LeaveRequestController extends Controller
         try {
             // Check leave balance for Annual Leave
             if (strtoupper($request->type) === 'ANNUAL') {
-                $employee = Employee::findOrFail($request->employee_id);
-
                 if (bccomp($employee->saldo_cuti, $request->duration, 2) < 0) {
                     DB::rollBack();
                     return back()
@@ -341,7 +348,10 @@ class LeaveRequestController extends Controller
         }
 
         $leave = LeaveRequest::findOrFail($id);
-        $employees = Employee::with('department')->orderBy('name')->get();
+
+        // Filter hanya active employees
+        $employees = Employee::with('department')->where('status', 'active')->orderBy('name')->get();
+
         $leaveTypes = LeaveRequest::getTypeEnumOptions();
         $leaveTypeLabels = LeaveRequest::getTypeLabels();
 
@@ -359,6 +369,15 @@ class LeaveRequestController extends Controller
 
         if (Auth::user()->isReadOnlyAdmin()) {
             abort(403, 'You do not have permission to update leave requests.');
+        }
+
+        // Validate employee is active
+        $employee = Employee::findOrFail($request->employee_id);
+
+        if ($employee->status !== 'active') {
+            return back()
+                ->withInput()
+                ->withErrors(['employee_id' => "Cannot update leave request for {$employee->name}. Employee status is {$employee->status}."]);
         }
 
         $request->validate([

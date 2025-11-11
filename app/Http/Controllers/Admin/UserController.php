@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use App\Models\Admin\User;
 use App\Models\Admin\Department;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Session;
 
 class UserController extends Controller
 {
@@ -50,12 +52,15 @@ class UserController extends Controller
             ],
         );
 
-        User::create([
+        $user = User::create([
             'username' => $validated['username'],
             'password' => bcrypt($validated['password']),
             'role' => $validated['role'],
             'department_id' => $validated['department_id'],
         ]);
+
+        // Cache password hash untuk tracking perubahan
+        $user->cachePasswordHash();
 
         return redirect()
             ->route('users.index')
@@ -83,6 +88,9 @@ class UserController extends Controller
         ]);
 
         $user = User::findOrFail($id);
+        $oldUsername = $user->username;
+        $passwordChanged = false;
+
         $user->username = $request->username;
         $user->role = $request->role;
         $user->department_id = $request->department_id;
@@ -90,9 +98,29 @@ class UserController extends Controller
         // Update password hanya jika diisi
         if ($request->filled('password')) {
             $user->password = bcrypt($request->password);
+            $passwordChanged = true;
         }
 
         $user->save();
+
+        // Jika password diubah, invalidate user sessions
+        if ($passwordChanged) {
+            $user->invalidateSessions();
+
+            // Jika user yang login adalah user yang diubah passwordnya, logout
+            if (Auth::id() === $user->id) {
+                Auth::logout();
+                Session::flush();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                return redirect()->route('login')->with('success', 'Your password has been updated. Please login again with your new password.');
+            }
+
+            return redirect()
+                ->route('users.index')
+                ->with('success', 'User with username ' . $oldUsername . ' updated successfully. Their session has been invalidated.');
+        }
 
         return redirect()
             ->route('users.index')
@@ -106,10 +134,13 @@ class UserController extends Controller
             return redirect()->route('users.index')->with('error', 'You cannot delete your own account.');
         }
 
+        // Invalidate sessions saat user dihapus
+        $user->invalidateSessions();
+        $username = $user->username;
         $user->delete();
 
         return redirect()
             ->route('users.index')
-            ->with('success', 'User with username ' . $user->username . ' deleted successfully.');
+            ->with('success', 'User with username ' . $username . ' deleted successfully.');
     }
 }
