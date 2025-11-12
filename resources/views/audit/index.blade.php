@@ -28,7 +28,7 @@
                 </div>
             </div>
             <div class="card-body">
-                <!-- ✨ BARU: Filter Form - sesuai Employee -->
+                <!-- Filter Form - sesuai Employee -->
                 <div class="mb-3">
                     <form id="filter-form" class="row g-1">
                         <div class="col-md-2">
@@ -321,15 +321,15 @@
 @push('scripts')
     <script>
         $(document).ready(function() {
-            // ✨ Initialize DataTable dengan server-side processing - sesuai Employee
+            // Initialize DataTable dengan server-side processing - sesuai Employee
             const table = $('#auditTable').DataTable({
                 processing: false,
                 serverSide: true,
-                searching: false, // ✨ Disable default search, gunakan custom
+                searching: false, // Disable default search, gunakan custom
                 ajax: {
                     url: "{{ route('audit.index') }}",
                     data: function(d) {
-                        // ✨ Add filter parameters
+                        // Add filter parameters
                         d.event = $('#eventFilter').val();
                         d.auditable_type = $('#modelFilter').val();
                         d.date_from = $('#dateFrom').val();
@@ -404,7 +404,7 @@
                 }
             });
 
-            // ✨ Filter functionality - sesuai Employee
+            // Filter functionality
             $('#eventFilter, #modelFilter').on('change', function() {
                 table.ajax.reload();
             });
@@ -417,7 +417,7 @@
                 table.ajax.reload();
             }, 500));
 
-            // ✨ Reset filters - sesuai Employee
+            // Reset filters
             $('#reset-filters').on('click', function() {
                 $('#eventFilter, #modelFilter').val('').trigger('change');
                 $('#dateFrom, #dateTo').val('');
@@ -425,7 +425,7 @@
                 table.ajax.reload();
             });
 
-            // ✨ Debounce function
+            // Debounce function
             function debounce(func, wait) {
                 let timeout;
                 return function() {

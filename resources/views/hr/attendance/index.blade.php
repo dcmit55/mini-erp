@@ -410,7 +410,7 @@
 
 @push('styles')
     <style>
-        /* ✨ Current Time & Date Cards */
+        /* Current Time & Date Cards */
         .bg-light.border {
             background-color: #f8f9fa !important;
             border-color: #dee2e6 !important;

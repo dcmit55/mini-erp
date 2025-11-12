@@ -60,6 +60,12 @@
             padding-bottom: 0.5rem;
         }
 
+        .datatables-left {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
         .dataTables_paginate {
             display: flex;
             justify-content: flex-end;
@@ -72,6 +78,14 @@
             font-size: 0.875rem;
         }
 
+        #filter-form {
+            background: #f8f9fa;
+            padding: .75rem;
+            border-radius: 0.5rem;
+            border: 1px solid #dee2e6;
+        }
+
+        /* Responsive adjustments */
         @media (max-width: 767.98px) {
             .datatables-footer-row {
                 flex-direction: column !important;
@@ -90,6 +104,18 @@
             .dataTables_paginate {
                 justify-content: center !important;
             }
+        }
+
+        /* Tooltips */
+        .tooltip {
+            z-index: 9999 !important;
+        }
+
+        .tooltip-inner {
+            max-width: 200px;
+            padding: 0.3rem 0.6rem;
+            font-size: 0.775rem;
+            line-height: 1.2;
         }
     </style>
 @endpush
@@ -136,61 +162,54 @@
 
                 <!-- Filters -->
                 <div class="mb-3">
-                    <form id="filter-form" class="row g-2">
-                        <div class="col-lg-2">
-                            <select name="type_filter" id="type_filter" class="form-select">
+                    <form id="filter-form" class="row g-1">
+                        <div class="col-md-2">
+                            <select id="type_filter" class="form-select form-select-sm select2">
                                 <option value="">All Types</option>
                                 <option value="new_material">New Material</option>
                                 <option value="restock">Restock</option>
                             </select>
                         </div>
-                        <div class="col-lg-2">
-                            <select name="project_filter" id="project_filter" class="form-select">
+                        <div class="col-md-2">
+                            <select id="project_filter" class="form-select form-select-sm select2">
                                 <option value="">All Projects</option>
                                 @foreach ($projects as $project)
                                     <option value="{{ $project->id }}">{{ $project->name }}</option>
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-lg-2">
-                            <select name="supplier_filter" id="supplier_filter" class="form-select">
+                        <div class="col-md-2">
+                            <select id="supplier_filter" class="form-select form-select-sm select2">
                                 <option value="">All Suppliers</option>
                                 @foreach ($suppliers as $supplier)
                                     <option value="{{ $supplier->id }}">{{ $supplier->name }}</option>
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-lg-2">
-                            <select name="approval_filter" id="approval_filter" class="form-select">
+                        <div class="col-md-2">
+                            <select id="approval_filter" class="form-select form-select-sm select2">
                                 <option value="">All Status</option>
                                 <option value="Approved">Approved</option>
                                 <option value="Decline">Declined</option>
                                 <option value="Pending">Pending</option>
                             </select>
                         </div>
-                        <div class="col-lg-2">
-                            <input type="text" id="custom-search" class="form-control" placeholder="Search requests...">
+                        <div class="col-md-3">
+                            <input type="text" id="custom-search" class="form-control form-control-sm"
+                                placeholder="Search requests...">
                         </div>
-                        <div class="col-lg-2 d-flex align-items-end gap-2">
-                            <button type="button" id="reset-filter" class="btn btn-secondary"
-                                title="Reset All Filters">Reset</button>
+                        <div class="col-md-1">
+                            <button type="button" id="reset-filters" class="btn btn-outline-secondary btn-sm w-100"
+                                title="Reset All Filters">
+                                <i class="fas fa-times me-1"></i> Reset
+                            </button>
                         </div>
                     </form>
                 </div>
 
-                @php
-                    $canViewUnitPrice = in_array(auth()->user()->role, [
-                        'super_admin',
-                        'admin',
-                        'admin_procurement',
-                        'admin_logistic',
-                        'admin_finance',
-                    ]);
-                @endphp
-
-                <!-- Table -->
+                <!-- DataTable dengan Server-Side Processing -->
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle table-sm" id="datatable">
+                    <table class="table table-hover table-sm align-middle" id="datatable">
                         <thead class="table-light text-nowrap">
                             <tr>
                                 <th width="50">#</th>
@@ -199,182 +218,25 @@
                                 <th>Required Qty</th>
                                 <th>Qty to Buy</th>
                                 <th>Supplier</th>
-                                @if ($canViewUnitPrice)
-                                    <th>Unit Price</th>
-                                @endif
+                                <th>Unit Price</th>
                                 <th>Currency</th>
                                 <th>Approval Status</th>
-                                <th>Delivery Date
-                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top"
-                                        title="Delivery date to forwarder"></i>
-                                </th>
+                                <th>Delivery Date</th>
                                 <th>Project</th>
                                 <th>Requested By</th>
                                 <th>Remark</th>
                                 <th>Requested At</th>
-                                <th width="150">Actions</th>
+                                <th width="120">Actions</th>
                             </tr>
                         </thead>
-                        <tbody class="align-middle">
-                            @forelse ($requests as $index => $req)
-                                <tr data-id="{{ $req->id }}">
-                                    <td class="text-center">{{ $loop->iteration }}</td>
-                                    <td>{{ ucfirst(str_replace('_', ' ', $req->type)) }}</td>
-                                    <td class="material-name-cell" data-value="{{ $req->material_name }}"
-                                        data-type="{{ $req->type }}">
-                                        <div class="d-flex align-items-center gap-1">
-                                            @if ($req->stock_level !== null)
-                                                <i class="bi bi-info-circle text-secondary" style="cursor: pointer;"
-                                                    data-bs-toggle="tooltip" data-bs-placement="bottom"
-                                                    title="Current stock: {{ number_format($req->stock_level, 2) }} {{ $req->unit }}"></i>
-                                            @endif
-                                            {{ $req->material_name }}
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <span data-bs-toggle="tooltip" data-bs-placement="right"
-                                            title="{{ $req->unit }}">
-                                            {{ number_format($req->required_quantity, 2) }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <input type="number" min="0" step="0.01"
-                                            class="form-control form-control-sm qty-to-buy-input"
-                                            value="{{ $req->qty_to_buy ?? '' }}" data-id="{{ $req->id }}">
-                                    </td>
-                                    <td>
-                                        @if ($canViewUnitPrice)
-                                            <select class="form-select form-select-sm supplier-select"
-                                                data-id="{{ $req->id }}">
-                                                <option value="">-</option>
-                                                @foreach ($suppliers as $supplier)
-                                                    <option value="{{ $supplier->id }}"
-                                                        @if ($req->supplier_id == $supplier->id) selected @endif>
-                                                        {{ $supplier->name }}
-                                                    </option>
-                                                @endforeach
-                                            </select>
-                                        @else
-                                            {{ $req->supplier->name ?? '-' }}
-                                        @endif
-                                    </td>
-                                    @if ($canViewUnitPrice)
-                                        <td>
-                                            <input type="number" min="0" step="0.01"
-                                                class="form-control form-control-sm price-input"
-                                                value="{{ $req->price_per_unit ?? '' }}" data-id="{{ $req->id }}">
-                                        </td>
-                                    @endif
-                                    <td>
-                                        @if ($canViewUnitPrice)
-                                            <select class="form-select form-select-sm currency-select"
-                                                data-id="{{ $req->id }}">
-                                                <option value="">-</option>
-                                                @foreach ($currencies as $currency)
-                                                    <option value="{{ $currency->id }}"
-                                                        @if ($req->currency_id == $currency->id) selected @endif>
-                                                        {{ $currency->name }}
-                                                    </option>
-                                                @endforeach
-                                            </select>
-                                        @else
-                                            {{ $req->currency->name ?? '-' }}
-                                        @endif
-                                    </td>
-                                    <td>
-                                        @if ($canViewUnitPrice)
-                                            <select class="form-select form-select-sm approval-select"
-                                                data-id="{{ $req->id }}">
-                                                <option value="">Pending</option>
-                                                <option value="Approved"
-                                                    @if ($req->approval_status == 'Approved') selected @endif>
-                                                    Approved</option>
-                                                <option value="Decline" @if ($req->approval_status == 'Decline') selected @endif>
-                                                    Decline</option>
-                                            </select>
-                                        @else
-                                            {{ $req->approval_status ?? 'Pending' }}
-                                        @endif
-                                    </td>
-                                    <td>
-                                        @if ($canViewUnitPrice && (auth()->user()->role === 'super_admin' || auth()->user()->role === 'admin_procurement'))
-                                            <input type="date" class="form-control form-control-sm delivery-date-input"
-                                                value="{{ $req->delivery_date ? $req->delivery_date->format('Y-m-d') : '' }}"
-                                                data-id="{{ $req->id }}">
-                                        @else
-                                            {{ $req->delivery_date ? $req->delivery_date->format('d M Y') : '-' }}
-                                        @endif
-                                    </td>
-                                    <td>{{ $req->project->name ?? '-' }}</td>
-                                    <td>{{ $req->user->username ?? '-' }}</td>
-                                    <td class="remark-cell" data-value="{{ $req->remark }}">
-                                        @php
-                                            $isUrl = $req->remark && filter_var($req->remark, FILTER_VALIDATE_URL);
-                                        @endphp
-                                        @if ($isUrl)
-                                            <a href="{{ $req->remark }}" target="_blank" rel="noopener noreferrer">
-                                                {{ \Illuminate\Support\Str::limit($req->remark, 30) }}
-                                            </a>
-                                        @else
-                                            {{ $req->remark ? \Illuminate\Support\Str::limit($req->remark, 30) : '-' }}
-                                        @endif
-                                    </td>
-                                    <td>
-                                        <span data-bs-toggle="tooltip" data-bs-placement="bottom"
-                                            title="{{ $req->created_at ? $req->created_at->format('l, d F Y H:i:s') : '' }}"
-                                            data-order="{{ $req->created_at ? $req->created_at->timestamp : 0 }}">
-                                            {{ $req->created_at ? $req->created_at->format('d M Y') : '-' }}
-                                        </span>
-                                    </td>
-                                    <td class="text-center">
-                                        <div class="d-flex flex-nowrap gap-1 justify-content-center">
-                                            @if ($canViewUnitPrice)
-                                                <button class="btn btn-info btn-sm btn-show-image"
-                                                    data-img="{{ $req->img ? asset('storage/' . $req->img) : '' }}"
-                                                    data-name="{{ $req->material_name }}" title="View Image">
-                                                    <i class="bi bi-image"></i>
-                                                </button>
-                                                <a href="{{ route('purchase_requests.edit', $req->id) }}"
-                                                    class="btn btn-warning btn-sm" title="Edit">
-                                                    <i class="bi bi-pencil-square"></i>
-                                                </a>
-                                                <button class="btn btn-danger btn-sm btn-delete"
-                                                    @if (auth()->user()->isReadOnlyAdmin()) disabled @endif
-                                                    data-id="{{ $req->id }}" data-name="{{ $req->material_name }}"
-                                                    title="Delete">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
-                                                <form id="delete-form-{{ $req->id }}"
-                                                    action="{{ route('purchase_requests.destroy', $req->id) }}"
-                                                    method="POST" style="display:none;">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                </form>
-                                            @else
-                                                <button class="btn btn-info btn-sm btn-show-image"
-                                                    data-img="{{ $req->img ? asset('storage/' . $req->img) : '' }}"
-                                                    data-name="{{ $req->material_name }}" title="View Image">
-                                                    <i class="bi bi-image"></i>
-                                                </button>
-                                            @endif
-                                        </div>
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="{{ $canViewUnitPrice ? 14 : 13 }}" class="text-center text-muted py-4">
-                                        <i class="bi bi-inbox" style="font-size: 2rem;"></i>
-                                        <br>No purchase requests found
-                                    </td>
-                                </tr>
-                            @endforelse
+                        <tbody>
+                            <!-- DataTables will populate this -->
                         </tbody>
                     </table>
                 </div>
 
                 <!-- Modal Show Image -->
-                <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel"
-                    aria-hidden="true">
+                <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
                     <div class="modal-dialog modal-dialog-centered">
                         <div class="modal-content">
                             <div class="modal-header">
@@ -395,10 +257,96 @@
 @push('scripts')
     <script>
         $(document).ready(function() {
-            // Initialize DataTable
+            // Initialize DataTable dengan server-side processing
             const table = $('#datatable').DataTable({
-                responsive: false,
+                processing: false,
+                serverSide: true,
+                searching: false,
                 stateSave: true,
+                ajax: {
+                    url: "{{ route('purchase_requests.index') }}",
+                    data: function(d) {
+                        d.type_filter = $('#type_filter').val();
+                        d.project_filter = $('#project_filter').val();
+                        d.supplier_filter = $('#supplier_filter').val();
+                        d.approval_filter = $('#approval_filter').val();
+                        d.custom_search = $('#custom-search').val();
+                    }
+                },
+                columns: [{
+                        data: 'DT_RowIndex',
+                        name: 'DT_RowIndex',
+                        orderable: false,
+                        searchable: false,
+                        className: 'text-center'
+                    },
+                    {
+                        data: 'type',
+                        name: 'type'
+                    },
+                    {
+                        data: 'material_name',
+                        name: 'material_name'
+                    },
+                    {
+                        data: 'required_quantity',
+                        name: 'required_quantity',
+                        orderable: false
+                    },
+                    {
+                        data: 'qty_to_buy',
+                        name: 'qty_to_buy',
+                        orderable: false
+                    },
+                    {
+                        data: 'supplier',
+                        name: 'supplier'
+                    },
+                    {
+                        data: 'unit_price',
+                        name: 'unit_price',
+                        orderable: false
+                    },
+                    {
+                        data: 'currency',
+                        name: 'currency'
+                    },
+                    {
+                        data: 'approval_status',
+                        name: 'approval_status',
+                        orderable: false
+                    },
+                    {
+                        data: 'delivery_date',
+                        name: 'delivery_date'
+                    },
+                    {
+                        data: 'project',
+                        name: 'project'
+                    },
+                    {
+                        data: 'requested_by',
+                        name: 'requested_by'
+                    },
+                    {
+                        data: 'remark',
+                        name: 'remark',
+                        orderable: false
+                    },
+                    {
+                        data: 'created_at',
+                        name: 'created_at'
+                    },
+                    {
+                        data: 'actions',
+                        name: 'actions',
+                        orderable: false,
+                        searchable: false
+                    }
+                ],
+                order: [
+                    []
+                ],
                 pageLength: 15,
                 lengthMenu: [
                     [10, 15, 25, 50, 100],
@@ -412,348 +360,42 @@
                     lengthMenu: "Show _MENU_ entries per page",
                     info: "Showing _START_ to _END_ of _TOTAL_ entries",
                 },
-                dom: 't<"row datatables-footer-row align-items-center"<"col-md-7 d-flex align-items-center gap-2 datatables-left"l<"vr-divider mx-2">i><"col-md-5 dataTables_paginate justify-content-end"p>>',
-                columnDefs: [{
-                        targets: [0, 12, 14],
-                        orderable: false
-                    },
-                ],
-                order: [
-                    [] // Urutkan berdasarkan kolom "Requested At" (latest)
-                ],
+                dom: 't<' +
+                    '"row datatables-footer-row align-items-center"' +
+                    '<"col-md-7 d-flex align-items-center gap-2 datatables-left"l<"vr-divider mx-2">i>' +
+                    '<"col-md-5 dataTables_paginate justify-content-end"p>' +
+                    '>',
+                responsive: false,
                 drawCallback: function() {
                     $('[data-bs-toggle="tooltip"]').tooltip();
-                    $('.supplier-select, .currency-select, .approval-select').each(function() {
-                        if ($(this).hasClass('select2-hidden-accessible')) {
-                            $(this).select2('destroy');
-                        }
-                    });
-                    $('.supplier-select, .currency-select, .approval-select').select2({
-                        theme: 'bootstrap-5',
-                        allowClear: false,
-                        minimumResultsForSearch: 10,
-                        dropdownParent: $('body'),
-                        width: '100%'
-                    });
                 }
             });
 
-            // Initialize Select2 for filter dropdowns
-            $('#type_filter, #project_filter, #supplier_filter, #approval_filter').select2({
+            // Initialize Select2 for filters
+            $('.select2').select2({
                 theme: 'bootstrap-5',
                 allowClear: true,
                 placeholder: function() {
                     return $(this).find('option:first').text();
-                }
-            });
-
-            // Initialize Select2 for table selects
-            $('.supplier-select, .currency-select, .approval-select').select2({
-                theme: 'bootstrap-5',
-                allowClear: false,
-                minimumResultsForSearch: 10,
-                dropdownParent: $('body'),
+                },
                 width: '100%'
             });
 
-            // Simple filter functionality
-            function performFilter() {
-                var typeFilter = $('#type_filter').val();
-                var projectFilter = $('#project_filter').val();
-                var supplierFilter = $('#supplier_filter').val();
-                var approvalFilter = $('#approval_filter').val();
-                var customSearch = $('#custom-search').val().toLowerCase();
+            // Filter functionality
+            $('#type_filter, #project_filter, #supplier_filter, #approval_filter').on('change', function() {
+                table.ajax.reload();
+            });
 
-                $('#datatable tbody tr').each(function() {
-                    var $row = $(this);
-                    var show = true;
-
-                    // Skip empty row
-                    if ($row.find('td').length === 1) return;
-
-                    // Type filter
-                    if (typeFilter) {
-                        var typeText = $row.find('td:eq(1)').text().toLowerCase();
-                        if (typeText.indexOf(typeFilter.toLowerCase().replace('_', ' ')) === -1) {
-                            show = false;
-                        }
-                    }
-
-                    // Project filter
-                    if (projectFilter && show) {
-                        var projectText = $row.find('td:eq(5)').text().trim();
-                        var selectedProjectText = $('#project_filter option:selected').text();
-                        if (projectText !== selectedProjectText && projectText !== '-') {
-                            show = false;
-                        }
-                    }
-
-                    // Supplier filter
-                    if (supplierFilter && show) {
-                        var supplierSelect = $row.find('.supplier-select');
-                        if (supplierSelect.length) {
-                            var selectedSupplierId = supplierSelect.val();
-                            if (selectedSupplierId !== supplierFilter) {
-                                show = false;
-                            }
-                        } else {
-                            show = false;
-                        }
-                    }
-
-                    // Approval filter
-                    if (approvalFilter && show) {
-                        var approvalSelect = $row.find('.approval-select');
-                        if (approvalSelect.length) {
-                            var selectedValue = approvalSelect.val();
-                            if (approvalFilter === 'Pending' && selectedValue !== '') {
-                                show = false;
-                            } else if (approvalFilter !== 'Pending' && selectedValue !== approvalFilter) {
-                                show = false;
-                            }
-                        }
-                    }
-
-                    // Custom search
-                    if (customSearch && show) {
-                        var rowText = $row.text().toLowerCase();
-                        if (rowText.indexOf(customSearch) === -1) {
-                            show = false;
-                        }
-                    }
-
-                    $row.toggle(show);
-                });
-            }
-
-            // Filter event handlers
-            $('#type_filter, #project_filter, #supplier_filter, #approval_filter, #custom-search').on(
-                'change input',
-                function() {
-                    performFilter();
-                });
+            $('#custom-search').on('input', debounce(function() {
+                table.ajax.reload();
+            }, 500));
 
             // Reset filter
-            $('#reset-filter').on('click', function() {
+            $('#reset-filters').on('click', function() {
                 $('#type_filter, #project_filter, #supplier_filter, #approval_filter').val('').trigger(
                     'change');
                 $('#custom-search').val('');
-                $('#datatable tbody tr').show();
-            });
-
-            // Inline AJAX update function
-            function quickUpdate(id, data) {
-                $.ajax({
-                    url: '/purchase_requests/' + id + '/quick-update',
-                    method: 'POST',
-                    data: Object.assign(data, {
-                        _token: '{{ csrf_token() }}'
-                    }),
-                    success: function(response) {
-                        console.log('Updated successfully');
-                    },
-                    error: function(xhr) {
-                        Swal.fire('Error', xhr.responseJSON?.message || 'Failed to update', 'error');
-                    }
-                });
-            }
-
-            $(document).on('change', '.qty-to-buy-input', function() {
-                let id = $(this).data('id');
-                $.ajax({
-                    url: '/purchase_requests/' + id + '/quick-update',
-                    method: 'POST',
-                    data: {
-                        qty_to_buy: $(this).val(),
-                        _token: '{{ csrf_token() }}'
-                    },
-                    success: function(response) {
-                        // Optional: show success toast
-                    },
-                    error: function(xhr) {
-                        Swal.fire('Error', xhr.responseJSON?.message || 'Failed to update',
-                            'error');
-                    }
-                });
-            });
-
-            // Event handlers for inline editing
-            $(document).on('change', '.supplier-select', function() {
-                let id = $(this).data('id');
-                quickUpdate(id, {
-                    supplier_id: $(this).val()
-                });
-            });
-
-            $(document).on('change', '.price-input', function() {
-                let id = $(this).data('id');
-                quickUpdate(id, {
-                    price_per_unit: $(this).val()
-                });
-            });
-
-            $(document).on('change', '.currency-select', function() {
-                let id = $(this).data('id');
-                quickUpdate(id, {
-                    currency_id: $(this).val()
-                });
-            });
-
-            $(document).on('change', '.approval-select', function() {
-                let id = $(this).data('id');
-                quickUpdate(id, {
-                    approval_status: $(this).val()
-                });
-            });
-
-            $(document).on('change', '.delivery-date-input', function() {
-                let id = $(this).data('id');
-                quickUpdate(id, {
-                    delivery_date: $(this).val()
-                });
-            });
-
-            // Double click to edit material name
-            $(document).on('dblclick', '.material-name-cell', function() {
-                const $cell = $(this);
-                const id = $cell.closest('tr').data('id');
-                const type = $cell.data('type');
-                const currentValue = $cell.data('value') || $cell.text().trim();
-
-                // Hanya untuk type new_material
-                if (type !== 'new_material') return;
-
-                // Prevent duplicate input
-                if ($cell.find('input').length) return;
-
-                $cell.html(`
-                    <input type="text" class="form-control form-control-sm material-name-edit-input"
-                        data-id="${id}" style="width:100%;" value="${currentValue}">
-                `);
-                $cell.find('input').focus();
-            });
-
-            $(document).on('blur', '.material-name-edit-input', function() {
-                saveMaterialNameInline($(this));
-            });
-            $(document).on('keydown', '.material-name-edit-input', function(e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    $(this).blur();
-                }
-            });
-
-            function saveMaterialNameInline($input) {
-                const id = $input.data('id');
-                const newValue = $input.val();
-                const $cell = $input.closest('.material-name-cell');
-
-                $.ajax({
-                    url: '/purchase_requests/' + id + '/quick-update',
-                    method: 'POST',
-                    data: {
-                        material_name: newValue,
-                        _token: '{{ csrf_token() }}'
-                    },
-                    success: function() {
-                        $cell.html(`
-                <div class="d-flex align-items-center gap-1">
-                    ${$cell.data('type') === 'new_material' && $cell.data('stock_level') !== null ?
-                        `<i class="bi bi-info-circle text-secondary" style="cursor: pointer;"
-                                    data-bs-toggle="tooltip" data-bs-placement="bottom"
-                                    title="Current stock: ${$cell.data('stock_level')}"></i>` : ''}
-                    ${newValue}
-                </div>
-            `);
-                        $cell.data('value', newValue);
-                        $('[data-bs-toggle="tooltip"]').tooltip();
-                    },
-                    error: function(xhr) {
-                        Swal.fire('Error', xhr.responseJSON?.message ||
-                            'Failed to update material name', 'error');
-                        $cell.text($cell.data('value') || '-');
-                    }
-                });
-            }
-
-            // Double click to edit remark
-            $(document).on('dblclick', '.remark-cell', function() {
-                const $cell = $(this);
-                const id = $cell.closest('tr').data('id');
-                const currentValue = $cell.data('value') || $cell.text().trim();
-
-                // Prevent duplicate input
-                if ($cell.find('input').length) return;
-
-                // Replace cell content with input
-                $cell.html(`
-                    <textarea class="form-control form-control-sm remark-edit-input"
-                        data-id="${id}" style="min-width:120px;">${currentValue}</textarea>
-                `);
-                $cell.find('textarea').focus();
-            });
-
-            // Save remark on blur or Enter
-            $(document).on('blur', '.remark-edit-input', function() {
-                saveRemarkInline($(this));
-            });
-            $(document).on('keydown', '.remark-edit-input', function(e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    $(this).blur();
-                }
-            });
-
-            function saveRemarkInline($input) {
-                const id = $input.data('id');
-                const newValue = $input.val();
-                const $cell = $input.closest('.remark-cell');
-
-                $.ajax({
-                    url: '/purchase_requests/' + id + '/quick-update',
-                    method: 'POST',
-                    data: {
-                        remark: newValue,
-                        _token: '{{ csrf_token() }}'
-                    },
-                    success: function() {
-                        // If remark is a URL, render as clickable link
-                        if (newValue && /^https?:\/\/\S+$/i.test(newValue)) {
-                            $cell.html(
-                                `<a href="${newValue}" target="_blank" rel="noopener noreferrer">${newValue}</a>`
-                            );
-                        } else {
-                            $cell.text(newValue || '-');
-                        }
-                        $cell.data('value', newValue);
-                    },
-                    error: function(xhr) {
-                        Swal.fire('Error', xhr.responseJSON?.message || 'Failed to update remark',
-                            'error');
-                        $cell.text($cell.data('value') || '-');
-                    }
-                });
-            }
-
-            // Delete functionality
-            $(document).on('click', '.btn-delete', function() {
-                const id = $(this).data('id');
-                const name = $(this).data('name');
-
-                Swal.fire({
-                    title: 'Are you sure?',
-                    text: `You want to delete "${name}"?`,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#3085d6',
-                    confirmButtonText: 'Yes, delete it!',
-                    reverseButtons: true
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        $('#delete-form-' + id).submit();
-                    }
-                });
+                table.ajax.reload();
             });
 
             // Show Image Modal Handler
@@ -773,13 +415,58 @@
                 $('#imageModal').modal('show');
             });
 
+            // Delete functionality with AJAX
+            $(document).on('click', '.btn-delete', function() {
+                const id = $(this).data('id');
+                const name = $(this).data('name');
+
+                Swal.fire({
+                    title: 'Are you sure?',
+                    text: `You want to delete "${name}"?`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Yes, delete it!',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: `/purchase_requests/${id}`,
+                            method: 'DELETE',
+                            data: {
+                                _token: '{{ csrf_token() }}'
+                            },
+                            success: function(response) {
+                                Swal.fire(
+                                    'Deleted!',
+                                    `<b>${name}</b> has been deleted.`,
+                                    'success'
+                                );
+                                table.ajax.reload(null, false);
+                            },
+                            error: function(xhr) {
+                                let errorMsg = xhr.responseJSON?.message ||
+                                    'Failed to delete';
+                                Swal.fire('Error!', errorMsg, 'error');
+                            }
+                        });
+                    }
+                });
+            });
+
             // Initialize Bootstrap Tooltip
             $('[data-bs-toggle="tooltip"]').tooltip();
 
-            // Ensure Select2 is working on initial load
-            setTimeout(function() {
+            // Initialize inline editable elements after table draw
+            $(document).on('draw.dt', '#datatable', function() {
+                initializeInlineEdits();
+            });
+
+            function initializeInlineEdits() {
+                // Initialize Select2 untuk inline selects
                 $('.supplier-select, .currency-select, .approval-select').each(function() {
-                    if (!$(this).hasClass('select2-hidden-accessible')) {
+                    if (!$(this).data('select2')) {
                         $(this).select2({
                             theme: 'bootstrap-5',
                             allowClear: false,
@@ -789,7 +476,207 @@
                         });
                     }
                 });
-            }, 100);
+
+                // Double-click handler untuk material name
+                $(document).on('dblclick', '.material-name-cell', function() {
+                    const $cell = $(this);
+                    const id = $cell.data('id');
+                    const type = $cell.data('type');
+                    const currentValue = $cell.data('value');
+
+                    // Hanya untuk new_material
+                    if (type !== 'new_material') return;
+
+                    // Prevent duplicate input
+                    if ($cell.find('input').length) return;
+
+                    $cell.html(`
+                        <input type="text" class="form-control form-control-sm material-name-edit-input"
+                            data-id="${id}" value="${currentValue}" style="width:100%;">
+                    `);
+                    $cell.find('input').focus().select();
+                });
+
+                // Save material name on blur/enter
+                $(document).on('blur', '.material-name-edit-input', function() {
+                    saveMaterialNameInline($(this));
+                });
+                $(document).on('keydown', '.material-name-edit-input', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        $(this).blur();
+                    }
+                });
+
+                // Double-click handler untuk remark
+                $(document).on('dblclick', '.remark-cell', function() {
+                    const $cell = $(this);
+                    const id = $cell.data('id');
+                    const currentValue = $cell.data('value');
+
+                    // Prevent duplicate input
+                    if ($cell.find('textarea').length) return;
+
+                    $cell.html(`
+                        <textarea class="form-control form-control-sm remark-edit-input"
+                            data-id="${id}" style="min-width:150px; max-width:300px;">${currentValue}</textarea>
+                    `);
+                    $cell.find('textarea').focus();
+                });
+
+                // Save remark on blur/enter
+                $(document).on('blur', '.remark-edit-input', function() {
+                    saveRemarkInline($(this));
+                });
+                $(document).on('keydown', '.remark-edit-input', function(e) {
+                    if (e.ctrlKey && e.key === 'Enter') {
+                        e.preventDefault();
+                        $(this).blur();
+                    }
+                });
+
+                // Qty to buy change
+                $(document).on('change', '.qty-to-buy-input', function() {
+                    let id = $(this).data('id');
+                    quickUpdate(id, {
+                        qty_to_buy: $(this).val()
+                    });
+                });
+
+                // Supplier change
+                $(document).on('change', '.supplier-select', function() {
+                    let id = $(this).data('id');
+                    quickUpdate(id, {
+                        supplier_id: $(this).val()
+                    });
+                });
+
+                // Price input change
+                $(document).on('change', '.price-input', function() {
+                    let id = $(this).data('id');
+                    quickUpdate(id, {
+                        price_per_unit: $(this).val()
+                    });
+                });
+
+                // Currency change
+                $(document).on('change', '.currency-select', function() {
+                    let id = $(this).data('id');
+                    quickUpdate(id, {
+                        currency_id: $(this).val()
+                    });
+                });
+
+                // Approval status change
+                $(document).on('change', '.approval-select', function() {
+                    let id = $(this).data('id');
+                    quickUpdate(id, {
+                        approval_status: $(this).val()
+                    });
+                });
+
+                // Delivery date change
+                $(document).on('change', '.delivery-date-input', function() {
+                    let id = $(this).data('id');
+                    quickUpdate(id, {
+                        delivery_date: $(this).val()
+                    });
+                });
+            }
+
+            // Quick update function
+            function quickUpdate(id, data) {
+                $.ajax({
+                    url: '/purchase_requests/' + id + '/quick-update',
+                    method: 'POST',
+                    data: Object.assign(data, {
+                        _token: '{{ csrf_token() }}'
+                    }),
+                    success: function(response) {
+                        if (response.success) {
+                            // Optional: show success toast
+                            console.log('Updated successfully');
+                        }
+                    },
+                    error: function(xhr) {
+                        Swal.fire('Error', xhr.responseJSON?.message || 'Failed to update', 'error');
+                    }
+                });
+            }
+
+            // Save material name inline
+            function saveMaterialNameInline($input) {
+                const id = $input.data('id');
+                const newValue = $input.val();
+                const $cell = $input.closest('.material-name-cell');
+
+                $.ajax({
+                    url: '/purchase_requests/' + id + '/quick-update',
+                    method: 'POST',
+                    data: {
+                        material_name: newValue,
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function() {
+                        $cell.data('value', newValue);
+                        $cell.html(`
+                        <div class="d-flex align-items-center gap-1">
+                            <i class="bi bi-info-circle text-secondary" style="cursor: pointer;"></i>
+                            <span class="material-name-text">${newValue}</span>
+                        </div>
+                    `);
+                        $('[data-bs-toggle="tooltip"]').tooltip();
+                    },
+                    error: function(xhr) {
+                        Swal.fire('Error', xhr.responseJSON?.message || 'Failed to update', 'error');
+                        $cell.html(`<span>${$cell.data('value')}</span>`);
+                    }
+                });
+            }
+
+            // Save remark inline
+            function saveRemarkInline($input) {
+                const id = $input.data('id');
+                const newValue = $input.val();
+                const $cell = $input.closest('.remark-cell');
+
+                $.ajax({
+                    url: '/purchase_requests/' + id + '/quick-update',
+                    method: 'POST',
+                    data: {
+                        remark: newValue,
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function() {
+                        $cell.data('value', newValue);
+                        if (newValue && /^https?:\/\/\S+$/i.test(newValue)) {
+                            $cell.html(`<a href="${newValue}" target="_blank">${newValue}</a>`);
+                        } else {
+                            $cell.html(`<span>${newValue || '-'}</span>`);
+                        }
+                    },
+                    error: function(xhr) {
+                        Swal.fire('Error', xhr.responseJSON?.message || 'Failed to update', 'error');
+                        $cell.html(`<span>${$cell.data('value') || '-'}</span>`);
+                    }
+                });
+            }
+
+            // Initialize on page load
+            initializeInlineEdits();
         });
+
+        // Debounce function to prevent excessive API calls
+        function debounce(func, wait) {
+            let timeout;
+            return function() {
+                const context = this;
+                const args = arguments;
+                clearTimeout(timeout);
+                timeout = setTimeout(() => {
+                    func.apply(context, args);
+                }, wait);
+            };
+        }
     </script>
 @endpush

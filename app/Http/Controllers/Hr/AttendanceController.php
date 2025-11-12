@@ -361,7 +361,7 @@ class AttendanceController extends Controller
             'bulk_late_time' => 'required_if:status,late|nullable|date_format:H:i',
         ]);
 
-        // ✨ PERBAIKAN: Check if all employees are active
+        // Check if all employees are active
         $inactiveEmployees = Employee::whereIn('id', $request->employee_ids)->where('status', '!=', 'active')->pluck('name')->toArray();
 
         if (!empty($inactiveEmployees)) {

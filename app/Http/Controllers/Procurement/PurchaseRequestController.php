@@ -23,17 +23,457 @@ class PurchaseRequestController extends Controller
     }
 
     /**
-     * Display a listing of the resource.
+     * Display a listing of the resource with server-side processing
      */
-    public function index()
+    public function index(Request $request)
     {
-        $requests = PurchaseRequest::with(['inventory', 'project', 'user'])
-            ->latest()
-            ->get();
+        // If AJAX request, return DataTables data
+        if ($request->ajax()) {
+            return $this->getDataTablesData($request);
+        }
+
+        // For non-AJAX requests, return view with master data for filters
         $suppliers = Supplier::orderBy('name')->get();
         $currencies = Currency::orderBy('name')->get();
         $projects = Project::orderBy('name')->get();
-        return view('procurement.purchase_requests.index', compact('requests', 'suppliers', 'currencies', 'projects'));
+
+        return view('procurement.purchase_requests.index', compact('suppliers', 'currencies', 'projects'));
+    }
+
+    /**
+     * Server-side processing untuk DataTables
+     */
+    public function getDataTablesData(Request $request)
+    {
+        $query = PurchaseRequest::with(['inventory', 'project', 'user', 'supplier', 'currency'])->latest();
+
+        // Apply filters
+        if ($request->filled('type_filter')) {
+            $query->where('type', $request->type_filter);
+        }
+
+        if ($request->filled('project_filter')) {
+            $query->where('project_id', $request->project_filter);
+        }
+
+        if ($request->filled('supplier_filter')) {
+            $query->where('supplier_id', $request->supplier_filter);
+        }
+
+        if ($request->filled('approval_filter')) {
+            if ($request->approval_filter === 'Pending') {
+                $query->where('approval_status', '=', 'Pending');
+            } else {
+                $query->where('approval_status', $request->approval_filter);
+            }
+        }
+
+        // Custom search functionality
+        if ($request->filled('custom_search')) {
+            $searchValue = $request->input('custom_search');
+            $query->where(function ($q) use ($searchValue) {
+                $q->where('material_name', 'LIKE', '%' . $searchValue . '%')
+                    ->orWhere('remark', 'LIKE', '%' . $searchValue . '%')
+                    ->orWhereHas('project', function ($q) use ($searchValue) {
+                        $q->where('name', 'LIKE', '%' . $searchValue . '%');
+                    })
+                    ->orWhereHas('supplier', function ($q) use ($searchValue) {
+                        $q->where('name', 'LIKE', '%' . $searchValue . '%');
+                    });
+            });
+        }
+
+        // DataTables search
+        if ($request->filled('search.value')) {
+            $searchValue = $request->input('search.value');
+            $query->where(function ($q) use ($searchValue) {
+                $q->where('material_name', 'LIKE', '%' . $searchValue . '%')
+                    ->orWhere('remark', 'LIKE', '%' . $searchValue . '%')
+                    ->orWhereHas('project', function ($q) use ($searchValue) {
+                        $q->where('name', 'LIKE', '%' . $searchValue . '%');
+                    })
+                    ->orWhereHas('supplier', function ($q) use ($searchValue) {
+                        $q->where('name', 'LIKE', '%' . $searchValue . '%');
+                    });
+            });
+        }
+
+        // Sorting
+        $columns = ['id', 'type', 'material_name', 'required_quantity', 'qty_to_buy', 'project_id', 'approval_status', 'created_at'];
+
+        if ($request->filled('order')) {
+            $orderColumnIndex = $request->input('order.0.column');
+            $orderDirection = $request->input('order.0.dir', 'asc');
+
+            if (isset($columns[$orderColumnIndex])) {
+                $query->orderBy($columns[$orderColumnIndex], $orderDirection);
+            }
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
+
+        // Get total and filtered counts
+        $totalRecords = PurchaseRequest::count();
+        $filteredRecords = $query->count();
+
+        // Pagination
+        $start = $request->input('start', 0);
+        $length = $request->input('length', 15);
+        $purchaseRequests = $query->skip($start)->take($length)->get();
+
+        // Check if user can view unit price
+        $canViewUnitPrice = in_array(auth()->user()->role, ['super_admin', 'admin', 'admin_procurement', 'admin_logistic', 'admin_finance']);
+
+        // Format data for DataTables
+        $data = [];
+        foreach ($purchaseRequests as $index => $pr) {
+            $data[] = [
+                'DT_RowIndex' => $start + $index + 1,
+                'type' => ucfirst(str_replace('_', ' ', $pr->type)),
+                'material_name' => $this->formatMaterialNameEditable($pr),
+                'required_quantity' => $this->formatQuantity($pr->required_quantity, $pr->unit),
+                'qty_to_buy' => $this->formatQtyToBuyEditable($pr),
+                'supplier' => $this->formatSupplierSelect($pr),
+                'unit_price' => $this->formatPriceInput($pr),
+                'currency' => $this->formatCurrencySelect($pr),
+                'approval_status' => $this->formatApprovalSelect($pr),
+                'delivery_date' => $this->formatDeliveryDateInput($pr),
+                'project' => $pr->project ? $pr->project->name : '-',
+                'requested_by' => $pr->user ? $pr->user->username : '-',
+                'remark' => $this->formatRemarkEditable($pr),
+                'created_at' => $pr->created_at->format('d M Y'),
+                'actions' => $this->getActionButtons($pr, $canViewUnitPrice),
+                'DT_RowId' => 'row-' . $pr->id,
+            ];
+        }
+
+        return response()->json([
+            'draw' => intval($request->input('draw')),
+            'recordsTotal' => $totalRecords,
+            'recordsFiltered' => $filteredRecords,
+            'data' => $data,
+        ]);
+    }
+
+    /**
+     * Format material name with stock level info
+     */
+    private function formatMaterialName($pr)
+    {
+        if (!$pr->stock_level && !$pr->inventory) {
+            return $pr->material_name;
+        }
+
+        $stockInfo = $pr->stock_level ?? ($pr->inventory ? $pr->inventory->quantity : 0);
+        $unit = $pr->unit ?? ($pr->inventory ? $pr->inventory->unit : '');
+
+        return '<div class="d-flex align-items-center gap-1">
+                    <i class="bi bi-info-circle text-secondary" style="cursor: pointer;"
+                        data-bs-toggle="tooltip" data-bs-placement="bottom"
+                        title="Current stock: ' .
+            number_format($stockInfo, 2) .
+            ' ' .
+            $unit .
+            '"></i>
+                    ' .
+            $pr->material_name .
+            '
+                </div>';
+    }
+
+    /**
+     * Format quantity with unit tooltip
+     */
+    private function formatQuantity($quantity, $unit)
+    {
+        $formatted = number_format($quantity, 2);
+        $formatted = rtrim(rtrim($formatted, '0'), '.');
+
+        return '<span data-bs-toggle="tooltip" data-bs-placement="right" title="' . $unit . '">' . $formatted . '</span>';
+    }
+
+    /**
+     * Format approval status with badge
+     */
+    private function formatApprovalStatus($status)
+    {
+        $badgeClass = match ($status) {
+            'Approved' => 'bg-success',
+            'Decline' => 'bg-danger',
+            default => 'bg-warning',
+        };
+
+        $statusText = $status ?? 'Pending';
+
+        return '<span class="badge ' . $badgeClass . '">' . ucfirst($statusText) . '</span>';
+    }
+
+    /**
+     * Format remark - handle URLs
+     */
+    private function formatRemark($remark)
+    {
+        if (!$remark) {
+            return '-';
+        }
+
+        if (filter_var($remark, FILTER_VALIDATE_URL)) {
+            return '<a href="' . $remark . '" target="_blank" rel="noopener noreferrer">' . \Illuminate\Support\Str::limit($remark, 30) . '</a>';
+        }
+
+        return \Illuminate\Support\Str::limit($remark, 30);
+    }
+
+    /**
+     * Get action buttons
+     */
+    private function getActionButtons($pr, $canViewUnitPrice)
+    {
+        $buttons = '<div class="d-flex flex-nowrap gap-1">';
+
+        if ($canViewUnitPrice) {
+            // Show image button
+            $buttons .=
+                '<button class="btn btn-info btn-sm btn-show-image"
+                        data-id="' .
+                $pr->id .
+                '"
+                        data-img="' .
+                ($pr->img ? asset('storage/' . $pr->img) : '') .
+                '"
+                        data-name="' .
+                $pr->material_name .
+                '"
+                        title="View Image">
+                        <i class="bi bi-image"></i>
+                    </button>';
+
+            // Edit button
+            $buttons .=
+                '<a href="' .
+                route('purchase_requests.edit', $pr->id) .
+                '"
+                       class="btn btn-warning btn-sm" title="Edit">
+                       <i class="bi bi-pencil-square"></i>
+                    </a>';
+
+            // Delete button
+            $buttons .=
+                '<button type="button" class="btn btn-danger btn-sm btn-delete"
+                        data-id="' .
+                $pr->id .
+                '"
+                        data-name="' .
+                $pr->material_name .
+                '"
+                        title="Delete">
+                        <i class="bi bi-trash"></i>
+                    </button>';
+        } else {
+            // Show image button only
+            $buttons .=
+                '<button class="btn btn-info btn-sm btn-show-image"
+                        data-id="' .
+                $pr->id .
+                '"
+                        data-img="' .
+                ($pr->img ? asset('storage/' . $pr->img) : '') .
+                '"
+                        data-name="' .
+                $pr->material_name .
+                '"
+                        title="View Image">
+                        <i class="bi bi-image"></i>
+                    </button>';
+        }
+
+        $buttons .= '</div>';
+        return $buttons;
+    }
+
+    /**
+     * Format cells untuk support edit inline
+     */
+    private function formatMaterialNameEditable($pr)
+    {
+        $stockInfo = $pr->stock_level ?? ($pr->inventory ? $pr->inventory->quantity : 0);
+        $unit = $pr->unit ?? ($pr->inventory ? $pr->inventory->unit : '');
+
+        // Show tooltip hanya untuk type 'restock'
+        $tooltipHtml = '';
+        if ($pr->type === 'restock') {
+            $tooltipHtml =
+                '<i class="bi bi-info-circle text-secondary" style="cursor: pointer;"
+                    data-bs-toggle="tooltip" data-bs-placement="bottom"
+                    title="Current stock: ' .
+                number_format($stockInfo, 2) .
+                ' ' .
+                $unit .
+                '"></i>';
+        }
+
+        return '<div class="d-flex align-items-center gap-1 material-name-cell"
+                data-id="' .
+            $pr->id .
+            '"
+                data-value="' .
+            htmlspecialchars($pr->material_name) .
+            '"
+                data-type="' .
+            $pr->type .
+            '"
+                style="cursor: pointer;">
+                ' .
+            $tooltipHtml .
+            '
+                <span class="material-name-text">' .
+            htmlspecialchars($pr->material_name) .
+            '</span>
+            </div>';
+    }
+
+    private function formatRemarkEditable($pr)
+    {
+        if (!$pr->remark) {
+            return '<span class="remark-cell" data-id="' .
+                $pr->id .
+                '" data-value="" style="cursor: pointer;">
+                    -
+                </span>';
+        }
+
+        if (filter_var($pr->remark, FILTER_VALIDATE_URL)) {
+            return '<span class="remark-cell" data-id="' .
+                $pr->id .
+                '" data-value="' .
+                htmlspecialchars($pr->remark) .
+                '" style="cursor: pointer;">
+                    <a href="' .
+                $pr->remark .
+                '" target="_blank" rel="noopener noreferrer">' .
+                \Illuminate\Support\Str::limit($pr->remark, 30) .
+                '</a>
+                </span>';
+        }
+
+        return '<span class="remark-cell" data-id="' .
+            $pr->id .
+            '" data-value="' .
+            htmlspecialchars($pr->remark) .
+            '" style="cursor: pointer;">
+                ' .
+            \Illuminate\Support\Str::limit($pr->remark, 30) .
+            '
+            </span>';
+    }
+
+    private function formatQtyToBuyEditable($pr)
+    {
+        return '<input type="number" class="form-control form-control-sm qty-to-buy-input"
+                data-id="' .
+            $pr->id .
+            '"
+                value="' .
+            ($pr->qty_to_buy ?? '') .
+            '"
+                min="0"
+                step="0.01"
+                style="width: 100px;">';
+    }
+
+    private function formatSupplierSelect($pr)
+    {
+        $canEdit = in_array(auth()->user()->role, ['super_admin', 'admin_procurement', 'admin_logistic', 'admin_finance', 'admin']);
+
+        if (!$canEdit) {
+            return $pr->supplier ? $pr->supplier->name : '-';
+        }
+
+        $options = '<option value="">-</option>';
+        foreach (\App\Models\Procurement\Supplier::orderBy('name')->get() as $supplier) {
+            $selected = $pr->supplier_id == $supplier->id ? 'selected' : '';
+            $options .= '<option value="' . $supplier->id . '" ' . $selected . '>' . $supplier->name . '</option>';
+        }
+
+        return '<select class="form-select form-select-sm supplier-select" data-id="' . $pr->id . '">' . $options . '</select>';
+    }
+
+    private function formatPriceInput($pr)
+    {
+        $canEdit = in_array(auth()->user()->role, ['super_admin', 'admin_procurement', 'admin_logistic', 'admin_finance', 'admin']);
+
+        if (!$canEdit) {
+            return $pr->price_per_unit ? number_format($pr->price_per_unit, 2) : '-';
+        }
+
+        return '<input type="number" class="form-control form-control-sm price-input"
+                data-id="' .
+            $pr->id .
+            '"
+                value="' .
+            ($pr->price_per_unit ?? '') .
+            '"
+                min="0"
+                step="0.01"
+                style="width: 120px;">';
+    }
+
+    private function formatCurrencySelect($pr)
+    {
+        $canEdit = in_array(auth()->user()->role, ['super_admin', 'admin_procurement', 'admin_logistic', 'admin_finance', 'admin']);
+
+        if (!$canEdit) {
+            return $pr->currency ? $pr->currency->name : '-';
+        }
+
+        $options = '<option value="">-</option>';
+        foreach (\App\Models\Finance\Currency::orderBy('name')->get() as $currency) {
+            $selected = $pr->currency_id == $currency->id ? 'selected' : '';
+            $options .= '<option value="' . $currency->id . '" ' . $selected . '>' . $currency->name . '</option>';
+        }
+
+        return '<select class="form-select form-select-sm currency-select" data-id="' . $pr->id . '">' . $options . '</select>';
+    }
+
+    private function formatApprovalSelect($pr)
+    {
+        $canEdit = in_array(auth()->user()->role, ['super_admin', 'admin_procurement', 'admin_logistic', 'admin_finance', 'admin']);
+
+        if (!$canEdit) {
+            return '<span class="badge ' .
+                match ($pr->approval_status) {
+                    'Approved' => 'bg-success',
+                    'Decline' => 'bg-danger',
+                    default => 'bg-warning',
+                } .
+                '">' .
+                ucfirst($pr->approval_status ?? 'Pending') .
+                '</span>';
+        }
+
+        $options = '<option value="">Pending</option>';
+        $options .= '<option value="Approved" ' . ($pr->approval_status == 'Approved' ? 'selected' : '') . '>Approved</option>';
+        $options .= '<option value="Decline" ' . ($pr->approval_status == 'Decline' ? 'selected' : '') . '>Decline</option>';
+
+        return '<select class="form-select form-select-sm approval-select" data-id="' . $pr->id . '">' . $options . '</select>';
+    }
+
+    private function formatDeliveryDateInput($pr)
+    {
+        $canEdit = in_array(auth()->user()->role, ['super_admin', 'admin_procurement']);
+
+        if (!$canEdit) {
+            return $pr->delivery_date ? $pr->delivery_date->format('d M Y') : '-';
+        }
+
+        return '<input type="date" class="form-control form-control-sm delivery-date-input"
+                data-id="' .
+            $pr->id .
+            '"
+                value="' .
+            ($pr->delivery_date ? $pr->delivery_date->format('Y-m-d') : '') .
+            '"
+                style="width: 150px;">';
     }
 
     /**

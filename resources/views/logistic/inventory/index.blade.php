@@ -471,7 +471,7 @@
                 table.ajax.reload();
             });
 
-            // ✨ Debounce function
+            // Debounce function
             function debounce(func, wait) {
                 let timeout;
                 return function() {

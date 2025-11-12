@@ -177,7 +177,7 @@
                     </div>
                 @endif
 
-                <!-- ✨ BARU: Filter Form (sesuai Goods Out) -->
+                <!-- Filter Form -->
                 <div class="mb-3">
                     <form id="filter-form" class="row g-1">
                         <div class="col-md-2">
@@ -209,7 +209,7 @@
                     </form>
                 </div>
 
-                <!-- ✨ BARU: DataTable dengan Server-Side Processing -->
+                <!-- DataTable dengan Server-Side Processing -->
                 <div class="table-responsive">
                     <table class="table table-hover table-sm align-middle" id="datatable">
                         <thead class="table-light text-nowrap">
@@ -238,7 +238,7 @@
 @push('scripts')
     <script>
         $(document).ready(function() {
-            // ✨ Initialize DataTable dengan server-side processing
+            // Initialize DataTable dengan server-side processing
             const table = $('#datatable').DataTable({
                 processing: false,
                 serverSide: true,
@@ -323,7 +323,7 @@
                 }
             });
 
-            // ✨ Filter functionality
+            // Filter functionality
             $('#location_filter, #status_filter').on('change', function() {
                 table.ajax.reload();
             });
@@ -332,14 +332,14 @@
                 table.ajax.reload();
             }, 500));
 
-            // ✨ Reset filters
+            // Reset filters
             $('#reset-filters').on('click', function() {
                 $('#location_filter, #status_filter').val('').trigger('change');
                 $('#custom-search').val('');
                 table.ajax.reload();
             });
 
-            // ✨ Debounce function
+            // Debounce function
             function debounce(func, wait) {
                 let timeout;
                 return function() {
@@ -348,7 +348,7 @@
                 };
             }
 
-            // ✨ Delete functionality dengan AJAX
+            // Delete functionality dengan AJAX
             $(document).on('click', '.btn-delete', function() {
                 const id = $(this).data('id');
                 const name = $(this).data('name');
@@ -413,7 +413,7 @@
                 });
             });
 
-            // ✨ Initialize Select2
+            // Initialize Select2
             $('.select2').select2({
                 theme: 'bootstrap-5',
                 placeholder: function() {
@@ -429,10 +429,10 @@
                 }, 100);
             });
 
-            // ✨ Initialize Bootstrap Tooltip
+            // Initialize Bootstrap Tooltip
             $('[data-bs-toggle="tooltip"]').tooltip();
 
-            // ✨ Auto-dismiss alerts
+            // Auto-dismiss alerts
             setTimeout(() => {
                 $('.alert').fadeOut('slow');
             }, 5000);

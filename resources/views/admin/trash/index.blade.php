@@ -25,7 +25,7 @@
                             </button>
                         </form>
 
-                        <!-- ✨ BARU: Additional Actions -->
+                        <!-- Additional Actions -->
                         <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal"
                             data-bs-target="#deleteByDateModal">
                             <i class="bi bi-calendar-x me-1"></i> Delete by Date
@@ -198,7 +198,7 @@
         </div>
     </div>
 
-    <!-- ✨ BARU: Delete by Date Range Modal -->
+    <!-- Delete by Date Range Modal -->
     <div class="modal fade" id="deleteByDateModal" tabindex="-1" aria-labelledby="deleteByDateLabel"
         aria-hidden="true">
         <div class="modal-dialog">
@@ -233,7 +233,7 @@
         </div>
     </div>
 
-    <!-- ✨ BARU: Purge Old Trash Modal -->
+    <!-- Purge Old Trash Modal -->
     <div class="modal fade" id="purgeOldModal" tabindex="-1" aria-labelledby="purgeOldLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -332,7 +332,7 @@
                 }
             });
 
-            // ✨ BARU: Delete by Date Range
+            // Delete by Date Range
             $('#confirmDeleteByDateBtn').on('click', function() {
                 const formData = $('#deleteByDateForm').serialize();
 
@@ -370,7 +370,7 @@
                 });
             });
 
-            // ✨ BARU: Purge Old Trash
+            // Purge Old Trash
             $('#confirmPurgeBtn').on('click', function() {
                 const days = $('#purgeDays').val();
 

@@ -13,13 +13,12 @@ return new class extends Migration
             $table->id();
             $table->foreignId('department_id')->constrained()->onDelete('cascade');
             $table->date('movement_date');
-            
-            // ✨ NEW FIELDS
+
             $table->enum('movement_type', ['Handcarry', 'Courier'])->default('Handcarry');
             $table->string('movement_type_value')->nullable(); // e.g., "Basuki", "JNT"
             $table->enum('origin', ['SG', 'BT', 'CN', 'Other'])->default('Other');
             $table->enum('destination', ['SG', 'BT', 'CN', 'Other'])->default('Other');
-            
+
             $table->string('sender');
             $table->string('receiver');
             $table->enum('status', ['Pending', 'Received'])->default('Pending');

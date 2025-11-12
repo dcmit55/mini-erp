@@ -250,12 +250,12 @@
         $(document).ready(function() {
             let isSubmitting = false;
 
-            // ✨ DISABLE Request By inputs
+            // DISABLE Request By inputs
             function disableRequestByInputs() {
                 $('.request-by-input').prop('disabled', true).attr('disabled', 'disabled');
             }
 
-            // ✨ LOAD Related Items saat project berubah
+            // LOAD Related Items saat project berubah
             function loadRelatedItems(projectId) {
                 if (!projectId) {
                     // Clear related items jika project kosong

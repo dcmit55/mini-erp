@@ -1236,7 +1236,7 @@
                 });
             }
 
-            // ✨ BARU: SKILLSETS FUNCTIONALITY
+            // SKILLSETS FUNCTIONALITY
             $(document).ready(function() {
                 // Initialize Select2 for skillsets
                 $('.select2-skillsets').select2({
@@ -1277,7 +1277,7 @@
                     return skillset.text;
                 }
 
-                // ✨ Load existing skillsets on page load
+                // Load existing skillsets on page load
                 updateSkillsetDetails();
 
                 // Handle skillset selection change
@@ -1303,7 +1303,7 @@
                         const proficiency = $(skillset.element).data('proficiency');
                         const category = $(skillset.element).data('category');
 
-                        // ✨ Get existing data from employee (if editing)
+                        // Get existing data from employee (if editing)
                         const existingSkillset = @json($employee->skillsets->keyBy('id'));
                         const existingData = existingSkillset[skillsetId];
                         const currentProficiency = existingData ? existingData.pivot
