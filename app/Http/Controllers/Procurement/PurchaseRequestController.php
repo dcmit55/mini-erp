@@ -370,15 +370,15 @@ class PurchaseRequestController extends Controller
     private function formatQtyToBuyEditable($pr)
     {
         return '<input type="number" class="form-control form-control-sm qty-to-buy-input"
-                data-id="' .
+            data-id="' .
             $pr->id .
             '"
-                value="' .
-            ($pr->qty_to_buy ?? '') .
+            value="' .
+            ($pr->qty_to_buy ?? $pr->required_quantity) .
             '"
-                min="0"
-                step="0.01"
-                style="width: 100px;">';
+            min="0"
+            step="0.01"
+            style="width: 100px;">';
     }
 
     private function formatSupplierSelect($pr)
@@ -544,49 +544,30 @@ class PurchaseRequestController extends Controller
 
         foreach ($request->requests as $key => $requestData) {
             try {
-                // Skip if empty data - safety check
-                if (empty($requestData['type'])) {
-                    continue;
+                // Prepare data
+                $data = [
+                    'type' => $requestData['type'],
+                    'material_name' => $requestData['type'] === 'restock' ? Inventory::find($requestData['inventory_id'])->name : $requestData['material_name'],
+                    'inventory_id' => $requestData['type'] === 'restock' ? $requestData['inventory_id'] : null,
+                    'required_quantity' => $requestData['required_quantity'],
+                    'qty_to_buy' => $requestData['required_quantity'], // ← AUTO-FILL dengan required_quantity
+                    'unit' => $requestData['unit'],
+                    'stock_level' => $requestData['stock_level'] ?? null,
+                    'project_id' => $requestData['project_id'] ?? null,
+                    'remark' => $requestData['remark'] ?? null,
+                    'requested_by' => Auth::id(),
+                    'approval_status' => 'Pending',
+                ];
+
+                // Handle image upload
+                if (isset($requestData['img']) && $requestData['img']) {
+                    $data['img'] = $requestData['img']->store('purchase_requests', 'public');
                 }
 
-                // For new_material type, check if it already exists
-                if ($requestData['type'] === 'new_material') {
-                    $exists = Inventory::whereRaw('LOWER(name) = ?', [strtolower($requestData['material_name'])])->exists();
-                    if ($exists) {
-                        $errors[] = 'Row ' . ($key + 1) . ": Material '{$requestData['material_name']}' already exists in inventory.";
-                        continue;
-                    }
-                }
-
-                $data = $requestData;
-
-                // For restock type, get material name, unit, and stock level from inventory
-                if ($requestData['type'] === 'restock' && !empty($requestData['inventory_id'])) {
-                    $inventory = Inventory::find($requestData['inventory_id']);
-                    $data['material_name'] = $inventory->name;
-                    $data['unit'] = $inventory->unit;
-                    $data['stock_level'] = $inventory->quantity;
-                }
-
-                // Auto-fill qty_to_buy with required_quantity
-                $data['qty_to_buy'] = $data['required_quantity'] ?? null;
-
-                // Handle image upload if present
-                if (isset($request->file('requests')[$key]['img'])) {
-                    $file = $request->file('requests')[$key]['img'];
-                    $data['img'] = $file->store('purchase_requests', 'public');
-                }
-
-                // Add the user ID
-                $data['requested_by'] = Auth::id();
-
-                $data['approval_status'] = 'Pending'; // Set default status
-
-                // Create the purchase request
                 PurchaseRequest::create($data);
                 $successCount++;
             } catch (\Exception $e) {
-                $errors[] = 'Error in row ' . ($key + 1) . ': ' . $e->getMessage();
+                $errors[] = 'Row ' . ($key + 1) . ': ' . $e->getMessage();
             }
         }
 
@@ -664,6 +645,13 @@ class PurchaseRequestController extends Controller
             $data['material_name'] = $inventory->name;
             $data['unit'] = $inventory->unit;
             $data['stock_level'] = $inventory->quantity;
+        }
+
+        // Jika required_quantity berubah dan qty_to_buy tidak diset manual, ikuti required_quantity
+        if ($request->filled('required_quantity')) {
+            if (!$request->filled('qty_to_buy') || $data['qty_to_buy'] === null) {
+                $data['qty_to_buy'] = $request->required_quantity;
+            }
         }
 
         if ($request->hasFile('img')) {

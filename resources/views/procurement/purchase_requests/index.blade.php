@@ -609,6 +609,7 @@
                 const id = $input.data('id');
                 const newValue = $input.val();
                 const $cell = $input.closest('.material-name-cell');
+                const type = $cell.data('type'); // Get the type dari cell
 
                 $.ajax({
                     url: '/purchase_requests/' + id + '/quick-update',
@@ -619,12 +620,26 @@
                     },
                     success: function() {
                         $cell.data('value', newValue);
-                        $cell.html(`
-                        <div class="d-flex align-items-center gap-1">
-                            <i class="bi bi-info-circle text-secondary" style="cursor: pointer;"></i>
-                            <span class="material-name-text">${newValue}</span>
-                        </div>
-                    `);
+
+                        // Hanya tambahkan icon jika tipe adalah 'restock'
+                        if (type === 'restock') {
+                            $cell.html(`
+                                <div class="d-flex align-items-center gap-1">
+                                    <i class="bi bi-info-circle text-secondary" style="cursor: pointer;"
+                                    data-bs-toggle="tooltip" data-bs-placement="bottom"
+                                    title="Current stock info"></i>
+                                    <span class="material-name-text">${newValue}</span>
+                                </div>
+                            `);
+                        } else {
+                            // Untuk new_material, tidak perlu icon
+                            $cell.html(`
+                                <div class="d-flex align-items-center gap-1">
+                                    <span class="material-name-text">${newValue}</span>
+                                </div>
+                            `);
+                        }
+
                         $('[data-bs-toggle="tooltip"]').tooltip();
                     },
                     error: function(xhr) {
