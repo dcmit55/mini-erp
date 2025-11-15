@@ -74,7 +74,9 @@
                             </div>
                             <div class="col-md-1">
                                 <label class="form-label text-muted mb-0">Qty To Buy</label>
-                                <div class="fw-semibold">{{ $pre->purchaseRequest->required_quantity }}</div>
+                                <div class="fw-semibold">
+                                    {{ $pre->purchaseRequest->qty_to_buy ?? $pre->purchaseRequest->required_quantity }}
+                                </div>
                             </div>
                             <div class="col-md-1">
                                 <label class="form-label text-muted mb-0">Unit Type</label>

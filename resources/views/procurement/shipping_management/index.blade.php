@@ -60,7 +60,8 @@
                                                     </div>
                                                     <div class="col-md-1">
                                                         <span class="text-muted">Qty To Buy:</span>
-                                                        <div>{{ $detail->preShipping->purchaseRequest->required_quantity }}
+                                                        <div>
+                                                            {{ $detail->preShipping->purchaseRequest->qty_to_buy ?? $detail->preShipping->purchaseRequest->required_quantity }}
                                                         </div>
                                                     </div>
                                                     <div class="col-md-1">

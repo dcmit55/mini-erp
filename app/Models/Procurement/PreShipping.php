@@ -72,15 +72,16 @@ class PreShipping extends Model
 
     private function calculateByQuantity($groupItems, $totalCost)
     {
+        // PERUBAHAN: Gunakan qty_to_buy bukan required_quantity
         $totalQuantity = $groupItems->sum(function ($item) {
-            return $item->purchaseRequest->required_quantity ?? 0;
+            return $item->purchaseRequest->qty_to_buy ?? ($item->purchaseRequest->required_quantity ?? 0);
         });
 
         if ($totalQuantity <= 0) {
             return 0;
         }
 
-        $myQuantity = $this->purchaseRequest->required_quantity ?? 0;
+        $myQuantity = $this->purchaseRequest->qty_to_buy ?? ($this->purchaseRequest->required_quantity ?? 0);
         return ($myQuantity / $totalQuantity) * $totalCost;
     }
 
@@ -92,8 +93,9 @@ class PreShipping extends Model
 
     private function calculateByValue($groupItems, $totalCost)
     {
+        // PERUBAHAN: Gunakan qty_to_buy bukan required_quantity untuk perhitungan value
         $totalValue = $groupItems->sum(function ($item) {
-            $qty = $item->purchaseRequest->required_quantity ?? 0;
+            $qty = $item->purchaseRequest->qty_to_buy ?? ($item->purchaseRequest->required_quantity ?? 0);
             $price = $item->purchaseRequest->price_per_unit ?? 0;
             return $qty * $price;
         });
@@ -102,7 +104,7 @@ class PreShipping extends Model
             return 0;
         }
 
-        $myQty = $this->purchaseRequest->required_quantity ?? 0;
+        $myQty = $this->purchaseRequest->qty_to_buy ?? ($this->purchaseRequest->required_quantity ?? 0);
         $myPrice = $this->purchaseRequest->price_per_unit ?? 0;
         $myValue = $myQty * $myPrice;
 

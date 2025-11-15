@@ -231,7 +231,7 @@
                                         <tr>
                                             <th>Material Name</th>
                                             <th>Project</th>
-                                            <th>Required Qty</th>
+                                            <th>Qty to Buy</th>
                                             <th>Unit Price</th>
                                             <th>Total Value</th>
                                             <th
@@ -257,7 +257,8 @@
                                                     <span class="fw-semibold text-primary" data-bs-toggle="tooltip"
                                                         data-bs-placement="right"
                                                         title="{{ $item->purchaseRequest->unit }}">
-                                                        {{ rtrim(rtrim(number_format($item->purchaseRequest->required_quantity, 3, '.', ''), '0'), '.') }}
+                                                        {{-- PERUBAHAN: Gunakan qty_to_buy bukan required_quantity --}}
+                                                        {{ rtrim(rtrim(number_format($item->purchaseRequest->qty_to_buy ?? $item->purchaseRequest->required_quantity, 3, '.', ''), '0'), '.') }}
                                                     </span>
                                                 </td>
                                                 <td>

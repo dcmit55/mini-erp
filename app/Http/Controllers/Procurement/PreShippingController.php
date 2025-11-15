@@ -61,7 +61,7 @@ class PreShippingController extends Controller
                     PreShipping::create([
                         'purchase_request_id' => $request->id,
                         'group_key' => $groupKey,
-                        'cost_allocation_method' => 'value', // **UBAH DEFAULT KE 'value'**
+                        'cost_allocation_method' => 'value', // **DEFAULT KE 'value'**
                     ]);
                 } else {
                     // Jika sudah ada, JANGAN override cost_allocation_method
@@ -101,11 +101,13 @@ class PreShippingController extends Controller
                 // Items sudah ter-eager load, tidak perlu query lagi
                 'items' => $group,
                 'total_items' => $group->count(),
+                // PERUBAHAN: Gunakan qty_to_buy bukan required_quantity untuk total quantity
                 'total_quantity' => $group->sum(function ($item) {
-                    return $item->purchaseRequest->required_quantity ?? 0;
+                    return $item->purchaseRequest->qty_to_buy ?? ($item->purchaseRequest->required_quantity ?? 0);
                 }),
+                // PERUBAHAN: Gunakan qty_to_buy untuk perhitungan total value
                 'total_value' => $group->sum(function ($item) {
-                    $qty = $item->purchaseRequest->required_quantity ?? 0;
+                    $qty = $item->purchaseRequest->qty_to_buy ?? ($item->purchaseRequest->required_quantity ?? 0);
                     $price = $item->purchaseRequest->price_per_unit ?? 0;
                     return $qty * $price;
                 }),
@@ -175,8 +177,9 @@ class PreShippingController extends Controller
                 // Jika tidak ada percentages, set default yang reasonable
                 elseif (!$request->has('percentages') || empty(array_filter($request->percentages))) {
                     // Auto-distribute percentage berdasarkan value ratio
+                    // PERUBAHAN: Gunakan qty_to_buy untuk perhitungan
                     $totalValue = $groupItems->sum(function ($item) {
-                        $qty = $item->purchaseRequest->required_quantity ?? 0;
+                        $qty = $item->purchaseRequest->qty_to_buy ?? ($item->purchaseRequest->required_quantity ?? 0);
                         $price = $item->purchaseRequest->price_per_unit ?? 0;
                         return $qty * $price;
                     });
@@ -184,7 +187,8 @@ class PreShippingController extends Controller
                     $autoPercentages = [];
                     if ($totalValue > 0) {
                         foreach ($groupItems as $item) {
-                            $itemValue = ($item->purchaseRequest->required_quantity ?? 0) * ($item->purchaseRequest->price_per_unit ?? 0);
+                            $itemQty = $item->purchaseRequest->qty_to_buy ?? ($item->purchaseRequest->required_quantity ?? 0);
+                            $itemValue = $itemQty * ($item->purchaseRequest->price_per_unit ?? 0);
                             $autoPercentages[] = ($itemValue / $totalValue) * 100;
                         }
                     } else {
