@@ -8,6 +8,7 @@ use App\Models\Logistic\Inventory;
 use App\Models\Logistic\Unit;
 use App\Models\Production\Project;
 use App\Models\Procurement\Supplier;
+use App\Models\Procurement\LocationSupplier;
 use App\Models\Finance\Currency;
 use App\Models\Admin\User;
 use App\Models\Admin\Department;
@@ -36,8 +37,9 @@ class PurchaseRequestController extends Controller
         $suppliers = Supplier::orderBy('name')->get();
         $currencies = Currency::orderBy('name')->get();
         $projects = Project::orderBy('name')->get();
+        $locations = LocationSupplier::orderBy('name')->get();
 
-        return view('procurement.purchase_requests.index', compact('suppliers', 'currencies', 'projects'));
+        return view('procurement.purchase_requests.index', compact('suppliers', 'currencies', 'projects', 'locations'));
     }
 
     /**

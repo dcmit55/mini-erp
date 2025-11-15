@@ -137,6 +137,12 @@
                         <a href="{{ route('purchase_requests.create') }}" class="btn btn-primary btn-sm flex-shrink-0">
                             <i class="bi bi-plus-circle me-1"></i> Create Request
                         </a>
+                        @if (in_array(auth()->user()->role, ['super_admin', 'admin_procurement', 'admin_logistic', 'admin']))
+                            <button type="button" class="btn btn-outline-success btn-sm flex-shrink-0"
+                                data-bs-toggle="modal" data-bs-target="#addSupplierModal">
+                                <i class="bi bi-plus-circle me-1"></i> Quick Add Supplier
+                            </button>
+                        @endif
                     </div>
                 </div>
 
@@ -164,7 +170,7 @@
                 <div class="mb-3">
                     <form id="filter-form" class="row g-1">
                         <div class="col-md-2">
-                            <select id="type_filter" class="form-select form-select-sm select2">
+                            <select id="type_filter" class="form-select form-select-sm">
                                 <option value="">All Types</option>
                                 <option value="new_material">New Material</option>
                                 <option value="restock">Restock</option>
@@ -173,25 +179,19 @@
                         <div class="col-md-2">
                             <select id="project_filter" class="form-select form-select-sm select2">
                                 <option value="">All Projects</option>
-                                @foreach ($projects as $project)
-                                    <option value="{{ $project->id }}">{{ $project->name }}</option>
-                                @endforeach
                             </select>
                         </div>
                         <div class="col-md-2">
                             <select id="supplier_filter" class="form-select form-select-sm select2">
                                 <option value="">All Suppliers</option>
-                                @foreach ($suppliers as $supplier)
-                                    <option value="{{ $supplier->id }}">{{ $supplier->name }}</option>
-                                @endforeach
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <select id="approval_filter" class="form-select form-select-sm select2">
+                            <select id="approval_filter" class="form-select form-select-sm">
                                 <option value="">All Status</option>
-                                <option value="Approved">Approved</option>
-                                <option value="Decline">Declined</option>
                                 <option value="Pending">Pending</option>
+                                <option value="Approved">Approved</option>
+                                <option value="Decline">Decline</option>
                             </select>
                         </div>
                         <div class="col-md-3">
@@ -249,6 +249,66 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Modal Add Supplier -->
+                <div class="modal fade" id="addSupplierModal" tabindex="-1" aria-labelledby="addSupplierModalLabel"
+                    aria-hidden="true">
+                    <div class="modal-dialog">
+                        <form id="supplierForm" method="POST" action="{{ route('suppliers.quick_store') }}">
+                            @csrf
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="addSupplierModalLabel">
+                                        <i class="bi bi-plus-circle me-2"></i>Quick Add Supplier
+                                    </h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                        aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div id="supplier-error" class="alert alert-danger d-none"></div>
+
+                                    <!-- Supplier Name -->
+                                    <div class="mb-3">
+                                        <label for="supplier_name" class="form-label">Supplier Name <span
+                                                class="text-danger">*</span></label>
+                                        <input type="text" id="supplier_name" name="name" class="form-control"
+                                            required>
+                                    </div>
+
+                                    <!-- Location -->
+                                    <div class="mb-3">
+                                        <label for="supplier_location_id" class="form-label">Supplier Location <span
+                                                class="text-danger">*</span></label>
+                                        <select id="supplier_location_id" name="location_id" class="form-select select2"
+                                            required>
+                                            <option value="">Select Location</option>
+                                            @foreach ($locations ?? [] as $location)
+                                                <option value="{{ $location->id }}">{{ $location->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+
+                                    <!-- Lead Time Days -->
+                                    <div class="mb-3">
+                                        <label for="supplier_lead_time" class="form-label">Lead Time (Days) <span
+                                                class="text-danger">*</span></label>
+                                        <input type="number" id="supplier_lead_time" name="lead_time_days"
+                                            class="form-control" min="1" required>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary"
+                                        data-bs-dismiss="modal">Close</button>
+                                    <button type="submit" class="btn btn-success" id="supplier-submit-btn">
+                                        <span class="spinner-border spinner-border-sm me-2 d-none" role="status"
+                                            aria-hidden="true"></span>
+                                        Add Supplier
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -257,6 +317,9 @@
 @push('scripts')
     <script>
         $(document).ready(function() {
+            // Ambil locations untuk modal
+            const locations = @json($locations ?? []);
+
             // Initialize DataTable dengan server-side processing
             const table = $('#datatable').DataTable({
                 processing: false,
@@ -313,8 +376,7 @@
                     },
                     {
                         data: 'approval_status',
-                        name: 'approval_status',
-                        orderable: false
+                        name: 'approval_status'
                     },
                     {
                         data: 'delivery_date',
@@ -432,23 +494,20 @@
                 }).then((result) => {
                     if (result.isConfirmed) {
                         $.ajax({
-                            url: `/purchase_requests/${id}`,
+                            url: '/purchase_requests/' + id,
                             method: 'DELETE',
-                            data: {
-                                _token: '{{ csrf_token() }}'
+                            headers: {
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
                             },
-                            success: function(response) {
-                                Swal.fire(
-                                    'Deleted!',
-                                    `<b>${name}</b> has been deleted.`,
-                                    'success'
-                                );
-                                table.ajax.reload(null, false);
+                            success: function() {
+                                Swal.fire('Deleted!',
+                                    'Purchase request deleted successfully',
+                                    'success');
+                                table.ajax.reload();
                             },
                             error: function(xhr) {
-                                let errorMsg = xhr.responseJSON?.message ||
-                                    'Failed to delete';
-                                Swal.fire('Error!', errorMsg, 'error');
+                                Swal.fire('Error', 'Failed to delete purchase request',
+                                    'error');
                             }
                         });
                     }
@@ -491,8 +550,7 @@
                     if ($cell.find('input').length) return;
 
                     $cell.html(`
-                        <input type="text" class="form-control form-control-sm material-name-edit-input"
-                            data-id="${id}" value="${currentValue}" style="width:100%;">
+                        <input type="text" class="form-control form-control-sm material-name-edit-input" data-id="${id}" value="${currentValue}">
                     `);
                     $cell.find('input').focus().select();
                 });
@@ -502,10 +560,8 @@
                     saveMaterialNameInline($(this));
                 });
                 $(document).on('keydown', '.material-name-edit-input', function(e) {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        $(this).blur();
-                    }
+                    if (e.key === 'Enter') saveMaterialNameInline($(this));
+                    if (e.key === 'Escape') location.reload();
                 });
 
                 // Double-click handler untuk remark
@@ -518,8 +574,7 @@
                     if ($cell.find('textarea').length) return;
 
                     $cell.html(`
-                        <textarea class="form-control form-control-sm remark-edit-input"
-                            data-id="${id}" style="min-width:150px; max-width:300px;">${currentValue}</textarea>
+                        <textarea class="form-control form-control-sm remark-edit-input" data-id="${id}" rows="2">${currentValue}</textarea>
                     `);
                     $cell.find('textarea').focus();
                 });
@@ -529,10 +584,7 @@
                     saveRemarkInline($(this));
                 });
                 $(document).on('keydown', '.remark-edit-input', function(e) {
-                    if (e.ctrlKey && e.key === 'Enter') {
-                        e.preventDefault();
-                        $(this).blur();
-                    }
+                    if (e.ctrlKey && e.key === 'Enter') saveRemarkInline($(this));
                 });
 
                 // Qty to buy change
@@ -594,12 +646,12 @@
                     }),
                     success: function(response) {
                         if (response.success) {
-                            // Optional: show success toast
+                            // Optional: Show brief success message
                             console.log('Updated successfully');
                         }
                     },
                     error: function(xhr) {
-                        Swal.fire('Error', xhr.responseJSON?.message || 'Failed to update', 'error');
+                        Swal.fire('Error', 'Failed to update', 'error');
                     }
                 });
             }
@@ -609,42 +661,20 @@
                 const id = $input.data('id');
                 const newValue = $input.val();
                 const $cell = $input.closest('.material-name-cell');
-                const type = $cell.data('type'); // Get the type dari cell
 
                 $.ajax({
                     url: '/purchase_requests/' + id + '/quick-update',
                     method: 'POST',
                     data: {
-                        material_name: newValue,
-                        _token: '{{ csrf_token() }}'
+                        _token: '{{ csrf_token() }}',
+                        material_name: newValue
                     },
                     success: function() {
-                        $cell.data('value', newValue);
-
-                        // Hanya tambahkan icon jika tipe adalah 'restock'
-                        if (type === 'restock') {
-                            $cell.html(`
-                                <div class="d-flex align-items-center gap-1">
-                                    <i class="bi bi-info-circle text-secondary" style="cursor: pointer;"
-                                    data-bs-toggle="tooltip" data-bs-placement="bottom"
-                                    title="Current stock info"></i>
-                                    <span class="material-name-text">${newValue}</span>
-                                </div>
-                            `);
-                        } else {
-                            // Untuk new_material, tidak perlu icon
-                            $cell.html(`
-                                <div class="d-flex align-items-center gap-1">
-                                    <span class="material-name-text">${newValue}</span>
-                                </div>
-                            `);
-                        }
-
+                        $cell.html('<span class="material-name-text">' + newValue + '</span>');
                         $('[data-bs-toggle="tooltip"]').tooltip();
                     },
                     error: function(xhr) {
-                        Swal.fire('Error', xhr.responseJSON?.message || 'Failed to update', 'error');
-                        $cell.html(`<span>${$cell.data('value')}</span>`);
+                        Swal.fire('Error', 'Failed to save material name', 'error');
                     }
                 });
             }
@@ -659,26 +689,117 @@
                     url: '/purchase_requests/' + id + '/quick-update',
                     method: 'POST',
                     data: {
-                        remark: newValue,
-                        _token: '{{ csrf_token() }}'
+                        _token: '{{ csrf_token() }}',
+                        remark: newValue
                     },
                     success: function() {
-                        $cell.data('value', newValue);
-                        if (newValue && /^https?:\/\/\S+$/i.test(newValue)) {
-                            $cell.html(`<a href="${newValue}" target="_blank">${newValue}</a>`);
-                        } else {
-                            $cell.html(`<span>${newValue || '-'}</span>`);
-                        }
+                        $cell.html('<span>' + (newValue ? newValue.substring(0, 30) : '-') + '</span>');
                     },
                     error: function(xhr) {
-                        Swal.fire('Error', xhr.responseJSON?.message || 'Failed to update', 'error');
-                        $cell.html(`<span>${$cell.data('value') || '-'}</span>`);
+                        Swal.fire('Error', 'Failed to save remark', 'error');
                     }
                 });
             }
 
             // Initialize on page load
             initializeInlineEdits();
+
+            // ===== QUICK ADD SUPPLIER HANDLER =====
+            $('#supplierForm').on('submit', function(e) {
+                e.preventDefault();
+                let form = $(this);
+                let errorDiv = $('#supplier-error');
+                let submitBtn = $('#supplier-submit-btn');
+                let spinner = submitBtn.find('.spinner-border');
+
+                errorDiv.hide().addClass('d-none').text('');
+                submitBtn.prop('disabled', true);
+                spinner.removeClass('d-none');
+
+                $.ajax({
+                    url: form.attr('action'),
+                    method: 'POST',
+                    data: form.serialize(),
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    success: function(response) {
+                        if (response.success && response.supplier) {
+                            // Reset form
+                            form[0].reset();
+                            errorDiv.hide().addClass('d-none');
+
+                            // ✅ KEY LOGIC: Update semua supplier-select di table dengan opsi baru
+                            const newOption = new Option(response.supplier.name, response
+                                .supplier.id, false, false);
+
+                            // Update semua supplier-select instances di DataTable
+                            $('.supplier-select').each(function() {
+                                $(this).append(newOption);
+                                // Trigger change agar Select2 refresh
+                                $(this).trigger('change');
+                            });
+
+                            // Update supplier filter Select2 jika ada
+                            const filterOption = new Option(response.supplier.name, response
+                                .supplier.id, false, false);
+                            $('#supplier_filter').append(filterOption).trigger('change');
+
+                            // Tutup modal
+                            bootstrap.Modal.getInstance(document.getElementById(
+                                'addSupplierModal')).hide();
+
+                            // Show success message
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success',
+                                text: 'Supplier "' + response.supplier.name +
+                                    '" added successfully!',
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+                        } else {
+                            errorDiv.show().removeClass('d-none').text(response.message ||
+                                'Failed to add supplier');
+                        }
+                    },
+                    error: function(xhr) {
+                        let msg = xhr.responseJSON?.message ||
+                            'Failed to add supplier. Please try again.';
+                        errorDiv.show().removeClass('d-none').text(msg);
+
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: msg
+                        });
+                    },
+                    complete: function() {
+                        submitBtn.prop('disabled', false);
+                        spinner.addClass('d-none');
+                    }
+                });
+            });
+
+            // Initialize Select2 untuk supplier location di modal
+            $('#supplier_location_id').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Select Location',
+                allowClear: true,
+                dropdownParent: $('#addSupplierModal')
+            }).on('select2:open', function() {
+                setTimeout(function() {
+                    document.querySelector('.select2-container--open .select2-search__field')
+                        ?.focus();
+                }, 100);
+            });
+
+            // Reset modal saat ditutup
+            $('#addSupplierModal').on('hidden.bs.modal', function() {
+                $('#supplierForm')[0].reset();
+                $('#supplier-error').hide().addClass('d-none').text('');
+                $('#supplier_location_id').val(null).trigger('change');
+            });
         });
 
         // Debounce function to prevent excessive API calls
