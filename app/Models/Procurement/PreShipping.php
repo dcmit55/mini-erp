@@ -28,6 +28,11 @@ class PreShipping extends Model
         return $this->hasOne(ShippingDetail::class);
     }
 
+    public function hasBeenShipped()
+    {
+        return $this->shippingDetail()->exists();
+    }
+
     // Get all items in the same group dengan proper eager loading
     public function groupItems()
     {

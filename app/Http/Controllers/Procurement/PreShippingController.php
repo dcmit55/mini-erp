@@ -82,13 +82,17 @@ class PreShippingController extends Controller
             'purchaseRequest.project', // Eager load project
             'purchaseRequest.supplier', // Eager load supplier
             'purchaseRequest.currency', // Eager load currency
-        ])
-            ->whereDoesntHave('shippingDetail')
-            ->get();
+            'shippingDetail',
+        ])->get();
 
         // Group by group_key
-        return $preShippings->groupBy('group_key')->map(function ($group) {
+        $grouped = $preShippings->groupBy('group_key')->map(function ($group) {
             $firstItem = $group->first();
+
+            // ⭐ TAMBAHKAN pengecekan apakah group sudah shipped
+            $hasBeenShipped = $group->contains(function ($item) {
+                return $item->shippingDetail !== null;
+            });
 
             return [
                 'group_key' => $firstItem->group_key,
@@ -96,22 +100,26 @@ class PreShippingController extends Controller
                 'delivery_date' => $firstItem->purchaseRequest->delivery_date,
                 'domestic_waybill_no' => $firstItem->domestic_waybill_no,
                 'domestic_cost' => $firstItem->domestic_cost,
-                // Pastikan mengambil cost_allocation_method dari database terbaru
-                'cost_allocation_method' => $firstItem->cost_allocation_method ?? 'value', // Default ke 'value'
-                // Items sudah ter-eager load, tidak perlu query lagi
+                'cost_allocation_method' => $firstItem->cost_allocation_method ?? 'value',
                 'items' => $group,
                 'total_items' => $group->count(),
-                // PERUBAHAN: Gunakan qty_to_buy bukan required_quantity untuk total quantity
+                // Gunakan qty_to_buy untuk perhitungan total quantity
                 'total_quantity' => $group->sum(function ($item) {
                     return $item->purchaseRequest->qty_to_buy ?? ($item->purchaseRequest->required_quantity ?? 0);
                 }),
-                // PERUBAHAN: Gunakan qty_to_buy untuk perhitungan total value
+                // Gunakan qty_to_buy untuk perhitungan total value
                 'total_value' => $group->sum(function ($item) {
                     $qty = $item->purchaseRequest->qty_to_buy ?? ($item->purchaseRequest->required_quantity ?? 0);
                     $price = $item->purchaseRequest->price_per_unit ?? 0;
                     return $qty * $price;
                 }),
+                'has_been_shipped' => $hasBeenShipped, // ⭐ TAMBAHKAN FLAG INI
             ];
+        });
+
+        // Data yang belum shipped di atas, yang sudah shipped di bawah
+        return $grouped->sortBy(function ($group) {
+            return $group['has_been_shipped'] ? 1 : 0;
         });
     }
 

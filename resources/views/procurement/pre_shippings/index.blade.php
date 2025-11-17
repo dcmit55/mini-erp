@@ -119,6 +119,19 @@
             padding: 0.25rem 0.5rem;
             font-weight: 600;
         }
+
+        .shipped-group .custom-checkbox {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .shipped-group .allocation-input,
+        .shipped-group .allocation-method-select,
+        .shipped-group .percentage-input {
+            pointer-events: none;
+            background-color: #e9ecef !important;
+            cursor: not-allowed;
+        }
     </style>
 @endpush
 
@@ -144,35 +157,81 @@
                     </div>
                 </div>
             </div>
+
             <div class="card-body">
                 @foreach ($groupedPreShippings as $group)
-                    <div class="card mb-4 border-primary card-group-item" data-group="{{ $group['group_key'] }}">
+                    <div class="card mb-4 border-primary card-group-item {{ $group['has_been_shipped'] ? 'shipped-group' : '' }}"
+                        data-group="{{ $group['group_key'] }}"
+                        data-shipped="{{ $group['has_been_shipped'] ? 'true' : 'false' }}">
+
                         <!-- Group Header with Checkbox -->
                         <div class="card-header group-header">
-                            <div class="row align-items-center">
-                                <div class="col-auto">
-                                    <div class="checkbox-container">
-                                        <input type="checkbox" class="form-check-input custom-checkbox group-checkbox"
-                                            id="group-{{ $group['group_key'] }}" data-group="{{ $group['group_key'] }}">
-                                        <label class="form-check-label" for="group-{{ $group['group_key'] }}"></label>
-                                    </div>
+                            <div class="d-flex align-items-center gap-3 flex-wrap">
+                                <div class="checkbox-container flex-shrink-0">
+                                    <input type="checkbox" class="form-check-input custom-checkbox group-checkbox"
+                                        id="group-{{ $group['group_key'] }}" data-group="{{ $group['group_key'] }}"
+                                        {{ $group['has_been_shipped'] ? 'disabled' : '' }}>
                                 </div>
-                                <div class="col-md-3">
-                                    <strong>Supplier:</strong> {{ $group['supplier']->name ?? 'N/A' }}
+
+                                {{-- Supplier Name & Badge --}}
+                                <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                                    <label class="form-check-label m-0" for="group-{{ $group['group_key'] }}">
+                                        <small class="text-muted">Supplier:
+                                            <strong>{{ $group['supplier']->name ?? 'Unknown Supplier' }}</strong>
+                                        </small>
+                                    </label>
+                                    @if ($group['has_been_shipped'])
+                                        <span class="badge bg-success ms-1">
+                                            <i class="fas fa-check-circle me-1"></i>Shipped
+                                        </span>
+                                    @endif
                                 </div>
-                                <div class="col-md-2">
-                                    <strong>Delivery Date:</strong> {{ date('d M Y', strtotime($group['delivery_date'])) }}
+
+                                {{-- Vertical Divider --}}
+                                <div class="vr"></div>
+
+                                {{-- Delivery Date --}}
+                                <div class="flex-shrink-0">
+                                    <small class="text-muted">Delivery:
+                                        <strong>{{ \Carbon\Carbon::parse($group['delivery_date'])->format('d M Y') }}</strong>
+                                    </small>
                                 </div>
-                                <div class="col-md-2">
-                                    <strong>Items:</strong> {{ $group['total_items'] }}
+
+                                {{-- Vertical Divider --}}
+                                <div class="vr"></div>
+
+                                {{-- Items Count --}}
+                                <div class="flex-shrink-0">
+                                    <small class="text-muted">Items:
+                                        <strong>{{ $group['total_items'] }}</strong>
+                                    </small>
                                 </div>
-                                <div class="col-md-2">
-                                    <strong>Total Qty:</strong> {{ number_format($group['total_quantity'], 2) }}
+
+                                {{-- Vertical Divider --}}
+                                <div class="vr"></div>
+
+                                {{-- Total Qty --}}
+                                <div class="flex-shrink-0">
+                                    <small class="text-muted">Total Qty:
+                                        <strong>{{ number_format($group['total_quantity'], 2) }}</strong>
+                                    </small>
                                 </div>
-                                <div class="col-md-2">
-                                    <strong>Total Value:</strong> ${{ number_format($group['total_value'], 2) }}
+
+                                {{-- Vertical Divider --}}
+                                <div class="vr"></div>
+
+                                {{-- Total Value --}}
+                                <div class="flex-shrink-0">
+                                    <small class="text-muted">Value:
+                                        <strong>${{ number_format($group['total_value'], 2) }}</strong>
+                                    </small>
                                 </div>
-                                <div class="col-auto">
+
+                                {{-- Vertical Divider --}}
+                                <div class="vr"></div>
+
+                                {{-- Cost Method Badge (aligned to right) --}}
+                                <div class="ms-auto flex-shrink-0">
                                     <span class="badge cost-method-badge bg-info">
                                         {{ ucfirst(str_replace('_', ' ', $group['cost_allocation_method'])) }}
                                     </span>
@@ -180,6 +239,7 @@
                             </div>
                         </div>
 
+                        <!-- Card Body -->
                         <div class="card-body">
                             <!-- Group Controls -->
                             <div class="row mb-4">
@@ -190,6 +250,7 @@
                                         placeholder="Enter waybill number">
                                     <div class="auto-save-indicator"></div>
                                 </div>
+
                                 <div class="col-md-2 position-relative">
                                     <label class="form-label">Domestic Cost</label>
                                     <div class="input-group">
@@ -203,6 +264,7 @@
                                     </div>
                                     <div class="auto-save-indicator"></div>
                                 </div>
+
                                 <div class="col-md-3 position-relative">
                                     <label class="form-label">Cost Allocation Method</label>
                                     <select class="form-select allocation-input allocation-method-select"
@@ -227,7 +289,7 @@
                             <!-- Items Table -->
                             <div class="table-responsive">
                                 <table class="table table-sm align-middle table-hover">
-                                    <thead class="table-primary">
+                                    <thead class="table-primary text-nowrap">
                                         <tr>
                                             <th>Material Name</th>
                                             <th>Project</th>
@@ -257,7 +319,6 @@
                                                     <span class="fw-semibold text-primary" data-bs-toggle="tooltip"
                                                         data-bs-placement="right"
                                                         title="{{ $item->purchaseRequest->unit }}">
-                                                        {{-- PERUBAHAN: Gunakan qty_to_buy bukan required_quantity --}}
                                                         {{ rtrim(rtrim(number_format($item->purchaseRequest->qty_to_buy ?? $item->purchaseRequest->required_quantity, 3, '.', ''), '0'), '.') }}
                                                     </span>
                                                 </td>
@@ -271,7 +332,8 @@
                                                 <td>
                                                     @php
                                                         $itemValue =
-                                                            $item->purchaseRequest->required_quantity *
+                                                            ($item->purchaseRequest->qty_to_buy ??
+                                                                $item->purchaseRequest->required_quantity) *
                                                             $item->purchaseRequest->price_per_unit;
                                                         $currencyName = $item->purchaseRequest->currency->name ?? '-';
                                                     @endphp
@@ -289,7 +351,8 @@
                                                             data-group="{{ $group['group_key'] }}"
                                                             data-item-id="{{ $item->id }}"
                                                             value="{{ rtrim(rtrim(number_format($item->allocation_percentage ?? 0, 3, '.', ''), '0'), '.') }}"
-                                                            min="0" max="100" step="0.001" placeholder="0">
+                                                            min="0" max="100" step="0.001"
+                                                            placeholder="0">
                                                         <div class="auto-save-indicator"></div>
                                                     </div>
                                                 </td>
@@ -309,7 +372,8 @@
 
                             <!-- Percentage Total Validation -->
                             <div class="percentage-validation {{ $group['cost_allocation_method'] != 'percentage' ? 'd-none' : '' }}"
-                                data-group="{{ $group['group_key'] }}">
+                                data-group="{{ $group['group_key'] }}"
+                                {{ $group['has_been_shipped'] ? 'style=opacity:0.6;pointer-events:none;' : '' }}>
                                 <div class="alert alert-success">
                                     <div class="d-flex align-items-center justify-content-between">
                                         <div>
@@ -319,10 +383,13 @@
                                                     {{ rtrim(rtrim(number_format($group['items']->sum('allocation_percentage'), 3, '.', ''), '0'), '.') }}
                                                 </span>%
                                             </strong>
-                                            <small class="text-muted ms-3">(Should equal 100%)</small>
+                                            <small class="text-muted ms-3">
+                                                {{ $group['has_been_shipped'] ? '(Locked - Already Shipped)' : '(Should equal 100%)' }}
+                                            </small>
                                         </div>
                                         <button type="button" class="btn btn-sm btn-outline-primary auto-distribute-btn"
-                                            data-group="{{ $group['group_key'] }}">
+                                            data-group="{{ $group['group_key'] }}"
+                                            {{ $group['has_been_shipped'] ? 'disabled' : '' }}>
                                             <i class="fas fa-magic me-1"></i>Auto Distribute
                                         </button>
                                     </div>
