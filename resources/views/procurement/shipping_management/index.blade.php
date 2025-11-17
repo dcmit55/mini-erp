@@ -38,7 +38,7 @@
                             <tr class="detail-row" id="detail-{{ $shipping->id }}" style="display:none;">
                                 <td colspan="6">
                                     <div class="p-2">
-                                        {{-- ⭐ PERBAIKAN: Cek apakah details ada dan purchaseRequest tidak null --}}
+                                        {{-- Cek apakah details ada dan purchaseRequest tidak null --}}
                                         @forelse ($shipping->details as $detail)
                                             @if ($detail->preShipping && $detail->preShipping->purchaseRequest)
                                                 <div class="border rounded-3 mb-2 p-2" style="background:#f8f9fa;">
@@ -108,14 +108,14 @@
                                                     </div>
                                                 </div>
                                             @else
-                                                {{-- ⭐ ERROR STATE: Detail tanpa PreShipping atau PurchaseRequest --}}
+                                                {{-- Detail tanpa PreShipping atau PurchaseRequest --}}
                                                 <div class="alert alert-warning small mb-2">
                                                     <i class="fas fa-exclamation-triangle me-1"></i>
                                                     Data incomplete (missing pre-shipping or purchase request information)
                                                 </div>
                                             @endif
                                         @empty
-                                            {{-- ⭐ EMPTY STATE: Tidak ada details --}}
+                                            {{-- Tidak ada details --}}
                                             <div class="alert alert-info small mb-0">
                                                 <i class="fas fa-info-circle me-1"></i>
                                                 No shipping details available
@@ -125,7 +125,7 @@
                                 </td>
                             </tr>
                         @empty
-                            {{-- ⭐ EMPTY STATE: Tidak ada shippings --}}
+                            {{-- Tidak ada shippings --}}
                             <tr>
                                 <td colspan="6" class="text-center py-4">
                                     <i class="fas fa-inbox fa-3x text-muted mb-3"></i>

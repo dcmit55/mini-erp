@@ -38,15 +38,40 @@ class ShippingController extends Controller
             return redirect()->route('pre-shippings.index')->with('error', 'Please select at least one group');
         }
 
-        // Eager load dengan lebih teliti
-        $preShippings = PreShipping::with(['purchaseRequest.project', 'purchaseRequest.supplier', 'purchaseRequest.currency'])
+        // Cek Domestic Waybill No dan Domestic Cost
+        $preShippings = PreShipping::with(['purchaseRequest.project', 'purchaseRequest.supplier', 'purchaseRequest.currency', 'shippingDetail'])
             ->whereIn('group_key', $groupKeys)
             ->get();
 
-        // Filter out yang purchaseRequestnya null
+        // Validasi domestic_waybill_no dan domestic_cost tidak boleh kosong
         $validPreShippings = $preShippings->filter(function ($item) {
-            return $item->purchaseRequest !== null;
+            return $item->purchaseRequest !== null && !empty($item->domestic_waybill_no) && !empty($item->domestic_cost);
         });
+
+        // Jika ada yang kosong, berikan pesan error detail
+        $incompleteItems = $preShippings->filter(function ($item) {
+            return $item->purchaseRequest !== null && (empty($item->domestic_waybill_no) || empty($item->domestic_cost));
+        });
+
+        if (!$incompleteItems->isEmpty()) {
+            $incompleteList = $incompleteItems
+                ->map(function ($item) {
+                    $missing = [];
+                    if (empty($item->domestic_waybill_no)) {
+                        $missing[] = 'Domestic Waybill No';
+                    }
+                    if (empty($item->domestic_cost)) {
+                        $missing[] = 'Domestic Cost';
+                    }
+
+                    return $item->purchaseRequest->material_name . ' (' . implode(', ', $missing) . ' missing)';
+                })
+                ->implode(', ');
+
+            return redirect()
+                ->route('pre-shippings.index')
+                ->with('error', 'Cannot proceed to shipping. The following items are incomplete: ' . $incompleteList . '. Please fill in all required fields (Domestic Waybill No & Domestic Cost) before proceeding.');
+        }
 
         if ($validPreShippings->isEmpty()) {
             return redirect()->route('pre-shippings.index')->with('error', 'No valid pre-shipping data found. Some items may have been deleted.');
@@ -55,12 +80,11 @@ class ShippingController extends Controller
         // Notifikasi jika ada yang di-filter
         if ($validPreShippings->count() < $preShippings->count()) {
             $skippedCount = $preShippings->count() - $validPreShippings->count();
-            session()->flash('warning', "{$skippedCount} pre-shipping item(s) were skipped because their purchase request no longer exists.");
+            session()->flash('warning', "{$skippedCount} pre-shipping item(s) were skipped.");
         }
 
         $freightCompanies = ['DHL', 'FedEx', 'Maersk', 'CMA CGM'];
 
-        // Pass validPreShippings saja
         return view('procurement.shippings.create', compact('validPreShippings', 'freightCompanies'))->with('preShippings', $validPreShippings);
     }
 

@@ -9,7 +9,7 @@
         .card-header {
             background-color: #fff;
             border-bottom: 1px solid #dee2e6;
-            padding: 1.5rem;
+            padding: 0.5rem;
         }
 
         .card-header h4 {
@@ -36,7 +36,7 @@
             align-items: center;
         }
 
-        /* Time/Info Display Cards - sama seperti attendance */
+        /* Time/Info Display Cards */
         .info-display-card {
             display: flex;
             align-items: center;
@@ -47,6 +47,59 @@
             box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
             transition: all 0.3s ease;
             min-width: 180px;
+        }
+
+        /* Validation feedback styling */
+        .group-waybill-input.is-invalid,
+        .group-cost-input.is-invalid {
+            border-color: #dc3545 !important;
+            background-color: #fff5f5;
+        }
+
+        .group-waybill-input.is-invalid:focus,
+        .group-cost-input.is-invalid:focus {
+            border-color: #dc3545 !important;
+            box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25) !important;
+        }
+
+        /* Animated glow effect untuk invalid fields */
+        @keyframes pulseInvalid {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
+            }
+        }
+
+        .group-waybill-input.border-danger,
+        .group-cost-input.border-danger {
+            animation: pulseInvalid 2s infinite;
+        }
+
+        /* Valid state - remove immediately after fix */
+        .form-control.is-valid {
+            border-color: #198754;
+        }
+
+        /* Prevent modal backdrop dari mengubah scroll */
+        .swal2-shown {
+            overflow: visible !important;
+        }
+
+        .swal2-backdrop {
+            background: rgba(0, 0, 0, 0.1) !important;
+        }
+
+        /* Warning message untuk incomplete fields */
+        small.text-danger {
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
         }
 
         .info-display-card:hover {
@@ -136,10 +189,6 @@
                 width: 100%;
                 min-width: unset;
                 justify-content: center;
-            }
-
-            .card-header {
-                padding: 1rem;
             }
 
             .header-left {
@@ -407,20 +456,26 @@
                             <!-- Group Controls -->
                             <div class="row mb-4">
                                 <div class="col-md-3 position-relative">
-                                    <label class="form-label">Domestic Waybill No</label>
+                                    <label class="form-label">
+                                        Domestic Waybill No
+                                        <span class="text-danger">*</span>
+                                    </label>
                                     <input type="text" class="form-control allocation-input group-waybill-input"
                                         data-group="{{ $group['group_key'] }}" value="{{ $group['domestic_waybill_no'] }}"
-                                        placeholder="Enter waybill number">
+                                        placeholder="Enter waybill number" required>
                                     <div class="auto-save-indicator"></div>
                                 </div>
 
                                 <div class="col-md-2 position-relative">
-                                    <label class="form-label">Domestic Cost</label>
+                                    <label class="form-label">
+                                        Domestic Cost
+                                        <span class="text-danger">*</span>
+                                    </label>
                                     <div class="input-group">
                                         <input type="number" class="form-control allocation-input group-cost-input"
                                             data-group="{{ $group['group_key'] }}"
                                             value="{{ rtrim(rtrim(number_format($group['domestic_cost'] ?? 0, 3, '.', ''), '0'), '.') }}"
-                                            min="0" step="0.001" placeholder="0">
+                                            min="0" step="0.001" placeholder="0" required>
                                         <span class="input-group-text">
                                             {{ $group['items']->first()->purchaseRequest->currency->name ?? '-' }}
                                         </span>
@@ -738,6 +793,29 @@
                 $(this).removeClass('border-primary');
             });
 
+            // Clear validation error saat user mulai typing
+            $(document).on('input', '.group-waybill-input, .group-cost-input', function() {
+                const $input = $(this);
+                const value = $input.val();
+                const groupKey = $input.data('group');
+
+                // Clear error styling jika user mulai input
+                if (value && value.trim() !== '') {
+                    // Untuk waybill input
+                    if ($input.hasClass('group-waybill-input')) {
+                        if (value.trim().length > 0) {
+                            $input.removeClass('border-danger is-invalid');
+                        }
+                    }
+                    // Untuk cost input
+                    else if ($input.hasClass('group-cost-input')) {
+                        if (parseFloat(value) > 0) {
+                            $input.removeClass('border-danger is-invalid');
+                        }
+                    }
+                }
+            });
+
             // Connection status monitoring
             window.addEventListener('online', function() {
                 isOnline = true;
@@ -804,8 +882,127 @@
                     Swal.fire('Warning', 'Please select at least one group', 'warning');
                     return;
                 }
-                $('#selected-group-keys').val(JSON.stringify([...selectedGroups]));
-                $('#proceed-shipping-form').submit();
+
+                // VALIDASI CLIENT-SIDE: Cek apakah semua group punya domestic_waybill_no dan domestic_cost
+                let incompleteGroups = [];
+                let hasInvalidWaybill = false;
+                let hasInvalidCost = false;
+                let firstInvalidElement = null; // ⭐ TAMBAHKAN: Track first invalid element
+
+                selectedGroups.forEach(groupKey => {
+                    const $card = $(`.card-group-item[data-group="${groupKey}"]`);
+                    const waybill = $card.find(`.group-waybill-input[data-group="${groupKey}"]`).val();
+                    const cost = $card.find(`.group-cost-input[data-group="${groupKey}"]`).val();
+
+                    // VISUAL FEEDBACK: Add invalid class ke input yang kosong/invalid
+                    const $waybillInput = $card.find(`.group-waybill-input[data-group="${groupKey}"]`);
+                    const $costInput = $card.find(`.group-cost-input[data-group="${groupKey}"]`);
+
+                    if (!waybill || waybill.trim() === '') {
+                        incompleteGroups.push(groupKey + ' (missing Domestic Waybill No)');
+                        $waybillInput.addClass('border-danger is-invalid');
+                        hasInvalidWaybill = true;
+
+                        // ⭐ TANGKAP: First invalid element
+                        if (!firstInvalidElement) {
+                            firstInvalidElement = $waybillInput;
+                        }
+                    } else {
+                        $waybillInput.removeClass('border-danger is-invalid');
+                    }
+
+                    if (!cost || parseFloat(cost) <= 0) {
+                        incompleteGroups.push(groupKey + ' (missing/invalid Domestic Cost)');
+                        $costInput.addClass('border-danger is-invalid');
+                        hasInvalidCost = true;
+
+                        // ⭐ TANGKAP: First invalid element
+                        if (!firstInvalidElement) {
+                            firstInvalidElement = $costInput;
+                        }
+                    } else {
+                        $costInput.removeClass('border-danger is-invalid');
+                    }
+                });
+
+                // Jika ada yang incomplete, tampilkan error dengan scroll ke invalid fields
+                if (incompleteGroups.length > 0) {
+                    // ⭐ SIMPAN: Current scroll position sebelum modal muncul
+                    const currentScrollTop = $(window).scrollTop();
+
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Incomplete Data',
+                        html: '<div style="text-align: left;">' +
+                            'Cannot proceed to shipping. Please fill in the following fields:<br><br>' +
+                            '<strong style="color: #dc3545;">❌ Missing/Invalid fields:</strong><br>' +
+                            incompleteGroups.map(g => '• ' + g).join('<br>') +
+                            '<br><br><strong style="color: #0d6efd;">ℹ️ Required:</strong><br>' +
+                            '• Domestic Waybill No (cannot be empty)<br>' +
+                            '• Domestic Cost (must be greater than 0)' +
+                            '</div>',
+                        confirmButtonText: 'OK',
+                        confirmButtonColor: '#dc3545',
+                        allowOutsideClick: false, // ⭐ TAMBAHKAN: Prevent closing by clicking outside
+                        allowEscapeKey: false, // ⭐ TAMBAHKAN: Prevent closing by pressing Escape
+                        didOpen: function(modal) {
+                            // ⭐ FOCUS: Set focus ke first invalid input untuk better UX
+                            if (firstInvalidElement && firstInvalidElement.length) {
+                                setTimeout(() => {
+                                    firstInvalidElement.focus();
+                                }, 300);
+                            }
+                        }
+                    }).then((result) => {
+                        // ⭐ RESTORE: Scroll position setelah modal ditutup
+                        if (result.isConfirmed) {
+                            // Scroll ke first invalid field dengan smooth animation
+                            if (firstInvalidElement && firstInvalidElement.length) {
+                                $('html, body').animate({
+                                    scrollTop: firstInvalidElement.offset().top - 100
+                                }, 500, function() {
+                                    // ⭐ FOCUS: Set focus ke input setelah scroll selesai
+                                    firstInvalidElement.focus();
+                                    // Add highlight effect
+                                    firstInvalidElement.addClass('highlight-invalid');
+                                    setTimeout(() => {
+                                        firstInvalidElement.removeClass(
+                                            'highlight-invalid');
+                                    }, 2000);
+                                });
+                            } else {
+                                // Fallback: Restore original scroll position
+                                $(window).scrollTop(currentScrollTop);
+                            }
+                        }
+                    });
+
+                    return;
+                }
+
+                // ⭐ Jika valid, clear visual feedback dan lanjutkan proceed
+                selectedGroups.forEach(groupKey => {
+                    const $card = $(`.card-group-item[data-group="${groupKey}"]`);
+                    $card.find('.group-waybill-input, .group-cost-input').removeClass(
+                        'border-danger is-invalid');
+                });
+
+                // Jika valid, lanjutkan proceed
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Proceed to Shipping?',
+                    text: `You are about to proceed ${selectedGroups.size} group(s) to shipping.`,
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, Proceed',
+                    confirmButtonColor: '#198754',
+                    cancelButtonText: 'Cancel',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $('#selected-group-keys').val(JSON.stringify([...selectedGroups]));
+                        $('#proceed-shipping-form').submit();
+                    }
+                });
             }
 
             function handleAllocationMethodChange() {
