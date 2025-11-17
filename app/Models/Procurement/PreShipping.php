@@ -33,7 +33,6 @@ class PreShipping extends Model
         return $this->shippingDetail()->exists();
     }
 
-    // Get all items in the same group dengan proper eager loading
     public function groupItems()
     {
         return self::with(['purchaseRequest.project', 'purchaseRequest.supplier'])
@@ -41,16 +40,13 @@ class PreShipping extends Model
             ->get();
     }
 
-    // Generate group key based on supplier and delivery date
     public static function generateGroupKey($supplierId, $deliveryDate)
     {
         return 'GRP_' . $supplierId . '_' . date('Ymd', strtotime($deliveryDate));
     }
 
-    // Calculate allocated cost based on method
     public function calculateAllocatedCost()
     {
-        // Pastikan data purchase request ter-load
         if (!$this->relationLoaded('purchaseRequest')) {
             $this->load('purchaseRequest');
         }
@@ -58,7 +54,6 @@ class PreShipping extends Model
         $groupItems = $this->groupItems();
         $totalDomesticCost = $this->domestic_cost ?? 0;
 
-        // Fallback ke 'value' jika method tidak di-set
         $method = $this->cost_allocation_method ?? 'value';
 
         switch ($method) {
@@ -70,14 +65,12 @@ class PreShipping extends Model
 
             case 'value':
             default:
-                // DEFAULT KE VALUE
                 return $this->calculateByValue($groupItems, $totalDomesticCost);
         }
     }
 
     private function calculateByQuantity($groupItems, $totalCost)
     {
-        // PERUBAHAN: Gunakan qty_to_buy bukan required_quantity
         $totalQuantity = $groupItems->sum(function ($item) {
             return $item->purchaseRequest->qty_to_buy ?? ($item->purchaseRequest->required_quantity ?? 0);
         });
@@ -98,7 +91,6 @@ class PreShipping extends Model
 
     private function calculateByValue($groupItems, $totalCost)
     {
-        // PERUBAHAN: Gunakan qty_to_buy bukan required_quantity untuk perhitungan value
         $totalValue = $groupItems->sum(function ($item) {
             $qty = $item->purchaseRequest->qty_to_buy ?? ($item->purchaseRequest->required_quantity ?? 0);
             $price = $item->purchaseRequest->price_per_unit ?? 0;

@@ -15,6 +15,12 @@
                             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>
                     @endif
+                    @if (session('warning'))
+                        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                            {!! session('warning') !!}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    @endif
                     @if ($errors->any())
                         <div class="alert alert-danger alert-dismissible fade show" role="alert">
                             <strong>Whoops!</strong> There were some problems with your input.
@@ -54,69 +60,105 @@
             </div>
 
             <!-- Blok 2: Detail Data -->
-            @foreach ($preShippings as $idx => $pre)
-                <div class="card mb-3 shadow-sm">
-                    <div class="card-body">
-                        <input type="hidden" name="pre_shipping_ids[]" value="{{ $pre->id }}">
-                        <div class="row g-3 align-items-end">
-                            <div class="col-md-2">
-                                <label class="form-label text-muted mb-0">Purchase Type</label>
-                                <div class="fw-semibold">{{ ucfirst(str_replace('_', ' ', $pre->purchaseRequest->type)) }}
+            {{-- Gunakan validPreShippings bukan preShippings --}}
+            @forelse ($validPreShippings as $idx => $pre)
+                {{-- Pastikan purchaseRequest ada sebelum akses properties --}}
+                @if ($pre->purchaseRequest)
+                    <div class="card mb-3 shadow-sm">
+                        <div class="card-body">
+                            <input type="hidden" name="pre_shipping_ids[]" value="{{ $pre->id }}">
+                            <div class="row g-3 align-items-end">
+                                <div class="col-md-2">
+                                    <label class="form-label text-muted mb-0">Purchase Type</label>
+                                    <div class="fw-semibold">
+                                        {{ ucfirst(str_replace('_', ' ', $pre->purchaseRequest->type)) }}
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label text-muted mb-0">Project Name</label>
+                                    <div class="fw-semibold">
+                                        {{ $pre->purchaseRequest->project->name ?? '-' }}
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label text-muted mb-0">Material Name</label>
+                                    <div class="fw-semibold">
+                                        {{ $pre->purchaseRequest->material_name }}
+                                    </div>
+                                </div>
+                                <div class="col-md-1">
+                                    <label class="form-label text-muted mb-0">Qty To Buy</label>
+                                    <div class="fw-semibold">
+                                        {{ $pre->purchaseRequest->qty_to_buy ?? $pre->purchaseRequest->required_quantity }}
+                                    </div>
+                                </div>
+                                <div class="col-md-1">
+                                    <label class="form-label text-muted mb-0">Unit Type</label>
+                                    <div class="fw-semibold">
+                                        {{ $pre->purchaseRequest->unit }}
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label text-muted mb-0">Supplier</label>
+                                    <div class="fw-semibold">
+                                        {{ $pre->purchaseRequest->supplier->name ?? '-' }}
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label text-muted mb-0">Unit Price</label>
+                                    <div class="fw-semibold">
+                                        {{ number_format($pre->purchaseRequest->price_per_unit, 2) }}
+                                    </div>
                                 </div>
                             </div>
-                            <div class="col-md-2">
-                                <label class="form-label text-muted mb-0">Project Name</label>
-                                <div class="fw-semibold">{{ $pre->purchaseRequest->project->name ?? '-' }}</div>
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label text-muted mb-0">Material Name</label>
-                                <div class="fw-semibold">{{ $pre->purchaseRequest->material_name }}</div>
-                            </div>
-                            <div class="col-md-1">
-                                <label class="form-label text-muted mb-0">Qty To Buy</label>
-                                <div class="fw-semibold">
-                                    {{ $pre->purchaseRequest->qty_to_buy ?? $pre->purchaseRequest->required_quantity }}
+                            <div class="row g-3 mt-2">
+                                <div class="col-md-2">
+                                    <label class="form-label text-muted mb-0">Domestic WBL</label>
+                                    <div class="fw-semibold">{{ $pre->domestic_waybill_no ?? '-' }}</div>
                                 </div>
-                            </div>
-                            <div class="col-md-1">
-                                <label class="form-label text-muted mb-0">Unit Type</label>
-                                <div class="fw-semibold">{{ $pre->purchaseRequest->unit }}</div>
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label text-muted mb-0">Supplier</label>
-                                <div class="fw-semibold">{{ $pre->purchaseRequest->supplier->name ?? '-' }}</div>
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label text-muted mb-0">Unit Price</label>
-                                <div class="fw-semibold">{{ number_format($pre->purchaseRequest->price_per_unit, 2) }}
+                                <div class="col-md-2">
+                                    <label class="form-label text-muted mb-0">Domestic Cost</label>
+                                    <div class="fw-semibold">
+                                        {{ number_format($pre->domestic_cost ?? 0, 2) }}
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
-                        <div class="row g-3 mt-2">
-                            <div class="col-md-2">
-                                <label class="form-label text-muted mb-0">Domestic WBL</label>
-                                <div class="fw-semibold">{{ $pre->domestic_waybill_no }}</div>
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label text-muted mb-0">Domestic Cost</label>
-                                <div class="fw-semibold">{{ number_format($pre->domestic_cost, 2) }}</div>
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label text-muted mb-0">Percentage %</label>
-                                <input type="number" name="percentage[]" class="form-control" placeholder="Percentage %"
-                                    min="0" max="100" step="0.01">
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label text-muted mb-0">Int Cost</label>
-                                <input type="number" name="int_cost[]" class="form-control" placeholder="Int Cost"
-                                    min="0" step="0.01">
+                                <div class="col-md-2">
+                                    <label class="form-label text-muted mb-0">Percentage %</label>
+                                    <input type="number" name="percentage[]" class="form-control"
+                                        placeholder="Percentage %" min="0" max="100" step="0.01">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label text-muted mb-0">Int Cost</label>
+                                    <input type="number" name="int_cost[]" class="form-control" placeholder="Int Cost"
+                                        min="0" step="0.01">
+                                </div>
                             </div>
                         </div>
                     </div>
+                @else
+                    {{-- Item tanpa purchaseRequest --}}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Skipping pre-shipping item (purchase request not found)
+                    </div>
+                @endif
+            @empty
+                {{-- EMPTY STATE --}}
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    No valid pre-shipping data available. The selected items may have been deleted.
+                    <br>
+                    <a href="{{ route('pre-shippings.index') }}" class="btn btn-sm btn-primary mt-2">
+                        Back to Pre-Shipping
+                    </a>
                 </div>
-            @endforeach
+            @endforelse
 
-            <button class="btn btn-primary float-end mt-3" type="submit">Proceed To Shippings Management</button>
+            @if (!$validPreShippings->isEmpty())
+                <button class="btn btn-primary float-end mt-3" type="submit">
+                    Proceed To Shippings Management
+                </button>
+            @endif
         </form>
     </div>
 @endsection

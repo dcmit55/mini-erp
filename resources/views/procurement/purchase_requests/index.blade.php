@@ -224,6 +224,7 @@
                                 <th>Delivery Date</th>
                                 <th>Project</th>
                                 <th>Requested By</th>
+                                <th>Delivery Status</th>
                                 <th>Remark</th>
                                 <th>Requested At</th>
                                 <th width="120">Actions</th>
@@ -389,6 +390,37 @@
                     {
                         data: 'requested_by',
                         name: 'requested_by'
+                    },
+                    {
+                        data: 'status_badge',
+                        name: 'status',
+                        orderable: false,
+                        render: function(data, type, row) {
+                            const status = row.DT_status;
+                            let badge = '';
+
+                            switch (status) {
+                                case 'received':
+                                    badge =
+                                        '<span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>Received</span>';
+                                    break;
+                                case 'in_shipping':
+                                    badge =
+                                        '<span class="badge bg-info"><i class="fas fa-truck me-1"></i>In Shipping</span>';
+                                    break;
+                                case 'in_pre_shipping':
+                                    badge =
+                                        '<span class="badge bg-warning"><i class="fas fa-box me-1"></i>Pre-Shipping</span>';
+                                    break;
+                                case 'not_in_pre_shipping':
+                                    badge =
+                                        '<span class="badge bg-secondary"><i class="fas fa-circle me-1"></i>Draft</span>';
+                                    break;
+                                default:
+                                    badge = '<span class="badge bg-secondary">-</span>';
+                            }
+                            return badge;
+                        }
                     },
                     {
                         data: 'remark',

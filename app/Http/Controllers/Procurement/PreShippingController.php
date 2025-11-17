@@ -77,45 +77,48 @@ class PreShippingController extends Controller
 
     private function getGroupedPreShippings()
     {
-        // Eager load semua relasi yang diperlukan sekaligus
-        $preShippings = PreShipping::with([
-            'purchaseRequest.project', // Eager load project
-            'purchaseRequest.supplier', // Eager load supplier
-            'purchaseRequest.currency', // Eager load currency
-            'shippingDetail',
-        ])->get();
+        // ⭐ PERBAIKAN: Load dengan condition whereNotNull
+        $preShippings = PreShipping::with(['purchaseRequest.project', 'purchaseRequest.supplier', 'purchaseRequest.currency', 'shippingDetail'])
+            ->whereHas('purchaseRequest') // ⭐ FILTER: Hanya yang masih punya purchaseRequest
+            ->get();
 
         // Group by group_key
-        $grouped = $preShippings->groupBy('group_key')->map(function ($group) {
-            $firstItem = $group->first();
+        $grouped = $preShippings
+            ->groupBy('group_key')
+            ->map(function ($group) {
+                $firstItem = $group->first();
 
-            // ⭐ TAMBAHKAN pengecekan apakah group sudah shipped
-            $hasBeenShipped = $group->contains(function ($item) {
-                return $item->shippingDetail !== null;
-            });
+                // ⭐ CEK NULL: Jika purchaseRequest null, skip
+                if (!$firstItem->purchaseRequest) {
+                    return null;
+                }
 
-            return [
-                'group_key' => $firstItem->group_key,
-                'supplier' => $firstItem->purchaseRequest->supplier,
-                'delivery_date' => $firstItem->purchaseRequest->delivery_date,
-                'domestic_waybill_no' => $firstItem->domestic_waybill_no,
-                'domestic_cost' => $firstItem->domestic_cost,
-                'cost_allocation_method' => $firstItem->cost_allocation_method ?? 'value',
-                'items' => $group,
-                'total_items' => $group->count(),
-                // Gunakan qty_to_buy untuk perhitungan total quantity
-                'total_quantity' => $group->sum(function ($item) {
-                    return $item->purchaseRequest->qty_to_buy ?? ($item->purchaseRequest->required_quantity ?? 0);
-                }),
-                // Gunakan qty_to_buy untuk perhitungan total value
-                'total_value' => $group->sum(function ($item) {
-                    $qty = $item->purchaseRequest->qty_to_buy ?? ($item->purchaseRequest->required_quantity ?? 0);
-                    $price = $item->purchaseRequest->price_per_unit ?? 0;
-                    return $qty * $price;
-                }),
-                'has_been_shipped' => $hasBeenShipped, // ⭐ TAMBAHKAN FLAG INI
-            ];
-        });
+                $hasBeenShipped = $group->contains(function ($item) {
+                    return $item->shippingDetail !== null;
+                });
+
+                return [
+                    'group_key' => $firstItem->group_key,
+                    'supplier' => $firstItem->purchaseRequest->supplier,
+                    'delivery_date' => $firstItem->purchaseRequest->delivery_date,
+                    'domestic_waybill_no' => $firstItem->domestic_waybill_no,
+                    'domestic_cost' => $firstItem->domestic_cost,
+                    'cost_allocation_method' => $firstItem->cost_allocation_method ?? 'value',
+                    'items' => $group,
+                    'total_items' => $group->count(),
+                    'total_quantity' => $group->sum(function ($item) {
+                        return $item->purchaseRequest->qty_to_buy ?? ($item->purchaseRequest->required_quantity ?? 0);
+                    }),
+                    'total_value' => $group->sum(function ($item) {
+                        $qty = $item->purchaseRequest->qty_to_buy ?? ($item->purchaseRequest->required_quantity ?? 0);
+                        $price = $item->purchaseRequest->price_per_unit ?? 0;
+                        return $qty * $price;
+                    }),
+                    'has_been_shipped' => $hasBeenShipped,
+                ];
+            })
+            ->filter() // ⭐ HAPUS null entries dari map
+            ->values(); // ⭐ Re-index array
 
         // Data yang belum shipped di atas, yang sudah shipped di bawah
         return $grouped->sortBy(function ($group) {

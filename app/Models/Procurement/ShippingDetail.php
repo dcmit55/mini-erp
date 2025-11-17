@@ -4,6 +4,7 @@ namespace App\Models\Procurement;
 
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Procurement\PreShipping;
+use App\Models\Procurement\Shipping;
 
 class ShippingDetail extends Model
 {
@@ -12,5 +13,11 @@ class ShippingDetail extends Model
     public function preShipping()
     {
         return $this->belongsTo(PreShipping::class);
+    }
+
+    // relasi ke Shipping
+    public function shipping()
+    {
+        return $this->belongsTo(Shipping::class);
     }
 }

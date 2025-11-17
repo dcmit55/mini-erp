@@ -144,6 +144,9 @@ class PurchaseRequestController extends Controller
                 'requested_by' => $pr->user ? $pr->user->username : '-',
                 'remark' => $this->formatRemarkEditable($pr),
                 'created_at' => $pr->created_at->format('d M Y'),
+                // status untuk delete validation
+                'DT_status' => $pr->getShippingStatus(),
+                'can_delete' => !$pr->hasBeenReceived(),
                 'actions' => $this->getActionButtons($pr, $canViewUnitPrice),
                 'DT_RowId' => 'row-' . $pr->id,
             ];
@@ -260,15 +263,23 @@ class PurchaseRequestController extends Controller
                     </a>';
 
             // Delete button
+            $canDelete = !$pr->hasBeenReceived();
+            $deleteTitle = $pr->getShippingStatus() === 'received' ? 'Cannot delete: Already received' : ($pr->hasBeenShipped() ? 'Cannot delete: In shipping' : 'Delete');
+
             $buttons .=
-                '<button type="button" class="btn btn-danger btn-sm btn-delete"
+                '<button type="button"
+                        class="btn btn-danger btn-sm btn-delete"
                         data-id="' .
                 $pr->id .
                 '"
                         data-name="' .
                 $pr->material_name .
                 '"
-                        title="Delete">
+                        ' .
+                (!$canDelete ? 'disabled title="' . $deleteTitle . '"' : '') .
+                '
+                        data-bs-toggle="tooltip"
+                        data-bs-placement="bottom">
                         <i class="bi bi-trash"></i>
                     </button>';
         } else {
@@ -718,12 +729,94 @@ class PurchaseRequestController extends Controller
             return redirect()->back()->with('error', 'You do not have permission to modify purchase requests.');
         }
 
-        $purchaseRequest = PurchaseRequest::findOrFail($id);
-        $purchaseRequest->delete();
+        try {
+            $purchaseRequest = PurchaseRequest::findOrFail($id);
+            $name = $purchaseRequest->material_name;
 
-        return redirect()
-            ->route('purchase_requests.index')
-            ->with('success', 'Purchase request <strong>' . ($purchaseRequest->material_name ?? '-') . '</strong> deleted!');
+            // CEK 1: Apakah sudah ada PreShipping?
+            $preShipping = $purchaseRequest->preShipping;
+
+            if ($preShipping) {
+                // CEK 2: Apakah PreShipping sudah masuk Shipping?
+                $shippingDetail = $preShipping->shippingDetail;
+
+                if ($shippingDetail) {
+                    // CEK 3: Apakah Shipping sudah punya GoodsReceive?
+                    $shipping = \App\Models\Procurement\Shipping::find($shippingDetail->shipping_id);
+
+                    if (!$shipping) {
+                        // Shipping sudah dihapus, hapus juga ShippingDetail & PreShipping
+                        $shippingDetail->delete();
+                        $preShipping->delete();
+                    } else {
+                        $goodsReceive = \App\Models\Procurement\GoodsReceive::where('shipping_id', $shipping->id)->first();
+
+                        if ($goodsReceive) {
+                            $message = "Cannot delete <b>{$name}</b>. This purchase request has already been received on {$goodsReceive->arrived_date}. Contact admin to reverse goods receive first.";
+
+                            if (request()->ajax()) {
+                                return response()->json(['success' => false, 'message' => $message], 403);
+                            }
+
+                            return redirect()->route('purchase_requests.index')->with('error', $message);
+                        }
+
+                        // Data sudah shipping tapi belum receive
+                        $message = "Cannot delete <b>{$name}</b>. This purchase request is part of Shipping #{$shipping->id}. Please cancel the shipping first or contact admin.";
+
+                        if (request()->ajax()) {
+                            return response()->json(['success' => false, 'message' => $message], 403);
+                        }
+
+                        return redirect()->route('purchase_requests.index')->with('error', $message);
+                    }
+                }
+
+                // PreShipping ada tapi belum shipping - hapus keduanya dengan transaction
+                \DB::beginTransaction();
+                try {
+                    $preShipping->delete();
+                    $purchaseRequest->delete();
+                    \DB::commit();
+
+                    $message = "Purchase request <b>{$name}</b> deleted successfully. (Pre-shipping group was also removed)";
+
+                    if (request()->ajax()) {
+                        return response()->json(['success' => true, 'message' => $message]);
+                    }
+
+                    return redirect()->route('purchase_requests.index')->with('success', $message);
+                } catch (\Exception $e) {
+                    \DB::rollBack();
+                    throw $e;
+                }
+            }
+
+            // PreShipping belum ada - direct delete
+            $purchaseRequest->delete();
+
+            $message = "Purchase request <b>{$name}</b> deleted successfully!";
+
+            if (request()->ajax()) {
+                return response()->json(['success' => true, 'message' => $message]);
+            }
+
+            return redirect()->route('purchase_requests.index')->with('success', $message);
+        } catch (\Exception $e) {
+            \Log::error('Error deleting purchase request', [
+                'id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            $message = 'Error deleting purchase request: ' . $e->getMessage();
+
+            if (request()->ajax()) {
+                return response()->json(['success' => false, 'message' => $message], 500);
+            }
+
+            return redirect()->route('purchase_requests.index')->with('error', $message);
+        }
     }
 
     public function storeFromPlanning($planning)

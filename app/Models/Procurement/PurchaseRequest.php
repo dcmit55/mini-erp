@@ -59,6 +59,43 @@ class PurchaseRequest extends Model implements AuditableContract
 
     public function preShipping()
     {
-        return $this->hasOne(PreShipping::class);
+        return $this->hasOne(PreShipping::class, 'purchase_request_id');
+    }
+
+    public function hasBeenShipped()
+    {
+        if (!$this->preShipping) {
+            return false;
+        }
+
+        return $this->preShipping->shippingDetail !== null;
+    }
+
+    public function hasBeenReceived()
+    {
+        if (!$this->hasBeenShipped()) {
+            return false;
+        }
+
+        $shipping = \App\Models\Procurement\Shipping::find($this->preShipping->shippingDetail->shipping_id);
+
+        return \App\Models\Procurement\GoodsReceive::where('shipping_id', $shipping->id)->exists();
+    }
+
+    public function getShippingStatus()
+    {
+        if (!$this->preShipping) {
+            return 'not_in_pre_shipping';
+        }
+
+        if (!$this->preShipping->shippingDetail) {
+            return 'in_pre_shipping';
+        }
+
+        if ($this->hasBeenReceived()) {
+            return 'received';
+        }
+
+        return 'in_shipping';
     }
 }

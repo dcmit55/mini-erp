@@ -17,7 +17,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach ($shippings as $shipping)
+                        @forelse ($shippings as $shipping)
                             <tr>
                                 <td>
                                     <button class="btn btn-link btn-sm toggle-detail" data-id="{{ $shipping->id }}">
@@ -26,8 +26,8 @@
                                 </td>
                                 <td>{{ $shipping->international_waybill_no }}</td>
                                 <td>{{ $shipping->eta_to_arrived }}</td>
-                                <td>{{ $shipping->shipment_status }}</td>
-                                <td>{{ $shipping->remarks }}</td>
+                                <td>{{ $shipping->shipment_status ?? '-' }}</td>
+                                <td>{{ $shipping->remarks ?? '-' }}</td>
                                 <td>
                                     <button type="button" class="btn btn-success btn-sm btn-goods-receive"
                                         data-shipping-id="{{ $shipping->id }}">
@@ -38,64 +38,101 @@
                             <tr class="detail-row" id="detail-{{ $shipping->id }}" style="display:none;">
                                 <td colspan="6">
                                     <div class="p-2">
-                                        @foreach ($shipping->details as $detail)
-                                            <div class="border rounded-3 mb-2 p-2" style="background:#f8f9fa;">
-                                                <div class="row fw-semibold mb-1">
-                                                    <div class="col-md-2">
-                                                        <span class="text-muted">Purchase Type:</span>
-                                                        <div>
-                                                            {{ ucfirst(str_replace('_', ' ', $detail->preShipping->purchaseRequest->type)) }}
+                                        {{-- ⭐ PERBAIKAN: Cek apakah details ada dan purchaseRequest tidak null --}}
+                                        @forelse ($shipping->details as $detail)
+                                            @if ($detail->preShipping && $detail->preShipping->purchaseRequest)
+                                                <div class="border rounded-3 mb-2 p-2" style="background:#f8f9fa;">
+                                                    <div class="row fw-semibold mb-1">
+                                                        <div class="col-md-2">
+                                                            <span class="text-muted">Purchase Type:</span>
+                                                            <div>
+                                                                {{ ucfirst(str_replace('_', ' ', $detail->preShipping->purchaseRequest->type)) }}
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-2">
+                                                            <span class="text-muted">Project Name:</span>
+                                                            <div>
+                                                                {{ $detail->preShipping->purchaseRequest->project->name ?? '-' }}
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-2">
+                                                            <span class="text-muted">Material Name:</span>
+                                                            <div>
+                                                                {{ $detail->preShipping->purchaseRequest->material_name }}
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-1">
+                                                            <span class="text-muted">Qty To Buy:</span>
+                                                            <div>
+                                                                {{ $detail->preShipping->purchaseRequest->qty_to_buy ?? $detail->preShipping->purchaseRequest->required_quantity }}
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-1">
+                                                            <span class="text-muted">Unit Type:</span>
+                                                            <div>
+                                                                {{ $detail->preShipping->purchaseRequest->unit }}
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-2">
+                                                            <span class="text-muted">Supplier:</span>
+                                                            <div>
+                                                                {{ $detail->preShipping->purchaseRequest->supplier->name ?? '-' }}
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-2">
+                                                            <span class="text-muted">Unit Price:</span>
+                                                            <div>
+                                                                {{ number_format($detail->preShipping->purchaseRequest->price_per_unit, 2) }}
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                    <div class="col-md-2">
-                                                        <span class="text-muted">Project Name:</span>
-                                                        <div>
-                                                            {{ $detail->preShipping->purchaseRequest->project->name ?? '-' }}
+                                                    <div class="row mt-1">
+                                                        <div class="col-md-2 small text-muted">
+                                                            Domestic WBL:<br>
+                                                            <span class="fw-semibold">
+                                                                {{ $detail->preShipping->domestic_waybill_no ?? '-' }}
+                                                            </span>
                                                         </div>
-                                                    </div>
-                                                    <div class="col-md-2">
-                                                        <span class="text-muted">Material Name:</span>
-                                                        <div>{{ $detail->preShipping->purchaseRequest->material_name }}
+                                                        <div class="col-md-2 small text-muted">
+                                                            Domestic Cost:<br>
+                                                            <span class="fw-semibold">
+                                                                {{ number_format($detail->preShipping->domestic_cost ?? 0, 2) }}
+                                                            </span>
                                                         </div>
-                                                    </div>
-                                                    <div class="col-md-1">
-                                                        <span class="text-muted">Qty To Buy:</span>
-                                                        <div>
-                                                            {{ $detail->preShipping->purchaseRequest->qty_to_buy ?? $detail->preShipping->purchaseRequest->required_quantity }}
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-md-1">
-                                                        <span class="text-muted">Unit Type:</span>
-                                                        <div>{{ $detail->preShipping->purchaseRequest->unit }}</div>
-                                                    </div>
-                                                    <div class="col-md-2">
-                                                        <span class="text-muted">Supplier:</span>
-                                                        <div>
-                                                            {{ $detail->preShipping->purchaseRequest->supplier->name ?? '-' }}
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-md-2">
-                                                        <span class="text-muted">Unit Price:</span>
-                                                        <div>{{ $detail->preShipping->purchaseRequest->price_per_unit }}
+                                                        <div class="col-md-2 small text-muted">
+                                                            International Cost:<br>
+                                                            <span class="fw-semibold">
+                                                                {{ number_format($detail->int_cost ?? 0, 2) }}
+                                                            </span>
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div class="row mt-1">
-                                                    <div class="col-md-2 small text-muted">Domestic WBL:<br><span
-                                                            class="fw-semibold">{{ $detail->preShipping->domestic_waybill_no }}</span>
-                                                    </div>
-                                                    <div class="col-md-2 small text-muted">Domestic Cost:<br><span
-                                                            class="fw-semibold">{{ $detail->preShipping->domestic_cost }}</span>
-                                                    </div>
-                                                    <div class="col-md-2 small text-muted">International Cost:<br><span
-                                                            class="fw-semibold">{{ $detail->int_cost }}</span></div>
+                                            @else
+                                                {{-- ⭐ ERROR STATE: Detail tanpa PreShipping atau PurchaseRequest --}}
+                                                <div class="alert alert-warning small mb-2">
+                                                    <i class="fas fa-exclamation-triangle me-1"></i>
+                                                    Data incomplete (missing pre-shipping or purchase request information)
                                                 </div>
+                                            @endif
+                                        @empty
+                                            {{-- ⭐ EMPTY STATE: Tidak ada details --}}
+                                            <div class="alert alert-info small mb-0">
+                                                <i class="fas fa-info-circle me-1"></i>
+                                                No shipping details available
                                             </div>
-                                        @endforeach
+                                        @endforelse
                                     </div>
                                 </td>
                             </tr>
-                        @endforeach
+                        @empty
+                            {{-- ⭐ EMPTY STATE: Tidak ada shippings --}}
+                            <tr>
+                                <td colspan="6" class="text-center py-4">
+                                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                    <p class="text-muted">No shipping data available</p>
+                                </td>
+                            </tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>
@@ -179,16 +216,16 @@
 
                     response.details.forEach((detail, index) => {
                         detailHtml += `<tr>
-                    <td>${detail.purchase_type}</td>
-                    <td>${detail.project_name}</td>
-                    <td>${detail.material_name}</td>
-                    <td>${detail.supplier_name}</td>
-                    <td>${detail.unit_price}</td>
-                    <td>${detail.domestic_waybill_no}</td>
-                    <td>${detail.purchased_qty}</td>
-                    <td><input type="text" class="form-control received-qty"
-                        name="received_qty[${index}]" required></td>
-                </tr>`;
+                        <td>${detail.purchase_type}</td>
+                        <td>${detail.project_name}</td>
+                        <td>${detail.material_name}</td>
+                        <td>${detail.supplier_name}</td>
+                        <td>${detail.unit_price}</td>
+                        <td>${detail.domestic_waybill_no}</td>
+                        <td>${detail.purchased_qty}</td>
+                        <td><input type="text" class="form-control received-qty"
+                            name="received_qty[${index}]" required></td>
+                    </tr>`;
                     });
 
                     detailHtml += '</tbody></table>';

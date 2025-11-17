@@ -29,7 +29,6 @@ class ShippingController extends Controller
             return redirect()->route('pre-shippings.index')->with('error', 'You do not have permission to create shipping.');
         }
 
-        // Decode group keys dari JSON
         $groupKeys = $request->input('group_keys');
         if (is_string($groupKeys)) {
             $groupKeys = json_decode($groupKeys, true);
@@ -39,17 +38,30 @@ class ShippingController extends Controller
             return redirect()->route('pre-shippings.index')->with('error', 'Please select at least one group');
         }
 
-        $preShippings = PreShipping::with(['purchaseRequest.project', 'purchaseRequest.supplier'])
+        // Eager load dengan lebih teliti
+        $preShippings = PreShipping::with(['purchaseRequest.project', 'purchaseRequest.supplier', 'purchaseRequest.currency'])
             ->whereIn('group_key', $groupKeys)
             ->get();
 
-        if ($preShippings->isEmpty()) {
-            return redirect()->route('pre-shippings.index')->with('error', 'No data found for selected groups');
+        // Filter out yang purchaseRequestnya null
+        $validPreShippings = $preShippings->filter(function ($item) {
+            return $item->purchaseRequest !== null;
+        });
+
+        if ($validPreShippings->isEmpty()) {
+            return redirect()->route('pre-shippings.index')->with('error', 'No valid pre-shipping data found. Some items may have been deleted.');
+        }
+
+        // Notifikasi jika ada yang di-filter
+        if ($validPreShippings->count() < $preShippings->count()) {
+            $skippedCount = $preShippings->count() - $validPreShippings->count();
+            session()->flash('warning', "{$skippedCount} pre-shipping item(s) were skipped because their purchase request no longer exists.");
         }
 
         $freightCompanies = ['DHL', 'FedEx', 'Maersk', 'CMA CGM'];
 
-        return view('procurement.shippings.create', compact('preShippings', 'freightCompanies'));
+        // Pass validPreShippings saja
+        return view('procurement.shippings.create', compact('validPreShippings', 'freightCompanies'))->with('preShippings', $validPreShippings);
     }
 
     public function store(Request $request)

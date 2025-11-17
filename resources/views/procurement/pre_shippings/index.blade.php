@@ -2,6 +2,152 @@
 
 @push('styles')
     <style>
+        .card.shadow-sm {
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+        }
+
+        .card-header {
+            background-color: #fff;
+            border-bottom: 1px solid #dee2e6;
+            padding: 1.5rem;
+        }
+
+        .card-header h4 {
+            font-size: 1.3rem;
+            margin-bottom: 0.25rem;
+            font-weight: 600;
+        }
+
+        .card-header .text-muted {
+            font-size: 0.9rem;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .header-right {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        /* Time/Info Display Cards - sama seperti attendance */
+        .info-display-card {
+            display: flex;
+            align-items: center;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            transition: all 0.3s ease;
+            min-width: 180px;
+        }
+
+        .info-display-card:hover {
+            background-color: #e9ecef;
+            border-color: #adb5bd;
+            transform: translateY(-1px);
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+        }
+
+        .info-display-card.primary {
+            background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+            color: white;
+            border: none;
+        }
+
+        .info-display-card.primary:hover {
+            background: linear-gradient(135deg, #0a58ca 0%, #084298 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 0.5rem 1rem rgba(13, 110, 253, 0.3);
+        }
+
+        .info-display-card i {
+            font-size: 1.2rem;
+            margin-right: 0.75rem;
+        }
+
+        .info-display-content {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .info-display-label {
+            font-size: 0.7rem;
+            line-height: 1;
+            margin-bottom: 0.25rem;
+            opacity: 0.9;
+        }
+
+        .info-display-value {
+            font-size: 0.95rem;
+            line-height: 1.2;
+            font-weight: 600;
+        }
+
+        /* Selected Count Badge */
+        .selected-count {
+            background: linear-gradient(45deg, #007bff, #0056b3);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: 0 2px 8px rgba(0, 110, 253, 0.2);
+        }
+
+        /* Button Proceed Shipping */
+        .btn-proceed-shipping {
+            padding: 0.5rem 1.5rem;
+            font-weight: 600;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .btn-proceed-shipping:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn-proceed-shipping:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Responsive */
+        @media (max-width: 767.98px) {
+            .header-right {
+                flex-direction: column;
+                align-items: stretch;
+                justify-content: center;
+            }
+
+            .info-display-card {
+                width: 100%;
+                min-width: unset;
+                justify-content: center;
+            }
+
+            .card-header {
+                padding: 1rem;
+            }
+
+            .header-left {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
         .card-group-item {
             transition: all 0.3s ease;
             border: 2px solid transparent;
@@ -136,27 +282,44 @@
 @endpush
 
 @section('content')
-    <div class="container-fluid mt-4">
-        <div class="card">
+    <div class="container-fluid py-4">
+        <div class="card shadow-sm mb-4">
             <div class="card-header">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h4><i class="fas fa-truck me-2"></i>Pre Shipping Management</h4>
-                        <small class="text-muted">Grouped by Supplier & Delivery Date</small>
+                <!-- Header Container -->
+                <div class="row align-items-center">
+                    {{-- Left Section: Title & Description --}}
+                    <div class="col-md-6">
+                        <div class="header-left">
+                            <div>
+                                <i class="bi bi-truck-front gradient-icon me-2" style="font-size: 1.5rem;"></i>
+                            </div>
+                            <div>
+                                <h4 class="mb-0 flex-shrink-0">Pre Shipping Management</h4>
+                                <p class="text-muted mb-0 small">Grouped by Supplier & Delivery Date</p>
+                            </div>
+                        </div>
                     </div>
-                    <div class="d-flex align-items-center gap-3">
-                        <span class="selected-count" id="selected-count" style="display: none;">
-                            <i class="fas fa-check-circle me-1"></i>
-                            <span id="count-text">0 selected</span>
-                        </span>
-                        <button type="button" class="btn btn-success btn-proceed-shipping" id="proceed-shipping-btn"
-                            style="display: none;" disabled>
-                            <i class="fas fa-arrow-right me-2"></i>
-                            Proceed to Shipping
-                        </button>
+
+                    {{-- Right Section: Info Display & Buttons --}}
+                    <div class="col-md-6 text-md-end mt-3 mt-md-0">
+                        <div class="header-right">
+                            {{-- Selected Count Display --}}
+                            <span class="selected-count" id="selected-count" style="display: none;">
+                                <i class="fas fa-check-circle"></i>
+                                <span id="count-text">0 selected</span>
+                            </span>
+
+                            {{-- Proceed to Shipping Button --}}
+                            <button type="button" class="btn btn-success btn-proceed-shipping" id="proceed-shipping-btn"
+                                style="display: none;" disabled>
+                                <i class="fas fa-arrow-right me-2"></i>
+                                Proceed to Shipping
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
+            {{-- END card-header --}}
 
             <div class="card-body">
                 @foreach ($groupedPreShippings as $group)
@@ -222,8 +385,8 @@
 
                                 {{-- Total Value --}}
                                 <div class="flex-shrink-0">
-                                    <small class="text-muted">Value:
-                                        <strong>${{ number_format($group['total_value'], 2) }}</strong>
+                                    <small class="text-muted">Total Value:
+                                        <strong>{{ number_format($group['total_value'], 2) }}</strong>
                                     </small>
                                 </div>
 
