@@ -557,6 +557,15 @@ class PurchaseRequestController extends Controller
 
         foreach ($request->requests as $key => $requestData) {
             try {
+                // Cek apakah type new_material dan material_name sudah ada di inventory
+                if ($requestData['type'] === 'new_material') {
+                    $exists = Inventory::whereRaw('LOWER(name) = ?', [strtolower($requestData['material_name'])])->exists();
+                    if ($exists) {
+                        $errors["requests.$key.material_name"] = 'Material already exists in inventory.';
+                        continue; // Skip item ini dan lanjut ke item berikutnya
+                    }
+                }
+
                 // Prepare data
                 $data = [
                     'type' => $requestData['type'],

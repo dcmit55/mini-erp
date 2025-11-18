@@ -222,11 +222,11 @@
                                 <th>Currency</th>
                                 <th>Approval Status</th>
                                 <th>Delivery Date</th>
+                                <th>Delivery Status</th>
                                 <th>Project</th>
                                 <th>Requested By</th>
-                                <th>Delivery Status</th>
-                                <th>Remark</th>
                                 <th>Requested At</th>
+                                <th>Remark</th>
                                 <th width="120">Actions</th>
                             </tr>
                         </thead>
@@ -384,14 +384,6 @@
                         name: 'delivery_date'
                     },
                     {
-                        data: 'project',
-                        name: 'project'
-                    },
-                    {
-                        data: 'requested_by',
-                        name: 'requested_by'
-                    },
-                    {
                         data: 'status_badge',
                         name: 'status',
                         orderable: false,
@@ -423,13 +415,21 @@
                         }
                     },
                     {
-                        data: 'remark',
-                        name: 'remark',
-                        orderable: false
+                        data: 'project',
+                        name: 'project'
+                    },
+                    {
+                        data: 'requested_by',
+                        name: 'requested_by'
                     },
                     {
                         data: 'created_at',
                         name: 'created_at'
+                    },
+                    {
+                        data: 'remark',
+                        name: 'remark',
+                        orderable: false
                     },
                     {
                         data: 'actions',
