@@ -199,7 +199,7 @@
 
         .card-group-item {
             transition: all 0.3s ease;
-            border: 2px solid transparent;
+            border: 1px solid transparent;
         }
 
         .card-group-item.selected {
@@ -327,6 +327,99 @@
             background-color: #e9ecef !important;
             cursor: not-allowed;
         }
+
+        /* ===== FILTER PILLS STYLING ===== */
+        .filter-pills-wrapper {
+            padding: 0.75rem 1rem;
+        }
+
+        .filter-pills-container {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-pill {
+            padding: 0.4rem 1rem;
+            border-radius: 50px;
+            border: 1px solid #dee2e6;
+            background: white;
+            color: #6b7280;
+            font-weight: 500;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            user-select: none;
+        }
+
+        .filter-pill:hover {
+            border-color: #8F12FE;
+            color: #8F12FE;
+            box-shadow: 0 2px 8px rgba(143, 18, 254, 0.1);
+        }
+
+        .filter-pill.active {
+            background: linear-gradient(135deg, #8F12FE 0%, #4A25AA 100%);
+            border-color: #8F12FE;
+            color: white;
+        }
+
+        .filter-badge {
+            background: rgba(0, 0, 0, 0.1);
+            padding: 0.1rem 0.5rem;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            min-width: 24px;
+            text-align: center;
+        }
+
+        .filter-pill.active .filter-badge {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        /* Empty state untuk groups */
+        .empty-state-filter {
+            text-align: center;
+            padding: 2rem;
+            background: #f9fafb;
+            border-radius: 6px;
+            border: 1px dashed #e5e7eb;
+        }
+
+        .empty-state-filter i {
+            font-size: 3rem;
+            color: #d1d5db;
+            margin-bottom: 0.75rem;
+        }
+
+        .empty-state-filter h5 {
+            color: #6b7280;
+            margin-bottom: 0.25rem;
+            font-size: 1rem;
+        }
+
+        .empty-state-filter p {
+            color: #9ca3af;
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .filter-pill {
+                padding: 0.35rem 0.85rem;
+                font-size: 0.85rem;
+            }
+
+            .filter-badge {
+                font-size: 0.7rem;
+            }
+        }
     </style>
 @endpush
 
@@ -368,13 +461,36 @@
                     </div>
                 </div>
             </div>
-            {{-- END card-header --}}
 
-            <div class="card-body">
-                @foreach ($groupedPreShippings as $group)
-                    <div class="card mb-4 border-primary card-group-item {{ $group['has_been_shipped'] ? 'shipped-group' : '' }}"
-                        data-group="{{ $group['group_key'] }}"
-                        data-shipped="{{ $group['has_been_shipped'] ? 'true' : 'false' }}">
+            <!--  FILTER PILLS SECTION -->
+            <div class="filter-pills-wrapper">
+                <div class="filter-pills-container" id="filter-pills-container">
+                    <button type="button" class="filter-pill" data-filter="all">
+                        All
+                        <span class="filter-badge">{{ $groupedPreShippings->count() }}</span>
+                    </button>
+
+                    <button type="button" class="filter-pill active" data-filter="not-shipped">
+                        Not Shipped
+                        <span class="filter-badge">
+                            {{ $groupedPreShippings->filter(fn($g) => !$g['has_been_shipped'])->count() }}
+                        </span>
+                    </button>
+
+                    <button type="button" class="filter-pill" data-filter="shipped">
+                        Shipped
+                        <span class="filter-badge">
+                            {{ $groupedPreShippings->filter(fn($g) => $g['has_been_shipped'])->count() }}
+                        </span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="card-body" style="padding-top: 0;" id="groups-container">
+                @forelse ($groupedPreShippings as $group)
+                    <div class="card mb-4 border-primary card-group-item" data-group="{{ $group['group_key'] }}"
+                        data-shipped="{{ $group['has_been_shipped'] ? 'true' : 'false' }}"
+                        data-filter-group="{{ $group['has_been_shipped'] ? 'shipped' : 'not-shipped' }}">
 
                         <!-- Group Header with Checkbox -->
                         <div class="card-header group-header">
@@ -384,8 +500,6 @@
                                         id="group-{{ $group['group_key'] }}" data-group="{{ $group['group_key'] }}"
                                         {{ $group['has_been_shipped'] ? 'disabled' : '' }}>
                                 </div>
-
-                                {{-- Supplier Name & Badge --}}
                                 <div class="d-flex align-items-center gap-2 flex-shrink-0">
                                     <label class="form-check-label m-0" for="group-{{ $group['group_key'] }}">
                                         <small class="text-muted">Supplier:
@@ -398,50 +512,31 @@
                                         </span>
                                     @endif
                                 </div>
-
-                                {{-- Vertical Divider --}}
                                 <div class="vr"></div>
-
-                                {{-- Delivery Date --}}
                                 <div class="flex-shrink-0">
                                     <small class="text-muted">Delivery:
                                         <strong>{{ \Carbon\Carbon::parse($group['delivery_date'])->format('d M Y') }}</strong>
                                     </small>
                                 </div>
-
-                                {{-- Vertical Divider --}}
                                 <div class="vr"></div>
-
-                                {{-- Items Count --}}
                                 <div class="flex-shrink-0">
                                     <small class="text-muted">Items:
                                         <strong>{{ $group['total_items'] }}</strong>
                                     </small>
                                 </div>
-
-                                {{-- Vertical Divider --}}
                                 <div class="vr"></div>
-
-                                {{-- Total Qty --}}
                                 <div class="flex-shrink-0">
                                     <small class="text-muted">Total Qty:
                                         <strong>{{ number_format($group['total_quantity'], 2) }}</strong>
                                     </small>
                                 </div>
-
-                                {{-- Vertical Divider --}}
                                 <div class="vr"></div>
-
-                                {{-- Total Value --}}
                                 <div class="flex-shrink-0">
                                     <small class="text-muted">Total Value:
                                         <strong>{{ number_format($group['total_value'], 2) }}</strong>
                                     </small>
                                 </div>
-
-                                {{-- Vertical Divider --}}
                                 <div class="vr"></div>
-
                                 {{-- Cost Method Badge (aligned to right) --}}
                                 <div class="ms-auto flex-shrink-0">
                                     <span class="badge cost-method-badge bg-info">
@@ -615,15 +710,13 @@
                             </div>
                         </div>
                     </div>
-                @endforeach
-
-                @if ($groupedPreShippings->isEmpty())
-                    <div class="text-center py-5">
-                        <i class="fas fa-box-open fa-4x text-muted mb-4"></i>
-                        <h5 class="text-muted">No approved purchase requests ready for pre-shipping</h5>
-                        <p class="text-muted">Purchase requests need to have supplier and delivery date assigned.</p>
+                @empty
+                    <div class="empty-state" id="empty-state-initial">
+                        <i class="fas fa-box-open"></i>
+                        <h5>No approved purchase requests ready for pre-shipping</h5>
+                        <p>Purchase requests need to have supplier and delivery date assigned.</p>
                     </div>
-                @endif
+                @endforelse
             </div>
         </div>
     </div>
@@ -637,6 +730,124 @@
 
 @push('scripts')
     <script>
+        $(function() {
+            // ===== FILTER PILLS LOGIC =====
+            let currentFilter = 'not-shipped'; // ⭐ UBAH DARI 'all' ke 'not-shipped'
+            const filterPillsContainer = $('#filter-pills-container');
+            const groupsContainer = $('#groups-container');
+
+            // Inisialisasi: Set data attribute pada container
+            groupsContainer.attr('data-current-filter', 'not-shipped'); // ⭐ UBAH KE 'not-shipped'
+
+            // Terapkan filter default saat page load
+            applyFilterPills('not-shipped'); // ⭐ TAMBAH: Apply filter "Not Shipped" default
+
+            // Event handler untuk filter pills
+            $(document).on('click', '.filter-pill', function(e) {
+                e.preventDefault();
+
+                const filterValue = $(this).data('filter');
+                const $button = $(this);
+
+                // Skip jika sudah active
+                if ($button.hasClass('active')) {
+                    return;
+                }
+
+                // Update active state
+                $('.filter-pill').removeClass('active');
+                $button.addClass('active');
+
+                // Update current filter
+                currentFilter = filterValue;
+                groupsContainer.attr('data-current-filter', filterValue);
+
+                // Apply filter
+                applyFilterPills(filterValue);
+
+                console.log('Filter applied:', filterValue);
+            });
+
+            /**
+             * Apply filter dengan smooth fade animation
+             */
+            function applyFilterPills(filterValue) {
+                const groups = $('.card-group-item');
+                let visibleCount = 0;
+
+                groups.each(function() {
+                    const $group = $(this);
+                    const filterGroup = $group.data('filter-group');
+                    let shouldShow = false;
+
+                    if (filterValue === 'all') {
+                        shouldShow = true;
+                    } else if (filterValue === 'not-shipped' && filterGroup === 'not-shipped') {
+                        shouldShow = true;
+                    } else if (filterValue === 'shipped' && filterGroup === 'shipped') {
+                        shouldShow = true;
+                    }
+
+                    if (shouldShow) {
+                        $group.stop(true, false).fadeIn(300);
+                        visibleCount++;
+                    } else {
+                        $group.stop(true, false).fadeOut(300);
+                    }
+                });
+
+                // Update empty state setelah animasi
+                setTimeout(() => {
+                    if (visibleCount === 0) {
+                        showEmptyState(filterValue);
+                    } else {
+                        hideEmptyState();
+                    }
+                }, 300);
+            }
+
+            /**
+             * Tampilkan empty state
+             */
+            function showEmptyState(filterValue) {
+                $('.empty-state-filter').remove();
+
+                const messages = {
+                    'all': {
+                        icon: 'fa-inbox',
+                        title: 'No pre-shipping groups available'
+                    },
+                    'not-shipped': {
+                        icon: 'fa-paper-plane',
+                        title: 'No items waiting to ship'
+                    },
+                    'shipped': {
+                        icon: 'fa-check-circle',
+                        title: 'No shipped items yet'
+                    }
+                };
+
+                const config = messages[filterValue] || messages['all'];
+                const emptyHtml = `
+                    <div class="empty-state-filter">
+                        <i class="fas ${config.icon}"></i>
+                        <h5>${config.title}</h5>
+                    </div>
+                `;
+
+                groupsContainer.append(emptyHtml);
+            }
+
+            /**
+             * Hide empty state
+             */
+            function hideEmptyState() {
+                $('.empty-state-filter').fadeOut(200, function() {
+                    $(this).remove();
+                });
+            }
+        });
+
         // 1. FUNCTION HELPERS
         function formatDynamicNumber(number) {
             if (number == null || number === '') return '0';

@@ -29,12 +29,16 @@ class ShippingManagementController extends Controller
 
         return view('procurement.shipping_management.index', compact('shippings'));
     }
+
     public function detail($id)
     {
         $shipping = Shipping::with(['details.preShipping.purchaseRequest.project', 'details.preShipping.purchaseRequest.supplier'])->findOrFail($id);
 
         $details = [];
         foreach ($shipping->details as $detail) {
+            // Gunakan qty_to_buy bukan required_quantity
+            $purchasedQty = $detail->preShipping->purchaseRequest->qty_to_buy ?? $detail->preShipping->purchaseRequest->required_quantity;
+
             $details[] = [
                 'purchase_type' => ucfirst(str_replace('_', ' ', $detail->preShipping->purchaseRequest->type)),
                 'project_name' => $detail->preShipping->purchaseRequest->project->name ?? '-',
@@ -42,7 +46,8 @@ class ShippingManagementController extends Controller
                 'supplier_name' => $detail->preShipping->purchaseRequest->supplier->name ?? '-',
                 'unit_price' => $detail->preShipping->purchaseRequest->price_per_unit,
                 'domestic_waybill_no' => $detail->preShipping->domestic_waybill_no,
-                'purchased_qty' => $detail->preShipping->purchaseRequest->required_quantity,
+                'purchased_qty' => $purchasedQty,
+                'unit' => $detail->preShipping->purchaseRequest->unit, // Include unit untuk info lengkap
             ];
         }
 

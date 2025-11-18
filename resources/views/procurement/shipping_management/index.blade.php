@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-    <div class="container mt-4">
+    <div class="container-fluid mt-4">
         <h4>Shipping Management</h4>
         <div class="card">
             <div class="card-body">

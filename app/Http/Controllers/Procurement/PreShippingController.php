@@ -23,6 +23,9 @@ class PreShippingController extends Controller
         });
     }
 
+    /**
+     * Display pre-shipping index with filter support
+     */
     public function index()
     {
         // Ambil semua purchase request yang sudah approved dan belum masuk shipping
@@ -32,7 +35,7 @@ class PreShippingController extends Controller
             ->whereNotNull('delivery_date')
             ->get();
 
-        // Auto generate pre-shipping dengan grouping (TANPA OVERRIDE)
+        // Auto generate pre-shipping dengan grouping
         $this->generatePreShippingGroups($approvedRequests);
 
         // Ambil data yang sudah di-group untuk ditampilkan
@@ -41,6 +44,9 @@ class PreShippingController extends Controller
         return view('procurement.pre_shippings.index', compact('groupedPreShippings'));
     }
 
+    /**
+     * Generate pre-shipping groups dari approved requests
+     */
     private function generatePreShippingGroups($approvedRequests)
     {
         $groups = [];
@@ -57,29 +63,28 @@ class PreShippingController extends Controller
                 $existingPreShipping = PreShipping::where('purchase_request_id', $request->id)->first();
 
                 if (!$existingPreShipping) {
-                    // Hanya buat baru jika belum ada, default ke 'value' bukan 'quantity'
                     PreShipping::create([
                         'purchase_request_id' => $request->id,
                         'group_key' => $groupKey,
-                        'cost_allocation_method' => 'value', // **DEFAULT KE 'value'**
+                        'cost_allocation_method' => 'value',
                     ]);
                 } else {
-                    // Jika sudah ada, JANGAN override cost_allocation_method
-                    // Hanya update group_key jika berbeda
+                    // Jika sudah ada, update group_key jika berbeda
                     if ($existingPreShipping->group_key !== $groupKey) {
                         $existingPreShipping->update(['group_key' => $groupKey]);
                     }
-                    // JANGAN OVERRIDE cost_allocation_method yang sudah di-set user
                 }
             }
         }
     }
 
+    /**
+     * Get grouped pre-shipping data untuk view
+     */
     private function getGroupedPreShippings()
     {
-        // ⭐ PERBAIKAN: Load dengan condition whereNotNull
         $preShippings = PreShipping::with(['purchaseRequest.project', 'purchaseRequest.supplier', 'purchaseRequest.currency', 'shippingDetail'])
-            ->whereHas('purchaseRequest') // ⭐ FILTER: Hanya yang masih punya purchaseRequest
+            ->whereHas('purchaseRequest')
             ->get();
 
         // Group by group_key
@@ -88,7 +93,6 @@ class PreShippingController extends Controller
             ->map(function ($group) {
                 $firstItem = $group->first();
 
-                // ⭐ CEK NULL: Jika purchaseRequest null, skip
                 if (!$firstItem->purchaseRequest) {
                     return null;
                 }
@@ -117,15 +121,18 @@ class PreShippingController extends Controller
                     'has_been_shipped' => $hasBeenShipped,
                 ];
             })
-            ->filter() // ⭐ HAPUS null entries dari map
-            ->values(); // ⭐ Re-index array
+            ->filter()
+            ->values();
 
-        // Data yang belum shipped di atas, yang sudah shipped di bawah
+        // Sort: not shipped di atas, shipped di bawah
         return $grouped->sortBy(function ($group) {
             return $group['has_been_shipped'] ? 1 : 0;
         });
     }
 
+    /**
+     * Quick update group data
+     */
     public function quickUpdate(Request $request, $groupKey)
     {
         if (Auth::user()->isReadOnlyAdmin()) {
@@ -166,29 +173,23 @@ class PreShippingController extends Controller
                 return response()->json(['success' => false, 'message' => 'Group not found'], 404);
             }
 
-            // Lebih flexible validation untuk percentage
+            // Handle percentage validation
             if ($request->cost_allocation_method === 'percentage') {
-                // Jika baru switch ke percentage mode, izinkan tanpa percentages dulu
                 if ($request->has('percentages') && !empty(array_filter($request->percentages))) {
                     $totalPercentage = array_sum($request->percentages);
 
-                    // Toleransi yang lebih besar dan pesan yang lebih informatif
                     if (abs($totalPercentage - 100) > 5) {
-                        // Toleransi 5% untuk UX yang lebih baik
                         return response()->json(
                             [
                                 'success' => false,
                                 'message' => 'Total percentage should be close to 100%. Current total: ' . number_format($totalPercentage, 2) . '%',
-                                'warning' => true, // Flag untuk menunjukkan ini warning, bukan error fatal
+                                'warning' => true,
                             ],
                             400,
                         );
                     }
-                }
-                // Jika tidak ada percentages, set default yang reasonable
-                elseif (!$request->has('percentages') || empty(array_filter($request->percentages))) {
-                    // Auto-distribute percentage berdasarkan value ratio
-                    // PERUBAHAN: Gunakan qty_to_buy untuk perhitungan
+                } else {
+                    // Auto-distribute percentages
                     $totalValue = $groupItems->sum(function ($item) {
                         $qty = $item->purchaseRequest->qty_to_buy ?? ($item->purchaseRequest->required_quantity ?? 0);
                         $price = $item->purchaseRequest->price_per_unit ?? 0;
@@ -203,12 +204,10 @@ class PreShippingController extends Controller
                             $autoPercentages[] = ($itemValue / $totalValue) * 100;
                         }
                     } else {
-                        // Fallback: equal distribution
                         $equalPercentage = 100 / $groupItems->count();
                         $autoPercentages = array_fill(0, $groupItems->count(), $equalPercentage);
                     }
 
-                    // Override request percentages with auto-calculated
                     $request->merge(['percentages' => $autoPercentages]);
                 }
             }
@@ -234,22 +233,19 @@ class PreShippingController extends Controller
                     }
                 }
 
-                // Set percentage dengan auto-calculation
                 if ($request->cost_allocation_method === 'percentage') {
                     $percentage = $request->percentages[$index] ?? 0;
                     $itemUpdateData['allocation_percentage'] = $percentage;
                 }
 
-                // Update item
                 $item->update($itemUpdateData);
 
-                // Calculate allocated cost
                 $allocatedCost = $item->fresh()->calculateAllocatedCost();
                 $item->update(['allocated_cost' => $allocatedCost]);
 
                 $updatedItems[] = [
                     'id' => $item->id,
-                    'index' => $index, // Include index for frontend matching
+                    'index' => $index,
                     'allocated_cost' => $allocatedCost,
                     'allocation_percentage' => $item->fresh()->allocation_percentage,
                     'cost_allocation_method' => $item->fresh()->cost_allocation_method,
@@ -261,7 +257,7 @@ class PreShippingController extends Controller
             return response()->json([
                 'success' => true,
                 'updated_items' => $updatedItems,
-                'auto_percentages' => $request->percentages ?? [], // Return auto-calculated percentages
+                'auto_percentages' => $request->percentages ?? [],
                 'message' => 'Group updated successfully',
             ]);
         } catch (\Exception $e) {

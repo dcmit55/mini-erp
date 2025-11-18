@@ -53,6 +53,9 @@ class GoodsReceiveController extends Controller
         ]);
 
         foreach ($shipping->details as $idx => $detail) {
+            // Gunakan qty_to_buy bukan required_quantity
+            $purchasedQty = $detail->preShipping->purchaseRequest->qty_to_buy ?? $detail->preShipping->purchaseRequest->required_quantity;
+
             GoodsReceiveDetail::create([
                 'goods_receive_id' => $goodsReceive->id,
                 'shipping_detail_id' => $detail->id,
@@ -62,7 +65,7 @@ class GoodsReceiveController extends Controller
                 'supplier_name' => $detail->preShipping->purchaseRequest->supplier->name ?? '-',
                 'unit_price' => $detail->preShipping->purchaseRequest->price_per_unit,
                 'domestic_waybill_no' => $detail->preShipping->domestic_waybill_no,
-                'purchased_qty' => $detail->preShipping->purchaseRequest->required_quantity,
+                'purchased_qty' => $purchasedQty,
                 'received_qty' => $request->received_qty[$idx] ?? null,
             ]);
         }

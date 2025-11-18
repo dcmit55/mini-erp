@@ -1,11 +1,11 @@
 @extends('layouts.app')
 @section('content')
-    <div class="container mt-4">
+    <div class="container-fluid mt-4">
         <h4 class="mb-4">Goods Receive Modules</h4>
         <div class="card shadow-sm rounded-4">
             <div class="card-body">
                 <table class="table align-middle table-hover table-sm">
-                    <thead class="table-light text-nowrap">
+                    <thead class="align-top table-light">
                         <tr>
                             <th>Int. Waybill No</th>
                             <th>Arrived Date</th>
@@ -14,7 +14,7 @@
                             <th>Detail</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="align-top">
                         @foreach ($goodsReceives as $gr)
                             <tr>
                                 <td class="fw-semibold">{{ $gr->international_waybill_no }}</td>
@@ -54,11 +54,11 @@
                                                         </div>
                                                     </div>
                                                     <div class="row">
-                                                        <div class="col-md-3">
+                                                        <div class="col-md-2">
                                                             <span class="text-muted small">Purchased Qty</span>
                                                             <div class="fw-bold">{{ $d->purchased_qty }}</div>
                                                         </div>
-                                                        <div class="col-md-3">
+                                                        <div class="col-md-2">
                                                             <span class="text-muted small">Received Qty</span>
                                                             <div class="fw-bold text-success">{{ $d->received_qty }}</div>
                                                         </div>
@@ -79,29 +79,6 @@
 
 @push('styles')
     <style>
-        .table thead th {
-            vertical-align: middle;
-            font-size: 1rem;
-            letter-spacing: 0.5px;
-        }
-
-        .table td,
-        .table th {
-            vertical-align: middle;
-        }
-
-        .bg-light {
-            background-color: #f8f9fa !important;
-        }
-
-        .fw-bold {
-            font-weight: 600 !important;
-        }
-
-        .rounded-3 {
-            border-radius: 1rem !important;
-        }
-
         .text-success {
             color: #198754 !important;
         }
