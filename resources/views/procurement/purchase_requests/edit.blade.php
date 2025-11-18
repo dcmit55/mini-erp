@@ -161,12 +161,14 @@
                     </div>
                     <div class="modal-body">
                         <label>Project Name <span class="text-danger">*</span></label>
-                        <input type="text" name="name" class="form-control" required>
-                        <label class="mt-2">Qty <span class="text-danger">*</span></label>
-                        <input type="number" step="any" name="qty" class="form-control" required>
+                        <input type="text" name="name" class="form-control mb-2" required>
+
+                        <label class="mt-2">Qty</label>
+                        <input type="number" step="any" name="qty" class="form-control mb-2" min="0">
+
                         <label class="mt-2">Department <span class="text-danger">*</span></label>
-                        <select name="department_id" class="form-select" required>
-                            <option value="">Select Department</option>
+                        <select name="department_ids[]" id="quick-add-departments-edit" class="form-select" multiple
+                            required>
                             @foreach ($departments as $dept)
                                 <option value="{{ $dept->id }}">{{ $dept->name }}</option>
                             @endforeach
@@ -219,13 +221,25 @@
 @push('scripts')
     <script>
         $(document).ready(function() {
+            // Initialize Select2 dengan allowClear
             $('.select2').select2({
                 theme: 'bootstrap-5',
                 allowClear: true,
                 dropdownAutoWidth: true,
                 width: '100%',
+                placeholder: function() {
+                    return $(this).data('placeholder') || 'Select an option';
+                }
+            }).on('select2:open', function() {
+                setTimeout(function() {
+                    const searchField = document.querySelector('.select2-search__field');
+                    if (searchField) {
+                        searchField.focus();
+                    }
+                }, 100);
             });
 
+            // Unit select dengan konfigurasi khusus
             $('#unit-select').select2({
                 theme: 'bootstrap-5',
                 placeholder: 'Select Unit',
@@ -234,7 +248,7 @@
             }).on('select2:open', function() {
                 setTimeout(function() {
                     document.querySelector('.select2-container--open .select2-search__field')
-                        .focus();
+                        ?.focus();
                 }, 100);
             });
 
@@ -276,7 +290,6 @@
                     $('#unit_input').show().prop('readonly', true).prop('disabled', false);
                     $('#unit-select').hide().addClass('d-none').prop('disabled', true);
                     $('#unit-select').next('.select2-container').hide();
-                    // Jika material dipilih, autofill unit
                     const selected = $('#material_name_select option:selected');
                     $('#unit_input').val(selected.data('unit') || '');
                     $('#stock_level_input').prop('readonly', true).prop('disabled', false);
@@ -325,6 +338,20 @@
                 });
             });
 
+            // Initialize Select2 untuk Quick Add Department (Multiple)
+            $('#addProjectModal').on('shown.bs.modal', function() {
+                if (!$('#quick-add-departments-edit').data('select2')) {
+                    $('#quick-add-departments-edit').select2({
+                        theme: 'bootstrap-5',
+                        placeholder: 'Select departments',
+                        allowClear: true,
+                        closeOnSelect: false,
+                        dropdownParent: $('#addProjectModal'),
+                        width: '100%'
+                    });
+                }
+            });
+
             // Quick Add Project
             $('#quickAddProjectForm').on('submit', function(e) {
                 e.preventDefault();
@@ -338,15 +365,38 @@
                     },
                     success: function(res) {
                         if (res.success && res.project) {
+                            // Proper Select2 update
+                            const projectSelect = $('select[name="project_id"]');
+
+                            // Destroy Select2
+                            if (projectSelect.data('select2')) {
+                                projectSelect.select2('destroy');
+                            }
+
+                            // Add new option
                             let newOption = new Option(res.project.name, res.project.id, true,
                                 true);
-                            $('select[name="project_id"]').append(newOption).val(res.project.id)
-                                .trigger('change');
+                            projectSelect.append(newOption);
+
+                            // Re-initialize Select2
+                            projectSelect.select2({
+                                theme: 'bootstrap-5',
+                                allowClear: true,
+                                dropdownAutoWidth: true,
+                                width: '100%',
+                            });
+
+                            // Set value
+                            projectSelect.val(res.project.id).trigger('change');
+
+                            // Reset Select2 departments
+                            $('#quick-add-departments-edit').val(null).trigger('change');
+
                             $('#addProjectModal').modal('hide');
                             form[0].reset();
+
                         } else {
-                            Swal.fire('Error', 'Failed to add project. Please try again.',
-                                'error');
+                            Swal.fire('Error', res.message || 'Failed to add project', 'error');
                         }
                     },
                     error: function(xhr) {

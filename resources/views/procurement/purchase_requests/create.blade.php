@@ -174,12 +174,13 @@
                     </div>
                     <div class="modal-body">
                         <label>Project Name <span class="text-danger">*</span></label>
-                        <input type="text" name="name" class="form-control" required>
-                        <label class="mt-2">Qty <span class="text-danger">*</span></label>
-                        <input type="number" step="any" name="qty" class="form-control" required>
+                        <input type="text" name="name" class="form-control mb-2" required>
+
+                        <label class="mt-2">Qty</label>
+                        <input type="number" step="any" name="qty" class="form-control mb-2" min="0">
+
                         <label class="mt-2">Department <span class="text-danger">*</span></label>
-                        <select name="department_id" class="form-select" required>
-                            <option value="">Select Department</option>
+                        <select name="department_ids[]" id="quick-add-departments" class="form-select" multiple required>
                             @foreach ($departments as $dept)
                                 <option value="{{ $dept->id }}">{{ $dept->name }}</option>
                             @endforeach
@@ -299,7 +300,8 @@
                 <div class="col-md-4 unit-group">
                     <label class="form-label">Unit</label>
                     <button type="button" class="btn btn-outline-primary btn-sm add-unit-btn" data-bs-toggle="modal"
-                        data-bs-target="#addUnitModal">
+                        data-bs-target="#addUnitModal"
+                        style="--bs-btn-padding-y: .25rem; --bs-btn-padding-x: .5rem; --bs-btn-font-size: .55rem;">
                         + Add Unit
                     </button>
                     <select name="requests[INDEX][unit]"
@@ -323,8 +325,9 @@
                 <div class="col-md-6">
                     <label class="form-label">Project</label>
                     <button type="button" class="btn btn-outline-primary btn-sm quickAddProjectBtn"
-                        data-bs-toggle="modal" data-bs-target="#addProjectModal">
-                        + Quick Add
+                        data-bs-toggle="modal" data-bs-target="#addProjectModal"
+                        style="--bs-btn-padding-y: .25rem; --bs-btn-padding-x: .5rem; --bs-btn-font-size: .55rem;">
+                        + Add Project
                     </button>
                     <select name="requests[INDEX][project_id]" class="form-select select2 project-select">
                         <option value="">Select Project</option>
@@ -406,7 +409,7 @@
             const allUnits = @json($units ?? []);
             const allProjects = @json($projects ?? []);
 
-            // ⭐ TAMBAHAN: Ambil data dari session jika ada error validasi
+            // Ambil data dari session jika ada error validasi
             const formDataFromSession = @json(session('form_requests_data', []));
 
             // Click handlers untuk modal
@@ -420,7 +423,7 @@
             // Initialize first row
             initializeRow(0);
 
-            // ⭐ PERBAIKAN: Restore form data dari session jika ada error
+            // Restore form data dari session jika ada error
             if (formDataFromSession && formDataFromSession.length > 0) {
                 restoreFormData(formDataFromSession);
                 rowIndex = formDataFromSession.length - 1;
@@ -452,11 +455,14 @@
             // Remove row
             $(document).on('click', '.btn-remove-row', function() {
                 const row = $(this).closest('.request-row');
+
+                // Destroy Select2 properly
                 row.find('.select2').each(function() {
                     if ($(this).data('select2')) {
                         $(this).select2('destroy');
                     }
                 });
+
                 row.remove();
 
                 if ($('.request-row').length <= 1) {
@@ -476,7 +482,7 @@
                 });
             }
 
-            // ⭐ FUNCTION: Restore form data dari session
+            // Restore form data dari session
             function restoreFormData(formDataFromSession) {
                 // Hapus row pertama jika kosong
                 if ($('.request-row').length === 1) {
@@ -492,12 +498,10 @@
                     if ($('[name="requests[' + index + '][type]"]').length > 0) {
                         restoreRowData(index, data);
                     } else {
-                        // Buat row baru
+                        // Add new row
                         let newRow = $('#request-row-template').html().replace(/INDEX/g, index);
                         $('#requests-container').append(newRow);
                         initializeRow(index);
-
-                        // Restore data ke row baru
                         restoreRowData(index, data);
                     }
                 });
@@ -511,7 +515,7 @@
                 }
             }
 
-            // ⭐ FUNCTION: Restore data ke specific row
+            // Restore data ke specific row
             function restoreRowData(index, data) {
                 const row = $('[name="requests[' + index + '][type]"]').closest('.request-row');
 
@@ -521,11 +525,9 @@
                 setTimeout(() => {
                     // Restore material name atau inventory
                     if (data.type === 'new_material') {
-                        row.find('[name="requests[' + index + '][material_name]"]').val(data
-                            .material_name || '');
+                        row.find('.material-name-input').val(data.material_name || '');
                     } else if (data.type === 'restock') {
-                        row.find('[name="requests[' + index + '][inventory_id]"]').val(data.inventory_id ||
-                            '').trigger('change');
+                        row.find('.material-name-select').val(data.inventory_id || '').trigger('change');
                     }
 
                     // Restore unit
@@ -541,59 +543,91 @@
                     row.find('[name="requests[' + index + '][required_quantity]"]').val(data
                         .required_quantity || '');
 
-                    // Restore project
-                    row.find('[name="requests[' + index + '][project_id]"]').val(data.project_id || '')
-                        .trigger('change');
+                    // ⭐ PERBAIKAN: Restore project dengan destroy dulu
+                    const projectSelect = row.find('[name="requests[' + index + '][project_id]"]');
+                    if (projectSelect.data('select2')) {
+                        projectSelect.select2('destroy');
+                    }
+                    projectSelect.val(data.project_id || '');
+                    initializeProjectSelect(projectSelect);
 
                     // Restore remark
                     row.find('[name="requests[' + index + '][remark]"]').val(data.remark || '');
-
-                    // Initialize Select2 untuk unit jika new_material
-                    if (data.type === 'new_material') {
-                        row.find('.unit-select').select2({
-                            theme: 'bootstrap-5',
-                            allowClear: true,
-                            width: '100%',
-                        });
-                    }
                 }, 300);
             }
 
-            // ⭐ FUNCTION: Initialize row dengan Select2
+            // Function khusus untuk initialize Project Select2
+            function initializeProjectSelect(selectElement) {
+                selectElement.select2({
+                    theme: 'bootstrap-5',
+                    placeholder: 'Select Project',
+                    allowClear: true,
+                    width: '100%'
+                }).on('select2:open', function() {
+                    setTimeout(function() {
+                        const searchField = document.querySelector('.select2-search__field');
+                        if (searchField) {
+                            searchField.focus();
+                        }
+                    }, 100);
+                });
+            }
+
+            // Initialize row dengan Select2
             function initializeRow(index) {
                 const row = $(`[name="requests[${index}][type]"]`).closest('.request-row');
-
-                // Initialize Select2 untuk semua select
-                row.find('.select2').select2({
+                // Type select
+                row.find('.type-select').select2({
                     theme: 'bootstrap-5',
+                    placeholder: 'Select Type',
                     allowClear: true,
-                    dropdownAutoWidth: true,
-                    width: '100%',
+                    width: '100%'
                 }).on('select2:open', function() {
-                    setTimeout(() => {
-                        const searchField = document.querySelector(
-                            '.select2-container--open .select2-search__field');
+                    setTimeout(function() {
+                        const searchField = document.querySelector('.select2-search__field');
                         if (searchField) searchField.focus();
                     }, 100);
                 });
 
+                // Material name select (untuk restock)
+                row.find('.material-name-select').select2({
+                    theme: 'bootstrap-5',
+                    placeholder: 'Select Material',
+                    allowClear: true,
+                    width: '100%'
+                }).on('select2:open', function() {
+                    setTimeout(function() {
+                        const searchField = document.querySelector('.select2-search__field');
+                        if (searchField) searchField.focus();
+                    }, 100);
+                });
+
+                // Unit select (untuk new material)
+                row.find('.unit-select').select2({
+                    theme: 'bootstrap-5',
+                    placeholder: 'Select Unit',
+                    allowClear: true,
+                    width: '100%'
+                }).on('select2:open', function() {
+                    setTimeout(function() {
+                        const searchField = document.querySelector('.select2-search__field');
+                        if (searchField) searchField.focus();
+                    }, 100);
+                });
+
+                // Project select dengan inisialisasi khusus
+                const projectSelect = row.find('.project-select');
+                initializeProjectSelect(projectSelect);
+
                 // Image preview
                 row.find('input[type="file"]').on('change', function(e) {
-                    const input = e.target;
-                    const previewContainer = $(input).parent();
-                    previewContainer.find('.img-preview-container').remove();
-
-                    if (input.files && input.files[0]) {
+                    const file = e.target.files[0];
+                    if (file) {
                         const reader = new FileReader();
-                        reader.onload = function(e) {
-                            const previewHtml = `
-                                <div class="img-preview-container mt-2">
-                                    <img src="${e.target.result}" class="img-thumbnail" style="max-width: 150px; height: auto;">
-                                </div>
-                            `;
-                            previewContainer.append(previewHtml);
+                        reader.onload = function(event) {
+                            console.log('Image preview:', event.target.result);
                         };
-                        reader.readAsDataURL(input.files[0]);
+                        reader.readAsDataURL(file);
                     }
                 });
 
@@ -611,7 +645,7 @@
                 toggleMaterialInput(row.find('.type-select'));
             }
 
-            // ⭐ FUNCTION: Toggle material input visibility
+            // Toggle material input visibility
             function toggleMaterialInput(typeSelect) {
                 const row = typeSelect.closest('.request-row');
                 const type = typeSelect.val();
@@ -627,42 +661,43 @@
                 const $requiredQty = row.find('input[name$="[required_quantity]"]');
 
                 if (type === '') {
-                    $materialInput.show().prop('required', false).prop('disabled', true).val('');
+                    // Semua disabled
+                    $materialInput.show().prop('required', false).prop('disabled', true);
                     $materialSelect.hide().addClass('d-none').prop('required', false).prop('disabled', true);
-                    if ($materialContainer.length) $materialContainer.hide();
+                    $materialContainer.hide();
                     $unitInput.show().prop('readonly', false).prop('disabled', true).val('');
                     $unitSelect.hide().addClass('d-none').prop('disabled', true);
-                    if ($unitContainer.length) $unitContainer.hide();
+                    $unitContainer.hide();
                     $addUnitBtn.hide();
-                    $stockLevel.prop('disabled', true).val('');
+                    $stockLevel.prop('readonly', false).prop('disabled', true).val('');
                     $requiredQty.prop('disabled', true).val('');
-
                 } else if (type === 'new_material') {
-                    $materialInput.show().prop('required', true).prop('disabled', false).val('');
+                    // New material mode
+                    $materialInput.show().prop('required', true).prop('disabled', false);
                     $materialSelect.hide().addClass('d-none').prop('required', false).prop('disabled', true);
-                    if ($materialContainer.length) $materialContainer.hide();
-                    $unitInput.hide().prop('disabled', true).val('');
-                    $unitSelect.show().removeClass('d-none').prop('disabled', false).prop('required', true);
-                    if ($unitContainer.length) $unitContainer.show();
+                    $materialContainer.hide();
+                    $unitInput.hide().prop('disabled', true);
+                    $unitSelect.show().removeClass('d-none').prop('disabled', false);
+                    $unitContainer.show();
                     $addUnitBtn.show();
-                    $stockLevel.prop('readonly', false).prop('disabled', false).val('');
-                    $requiredQty.prop('disabled', false).val('');
-
+                    $stockLevel.prop('readonly', false).prop('disabled', false);
+                    $requiredQty.prop('disabled', false);
                 } else if (type === 'restock') {
-                    $materialInput.hide().prop('required', false).prop('disabled', true).val('');
+                    // Restock mode
+                    $materialInput.hide().prop('required', false).prop('disabled', true);
                     $materialSelect.show().removeClass('d-none').prop('required', true).prop('disabled', false);
-                    if ($materialContainer.length) $materialContainer.show();
-                    $unitInput.show().prop('readonly', true).prop('disabled', false).val('');
-                    $unitSelect.hide().addClass('d-none').prop('disabled', true).prop('required', false);
-                    if ($unitContainer.length) $unitContainer.hide();
+                    $materialContainer.show();
+                    $unitInput.show().prop('readonly', true).prop('disabled', false);
+                    $unitSelect.hide().addClass('d-none').prop('disabled', true);
+                    $unitContainer.hide();
                     $addUnitBtn.hide();
-                    $stockLevel.prop('readonly', true).prop('disabled', false).val('');
-                    $requiredQty.prop('disabled', false).val('');
-                    $materialSelect.val('').trigger('change');
+                    $stockLevel.prop('readonly', true).prop('disabled', false);
+                    $requiredQty.prop('disabled', false);
+                    updateMaterialFields($materialSelect);
                 }
             }
 
-            // ⭐ FUNCTION: Update material fields
+            // Update material fields
             function updateMaterialFields(select) {
                 const row = select.closest('.request-row');
                 const selectedOption = select.find(':selected');
@@ -671,7 +706,7 @@
 
                 if (selectedOption.val()) {
                     const unit = selectedOption.data('unit') || '';
-                    const stock = selectedOption.data('stock') || '0';
+                    const stock = selectedOption.data('stock') || '';
                     $unitInput.val(unit);
                     $stockInput.val(stock);
                 } else {
@@ -680,10 +715,25 @@
                 }
             }
 
+            // Initialize Select2 untuk Quick Add Department (Multiple)
+            $('#addProjectModal').on('shown.bs.modal', function() {
+                if (!$('#quick-add-departments').data('select2')) {
+                    $('#quick-add-departments').select2({
+                        theme: 'bootstrap-5',
+                        placeholder: 'Select departments',
+                        allowClear: true,
+                        closeOnSelect: false, // Keep dropdown open
+                        dropdownParent: $('#addProjectModal'),
+                        width: '100%'
+                    });
+                }
+            });
+
             // Quick add project
             $('#quickAddProjectForm').on('submit', function(e) {
                 e.preventDefault();
                 let form = $(this);
+
                 $.ajax({
                     url: form.attr('action'),
                     method: 'POST',
@@ -693,19 +743,39 @@
                     },
                     success: function(res) {
                         if (res.success && res.project) {
-                            let newOption = new Option(res.project.name, res.project.id, true,
+                            // ⭐ PERBAIKAN: Update project select dengan proper handling
+                            const newOption = new Option(res.project.name, res.project.id, true,
                                 true);
+
                             if (lastActiveRow) {
-                                lastActiveRow.find('.project-select').append(newOption).val(res
-                                    .project.id).trigger('change');
+                                const projectSelect = lastActiveRow.find('.project-select');
+
+                                // Destroy Select2 terlebih dahulu
+                                if (projectSelect.data('select2')) {
+                                    projectSelect.select2('destroy');
+                                }
+
+                                // Tambah option baru
+                                projectSelect.append(newOption);
+
+                                // Re-initialize Select2
+                                initializeProjectSelect(projectSelect);
+
+                                // Set value
+                                projectSelect.val(res.project.id).trigger('change');
                             }
-                            form[0].reset();
+
+                            // ⭐ TAMBAHAN: Reset Select2 departments
+                            $('#quick-add-departments').val(null).trigger('change');
+
                             $('#addProjectModal').modal('hide');
+                            form[0].reset();
                         }
                     },
                     error: function(xhr) {
-                        let msg = xhr.responseJSON?.message || 'Failed to add project.';
-                        alert(msg);
+                        let msg = xhr.responseJSON?.message ||
+                            'Failed to add project. Please try again.';
+                        Swal.fire('Error', msg, 'error');
                     }
                 });
             });
@@ -722,17 +792,27 @@
                         'X-CSRF-TOKEN': '{{ csrf_token() }}'
                     },
                     success: function(unit) {
-                        form[0].reset();
-                        let newOption = new Option(unit.name, unit.name, true, true);
                         if (lastActiveRow) {
-                            lastActiveRow.find('.unit-select').append(newOption).val(unit.name)
-                                .trigger('change');
+                            const unitSelect = lastActiveRow.find('.unit-select');
+                            const newOption = new Option(unit.name, unit.name, true, true);
+                            unitSelect.append(newOption).trigger('change');
                         }
+
                         $('#addUnitModal').modal('hide');
+                        form[0].reset();
+
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success',
+                            text: 'Unit "' + unit.name + '" added successfully!',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
                     },
                     error: function(xhr) {
-                        let msg = xhr.responseJSON?.message || 'Failed to add unit.';
-                        alert(msg);
+                        let msg = xhr.responseJSON?.message ||
+                            'Failed to add unit. Please try again.';
+                        Swal.fire('Error', msg, 'error');
                     }
                 });
             });
@@ -744,14 +824,16 @@
 
                 if (selectedInventory && prefilledType) {
                     const firstRow = $('.request-row').first();
-                    firstRow.find('.type-select').val(prefilledType).trigger('change');
+                    firstRow.find('[name="requests[0][type]"]').val(prefilledType).trigger('change');
 
-                    setTimeout(function() {
+                    setTimeout(() => {
                         if (prefilledType === 'restock') {
                             firstRow.find('.material-name-select').val(selectedInventory.id).trigger(
                                 'change');
+                            firstRow.find('[name="requests[0][remark]"]').val(
+                                'Low stock alert - Restock needed').prop('readonly', true);
                         }
-                    }, 300);
+                    }, 500);
                 }
             }
 
