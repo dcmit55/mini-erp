@@ -539,40 +539,88 @@ class PurchaseRequestController extends Controller
             return redirect()->back()->with('error', 'You do not have permission to modify purchase requests.');
         }
 
+        // ⭐ STEP 1: Validasi dasar struktur request
         $request->validate([
             'requests' => 'required|array|min:1',
             'requests.*.type' => 'required|in:new_material,restock',
-            'requests.*.material_name' => 'required_if:requests.*.type,new_material',
-            'requests.*.inventory_id' => 'required_if:requests.*.type,restock|nullable|exists:inventories,id',
-            'requests.*.required_quantity' => 'required|numeric|min:0.01',
-            'requests.*.unit' => 'required',
-            'requests.*.stock_level' => 'nullable|numeric|min:0',
-            'requests.*.project_id' => 'nullable|exists:projects,id',
-            'requests.*.remark' => 'nullable|string|max:1000',
             'requests.*.img' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ]);
 
-        $successCount = 0;
+        // ⭐ STEP 2: Validasi custom per item SEBELUM submit
         $errors = [];
+        $allRequestsData = [];
+        $hasValidationError = false;
 
         foreach ($request->requests as $key => $requestData) {
-            try {
-                // Cek apakah type new_material dan material_name sudah ada di inventory
-                if ($requestData['type'] === 'new_material') {
+            $itemErrors = [];
+
+            // Validasi: Material name tidak boleh kosong untuk new_material
+            if ($requestData['type'] === 'new_material') {
+                if (empty($requestData['material_name'])) {
+                    $itemErrors['material_name'] = 'Material name is required for new material type.';
+                    $hasValidationError = true;
+                } else {
+                    // ⭐ VALIDASI PENTING: Cek apakah material sudah ada di inventory (case-insensitive)
                     $exists = Inventory::whereRaw('LOWER(name) = ?', [strtolower($requestData['material_name'])])->exists();
                     if ($exists) {
-                        $errors["requests.$key.material_name"] = 'Material already exists in inventory.';
-                        continue; // Skip item ini dan lanjut ke item berikutnya
+                        $itemErrors['material_name'] = 'Material already exists in inventory.';
+                        $hasValidationError = true;
                     }
                 }
+            }
 
+            // Validasi: Inventory harus ada untuk restock
+            if ($requestData['type'] === 'restock') {
+                if (empty($requestData['inventory_id'])) {
+                    $itemErrors['inventory_id'] = 'Please select an inventory item for restock type.';
+                    $hasValidationError = true;
+                }
+            }
+
+            // Validasi: Required quantity harus > 0
+            if (empty($requestData['required_quantity']) || $requestData['required_quantity'] <= 0) {
+                $itemErrors['required_quantity'] = 'Quantity must be greater than 0.';
+                $hasValidationError = true;
+            }
+
+            // Validasi: Unit harus dipilih
+            if (empty($requestData['unit'])) {
+                $itemErrors['unit'] = 'Unit is required.';
+                $hasValidationError = true;
+            }
+
+            // ⭐ JIKA ada error pada item ini, tambahkan ke array errors
+            if (!empty($itemErrors)) {
+                foreach ($itemErrors as $field => $message) {
+                    $errors["requests.{$key}.{$field}"] = $message;
+                }
+            } else {
+                // Jika tidak ada error, simpan data untuk diproses
+                $allRequestsData[$key] = $requestData;
+            }
+        }
+
+        // ⭐ STEP 3: Jika ada error apapun, JANGAN process sama sekali
+        if (!empty($errors)) {
+            // ⭐ PERBAIKAN: Simpan semua form data di session untuk di-recover
+            session(['form_requests_data' => $request->requests]);
+
+            return redirect()->back()->withInput($request->all())->withErrors($errors);
+        }
+
+        // ⭐ STEP 4: Semua validasi passed, baru process penyimpanan
+        $successCount = 0;
+        $processErrors = [];
+
+        foreach ($allRequestsData as $key => $requestData) {
+            try {
                 // Prepare data
                 $data = [
                     'type' => $requestData['type'],
                     'material_name' => $requestData['type'] === 'restock' ? Inventory::find($requestData['inventory_id'])->name : $requestData['material_name'],
                     'inventory_id' => $requestData['type'] === 'restock' ? $requestData['inventory_id'] : null,
                     'required_quantity' => $requestData['required_quantity'],
-                    'qty_to_buy' => $requestData['required_quantity'], // ← AUTO-FILL dengan required_quantity
+                    'qty_to_buy' => $requestData['required_quantity'],
                     'unit' => $requestData['unit'],
                     'stock_level' => $requestData['stock_level'] ?? null,
                     'project_id' => $requestData['project_id'] ?? null,
@@ -589,23 +637,35 @@ class PurchaseRequestController extends Controller
                 PurchaseRequest::create($data);
                 $successCount++;
             } catch (\Exception $e) {
-                $errors[] = 'Row ' . ($key + 1) . ': ' . $e->getMessage();
+                $processErrors[$key] = 'Row ' . ($key + 1) . ': ' . $e->getMessage();
+                \Log::error('Error creating purchase request', [
+                    'key' => $key,
+                    'error' => $e->getMessage(),
+                    'data' => $requestData,
+                ]);
             }
         }
 
+        // ⭐ STEP 5: Clear session data setelah berhasil
+        session()->forget('form_requests_data');
+
+        // ⭐ STEP 6: Redirect dengan message
         if ($successCount > 0) {
-            $message = $successCount . ' purchase request(s) submitted successfully!';
-            if (!empty($errors)) {
+            $message = $successCount == 1 ? 'Successfully created purchase request' : "Successfully created {$successCount} purchase request(s)";
+
+            if (!empty($processErrors)) {
                 return redirect()
                     ->route('purchase_requests.index')
                     ->with('success', $message)
-                    ->with('warning', 'Some requests could not be processed: ' . implode('<br>', $errors));
+                    ->with('warning', 'Some requests could not be processed: ' . implode(', ', $processErrors));
             }
+
             return redirect()->route('purchase_requests.index')->with('success', $message);
         } else {
-            return back()
-                ->withInput()
-                ->with('error', 'No requests were processed. Errors: ' . implode('<br>', $errors));
+            return redirect()
+                ->back()
+                ->withInput($request->all())
+                ->with('error', 'No requests were processed. Errors: ' . implode(', ', $processErrors));
         }
     }
 

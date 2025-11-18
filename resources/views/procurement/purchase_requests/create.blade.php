@@ -222,57 +222,109 @@
             <div class="row g-3">
                 <div class="col-md-4">
                     <label class="form-label">Type</label>
-                    <select name="requests[INDEX][type]" class="form-select type-select" required>
+                    <select name="requests[INDEX][type]"
+                        class="form-select type-select @error('requests.INDEX.type') is-invalid @enderror" required>
                         <option value="">Select Type</option>
                         <option value="new_material">New Material</option>
                         <option value="restock">Restock</option>
                     </select>
+                    @error('requests.INDEX.type')
+                        <div class="invalid-feedback d-block">
+                            <i class="fas fa-exclamation-circle me-1"></i>{{ $message }}
+                        </div>
+                    @enderror
                 </div>
+
+                <!-- Material Name dengan error display -->
                 <div class="col-md-8 material-name-group">
                     <label class="form-label">Material Name</label>
-                    <input type="text" name="requests[INDEX][material_name]" class="form-control material-name-input"
-                        required>
-                    <select name="requests[INDEX][inventory_id]" class="form-select select2 material-name-select d-none">
+                    <div class="position-relative">
+                        <input type="text" name="requests[INDEX][material_name]"
+                            class="form-control material-name-input @error('requests.INDEX.material_name') is-invalid @enderror"
+                            placeholder="Enter material name" required>
+
+                        @error('requests.INDEX.material_name')
+                            <div class="invalid-feedback d-block">
+                                <i class="fas fa-exclamation-circle me-1"></i>{{ $message }}
+                            </div>
+                        @enderror
+                    </div>
+
+                    <select name="requests[INDEX][inventory_id]"
+                        class="form-select select2 material-name-select d-none @error('requests.INDEX.inventory_id') is-invalid @enderror"
+                        data-placeholder="Select material">
                         <option value="">Select Material</option>
-                        @foreach ($inventories as $inv)
-                            <option value="{{ $inv->id }}" data-unit="{{ $inv->unit }}"
-                                data-stock="{{ $inv->quantity }}">
-                                {{ $inv->name }}
+                        @foreach ($inventories as $inventory)
+                            <option value="{{ $inventory->id }}" data-unit="{{ $inventory->unit }}"
+                                data-stock="{{ $inventory->quantity }}">
+                                {{ $inventory->name }}
                             </option>
                         @endforeach
                     </select>
+
+                    @error('requests.INDEX.inventory_id')
+                        <div class="invalid-feedback d-block">
+                            <i class="fas fa-exclamation-circle me-1"></i>{{ $message }}
+                        </div>
+                    @enderror
                 </div>
+
+                <!-- Stock Level -->
                 <div class="col-md-4">
                     <label class="form-label">Stock Level</label>
-                    <input type="number" name="requests[INDEX][stock_level]" class="form-control stock-level-input"
-                        min="0" step="0.01">
+                    <input type="number" name="requests[INDEX][stock_level]"
+                        class="form-control stock-level-input @error('requests.INDEX.stock_level') is-invalid @enderror"
+                        readonly>
+                    @error('requests.INDEX.stock_level')
+                        <div class="invalid-feedback d-block">
+                            {{ $message }}
+                        </div>
+                    @enderror
                 </div>
+
+                <!-- Required Quantity -->
                 <div class="col-md-4">
                     <label class="form-label">Required Quantity</label>
-                    <input type="number" name="requests[INDEX][required_quantity]" class="form-control" required
+                    <input type="number" name="requests[INDEX][required_quantity]"
+                        class="form-control @error('requests.INDEX.required_quantity') is-invalid @enderror" required
                         min="0.01" step="0.01">
+                    @error('requests.INDEX.required_quantity')
+                        <div class="invalid-feedback d-block">
+                            <i class="fas fa-exclamation-circle me-1"></i>{{ $message }}
+                        </div>
+                    @enderror
                 </div>
+
+                <!-- Unit -->
                 <div class="col-md-4 unit-group">
                     <label class="form-label">Unit</label>
                     <button type="button" class="btn btn-outline-primary btn-sm add-unit-btn" data-bs-toggle="modal"
-                        data-bs-target="#addUnitModal"
-                        style="--bs-btn-padding-y: .25rem; --bs-btn-padding-x: .5rem; --bs-btn-font-size: .55rem;">
+                        data-bs-target="#addUnitModal">
                         + Add Unit
                     </button>
-                    <select name="requests[INDEX][unit]" class="form-select select2 unit-select d-none" required>
+                    <select name="requests[INDEX][unit]"
+                        class="form-select select2 unit-select d-none @error('requests.INDEX.unit') is-invalid @enderror"
+                        data-placeholder="Select unit" required>
                         <option value="">Select Unit</option>
                         @foreach ($units as $unit)
                             <option value="{{ $unit->name }}">{{ $unit->name }}</option>
                         @endforeach
                     </select>
-                    <input type="text" name="requests[INDEX][unit]" class="form-control unit-input" readonly>
+                    <input type="text" name="requests[INDEX][unit]"
+                        class="form-control unit-input @error('requests.INDEX.unit') is-invalid @enderror" readonly>
+                    @error('requests.INDEX.unit')
+                        <div class="invalid-feedback d-block">
+                            <i class="fas fa-exclamation-circle me-1"></i>{{ $message }}
+                        </div>
+                    @enderror
                 </div>
+
+                <!-- Project -->
                 <div class="col-md-6">
                     <label class="form-label">Project</label>
                     <button type="button" class="btn btn-outline-primary btn-sm quickAddProjectBtn"
-                        data-bs-toggle="modal" data-bs-target="#addProjectModal"
-                        style="--bs-btn-padding-y: .25rem; --bs-btn-padding-x: .5rem; --bs-btn-font-size: .55rem;">
-                        + Add Project
+                        data-bs-toggle="modal" data-bs-target="#addProjectModal">
+                        + Quick Add
                     </button>
                     <select name="requests[INDEX][project_id]" class="form-select select2 project-select">
                         <option value="">Select Project</option>
@@ -281,19 +333,26 @@
                         @endforeach
                     </select>
                 </div>
+
+                <!-- Image -->
                 <div class="col-md-6">
                     <label class="form-label">Image (optional)</label>
                     <input type="file" name="requests[INDEX][img]" class="form-control" accept="image/*">
                 </div>
-                {{-- Field Remark untuk row dari index --}}
-                <div class="col-md-6">
+
+                <!-- Remark -->
+                <div class="col-md-12">
                     <label class="form-label">Remark</label>
-                    <textarea name="requests[INDEX][remark]" class="form-control remark-textarea" rows="3"
+                    <textarea name="requests[INDEX][remark]" class="form-control remark-textarea" rows="2"
                         placeholder="Enter remarks or notes for this request"></textarea>
                     <small class="text-muted">Optional: Add any notes or special instructions</small>
                 </div>
+
+                <!-- Remove Button -->
                 <div class="col-12 text-end">
-                    <button type="button" class="btn btn-danger btn-sm btn-remove-row">Remove</button>
+                    <button type="button" class="btn btn-danger btn-sm btn-remove-row">
+                        <i class="fas fa-trash me-1"></i>Remove
+                    </button>
                 </div>
             </div>
         </div>
@@ -340,10 +399,17 @@
 @push('scripts')
     <script>
         $(document).ready(function() {
-            let rowIndex = 0; // Start with 0 for first row
-
-            // Track the last active row for modals
+            let rowIndex = 0;
             let lastActiveRow = null;
+
+            const allInventories = @json($inventories ?? []);
+            const allUnits = @json($units ?? []);
+            const allProjects = @json($projects ?? []);
+
+            // ⭐ TAMBAHAN: Ambil data dari session jika ada error validasi
+            const formDataFromSession = @json(session('form_requests_data', []));
+
+            // Click handlers untuk modal
             $(document).on('click', '.quickAddProjectBtn', function() {
                 lastActiveRow = $(this).closest('.request-row');
             });
@@ -351,31 +417,33 @@
                 lastActiveRow = $(this).closest('.request-row');
             });
 
-            // Initialize select2 for the first row
+            // Initialize first row
             initializeRow(0);
 
-            // Auto-fill form jika ada data dari dashboard
+            // ⭐ PERBAIKAN: Restore form data dari session jika ada error
+            if (formDataFromSession && formDataFromSession.length > 0) {
+                restoreFormData(formDataFromSession);
+                rowIndex = formDataFromSession.length - 1;
+            }
+
+            // Auto-fill from dashboard jika ada
             @if (isset($selectedInventory) && isset($prefilledType))
                 autoFillFromDashboard();
-                //Remark readonly untuk request dari dashboard
                 protectReadonlyRemark();
             @endif
 
-            // Add more rows
+            // Add more rows button
             $('#add-more-btn').click(function() {
                 rowIndex++;
                 let newRow = $('#request-row-template').html().replace(/INDEX/g, rowIndex);
                 $('#requests-container').append(newRow);
 
-                // Make remove button visible on first row if we have more than one row
                 if ($('.request-row').length > 1) {
                     $('.btn-remove-row').show();
                 }
 
-                // Initialize the new row
                 initializeRow(rowIndex);
 
-                // Scroll to the new row
                 $('html, body').animate({
                     scrollTop: $('.request-row:last').offset().top - 100
                 }, 500);
@@ -383,20 +451,14 @@
 
             // Remove row
             $(document).on('click', '.btn-remove-row', function() {
-                // Get the parent row
                 const row = $(this).closest('.request-row');
-
-                // Remove select2 to prevent memory leaks
                 row.find('.select2').each(function() {
                     if ($(this).data('select2')) {
                         $(this).select2('destroy');
                     }
                 });
-
-                // Remove the row
                 row.remove();
 
-                // Hide remove button on first row if only one row remains
                 if ($('.request-row').length <= 1) {
                     $('.btn-remove-row').hide();
                 }
@@ -414,7 +476,211 @@
                 });
             }
 
-            // Quick Add Project
+            // ⭐ FUNCTION: Restore form data dari session
+            function restoreFormData(formDataFromSession) {
+                // Hapus row pertama jika kosong
+                if ($('.request-row').length === 1) {
+                    const firstRow = $('.request-row').first();
+                    const typeInput = firstRow.find('[name="requests[0][type]"]').val();
+                    if (!typeInput) {
+                        firstRow.remove();
+                    }
+                }
+
+                formDataFromSession.forEach((data, index) => {
+                    // Skip jika sudah ada row dengan index ini
+                    if ($('[name="requests[' + index + '][type]"]').length > 0) {
+                        restoreRowData(index, data);
+                    } else {
+                        // Buat row baru
+                        let newRow = $('#request-row-template').html().replace(/INDEX/g, index);
+                        $('#requests-container').append(newRow);
+                        initializeRow(index);
+
+                        // Restore data ke row baru
+                        restoreRowData(index, data);
+                    }
+                });
+
+                // Update rowIndex untuk row berikutnya
+                rowIndex = formDataFromSession.length - 1;
+
+                // Show remove button jika lebih dari 1 row
+                if ($('.request-row').length > 1) {
+                    $('.btn-remove-row').show();
+                }
+            }
+
+            // ⭐ FUNCTION: Restore data ke specific row
+            function restoreRowData(index, data) {
+                const row = $('[name="requests[' + index + '][type]"]').closest('.request-row');
+
+                // Restore type
+                row.find('[name="requests[' + index + '][type]"]').val(data.type || '').trigger('change');
+
+                setTimeout(() => {
+                    // Restore material name atau inventory
+                    if (data.type === 'new_material') {
+                        row.find('[name="requests[' + index + '][material_name]"]').val(data
+                            .material_name || '');
+                    } else if (data.type === 'restock') {
+                        row.find('[name="requests[' + index + '][inventory_id]"]').val(data.inventory_id ||
+                            '').trigger('change');
+                    }
+
+                    // Restore unit
+                    row.find('[name="requests[' + index + '][unit]"]').val(data.unit || '');
+                    if (data.type === 'new_material') {
+                        row.find('.unit-select').val(data.unit || '').trigger('change');
+                    } else if (data.type === 'restock') {
+                        row.find('.unit-input').val(data.unit || '');
+                    }
+
+                    // Restore quantities
+                    row.find('[name="requests[' + index + '][stock_level]"]').val(data.stock_level || '');
+                    row.find('[name="requests[' + index + '][required_quantity]"]').val(data
+                        .required_quantity || '');
+
+                    // Restore project
+                    row.find('[name="requests[' + index + '][project_id]"]').val(data.project_id || '')
+                        .trigger('change');
+
+                    // Restore remark
+                    row.find('[name="requests[' + index + '][remark]"]').val(data.remark || '');
+
+                    // Initialize Select2 untuk unit jika new_material
+                    if (data.type === 'new_material') {
+                        row.find('.unit-select').select2({
+                            theme: 'bootstrap-5',
+                            allowClear: true,
+                            width: '100%',
+                        });
+                    }
+                }, 300);
+            }
+
+            // ⭐ FUNCTION: Initialize row dengan Select2
+            function initializeRow(index) {
+                const row = $(`[name="requests[${index}][type]"]`).closest('.request-row');
+
+                // Initialize Select2 untuk semua select
+                row.find('.select2').select2({
+                    theme: 'bootstrap-5',
+                    allowClear: true,
+                    dropdownAutoWidth: true,
+                    width: '100%',
+                }).on('select2:open', function() {
+                    setTimeout(() => {
+                        const searchField = document.querySelector(
+                            '.select2-container--open .select2-search__field');
+                        if (searchField) searchField.focus();
+                    }, 100);
+                });
+
+                // Image preview
+                row.find('input[type="file"]').on('change', function(e) {
+                    const input = e.target;
+                    const previewContainer = $(input).parent();
+                    previewContainer.find('.img-preview-container').remove();
+
+                    if (input.files && input.files[0]) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            const previewHtml = `
+                                <div class="img-preview-container mt-2">
+                                    <img src="${e.target.result}" class="img-thumbnail" style="max-width: 150px; height: auto;">
+                                </div>
+                            `;
+                            previewContainer.append(previewHtml);
+                        };
+                        reader.readAsDataURL(input.files[0]);
+                    }
+                });
+
+                // Type select change event
+                row.find('.type-select').on('change', function() {
+                    toggleMaterialInput($(this));
+                });
+
+                // Material name select change event
+                row.find('.material-name-select').on('change', function() {
+                    updateMaterialFields($(this));
+                });
+
+                // Initialize state
+                toggleMaterialInput(row.find('.type-select'));
+            }
+
+            // ⭐ FUNCTION: Toggle material input visibility
+            function toggleMaterialInput(typeSelect) {
+                const row = typeSelect.closest('.request-row');
+                const type = typeSelect.val();
+
+                const $materialInput = row.find('.material-name-input');
+                const $materialSelect = row.find('.material-name-select');
+                const $materialContainer = row.find('.material-name-select').next('.select2-container');
+                const $unitInput = row.find('.unit-input');
+                const $unitSelect = row.find('.unit-select');
+                const $unitContainer = row.find('.unit-select').next('.select2-container');
+                const $addUnitBtn = row.find('.add-unit-btn');
+                const $stockLevel = row.find('.stock-level-input');
+                const $requiredQty = row.find('input[name$="[required_quantity]"]');
+
+                if (type === '') {
+                    $materialInput.show().prop('required', false).prop('disabled', true).val('');
+                    $materialSelect.hide().addClass('d-none').prop('required', false).prop('disabled', true);
+                    if ($materialContainer.length) $materialContainer.hide();
+                    $unitInput.show().prop('readonly', false).prop('disabled', true).val('');
+                    $unitSelect.hide().addClass('d-none').prop('disabled', true);
+                    if ($unitContainer.length) $unitContainer.hide();
+                    $addUnitBtn.hide();
+                    $stockLevel.prop('disabled', true).val('');
+                    $requiredQty.prop('disabled', true).val('');
+
+                } else if (type === 'new_material') {
+                    $materialInput.show().prop('required', true).prop('disabled', false).val('');
+                    $materialSelect.hide().addClass('d-none').prop('required', false).prop('disabled', true);
+                    if ($materialContainer.length) $materialContainer.hide();
+                    $unitInput.hide().prop('disabled', true).val('');
+                    $unitSelect.show().removeClass('d-none').prop('disabled', false).prop('required', true);
+                    if ($unitContainer.length) $unitContainer.show();
+                    $addUnitBtn.show();
+                    $stockLevel.prop('readonly', false).prop('disabled', false).val('');
+                    $requiredQty.prop('disabled', false).val('');
+
+                } else if (type === 'restock') {
+                    $materialInput.hide().prop('required', false).prop('disabled', true).val('');
+                    $materialSelect.show().removeClass('d-none').prop('required', true).prop('disabled', false);
+                    if ($materialContainer.length) $materialContainer.show();
+                    $unitInput.show().prop('readonly', true).prop('disabled', false).val('');
+                    $unitSelect.hide().addClass('d-none').prop('disabled', true).prop('required', false);
+                    if ($unitContainer.length) $unitContainer.hide();
+                    $addUnitBtn.hide();
+                    $stockLevel.prop('readonly', true).prop('disabled', false).val('');
+                    $requiredQty.prop('disabled', false).val('');
+                    $materialSelect.val('').trigger('change');
+                }
+            }
+
+            // ⭐ FUNCTION: Update material fields
+            function updateMaterialFields(select) {
+                const row = select.closest('.request-row');
+                const selectedOption = select.find(':selected');
+                const $unitInput = row.find('.unit-input');
+                const $stockInput = row.find('.stock-level-input');
+
+                if (selectedOption.val()) {
+                    const unit = selectedOption.data('unit') || '';
+                    const stock = selectedOption.data('stock') || '0';
+                    $unitInput.val(unit);
+                    $stockInput.val(stock);
+                } else {
+                    $unitInput.val('');
+                    $stockInput.val('');
+                }
+            }
+
+            // Quick add project
             $('#quickAddProjectForm').on('submit', function(e) {
                 e.preventDefault();
                 let form = $(this);
@@ -427,35 +693,24 @@
                     },
                     success: function(res) {
                         if (res.success && res.project) {
-                            // Add project to all project selects
-                            $('.project-select').each(function() {
-                                let newOption = new Option(res.project.name, res.project
-                                    .id, false, false);
-                                $(this).append(newOption);
-                            });
-
-                            // Select the new project in the current row
-                            if (lastActiveRow && lastActiveRow.length) {
-                                lastActiveRow.find('.project-select').val(res.project.id)
-                                    .trigger('change');
+                            let newOption = new Option(res.project.name, res.project.id, true,
+                                true);
+                            if (lastActiveRow) {
+                                lastActiveRow.find('.project-select').append(newOption).val(res
+                                    .project.id).trigger('change');
                             }
-
-                            $('#addProjectModal').modal('hide');
                             form[0].reset();
-                        } else {
-                            Swal.fire('Error', 'Failed to add project. Please try again.',
-                                'error');
+                            $('#addProjectModal').modal('hide');
                         }
                     },
                     error: function(xhr) {
-                        let msg = xhr.responseJSON?.message ||
-                            'Failed to add project. Please try again.';
-                        Swal.fire('Error', msg, 'error');
+                        let msg = xhr.responseJSON?.message || 'Failed to add project.';
+                        alert(msg);
                     }
                 });
             });
 
-            // Submit form unit via AJAX
+            // Quick add unit
             $('#unitForm').on('submit', function(e) {
                 e.preventDefault();
                 let form = $(this);
@@ -467,189 +722,47 @@
                         'X-CSRF-TOKEN': '{{ csrf_token() }}'
                     },
                     success: function(unit) {
-                        // Add unit to all unit selects
-                        $('.unit-select').each(function() {
-                            let newOption = new Option(unit.name, unit.name, false,
-                                false);
-                            $(this).append(newOption);
-                        });
-
-                        // Select the new unit in the current row
-                        if (lastActiveRow && lastActiveRow.length) {
-                            lastActiveRow.find('.unit-select').val(unit.name).trigger('change');
-                        }
-
-                        $('#addUnitModal').modal('hide');
                         form[0].reset();
+                        let newOption = new Option(unit.name, unit.name, true, true);
+                        if (lastActiveRow) {
+                            lastActiveRow.find('.unit-select').append(newOption).val(unit.name)
+                                .trigger('change');
+                        }
+                        $('#addUnitModal').modal('hide');
                     },
                     error: function(xhr) {
-                        let msg = xhr.responseJSON?.message ||
-                            'Failed to add unit. Please try again.';
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: msg
-                        });
+                        let msg = xhr.responseJSON?.message || 'Failed to add unit.';
+                        alert(msg);
                     }
                 });
             });
 
-            // ketika user mengklik Purchase Request dari low stock items
+            // Auto-fill dari dashboard
             function autoFillFromDashboard() {
                 const selectedInventory = @json($selectedInventory ?? null);
                 const prefilledType = @json($prefilledType ?? null);
 
                 if (selectedInventory && prefilledType) {
                     const firstRow = $('.request-row').first();
-
-                    // Set type field
                     firstRow.find('.type-select').val(prefilledType).trigger('change');
 
-                    // Tunggu sebentar agar DOM terupdate setelah change event
                     setTimeout(function() {
                         if (prefilledType === 'restock') {
-                            // Set material select untuk restock
                             firstRow.find('.material-name-select').val(selectedInventory.id).trigger(
                                 'change');
-
-                            // Update fields berdasarkan inventory data
-                            firstRow.find('.unit-input').val(selectedInventory.unit || '');
-                            firstRow.find('.stock-level-input').val(selectedInventory.quantity || '');
-
-
-
-                            // PERUBAHAN: Required quantity dibiarkan kosong agar user mengisi sendiri
-                            // Tidak auto-fill quantity, biarkan user menentukan sendiri
-
-                        } else if (prefilledType === 'new_material') {
-                            // Set material name untuk new material
-                            firstRow.find('.material-name-input').val(selectedInventory.name);
-                            firstRow.find('.unit-select').val(selectedInventory.unit || '').trigger(
-                                'change');
-                            firstRow.find('.stock-level-input').val(selectedInventory.quantity || '');
                         }
-
-                        // PERUBAHAN: Update notifikasi untuk memberitahu user mengisi quantity manual
-                        if (typeof Swal !== 'undefined') {
-                            Swal.fire({
-                                title: 'Auto-filled!',
-                                text: `${selectedInventory.name} fill in the required quantity manually.`,
-                                icon: 'success',
-                                timer: 3000,
-                                showConfirmButton: false,
-                                toast: true,
-                                position: 'top-end'
-                            });
-                        }
-                    }, 500);
+                    }, 300);
                 }
             }
 
-            // Helper function to initialize a row
-            function initializeRow(index) {
-                const row = $(`[name="requests[${index}][type]"]`).closest('.request-row');
-
-                // Initialize select2 elements
-                row.find('.select2').select2({
-                    theme: 'bootstrap-5',
-                    allowClear: true,
-                    dropdownAutoWidth: true,
-                    width: '100%',
+            function protectReadonlyRemark() {
+                const remarkFields = $('.remark-textarea');
+                remarkFields.prop('readonly', true);
+                remarkFields.css({
+                    'background-color': '#f8f9fa',
+                    'cursor': 'not-allowed',
+                    'opacity': '0.8'
                 });
-
-                // Add image preview functionality
-                row.find('input[type="file"]').on('change', function(e) {
-                    const input = e.target;
-                    const previewContainer = $(input).parent();
-
-                    // Remove any existing preview
-                    previewContainer.find('.img-preview-container').remove();
-
-                    if (input.files && input.files[0]) {
-                        const reader = new FileReader();
-                        reader.onload = function(e) {
-                            const previewHtml = `
-                    <div class="img-preview-container mt-2">
-                        <img src="${e.target.result}" class="img-fluid rounded" style="max-height: 100px">
-                    </div>
-                `;
-                            previewContainer.append(previewHtml);
-                        }
-                        reader.readAsDataURL(input.files[0]);
-                    }
-                });
-
-                // Initialize type select change event
-                row.find('.type-select').on('change', function() {
-                    toggleMaterialInput($(this));
-                });
-
-                // Initialize material name select change event
-                row.find('.material-name-select').on('change', function() {
-                    updateMaterialFields($(this));
-                });
-
-                // Call toggleMaterialInput once to initialize the state
-                toggleMaterialInput(row.find('.type-select'));
-            }
-
-            // Toggle material input fields based on type
-            function toggleMaterialInput(typeSelect) {
-                const row = typeSelect.closest('.request-row');
-                const type = typeSelect.val();
-
-                if (type === '') {
-                    // Initial state: all inputs disabled
-                    row.find('.material-name-input').show().prop('required', false).prop('disabled', true);
-                    row.find('.material-name-select').hide().addClass('d-none').prop('required', false).prop(
-                        'disabled', true);
-                    row.find('.material-name-select').next('.select2-container').hide();
-                    row.find('.add-unit-btn').hide();
-                    row.find('.unit-input').show().prop('readonly', false).prop('disabled', true).val('');
-                    row.find('.unit-select').hide().addClass('d-none').prop('disabled', true);
-                    row.find('.unit-select').next('.select2-container').hide();
-                    row.find('.stock-level-input').prop('readonly', false).prop('disabled', true).val('');
-                    row.find('input[name$="[required_quantity]"]').prop('disabled', true).val('');
-
-                } else if (type === 'new_material') {
-                    // New material: show manual input for material name
-                    row.find('.material-name-input').show().prop('required', true).prop('disabled', false);
-                    row.find('.material-name-select').hide().prop('required', false).prop('disabled', true);
-                    row.find('.material-name-select').next('.select2-container').hide();
-                    row.find('.add-unit-btn').show();
-                    row.find('.unit-input').hide().prop('disabled', true).val('');
-                    row.find('.unit-select').show().removeClass('d-none').prop('disabled', false);
-                    row.find('.unit-select').next('.select2-container').show();
-                    row.find('.stock-level-input').prop('readonly', false).prop('disabled', false);
-                    row.find('input[name$="[required_quantity]"]').prop('disabled', false);
-
-                } else if (type === 'restock') {
-                    // Restock: show select for existing inventory items
-                    row.find('.material-name-input').hide().prop('required', false).prop('disabled', true);
-                    row.find('.material-name-select').show().removeClass('d-none').prop('required', true).prop(
-                        'disabled', false);
-                    row.find('.material-name-select').next('.select2-container').show();
-                    row.find('.add-unit-btn').hide();
-                    row.find('.unit-input').show().prop('readonly', true).prop('disabled', false);
-                    row.find('.unit-select').hide().prop('disabled', true);
-                    row.find('.unit-select').next('.select2-container').hide();
-                    row.find('.stock-level-input').prop('readonly', true).prop('disabled', false);
-                    row.find('input[name$="[required_quantity]"]').prop('disabled', false);
-
-                    // Update fields based on selected inventory
-                    updateMaterialFields(row.find('.material-name-select'));
-                }
-            }
-
-            // Update material fields based on selected inventory
-            function updateMaterialFields(select) {
-                const row = select.closest('.request-row');
-                const selected = select.find(':selected');
-
-                if (selected.val()) {
-                    row.find('.unit-input').val(selected.data('unit') || '');
-                    row.find('.stock-level-input').val(selected.data('stock') || '');
-                }
             }
         });
     </script>
