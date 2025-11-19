@@ -569,8 +569,8 @@
                                     <div class="input-group">
                                         <input type="number" class="form-control allocation-input group-cost-input"
                                             data-group="{{ $group['group_key'] }}"
-                                            value="{{ rtrim(rtrim(number_format($group['domestic_cost'] ?? 0, 3, '.', ''), '0'), '.') }}"
-                                            min="0" step="0.001" placeholder="0" required>
+                                            value="{{ rtrim(rtrim(number_format($group['domestic_cost'] ?? 0, 2, '.', ''), '0'), '.') }}"
+                                            min="0" step="0.01" placeholder="0" required>
                                         <span class="input-group-text">
                                             {{ $group['items']->first()->purchaseRequest->currency->name ?? '-' }}
                                         </span>
@@ -663,8 +663,8 @@
                                                             data-index="{{ $index }}"
                                                             data-group="{{ $group['group_key'] }}"
                                                             data-item-id="{{ $item->id }}"
-                                                            value="{{ rtrim(rtrim(number_format($item->allocation_percentage ?? 0, 3, '.', ''), '0'), '.') }}"
-                                                            min="0" max="100" step="0.001"
+                                                            value="{{ rtrim(rtrim(number_format($item->allocation_percentage ?? 0, 2, '.', ''), '0'), '.') }}"
+                                                            min="0" max="100" step="0.01"
                                                             placeholder="0">
                                                         <div class="auto-save-indicator"></div>
                                                     </div>
@@ -853,7 +853,7 @@
             if (number == null || number === '') return '0';
             const num = parseFloat(number);
             if (isNaN(num)) return number;
-            return num.toFixed(3).replace(/\.?0+$/, '');
+            return num.toFixed(2).replace(/\.?0+$/, '');
         }
 
         function formatCurrency(number) {
