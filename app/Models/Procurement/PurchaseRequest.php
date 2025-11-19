@@ -16,7 +16,7 @@ class PurchaseRequest extends Model implements AuditableContract
 {
     use HasFactory, \OwenIt\Auditing\Auditable;
 
-    protected $fillable = ['type', 'material_name', 'inventory_id', 'required_quantity', 'qty_to_buy', 'unit', 'stock_level', 'project_id', 'requested_by', 'supplier_id', 'price_per_unit', 'currency_id', 'approval_status', 'delivery_date', 'remark', 'img'];
+    protected $fillable = ['type', 'material_name', 'inventory_id', 'required_quantity', 'qty_to_buy', 'unit', 'stock_level', 'project_id', 'requested_by', 'supplier_id', 'price_per_unit', 'currency_id', 'approval_status', 'delivery_date', 'remark', 'img', 'original_supplier_id', 'supplier_change_reason'];
 
     protected $casts = [
         'delivery_date' => 'date',
@@ -28,7 +28,7 @@ class PurchaseRequest extends Model implements AuditableContract
         'approval_status' => 'Pending',
     ];
 
-    protected $auditInclude = ['type', 'material_name', 'inventory_id', 'required_quantity', 'qty_to_buy', 'supplier_id', 'price_per_unit', 'currency_id', 'approval_status', 'delivery_date', 'remark'];
+    protected $auditInclude = ['type', 'material_name', 'inventory_id', 'required_quantity', 'qty_to_buy', 'supplier_id', 'original_supplier_id', 'supplier_change_reason', 'price_per_unit', 'currency_id', 'approval_status', 'delivery_date', 'remark'];
 
     protected $auditTimestamps = true;
 
@@ -50,6 +50,12 @@ class PurchaseRequest extends Model implements AuditableContract
     public function supplier()
     {
         return $this->belongsTo(Supplier::class);
+    }
+
+    // Relasi untuk original supplier
+    public function originalSupplier()
+    {
+        return $this->belongsTo(Supplier::class, 'original_supplier_id');
     }
 
     public function currency()
@@ -82,6 +88,7 @@ class PurchaseRequest extends Model implements AuditableContract
         return \App\Models\Procurement\GoodsReceive::where('shipping_id', $shipping->id)->exists();
     }
 
+    // Method untuk mendapatkan status pengiriman
     public function getShippingStatus()
     {
         if (!$this->preShipping) {
@@ -97,5 +104,11 @@ class PurchaseRequest extends Model implements AuditableContract
         }
 
         return 'in_shipping';
+    }
+
+    // Helper method untuk cek apakah supplier berubah
+    public function hasSupplierChanged()
+    {
+        return $this->supplier_id !== $this->original_supplier_id;
     }
 }

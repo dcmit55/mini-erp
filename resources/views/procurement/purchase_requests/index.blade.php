@@ -117,6 +117,27 @@
             font-size: 0.775rem;
             line-height: 1.2;
         }
+
+        #supplierChangeModal .modal-body {
+            min-height: 200px;
+            /* Set minimum height */
+        }
+
+        #supplierChangeModal .form-control,
+        #supplierChangeModal .form-label {
+            transition: none;
+            /* Disable transitions yang bisa trigger reflow */
+        }
+
+        /* Optimize modal rendering */
+        .modal.fade .modal-dialog {
+            transform: translate(0, 0);
+            transition: transform 0.15s ease-out;
+        }
+
+        .modal.show .modal-dialog {
+            transform: translate(0, 0);
+        }
     </style>
 @endpush
 
@@ -310,6 +331,44 @@
                         </form>
                     </div>
                 </div>
+
+                <!-- Modal Supplier Change Reason -->
+                <div class="modal fade" id="supplierChangeModal" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Reason for Supplier Change</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <input type="hidden" id="change-pr-id">
+                                <input type="hidden" id="change-new-supplier-id">
+
+                                <div class="mb-3">
+                                    <label class="form-label">Original Supplier</label>
+                                    <input type="text" class="form-control" id="original-supplier-name" readonly>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">New Supplier</label>
+                                    <input type="text" class="form-control" id="new-supplier-name" readonly>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Reason <span class="text-danger">*</span></label>
+                                    <textarea class="form-control" id="supplier-change-reason" rows="3"
+                                        placeholder="Enter reason for changing supplier..." required></textarea>
+                                    <small class="text-muted">This change will be audited</small>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <button type="button" class="btn btn-primary" id="confirm-supplier-change">Confirm
+                                    Change</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -386,7 +445,6 @@
                     {
                         data: 'status_badge',
                         name: 'status',
-                        orderable: false,
                         render: function(data, type, row) {
                             const status = row.DT_status;
                             let badge = '';
@@ -394,22 +452,22 @@
                             switch (status) {
                                 case 'received':
                                     badge =
-                                        '<span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>Received</span>';
+                                        '<span class="badge bg-success">Received</span>';
                                     break;
                                 case 'in_shipping':
                                     badge =
-                                        '<span class="badge bg-info"><i class="fas fa-truck me-1"></i>In Shipping</span>';
+                                        '<span class="badge bg-info">In Shipping</span>';
                                     break;
                                 case 'in_pre_shipping':
                                     badge =
-                                        '<span class="badge bg-warning"><i class="fas fa-box me-1"></i>Pre-Shipping</span>';
+                                        '<span class="badge bg-warning">Pre-Shipping</span>';
                                     break;
                                 case 'not_in_pre_shipping':
                                     badge =
-                                        '<span class="badge bg-secondary"><i class="fas fa-circle me-1"></i>Draft</span>';
+                                        '<span class="badge bg-secondary">Draft</span>';
                                     break;
                                 default:
-                                    badge = '<span class="badge bg-secondary">-</span>';
+                                    badge = '<span class="badge bg-light">-</span>';
                             }
                             return badge;
                         }
@@ -627,14 +685,6 @@
                     });
                 });
 
-                // Supplier change
-                $(document).on('change', '.supplier-select', function() {
-                    let id = $(this).data('id');
-                    quickUpdate(id, {
-                        supplier_id: $(this).val()
-                    });
-                });
-
                 // Price input change
                 $(document).on('change', '.price-input', function() {
                     let id = $(this).data('id');
@@ -668,22 +718,147 @@
                 });
             }
 
+            // Supplier change dengan reason modal
+            let pendingSupplierChange = null;
+
+            $(document).on('change', '.supplier-select', function() {
+                const $select = $(this);
+                const id = $select.data('id');
+                const newSupplierId = $(this).val();
+                const newSupplierName = $(this).find('option:selected').text();
+
+                const originalSupplierId = $select.data('original-supplier-id');
+                const originalSupplierName = $select.data('original-supplier-name');
+
+                // Jika supplier berubah dari original
+                if (originalSupplierId && newSupplierId != originalSupplierId) {
+                    // ⭐ SIMPAN data dulu, populate nanti setelah modal shown
+                    pendingSupplierChange = {
+                        id: id,
+                        newSupplierId: newSupplierId,
+                        newSupplierName: newSupplierName,
+                        originalSupplierId: originalSupplierId,
+                        originalSupplierName: originalSupplierName,
+                        $select: $select
+                    };
+
+                    // LANGSUNG show modal (tanpa populate data)
+                    $('#supplierChangeModal').modal('show');
+                } else {
+                    // Direct update
+                    quickUpdate(id, {
+                        supplier_id: newSupplierId
+                    });
+                }
+            });
+
+            // Populate data SETELAH modal fully rendered
+            $('#supplierChangeModal').on('shown.bs.modal', function() {
+                if (pendingSupplierChange) {
+                    // Populate data setelah modal selesai render (no reflow)
+                    $('#change-pr-id').val(pendingSupplierChange.id);
+                    $('#change-new-supplier-id').val(pendingSupplierChange.newSupplierId);
+                    $('#original-supplier-name').val(pendingSupplierChange.originalSupplierName || '-');
+                    $('#new-supplier-name').val(pendingSupplierChange.newSupplierName);
+                    $('#supplier-change-reason').val('').focus(); // Auto focus textarea
+                }
+            });
+
+            // Rollback supplier select on cancel
+            $('#supplierChangeModal').on('hidden.bs.modal', function() {
+                if (pendingSupplierChange && pendingSupplierChange.$select) {
+                    // Rollback ke original value jika user cancel
+                    const currentValue = pendingSupplierChange.$select.val();
+
+                    // Hanya rollback jika user tidak confirm change
+                    if (currentValue == pendingSupplierChange.newSupplierId) {
+                        pendingSupplierChange.$select.val(pendingSupplierChange.originalSupplierId).trigger(
+                            'change.select2');
+                    }
+                }
+                pendingSupplierChange = null;
+            });
+
+            // Confirm supplier change dengan reason
+            $('#confirm-supplier-change').on('click', function() {
+                const reason = $('#supplier-change-reason').val().trim();
+
+                if (!reason) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Required',
+                        text: 'Please provide a reason for changing supplier',
+                        confirmButtonText: 'OK'
+                    });
+                    $('#supplier-change-reason').focus();
+                    return;
+                }
+
+                if (!pendingSupplierChange) {
+                    Swal.fire('Error', 'No pending supplier change', 'error');
+                    return;
+                }
+
+                const id = pendingSupplierChange.id;
+                const newSupplierId = pendingSupplierChange.newSupplierId;
+
+                // Disable button sementara
+                const $btn = $(this);
+                const originalHtml = $btn.html();
+                $btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm me-2"></span>Saving...');
+
+                quickUpdate(id, {
+                    supplier_id: newSupplierId,
+                    supplier_change_reason: reason
+                }, function(success) {
+                    if (success) {
+                        $('#supplierChangeModal').modal('hide');
+
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success',
+                            text: 'Supplier changed successfully',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+
+                        // Clear pending change (prevent rollback)
+                        pendingSupplierChange = null;
+
+                        // Reload table untuk update data attributes
+                        table.ajax.reload(null, false);
+                    }
+
+                    // Reset button
+                    $btn.prop('disabled', false).html(originalHtml);
+                });
+            });
+
+            // Function untuk update supplier langsung (tanpa reason)
+            function updateSupplierDirect(id, supplierId) {
+                quickUpdate(id, {
+                    supplier_id: supplierId
+                });
+            }
+
             // Quick update function
-            function quickUpdate(id, data) {
+            function quickUpdate(id, data, callback) {
                 $.ajax({
-                    url: '/purchase_requests/' + id + '/quick-update',
+                    url: `/purchase_requests/${id}/quick-update`,
                     method: 'POST',
-                    data: Object.assign(data, {
-                        _token: '{{ csrf_token() }}'
-                    }),
+                    data: data,
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
                     success: function(response) {
                         if (response.success) {
-                            // Optional: Show brief success message
-                            console.log('Updated successfully');
+                            if (callback) callback();
                         }
                     },
                     error: function(xhr) {
-                        Swal.fire('Error', 'Failed to update', 'error');
+                        let msg = xhr.responseJSON?.message || 'Failed to update';
+                        Swal.fire('Error', msg, 'error');
                     }
                 });
             }

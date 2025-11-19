@@ -399,16 +399,33 @@ class PurchaseRequestController extends Controller
         $canEdit = in_array(auth()->user()->role, ['super_admin', 'admin_procurement', 'admin_logistic', 'admin_finance', 'admin']);
 
         if (!$canEdit) {
+            // Read-only: tampilkan nama supplier tanpa indicator
             return $pr->supplier ? $pr->supplier->name : '-';
         }
 
+        // Build options untuk Select2
         $options = '<option value="">-</option>';
         foreach (\App\Models\Procurement\Supplier::orderBy('name')->get() as $supplier) {
             $selected = $pr->supplier_id == $supplier->id ? 'selected' : '';
             $options .= '<option value="' . $supplier->id . '" ' . $selected . '>' . $supplier->name . '</option>';
         }
 
-        return '<select class="form-select form-select-sm supplier-select" data-id="' . $pr->id . '">' . $options . '</select>';
+        // Data attributes untuk original supplier (hidden, untuk JS tracking)
+        $dataAttrs = '';
+        if ($pr->original_supplier_id) {
+            $dataAttrs = 'data-original-supplier-id="' . $pr->original_supplier_id . '" ' . 'data-original-supplier-name="' . ($pr->originalSupplier ? htmlspecialchars($pr->originalSupplier->name) : '') . '"';
+        }
+
+        // Return select tanpa visual indicator
+        // Indicator sudah di-handle via modal dan audit log
+        return '<select class="form-select form-select-sm supplier-select"
+                    data-id="' .
+            $pr->id .
+            '" ' .
+            $dataAttrs .
+            '>' .
+            $options .
+            '</select>';
     }
 
     private function formatPriceInput($pr)
@@ -539,14 +556,21 @@ class PurchaseRequestController extends Controller
             return redirect()->back()->with('error', 'You do not have permission to modify purchase requests.');
         }
 
-        // ⭐ STEP 1: Validasi dasar struktur request
+        // Validasi dasar struktur request
         $request->validate([
             'requests' => 'required|array|min:1',
             'requests.*.type' => 'required|in:new_material,restock',
+            'requests.*.material_name' => 'nullable|string|max:255',
+            'requests.*.inventory_id' => 'nullable|exists:inventories,id',
+            'requests.*.required_quantity' => 'required|numeric|min:0.01',
+            'requests.*.unit' => 'required|string|max:50',
+            'requests.*.stock_level' => 'nullable|numeric|min:0',
+            'requests.*.project_id' => 'nullable|exists:projects,id',
+            'requests.*.remark' => 'nullable|string',
             'requests.*.img' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ]);
 
-        // ⭐ STEP 2: Validasi custom per item SEBELUM submit
+        // Validasi custom per item SEBELUM submit
         $errors = [];
         $allRequestsData = [];
         $hasValidationError = false;
@@ -554,16 +578,16 @@ class PurchaseRequestController extends Controller
         foreach ($request->requests as $key => $requestData) {
             $itemErrors = [];
 
-            // Validasi: Material name tidak boleh kosong untuk new_material
+            // Validasi: Material name harus ada untuk new_material
             if ($requestData['type'] === 'new_material') {
                 if (empty($requestData['material_name'])) {
                     $itemErrors['material_name'] = 'Material name is required for new material type.';
                     $hasValidationError = true;
                 } else {
-                    // ⭐ VALIDASI PENTING: Cek apakah material sudah ada di inventory (case-insensitive)
+                    // Cek duplikasi nama material
                     $exists = Inventory::whereRaw('LOWER(name) = ?', [strtolower($requestData['material_name'])])->exists();
                     if ($exists) {
-                        $itemErrors['material_name'] = 'Material already exists in inventory.';
+                        $itemErrors['material_name'] = 'Material already exists in inventory. Please use restock type.';
                         $hasValidationError = true;
                     }
                 }
@@ -589,32 +613,40 @@ class PurchaseRequestController extends Controller
                 $hasValidationError = true;
             }
 
-            // ⭐ JIKA ada error pada item ini, tambahkan ke array errors
+            // JIKA ada error pada item ini, tambahkan ke array errors
             if (!empty($itemErrors)) {
                 foreach ($itemErrors as $field => $message) {
                     $errors["requests.{$key}.{$field}"] = $message;
                 }
             } else {
-                // Jika tidak ada error, simpan data untuk diproses
-                $allRequestsData[$key] = $requestData;
+                $allRequestsData[] = $requestData;
             }
         }
 
-        // ⭐ STEP 3: Jika ada error apapun, JANGAN process sama sekali
+        // Jika ada error apapun, JANGAN process sama sekali
         if (!empty($errors)) {
-            // ⭐ PERBAIKAN: Simpan semua form data di session untuk di-recover
+            // Simpan data form ke session untuk restore
             session(['form_requests_data' => $request->requests]);
 
-            return redirect()->back()->withInput($request->all())->withErrors($errors);
+            return redirect()->back()->withErrors($errors)->withInput($request->all())->with('error', 'Please fix the validation errors before submitting.');
         }
 
-        // ⭐ STEP 4: Semua validasi passed, baru process penyimpanan
+        // Semua validasi passed, baru process penyimpanan
         $successCount = 0;
         $processErrors = [];
 
         foreach ($allRequestsData as $key => $requestData) {
             try {
-                // Prepare data
+                // Auto-fill supplier dari inventory untuk restock
+                $supplierData = [];
+                if ($requestData['type'] === 'restock' && !empty($requestData['inventory_id'])) {
+                    $inventory = Inventory::find($requestData['inventory_id']);
+
+                    // Set supplier dari inventory sebagai original_supplier_id
+                    $supplierData['supplier_id'] = $inventory->supplier_id;
+                    $supplierData['original_supplier_id'] = $inventory->supplier_id;
+                }
+
                 $data = [
                     'type' => $requestData['type'],
                     'material_name' => $requestData['type'] === 'restock' ? Inventory::find($requestData['inventory_id'])->name : $requestData['material_name'],
@@ -627,6 +659,8 @@ class PurchaseRequestController extends Controller
                     'remark' => $requestData['remark'] ?? null,
                     'requested_by' => Auth::id(),
                     'approval_status' => 'Pending',
+                    'supplier_id' => $supplierData['supplier_id'] ?? null,
+                    'original_supplier_id' => $supplierData['original_supplier_id'] ?? null,
                 ];
 
                 // Handle image upload
@@ -637,27 +671,18 @@ class PurchaseRequestController extends Controller
                 PurchaseRequest::create($data);
                 $successCount++;
             } catch (\Exception $e) {
-                $processErrors[$key] = 'Row ' . ($key + 1) . ': ' . $e->getMessage();
-                \Log::error('Error creating purchase request', [
-                    'key' => $key,
-                    'error' => $e->getMessage(),
-                    'data' => $requestData,
-                ]);
+                $processErrors[] = 'Error processing item ' . ($key + 1) . ': ' . $e->getMessage();
             }
         }
 
-        // ⭐ STEP 5: Clear session data setelah berhasil
+        // Clear session data setelah berhasil
         session()->forget('form_requests_data');
 
-        // ⭐ STEP 6: Redirect dengan message
+        // Redirect dengan message
         if ($successCount > 0) {
-            $message = $successCount == 1 ? 'Successfully created purchase request' : "Successfully created {$successCount} purchase request(s)";
-
+            $message = "<strong>Success!</strong> {$successCount} purchase request(s) created successfully!";
             if (!empty($processErrors)) {
-                return redirect()
-                    ->route('purchase_requests.index')
-                    ->with('success', $message)
-                    ->with('warning', 'Some requests could not be processed: ' . implode(', ', $processErrors));
+                $message .= '<br><strong>Warnings:</strong><ul><li>' . implode('</li><li>', $processErrors) . '</li></ul>';
             }
 
             return redirect()->route('purchase_requests.index')->with('success', $message);
@@ -751,13 +776,20 @@ class PurchaseRequestController extends Controller
     public function quickUpdate(Request $request, $id)
     {
         if (auth()->user()->isReadOnlyAdmin()) {
-            return redirect()->back()->with('error', 'You do not have permission to modify purchase requests.');
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'You do not have permission to modify purchase requests.',
+                ],
+                403,
+            );
         }
 
         $request->validate([
             'material_name' => 'nullable|string|max:255',
             'qty_to_buy' => 'nullable|numeric|min:0',
             'supplier_id' => 'nullable|exists:suppliers,id',
+            'supplier_change_reason' => 'nullable|string|max:500',
             'price_per_unit' => 'nullable|numeric|min:0',
             'currency_id' => 'nullable|exists:currencies,id',
             'approval_status' => 'nullable|in:Pending,Approved,Decline',
@@ -784,9 +816,25 @@ class PurchaseRequestController extends Controller
         $purchaseRequest = PurchaseRequest::findOrFail($id);
 
         $data = $request->only(['qty_to_buy', 'supplier_id', 'price_per_unit', 'currency_id', 'approval_status', 'delivery_date', 'remark']);
+
+        // Track supplier change
+        if ($request->filled('supplier_id') && $purchaseRequest->supplier_id !== $request->supplier_id) {
+            $data['supplier_change_reason'] = $request->supplier_change_reason ?? 'Changed by admin';
+
+            // Log supplier change
+            \Log::info('Supplier changed for Purchase Request', [
+                'purchase_request_id' => $purchaseRequest->id,
+                'old_supplier_id' => $purchaseRequest->supplier_id,
+                'new_supplier_id' => $request->supplier_id,
+                'reason' => $data['supplier_change_reason'],
+                'changed_by' => Auth::id(),
+            ]);
+        }
+
         if ($purchaseRequest->type === 'new_material' && $request->filled('material_name')) {
             $data['material_name'] = $request->material_name;
         }
+
         $purchaseRequest->update($data);
 
         return response()->json(['success' => true]);

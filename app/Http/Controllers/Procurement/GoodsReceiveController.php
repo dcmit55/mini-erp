@@ -23,6 +23,14 @@ class GoodsReceiveController extends Controller
         });
     }
 
+    public function index()
+    {
+        $goodsReceives = GoodsReceive::with(['details'])
+            ->orderByDesc('arrived_date')
+            ->get();
+        return view('procurement.goods_receive_listing.index', compact('goodsReceives'));
+    }
+
     public function store(Request $request)
     {
         if (Auth::user()->isReadOnlyAdmin()) {
@@ -42,42 +50,75 @@ class GoodsReceiveController extends Controller
             'received_qty.*' => 'nullable|string|max:255',
         ]);
 
-        $shipping = Shipping::with(['details.preShipping.purchaseRequest.project', 'details.preShipping.purchaseRequest.supplier'])->findOrFail($request->shipping_id);
+        $shipping = Shipping::with(['details.preShipping.purchaseRequest.project', 'details.preShipping.purchaseRequest.supplier', 'details.preShipping.purchaseRequest.inventory'])->findOrFail($request->shipping_id);
 
-        $goodsReceive = GoodsReceive::create([
-            'shipping_id' => $shipping->id,
-            'international_waybill_no' => $shipping->international_waybill_no,
-            'freight_company' => $shipping->freight_company,
-            'freight_price' => $shipping->freight_price,
-            'arrived_date' => $request->arrived_date,
-        ]);
-
-        foreach ($shipping->details as $idx => $detail) {
-            // Gunakan qty_to_buy bukan required_quantity
-            $purchasedQty = $detail->preShipping->purchaseRequest->qty_to_buy ?? $detail->preShipping->purchaseRequest->required_quantity;
-
-            GoodsReceiveDetail::create([
-                'goods_receive_id' => $goodsReceive->id,
-                'shipping_detail_id' => $detail->id,
-                'purchase_type' => $detail->preShipping->purchaseRequest->type,
-                'project_name' => $detail->preShipping->purchaseRequest->project->name ?? '-',
-                'material_name' => $detail->preShipping->purchaseRequest->material_name,
-                'supplier_name' => $detail->preShipping->purchaseRequest->supplier->name ?? '-',
-                'unit_price' => $detail->preShipping->purchaseRequest->price_per_unit,
-                'domestic_waybill_no' => $detail->preShipping->domestic_waybill_no,
-                'purchased_qty' => $purchasedQty,
-                'received_qty' => $request->received_qty[$idx] ?? null,
+        DB::beginTransaction();
+        try {
+            $goodsReceive = GoodsReceive::create([
+                'shipping_id' => $shipping->id,
+                'international_waybill_no' => $shipping->international_waybill_no,
+                'freight_company' => $shipping->freight_company,
+                'freight_price' => $shipping->freight_price,
+                'arrived_date' => $request->arrived_date,
             ]);
+
+            foreach ($shipping->details as $idx => $detail) {
+                $purchasedQty = $detail->preShipping->purchaseRequest->qty_to_buy ?? $detail->preShipping->purchaseRequest->required_quantity;
+                $purchaseRequest = $detail->preShipping->purchaseRequest;
+
+                GoodsReceiveDetail::create([
+                    'goods_receive_id' => $goodsReceive->id,
+                    'shipping_detail_id' => $detail->id,
+                    'purchase_type' => $purchaseRequest->type,
+                    'project_name' => $purchaseRequest->project->name ?? '-',
+                    'material_name' => $purchaseRequest->material_name,
+                    'supplier_name' => $purchaseRequest->supplier->name ?? '-',
+                    'unit_price' => $purchaseRequest->price_per_unit,
+                    'domestic_waybill_no' => $detail->preShipping->domestic_waybill_no,
+                    'purchased_qty' => $purchasedQty,
+                    'received_qty' => $request->received_qty[$idx] ?? null,
+                ]);
+
+                // Update inventory supplier jika supplier berubah di purchase request
+                if ($purchaseRequest->type === 'restock' && $purchaseRequest->hasSupplierChanged()) {
+                    $inventory = $purchaseRequest->inventory;
+
+                    if ($inventory) {
+                        $oldSupplierId = $inventory->supplier_id;
+                        $newSupplierId = $purchaseRequest->supplier_id;
+
+                        // Update supplier di inventory
+                        $inventory->update([
+                            'supplier_id' => $newSupplierId,
+                        ]);
+
+                        // Log perubahan supplier
+                        \Log::info('Inventory supplier updated after Goods Receive', [
+                            'inventory_id' => $inventory->id,
+                            'inventory_name' => $inventory->name,
+                            'old_supplier_id' => $oldSupplierId,
+                            'new_supplier_id' => $newSupplierId,
+                            'purchase_request_id' => $purchaseRequest->id,
+                            'goods_receive_id' => $goodsReceive->id,
+                            'reason' => $purchaseRequest->supplier_change_reason ?? 'Updated via Goods Receive',
+                            'updated_by' => Auth::id(),
+                        ]);
+                    }
+                }
+            }
+
+            DB::commit();
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Error creating goods receive: ' . $e->getMessage());
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Failed to create goods receive: ' . $e->getMessage(),
+                ],
+                500,
+            );
         }
-
-        return response()->json(['success' => true]);
-    }
-
-    public function index()
-    {
-        $goodsReceives = GoodsReceive::with(['details'])
-            ->orderByDesc('arrived_date')
-            ->get();
-        return view('procurement.goods_receive_listing.index', compact('goodsReceives'));
     }
 }
