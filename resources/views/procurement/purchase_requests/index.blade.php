@@ -112,10 +112,36 @@
         }
 
         .tooltip-inner {
-            max-width: 200px;
-            padding: 0.3rem 0.6rem;
-            font-size: 0.775rem;
-            line-height: 1.2;
+            max-width: 280px;
+            /* Lebih lebar untuk text yang panjang */
+            padding: 0.5rem 0.75rem;
+            font-size: 0.8rem;
+            line-height: 1.4;
+            text-align: left;
+            /* Left align untuk multi-line */
+            background-color: #2c3e50ea;
+            /* Darker background */
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Icon helper styling */
+        [data-bs-toggle="tooltip"] {
+            transition: color 0.2s ease;
+        }
+
+        [data-bs-toggle="tooltip"]:hover {
+            color: #0d6efd !important;
+            /* Bootstrap primary color */
+        }
+
+        /* Table header dengan icon */
+        th .bi-info-circle {
+            opacity: 0.7;
+            transition: opacity 0.2s ease;
+        }
+
+        th:hover .bi-info-circle {
+            opacity: 1;
         }
 
         #supplierChangeModal .modal-body {
@@ -242,8 +268,13 @@
                                 <th>Unit Price</th>
                                 <th>Currency</th>
                                 <th>Approval Status</th>
-                                <th>Delivery Date</th>
-                                <th>Delivery Status</th>
+                                <th>
+                                    <span>Delivery Date</span>
+                                    <i class="bi bi-info-circle text-secondary" data-bs-toggle="tooltip" data-bs-html="true"
+                                        title="Expected date when supplier delivers goods to forwarder/shipping agent"
+                                        style="font-size: 0.85rem; cursor: help;"></i>
+                                </th>
+                                <th class="text center">Delivery Status</th>
                                 <th>Project</th>
                                 <th>Requested By</th>
                                 <th>Requested At</th>
@@ -445,6 +476,7 @@
                     {
                         data: 'status_badge',
                         name: 'status',
+                        className: 'text-center',
                         render: function(data, type, row) {
                             const status = row.DT_status;
                             let badge = '';
