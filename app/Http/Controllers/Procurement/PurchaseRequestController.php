@@ -14,6 +14,7 @@ use App\Models\Admin\User;
 use App\Models\Admin\Department;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Yajra\DataTables\Facades\DataTables;
 
 class PurchaseRequestController extends Controller

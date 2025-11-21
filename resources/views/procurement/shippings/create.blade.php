@@ -41,27 +41,50 @@
                     <!-- Blok 1: Form Header -->
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
-                            <label class="form-label">International Waybill</label>
-                            <input type="text" name="international_waybill_no" class="form-control" required>
+                            <label class="form-label">
+                                International Waybill <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" name="international_waybill_no"
+                                class="form-control @error('international_waybill_no') is-invalid @enderror"
+                                value="{{ old('international_waybill_no') }}" required>
+                            @error('international_waybill_no')
+                                <div class="invalid-feedback">
+                                    <i class="bi bi-exclamation-circle me-1"></i>
+                                    {{ $message }}
+                                </div>
+                            @enderror
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">International Freight Company</label>
-                            <select name="freight_company" class="form-select" required>
-                                <option value="">Select</option>
+                            <label class="form-label">
+                                International Freight Company <span class="text-danger">*</span>
+                            </label>
+                            <select name="freight_company"
+                                class="form-select @error('freight_company') is-invalid @enderror" required>
+                                <option value="">Select Freight Company</option>
                                 @foreach ($freightCompanies as $company)
-                                    <option value="{{ $company }}">{{ $company }}</option>
+                                    <option value="{{ $company }}"
+                                        {{ old('freight_company') == $company ? 'selected' : '' }}>
+                                        {{ $company }}
+                                    </option>
                                 @endforeach
                             </select>
+                            @error('freight_company')
+                                <div class="invalid-feedback">
+                                    <i class="bi bi-exclamation-circle me-1"></i>
+                                    {{ $message }}
+                                </div>
+                            @enderror
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">International Freight Cost <span class="text-danger">*</span></label>
                             <input type="number" name="freight_price" id="freight_price" class="form-control"
-                                min="0" step="0.01" required>
+                                min="0" step="0.01" value="{{ old('freight_price') }}" required>
                             <small class="text-muted">Total international freight cost for this shipment</small>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">ETA To Arrived</label>
-                            <input type="datetime-local" name="eta_to_arrived" class="form-control" required>
+                            <input type="datetime-local" name="eta_to_arrived" class="form-control"
+                                value="{{ old('eta_to_arrived') }}">
                         </div>
                     </div>
 

@@ -8,6 +8,7 @@ use App\Models\Procurement\Shipping;
 use App\Models\Procurement\GoodsReceive;
 use App\Models\Procurement\GoodsReceiveDetail;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class GoodsReceiveController extends Controller
 {

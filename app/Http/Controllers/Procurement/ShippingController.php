@@ -8,6 +8,7 @@ use App\Models\Procurement\PreShipping;
 use App\Models\Procurement\Shipping;
 use App\Models\Procurement\ShippingDetail;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class ShippingController extends Controller
 {
@@ -94,21 +95,27 @@ class ShippingController extends Controller
             return redirect()->route('pre-shippings.index')->with('error', 'You do not have permission to create shipping.');
         }
 
-        // Validasi input
-        $request->validate([
-            'international_waybill_no' => 'required|string|max:255',
-            'freight_company' => 'required|string|max:255',
-            'freight_price' => 'required|numeric|min:0',
-            'eta_to_arrived' => 'required|date',
-            'pre_shipping_ids' => 'required|array|min:1',
-            'int_allocation_method' => 'required|in:quantity,percentage,value',
-            'percentage' => 'nullable|array',
-            'percentage.*' => 'nullable|numeric|min:0|max:100',
-            'int_cost' => 'required|array',
-            'int_cost.*' => 'required|numeric|min:0',
-            'destination' => 'required|array|min:1',
-            'destination.*' => 'required|in:SG,BT,CN,MY,Other',
-        ]);
+        $request->validate(
+            [
+                'international_waybill_no' => 'required|string|max:255|unique:shippings,international_waybill_no',
+                'freight_company' => 'required|string|max:255',
+                'freight_price' => 'required|numeric|min:0',
+                'eta_to_arrived' => 'required|date',
+                'pre_shipping_ids' => 'required|array|min:1',
+                'int_allocation_method' => 'required|in:quantity,percentage,value',
+                'percentage' => 'nullable|array',
+                'percentage.*' => 'nullable|numeric|min:0|max:100',
+                'int_cost' => 'required|array',
+                'int_cost.*' => 'required|numeric|min:0',
+                'destination' => 'required|array|min:1',
+                'destination.*' => 'required|in:SG,BT,CN,MY,Other',
+            ],
+            [
+                'international_waybill_no.required' => 'International Waybill Number is required.',
+                'international_waybill_no.unique' => 'This International Waybill Number has already been used. Please use a different number.',
+                'freight_company.required' => 'International Freight Company is required.',
+            ],
+        );
 
         // Validasi percentage total jika method = percentage
         if ($request->int_allocation_method === 'percentage') {
@@ -132,8 +139,8 @@ class ShippingController extends Controller
                 ShippingDetail::create([
                     'shipping_id' => $shipping->id,
                     'pre_shipping_id' => $preShippingId,
-                    'percentage' => $request->percentage[$idx] ?? null, // For percentage method
-                    'int_cost' => $request->int_cost[$idx], // Auto-calculated from frontend
+                    'percentage' => $request->percentage[$idx] ?? null,
+                    'int_cost' => $request->int_cost[$idx],
                     'destination' => $request->destination[$idx],
                 ]);
             }
@@ -143,6 +150,25 @@ class ShippingController extends Controller
             return redirect()
                 ->route('shipping-management.index')
                 ->with('success', 'Shipping created successfully with cost allocation method: ' . ucfirst($request->int_allocation_method));
+        } catch (\Illuminate\Database\QueryException $e) {
+            DB::rollBack();
+
+            // Handle duplicate entry error
+            if ($e->getCode() == 23000) {
+                \Log::error('Duplicate waybill number attempt: ' . $request->international_waybill_no);
+
+                return redirect()
+                    ->back()
+                    ->withInput()
+                    ->withErrors(['international_waybill_no' => 'This International Waybill Number has already been used. Please use a different number.']);
+            }
+
+            \Log::error('Error creating shipping: ' . $e->getMessage());
+
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', 'Failed to create shipping: ' . $e->getMessage());
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('Error creating shipping: ' . $e->getMessage());
