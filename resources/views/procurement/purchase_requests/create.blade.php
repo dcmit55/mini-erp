@@ -543,7 +543,7 @@
                     row.find('[name="requests[' + index + '][required_quantity]"]').val(data
                         .required_quantity || '');
 
-                    // ⭐ PERBAIKAN: Restore project dengan destroy dulu
+                    // Restore project dengan destroy dulu
                     const projectSelect = row.find('[name="requests[' + index + '][project_id]"]');
                     if (projectSelect.data('select2')) {
                         projectSelect.select2('destroy');
@@ -743,7 +743,7 @@
                     },
                     success: function(res) {
                         if (res.success && res.project) {
-                            // ⭐ PERBAIKAN: Update project select dengan proper handling
+                            // Restore project select dengan proper handling
                             const newOption = new Option(res.project.name, res.project.id, true,
                                 true);
 
@@ -765,7 +765,7 @@
                                 projectSelect.val(res.project.id).trigger('change');
                             }
 
-                            // ⭐ TAMBAHAN: Reset Select2 departments
+                            // Restore Select2 departments
                             $('#quick-add-departments').val(null).trigger('change');
 
                             $('#addProjectModal').modal('hide');

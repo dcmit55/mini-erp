@@ -764,7 +764,7 @@
 
                 // Jika supplier berubah dari original
                 if (originalSupplierId && newSupplierId != originalSupplierId) {
-                    // ⭐ SIMPAN data dulu, populate nanti setelah modal shown
+                    // SIMPAN data dulu, populate nanti setelah modal shown
                     pendingSupplierChange = {
                         id: id,
                         newSupplierId: newSupplierId,

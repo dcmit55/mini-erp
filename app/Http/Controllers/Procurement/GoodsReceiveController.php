@@ -43,14 +43,14 @@ class GoodsReceiveController extends Controller
             );
         }
 
-        // ⭐ PERBAIKAN: Tambah validasi destination
+        // Tambah validasi destination
         $request->validate([
             'shipping_id' => 'required|exists:shippings,id',
             'arrived_date' => 'required|date',
             'received_qty' => 'required|array',
             'received_qty.*' => 'required|string|max:255',
-            'destination' => 'required|array', // ⭐ TAMBAHAN
-            'destination.*' => 'required|in:SG,BT,CN,MY,Other', // ⭐ TAMBAHAN
+            'destination' => 'required|array',
+            'destination.*' => 'required|in:SG,BT,CN,MY,Other',
         ]);
 
         $shipping = Shipping::with(['details.preShipping.purchaseRequest.project', 'details.preShipping.purchaseRequest.supplier', 'details.preShipping.purchaseRequest.inventory'])->findOrFail($request->shipping_id);
@@ -114,7 +114,7 @@ class GoodsReceiveController extends Controller
                             'new_supplier_id' => $newSupplierId,
                             'purchase_request_id' => $purchaseRequest->id,
                             'goods_receive_id' => $goodsReceive->id,
-                            'final_destination' => $finalDestination, // ⭐ TAMBAHAN
+                            'final_destination' => $finalDestination,
                             'reason' => $purchaseRequest->supplier_change_reason ?? 'Updated via Goods Receive',
                             'updated_by' => Auth::id(),
                         ]);

@@ -3,9 +3,10 @@
 @section('content')
     <div class="container-fluid mt-4">
         <div class="card shadow rounded">
-            <div class="card-body">
+            <div class="card-header">
                 <h2 class="mb-0 flex-shrink-0" style="font-size:1.3rem;">Create Shipping</h2>
-                <hr>
+            </div>
+            <div class="card-body">
                 @if (session('success'))
                     <div class="alert alert-success alert-dismissible fade show" role="alert">
                         {{ session('success') }}
@@ -53,9 +54,10 @@
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">International Freight Cost</label>
-                            <input type="number" name="freight_price" class="form-control" min="0" step="0.01"
-                                required>
+                            <label class="form-label">International Freight Cost <span class="text-danger">*</span></label>
+                            <input type="number" name="freight_price" id="freight_price" class="form-control"
+                                min="0" step="0.01" required>
+                            <small class="text-muted">Total international freight cost for this shipment</small>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">ETA To Arrived</label>
@@ -63,20 +65,84 @@
                         </div>
                     </div>
 
-                    <!-- Blok 2: Detail Data -->
+                    {{-- Cost Allocation Method Selector --}}
+                    <div class="mt-4 mb-4">
+                        <div>
+                            <h6>
+                                <i class="bi bi-calculator me-1"></i>
+                                International Cost Allocation Method
+                            </h6>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Allocation Method <span class="text-danger">*</span></label>
+                                <select name="int_allocation_method" id="int_allocation_method" class="form-select"
+                                    required>
+                                    <option value="quantity">By Quantity</option>
+                                    <option value="percentage">By Percentage</option>
+                                    <option value="value" selected>By Value</option>
+                                </select>
+                                <small class="text-muted">
+                                    Method to allocate international freight cost to each item
+                                </small>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        {{-- Auto-distribute button untuk percentage --}}
+                                        <div class="percentage-controls" style="display: none;">
+                                            <button type="button" class="btn btn-sm btn-secondary" id="auto-distribute-btn"
+                                                title="Distribute percentage based on item value">
+                                                <i class="bi bi-distribute-vertical me-1"></i>
+                                                Auto Distribute Percentage
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        {{-- Percentage validation --}}
+                                        <div class="percentage-validation" style="display: none;">
+                                            <div class="alert alert-success mb-0 py-1">
+                                                <div class="d-flex align-items-center justify-content-between">
+                                                    <small>
+                                                        <i class="bi bi-check-circle me-1"></i>
+                                                        <strong>Total Percentage: <span
+                                                                id="total-percentage">0.00</span>%</strong>
+                                                    </small>
+                                                    <small class="text-muted">Target: 100%</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Total Items: <span id="total-items">0</span></label>
+                                <div class="alert alert-info mb-0 py-2">
+                                    <small>
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        Change allocation method to recalculate international cost for each item
+                                    </small>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Blok 2: Detail Items -->
                     @forelse ($validPreShippings as $idx => $pre)
                         @if ($pre->purchaseRequest)
-                            <div class="card mb-2 border">
+                            <div class="card mb-3 border border-secondary item-card" data-index="{{ $idx }}"
+                                data-quantity="{{ $pre->purchaseRequest->qty_to_buy ?? $pre->purchaseRequest->required_quantity }}"
+                                data-value="{{ ($pre->purchaseRequest->qty_to_buy ?? $pre->purchaseRequest->required_quantity) * $pre->purchaseRequest->price_per_unit }}">
                                 <div class="card-body">
                                     <input type="hidden" name="pre_shipping_ids[]" value="{{ $pre->id }}">
-                                    <div class="row g-3 align-items-end">
+
+                                    <!-- Row 1: Material Info -->
+                                    <div class="row g-3 align-items-end mb-2">
                                         <div class="col-md-2">
                                             <label class="form-label text-muted mb-0">Purchase Type</label>
                                             <div class="fw-semibold">
                                                 {{ ucfirst(str_replace('_', ' ', $pre->purchaseRequest->type)) }}
                                             </div>
                                         </div>
-
                                         <div class="col-md-2">
                                             <label class="form-label text-muted mb-0">Material Name</label>
                                             <div class="fw-semibold">
@@ -91,9 +157,7 @@
                                         </div>
                                         <div class="col-md-1">
                                             <label class="form-label text-muted mb-0">Unit</label>
-                                            <div class="fw-semibold">
-                                                {{ $pre->purchaseRequest->unit }}
-                                            </div>
+                                            <div class="fw-semibold">{{ $pre->purchaseRequest->unit }}</div>
                                         </div>
                                         <div class="col-md-2">
                                             <label class="form-label text-muted mb-0">Supplier</label>
@@ -114,28 +178,48 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="row g-3 mt-2">
+
+                                    <!-- Row 2: Shipping Details -->
+                                    <div class="row g-3 align-items-end">
                                         <div class="col-md-2">
                                             <label class="form-label text-muted mb-0">Domestic Waybill</label>
                                             <div class="fw-semibold">{{ $pre->domestic_waybill_no ?? '-' }}</div>
                                         </div>
                                         <div class="col-md-2">
-                                            <label class="form-label text-muted mb-0">Domestic Cost</label>
-                                            <div class="fw-semibold">
+                                            <label class="form-label text-muted mb-0">Allocated Domestic Cost</label>
+                                            <div class="fw-semibold text-primary">
                                                 {{ number_format($pre->allocated_cost ?? 0, 2) }}
                                             </div>
-                                        </div>
-                                        <div class="col-md-2">
-                                            <label class="form-label text-muted mb-0">Percentage (%)</label>
-                                            <input type="number" name="percentage[]" class="form-control"
-                                                placeholder="Percentage (%)" min="0" max="100" step="0.01">
-                                        </div>
-                                        <div class="col-md-2">
-                                            <label class="form-label text-muted mb-0">International Cost</label>
-                                            <input type="number" name="int_cost[]" class="form-control"
-                                                placeholder="International Cost" min="0" step="0.01">
+                                            <small class="text-muted">
+                                                Method: {{ ucfirst($pre->cost_allocation_method ?? 'value') }}
+                                            </small>
                                         </div>
 
+                                        {{-- Percentage input (hanya tampil jika method = percentage) --}}
+                                        <div class="col-md-2 percentage-column" style="display: none;">
+                                            <label class="form-label text-muted mb-0">
+                                                Allocation % <span class="text-danger">*</span>
+                                            </label>
+                                            <input type="number" name="percentage[]"
+                                                class="form-control percentage-input" placeholder="%" min="0"
+                                                max="100" step="0.01" data-index="{{ $idx }}">
+                                            <small class="text-muted percentage-info">Enter 0-100%</small>
+                                        </div>
+
+                                        {{-- International Cost (auto-calculated, readonly) --}}
+                                        <div class="col-md-2">
+                                            <label class="form-label text-muted mb-0">
+                                                International Cost
+                                                <i class="bi bi-info-circle text-muted" data-bs-toggle="tooltip"
+                                                    title="Auto-calculated based on allocation method"
+                                                    style="font-size: 0.75rem; cursor: help;"></i>
+                                            </label>
+                                            <input type="number" name="int_cost[]" class="form-control int-cost-input"
+                                                placeholder="Calculated" min="0" step="0.01" readonly>
+                                            <small class="text-muted">Auto-calculated</small>
+                                        </div>
+
+                                        {{-- Destination --}}
                                         <div class="col-md-2">
                                             <label class="form-label text-muted mb-0">
                                                 Destination <span class="text-danger">*</span>
@@ -145,13 +229,15 @@
                                             </label>
                                             <select name="destination[]" class="form-select" required>
                                                 <option value="">Select</option>
-                                                <option value="SG" selected>Singapore (SG)</option>
-                                                <option value="BT">Batam (BT)</option>
-                                                <option value="CN">China (CN)</option>
+                                                <option value="SG" selected>Singapore</option>
+                                                <option value="BT">Batam</option>
+                                                <option value="CN">China</option>
+                                                <option value="MY">Malaysia</option>
                                                 <option value="Other">Other</option>
                                             </select>
                                         </div>
 
+                                        {{-- Status Badge --}}
                                         <div class="col-md-2">
                                             <label class="form-label text-muted mb-0">Status</label>
                                             <div>
@@ -184,7 +270,9 @@
                     @endforelse
 
                     @if (!$validPreShippings->isEmpty())
-                        <button class="btn btn-primary float-end mt-3" type="submit">
+                        <button class="btn btn-primary float-end mt-3" type="submit" id="submit-btn">
+                            <i class="bi bi-send-fill me-2"></i>
+                            <span class="spinner-border spinner-border-sm d-none" role="status"></span>
                             Proceed To Shippings
                         </button>
                     @endif
@@ -194,34 +282,237 @@
     </div>
 @endsection
 
+@push('styles')
+    <style>
+        /* Highlight calculated fields */
+        .int-cost-input[readonly] {
+            background-color: #e3f2fd;
+            color: #1976d2;
+            border: 1px solid #bbdefb;
+        }
+
+        /* Item card hover effect */
+        .item-card {
+            transition: all 0.3s ease;
+        }
+
+        .item-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+
+        /* Percentage validation colors */
+        .percentage-validation.valid .alert {
+            background-color: #d1e7dd;
+            border-color: #badbcc;
+            color: #0f5132;
+        }
+
+        .percentage-validation.invalid .alert {
+            background-color: #f8d7da;
+            border-color: #f5c2c7;
+            color: #842029;
+        }
+
+        /* Tooltip enhancement */
+        .tooltip-inner {
+            max-width: 280px;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.8rem;
+            text-align: left;
+        }
+    </style>
+@endpush
+
 @push('scripts')
     <script>
         $(document).ready(function() {
             // Initialize tooltips
             $('[data-bs-toggle="tooltip"]').tooltip();
 
-            // Auto-set destination dari majority vote (optional)
-            function suggestDestination() {
-                const destinations = $('select[name="destination[]"]').map(function() {
-                    return $(this).val();
-                }).get();
+            // Update total items count
+            const totalItems = $('.item-card').length;
+            $('#total-items').text(totalItems);
 
-                // Count occurrences
-                const counts = {};
-                destinations.forEach(dest => {
-                    if (dest) counts[dest] = (counts[dest] || 0) + 1;
-                });
+            // ⭐ COST ALLOCATION CALCULATION LOGIC ⭐
+            function calculateIntCosts() {
+                const method = $('#int_allocation_method').val();
+                const freightPrice = parseFloat($('#freight_price').val()) || 0;
 
-                // Find most common
-                const mostCommon = Object.keys(counts).reduce((a, b) =>
-                    counts[a] > counts[b] ? a : b, ''
-                );
+                if (freightPrice <= 0) {
+                    // Clear all int_cost if freight price is 0
+                    $('.int-cost-input').val('');
+                    return;
+                }
 
-                console.log('Suggested destination:', mostCommon);
+                if (method === 'quantity') {
+                    calculateByQuantity(freightPrice);
+                } else if (method === 'percentage') {
+                    calculateByPercentage(freightPrice);
+                } else if (method === 'value') {
+                    calculateByValue(freightPrice);
+                }
             }
 
-            // Trigger suggestion on change
-            $('select[name="destination[]"]').on('change', suggestDestination);
+            // Calculate by Quantity
+            function calculateByQuantity(totalCost) {
+                let totalQuantity = 0;
+                $('.item-card').each(function() {
+                    const qty = parseFloat($(this).data('quantity')) || 0;
+                    totalQuantity += qty;
+                });
+
+                if (totalQuantity <= 0) {
+                    $('.int-cost-input').val('0');
+                    return;
+                }
+
+                $('.item-card').each(function() {
+                    const qty = parseFloat($(this).data('quantity')) || 0;
+                    const allocatedCost = (qty / totalQuantity) * totalCost;
+                    $(this).find('.int-cost-input').val(allocatedCost.toFixed(2));
+                });
+            }
+
+            // Calculate by Percentage
+            function calculateByPercentage(totalCost) {
+                $('.item-card').each(function() {
+                    const percentage = parseFloat($(this).find('.percentage-input').val()) || 0;
+                    const allocatedCost = (percentage / 100) * totalCost;
+                    $(this).find('.int-cost-input').val(allocatedCost.toFixed(2));
+                });
+
+                updatePercentageTotal();
+            }
+
+            // Calculate by Value
+            function calculateByValue(totalCost) {
+                let totalValue = 0;
+                $('.item-card').each(function() {
+                    const value = parseFloat($(this).data('value')) || 0;
+                    totalValue += value;
+                });
+
+                if (totalValue <= 0) {
+                    $('.int-cost-input').val('0');
+                    return;
+                }
+
+                $('.item-card').each(function() {
+                    const value = parseFloat($(this).data('value')) || 0;
+                    const allocatedCost = (value / totalValue) * totalCost;
+                    $(this).find('.int-cost-input').val(allocatedCost.toFixed(2));
+                });
+            }
+
+            // Update percentage total
+            function updatePercentageTotal() {
+                let total = 0;
+                $('.percentage-input').each(function() {
+                    total += parseFloat($(this).val()) || 0;
+                });
+
+                $('#total-percentage').text(total.toFixed(2));
+
+                const $validation = $('.percentage-validation');
+                if (Math.abs(total - 100) < 0.1) {
+                    $validation.removeClass('invalid').addClass('valid');
+                    $validation.find('.alert').removeClass('alert-danger').addClass('alert-success');
+                } else {
+                    $validation.removeClass('valid').addClass('invalid');
+                    $validation.find('.alert').removeClass('alert-success').addClass('alert-danger');
+                }
+            }
+
+            // Auto-distribute percentage based on value
+            $('#auto-distribute-btn').on('click', function() {
+                let totalValue = 0;
+                $('.item-card').each(function() {
+                    const value = parseFloat($(this).data('value')) || 0;
+                    totalValue += value;
+                });
+
+                if (totalValue <= 0) {
+                    // Equal distribution
+                    const equalPercentage = (100 / totalItems).toFixed(2);
+                    $('.percentage-input').val(equalPercentage);
+                } else {
+                    // Value-based distribution
+                    $('.item-card').each(function() {
+                        const value = parseFloat($(this).data('value')) || 0;
+                        const percentage = (value / totalValue) * 100;
+                        $(this).find('.percentage-input').val(percentage.toFixed(2));
+                    });
+                }
+
+                calculateIntCosts();
+            });
+
+            // Toggle percentage column visibility
+            function togglePercentageColumn() {
+                const method = $('#int_allocation_method').val();
+
+                if (method === 'percentage') {
+                    $('.percentage-column').show();
+                    $('.percentage-controls').show();
+                    $('.percentage-validation').show();
+                    $('.percentage-input').prop('required', true);
+                } else {
+                    $('.percentage-column').hide();
+                    $('.percentage-controls').hide();
+                    $('.percentage-validation').hide();
+                    $('.percentage-input').prop('required', false).val('');
+                }
+            }
+
+            // Event handlers
+            $('#int_allocation_method').on('change', function() {
+                togglePercentageColumn();
+                calculateIntCosts();
+            });
+
+            $('#freight_price').on('input', function() {
+                calculateIntCosts();
+            });
+
+            $('.percentage-input').on('input', function() {
+                if ($('#int_allocation_method').val() === 'percentage') {
+                    calculateIntCosts();
+                }
+            });
+
+            // Form submit validation
+            $('#shipping-form').on('submit', function(e) {
+                const method = $('#int_allocation_method').val();
+
+                // Validate percentage total
+                if (method === 'percentage') {
+                    let total = 0;
+                    $('.percentage-input').each(function() {
+                        total += parseFloat($(this).val()) || 0;
+                    });
+
+                    if (Math.abs(total - 100) > 0.5) {
+                        e.preventDefault();
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Percentage Validation',
+                            text: `Total percentage is ${total.toFixed(2)}%. It should be close to 100%.`,
+                            confirmButtonText: 'OK'
+                        });
+                        return false;
+                    }
+                }
+
+                // Show loading spinner
+                const $submitBtn = $('#submit-btn');
+                $submitBtn.prop('disabled', true);
+                $submitBtn.find('.spinner-border').removeClass('d-none');
+            });
+
+            // Initial calculation
+            togglePercentageColumn();
+            calculateIntCosts();
         });
     </script>
 @endpush

@@ -94,37 +94,55 @@ class ShippingController extends Controller
             return redirect()->route('pre-shippings.index')->with('error', 'You do not have permission to create shipping.');
         }
 
+        // Validasi input
         $request->validate([
             'international_waybill_no' => 'required|string|max:255',
             'freight_company' => 'required|string|max:255',
             'freight_price' => 'required|numeric|min:0',
             'eta_to_arrived' => 'required|date',
             'pre_shipping_ids' => 'required|array|min:1',
-            'percentage' => 'array',
-            'int_cost' => 'array',
+            'int_allocation_method' => 'required|in:quantity,percentage,value',
+            'percentage' => 'nullable|array',
+            'percentage.*' => 'nullable|numeric|min:0|max:100',
+            'int_cost' => 'required|array',
+            'int_cost.*' => 'required|numeric|min:0',
             'destination' => 'required|array|min:1',
             'destination.*' => 'required|in:SG,BT,CN,MY,Other',
         ]);
+
+        // Validasi percentage total jika method = percentage
+        if ($request->int_allocation_method === 'percentage') {
+            $totalPercentage = array_sum($request->percentage ?? []);
+
+            if (abs($totalPercentage - 100) > 0.5) {
+                return redirect()
+                    ->back()
+                    ->withInput()
+                    ->withErrors(['percentage' => "Total percentage must be close to 100%. Current total: {$totalPercentage}%"]);
+            }
+        }
 
         DB::beginTransaction();
         try {
             // Create shipping record
             $shipping = Shipping::create($request->only(['international_waybill_no', 'freight_company', 'freight_price', 'eta_to_arrived']));
 
-            // Create shipping details dengan destination
+            // Simpan int_cost yang sudah calculated dari frontend
             foreach ($request->pre_shipping_ids as $idx => $preShippingId) {
                 ShippingDetail::create([
                     'shipping_id' => $shipping->id,
                     'pre_shipping_id' => $preShippingId,
-                    'percentage' => $request->percentage[$idx] ?? null,
-                    'int_cost' => $request->int_cost[$idx] ?? null,
+                    'percentage' => $request->percentage[$idx] ?? null, // For percentage method
+                    'int_cost' => $request->int_cost[$idx], // Auto-calculated from frontend
                     'destination' => $request->destination[$idx],
                 ]);
             }
 
             DB::commit();
 
-            return redirect()->route('shipping-management.index')->with('success', 'Shipping created successfully with destination tracking!');
+            return redirect()
+                ->route('shipping-management.index')
+                ->with('success', 'Shipping created successfully with cost allocation method: ' . ucfirst($request->int_allocation_method));
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('Error creating shipping: ' . $e->getMessage());

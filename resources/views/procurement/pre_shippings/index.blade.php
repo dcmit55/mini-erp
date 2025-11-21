@@ -732,15 +732,15 @@
     <script>
         $(function() {
             // ===== FILTER PILLS LOGIC =====
-            let currentFilter = 'not-shipped'; // ⭐ UBAH DARI 'all' ke 'not-shipped'
+            let currentFilter = 'not-shipped';
             const filterPillsContainer = $('#filter-pills-container');
             const groupsContainer = $('#groups-container');
 
             // Inisialisasi: Set data attribute pada container
-            groupsContainer.attr('data-current-filter', 'not-shipped'); // ⭐ UBAH KE 'not-shipped'
+            groupsContainer.attr('data-current-filter', 'not-shipped');
 
             // Terapkan filter default saat page load
-            applyFilterPills('not-shipped'); // ⭐ TAMBAH: Apply filter "Not Shipped" default
+            applyFilterPills('not-shipped'); // Apply filter "Not Shipped" default
 
             // Event handler untuk filter pills
             $(document).on('click', '.filter-pill', function(e) {
@@ -952,7 +952,7 @@
                 const value = values[index];
                 const allocatedCost = (value / totalValue) * totalCost;
 
-                // ⭐ Debug log untuk memastikan update berjalan
+                // Debug log untuk memastikan update berjalan
                 console.log(`Updating row ${index}: ${allocatedCost}`);
 
                 $allocatedAmount.text(formatDynamicNumber(allocatedCost));
@@ -1098,7 +1098,7 @@
                 let incompleteGroups = [];
                 let hasInvalidWaybill = false;
                 let hasInvalidCost = false;
-                let firstInvalidElement = null; // ⭐ TAMBAHKAN: Track first invalid element
+                let firstInvalidElement = null; // Track first invalid element
 
                 selectedGroups.forEach(groupKey => {
                     const $card = $(`.card-group-item[data-group="${groupKey}"]`);
@@ -1114,7 +1114,7 @@
                         $waybillInput.addClass('border-danger is-invalid');
                         hasInvalidWaybill = true;
 
-                        // ⭐ TANGKAP: First invalid element
+                        // Track first invalid element
                         if (!firstInvalidElement) {
                             firstInvalidElement = $waybillInput;
                         }
@@ -1127,7 +1127,7 @@
                         $costInput.addClass('border-danger is-invalid');
                         hasInvalidCost = true;
 
-                        // ⭐ TANGKAP: First invalid element
+                        // Track first invalid element
                         if (!firstInvalidElement) {
                             firstInvalidElement = $costInput;
                         }
@@ -1138,7 +1138,7 @@
 
                 // Jika ada yang incomplete, tampilkan error dengan scroll ke invalid fields
                 if (incompleteGroups.length > 0) {
-                    // ⭐ SIMPAN: Current scroll position sebelum modal muncul
+                    // Save current scroll position sebelum modal muncul
                     const currentScrollTop = $(window).scrollTop();
 
                     Swal.fire({
@@ -1154,10 +1154,10 @@
                             '</div>',
                         confirmButtonText: 'OK',
                         confirmButtonColor: '#dc3545',
-                        allowOutsideClick: false, // ⭐ TAMBAHKAN: Prevent closing by clicking outside
-                        allowEscapeKey: false, // ⭐ TAMBAHKAN: Prevent closing by pressing Escape
+                        allowOutsideClick: false, // Prevent closing by clicking outside
+                        allowEscapeKey: false, // Prevent closing by pressing Escape
                         didOpen: function(modal) {
-                            // ⭐ FOCUS: Set focus ke first invalid input untuk better UX
+                            // Set focus ke first invalid input untuk better UX
                             if (firstInvalidElement && firstInvalidElement.length) {
                                 setTimeout(() => {
                                     firstInvalidElement.focus();
@@ -1165,14 +1165,14 @@
                             }
                         }
                     }).then((result) => {
-                        // ⭐ RESTORE: Scroll position setelah modal ditutup
+                        // Restore scroll position setelah modal ditutup
                         if (result.isConfirmed) {
                             // Scroll ke first invalid field dengan smooth animation
                             if (firstInvalidElement && firstInvalidElement.length) {
                                 $('html, body').animate({
                                     scrollTop: firstInvalidElement.offset().top - 100
                                 }, 500, function() {
-                                    // ⭐ FOCUS: Set focus ke input setelah scroll selesai
+                                    // Set focus ke input setelah scroll selesai
                                     firstInvalidElement.focus();
                                     // Add highlight effect
                                     firstInvalidElement.addClass('highlight-invalid');
@@ -1191,7 +1191,7 @@
                     return;
                 }
 
-                // ⭐ Jika valid, clear visual feedback dan lanjutkan proceed
+                // Jika valid, clear visual feedback dan lanjutkan proceed
                 selectedGroups.forEach(groupKey => {
                     const $card = $(`.card-group-item[data-group="${groupKey}"]`);
                     $card.find('.group-waybill-input, .group-cost-input').removeClass(

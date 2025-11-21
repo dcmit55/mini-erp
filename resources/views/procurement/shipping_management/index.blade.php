@@ -537,7 +537,7 @@
                     return;
                 }
 
-                // ⭐ TAMBAHAN: Confirm jika ada destination yang berubah
+                // Confirm jika ada destination yang berubah
                 const changedDestinations = $('.destination-changed').length;
                 if (changedDestinations > 0) {
                     Swal.fire({
