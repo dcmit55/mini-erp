@@ -7,10 +7,10 @@
                 <table class="table align-middle table-hover table-sm">
                     <thead class="align-top table-light">
                         <tr>
-                            <th>Int. Waybill No</th>
+                            <th>Int. Waybill</th>
                             <th>Arrived Date</th>
                             <th>Freight Comp</th>
-                            <th>Freight Price</th>
+                            <th>Int. Freight Cost</th>
                             <th>Detail</th>
                         </tr>
                     </thead>
@@ -49,7 +49,7 @@
                                                             </div>
                                                         </div>
                                                         <div class="col-md-2">
-                                                            <span class="text-muted small">Domestic WBL</span>
+                                                            <span class="text-muted small">Domestic Waybill</span>
                                                             <div class="fw-bold">{{ $d->domestic_waybill_no }}</div>
                                                         </div>
                                                     </div>
@@ -61,6 +61,40 @@
                                                         <div class="col-md-2">
                                                             <span class="text-muted small">Received Qty</span>
                                                             <div class="fw-bold text-success">{{ $d->received_qty }}</div>
+                                                        </div>
+                                                        <div class="col-md-2">
+                                                            <span class="text-muted small">Destination</span>
+                                                            <div>
+                                                                @php
+                                                                    $destinationBadge = match ($d->destination) {
+                                                                        'SG' => [
+                                                                            'color' => 'success',
+                                                                            'label' => 'Singapore',
+                                                                        ],
+                                                                        'BT' => ['color' => 'info', 'label' => 'Batam'],
+                                                                        'CN' => [
+                                                                            'color' => 'danger',
+                                                                            'label' => 'China',
+                                                                        ],
+                                                                        'MY' => [
+                                                                            'color' => 'warning',
+                                                                            'label' => 'Malaysia',
+                                                                        ],
+                                                                        'Other' => [
+                                                                            'color' => 'secondary',
+                                                                            'label' => 'Other',
+                                                                        ],
+                                                                        default => [
+                                                                            'color' => 'secondary',
+                                                                            'label' => '-',
+                                                                        ],
+                                                                    };
+                                                                @endphp
+                                                                <span class="badge bg-{{ $destinationBadge['color'] }}">
+                                                                    <i class="bi bi-geo-alt-fill me-1"></i>
+                                                                    {{ $destinationBadge['label'] }}
+                                                                </span>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>

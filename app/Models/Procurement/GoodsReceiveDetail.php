@@ -7,7 +7,7 @@ use App\Models\Procurement\ShippingDetail;
 
 class GoodsReceiveDetail extends Model
 {
-    protected $fillable = ['goods_receive_id', 'shipping_detail_id', 'purchase_type', 'project_name', 'material_name', 'supplier_name', 'unit_price', 'domestic_waybill_no', 'purchased_qty', 'received_qty'];
+    protected $fillable = ['goods_receive_id', 'shipping_detail_id', 'purchase_type', 'project_name', 'material_name', 'supplier_name', 'unit_price', 'domestic_waybill_no', 'purchased_qty', 'received_qty', 'destination'];
 
     public function goodsReceive()
     {

@@ -43,11 +43,14 @@ class GoodsReceiveController extends Controller
             );
         }
 
+        // ⭐ PERBAIKAN: Tambah validasi destination
         $request->validate([
             'shipping_id' => 'required|exists:shippings,id',
             'arrived_date' => 'required|date',
             'received_qty' => 'required|array',
-            'received_qty.*' => 'nullable|string|max:255',
+            'received_qty.*' => 'required|string|max:255',
+            'destination' => 'required|array', // ⭐ TAMBAHAN
+            'destination.*' => 'required|in:SG,BT,CN,MY,Other', // ⭐ TAMBAHAN
         ]);
 
         $shipping = Shipping::with(['details.preShipping.purchaseRequest.project', 'details.preShipping.purchaseRequest.supplier', 'details.preShipping.purchaseRequest.inventory'])->findOrFail($request->shipping_id);
@@ -66,6 +69,9 @@ class GoodsReceiveController extends Controller
                 $purchasedQty = $detail->preShipping->purchaseRequest->qty_to_buy ?? $detail->preShipping->purchaseRequest->required_quantity;
                 $purchaseRequest = $detail->preShipping->purchaseRequest;
 
+                $finalDestination = $request->destination[$idx];
+                $originalDestination = $detail->destination;
+
                 GoodsReceiveDetail::create([
                     'goods_receive_id' => $goodsReceive->id,
                     'shipping_detail_id' => $detail->id,
@@ -77,22 +83,30 @@ class GoodsReceiveController extends Controller
                     'domestic_waybill_no' => $detail->preShipping->domestic_waybill_no,
                     'purchased_qty' => $purchasedQty,
                     'received_qty' => $request->received_qty[$idx] ?? null,
+                    'destination' => $finalDestination,
                 ]);
 
-                // Update inventory supplier jika supplier berubah di purchase request
+                if ($finalDestination !== $originalDestination) {
+                    \Log::info('Destination changed during Goods Receive', [
+                        'goods_receive_id' => $goodsReceive->id,
+                        'material_name' => $purchaseRequest->material_name,
+                        'original_destination' => $originalDestination,
+                        'final_destination' => $finalDestination,
+                        'changed_by' => Auth::id(),
+                        'reason' => 'Changed during goods receive process',
+                    ]);
+                }
+
+                // Update inventory supplier jika supplier berubah
                 if ($purchaseRequest->type === 'restock' && $purchaseRequest->hasSupplierChanged()) {
                     $inventory = $purchaseRequest->inventory;
 
                     if ($inventory) {
                         $oldSupplierId = $inventory->supplier_id;
                         $newSupplierId = $purchaseRequest->supplier_id;
-
-                        // Update supplier di inventory
                         $inventory->update([
                             'supplier_id' => $newSupplierId,
                         ]);
-
-                        // Log perubahan supplier
                         \Log::info('Inventory supplier updated after Goods Receive', [
                             'inventory_id' => $inventory->id,
                             'inventory_name' => $inventory->name,
@@ -100,6 +114,7 @@ class GoodsReceiveController extends Controller
                             'new_supplier_id' => $newSupplierId,
                             'purchase_request_id' => $purchaseRequest->id,
                             'goods_receive_id' => $goodsReceive->id,
+                            'final_destination' => $finalDestination, // ⭐ TAMBAHAN
                             'reason' => $purchaseRequest->supplier_change_reason ?? 'Updated via Goods Receive',
                             'updated_by' => Auth::id(),
                         ]);

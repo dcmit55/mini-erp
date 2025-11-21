@@ -552,7 +552,7 @@
                             <div class="row mb-4">
                                 <div class="col-md-3 position-relative">
                                     <label class="form-label">
-                                        Domestic Waybill No
+                                        Domestic Waybill
                                         <span class="text-danger">*</span>
                                     </label>
                                     <input type="text" class="form-control allocation-input group-waybill-input"

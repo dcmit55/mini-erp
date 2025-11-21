@@ -40,7 +40,7 @@
                     <!-- Blok 1: Form Header -->
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
-                            <label class="form-label">International Waybill Number</label>
+                            <label class="form-label">International Waybill</label>
                             <input type="text" name="international_waybill_no" class="form-control" required>
                         </div>
                         <div class="col-md-6">
@@ -135,6 +135,32 @@
                                             <input type="number" name="int_cost[]" class="form-control"
                                                 placeholder="International Cost" min="0" step="0.01">
                                         </div>
+
+                                        <div class="col-md-2">
+                                            <label class="form-label text-muted mb-0">
+                                                Destination <span class="text-danger">*</span>
+                                                <i class="bi bi-info-circle text-muted" data-bs-toggle="tooltip"
+                                                    title="Final destination for this item"
+                                                    style="font-size: 0.75rem; cursor: help;"></i>
+                                            </label>
+                                            <select name="destination[]" class="form-select" required>
+                                                <option value="">Select</option>
+                                                <option value="SG" selected>Singapore (SG)</option>
+                                                <option value="BT">Batam (BT)</option>
+                                                <option value="CN">China (CN)</option>
+                                                <option value="Other">Other</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="col-md-2">
+                                            <label class="form-label text-muted mb-0">Status</label>
+                                            <div>
+                                                <span class="badge bg-primary">
+                                                    <i class="bi bi-geo-alt-fill me-1"></i>
+                                                    In Transit
+                                                </span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -167,3 +193,35 @@
         </div>
     </div>
 @endsection
+
+@push('scripts')
+    <script>
+        $(document).ready(function() {
+            // Initialize tooltips
+            $('[data-bs-toggle="tooltip"]').tooltip();
+
+            // Auto-set destination dari majority vote (optional)
+            function suggestDestination() {
+                const destinations = $('select[name="destination[]"]').map(function() {
+                    return $(this).val();
+                }).get();
+
+                // Count occurrences
+                const counts = {};
+                destinations.forEach(dest => {
+                    if (dest) counts[dest] = (counts[dest] || 0) + 1;
+                });
+
+                // Find most common
+                const mostCommon = Object.keys(counts).reduce((a, b) =>
+                    counts[a] > counts[b] ? a : b, ''
+                );
+
+                console.log('Suggested destination:', mostCommon);
+            }
+
+            // Trigger suggestion on change
+            $('select[name="destination[]"]').on('change', suggestDestination);
+        });
+    </script>
+@endpush

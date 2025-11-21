@@ -36,7 +36,6 @@ class ShippingManagementController extends Controller
 
         $details = [];
         foreach ($shipping->details as $detail) {
-            // Gunakan qty_to_buy bukan required_quantity
             $purchasedQty = $detail->preShipping->purchaseRequest->qty_to_buy ?? $detail->preShipping->purchaseRequest->required_quantity;
 
             $details[] = [
@@ -47,7 +46,8 @@ class ShippingManagementController extends Controller
                 'unit_price' => $detail->preShipping->purchaseRequest->price_per_unit,
                 'domestic_waybill_no' => $detail->preShipping->domestic_waybill_no,
                 'purchased_qty' => $purchasedQty,
-                'unit' => $detail->preShipping->purchaseRequest->unit, // Include unit untuk info lengkap
+                'unit' => $detail->preShipping->purchaseRequest->unit,
+                'destination' => $detail->destination ?? 'SG',
             ];
         }
 

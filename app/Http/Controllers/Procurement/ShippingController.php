@@ -102,19 +102,37 @@ class ShippingController extends Controller
             'pre_shipping_ids' => 'required|array|min:1',
             'percentage' => 'array',
             'int_cost' => 'array',
+            'destination' => 'required|array|min:1',
+            'destination.*' => 'required|in:SG,BT,CN,MY,Other',
         ]);
 
-        $shipping = Shipping::create($request->only(['international_waybill_no', 'freight_company', 'freight_price', 'eta_to_arrived']));
+        DB::beginTransaction();
+        try {
+            // Create shipping record
+            $shipping = Shipping::create($request->only(['international_waybill_no', 'freight_company', 'freight_price', 'eta_to_arrived']));
 
-        foreach ($request->pre_shipping_ids as $idx => $preShippingId) {
-            ShippingDetail::create([
-                'shipping_id' => $shipping->id,
-                'pre_shipping_id' => $preShippingId,
-                'percentage' => $request->percentage[$idx] ?? null,
-                'int_cost' => $request->int_cost[$idx] ?? null,
-            ]);
+            // Create shipping details dengan destination
+            foreach ($request->pre_shipping_ids as $idx => $preShippingId) {
+                ShippingDetail::create([
+                    'shipping_id' => $shipping->id,
+                    'pre_shipping_id' => $preShippingId,
+                    'percentage' => $request->percentage[$idx] ?? null,
+                    'int_cost' => $request->int_cost[$idx] ?? null,
+                    'destination' => $request->destination[$idx],
+                ]);
+            }
+
+            DB::commit();
+
+            return redirect()->route('shipping-management.index')->with('success', 'Shipping created successfully with destination tracking!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Error creating shipping: ' . $e->getMessage());
+
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', 'Failed to create shipping: ' . $e->getMessage());
         }
-
-        return redirect()->route('shipping-management.index')->with('success', 'Shipping created!');
     }
 }
