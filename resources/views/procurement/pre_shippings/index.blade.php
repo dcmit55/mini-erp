@@ -697,10 +697,11 @@
                                                 </span>%
                                             </strong>
                                             <small class="text-muted ms-3">
-                                                {{ $group['has_been_shipped'] ? '(Locked - Already Shipped)' : '(Should equal 100%)' }}
+                                                {{ $group['has_been_shipped'] ? '(Locked - Already Shipped)' : '(Target: 100%)' }}
                                             </small>
                                         </div>
                                         <button type="button" class="btn btn-sm btn-outline-primary auto-distribute-btn"
+                                            title="Distribute percentage based on item value"
                                             data-group="{{ $group['group_key'] }}"
                                             {{ $group['has_been_shipped'] ? 'disabled' : '' }}>
                                             <i class="fas fa-magic me-1"></i>Auto Distribute

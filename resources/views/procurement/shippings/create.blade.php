@@ -85,36 +85,32 @@
                                 <small class="text-muted">
                                     Method to allocate international freight cost to each item
                                 </small>
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        {{-- Auto-distribute button untuk percentage --}}
-                                        <div class="percentage-controls" style="display: none;">
-                                            <button type="button" class="btn btn-sm btn-secondary" id="auto-distribute-btn"
-                                                title="Distribute percentage based on item value">
-                                                <i class="bi bi-distribute-vertical me-1"></i>
-                                                Auto Distribute Percentage
-                                            </button>
-                                        </div>
+                                <div class="row g-2 mt-1 align-items-center">
+                                    {{-- Auto-distribute button --}}
+                                    <div class="col-md-auto percentage-controls" style="display: none;">
+                                        <button type="button" class="btn btn-sm btn-outline-primary"
+                                            id="auto-distribute-btn" title="Distribute percentage based on item value">
+                                            <i class="fas fa-magic me-1"></i>
+                                            Auto Distribute
+                                        </button>
                                     </div>
-                                    <div class="col-md-6">
-                                        {{-- Percentage validation --}}
-                                        <div class="percentage-validation" style="display: none;">
-                                            <div class="alert alert-success mb-0 py-1">
-                                                <div class="d-flex align-items-center justify-content-between">
-                                                    <small>
-                                                        <i class="bi bi-check-circle me-1"></i>
-                                                        <strong>Total Percentage: <span
-                                                                id="total-percentage">0.00</span>%</strong>
-                                                    </small>
-                                                    <small class="text-muted">Target: 100%</small>
-                                                </div>
+
+                                    {{-- Percentage validation --}}
+                                    <div class="col-md percentage-validation" style="display: none;">
+                                        <div class="alert alert-success mb-0 py-1">
+                                            <div class="d-flex align-items-center justify-content-between">
+                                                <small>
+                                                    <i class="bi bi-check-circle me-1"></i>
+                                                    <strong>Total: <span id="total-percentage">0.00</span>%</strong>
+                                                </small>
+                                                <small class="text-muted">Target: 100%</small>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Total Items: <span id="total-items">0</span></label>
+                                <label class="form-label">Total Items: <strong id="total-items">0</strong></label>
                                 <div class="alert alert-info mb-0 py-2">
                                     <small>
                                         <i class="bi bi-info-circle me-1"></i>
@@ -180,19 +176,20 @@
                                     </div>
 
                                     <!-- Row 2: Shipping Details -->
-                                    <div class="row g-3 align-items-end">
+                                    <div class="row g-3 align-items-top">
                                         <div class="col-md-2">
                                             <label class="form-label text-muted mb-0">Domestic Waybill</label>
                                             <div class="fw-semibold">{{ $pre->domestic_waybill_no ?? '-' }}</div>
                                         </div>
                                         <div class="col-md-2">
-                                            <label class="form-label text-muted mb-0">Allocated Domestic Cost</label>
+                                            <label class="form-label text-muted mb-0">Allocated Domestic Cost <i
+                                                    class="bi bi-info-circle text-muted" data-bs-toggle="tooltip"
+                                                    data-bs-html="true"
+                                                    title="Domestic Allocation Method: <strong>{{ ucfirst($pre->cost_allocation_method ?? 'Value') }}</strong>"
+                                                    style="font-size: 0.75rem; cursor: help;"></i></label>
                                             <div class="fw-semibold text-primary">
                                                 {{ number_format($pre->allocated_cost ?? 0, 2) }}
                                             </div>
-                                            <small class="text-muted">
-                                                Method: {{ ucfirst($pre->cost_allocation_method ?? 'value') }}
-                                            </small>
                                         </div>
 
                                         {{-- Percentage input (hanya tampil jika method = percentage) --}}
@@ -201,22 +198,21 @@
                                                 Allocation % <span class="text-danger">*</span>
                                             </label>
                                             <input type="number" name="percentage[]"
-                                                class="form-control percentage-input" placeholder="%" min="0"
-                                                max="100" step="0.01" data-index="{{ $idx }}">
-                                            <small class="text-muted percentage-info">Enter 0-100%</small>
+                                                class="form-control percentage-input" placeholder="Enter 0-100%"
+                                                min="0" max="100" step="0.01"
+                                                data-index="{{ $idx }}">
                                         </div>
 
                                         {{-- International Cost (auto-calculated, readonly) --}}
                                         <div class="col-md-2">
                                             <label class="form-label text-muted mb-0">
-                                                International Cost
+                                                Allocated Int. Cost
                                                 <i class="bi bi-info-circle text-muted" data-bs-toggle="tooltip"
                                                     title="Auto-calculated based on allocation method"
                                                     style="font-size: 0.75rem; cursor: help;"></i>
                                             </label>
                                             <input type="number" name="int_cost[]" class="form-control int-cost-input"
                                                 placeholder="Calculated" min="0" step="0.01" readonly>
-                                            <small class="text-muted">Auto-calculated</small>
                                         </div>
 
                                         {{-- Destination --}}
@@ -287,6 +283,7 @@
         /* Highlight calculated fields */
         .int-cost-input[readonly] {
             background-color: #e3f2fd;
+            font-weight: 500;
             color: #1976d2;
             border: 1px solid #bbdefb;
         }
