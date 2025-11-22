@@ -8,7 +8,14 @@ use App\Models\Procurement\Shipping;
 
 class ShippingDetail extends Model
 {
-    protected $fillable = ['shipping_id', 'pre_shipping_id', 'percentage', 'int_cost', 'destination'];
+    protected $fillable = ['shipping_id', 'pre_shipping_id', 'percentage', 'int_cost', 'extra_cost', 'extra_cost_reason', 'destination'];
+
+    // Cast fields as decimal
+    protected $casts = [
+        'int_cost' => 'decimal:2',
+        'extra_cost' => 'decimal:2',
+        'percentage' => 'decimal:2',
+    ];
 
     // Accessor untuk destination label
     public function getDestinationLabelAttribute()
@@ -36,12 +43,33 @@ class ShippingDetail extends Model
         };
     }
 
+    // Get final international cost (base + extra)
+    public function getFinalIntCostAttribute()
+    {
+        return ($this->int_cost ?? 0) + ($this->extra_cost ?? 0);
+    }
+
+    // Check if has extra cost
+    public function hasExtraCost()
+    {
+        return $this->extra_cost > 0;
+    }
+
+    // Get extra cost percentage of total
+    public function getExtraCostPercentageAttribute()
+    {
+        if ($this->final_int_cost <= 0) {
+            return 0;
+        }
+        return ($this->extra_cost / $this->final_int_cost) * 100;
+    }
+
     public function preShipping()
     {
         return $this->belongsTo(PreShipping::class);
     }
 
-    // relasi ke Shipping
+    // Relasi ke Shipping
     public function shipping()
     {
         return $this->belongsTo(Shipping::class);

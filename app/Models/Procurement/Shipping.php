@@ -10,14 +10,46 @@ class Shipping extends Model implements Auditable
 {
     use \OwenIt\Auditing\Auditable;
 
-    protected $fillable = ['international_waybill_no', 'freight_company', 'freight_price', 'eta_to_arrived', 'shipment_status', 'remarks'];
+    protected $fillable = ['international_waybill_no', 'freight_company', 'freight_method', 'freight_price', 'eta_to_arrived', 'shipment_status', 'remarks'];
 
-    protected $auditInclude = ['international_waybill_no', 'freight_company', 'freight_price', 'eta_to_arrived', 'shipment_status'];
+    protected $auditInclude = ['international_waybill_no', 'freight_company', 'freight_method', 'freight_price', 'eta_to_arrived', 'shipment_status'];
 
     protected $auditTimestamps = true;
 
     public function details()
     {
         return $this->hasMany(ShippingDetail::class);
+    }
+
+    // Helper method untuk check if Air Freight
+    public function isAirFreight()
+    {
+        return $this->freight_method === 'Air Freight';
+    }
+
+    // Get total cost including extra costs
+    public function getTotalCostAttribute()
+    {
+        return $this->freight_price + $this->details->sum('extra_cost');
+    }
+
+    // Get freight method badge color
+    public function getFreightMethodBadgeAttribute()
+    {
+        return match ($this->freight_method) {
+            'Air Freight' => 'primary',
+            'Sea Freight' => 'info',
+            default => 'secondary',
+        };
+    }
+
+    // Get freight method icon
+    public function getFreightMethodIconAttribute()
+    {
+        return match ($this->freight_method) {
+            'Air Freight' => 'airplane',
+            'Sea Freight' => 'ship',
+            default => 'truck',
+        };
     }
 }

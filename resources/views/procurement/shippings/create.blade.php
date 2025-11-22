@@ -46,16 +46,18 @@
 
                 <form action="{{ route('shippings.store') }}" method="POST" id="shipping-form">
                     @csrf
-
                     {{-- Blok 1: Form Header --}}
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
                             <label class="form-label">
                                 International Waybill <span class="text-danger">*</span>
+                                <i class="bi bi-info-circle text-muted ms-1" data-bs-toggle="tooltip"
+                                    data-bs-placement="top" title="Must be unique. Cannot use same waybill number twice."
+                                    style="font-size: 0.75rem; cursor: help;"></i>
                             </label>
                             <input type="text" name="international_waybill_no"
                                 class="form-control @error('international_waybill_no') is-invalid @enderror"
-                                value="{{ old('international_waybill_no') }}" placeholder="Enter unique international waybill number" required>
+                                value="{{ old('international_waybill_no') }}" placeholder="e.g., AWB-2024-001" required>
                             @error('international_waybill_no')
                                 <div class="invalid-feedback">
                                     <i class="bi bi-exclamation-circle me-1"></i>
@@ -64,7 +66,7 @@
                             @enderror
                         </div>
 
-                        <div class="col-md-6">
+                        <div class="col-md-3">
                             <label class="form-label">
                                 International Freight Company <span class="text-danger">*</span>
                             </label>
@@ -86,13 +88,39 @@
                             @enderror
                         </div>
 
+                        {{-- FREIGHT METHOD --}}
+                        <div class="col-md-3">
+                            <label class="form-label">
+                                International Freight Method <span class="text-danger">*</span>
+                                <i class="bi bi-info-circle text-muted ms-1" data-bs-toggle="tooltip"
+                                    data-bs-placement="top" title="Air Freight may incur extra cost for oversized items"
+                                    style="font-size: 0.75rem; cursor: help;"></i>
+                            </label>
+                            <select name="freight_method" id="freight_method"
+                                class="form-select @error('freight_method') is-invalid @enderror" required>
+                                <option value="Sea Freight"
+                                    {{ old('freight_method', 'Sea Freight') == 'Sea Freight' ? 'selected' : '' }}>
+                                    Sea Freight
+                                </option>
+                                <option value="Air Freight" {{ old('freight_method') == 'Air Freight' ? 'selected' : '' }}>
+                                    Air Freight
+                                </option>
+                            </select>
+                            @error('freight_method')
+                                <div class="invalid-feedback">
+                                    <i class="bi bi-exclamation-circle me-1"></i>
+                                    {{ $message }}
+                                </div>
+                            @enderror
+                        </div>
+
                         <div class="col-md-6">
                             <label class="form-label">
                                 International Freight Cost <span class="text-danger">*</span>
                             </label>
                             <input type="number" name="freight_price" id="freight_price" class="form-control"
                                 min="0" step="0.01" value="{{ old('freight_price') }}" required>
-                            <small class="text-muted">Total international freight cost for this shipment</small>
+                            <small class="text-muted">Total base international freight cost</small>
                         </div>
 
                         <div class="col-md-6">
@@ -104,7 +132,7 @@
                         </div>
                     </div>
 
-                    {{-- Cost Allocation Method Selector --}}
+                    {{-- SECTION 2: COST ALLOCATION METHOD SELECTOR --}}
                     <div class="mt-4 mb-4">
                         <div class="mb-3">
                             <h6>
@@ -120,15 +148,24 @@
                                 </label>
                                 <select name="int_allocation_method" id="int_allocation_method" class="form-select"
                                     required>
-                                    <option value="quantity">By Quantity</option>
-                                    <option value="percentage">By Percentage</option>
-                                    <option value="value" selected>By Value</option>
+                                    <option value="quantity"
+                                        {{ old('int_allocation_method') == 'quantity' ? 'selected' : '' }}>
+                                        By Quantity
+                                    </option>
+                                    <option value="percentage"
+                                        {{ old('int_allocation_method') == 'percentage' ? 'selected' : '' }}>
+                                        By Percentage
+                                    </option>
+                                    <option value="value"
+                                        {{ old('int_allocation_method', 'value') == 'value' ? 'selected' : '' }}>
+                                        By Value
+                                    </option>
                                 </select>
                                 <small class="text-muted">
                                     Method to allocate international freight cost to each item
                                 </small>
 
-                                {{-- Auto-distribute controls --}}
+                                {{-- Auto-distribute controls for percentage method --}}
                                 <div class="row g-2 mt-2 align-items-center">
                                     <div class="col-md-auto percentage-controls" style="display: none;">
                                         <button type="button" class="btn btn-sm btn-outline-primary"
@@ -166,17 +203,24 @@
                         </div>
                     </div>
 
-                    {{-- Blok 2: Detail Items --}}
+                    {{-- SECTION 3: DETAIL ITEMS - WITH ALL ORIGINAL DATA --}}
                     @forelse ($validPreShippings as $idx => $pre)
                         @if ($pre->purchaseRequest)
+                            @php
+                                $purchasedQty =
+                                    $pre->purchaseRequest->qty_to_buy ?? $pre->purchaseRequest->required_quantity;
+                                $unitPrice = $pre->purchaseRequest->price_per_unit ?? 0;
+                                $unit = $pre->purchaseRequest->unit ?? 'pcs';
+                                $itemValue = $purchasedQty * $unitPrice;
+                            @endphp
+
                             <div class="card mb-3 border border-secondary item-card" data-index="{{ $idx }}"
-                                data-quantity="{{ $pre->purchaseRequest->qty_to_buy ?? $pre->purchaseRequest->required_quantity }}"
-                                data-value="{{ ($pre->purchaseRequest->qty_to_buy ?? $pre->purchaseRequest->required_quantity) * $pre->purchaseRequest->price_per_unit }}">
+                                data-quantity="{{ $purchasedQty }}" data-value="{{ $itemValue }}">
 
                                 <div class="card-body">
                                     <input type="hidden" name="pre_shipping_ids[]" value="{{ $pre->id }}">
 
-                                    {{-- Row 1: Material Info --}}
+                                    {{-- ROW 1: Material Info --}}
                                     <div class="row g-3 align-items-end mb-2">
                                         <div class="col-md-2">
                                             <label class="form-label text-muted mb-0">Purchase Type</label>
@@ -195,13 +239,13 @@
                                         <div class="col-md-1">
                                             <label class="form-label text-muted mb-0">Purchased Qty</label>
                                             <div class="fw-semibold">
-                                                {{ $pre->purchaseRequest->qty_to_buy ?? $pre->purchaseRequest->required_quantity }}
+                                                {{ $purchasedQty }}
                                             </div>
                                         </div>
 
                                         <div class="col-md-1">
                                             <label class="form-label text-muted mb-0">Unit</label>
-                                            <div class="fw-semibold">{{ $pre->purchaseRequest->unit }}</div>
+                                            <div class="fw-semibold">{{ $unit }}</div>
                                         </div>
 
                                         <div class="col-md-2">
@@ -214,7 +258,7 @@
                                         <div class="col-md-2">
                                             <label class="form-label text-muted mb-0">Unit Price</label>
                                             <div class="fw-semibold">
-                                                {{ number_format($pre->purchaseRequest->price_per_unit, 2) }}
+                                                {{ number_format($unitPrice, 2) }}
                                             </div>
                                         </div>
 
@@ -226,11 +270,15 @@
                                         </div>
                                     </div>
 
-                                    {{-- Row 2: Shipping Details --}}
+                                    {{-- ROW 2: Shipping Details --}}
                                     <div class="row g-3 align-items-top">
                                         <div class="col-md-2">
                                             <label class="form-label text-muted mb-0">Domestic Waybill</label>
-                                            <div class="fw-semibold">{{ $pre->domestic_waybill_no ?? '-' }}</div>
+                                            <div class="fw-semibold">
+                                                <span class="badge bg-info">
+                                                    {{ $pre->domestic_waybill_no ?? '-' }}
+                                                </span>
+                                            </div>
                                         </div>
 
                                         <div class="col-md-2">
@@ -238,7 +286,7 @@
                                                 Allocated Domestic Cost
                                                 <i class="bi bi-info-circle text-muted" data-bs-toggle="tooltip"
                                                     data-bs-html="true"
-                                                    title="Domestic Allocation Method: <strong>{{ ucfirst($pre->cost_allocation_method ?? 'Value') }}</strong>"
+                                                    title="<strong>Domestic Allocation Method:</strong><br>{{ ucfirst($pre->cost_allocation_method ?? 'Value') }}"
                                                     style="font-size: 0.75rem; cursor: help;"></i>
                                             </label>
                                             <div class="fw-semibold text-primary">
@@ -246,44 +294,94 @@
                                             </div>
                                         </div>
 
-                                        {{-- Percentage input (hanya tampil jika method = percentage) --}}
+                                        {{-- Percentage Column (show only if method = percentage) --}}
                                         <div class="col-md-2 percentage-column" style="display: none;">
                                             <label class="form-label text-muted mb-0">
                                                 Allocation % <span class="text-danger">*</span>
                                             </label>
                                             <input type="number" name="percentage[]"
-                                                class="form-control percentage-input" placeholder="Enter 0-100%"
-                                                min="0" max="100" step="0.01"
+                                                class="form-control percentage-input" placeholder="0-100%" min="0"
+                                                max="100" step="0.01" data-index="{{ $idx }}"
+                                                value="{{ old('percentage.' . $idx, 0) }}">
+                                        </div>
+
+                                        {{-- Base International Cost (readonly, auto-calculated) --}}
+                                        <div class="col-md-2">
+                                            <label class="form-label text-muted mb-0">
+                                                Base Int. Cost
+                                                <i class="bi bi-info-circle text-primary" data-bs-toggle="tooltip"
+                                                    title="Auto-calculated from freight price"
+                                                    style="font-size: 0.75rem; cursor: help;"></i>
+                                            </label>
+                                            <input type="number" name="int_cost[]"
+                                                class="form-control base-cost-display" placeholder="Auto-calculated"
+                                                min="0" step="0.01" readonly
+                                                value="{{ old('int_cost.' . $idx, 0) }}"
+                                                style="background-color: #e3f2fd; font-weight: 500; color: #1976d2;">
+                                        </div>
+
+                                        {{-- Extra Cost (only for Air Freight) --}}
+                                        <div class="col-md-2 extra-cost-column" style="display: none;">
+                                            <label class="form-label text-muted mb-0">
+                                                Extra Cost (Optional)
+                                                <i class="bi bi-info-circle text-warning" data-bs-toggle="tooltip"
+                                                    title="For oversized/overweight items"
+                                                    style="font-size: 0.75rem; cursor: help;"></i>
+                                            </label>
+                                            <input type="number" name="extra_cost[]"
+                                                class="form-control extra-cost-input" placeholder="0.00" min="0"
+                                                step="0.01" value="{{ old('extra_cost.' . $idx, 0) }}"
                                                 data-index="{{ $idx }}">
                                         </div>
 
-                                        {{-- International Cost (auto-calculated, readonly) --}}
-                                        <div class="col-md-2">
-                                            <label class="form-label text-muted mb-0">
-                                                Allocated Int. Cost
+                                        {{-- Extra Cost Reason --}}
+                                        <div class="col-md-2 extra-cost-reason-column" style="display: none;">
+                                            <label class="form-label text-muted mb-0">Reason 
                                                 <i class="bi bi-info-circle text-muted" data-bs-toggle="tooltip"
-                                                    title="Auto-calculated based on allocation method"
+                                                    title="Optional: Explain the reason for extra cost"
                                                     style="font-size: 0.75rem; cursor: help;"></i>
                                             </label>
-                                            <input type="number" name="int_cost[]" class="form-control int-cost-input"
-                                                placeholder="Calculated" min="0" step="0.01" readonly>
+                                            <input type="text" name="extra_cost_reason[]"
+                                                class="form-control extra-cost-reason-input"
+                                                placeholder="e.g., Oversized: 150x100x80cm" maxlength="255"
+                                                value="{{ old('extra_cost_reason.' . $idx) }}">
+                                        </div>
+
+                                        {{-- Final Int. Cost Display --}}
+                                        <div class="col-md-2">
+                                            <label class="form-label text-muted mb-0">
+                                                Final Int. Cost
+                                                <i class="bi bi-info-circle text-success" data-bs-toggle="tooltip"
+                                                    title="Final International Cost = Base Cost + Extra Cost (if sea freight)"
+                                                    style="font-size: 0.75rem; cursor: help;"></i>
+                                            </label>
+                                            <input type="number" class="form-control final-cost-display"
+                                                placeholder="0.00" min="0" step="0.01" readonly value="0.00"
+                                                style="background-color: #d1f2eb; font-weight: 600; color: #0f5132; border: 1px solid #a3cfbb;">
                                         </div>
 
                                         {{-- Destination --}}
                                         <div class="col-md-2">
                                             <label class="form-label text-muted mb-0">
                                                 Destination <span class="text-danger">*</span>
-                                                <i class="bi bi-info-circle text-muted" data-bs-toggle="tooltip"
-                                                    title="Final destination for this item"
-                                                    style="font-size: 0.75rem; cursor: help;"></i>
                                             </label>
                                             <select name="destination[]" class="form-select" required>
                                                 <option value="">Select</option>
-                                                <option value="SG" selected>Singapore</option>
-                                                <option value="BT">Batam</option>
-                                                <option value="CN">China</option>
-                                                <option value="MY">Malaysia</option>
-                                                <option value="Other">Other</option>
+                                                <option value="SG"
+                                                    {{ old('destination.' . $idx, 'SG') == 'SG' ? 'selected' : '' }}>
+                                                    Singapore</option>
+                                                <option value="BT"
+                                                    {{ old('destination.' . $idx) == 'BT' ? 'selected' : '' }}>Batam
+                                                </option>
+                                                <option value="CN"
+                                                    {{ old('destination.' . $idx) == 'CN' ? 'selected' : '' }}>China
+                                                </option>
+                                                <option value="MY"
+                                                    {{ old('destination.' . $idx) == 'MY' ? 'selected' : '' }}>Malaysia
+                                                </option>
+                                                <option value="Other"
+                                                    {{ old('destination.' . $idx) == 'Other' ? 'selected' : '' }}>Other
+                                                </option>
                                             </select>
                                         </div>
 
@@ -300,22 +398,11 @@
                                     </div>
                                 </div>
                             </div>
-                        @else
-                            {{-- Item tanpa purchaseRequest --}}
-                            <div class="alert alert-warning">
-                                <i class="fas fa-exclamation-triangle me-2"></i>
-                                Skipping pre-shipping item (purchase request not found)
-                            </div>
                         @endif
                     @empty
-                        {{-- EMPTY STATE --}}
                         <div class="alert alert-danger">
                             <i class="fas fa-exclamation-circle me-2"></i>
-                            No valid pre-shipping data available. The selected items may have been deleted.
-                            <br>
-                            <a href="{{ route('pre-shippings.index') }}" class="btn btn-sm btn-primary mt-2">
-                                Back to Pre-Shipping
-                            </a>
+                            No valid pre-shipping data available.
                         </div>
                     @endforelse
 
@@ -338,11 +425,26 @@
 @push('styles')
     <style>
         /* Highlight calculated fields */
-        .int-cost-input[readonly] {
-            background-color: #e3f2fd;
+        .base-cost-display[readonly] {
+            background-color: #e3f2fd !important;
             font-weight: 500;
-            color: #1976d2;
+            color: #1976d2 !important;
             border: 1px solid #bbdefb;
+        }
+
+        /* Final cost display */
+        .final-cost-display[readonly] {
+            background-color: #d1f2eb !important;
+            font-weight: 500;
+            color: #0f5132 !important;
+            border: 1px solid #a3cfbb;
+        }
+
+        /* Focus state for readonly inputs (prevent outline) */
+        .base-cost-display[readonly]:focus,
+        .final-cost-display[readonly]:focus {
+            outline: none;
+            box-shadow: none;
         }
 
         /* Item card hover effect */
@@ -353,6 +455,12 @@
         .item-card:hover {
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             transform: translateY(-2px);
+        }
+
+        /* Item dengan extra cost - warning indicator */
+        .item-card.border-warning {
+            border-left: 4px solid #ffc107 !important;
+            box-shadow: 0 2px 8px rgba(255, 193, 7, 0.2);
         }
 
         /* Percentage validation colors */
@@ -366,6 +474,21 @@
             background-color: #f8d7da;
             border-color: #f5c2c7;
             color: #842029;
+        }
+
+        /* Extra cost input styling */
+        .extra-cost-input {
+            border-left: 3px solid #ffc107;
+            transition: all 0.3s ease;
+        }
+
+        .extra-cost-input:focus {
+            border-left-color: #ff9800;
+            box-shadow: 0 0 0 0.25rem rgba(255, 193, 7, 0.25);
+        }
+
+        .extra-cost-input.border-warning {
+            background: linear-gradient(to right, #fff3cd 0%, #ffffff 100%);
         }
 
         /* Tooltip enhancement */
@@ -388,16 +511,59 @@
             const totalItems = $('.item-card').length;
             $('#total-items').text(totalItems);
 
-            // COST ALLOCATION CALCULATION LOGIC
+            // ===== FREIGHT METHOD CHANGE HANDLER =====
+            $('#freight_method').on('change', function() {
+                const method = $(this).val();
+
+                if (method === 'Air Freight') {
+                    $('.extra-cost-column').slideDown(300);
+                    $('.extra-cost-reason-column').slideDown(300);
+                    showAirFreightInfo();
+                } else {
+                    $('.extra-cost-column').slideUp(300);
+                    $('.extra-cost-reason-column').slideUp(300);
+                    $('.extra-cost-input').val('0');
+                    $('.extra-cost-reason-input').val('');
+                }
+
+                calculateIntCosts();
+            });
+
+            // ===== SHOW AIR FREIGHT INFO MESSAGE =====
+            function showAirFreightInfo() {
+                const alertHtml = `
+            <div class="alert alert-warning alert-dismissible fade show mt-3" role="alert" id="air-freight-alert">
+                <i class="bi bi-airplane me-2"></i>
+                <strong>Air Freight Selected</strong> -
+                You can now add extra cost for oversized/overweight items.
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+
+                if ($('#air-freight-alert').length === 0) {
+                    $('.row.g-3.mb-4').after(alertHtml);
+                    setTimeout(() => {
+                        $('#air-freight-alert').fadeOut('slow', function() {
+                            $(this).remove();
+                        });
+                    }, 5000);
+                }
+            }
+
+            // ===== COST CALCULATION MAIN FUNCTION =====
             function calculateIntCosts() {
                 const method = $('#int_allocation_method').val();
                 const freightPrice = parseFloat($('#freight_price').val()) || 0;
 
                 if (freightPrice <= 0) {
-                    $('.int-cost-input').val('');
+                    console.warn('⚠️ Freight price is zero or invalid');
+                    $('.base-cost-display').val('');
+                    // Use .val() instead of .text()
+                    $('.final-cost-display').val('0.00');
                     return;
                 }
 
+                // Calculate BASE allocation
                 if (method === 'quantity') {
                     calculateByQuantity(freightPrice);
                 } else if (method === 'percentage') {
@@ -405,8 +571,12 @@
                 } else if (method === 'value') {
                     calculateByValue(freightPrice);
                 }
+
+                // Update final costs (base + extra)
+                updateFinalCosts();
             }
 
+            // ===== CALCULATE BY QUANTITY =====
             function calculateByQuantity(totalCost) {
                 let totalQuantity = 0;
                 $('.item-card').each(function() {
@@ -415,27 +585,29 @@
                 });
 
                 if (totalQuantity <= 0) {
-                    $('.int-cost-input').val('0');
+                    $('.base-cost-display').val('0');
                     return;
                 }
 
                 $('.item-card').each(function() {
                     const qty = parseFloat($(this).data('quantity')) || 0;
                     const allocatedCost = (qty / totalQuantity) * totalCost;
-                    $(this).find('.int-cost-input').val(allocatedCost.toFixed(2));
+                    $(this).find('.base-cost-display').val(allocatedCost.toFixed(2));
                 });
             }
 
+            // ===== CALCULATE BY PERCENTAGE =====
             function calculateByPercentage(totalCost) {
                 $('.item-card').each(function() {
                     const percentage = parseFloat($(this).find('.percentage-input').val()) || 0;
                     const allocatedCost = (percentage / 100) * totalCost;
-                    $(this).find('.int-cost-input').val(allocatedCost.toFixed(2));
+                    $(this).find('.base-cost-display').val(allocatedCost.toFixed(2));
                 });
 
                 updatePercentageTotal();
             }
 
+            // ===== CALCULATE BY VALUE =====
             function calculateByValue(totalCost) {
                 let totalValue = 0;
                 $('.item-card').each(function() {
@@ -444,17 +616,43 @@
                 });
 
                 if (totalValue <= 0) {
-                    $('.int-cost-input').val('0');
+                    $('.base-cost-display').val('0');
                     return;
                 }
 
                 $('.item-card').each(function() {
                     const value = parseFloat($(this).data('value')) || 0;
                     const allocatedCost = (value / totalValue) * totalCost;
-                    $(this).find('.int-cost-input').val(allocatedCost.toFixed(2));
+                    $(this).find('.base-cost-display').val(allocatedCost.toFixed(2));
                 });
             }
 
+            // ===== UPDATE FINAL COSTS (BASE + EXTRA) =====
+            function updateFinalCosts() {
+                $('.item-card').each(function() {
+                    const $card = $(this);
+                    const baseCost = parseFloat($card.find('.base-cost-display').val()) || 0;
+                    const extraCost = parseFloat($card.find('.extra-cost-input').val()) || 0;
+
+                    const finalCost = baseCost + extraCost;
+
+                    // ⭐ CHANGED: Use .val() instead of .text()
+                    $card.find('.final-cost-display').val(finalCost.toFixed(2));
+
+                    // Visual indicator for extra cost
+                    if (extraCost > 0) {
+                        $card.addClass('border-warning');
+                        $card.find('.extra-cost-input').addClass('border-warning bg-warning-subtle');
+                    } else {
+                        $card.removeClass('border-warning');
+                        $card.find('.extra-cost-input').removeClass('border-warning bg-warning-subtle');
+                    }
+                });
+
+                updateGrandTotal();
+            }
+
+            // ===== UPDATE PERCENTAGE TOTAL =====
             function updatePercentageTotal() {
                 let total = 0;
                 $('.percentage-input').each(function() {
@@ -464,7 +662,7 @@
                 $('#total-percentage').text(total.toFixed(2));
 
                 const $validation = $('.percentage-validation');
-                if (Math.abs(total - 100) < 0.1) {
+                if (Math.abs(total - 100) < 0.5) {
                     $validation.removeClass('invalid').addClass('valid');
                     $validation.find('.alert').removeClass('alert-danger').addClass('alert-success');
                 } else {
@@ -473,6 +671,75 @@
                 }
             }
 
+            // ===== UPDATE GRAND TOTAL =====
+            function updateGrandTotal() {
+                let grandTotal = 0;
+                $('.item-card').each(function() {
+                    // ⭐ CHANGED: Use .val() instead of .text()
+                    const finalCost = parseFloat($(this).find('.final-cost-display').val()) || 0;
+                    grandTotal += finalCost;
+                });
+
+                $('#grand-total-display').text(grandTotal.toFixed(2));
+            }
+
+            // ===== TOGGLE PERCENTAGE COLUMN =====
+            function togglePercentageColumn() {
+                const method = $('#int_allocation_method').val();
+
+                if (method === 'percentage') {
+                    $('.percentage-column').show();
+                    $('.percentage-controls').show();
+                    $('.percentage-validation').show();
+                    $('.percentage-input').prop('required', true);
+                } else {
+                    $('.percentage-column').hide();
+                    $('.percentage-controls').hide();
+                    $('.percentage-validation').hide();
+                    $('.percentage-input').prop('required', false).val('');
+                }
+            }
+
+            // ===== EVENT LISTENERS =====
+
+            // Allocation method change
+            $('#int_allocation_method').on('change', function() {
+                togglePercentageColumn();
+                calculateIntCosts();
+            });
+
+            // Freight price change
+            $('#freight_price').on('input', function() {
+                calculateIntCosts();
+            });
+
+            // Percentage input change
+            $(document).on('input', '.percentage-input', function() {
+                if ($('#int_allocation_method').val() === 'percentage') {
+                    calculateIntCosts();
+                }
+            });
+
+            // Extra cost input change
+            $(document).on('input', '.extra-cost-input', function() {
+                updateFinalCosts();
+            });
+
+            // Auto-fill reason when extra cost is entered
+            $(document).on('blur', '.extra-cost-input', function() {
+                const $card = $(this).closest('.item-card');
+                const extraCost = parseFloat($(this).val()) || 0;
+                const $reasonInput = $card.find('.extra-cost-reason-input');
+
+                if (extraCost > 0 && !$reasonInput.val()) {
+                    $reasonInput.attr('placeholder', 'Please provide reason for extra cost');
+                    $reasonInput.addClass('border-warning');
+                } else {
+                    $reasonInput.removeClass('border-warning');
+                }
+            });
+
+            // Auto Distribute button
             $('#auto-distribute-btn').on('click', function() {
                 let totalValue = 0;
                 $('.item-card').each(function() {
@@ -494,42 +761,11 @@
                 calculateIntCosts();
             });
 
-            function togglePercentageColumn() {
-                const method = $('#int_allocation_method').val();
-
-                if (method === 'percentage') {
-                    $('.percentage-column').show();
-                    $('.percentage-controls').show();
-                    $('.percentage-validation').show();
-                    $('.percentage-input').prop('required', true);
-                } else {
-                    $('.percentage-column').hide();
-                    $('.percentage-controls').hide();
-                    $('.percentage-validation').hide();
-                    $('.percentage-input').prop('required', false).val('');
-                }
-            }
-
-            // Event handlers
-            $('#int_allocation_method').on('change', function() {
-                togglePercentageColumn();
-                calculateIntCosts();
-            });
-
-            $('#freight_price').on('input', function() {
-                calculateIntCosts();
-            });
-
-            $('.percentage-input').on('input', function() {
-                if ($('#int_allocation_method').val() === 'percentage') {
-                    calculateIntCosts();
-                }
-            });
-
-            // Form submit validation
+            // ===== FORM SUBMIT VALIDATION =====
             $('#shipping-form').on('submit', function(e) {
                 const method = $('#int_allocation_method').val();
 
+                // Validate percentage total
                 if (method === 'percentage') {
                     let total = 0;
                     $('.percentage-input').each(function() {
@@ -543,15 +779,51 @@
                     }
                 }
 
+                // Validate extra cost has reason (Air Freight only)
+                if ($('#freight_method').val() === 'Air Freight') {
+                    let hasExtraCostWithoutReason = false;
+
+                    $('.item-card').each(function() {
+                        const extraCost = parseFloat($(this).find('.extra-cost-input').val()) || 0;
+                        const reason = $(this).find('.extra-cost-reason-input').val().trim();
+
+                        if (extraCost > 0 && !reason) {
+                            $(this).find('.extra-cost-reason-input').addClass('is-invalid');
+                            hasExtraCostWithoutReason = true;
+                        }
+                    });
+
+                    if (hasExtraCostWithoutReason) {
+                        e.preventDefault();
+                        alert('Please provide reason for all items with extra cost.');
+                        $('html, body').animate({
+                            scrollTop: $('.extra-cost-reason-input.is-invalid:first').offset().top -
+                                100
+                        }, 500);
+                        return false;
+                    }
+                }
+
                 // Show loading spinner
                 const $submitBtn = $('#submit-btn');
                 $submitBtn.prop('disabled', true);
                 $submitBtn.find('.spinner-border').removeClass('d-none');
             });
 
-            // Initial calculation
+            // Remove validation error on input
+            $(document).on('input', '.extra-cost-reason-input', function() {
+                $(this).removeClass('is-invalid');
+            });
+
+            // ===== INITIAL SETUP =====
             togglePercentageColumn();
             calculateIntCosts();
+
+            // Check if Air Freight is pre-selected
+            if ($('#freight_method').val() === 'Air Freight') {
+                $('.extra-cost-column').show();
+                $('.extra-cost-reason-column').show();
+            }
         });
     </script>
 @endpush

@@ -95,10 +95,12 @@ class ShippingController extends Controller
             return redirect()->route('pre-shippings.index')->with('error', 'You do not have permission to create shipping.');
         }
 
+        // ⭐ UPDATED VALIDATION: Tambah freight_method dan extra cost fields
         $request->validate(
             [
                 'international_waybill_no' => 'required|string|max:255|unique:shippings,international_waybill_no',
                 'freight_company' => 'required|string|max:255',
+                'freight_method' => 'required|in:Sea Freight,Air Freight',
                 'freight_price' => 'required|numeric|min:0',
                 'eta_to_arrived' => 'required|date',
                 'pre_shipping_ids' => 'required|array|min:1',
@@ -107,6 +109,10 @@ class ShippingController extends Controller
                 'percentage.*' => 'nullable|numeric|min:0|max:100',
                 'int_cost' => 'required|array',
                 'int_cost.*' => 'required|numeric|min:0',
+                'extra_cost' => 'nullable|array',
+                'extra_cost.*' => 'nullable|numeric|min:0',
+                'extra_cost_reason' => 'nullable|array',
+                'extra_cost_reason.*' => 'nullable|string|max:255',
                 'destination' => 'required|array|min:1',
                 'destination.*' => 'required|in:SG,BT,CN,MY,Other',
             ],
@@ -114,6 +120,7 @@ class ShippingController extends Controller
                 'international_waybill_no.required' => 'International Waybill Number is required.',
                 'international_waybill_no.unique' => 'This International Waybill Number has already been used. Please use a different number.',
                 'freight_company.required' => 'International Freight Company is required.',
+                'freight_method.required' => 'International Freight Method is required.',
             ],
         );
 
@@ -131,25 +138,41 @@ class ShippingController extends Controller
 
         DB::beginTransaction();
         try {
-            // Create shipping record
-            $shipping = Shipping::create($request->only(['international_waybill_no', 'freight_company', 'freight_price', 'eta_to_arrived']));
+            // Create shipping record with freight_method
+            $shipping = Shipping::create([
+                'international_waybill_no' => $request->international_waybill_no,
+                'freight_company' => $request->freight_company,
+                'freight_method' => $request->freight_method, // ⭐ NEW
+                'freight_price' => $request->freight_price,
+                'eta_to_arrived' => $request->eta_to_arrived,
+            ]);
 
-            // Simpan int_cost yang sudah calculated dari frontend
+            // Simpan shipping details dengan extra cost
             foreach ($request->pre_shipping_ids as $idx => $preShippingId) {
                 ShippingDetail::create([
                     'shipping_id' => $shipping->id,
                     'pre_shipping_id' => $preShippingId,
                     'percentage' => $request->percentage[$idx] ?? null,
-                    'int_cost' => $request->int_cost[$idx],
+                    'int_cost' => $request->int_cost[$idx], // Base allocated cost
+                    'extra_cost' => $request->extra_cost[$idx] ?? 0, // ⭐ NEW
+                    'extra_cost_reason' => $request->extra_cost_reason[$idx] ?? null, // ⭐ NEW
                     'destination' => $request->destination[$idx],
                 ]);
             }
 
             DB::commit();
 
-            return redirect()
-                ->route('shipping-management.index')
-                ->with('success', 'Shipping created successfully with cost allocation method: ' . ucfirst($request->int_allocation_method));
+            // Success message with freight method info
+            $successMessage = 'Shipping created successfully with cost allocation method: ' . ucfirst($request->int_allocation_method);
+
+            if ($request->freight_method === 'Air Freight') {
+                $totalExtraCost = array_sum($request->extra_cost ?? []);
+                if ($totalExtraCost > 0) {
+                    $successMessage .= ' | Air Freight with extra cost: ' . number_format($totalExtraCost, 2);
+                }
+            }
+
+            return redirect()->route('shipping-management.index')->with('success', $successMessage);
         } catch (\Illuminate\Database\QueryException $e) {
             DB::rollBack();
 
