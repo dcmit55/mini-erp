@@ -7,38 +7,47 @@
                 <h2 class="mb-0 flex-shrink-0" style="font-size:1.3rem;">Create Shipping</h2>
             </div>
             <div class="card-body">
+                {{-- Success Alert --}}
                 @if (session('success'))
                     <div class="alert alert-success alert-dismissible fade show" role="alert">
                         {{ session('success') }}
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 @endif
+
+                {{-- Warning Alert --}}
                 @if (session('warning'))
                     <div class="alert alert-warning alert-dismissible fade show" role="alert">
                         {!! session('warning') !!}
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 @endif
+
+                {{-- Error Alert --}}
                 @if (session('error'))
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
                         {!! session('error') !!}
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 @endif
+
+                {{-- Alert validation errors --}}
                 @if ($errors->any())
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
                         <strong>Whoops!</strong> There were some problems with your input.
-                        <ul class="mb-0">
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        <ul class="mb-0 mt-2">
                             @foreach ($errors->all() as $error)
                                 <li>{!! $error !!}</li>
                             @endforeach
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         </ul>
                     </div>
                 @endif
-                <form action="{{ route('shippings.store') }}" method="POST">
+
+                <form action="{{ route('shippings.store') }}" method="POST" id="shipping-form">
                     @csrf
-                    <!-- Blok 1: Form Header -->
+
+                    {{-- Blok 1: Form Header --}}
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
                             <label class="form-label">
@@ -46,7 +55,7 @@
                             </label>
                             <input type="text" name="international_waybill_no"
                                 class="form-control @error('international_waybill_no') is-invalid @enderror"
-                                value="{{ old('international_waybill_no') }}" required>
+                                value="{{ old('international_waybill_no') }}" placeholder="Enter unique international waybill number" required>
                             @error('international_waybill_no')
                                 <div class="invalid-feedback">
                                     <i class="bi bi-exclamation-circle me-1"></i>
@@ -54,6 +63,7 @@
                                 </div>
                             @enderror
                         </div>
+
                         <div class="col-md-6">
                             <label class="form-label">
                                 International Freight Company <span class="text-danger">*</span>
@@ -75,30 +85,39 @@
                                 </div>
                             @enderror
                         </div>
+
                         <div class="col-md-6">
-                            <label class="form-label">International Freight Cost <span class="text-danger">*</span></label>
+                            <label class="form-label">
+                                International Freight Cost <span class="text-danger">*</span>
+                            </label>
                             <input type="number" name="freight_price" id="freight_price" class="form-control"
                                 min="0" step="0.01" value="{{ old('freight_price') }}" required>
                             <small class="text-muted">Total international freight cost for this shipment</small>
                         </div>
+
                         <div class="col-md-6">
-                            <label class="form-label">ETA To Arrived</label>
+                            <label class="form-label">
+                                ETA To Arrived <span class="text-danger">*</span>
+                            </label>
                             <input type="datetime-local" name="eta_to_arrived" class="form-control"
-                                value="{{ old('eta_to_arrived') }}">
+                                value="{{ old('eta_to_arrived') }}" required>
                         </div>
                     </div>
 
                     {{-- Cost Allocation Method Selector --}}
                     <div class="mt-4 mb-4">
-                        <div>
+                        <div class="mb-3">
                             <h6>
                                 <i class="bi bi-calculator me-1"></i>
                                 International Cost Allocation Method
                             </h6>
                         </div>
+
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label">Allocation Method <span class="text-danger">*</span></label>
+                                <label class="form-label">
+                                    Allocation Method <span class="text-danger">*</span>
+                                </label>
                                 <select name="int_allocation_method" id="int_allocation_method" class="form-select"
                                     required>
                                     <option value="quantity">By Quantity</option>
@@ -108,8 +127,9 @@
                                 <small class="text-muted">
                                     Method to allocate international freight cost to each item
                                 </small>
-                                <div class="row g-2 mt-1 align-items-center">
-                                    {{-- Auto-distribute button --}}
+
+                                {{-- Auto-distribute controls --}}
+                                <div class="row g-2 mt-2 align-items-center">
                                     <div class="col-md-auto percentage-controls" style="display: none;">
                                         <button type="button" class="btn btn-sm btn-outline-primary"
                                             id="auto-distribute-btn" title="Distribute percentage based on item value">
@@ -118,7 +138,6 @@
                                         </button>
                                     </div>
 
-                                    {{-- Percentage validation --}}
                                     <div class="col-md percentage-validation" style="display: none;">
                                         <div class="alert alert-success mb-0 py-1">
                                             <div class="d-flex align-items-center justify-content-between">
@@ -132,29 +151,32 @@
                                     </div>
                                 </div>
                             </div>
+
                             <div class="col-md-6">
-                                <label class="form-label">Total Items: <strong id="total-items">0</strong></label>
+                                <label class="form-label">
+                                    Total Items: <strong id="total-items">0</strong>
+                                </label>
                                 <div class="alert alert-info mb-0 py-2">
                                     <small>
                                         <i class="bi bi-info-circle me-1"></i>
                                         Change allocation method to recalculate international cost for each item
                                     </small>
                                 </div>
-
                             </div>
                         </div>
                     </div>
 
-                    <!-- Blok 2: Detail Items -->
+                    {{-- Blok 2: Detail Items --}}
                     @forelse ($validPreShippings as $idx => $pre)
                         @if ($pre->purchaseRequest)
                             <div class="card mb-3 border border-secondary item-card" data-index="{{ $idx }}"
                                 data-quantity="{{ $pre->purchaseRequest->qty_to_buy ?? $pre->purchaseRequest->required_quantity }}"
                                 data-value="{{ ($pre->purchaseRequest->qty_to_buy ?? $pre->purchaseRequest->required_quantity) * $pre->purchaseRequest->price_per_unit }}">
+
                                 <div class="card-body">
                                     <input type="hidden" name="pre_shipping_ids[]" value="{{ $pre->id }}">
 
-                                    <!-- Row 1: Material Info -->
+                                    {{-- Row 1: Material Info --}}
                                     <div class="row g-3 align-items-end mb-2">
                                         <div class="col-md-2">
                                             <label class="form-label text-muted mb-0">Purchase Type</label>
@@ -162,34 +184,40 @@
                                                 {{ ucfirst(str_replace('_', ' ', $pre->purchaseRequest->type)) }}
                                             </div>
                                         </div>
+
                                         <div class="col-md-2">
                                             <label class="form-label text-muted mb-0">Material Name</label>
                                             <div class="fw-semibold">
                                                 {{ $pre->purchaseRequest->material_name }}
                                             </div>
                                         </div>
+
                                         <div class="col-md-1">
                                             <label class="form-label text-muted mb-0">Purchased Qty</label>
                                             <div class="fw-semibold">
                                                 {{ $pre->purchaseRequest->qty_to_buy ?? $pre->purchaseRequest->required_quantity }}
                                             </div>
                                         </div>
+
                                         <div class="col-md-1">
                                             <label class="form-label text-muted mb-0">Unit</label>
                                             <div class="fw-semibold">{{ $pre->purchaseRequest->unit }}</div>
                                         </div>
+
                                         <div class="col-md-2">
                                             <label class="form-label text-muted mb-0">Supplier</label>
                                             <div class="fw-semibold">
                                                 {{ $pre->purchaseRequest->supplier->name ?? '-' }}
                                             </div>
                                         </div>
+
                                         <div class="col-md-2">
                                             <label class="form-label text-muted mb-0">Unit Price</label>
                                             <div class="fw-semibold">
                                                 {{ number_format($pre->purchaseRequest->price_per_unit, 2) }}
                                             </div>
                                         </div>
+
                                         <div class="col-md-2">
                                             <label class="form-label text-muted mb-0">Project Name</label>
                                             <div class="fw-semibold">
@@ -198,18 +226,21 @@
                                         </div>
                                     </div>
 
-                                    <!-- Row 2: Shipping Details -->
+                                    {{-- Row 2: Shipping Details --}}
                                     <div class="row g-3 align-items-top">
                                         <div class="col-md-2">
                                             <label class="form-label text-muted mb-0">Domestic Waybill</label>
                                             <div class="fw-semibold">{{ $pre->domestic_waybill_no ?? '-' }}</div>
                                         </div>
+
                                         <div class="col-md-2">
-                                            <label class="form-label text-muted mb-0">Allocated Domestic Cost <i
-                                                    class="bi bi-info-circle text-muted" data-bs-toggle="tooltip"
+                                            <label class="form-label text-muted mb-0">
+                                                Allocated Domestic Cost
+                                                <i class="bi bi-info-circle text-muted" data-bs-toggle="tooltip"
                                                     data-bs-html="true"
                                                     title="Domestic Allocation Method: <strong>{{ ucfirst($pre->cost_allocation_method ?? 'Value') }}</strong>"
-                                                    style="font-size: 0.75rem; cursor: help;"></i></label>
+                                                    style="font-size: 0.75rem; cursor: help;"></i>
+                                            </label>
                                             <div class="fw-semibold text-primary">
                                                 {{ number_format($pre->allocated_cost ?? 0, 2) }}
                                             </div>
@@ -288,12 +319,15 @@
                         </div>
                     @endforelse
 
+                    {{-- Submit Button --}}
                     @if (!$validPreShippings->isEmpty())
-                        <button class="btn btn-primary float-end mt-3" type="submit" id="submit-btn">
-                            <i class="bi bi-send-fill me-2"></i>
-                            <span class="spinner-border spinner-border-sm d-none" role="status"></span>
-                            Proceed To Shippings
-                        </button>
+                        <div class="mt-4 d-flex justify-content-end">
+                            <button class="btn btn-primary" type="submit" id="submit-btn">
+                                <i class="bi bi-send-fill me-2"></i>
+                                <span class="spinner-border spinner-border-sm d-none" role="status"></span>
+                                Proceed To Shippings
+                            </button>
+                        </div>
                     @endif
                 </form>
             </div>
@@ -354,13 +388,12 @@
             const totalItems = $('.item-card').length;
             $('#total-items').text(totalItems);
 
-            // ⭐ COST ALLOCATION CALCULATION LOGIC ⭐
+            // COST ALLOCATION CALCULATION LOGIC
             function calculateIntCosts() {
                 const method = $('#int_allocation_method').val();
                 const freightPrice = parseFloat($('#freight_price').val()) || 0;
 
                 if (freightPrice <= 0) {
-                    // Clear all int_cost if freight price is 0
                     $('.int-cost-input').val('');
                     return;
                 }
@@ -374,7 +407,6 @@
                 }
             }
 
-            // Calculate by Quantity
             function calculateByQuantity(totalCost) {
                 let totalQuantity = 0;
                 $('.item-card').each(function() {
@@ -394,7 +426,6 @@
                 });
             }
 
-            // Calculate by Percentage
             function calculateByPercentage(totalCost) {
                 $('.item-card').each(function() {
                     const percentage = parseFloat($(this).find('.percentage-input').val()) || 0;
@@ -405,7 +436,6 @@
                 updatePercentageTotal();
             }
 
-            // Calculate by Value
             function calculateByValue(totalCost) {
                 let totalValue = 0;
                 $('.item-card').each(function() {
@@ -425,7 +455,6 @@
                 });
             }
 
-            // Update percentage total
             function updatePercentageTotal() {
                 let total = 0;
                 $('.percentage-input').each(function() {
@@ -444,7 +473,6 @@
                 }
             }
 
-            // Auto-distribute percentage based on value
             $('#auto-distribute-btn').on('click', function() {
                 let totalValue = 0;
                 $('.item-card').each(function() {
@@ -453,11 +481,9 @@
                 });
 
                 if (totalValue <= 0) {
-                    // Equal distribution
                     const equalPercentage = (100 / totalItems).toFixed(2);
                     $('.percentage-input').val(equalPercentage);
                 } else {
-                    // Value-based distribution
                     $('.item-card').each(function() {
                         const value = parseFloat($(this).data('value')) || 0;
                         const percentage = (value / totalValue) * 100;
@@ -468,7 +494,6 @@
                 calculateIntCosts();
             });
 
-            // Toggle percentage column visibility
             function togglePercentageColumn() {
                 const method = $('#int_allocation_method').val();
 
@@ -505,7 +530,6 @@
             $('#shipping-form').on('submit', function(e) {
                 const method = $('#int_allocation_method').val();
 
-                // Validate percentage total
                 if (method === 'percentage') {
                     let total = 0;
                     $('.percentage-input').each(function() {
@@ -514,12 +538,7 @@
 
                     if (Math.abs(total - 100) > 0.5) {
                         e.preventDefault();
-                        Swal.fire({
-                            icon: 'warning',
-                            title: 'Percentage Validation',
-                            text: `Total percentage is ${total.toFixed(2)}%. It should be close to 100%.`,
-                            confirmButtonText: 'OK'
-                        });
+                        alert(`Total percentage is ${total.toFixed(2)}%. It should be close to 100%.`);
                         return false;
                     }
                 }
