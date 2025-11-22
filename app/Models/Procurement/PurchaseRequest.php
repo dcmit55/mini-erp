@@ -83,7 +83,16 @@ class PurchaseRequest extends Model implements AuditableContract
             return false;
         }
 
-        $shipping = \App\Models\Procurement\Shipping::find($this->preShipping->shippingDetail->shipping_id);
+        $shippingDetail = $this->preShipping->shippingDetail;
+        if (!$shippingDetail || !$shippingDetail->shipping_id) {
+            return false;
+        }
+
+        $shipping = \App\Models\Procurement\Shipping::find($shippingDetail->shipping_id);
+
+        if (!$shipping) {
+            return false;
+        }
 
         return \App\Models\Procurement\GoodsReceive::where('shipping_id', $shipping->id)->exists();
     }
@@ -99,8 +108,15 @@ class PurchaseRequest extends Model implements AuditableContract
             return 'in_pre_shipping';
         }
 
-        if ($this->hasBeenReceived()) {
-            return 'received';
+        try {
+            if ($this->hasBeenReceived()) {
+                return 'received';
+            }
+        } catch (\Exception $e) {
+            \Log::warning('Error checking received status', [
+                'purchase_request_id' => $this->id,
+                'error' => $e->getMessage(),
+            ]);
         }
 
         return 'in_shipping';

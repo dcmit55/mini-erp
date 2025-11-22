@@ -48,117 +48,159 @@ class PurchaseRequestController extends Controller
      */
     public function getDataTablesData(Request $request)
     {
-        $query = PurchaseRequest::with(['inventory', 'project', 'user', 'supplier', 'currency'])->latest();
+        try {
+            // Add whereHas to prevent NULL user errors
+            $query = PurchaseRequest::with(['inventory', 'project', 'user', 'supplier', 'currency', 'preShipping', 'preShipping.shippingDetail'])
+                ->whereHas('user') // prevent NULL user
+                ->latest();
 
-        // Apply filters
-        if ($request->filled('type_filter')) {
-            $query->where('type', $request->type_filter);
-        }
+            // Apply filters
+            if ($request->filled('type_filter')) {
+                $query->where('type', $request->type_filter);
+            }
 
-        if ($request->filled('project_filter')) {
-            $query->where('project_id', $request->project_filter);
-        }
+            if ($request->filled('project_filter')) {
+                $query->where('project_id', $request->project_filter);
+            }
 
-        if ($request->filled('supplier_filter')) {
-            $query->where('supplier_id', $request->supplier_filter);
-        }
+            if ($request->filled('supplier_filter')) {
+                $query->where('supplier_id', $request->supplier_filter);
+            }
 
-        if ($request->filled('approval_filter')) {
-            if ($request->approval_filter === 'Pending') {
-                $query->where('approval_status', '=', 'Pending');
-            } else {
+            if ($request->filled('approval_filter')) {
                 $query->where('approval_status', $request->approval_filter);
             }
-        }
 
-        // Custom search functionality
-        if ($request->filled('custom_search')) {
-            $searchValue = $request->input('custom_search');
-            $query->where(function ($q) use ($searchValue) {
-                $q->where('material_name', 'LIKE', '%' . $searchValue . '%')
-                    ->orWhere('remark', 'LIKE', '%' . $searchValue . '%')
-                    ->orWhereHas('project', function ($q) use ($searchValue) {
-                        $q->where('name', 'LIKE', '%' . $searchValue . '%');
-                    })
-                    ->orWhereHas('supplier', function ($q) use ($searchValue) {
-                        $q->where('name', 'LIKE', '%' . $searchValue . '%');
-                    });
-            });
-        }
-
-        // DataTables search
-        if ($request->filled('search.value')) {
-            $searchValue = $request->input('search.value');
-            $query->where(function ($q) use ($searchValue) {
-                $q->where('material_name', 'LIKE', '%' . $searchValue . '%')
-                    ->orWhere('remark', 'LIKE', '%' . $searchValue . '%')
-                    ->orWhereHas('project', function ($q) use ($searchValue) {
-                        $q->where('name', 'LIKE', '%' . $searchValue . '%');
-                    })
-                    ->orWhereHas('supplier', function ($q) use ($searchValue) {
-                        $q->where('name', 'LIKE', '%' . $searchValue . '%');
-                    });
-            });
-        }
-
-        // Sorting
-        $columns = ['id', 'type', 'material_name', 'required_quantity', 'qty_to_buy', 'project_id', 'approval_status', 'created_at'];
-
-        if ($request->filled('order')) {
-            $orderColumnIndex = $request->input('order.0.column');
-            $orderDirection = $request->input('order.0.dir', 'asc');
-
-            if (isset($columns[$orderColumnIndex])) {
-                $query->orderBy($columns[$orderColumnIndex], $orderDirection);
+            // Custom search functionality
+            if ($request->filled('custom_search')) {
+                $searchValue = $request->input('custom_search');
+                $query->where(function ($q) use ($searchValue) {
+                    $q->where('material_name', 'LIKE', '%' . $searchValue . '%')
+                        ->orWhere('remark', 'LIKE', '%' . $searchValue . '%')
+                        ->orWhereHas('supplier', function ($sq) use ($searchValue) {
+                            $sq->where('name', 'LIKE', '%' . $searchValue . '%');
+                        });
+                });
             }
-        } else {
-            $query->orderBy('created_at', 'desc');
+
+            // DataTables search
+            if ($request->filled('search.value')) {
+                $searchValue = $request->input('search.value');
+                $query->where(function ($q) use ($searchValue) {
+                    $q->where('material_name', 'LIKE', '%' . $searchValue . '%')->orWhere('remark', 'LIKE', '%' . $searchValue . '%');
+                });
+            }
+
+            // Sorting
+            $columns = ['id', 'type', 'material_name', 'required_quantity', 'qty_to_buy', 'project_id', 'approval_status', 'created_at'];
+
+            if ($request->filled('order')) {
+                $orderColumnIndex = $request->input('order.0.column');
+                $orderDirection = $request->input('order.0.dir', 'asc');
+
+                if (isset($columns[$orderColumnIndex])) {
+                    $query->orderBy($columns[$orderColumnIndex], $orderDirection);
+                } else {
+                    $query->orderBy('created_at', 'desc');
+                }
+            } else {
+                $query->orderBy('created_at', 'desc');
+            }
+
+            // Get total and filtered counts
+            $totalRecords = PurchaseRequest::whereHas('user')->count(); // Add whereHas
+            $filteredRecords = $query->count();
+
+            // Pagination
+            $start = $request->input('start', 0);
+            $length = $request->input('length', 15);
+            $purchaseRequests = $query->skip($start)->take($length)->get();
+
+            // Check if user can view unit price
+            $canViewUnitPrice = in_array(auth()->user()->role, ['super_admin', 'admin', 'admin_procurement', 'admin_logistic', 'admin_finance']);
+
+            // Format data for DataTables 
+            $data = [];
+            foreach ($purchaseRequests as $index => $pr) {
+                // Skip if user is NULL
+                if (!$pr->user) {
+                    \Log::warning('Purchase Request with missing user', ['id' => $pr->id]);
+                    continue;
+                }
+
+                try {
+                    $data[] = [
+                        'DT_RowIndex' => $start + $index + 1,
+                        'DT_RowId' => 'row-' . $pr->id,
+                        'DT_status' => $this->getShippingStatusSafe($pr), 
+                        'type' => ucfirst(str_replace('_', ' ', $pr->type)),
+                        'material_name' => $this->formatMaterialNameEditable($pr), 
+                        'required_quantity' => $this->formatQuantity($pr->required_quantity, $pr->unit), 
+                        'qty_to_buy' => $this->formatQtyToBuyEditable($pr), 
+                        'supplier' => $this->formatSupplierSelect($pr), 
+                        'unit_price' => $canViewUnitPrice ? $this->formatPriceInput($pr) : '-',
+                        'currency' => $canViewUnitPrice ? $this->formatCurrencySelect($pr) : '-',
+                        'approval_status' => $this->formatApprovalSelect($pr), 
+                        'delivery_date' => $this->formatDeliveryDateInput($pr),
+                        'status_badge' => '',
+                        'project' => $pr->project ? $pr->project->name : '-',
+                        'requested_by' => $pr->user ? $pr->user->username : '-',
+                        'created_at' => $pr->created_at->format('d M Y'),
+                        'remark' => $this->formatRemarkEditable($pr), 
+                        'actions' => $this->getActionButtons($pr, $canViewUnitPrice),
+                    ];
+                } catch (\Exception $itemError) {
+                    // Catch individual item errors
+                    \Log::error('Error formatting purchase request row', [
+                        'id' => $pr->id,
+                        'error' => $itemError->getMessage(),
+                    ]);
+                    continue;
+                }
+            }
+
+            return response()->json([
+                'draw' => intval($request->input('draw')),
+                'recordsTotal' => $totalRecords,
+                'recordsFiltered' => $filteredRecords,
+                'data' => $data,
+            ]);
+        } catch (\Exception $e) {
+            // Enhanced error logging
+            \Log::error('DataTables Error in PurchaseRequestController', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json(
+                [
+                    'draw' => intval($request->input('draw', 0)),
+                    'recordsTotal' => 0,
+                    'recordsFiltered' => 0,
+                    'data' => [],
+                    'error' => 'Server error occurred. Please check logs.',
+                ],
+                500,
+            );
         }
+    }
 
-        // Get total and filtered counts
-        $totalRecords = PurchaseRequest::count();
-        $filteredRecords = $query->count();
-
-        // Pagination
-        $start = $request->input('start', 0);
-        $length = $request->input('length', 15);
-        $purchaseRequests = $query->skip($start)->take($length)->get();
-
-        // Check if user can view unit price
-        $canViewUnitPrice = in_array(auth()->user()->role, ['super_admin', 'admin', 'admin_procurement', 'admin_logistic', 'admin_finance']);
-
-        // Format data for DataTables
-        $data = [];
-        foreach ($purchaseRequests as $index => $pr) {
-            $data[] = [
-                'DT_RowIndex' => $start + $index + 1,
-                'type' => ucfirst(str_replace('_', ' ', $pr->type)),
-                'material_name' => $this->formatMaterialNameEditable($pr),
-                'required_quantity' => $this->formatQuantity($pr->required_quantity, $pr->unit),
-                'qty_to_buy' => $this->formatQtyToBuyEditable($pr),
-                'supplier' => $this->formatSupplierSelect($pr),
-                'unit_price' => $this->formatPriceInput($pr),
-                'currency' => $this->formatCurrencySelect($pr),
-                'approval_status' => $this->formatApprovalSelect($pr),
-                'delivery_date' => $this->formatDeliveryDateInput($pr),
-                'project' => $pr->project ? $pr->project->name : '-',
-                'requested_by' => $pr->user ? $pr->user->username : '-',
-                'remark' => $this->formatRemarkEditable($pr),
-                'created_at' => $pr->created_at->format('d M Y'),
-                // status untuk delete validation
-                'DT_status' => $pr->getShippingStatus(),
-                'can_delete' => !$pr->hasBeenReceived(),
-                'actions' => $this->getActionButtons($pr, $canViewUnitPrice),
-                'DT_RowId' => 'row-' . $pr->id,
-            ];
+    /**
+     * Add safe version of getShippingStatus
+     */
+    private function getShippingStatusSafe($pr)
+    {
+        try {
+            return $pr->getShippingStatus();
+        } catch (\Exception $e) {
+            \Log::warning('Error getting shipping status', [
+                'purchase_request_id' => $pr->id,
+                'error' => $e->getMessage(),
+            ]);
+            return 'not_in_pre_shipping'; // Default fallback
         }
-
-        return response()->json([
-            'draw' => intval($request->input('draw')),
-            'recordsTotal' => $totalRecords,
-            'recordsFiltered' => $filteredRecords,
-            'data' => $data,
-        ]);
     }
 
     /**
