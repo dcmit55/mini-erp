@@ -205,200 +205,234 @@
 
                     {{-- SECTION 3: DETAIL ITEMS - WITH ALL ORIGINAL DATA --}}
                     @forelse ($validPreShippings as $idx => $pre)
-                        @if ($pre->purchaseRequest)
-                            @php
-                                $purchasedQty =
-                                    $pre->purchaseRequest->qty_to_buy ?? $pre->purchaseRequest->required_quantity;
-                                $unitPrice = $pre->purchaseRequest->price_per_unit ?? 0;
-                                $unit = $pre->purchaseRequest->unit ?? 'pcs';
-                                $itemValue = $purchasedQty * $unitPrice;
-                            @endphp
+                        @php
+                            $purchaseRequest = $pre->purchaseRequest;
+                            $isShortage = $pre->is_shortage ?? false;
 
-                            <div class="card mb-3 border border-secondary item-card" data-index="{{ $idx }}"
-                                data-quantity="{{ $purchasedQty }}" data-value="{{ $itemValue }}">
+                            if (!$purchaseRequest) {
+                                continue;
+                            }
 
-                                <div class="card-body">
-                                    <input type="hidden" name="pre_shipping_ids[]" value="{{ $pre->id }}">
+                            $purchasedQty = $purchaseRequest->qty_to_buy ?? $purchaseRequest->required_quantity;
 
-                                    {{-- ROW 1: Material Info --}}
-                                    <div class="row g-3 align-items-end mb-2">
-                                        <div class="col-md-2">
-                                            <label class="form-label text-muted mb-0">Purchase Type</label>
-                                            <div class="fw-semibold">
-                                                {{ ucfirst(str_replace('_', ' ', $pre->purchaseRequest->type)) }}
-                                            </div>
-                                        </div>
+                            // ⭐ For shortage, use shortage_qty instead
+                            if ($isShortage) {
+                                $purchasedQty = $pre->shortage_qty;
+                            }
 
-                                        <div class="col-md-2">
-                                            <label class="form-label text-muted mb-0">Material Name</label>
-                                            <div class="fw-semibold">
-                                                {{ $pre->purchaseRequest->material_name }}
-                                            </div>
-                                        </div>
+                            $unit = $purchaseRequest->unit ?? '-';
+                            $unitPrice = $purchaseRequest->price_per_unit ?? 0;
+                            $itemValue = $purchasedQty * $unitPrice;
+                            $currencyName = $purchaseRequest->currency ? $purchaseRequest->currency->name : '-';
+                        @endphp
 
-                                        <div class="col-md-1">
-                                            <label class="form-label text-muted mb-0">Purchased Qty</label>
-                                            <div class="fw-semibold">
-                                                {{ $purchasedQty }}
-                                            </div>
-                                        </div>
+                        {{-- Item Card --}}
+                        <div class="card item-card mb-3 border {{ $isShortage ? 'border-warning' : '' }}"
+                            data-index="{{ $idx }}" data-quantity="{{ $purchasedQty }}"
+                            data-price="{{ $unitPrice }}" data-value="{{ $itemValue }}">
 
-                                        <div class="col-md-1">
-                                            <label class="form-label text-muted mb-0">Unit</label>
-                                            <div class="fw-semibold">{{ $unit }}</div>
-                                        </div>
+                            <div class="card-body">
+                                {{-- ⭐ Shortage Badge --}}
+                                @if ($isShortage)
+                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                        <span class="badge bg-warning text-dark">
+                                            <i class="bi bi-arrow-repeat me-1"></i>
+                                            SHORTAGE RESEND
+                                        </span>
+                                        <small class="text-muted">
+                                            Resend Count:
+                                            {{ $pre->shortage_item_id
+                                                ? \App\Models\Procurement\ShortageItem::find($pre->shortage_item_id)->resend_count
+                                                : 0 }}x
+                                        </small>
+                                    </div>
+                                @endif
 
-                                        <div class="col-md-2">
-                                            <label class="form-label text-muted mb-0">Supplier</label>
-                                            <div class="fw-semibold">
-                                                {{ $pre->purchaseRequest->supplier->name ?? '-' }}
-                                            </div>
-                                        </div>
+                                {{-- Hidden Inputs --}}
+                                <input type="hidden" name="pre_shipping_ids[]" value="{{ $pre->id }}">
 
-                                        <div class="col-md-2">
-                                            <label class="form-label text-muted mb-0">Unit Price</label>
-                                            <div class="fw-semibold">
-                                                {{ number_format($unitPrice, 2) }}
-                                            </div>
-                                        </div>
+                                {{-- ⭐ Track if shortage --}}
+                                @if ($isShortage)
+                                    <input type="hidden" name="is_shortage[]" value="1">
+                                    <input type="hidden" name="shortage_item_ids[]"
+                                        value="{{ $pre->shortage_item_id }}">
+                                @else
+                                    <input type="hidden" name="is_shortage[]" value="0">
+                                    <input type="hidden" name="shortage_item_ids[]" value="">
+                                @endif
 
-                                        <div class="col-md-2">
-                                            <label class="form-label text-muted mb-0">Project Name</label>
-                                            <div class="fw-semibold">
-                                                {{ $pre->purchaseRequest->project->name ?? '-' }}
-                                            </div>
+                                {{-- ROW 1: Material Info --}}
+                                <div class="row g-3 align-items-end mb-2">
+                                    <div class="col-md-2">
+                                        <label class="form-label text-muted mb-0">Purchase Type</label>
+                                        <div class="fw-semibold">
+                                            {{ ucfirst(str_replace('_', ' ', $purchaseRequest->type)) }}
                                         </div>
                                     </div>
 
-                                    {{-- ROW 2: Shipping Details --}}
-                                    <div class="row g-3 align-items-top">
-                                        <div class="col-md-2">
-                                            <label class="form-label text-muted mb-0">Domestic Waybill</label>
-                                            <div class="fw-semibold">
-                                                <span class="badge bg-info">
-                                                    {{ $pre->domestic_waybill_no ?? '-' }}
-                                                </span>
-                                            </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label small text-muted">Material Name</label>
+                                        <div class="fw-bold">
+                                            {{ $purchaseRequest->material_name }}
+                                            @if ($isShortage)
+                                                <small class="text-warning">(Resend)</small>
+                                            @endif
                                         </div>
+                                    </div>
 
-                                        <div class="col-md-2">
-                                            <label class="form-label text-muted mb-0">
-                                                Allocated Domestic Cost
-                                                <i class="bi bi-info-circle text-muted" data-bs-toggle="tooltip"
-                                                    data-bs-html="true"
-                                                    title="<strong>Domestic Allocation Method:</strong><br>{{ ucfirst($pre->cost_allocation_method ?? 'Value') }}"
-                                                    style="font-size: 0.75rem; cursor: help;"></i>
-                                            </label>
-                                            <div class="fw-semibold text-primary">
-                                                {{ number_format($pre->allocated_cost ?? 0, 2) }}
-                                            </div>
+                                    <div class="col-md-1">
+                                        <label class="form-label text-muted mb-0">Purchased Qty</label>
+                                        <div class="fw-semibold">{{ $purchasedQty }}</div>
+                                    </div>
+
+                                    <div class="col-md-1">
+                                        <label class="form-label text-muted mb-0">Unit</label>
+                                        <div class="fw-semibold">{{ $unit }}</div>
+                                    </div>
+
+                                    <div class="col-md-2">
+                                        <label class="form-label text-muted mb-0">Supplier</label>
+                                        <div class="fw-semibold">
+                                            {{ $purchaseRequest->supplier->name ?? '-' }}
                                         </div>
+                                    </div>
 
-                                        {{-- Percentage Column (show only if method = percentage) --}}
-                                        <div class="col-md-2 percentage-column" style="display: none;">
-                                            <label class="form-label text-muted mb-0">
-                                                Allocation % <span class="text-danger">*</span>
-                                            </label>
-                                            <input type="number" name="percentage[]"
-                                                class="form-control percentage-input" placeholder="0-100%" min="0"
-                                                max="100" step="0.01" data-index="{{ $idx }}"
-                                                value="{{ old('percentage.' . $idx, 0) }}">
+                                    <div class="col-md-2">
+                                        <label class="form-label text-muted mb-0">Unit Price</label>
+                                        <div class="fw-semibold">{{ number_format($unitPrice, 2) }}</div>
+                                    </div>
+
+                                    <div class="col-md-2">
+                                        <label class="form-label text-muted mb-0">Project Name</label>
+                                        <div class="fw-semibold">
+                                            {{ $purchaseRequest->project->name ?? '-' }}
                                         </div>
+                                    </div>
+                                </div>
 
-                                        {{-- Base International Cost (readonly, auto-calculated) --}}
-                                        <div class="col-md-2">
-                                            <label class="form-label text-muted mb-0">
-                                                Base Int. Cost
-                                                <i class="bi bi-info-circle text-primary" data-bs-toggle="tooltip"
-                                                    title="Auto-calculated from freight price"
-                                                    style="font-size: 0.75rem; cursor: help;"></i>
-                                            </label>
-                                            <input type="number" name="int_cost[]"
-                                                class="form-control base-cost-display" placeholder="Auto-calculated"
-                                                min="0" step="0.01" readonly
-                                                value="{{ old('int_cost.' . $idx, 0) }}"
-                                                style="background-color: #e3f2fd; font-weight: 500; color: #1976d2;">
+                                {{-- ROW 2: Shipping Details --}}
+                                <div class="row g-3 align-items-top">
+                                    <div class="col-md-2">
+                                        <label class="form-label text-muted mb-0">Domestic Waybill</label>
+                                        <div class="fw-semibold">
+                                            <span class="badge bg-info">
+                                                {{ $pre->domestic_waybill_no ?? '-' }}
+                                            </span>
                                         </div>
+                                    </div>
 
-                                        {{-- Extra Cost (only for Air Freight) --}}
-                                        <div class="col-md-2 extra-cost-column" style="display: none;">
-                                            <label class="form-label text-muted mb-0">
-                                                Extra Cost (Optional)
-                                                <i class="bi bi-info-circle text-warning" data-bs-toggle="tooltip"
-                                                    title="For oversized/overweight items"
-                                                    style="font-size: 0.75rem; cursor: help;"></i>
-                                            </label>
-                                            <input type="number" name="extra_cost[]"
-                                                class="form-control extra-cost-input" placeholder="0.00" min="0"
-                                                step="0.01" value="{{ old('extra_cost.' . $idx, 0) }}"
-                                                data-index="{{ $idx }}">
+                                    <div class="col-md-2">
+                                        <label class="form-label text-muted mb-0">
+                                            Allocated Domestic Cost
+                                            <i class="bi bi-info-circle text-muted" data-bs-toggle="tooltip"
+                                                data-bs-html="true"
+                                                title="<strong>Domestic Allocation Method:</strong><br>{{ ucfirst($pre->cost_allocation_method ?? 'Value') }}"
+                                                style="font-size: 0.75rem; cursor: help;"></i>
+                                        </label>
+                                        <div class="fw-semibold text-primary">
+                                            {{ number_format($pre->allocated_cost ?? 0, 2) }}
                                         </div>
+                                    </div>
 
-                                        {{-- Extra Cost Reason --}}
-                                        <div class="col-md-2 extra-cost-reason-column" style="display: none;">
-                                            <label class="form-label text-muted mb-0">Reason 
-                                                <i class="bi bi-info-circle text-muted" data-bs-toggle="tooltip"
-                                                    title="Optional: Explain the reason for extra cost"
-                                                    style="font-size: 0.75rem; cursor: help;"></i>
-                                            </label>
-                                            <input type="text" name="extra_cost_reason[]"
-                                                class="form-control extra-cost-reason-input"
-                                                placeholder="e.g., Oversized: 150x100x80cm" maxlength="255"
-                                                value="{{ old('extra_cost_reason.' . $idx) }}">
-                                        </div>
+                                    {{-- Percentage Column (show only if method = percentage) --}}
+                                    <div class="col-md-2 percentage-column" style="display: none;">
+                                        <label class="form-label text-muted mb-0">
+                                            Allocation % <span class="text-danger">*</span>
+                                        </label>
+                                        <input type="number" name="percentage[]" class="form-control percentage-input"
+                                            placeholder="0-100%" min="0" max="100" step="0.01"
+                                            data-index="{{ $idx }}" value="{{ old('percentage.' . $idx, 0) }}">
+                                    </div>
 
-                                        {{-- Final Int. Cost Display --}}
-                                        <div class="col-md-2">
-                                            <label class="form-label text-muted mb-0">
-                                                Final Int. Cost
-                                                <i class="bi bi-info-circle text-success" data-bs-toggle="tooltip"
-                                                    title="Final International Cost = Base Cost + Extra Cost (if sea freight)"
-                                                    style="font-size: 0.75rem; cursor: help;"></i>
-                                            </label>
-                                            <input type="number" class="form-control final-cost-display"
-                                                placeholder="0.00" min="0" step="0.01" readonly value="0.00"
-                                                style="background-color: #d1f2eb; font-weight: 600; color: #0f5132; border: 1px solid #a3cfbb;">
-                                        </div>
+                                    {{-- Base International Cost (readonly, auto-calculated) --}}
+                                    <div class="col-md-2">
+                                        <label class="form-label text-muted mb-0">
+                                            Base Int. Cost
+                                            <i class="bi bi-info-circle text-primary" data-bs-toggle="tooltip"
+                                                title="Auto-calculated from freight price"
+                                                style="font-size: 0.75rem; cursor: help;"></i>
+                                        </label>
+                                        <input type="number" name="int_cost[]" class="form-control base-cost-display"
+                                            placeholder="Auto-calculated" min="0" step="0.01" readonly
+                                            value="{{ old('int_cost.' . $idx, 0) }}"
+                                            style="background-color: #e3f2fd; font-weight: 500; color: #1976d2;">
+                                    </div>
 
-                                        {{-- Destination --}}
-                                        <div class="col-md-2">
-                                            <label class="form-label text-muted mb-0">
-                                                Destination <span class="text-danger">*</span>
-                                            </label>
-                                            <select name="destination[]" class="form-select" required>
-                                                <option value="">Select</option>
-                                                <option value="SG"
-                                                    {{ old('destination.' . $idx, 'SG') == 'SG' ? 'selected' : '' }}>
-                                                    Singapore</option>
-                                                <option value="BT"
-                                                    {{ old('destination.' . $idx) == 'BT' ? 'selected' : '' }}>Batam
-                                                </option>
-                                                <option value="CN"
-                                                    {{ old('destination.' . $idx) == 'CN' ? 'selected' : '' }}>China
-                                                </option>
-                                                <option value="MY"
-                                                    {{ old('destination.' . $idx) == 'MY' ? 'selected' : '' }}>Malaysia
-                                                </option>
-                                                <option value="Other"
-                                                    {{ old('destination.' . $idx) == 'Other' ? 'selected' : '' }}>Other
-                                                </option>
-                                            </select>
-                                        </div>
+                                    {{-- Extra Cost (only for Air Freight) --}}
+                                    <div class="col-md-2 extra-cost-column" style="display: none;">
+                                        <label class="form-label text-muted mb-0">
+                                            Extra Cost (Optional)
+                                            <i class="bi bi-info-circle text-warning" data-bs-toggle="tooltip"
+                                                title="For oversized/overweight items"
+                                                style="font-size: 0.75rem; cursor: help;"></i>
+                                        </label>
+                                        <input type="number" name="extra_cost[]" class="form-control extra-cost-input"
+                                            placeholder="0.00" min="0" step="0.01"
+                                            value="{{ old('extra_cost.' . $idx, 0) }}" data-index="{{ $idx }}">
+                                    </div>
 
-                                        {{-- Status Badge --}}
-                                        <div class="col-md-2">
-                                            <label class="form-label text-muted mb-0">Status</label>
-                                            <div>
-                                                <span class="badge bg-primary">
-                                                    <i class="bi bi-geo-alt-fill me-1"></i>
-                                                    In Transit
-                                                </span>
-                                            </div>
+                                    {{-- Extra Cost Reason --}}
+                                    <div class="col-md-2 extra-cost-reason-column" style="display: none;">
+                                        <label class="form-label text-muted mb-0">Reason
+                                            <i class="bi bi-info-circle text-muted" data-bs-toggle="tooltip"
+                                                title="Optional: Explain the reason for extra cost"
+                                                style="font-size: 0.75rem; cursor: help;"></i>
+                                        </label>
+                                        <input type="text" name="extra_cost_reason[]"
+                                            class="form-control extra-cost-reason-input"
+                                            placeholder="e.g., Oversized: 150x100x80cm" maxlength="255"
+                                            value="{{ old('extra_cost_reason.' . $idx) }}">
+                                    </div>
+
+                                    {{-- Final Int. Cost Display --}}
+                                    <div class="col-md-2">
+                                        <label class="form-label text-muted mb-0">
+                                            Final Int. Cost
+                                            <i class="bi bi-info-circle text-success" data-bs-toggle="tooltip"
+                                                title="Final International Cost = Base Cost + Extra Cost"
+                                                style="font-size: 0.75rem; cursor: help;"></i>
+                                        </label>
+                                        <input type="number" class="form-control final-cost-display" placeholder="0.00"
+                                            min="0" step="0.01" readonly value="0.00"
+                                            style="background-color: #d1f2eb; font-weight: 600; color: #0f5132; border: 1px solid #a3cfbb;">
+                                    </div>
+
+                                    {{-- Destination --}}
+                                    <div class="col-md-2">
+                                        <label class="form-label text-muted mb-0">
+                                            Destination <span class="text-danger">*</span>
+                                        </label>
+                                        <select name="destination[]" class="form-select" required>
+                                            <option value="">Select</option>
+                                            <option value="SG"
+                                                {{ old('destination.' . $idx, 'SG') == 'SG' ? 'selected' : '' }}>
+                                                Singapore</option>
+                                            <option value="BT"
+                                                {{ old('destination.' . $idx) == 'BT' ? 'selected' : '' }}>Batam</option>
+                                            <option value="CN"
+                                                {{ old('destination.' . $idx) == 'CN' ? 'selected' : '' }}>China</option>
+                                            <option value="MY"
+                                                {{ old('destination.' . $idx) == 'MY' ? 'selected' : '' }}>Malaysia
+                                            </option>
+                                            <option value="Other"
+                                                {{ old('destination.' . $idx) == 'Other' ? 'selected' : '' }}>Other
+                                            </option>
+                                        </select>
+                                    </div>
+
+                                    {{-- Status Badge --}}
+                                    <div class="col-md-2">
+                                        <label class="form-label text-muted mb-0">Status</label>
+                                        <div>
+                                            <span class="badge bg-primary">
+                                                <i class="bi bi-geo-alt-fill me-1"></i>
+                                                In Transit
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        @endif
+                        </div>
                     @empty
                         <div class="alert alert-danger">
                             <i class="fas fa-exclamation-circle me-2"></i>

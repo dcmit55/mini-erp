@@ -127,4 +127,16 @@ class PurchaseRequest extends Model implements AuditableContract
     {
         return $this->supplier_id !== $this->original_supplier_id;
     }
+
+    // Relasi ke ShortageItem
+    public function shortageItems()
+    {
+        return $this->hasMany(ShortageItem::class);
+    }
+
+    // METHOD: Check if PR has unresolved shortage
+    public function hasUnresolvedShortage()
+    {
+        return $this->shortageItems()->resolvable()->exists();
+    }
 }

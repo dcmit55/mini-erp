@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\Procurement\Shipping;
 use App\Models\Procurement\GoodsReceive;
 use App\Models\Procurement\GoodsReceiveDetail;
+use App\Models\Procurement\ShortageItem;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -44,7 +45,7 @@ class GoodsReceiveController extends Controller
             );
         }
 
-        // Tambah validasi destination
+        // Validasi
         $request->validate([
             'shipping_id' => 'required|exists:shippings,id',
             'arrived_date' => 'required|date',
@@ -58,6 +59,7 @@ class GoodsReceiveController extends Controller
 
         DB::beginTransaction();
         try {
+            // Create Goods Receive
             $goodsReceive = GoodsReceive::create([
                 'shipping_id' => $shipping->id,
                 'international_waybill_no' => $shipping->international_waybill_no,
@@ -66,14 +68,22 @@ class GoodsReceiveController extends Controller
                 'arrived_date' => $request->arrived_date,
             ]);
 
+            // Counter untuk shortage items
+            $shortageCount = 0;
+
             foreach ($shipping->details as $idx => $detail) {
                 $purchasedQty = $detail->preShipping->purchaseRequest->qty_to_buy ?? $detail->preShipping->purchaseRequest->required_quantity;
                 $purchaseRequest = $detail->preShipping->purchaseRequest;
 
+                // Parse received_qty (bisa string dengan koma)
+                $receivedQtyRaw = $request->received_qty[$idx] ?? '0';
+                $receivedQty = (float) str_replace(',', '.', trim($receivedQtyRaw));
+
                 $finalDestination = $request->destination[$idx];
                 $originalDestination = $detail->destination;
 
-                GoodsReceiveDetail::create([
+                // Create Goods Receive Detail
+                $goodsReceiveDetail = GoodsReceiveDetail::create([
                     'goods_receive_id' => $goodsReceive->id,
                     'shipping_detail_id' => $detail->id,
                     'purchase_type' => $purchaseRequest->type,
@@ -83,10 +93,42 @@ class GoodsReceiveController extends Controller
                     'unit_price' => $purchaseRequest->price_per_unit,
                     'domestic_waybill_no' => $detail->preShipping->domestic_waybill_no,
                     'purchased_qty' => $purchasedQty,
-                    'received_qty' => $request->received_qty[$idx] ?? null,
+                    'received_qty' => $receivedQtyRaw, // Save as string (original behavior)
                     'destination' => $finalDestination,
+                    'extra_cost' => $detail->extra_cost ?? 0,
+                    'extra_cost_reason' => $detail->extra_cost_reason,
                 ]);
 
+                // SHORTAGE DETECTION LOGIC
+                if ($receivedQty < $purchasedQty) {
+                    $shortageQty = $purchasedQty - $receivedQty;
+
+                    ShortageItem::create([
+                        'goods_receive_detail_id' => $goodsReceiveDetail->id,
+                        'purchase_request_id' => $purchaseRequest->id,
+                        'material_name' => $purchaseRequest->material_name,
+                        'purchased_qty' => $purchasedQty,
+                        'received_qty' => $receivedQty,
+                        'shortage_qty' => $shortageQty,
+                        'status' => 'pending',
+                        'resend_count' => 0,
+                        'old_domestic_wbl' => $detail->preShipping->domestic_waybill_no,
+                        'notes' => 'Auto-detected shortage on ' . now()->format('Y-m-d H:i:s'),
+                    ]);
+
+                    $shortageCount++;
+
+                    \Log::warning('Shortage detected', [
+                        'goods_receive_id' => $goodsReceive->id,
+                        'material_name' => $purchaseRequest->material_name,
+                        'purchased_qty' => $purchasedQty,
+                        'received_qty' => $receivedQty,
+                        'shortage_qty' => $shortageQty,
+                        'detected_by' => Auth::id(),
+                    ]);
+                }
+
+                // Log destination changes
                 if ($finalDestination !== $originalDestination) {
                     \Log::info('Destination changed during Goods Receive', [
                         'goods_receive_id' => $goodsReceive->id,
@@ -105,9 +147,11 @@ class GoodsReceiveController extends Controller
                     if ($inventory) {
                         $oldSupplierId = $inventory->supplier_id;
                         $newSupplierId = $purchaseRequest->supplier_id;
+
                         $inventory->update([
                             'supplier_id' => $newSupplierId,
                         ]);
+
                         \Log::info('Inventory supplier updated after Goods Receive', [
                             'inventory_id' => $inventory->id,
                             'inventory_name' => $inventory->name,
@@ -124,10 +168,22 @@ class GoodsReceiveController extends Controller
             }
 
             DB::commit();
-            return response()->json(['success' => true]);
+
+            // Return response dengan shortage info
+            $responseMessage = 'Goods Receive created successfully!';
+            if ($shortageCount > 0) {
+                $responseMessage .= " | {$shortageCount} shortage item(s) detected and logged.";
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => $responseMessage,
+                'shortage_count' => $shortageCount,
+            ]);
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('Error creating goods receive: ' . $e->getMessage());
+
             return response()->json(
                 [
                     'success' => false,

@@ -38,6 +38,7 @@ use App\Http\Controllers\Hr\LeaveRequestController;
 use App\Http\Controllers\Production\MaterialPlanningController;
 use App\Http\Controllers\Hr\AttendanceController;
 use App\Http\Controllers\Logistic\GoodsMovementController;
+use App\Http\Controllers\Procurement\ShortageItemController;
 
 /*
 |--------------------------------------------------------------------------
@@ -245,24 +246,11 @@ Route::middleware(['auth'])->group(function () {
     // Pre Shippings
     Route::get('/pre-shippings', [PreShippingController::class, 'index'])->name('pre-shippings.index');
     Route::post('/pre-shippings/{groupKey}/quick-update', [PreShippingController::class, 'quickUpdate'])->name('pre-shippings.quick-update');
+    Route::get('/pre-shippings/check-orphaned-prs', [PreShippingController::class, 'checkOrphanedPRs'])->name('pre-shippings.check-orphaned-prs');
 
     // Shippings
     Route::post('/shippings/create', [ShippingController::class, 'create'])->name('shippings.create');
     Route::post('/shippings/store', [ShippingController::class, 'store'])->name('shippings.store');
-
-    // Goods Movement
-    Route::resource('goods-movement', GoodsMovementController::class);
-    Route::post('goods-movement/{goods_movement}/update-status', [GoodsMovementController::class, 'updateStatus'])->name('goods-movement.updateStatus');
-    Route::post('goods-movement/{goods_movement}/update-sender-receiver-status', [GoodsMovementController::class, 'updateSenderReceiverStatus'])->name('goods-movement.updateSenderReceiverStatus');
-    // Route untuk transfer to inventory
-    Route::post('goods-movement-item/{itemId}/transfer-to-inventory', [GoodsMovementController::class, 'transferToInventory'])->name('goods-movement.transferToInventory');
-    // AKHIR TAMBAHAN
-    Route::post('goods-movement/parse-whatsapp', [GoodsMovementController::class, 'parseWhatsApp'])->name('goods-movement.parseWhatsApp');
-    Route::get('goods-movement/export/csv', [GoodsMovementController::class, 'export'])->name('goods-movement.export');
-    Route::get('goods-movement/api/movement-type-values', [GoodsMovementController::class, 'getMovementTypeValues'])->name('goods-movement.getMovementTypeValues');
-    Route::get('goods-movement/api/projects', [GoodsMovementController::class, 'getProjects'])->name('goods-movement.getProjects');
-    Route::get('goods-movement/api/goods-receives', [GoodsMovementController::class, 'getGoodsReceives'])->name('goods-movement.getGoodsReceives');
-    Route::get('goods-movement/api/goods-receive-items', [GoodsMovementController::class, 'getGoodsReceiveItems'])->name('goods-movement.getGoodsReceiveItems');
 
     // Shipping Management
     Route::get('/shipping-management', [ShippingManagementController::class, 'index'])->name('shipping-management.index');
@@ -271,6 +259,36 @@ Route::middleware(['auth'])->group(function () {
     // Goods Receive
     Route::post('/goods-receive/store', [GoodsReceiveController::class, 'store'])->name('goods-receive.store');
     Route::get('/goods-receive', [GoodsReceiveController::class, 'index'])->name('goods-receive.index');
+
+    // SHORTAGE ITEM
+    Route::prefix('shortage-items')->group(function () {
+        // Index/List shortage items
+        Route::get('/', [ShortageItemController::class, 'index'])->name('shortage-items.index');
+
+        // Show single shortage detail
+        Route::get('/{id}', [ShortageItemController::class, 'show'])->name('shortage-items.show');
+
+        // BULK RESEND ACTION (Main feature)
+        Route::post('/bulk-resend', [ShortageItemController::class, 'bulkResend'])->name('shortage-items.bulk-resend');
+
+        // Cancel shortage item
+        Route::post('/{id}/cancel', [ShortageItemController::class, 'cancel'])->name('shortage-items.cancel');
+
+        // Get by status (AJAX endpoint)
+        Route::get('/status/filter', [ShortageItemController::class, 'getByStatus'])->name('shortage-items.by-status');
+    });
+
+    // Goods Movement
+    Route::resource('goods-movement', GoodsMovementController::class);
+    Route::post('goods-movement/{goods_movement}/update-status', [GoodsMovementController::class, 'updateStatus'])->name('goods-movement.updateStatus');
+    Route::post('goods-movement/{goods_movement}/update-sender-receiver-status', [GoodsMovementController::class, 'updateSenderReceiverStatus'])->name('goods-movement.updateSenderReceiverStatus');
+    Route::post('goods-movement-item/{itemId}/transfer-to-inventory', [GoodsMovementController::class, 'transferToInventory'])->name('goods-movement.transferToInventory');
+    Route::post('goods-movement/parse-whatsapp', [GoodsMovementController::class, 'parseWhatsApp'])->name('goods-movement.parseWhatsApp');
+    Route::get('goods-movement/export/csv', [GoodsMovementController::class, 'export'])->name('goods-movement.export');
+    Route::get('goods-movement/api/movement-type-values', [GoodsMovementController::class, 'getMovementTypeValues'])->name('goods-movement.getMovementTypeValues');
+    Route::get('goods-movement/api/projects', [GoodsMovementController::class, 'getProjects'])->name('goods-movement.getProjects');
+    Route::get('goods-movement/api/goods-receives', [GoodsMovementController::class, 'getGoodsReceives'])->name('goods-movement.getGoodsReceives');
+    Route::get('goods-movement/api/goods-receive-items', [GoodsMovementController::class, 'getGoodsReceiveItems'])->name('goods-movement.getGoodsReceiveItems');
 
     // Attendance
     Route::prefix('attendance')

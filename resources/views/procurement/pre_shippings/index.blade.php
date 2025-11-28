@@ -420,6 +420,44 @@
                 font-size: 0.7rem;
             }
         }
+
+        .new-group-highlight {
+            border: 3px solid #198754 !important;
+            box-shadow: 0 0 20px rgba(25, 135, 84, 0.3);
+            animation: pulseGreen 2s ease-in-out 3;
+        }
+
+        @keyframes pulseGreen {
+
+            0%,
+            100% {
+                box-shadow: 0 0 20px rgba(25, 135, 84, 0.3);
+            }
+
+            50% {
+                box-shadow: 0 0 30px rgba(25, 135, 84, 0.6);
+            }
+        }
+
+        .new-badge {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            z-index: 10;
+            animation: bounce 1s ease-in-out infinite;
+        }
+
+        @keyframes bounce {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-5px);
+            }
+        }
     </style>
 @endpush
 
@@ -609,19 +647,34 @@
                                             <th>Qty to Buy</th>
                                             <th>Unit Price</th>
                                             <th>Total Value</th>
-                                            <th
-                                                class="percentage-column {{ $group['cost_allocation_method'] != 'percentage' ? 'd-none' : '' }}">
+                                            <th class="percentage-column {{ $group['cost_allocation_method'] != 'percentage' ? 'd-none' : '' }}"
+                                                data-group="{{ $group['group_key'] }}">
                                                 Allocation %
                                             </th>
                                             <th>Allocated Cost</th>
                                         </tr>
                                     </thead>
-                                    <tbody data-group="{{ $group['group_key'] }}">
+                                    {{-- Add data-group to tbody --}}
+                                    <tbody class="item-tbody" data-group="{{ $group['group_key'] }}">
                                         @foreach ($group['items'] as $index => $item)
-                                            <tr data-item-id="{{ $item->id }}" data-index="{{ $index }}">
+                                            @php
+                                                $qtyToBuy =
+                                                    $item->purchaseRequest->qty_to_buy ??
+                                                    ($item->purchaseRequest->required_quantity ?? 0);
+                                                $unitPrice = $item->purchaseRequest->price_per_unit ?? 0;
+                                                $itemValue = $qtyToBuy * $unitPrice;
+                                                $currencyName = $item->purchaseRequest->currency->name ?? 'IDR';
+                                            @endphp
+
+                                            {{-- Add data-group, data-quantity, data-value to TR --}}
+                                            <tr data-item-id="{{ $item->id }}" data-index="{{ $index }}"
+                                                data-group="{{ $group['group_key'] }}"
+                                                data-quantity="{{ $qtyToBuy }}" data-value="{{ $itemValue }}">
+
                                                 <td>
-                                                    <strong
-                                                        class="text-dark">{{ $item->purchaseRequest->material_name }}</strong>
+                                                    <strong class="text-dark">
+                                                        {{ $item->purchaseRequest->material_name }}
+                                                    </strong>
                                                 </td>
                                                 <td>
                                                     <span class="badge bg-secondary">
@@ -630,33 +683,27 @@
                                                 </td>
                                                 <td>
                                                     <span class="fw-semibold text-primary" data-bs-toggle="tooltip"
-                                                        data-bs-placement="right"
-                                                        title="{{ $item->purchaseRequest->unit }}">
-                                                        {{ rtrim(rtrim(number_format($item->purchaseRequest->qty_to_buy ?? $item->purchaseRequest->required_quantity, 3, '.', ''), '0'), '.') }}
+                                                        data-bs-placement="top"
+                                                        title="{{ $item->purchaseRequest->unit ?? 'unit' }}">
+                                                        {{ number_format($qtyToBuy, 2) }}
                                                     </span>
                                                 </td>
                                                 <td>
-                                                    <span class="fw-semibold text-success" data-bs-toggle="tooltip"
-                                                        data-bs-placement="left"
-                                                        title="{{ $item->purchaseRequest->currency->name ?? '-' }}">
-                                                        {{ number_format($item->purchaseRequest->price_per_unit, 2) }}
+                                                    <span class="text-muted small" data-bs-toggle="tooltip"
+                                                        title="{{ $currencyName }}">
+                                                        {{ number_format($unitPrice, 2) }}
                                                     </span>
                                                 </td>
                                                 <td>
-                                                    @php
-                                                        $itemValue =
-                                                            ($item->purchaseRequest->qty_to_buy ??
-                                                                $item->purchaseRequest->required_quantity) *
-                                                            $item->purchaseRequest->price_per_unit;
-                                                        $currencyName = $item->purchaseRequest->currency->name ?? '-';
-                                                    @endphp
-                                                    <span class="fw-bold text-success" data-bs-toggle="tooltip"
-                                                        data-bs-placement="left" title="{{ $currencyName }}">
+                                                    <span class="fw-bold" data-bs-toggle="tooltip"
+                                                        title="{{ $currencyName }}">
                                                         {{ number_format($itemValue, 2) }}
                                                     </span>
                                                 </td>
-                                                <td
-                                                    class="percentage-column {{ $group['cost_allocation_method'] != 'percentage' ? 'd-none' : '' }}">
+
+                                                {{-- Percentage Input Column --}}
+                                                <td class="percentage-column {{ $group['cost_allocation_method'] != 'percentage' ? 'd-none' : '' }}"
+                                                    data-group="{{ $group['group_key'] }}">
                                                     <div class="position-relative">
                                                         <input type="number"
                                                             class="form-control form-control-sm allocation-input percentage-input"
@@ -669,10 +716,13 @@
                                                         <div class="auto-save-indicator"></div>
                                                     </div>
                                                 </td>
+
+                                                {{-- Add .allocated-cost-display class --}}
                                                 <td>
                                                     <div class="allocated-cost-cell allocated-cost-highlight">
-                                                        <span class="allocated-amount" data-bs-toggle="tooltip"
-                                                            data-bs-placement="left" title="{{ $currencyName }}">
+                                                        <span class="allocated-amount allocated-cost-display"
+                                                            data-bs-toggle="tooltip" data-bs-placement="left"
+                                                            title="{{ $currencyName }}">
                                                             {{ number_format($item->allocated_cost ?? 0, 2) }}
                                                         </span>
                                                     </div>
@@ -720,267 +770,316 @@
                 @endforelse
             </div>
         </div>
+
+        {{-- SECTION: SHORTAGE ITEMS --}}
+        <div class="card shadow-sm mb-4" id="shortage-items-section">
+            <div class="card-header bg-warning bg-opacity-10">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-2">
+                            <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>
+                            Shortage Items Management
+                        </h5>
+
+                        {{-- ⭐ NEW: Tabs untuk Pending vs History --}}
+                        <ul class="nav nav-tabs nav-tabs-sm" id="shortage-tabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="pending-tab" data-bs-toggle="tab"
+                                    data-bs-target="#pending-shortage" type="button" role="tab">
+                                    <i class="bi bi-hourglass-split me-1"></i>
+                                    Pending Resend
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="history-tab" data-bs-toggle="tab"
+                                    data-bs-target="#history-shortage" type="button" role="tab">
+                                    <i class="bi bi-clock-history me-1"></i>
+                                    History
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                    <span class="badge bg-warning text-dark fs-6" id="shortage-count-badge">
+                        0 Items
+                    </span>
+                </div>
+            </div>
+
+            <div class="card-body">
+                {{-- TAB CONTENT --}}
+                <div class="tab-content" id="shortage-tab-content">
+                    {{-- TAB 1: Pending Resend --}}
+                    <div class="tab-pane fade show active" id="pending-shortage" role="tabpanel">
+                        <div id="shortage-loading" class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status"></div>
+                            <p class="text-muted mt-2">Loading shortage items...</p>
+                        </div>
+
+                        <div id="shortage-items-container" style="display: none;">
+                            {{-- Existing table code --}}
+                            <div class="table-responsive">
+                                <table class="table table-hover table-sm align-middle">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th width="3%" class="text-center">
+                                                <input type="checkbox" id="select-all-shortage" class="form-check-input">
+                                            </th>
+                                            <th width="12%">Material Name</th>
+                                            <th width="10%">Supplier</th>
+                                            <th width="8%">Project</th>
+                                            <th width="8%" class="text-end">Purchased</th>
+                                            <th width="8%" class="text-end">Received</th>
+                                            <th width="8%" class="text-end">
+                                                <span class="text-danger fw-bold">Shortage</span>
+                                            </th>
+                                            <th width="10%">Old Domestic WBL</th>
+                                            <th width="8%">Status</th>
+                                            <th width="8%">Resend Count</th>
+                                            <th width="10%">Detected Date</th>
+                                            <th width="7%" class="text-center">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="shortage-items-tbody"></tbody>
+                                </table>
+                            </div>
+
+                            {{-- Bulk Action Buttons --}}
+                            <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+                                <div>
+                                    <span class="text-muted">
+                                        <span id="selected-shortage-count">0</span> item(s) selected
+                                    </span>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-primary" id="btn-bulk-resend-shortage"
+                                        disabled>
+                                        <i class="bi bi-arrow-repeat me-2"></i>
+                                        Bulk Resend Selected Items
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger" id="btn-bulk-cancel-shortage"
+                                        disabled>
+                                        <i class="bi bi-x-circle me-2"></i>
+                                        Cancel Selected
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="shortage-empty-state" style="display: none;">
+                            <div class="empty-state-filter">
+                                <i class="bi bi-check-circle-fill text-success"></i>
+                                <h5>No Shortage Items</h5>
+                                <p>All goods have been received in full quantity</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- TAB 2: History (Reshipped/Canceled) --}}
+                    <div class="tab-pane fade" id="history-shortage" role="tabpanel">
+                        <div id="history-loading" class="text-center py-4">
+                            <div class="spinner-border text-secondary" role="status"></div>
+                            <p class="text-muted mt-2">Loading history...</p>
+                        </div>
+
+                        <div id="history-items-container" style="display: none;">
+                            <div class="table-responsive">
+                                <table class="table table-hover table-sm">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Material Name</th>
+                                            <th>Supplier</th>
+                                            <th class="text-end">Shortage Qty</th>
+                                            <th>Status</th>
+                                            <th class="text-center">Resend Count</th>
+                                            <th>Last Updated</th>
+                                            <th>Notes</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="history-items-tbody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div id="history-empty-state" style="display: none;">
+                            <div class="empty-state-filter">
+                                <i class="bi bi-clock-history text-muted"></i>
+                                <h5>No History</h5>
+                                <p>No reshipped or canceled items found</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Form untuk proceed to shipping -->
     <form id="proceed-shipping-form" action="{{ route('shippings.create') }}" method="POST" style="display: none;">
         @csrf
         <input type="hidden" name="group_keys" id="selected-group-keys">
+        <!-- ⭐ NEW: Hidden field untuk shortage items -->
+        <input type="hidden" name="shortage_item_ids" id="selected-shortage-ids">
     </form>
 @endsection
 
 @push('scripts')
     <script>
-        $(function() {
-            // ===== FILTER PILLS LOGIC =====
-            let currentFilter = 'not-shipped';
-            const filterPillsContainer = $('#filter-pills-container');
-            const groupsContainer = $('#groups-container');
-
-            // Inisialisasi: Set data attribute pada container
-            groupsContainer.attr('data-current-filter', 'not-shipped');
-
-            // Terapkan filter default saat page load
-            applyFilterPills('not-shipped'); // Apply filter "Not Shipped" default
-
-            // Event handler untuk filter pills
-            $(document).on('click', '.filter-pill', function(e) {
-                e.preventDefault();
-
-                const filterValue = $(this).data('filter');
-                const $button = $(this);
-
-                // Skip jika sudah active
-                if ($button.hasClass('active')) {
-                    return;
-                }
-
-                // Update active state
-                $('.filter-pill').removeClass('active');
-                $button.addClass('active');
-
-                // Update current filter
-                currentFilter = filterValue;
-                groupsContainer.attr('data-current-filter', filterValue);
-
-                // Apply filter
-                applyFilterPills(filterValue);
-
-                console.log('Filter applied:', filterValue);
-            });
-
-            /**
-             * Apply filter dengan smooth fade animation
-             */
-            function applyFilterPills(filterValue) {
-                const groups = $('.card-group-item');
-                let visibleCount = 0;
-
-                groups.each(function() {
-                    const $group = $(this);
-                    const filterGroup = $group.data('filter-group');
-                    let shouldShow = false;
-
-                    if (filterValue === 'all') {
-                        shouldShow = true;
-                    } else if (filterValue === 'not-shipped' && filterGroup === 'not-shipped') {
-                        shouldShow = true;
-                    } else if (filterValue === 'shipped' && filterGroup === 'shipped') {
-                        shouldShow = true;
-                    }
-
-                    if (shouldShow) {
-                        $group.stop(true, false).fadeIn(300);
-                        visibleCount++;
-                    } else {
-                        $group.stop(true, false).fadeOut(300);
-                    }
-                });
-
-                // Update empty state setelah animasi
-                setTimeout(() => {
-                    if (visibleCount === 0) {
-                        showEmptyState(filterValue);
-                    } else {
-                        hideEmptyState();
-                    }
-                }, 300);
-            }
-
-            /**
-             * Tampilkan empty state
-             */
-            function showEmptyState(filterValue) {
-                $('.empty-state-filter').remove();
-
-                const messages = {
-                    'all': {
-                        icon: 'fa-inbox',
-                        title: 'No pre-shipping groups available'
-                    },
-                    'not-shipped': {
-                        icon: 'fa-paper-plane',
-                        title: 'No items waiting to ship'
-                    },
-                    'shipped': {
-                        icon: 'fa-check-circle',
-                        title: 'No shipped items yet'
-                    }
-                };
-
-                const config = messages[filterValue] || messages['all'];
-                const emptyHtml = `
-                    <div class="empty-state-filter">
-                        <i class="fas ${config.icon}"></i>
-                        <h5>${config.title}</h5>
-                    </div>
-                `;
-
-                groupsContainer.append(emptyHtml);
-            }
-
-            /**
-             * Hide empty state
-             */
-            function hideEmptyState() {
-                $('.empty-state-filter').fadeOut(200, function() {
-                    $(this).remove();
-                });
-            }
-        });
-
-        // 1. FUNCTION HELPERS
+        // ===== 1. HELPER FUNCTIONS (Global Scope) =====
         function formatDynamicNumber(number) {
-            if (number == null || number === '') return '0';
-            const num = parseFloat(number);
-            if (isNaN(num)) return number;
-            return num.toFixed(2).replace(/\.?0+$/, '');
+            if (typeof number === 'undefined' || number === null) return '0';
+
+            number = parseFloat(number);
+            if (isNaN(number)) return '0';
+
+            let formatted = number.toFixed(2);
+            formatted = formatted.replace(/\.?0+$/, '');
+
+            return formatted;
         }
 
         function formatCurrency(number) {
-            const formatted = formatDynamicNumber(number);
-            return new Intl.NumberFormat('en-US', {
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 3
-            }).format(parseFloat(formatted));
+            if (typeof number === 'undefined' || number === null) return '0.00';
+
+            number = parseFloat(number);
+            if (isNaN(number)) return '0.00';
+
+            return number.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
         }
 
-        // Real-time calculation functions
+        // ===== 2. REAL-TIME CALCULATION FUNCTIONS =====
         function calculateAllocatedCostRealtime(groupKey, method) {
-            const $tbody = $(`tbody[data-group="${groupKey}"]`);
-            const domesticCost = parseFloat($(`.group-cost-input[data-group="${groupKey}"]`).val()) || 0;
+            const $tbody = $(`.item-tbody[data-group="${groupKey}"]`);
+            const totalCost = parseFloat($(`.group-cost-input[data-group="${groupKey}"]`).val()) || 0;
 
-            if (domesticCost <= 0) {
-                // If no domestic cost, set all allocated costs to 0
-                $tbody.find('.allocated-amount').text('0');
+            // ⭐ DEBUG LOGGING
+            console.log('🔄 Calculate Allocated Cost', {
+                groupKey: groupKey,
+                method: method,
+                totalCost: totalCost,
+                tbodyFound: $tbody.length,
+                rowsFound: $tbody.find('tr[data-group]').length
+            });
+
+            if (totalCost <= 0) {
+                console.warn('⚠️ Total cost is zero or invalid');
+                $tbody.find('.allocated-cost-display').text('0.00');
                 return;
             }
 
-            if (method === 'percentage') {
-                calculateByPercentageRealtime($tbody, domesticCost);
-            } else if (method === 'quantity') {
-                calculateByQuantityRealtime($tbody, domesticCost);
-            } else if (method === 'value') {
-                calculateByValueRealtime($tbody, domesticCost);
+            switch (method) {
+                case 'percentage':
+                    calculateByPercentageRealtime($tbody, totalCost);
+                    break;
+                case 'quantity':
+                    calculateByQuantityRealtime($tbody, totalCost);
+                    break;
+                case 'value':
+                default:
+                    calculateByValueRealtime($tbody, totalCost);
+                    break;
             }
+
+            console.log('✅ Calculation complete for group:', groupKey);
         }
 
         function calculateByPercentageRealtime($tbody, totalCost) {
-            $tbody.find('tr').each(function() {
-                const $row = $(this);
-                const $percentageInput = $row.find('.percentage-input');
-                const $allocatedAmount = $row.find('.allocated-amount');
-
-                const percentage = parseFloat($percentageInput.val()) || 0;
+            // ⭐ FIX: Access TR elements with proper data attributes
+            $tbody.find('tr[data-group]').each(function() {
+                const percentage = parseFloat($(this).find('.percentage-input').val()) || 0;
                 const allocatedCost = (percentage / 100) * totalCost;
 
-                $allocatedAmount.text(formatDynamicNumber(allocatedCost));
+                // ⭐ FIX: Update display dengan formatDynamicNumber
+                $(this).find('.allocated-cost-display').text(formatDynamicNumber(allocatedCost));
             });
         }
 
         function calculateByQuantityRealtime($tbody, totalCost) {
-            // Calculate total quantity first
             let totalQuantity = 0;
-            const quantities = [];
 
-            $tbody.find('tr').each(function() {
-                const $row = $(this);
-                const qtyText = $row.find('td:eq(2) .fw-semibold').text().replace(/,/g, '');
-                const qty = parseFloat(qtyText) || 0;
-                quantities.push(qty);
+            // ⭐ FIX: Calculate total dari data attributes
+            $tbody.find('tr[data-group]').each(function() {
+                const qty = parseFloat($(this).data('quantity')) || 0;
                 totalQuantity += qty;
             });
 
             if (totalQuantity <= 0) {
-                $tbody.find('.allocated-amount').text('0');
+                $tbody.find('.allocated-cost-display').text('0.00');
                 return;
             }
 
-            // Distribute cost based on quantity ratio
-            $tbody.find('tr').each(function(index) {
-                const $row = $(this);
-                const $allocatedAmount = $row.find('.allocated-amount');
-                const qty = quantities[index];
+            // ⭐ FIX: Distribute cost berdasarkan quantity proportion
+            $tbody.find('tr[data-group]').each(function() {
+                const qty = parseFloat($(this).data('quantity')) || 0;
                 const allocatedCost = (qty / totalQuantity) * totalCost;
 
-                $allocatedAmount.text(formatDynamicNumber(allocatedCost));
+                $(this).find('.allocated-cost-display').text(formatDynamicNumber(allocatedCost));
             });
         }
 
         function calculateByValueRealtime($tbody, totalCost) {
             let totalValue = 0;
-            const values = [];
 
-            $tbody.find('tr').each(function() {
-                const $row = $(this);
-                const qtyText = $row.find('td:eq(2) .fw-semibold').text().replace(/,/g, '');
-                const priceText = $row.find('td:eq(3) .fw-semibold').text().replace(/[$,]/g, '');
-                const qty = parseFloat(qtyText) || 0;
-                const price = parseFloat(priceText) || 0;
-                const value = qty * price;
-                values.push(value);
+            $tbody.find('tr[data-group]').each(function() {
+                const value = parseFloat($(this).data('value')) || 0;
                 totalValue += value;
+
+                // ⭐ DEBUG
+                console.log('  Item value:', value);
             });
 
+            console.log('📊 Total value:', totalValue);
+
             if (totalValue <= 0) {
-                $tbody.find('.allocated-amount').text('0');
+                console.warn('⚠️ Total value is zero');
+                $tbody.find('.allocated-cost-display').text('0.00');
                 return;
             }
 
-            $tbody.find('tr').each(function(index) {
-                const $row = $(this);
-                const $allocatedAmount = $row.find('.allocated-amount');
-                const value = values[index];
+            $tbody.find('tr[data-group]').each(function() {
+                const value = parseFloat($(this).data('value')) || 0;
                 const allocatedCost = (value / totalValue) * totalCost;
 
-                // Debug log untuk memastikan update berjalan
-                console.log(`Updating row ${index}: ${allocatedCost}`);
+                $(this).find('.allocated-cost-display').text(formatDynamicNumber(allocatedCost));
 
-                $allocatedAmount.text(formatDynamicNumber(allocatedCost));
+                // ⭐ DEBUG
+                console.log('  Allocated cost:', allocatedCost, 'for value:', value);
             });
         }
 
-        $(function() {
-            $('[data-bs-toggle="tooltip"]').tooltip();
-        });
-
-        // 2. SINGLE DOCUMENT READY BLOCK
+        // ===== 3. MAIN DOCUMENT READY BLOCK =====
         $(document).ready(function() {
+            // ===== 3.1 GLOBAL VARIABLES =====
             let updateTimeout = {};
             let selectedGroups = new Set();
+            let selectedShortages = new Set(); // ⭐ SINGLE DECLARATION
             let hasUnsavedChanges = false;
             let isOnline = navigator.onLine;
             let isInitializing = true;
 
-            // ===== INITIALIZATION =====
+            // ===== 3.2 INITIALIZATION =====
             initializePage();
+            loadShortageItems();
+            checkSuccessMessage();
+            initializeFilterPills();
 
-            // ===== EVENT HANDLERS =====
+            // Initialize tooltips
+            $('[data-bs-toggle="tooltip"]').tooltip();
+
+            // ===== 3.3 EVENT HANDLERS =====
 
             // Group checkbox selection
             $('.group-checkbox').on('change', handleGroupSelection);
 
-            // Proceed to shipping
+            // Shortage checkbox selection
+            $(document).on('change', '.shortage-checkbox', handleShortageSelection);
+
+            // Select all shortage
+            $('#select-all-shortage').on('change', function() {
+                const isChecked = $(this).is(':checked');
+                $('.shortage-checkbox').prop('checked', isChecked).trigger('change');
+            });
+
+            // Proceed to shipping button
             $('#proceed-shipping-btn').on('click', handleProceedToShipping);
 
             // Allocation method change
@@ -988,15 +1087,22 @@
 
             // Input changes dengan real-time calculation
             $('.allocation-input').on('input', handleInputChange);
-
-            // Percentage input changes dengan real-time calculation
             $(document).on('input', '.percentage-input', handlePercentageInput);
-
-            // Domestic cost input changes dengan real-time calculation
             $(document).on('input', '.group-cost-input', handleDomesticCostInput);
 
             // Auto-distribute button
             $(document).on('click', '.auto-distribute-btn', handleAutoDistribute);
+
+            // Bulk resend shortage
+            $('#btn-bulk-resend-shortage').on('click', handleBulkResendShortage);
+
+            // Cancel shortage
+            $(document).on('click', '.btn-cancel-shortage', handleCancelShortage);
+
+            // History tab click
+            $('#history-tab').on('click', function() {
+                loadShortageHistory();
+            });
 
             // Visual feedback for inputs
             $('.allocation-input').on('focus', function() {
@@ -1005,30 +1111,7 @@
                 $(this).removeClass('border-primary');
             });
 
-            // Clear validation error saat user mulai typing
-            $(document).on('input', '.group-waybill-input, .group-cost-input', function() {
-                const $input = $(this);
-                const value = $input.val();
-                const groupKey = $input.data('group');
-
-                // Clear error styling jika user mulai input
-                if (value && value.trim() !== '') {
-                    // Untuk waybill input
-                    if ($input.hasClass('group-waybill-input')) {
-                        if (value.trim().length > 0) {
-                            $input.removeClass('border-danger is-invalid');
-                        }
-                    }
-                    // Untuk cost input
-                    else if ($input.hasClass('group-cost-input')) {
-                        if (parseFloat(value) > 0) {
-                            $input.removeClass('border-danger is-invalid');
-                        }
-                    }
-                }
-            });
-
-            // Connection status monitoring
+            // Online/Offline detection
             window.addEventListener('online', function() {
                 isOnline = true;
                 showToast('success', 'Connection restored');
@@ -1047,7 +1130,7 @@
                 }
             });
 
-            // ===== FUNCTION DEFINITIONS =====
+            // ===== 3.4 FUNCTION DEFINITIONS =====
 
             function initializePage() {
                 isInitializing = true;
@@ -1059,7 +1142,6 @@
                     const groupKey = $(this).data('group');
                     updateMethodBadge(groupKey, currentValue);
 
-                    // Initialize real-time calculation for each group
                     setTimeout(() => {
                         calculateAllocatedCostRealtime(groupKey, currentValue);
                     }, 100);
@@ -1075,6 +1157,308 @@
                 }, 500);
             }
 
+            function checkSuccessMessage() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const successMsg = urlParams.get('success');
+                const highlightNew = urlParams.get('highlight_groups');
+
+                if (successMsg) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        html: decodeURIComponent(successMsg),
+                        timer: 5000,
+                        timerProgressBar: true,
+                        showConfirmButton: false
+                    });
+
+                    // Highlight new groups
+                    if (highlightNew === 'new') {
+                        setTimeout(() => {
+                            $('.card-group-item').each(function() {
+                                const $card = $(this);
+                                const $firstItem = $card.find('[data-created-at]').first();
+
+                                if ($firstItem.length) {
+                                    const createdAt = new Date($firstItem.data('created-at'));
+                                    const now = new Date();
+                                    const diffMinutes = (now - createdAt) / 1000 / 60;
+
+                                    if (diffMinutes < 5) {
+                                        $card.addClass('new-group-highlight')
+                                            .prepend(
+                                                '<span class="badge bg-success new-badge">NEW</span>'
+                                            );
+
+                                        if ($('.new-group-highlight').length === 1) {
+                                            $('html, body').animate({
+                                                scrollTop: $card.offset().top - 100
+                                            }, 500);
+                                        }
+
+                                        setTimeout(() => {
+                                            $card.removeClass('new-group-highlight');
+                                            $card.find('.new-badge').fadeOut(300,
+                                                function() {
+                                                    $(this).remove();
+                                                });
+                                        }, 10000);
+                                    }
+                                }
+                            });
+                        }, 500);
+                    }
+
+                    // Clean URL
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
+            }
+
+            function initializeFilterPills() {
+                // Existing filter pills logic...
+                const filterPillsContainer = $('#filter-pills-container');
+                const groupsContainer = $('#groups-container');
+
+                groupsContainer.attr('data-current-filter', 'not-shipped');
+                applyFilterPills('not-shipped');
+
+                $(document).on('click', '.filter-pill', function(e) {
+                    e.preventDefault();
+                    const filterValue = $(this).data('filter');
+
+                    if ($(this).hasClass('active')) return;
+
+                    $('.filter-pill').removeClass('active');
+                    $(this).addClass('active');
+
+                    groupsContainer.attr('data-current-filter', filterValue);
+                    applyFilterPills(filterValue);
+                });
+            }
+
+            function applyFilterPills(filterValue) {
+                const $cards = $('.card-group-item');
+
+                $cards.each(function() {
+                    const hasBeenShipped = $(this).data('shipped') === true;
+
+                    if (filterValue === 'not-shipped' && !hasBeenShipped) {
+                        $(this).show();
+                    } else if (filterValue === 'shipped' && hasBeenShipped) {
+                        $(this).show();
+                    } else if (filterValue === 'all') {
+                        $(this).show();
+                    } else {
+                        $(this).hide();
+                    }
+                });
+
+                // Show empty state if no cards visible
+                const visibleCards = $cards.filter(':visible').length;
+                if (visibleCards === 0) {
+                    if ($('#empty-state-filter').length === 0) {
+                        $('#groups-container').append(`
+                    <div id="empty-state-filter" class="empty-state-filter">
+                        <i class="bi bi-inbox fs-1 text-muted"></i>
+                        <h5>No Items</h5>
+                        <p>No groups match the current filter</p>
+                    </div>
+                `);
+                    }
+                } else {
+                    $('#empty-state-filter').remove();
+                }
+            }
+
+            // ===== SHORTAGE ITEMS FUNCTIONS =====
+
+            function loadShortageItems() {
+                $.ajax({
+                    url: '{{ route('shortage-items.by-status') }}',
+                    method: 'GET',
+                    data: {
+                        status: 'resolvable'
+                    },
+                    success: function(response) {
+                        const shortageItems = response.shortage_items;
+                        const count = response.total_count;
+
+                        $('#shortage-count-badge').text(count + ' Item' + (count !== 1 ? 's' : ''));
+
+                        if (count === 0) {
+                            $('#shortage-loading').hide();
+                            $('#shortage-items-container').hide();
+                            $('#shortage-empty-state').show();
+                        } else {
+                            populateShortageTable(shortageItems);
+                            $('#shortage-loading').hide();
+                            $('#shortage-empty-state').hide();
+                            $('#shortage-items-container').show();
+                        }
+                    },
+                    error: function(xhr) {
+                        console.error('Error loading shortage items:', xhr);
+                        $('#shortage-loading').hide();
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Failed to load shortage items'
+                        });
+                    }
+                });
+            }
+
+            function loadShortageHistory() {
+                $('#history-loading').show();
+                $('#history-items-container').hide();
+                $('#history-empty-state').hide();
+
+                $.ajax({
+                    url: '{{ route('shortage-items.by-status') }}',
+                    method: 'GET',
+                    data: {
+                        status: 'all'
+                    },
+                    success: function(response) {
+                        const allItems = response.shortage_items;
+                        const historyItems = allItems.filter(item => ['reshipped', 'fully_reshipped',
+                            'canceled'
+                        ].includes(item.status));
+
+                        if (historyItems.length === 0) {
+                            $('#history-loading').hide();
+                            $('#history-empty-state').show();
+                        } else {
+                            populateHistoryTable(historyItems);
+                            $('#history-loading').hide();
+                            $('#history-items-container').show();
+                        }
+                    },
+                    error: function(xhr) {
+                        console.error('Error loading history:', xhr);
+                        $('#history-loading').hide();
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Failed to load history'
+                        });
+                    }
+                });
+            }
+
+            function populateShortageTable(items) {
+                const tbody = $('#shortage-items-tbody');
+                tbody.empty();
+
+                items.forEach((item, index) => {
+                    const pr = item.purchase_request;
+                    const statusBadge = getStatusBadge(item.status);
+                    const oldWbl = item.old_domestic_wbl || '';
+
+                    const row = `
+                <tr data-shortage-id="${item.id}">
+                    <td class="text-center">
+                        <input type="checkbox"
+                               class="form-check-input shortage-checkbox"
+                               value="${item.id}">
+                    </td>
+                    <td>
+                        <div class="fw-bold">${item.material_name}</div>
+                        <small class="text-muted">PR#${pr.id}</small>
+                    </td>
+                    <td>${pr.supplier ? pr.supplier.name : '-'}</td>
+                    <td>${pr.project ? pr.project.name : '-'}</td>
+                    <td class="text-end">${parseFloat(item.purchased_qty).toFixed(2)}</td>
+                    <td class="text-end text-warning fw-bold">${parseFloat(item.received_qty).toFixed(2)}</td>
+                    <td class="text-end">
+                        <span class="badge bg-danger">${parseFloat(item.shortage_qty).toFixed(2)}</span>
+                    </td>
+                    <td>
+                        <input type="text"
+                               class="form-control form-control-sm old-wbl-input"
+                               placeholder="Optional"
+                               value="${oldWbl}"
+                               data-shortage-id="${item.id}">
+                    </td>
+                    <td>${statusBadge}</td>
+                    <td class="text-center">
+                        <span class="badge bg-secondary">${item.resend_count}x</span>
+                    </td>
+                    <td>
+                        <small>${new Date(item.created_at).toLocaleDateString('en-GB')}</small>
+                    </td>
+                    <td class="text-center">
+                        <button type="button"
+                                class="btn btn-sm btn-outline-danger btn-cancel-shortage"
+                                data-shortage-id="${item.id}"
+                                data-bs-toggle="tooltip"
+                                title="Cancel this shortage">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+
+                    tbody.append(row);
+                });
+
+                $('[data-bs-toggle="tooltip"]').tooltip();
+            }
+
+            function populateHistoryTable(items) {
+                const tbody = $('#history-items-tbody');
+                tbody.empty();
+
+                items.forEach(item => {
+                    const pr = item.purchase_request;
+                    const statusBadge = getStatusBadge(item.status);
+
+                    const row = `
+                <tr>
+                    <td>
+                        <div class="fw-bold">${item.material_name}</div>
+                        <small class="text-muted">PR#${pr.id}</small>
+                    </td>
+                    <td>${pr.supplier ? pr.supplier.name : '-'}</td>
+                    <td class="text-end">
+                        <span class="badge bg-secondary">${parseFloat(item.shortage_qty).toFixed(2)}</span>
+                    </td>
+                    <td>${statusBadge}</td>
+                    <td class="text-center">
+                        <span class="badge bg-info">${item.resend_count}x</span>
+                    </td>
+                    <td>
+                        <small>${new Date(item.updated_at).toLocaleDateString('en-GB')}</small>
+                    </td>
+                    <td>
+                        <small class="text-muted text-truncate" style="max-width: 200px; display: inline-block;"
+                               data-bs-toggle="tooltip" title="${item.notes || '-'}">
+                            ${item.notes || '-'}
+                        </small>
+                    </td>
+                </tr>
+            `;
+
+                    tbody.append(row);
+                });
+
+                $('[data-bs-toggle="tooltip"]').tooltip();
+            }
+
+            function getStatusBadge(status) {
+                const badges = {
+                    'pending': '<span class="badge bg-warning">Pending Resend</span>',
+                    'partially_reshipped': '<span class="badge bg-primary">Partially Reshipped</span>',
+                    'reshipped': '<span class="badge bg-info">Reshipped</span>',
+                    'fully_reshipped': '<span class="badge bg-success">Fully Reshipped</span>',
+                    'canceled': '<span class="badge bg-danger">Canceled</span>'
+                };
+
+                return badges[status] || '<span class="badge bg-secondary">Unknown</span>';
+            }
+
+            // ===== SELECTION HANDLERS =====
+
             function handleGroupSelection() {
                 const groupKey = $(this).data('group');
                 const card = $(this).closest('.card-group-item');
@@ -1089,121 +1473,106 @@
                 updateProceedButton();
             }
 
+            function handleShortageSelection() {
+                const shortageId = $(this).val();
+
+                if ($(this).is(':checked')) {
+                    selectedShortages.add(shortageId);
+                } else {
+                    selectedShortages.delete(shortageId);
+                }
+
+                updateProceedButton();
+            }
+
+            function updateProceedButton() {
+                const totalSelected = selectedGroups.size + selectedShortages.size;
+
+                if (totalSelected > 0) {
+                    $('#proceed-shipping-btn').prop('disabled', false).show();
+                    $('#selected-count').show();
+
+                    let countText = '';
+                    if (selectedGroups.size > 0) {
+                        countText += `${selectedGroups.size} group(s)`;
+                    }
+                    if (selectedShortages.size > 0) {
+                        if (countText) countText += ' + ';
+                        countText += `${selectedShortages.size} shortage(s)`;
+                    }
+
+                    $('#count-text').text(countText);
+                } else {
+                    $('#proceed-shipping-btn').prop('disabled', true).hide();
+                    $('#selected-count').hide();
+                }
+            }
+
             function handleProceedToShipping() {
-                if (selectedGroups.size === 0) {
-                    Swal.fire('Warning', 'Please select at least one group', 'warning');
+                if (selectedGroups.size === 0 && selectedShortages.size === 0) {
+                    Swal.fire('Warning', 'Please select at least one group or shortage item', 'warning');
                     return;
                 }
 
-                // VALIDASI CLIENT-SIDE: Cek apakah semua group punya domestic_waybill_no dan domestic_cost
+                // Validate normal groups
                 let incompleteGroups = [];
-                let hasInvalidWaybill = false;
-                let hasInvalidCost = false;
-                let firstInvalidElement = null; // Track first invalid element
-
                 selectedGroups.forEach(groupKey => {
                     const $card = $(`.card-group-item[data-group="${groupKey}"]`);
                     const waybill = $card.find(`.group-waybill-input[data-group="${groupKey}"]`).val();
                     const cost = $card.find(`.group-cost-input[data-group="${groupKey}"]`).val();
 
-                    // VISUAL FEEDBACK: Add invalid class ke input yang kosong/invalid
-                    const $waybillInput = $card.find(`.group-waybill-input[data-group="${groupKey}"]`);
-                    const $costInput = $card.find(`.group-cost-input[data-group="${groupKey}"]`);
+                    if (!waybill || !cost || cost <= 0) {
+                        incompleteGroups.push({
+                            groupKey: groupKey,
+                            supplier: $card.find('strong').first().text(),
+                            missing: []
+                        });
 
-                    if (!waybill || waybill.trim() === '') {
-                        incompleteGroups.push(groupKey + ' (missing Domestic Waybill No)');
-                        $waybillInput.addClass('border-danger is-invalid');
-                        hasInvalidWaybill = true;
-
-                        // Track first invalid element
-                        if (!firstInvalidElement) {
-                            firstInvalidElement = $waybillInput;
-                        }
-                    } else {
-                        $waybillInput.removeClass('border-danger is-invalid');
-                    }
-
-                    if (!cost || parseFloat(cost) <= 0) {
-                        incompleteGroups.push(groupKey + ' (missing/invalid Domestic Cost)');
-                        $costInput.addClass('border-danger is-invalid');
-                        hasInvalidCost = true;
-
-                        // Track first invalid element
-                        if (!firstInvalidElement) {
-                            firstInvalidElement = $costInput;
-                        }
-                    } else {
-                        $costInput.removeClass('border-danger is-invalid');
+                        if (!waybill) incompleteGroups[incompleteGroups.length - 1].missing.push(
+                            'Domestic Waybill No');
+                        if (!cost || cost <= 0) incompleteGroups[incompleteGroups.length - 1].missing.push(
+                            'Domestic Cost');
                     }
                 });
 
-                // Jika ada yang incomplete, tampilkan error dengan scroll ke invalid fields
                 if (incompleteGroups.length > 0) {
-                    // Save current scroll position sebelum modal muncul
-                    const currentScrollTop = $(window).scrollTop();
+                    let errorHtml = '<div class="text-start"><p><strong>Incomplete Data:</strong></p><ul>';
+                    incompleteGroups.forEach(group => {
+                        errorHtml +=
+                            `<li><strong>${group.supplier}</strong>: ${group.missing.join(', ')} is required</li>`;
+                    });
+                    errorHtml += '</ul></div>';
 
                     Swal.fire({
                         icon: 'error',
-                        title: 'Incomplete Data',
-                        html: '<div style="text-align: left;">' +
-                            'Cannot proceed to shipping. Please fill in the following fields:<br><br>' +
-                            '<strong style="color: #dc3545;">❌ Missing/Invalid fields:</strong><br>' +
-                            incompleteGroups.map(g => '• ' + g).join('<br>') +
-                            '<br><br><strong style="color: #0d6efd;">ℹ️ Required:</strong><br>' +
-                            '• Domestic Waybill No (cannot be empty)<br>' +
-                            '• Domestic Cost (must be greater than 0)' +
-                            '</div>',
-                        confirmButtonText: 'OK',
-                        confirmButtonColor: '#dc3545',
-                        allowOutsideClick: false, // Prevent closing by clicking outside
-                        allowEscapeKey: false, // Prevent closing by pressing Escape
-                        didOpen: function(modal) {
-                            // Set focus ke first invalid input untuk better UX
-                            if (firstInvalidElement && firstInvalidElement.length) {
-                                setTimeout(() => {
-                                    firstInvalidElement.focus();
-                                }, 300);
-                            }
-                        }
-                    }).then((result) => {
-                        // Restore scroll position setelah modal ditutup
-                        if (result.isConfirmed) {
-                            // Scroll ke first invalid field dengan smooth animation
-                            if (firstInvalidElement && firstInvalidElement.length) {
-                                $('html, body').animate({
-                                    scrollTop: firstInvalidElement.offset().top - 100
-                                }, 500, function() {
-                                    // Set focus ke input setelah scroll selesai
-                                    firstInvalidElement.focus();
-                                    // Add highlight effect
-                                    firstInvalidElement.addClass('highlight-invalid');
-                                    setTimeout(() => {
-                                        firstInvalidElement.removeClass(
-                                            'highlight-invalid');
-                                    }, 2000);
-                                });
-                            } else {
-                                // Fallback: Restore original scroll position
-                                $(window).scrollTop(currentScrollTop);
-                            }
-                        }
+                        title: 'Cannot Proceed',
+                        html: errorHtml,
+                        confirmButtonText: 'OK, I\'ll fix it',
+                        confirmButtonColor: '#dc3545'
                     });
-
                     return;
                 }
 
-                // Jika valid, clear visual feedback dan lanjutkan proceed
-                selectedGroups.forEach(groupKey => {
-                    const $card = $(`.card-group-item[data-group="${groupKey}"]`);
-                    $card.find('.group-waybill-input, .group-cost-input').removeClass(
-                        'border-danger is-invalid');
-                });
+                // Confirm dialog
+                const normalCount = selectedGroups.size;
+                const shortageCount = selectedShortages.size;
 
-                // Jika valid, lanjutkan proceed
+                let confirmHtml = '<div class="text-start">';
+                confirmHtml += '<p>You are about to create shipping with:</p>';
+                confirmHtml += '<ul>';
+                if (normalCount > 0) {
+                    confirmHtml += `<li><strong>${normalCount}</strong> normal pre-shipping group(s)</li>`;
+                }
+                if (shortageCount > 0) {
+                    confirmHtml += `<li><strong>${shortageCount}</strong> shortage resend item(s)</li>`;
+                }
+                confirmHtml += '</ul>';
+                confirmHtml += '</div>';
+
                 Swal.fire({
-                    icon: 'info',
+                    icon: 'question',
                     title: 'Proceed to Shipping?',
-                    text: `You are about to proceed ${selectedGroups.size} group(s) to shipping.`,
+                    html: confirmHtml,
                     showCancelButton: true,
                     confirmButtonText: 'Yes, Proceed',
                     confirmButtonColor: '#198754',
@@ -1211,12 +1580,14 @@
                     reverseButtons: true
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        $('#selected-group-keys').val(JSON.stringify([...selectedGroups]));
+                        $('#selected-group-keys').val(JSON.stringify(Array.from(selectedGroups)));
+                        $('#selected-shortage-ids').val(JSON.stringify(Array.from(selectedShortages)));
                         $('#proceed-shipping-form').submit();
                     }
                 });
             }
 
+            // ===== ALLOCATION METHOD HANDLERS =====
             function handleAllocationMethodChange() {
                 const groupKey = $(this).data('group');
                 const method = $(this).val();
@@ -1224,148 +1595,345 @@
 
                 $(this).data('previous-value', method).prop('disabled', true);
 
-                togglePercentageColumns(groupKey, method);
-
-                // Pastikan ini dipanggil SEBELUM AJAX request
+                // Calculate dengan method baru
                 calculateAllocatedCostRealtime(groupKey, method);
 
                 const data = {
                     domestic_waybill_no: $(`.group-waybill-input[data-group="${groupKey}"]`).val(),
                     domestic_cost: $(`.group-cost-input[data-group="${groupKey}"]`).val(),
                     cost_allocation_method: method,
-                    percentages: method === 'percentage' ? [] : undefined,
                     _token: '{{ csrf_token() }}'
                 };
+
+                if (method === 'percentage') {
+                    const percentages = [];
+                    $(`.item-tbody[data-group="${groupKey}"] .percentage-input`).each(function() {
+                        percentages.push(parseFloat($(this).val()) || 0);
+                    });
+                    data.percentages = percentages;
+                }
 
                 sendUpdateRequest(groupKey, data, previousValue);
             }
 
             function handleInputChange() {
-                const groupKey = $(this).data('group');
-                const $indicator = $(this).siblings('.auto-save-indicator');
+                if (isInitializing) return;
 
-                $indicator.removeClass('saved').addClass('saving');
-                hasUnsavedChanges = true;
+                // ⭐ FIX: Get group key dari closest TR dengan data-group
+                const $row = $(this).closest('tr[data-group]');
+                const groupKey = $row.data('group');
+
+                if (!groupKey) {
+                    console.error('⚠️ Group key not found for input change');
+                    return;
+                }
 
                 clearTimeout(updateTimeout[groupKey]);
+
                 updateTimeout[groupKey] = setTimeout(() => {
                     autoUpdateGroup(groupKey);
-                }, 800);
+                }, 1000);
             }
 
             function handlePercentageInput() {
-                const groupKey = $(this).data('group');
-                const currentMethod = $(`.allocation-method-select[data-group="${groupKey}"]`).val();
+                if (isInitializing) return;
 
-                // Real-time calculation saat input percentage berubah
-                if (currentMethod === 'percentage') {
-                    calculateAllocatedCostRealtime(groupKey, 'percentage');
+                // ⭐ FIX: Get group key dari closest TR
+                const $row = $(this).closest('tr[data-group]');
+                const groupKey = $row.data('group');
+
+                if (!groupKey) {
+                    console.error('⚠️ Group key not found for percentage input');
+                    return;
                 }
 
-                updatePercentageTotal(groupKey);
+                const method = $(`.allocation-method-select[data-group="${groupKey}"]`).val();
 
-                const $indicator = $(this).siblings('.auto-save-indicator');
-                $indicator.removeClass('saved').addClass('saving');
-                hasUnsavedChanges = true;
+                if (method === 'percentage') {
+                    updatePercentageTotal(groupKey);
+                    calculateAllocatedCostRealtime(groupKey, 'percentage');
 
-                clearTimeout(updateTimeout[groupKey]);
-                updateTimeout[groupKey] = setTimeout(() => {
-                    autoUpdateGroupWithPercentages(groupKey);
-                }, 1500);
+                    clearTimeout(updateTimeout[groupKey]);
+                    updateTimeout[groupKey] = setTimeout(() => {
+                        autoUpdateGroup(groupKey);
+                    }, 1500);
+                }
             }
 
-            // Handle domestic cost input changes
             function handleDomesticCostInput() {
+                if (isInitializing) return;
+
                 const groupKey = $(this).data('group');
-                const currentMethod = $(`.allocation-method-select[data-group="${groupKey}"]`).val();
 
-                // Real-time calculation saat domestic cost berubah
-                calculateAllocatedCostRealtime(groupKey, currentMethod);
+                if (!groupKey) {
+                    console.error('⚠️ Group key not found for domestic cost input');
+                    return;
+                }
 
-                const $indicator = $(this).siblings('.auto-save-indicator');
-                $indicator.removeClass('saved').addClass('saving');
-                hasUnsavedChanges = true;
+                const method = $(`.allocation-method-select[data-group="${groupKey}"]`).val();
+
+                calculateAllocatedCostRealtime(groupKey, method);
 
                 clearTimeout(updateTimeout[groupKey]);
                 updateTimeout[groupKey] = setTimeout(() => {
                     autoUpdateGroup(groupKey);
-                }, 800);
+                }, 1000);
             }
 
             function handleAutoDistribute() {
                 const groupKey = $(this).data('group');
-                const $tbody = $(`tbody[data-group="${groupKey}"]`);
 
                 let totalValue = 0;
-                const itemValues = [];
-
-                $tbody.find('tr').each(function() {
-                    const qtyText = $(this).find('td:eq(2) .fw-semibold').text().replace(/,/g, '');
-                    const priceText = $(this).find('td:eq(3) .fw-semibold').text().replace(/[$,]/g, '');
-                    const value = (parseFloat(qtyText) || 0) * (parseFloat(priceText) || 0);
-                    itemValues.push(value);
+                $(`.item-tbody[data-group="${groupKey}"] tr`).each(function() {
+                    const value = parseFloat($(this).data('value')) || 0;
                     totalValue += value;
                 });
 
-                if (totalValue > 0) {
-                    $tbody.find('.percentage-input').each(function(index) {
-                        const percentage = (itemValues[index] / totalValue) * 100;
-                        $(this).val(formatDynamicNumber(percentage));
+                if (totalValue <= 0) {
+                    const equalPercentage = (100 / $(`.item-tbody[data-group="${groupKey}"] tr`).length).toFixed(2);
+                    $(`.item-tbody[data-group="${groupKey}"] .percentage-input`).val(equalPercentage);
+                } else {
+                    $(`.item-tbody[data-group="${groupKey}"] tr`).each(function() {
+                        const value = parseFloat($(this).data('value')) || 0;
+                        const percentage = ((value / totalValue) * 100).toFixed(2);
+                        $(this).find('.percentage-input').val(percentage);
                     });
-
-                    // Trigger real-time calculation after auto-distribute
-                    calculateAllocatedCostRealtime(groupKey, 'percentage');
-                    updatePercentageTotal(groupKey);
-
-                    setTimeout(() => autoUpdateGroupWithPercentages(groupKey), 500);
-                    showToast('success', 'Percentages auto-distributed based on item values');
-                } else {
-                    showToast('warning', 'Cannot auto-distribute: no item values found');
                 }
+
+                calculateAllocatedCostRealtime(groupKey, 'percentage');
             }
 
-            function updateProceedButton() {
-                const count = selectedGroups.size;
-                const $countElement = $('#selected-count');
-                const $proceedBtn = $('#proceed-shipping-btn');
-                const $countText = $('#count-text');
+            // ===== SHORTAGE ACTION HANDLERS =====
 
-                if (count > 0) {
-                    $countElement.show();
-                    $proceedBtn.show().prop('disabled', false);
-                    $countText.text(`${count} selected`);
-                } else {
-                    $countElement.hide();
-                    $proceedBtn.hide().prop('disabled', true);
+            function handleBulkResendShortage() {
+                const selectedIds = [];
+                const oldWaybills = {};
+
+                $('.shortage-checkbox:checked').each(function() {
+                    const shortageId = $(this).val();
+                    selectedIds.push(shortageId);
+                    oldWaybills[shortageId] = $(`.old-wbl-input[data-shortage-id="${shortageId}"]`).val() ||
+                        '';
+                });
+
+                if (selectedIds.length === 0) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'No Selection',
+                        text: 'Please select at least one shortage item to resend'
+                    });
+                    return;
                 }
+
+                Swal.fire({
+                    icon: 'question',
+                    title: 'Confirm Bulk Resend',
+                    html: `
+                <div class="text-start">
+                    <p>You are about to resend <strong>${selectedIds.length}</strong> shortage item(s).</p>
+                    <p class="mb-0">This will:</p>
+                    <ul class="small">
+                        <li>Create new Purchase Request(s) with <code>approval_status = 'Approved'</code></li>
+                        <li>Add them to Pre-Shipping groups automatically</li>
+                        <li>Update shortage item status to <code>'reshipped'</code></li>
+                    </ul>
+                </div>
+            `,
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, Resend Now',
+                    confirmButtonColor: '#0d6efd',
+                    cancelButtonText: 'Cancel',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        processBulkResend(selectedIds, oldWaybills);
+                    }
+                });
             }
+
+            function processBulkResend(shortageIds, oldWaybills) {
+                const formData = {
+                    _token: '{{ csrf_token() }}',
+                    shortage_item_ids: shortageIds,
+                    old_domestic_wbl: Object.values(oldWaybills)
+                };
+
+                Swal.fire({
+                    title: 'Processing...',
+                    html: 'Creating Purchase Requests and Pre-Shipping entries...',
+                    allowOutsideClick: false,
+                    showConfirmButton: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                $.ajax({
+                    url: '{{ route('shortage-items.bulk-resend') }}',
+                    method: 'POST',
+                    data: formData,
+                    success: function(response) {
+                        window.location.href = response.redirect_url;
+                    },
+                    error: function(xhr) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: xhr.responseJSON?.message || 'Failed to resend shortage items'
+                        });
+                    }
+                });
+            }
+
+            function handleCancelShortage() {
+                const shortageId = $(this).data('shortage-id');
+
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Cancel Shortage Item?',
+                    input: 'textarea',
+                    inputPlaceholder: 'Optional: Enter reason for cancellation',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, Cancel',
+                    confirmButtonColor: '#dc3545',
+                    cancelButtonText: 'Back',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: `/shortage-items/${shortageId}/cancel`,
+                            method: 'POST',
+                            data: {
+                                _token: '{{ csrf_token() }}',
+                                reason: result.value || null
+                            },
+                            success: function(response) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Canceled',
+                                    text: response.message,
+                                    timer: 2000
+                                });
+
+                                loadShortageItems();
+                            },
+                            error: function(xhr) {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: xhr.responseJSON?.message ||
+                                        'Failed to cancel'
+                                });
+                            }
+                        });
+                    }
+                });
+            }
+
+            // ===== UTILITY FUNCTIONS =====
 
             function togglePercentageColumns(groupKey, method) {
-                const $tbody = $(`tbody[data-group="${groupKey}"]`);
-                const $validation = $(`.percentage-validation[data-group="${groupKey}"]`);
-                const $table = $tbody.closest('table');
+                // ⭐ FIX: Select ALL percentage columns (TH + TD) untuk group ini
+                const $percentageColumnTH = $(`.percentage-column[data-group="${groupKey}"]`).filter('th');
+                const $percentageColumnTD = $(`.percentage-column[data-group="${groupKey}"]`).filter('td');
+                const $percentageValidation = $(`.percentage-validation[data-group="${groupKey}"]`);
+
+                console.log('🔄 Toggle Percentage Columns', {
+                    groupKey: groupKey,
+                    method: method,
+                    thFound: $percentageColumnTH.length,
+                    tdFound: $percentageColumnTD.length,
+                    validationFound: $percentageValidation.length
+                });
 
                 if (method === 'percentage') {
-                    $table.find('.percentage-column').removeClass('d-none');
-                    $validation.removeClass('d-none');
-                    updatePercentageTotal(groupKey);
-                } else {
-                    $table.find('.percentage-column').addClass('d-none');
-                    $validation.addClass('d-none');
-                }
+                    // ⭐ SHOW: Remove d-none class first, then animate
+                    $percentageColumnTH.removeClass('d-none').hide().slideDown(300);
+                    $percentageColumnTD.removeClass('d-none').hide().slideDown(300);
+                    $percentageValidation.removeClass('d-none').hide().slideDown(300);
 
-                updateMethodBadge(groupKey, method);
+                    console.log('✅ Percentage columns shown');
+                } else {
+                    // ⭐ HIDE: Animate first, then add d-none class after animation complete
+                    $percentageColumnTH.slideUp(300, function() {
+                        $(this).addClass('d-none');
+                    });
+
+                    $percentageColumnTD.slideUp(300, function() {
+                        $(this).addClass('d-none');
+                    });
+
+                    $percentageValidation.slideUp(300, function() {
+                        $(this).addClass('d-none');
+                    });
+
+                    console.log('✅ Percentage columns hidden');
+                }
+            }
+
+            function updatePercentageTotal(groupKey) {
+                let total = 0;
+                $(`.item-tbody[data-group="${groupKey}"] .percentage-input`).each(function() {
+                    total += parseFloat($(this).val()) || 0;
+                });
+
+                const $validation = $(`.percentage-validation[data-group="${groupKey}"]`);
+                const $totalSpan = $validation.find('.total-percentage');
+                const $alert = $validation.find('.alert');
+
+                $totalSpan.text(total.toFixed(2));
+
+                $validation.removeClass('valid invalid');
+
+                if (Math.abs(total - 100) <= 1) {
+                    $validation.addClass('valid');
+                    $alert.removeClass('alert-warning alert-danger alert-info').addClass('alert-success');
+                } else if (total > 105) {
+                    $validation.addClass('invalid');
+                    $alert.removeClass('alert-success alert-info alert-warning').addClass('alert-danger');
+                } else {
+                    $validation.addClass('invalid');
+                    $alert.removeClass('alert-success alert-danger alert-info').addClass('alert-warning');
+                }
             }
 
             function updateMethodBadge(groupKey, method) {
-                const $badge = $(`.card-group-item[data-group="${groupKey}"] .cost-method-badge`);
-                $badge.text(method.charAt(0).toUpperCase() + method.slice(1).replace('_', ' '));
+                const $badge = $(`.cost-method-badge[data-group="${groupKey}"]`);
+
+                $badge.removeClass('bg-primary bg-success bg-info')
+                    .addClass(method === 'percentage' ? 'bg-primary' :
+                        method === 'quantity' ? 'bg-success' : 'bg-info')
+                    .text(method.charAt(0).toUpperCase() + method.slice(1));
+            }
+
+            function autoUpdateGroup(groupKey) {
+                const data = {
+                    domestic_waybill_no: $(`.group-waybill-input[data-group="${groupKey}"]`).val(),
+                    domestic_cost: $(`.group-cost-input[data-group="${groupKey}"]`).val(),
+                    cost_allocation_method: $(`.allocation-method-select[data-group="${groupKey}"]`).val(),
+                    _token: '{{ csrf_token() }}'
+                };
+
+                if (data.cost_allocation_method === 'percentage') {
+                    const percentages = [];
+                    $(`.item-tbody[data-group="${groupKey}"] .percentage-input`).each(function() {
+                        percentages.push(parseFloat($(this).val()) || 0);
+                    });
+                    data.percentages = percentages;
+                }
+
+                sendUpdateRequest(groupKey, data);
             }
 
             function sendUpdateRequest(groupKey, data, previousValue) {
-                const $card = $(`.card-group-item[data-group="${groupKey}"]`);
-                const $spinner = $card.find('.loading-spinner');
-                $spinner.show();
+                if (!isOnline) {
+                    showToast('error', 'Cannot save: No internet connection');
+                    return;
+                }
+
+                const $indicator = $(`.auto-save-indicator[data-group="${groupKey}"]`);
+                $indicator.removeClass('saved').addClass('saving').css('opacity', '1');
+                hasUnsavedChanges = true;
 
                 $.ajax({
                     url: `/pre-shippings/${groupKey}/quick-update`,
@@ -1379,220 +1947,99 @@
                         handleUpdateError(xhr, status, error, groupKey, previousValue);
                     },
                     complete: function() {
-                        $(`.allocation-method-select[data-group="${groupKey}"]`).prop('disabled',
-                            false);
-                        $spinner.hide();
+                        setTimeout(() => {
+                            $indicator.removeClass('saving').addClass('saved');
+                            setTimeout(() => {
+                                $indicator.css('opacity', '0');
+                            }, 2000);
+                        }, 500);
                     }
                 });
             }
 
             function handleUpdateSuccess(response, groupKey) {
-                const $card = $(`.card-group-item[data-group="${groupKey}"]`);
+                hasUnsavedChanges = false;
 
-                if (response.success) {
-                    $card.find('.auto-save-indicator').removeClass('saving').addClass('saved');
-                    hasUnsavedChanges = false;
+                if (response.updated_items) {
+                    response.updated_items.forEach(item => {
+                        const $row = $(`.item-tbody[data-group="${groupKey}"] tr`).eq(item.index);
+                        $row.find('.allocated-cost-display').text(formatDynamicNumber(item.allocated_cost));
 
-                    // **PERBAIKAN**: Update allocated amounts dengan response dari server
-                    if (response.updated_items) {
-                        updateAllocatedAmounts(response.updated_items);
-                    }
+                        if (item.allocation_percentage !== null) {
+                            $row.find('.percentage-input').val(parseFloat(item.allocation_percentage)
+                                .toFixed(2));
+                        }
+                    });
+                }
 
-                    if (response.auto_percentages) {
-                        updatePercentageInputs(groupKey, response.auto_percentages);
-                        // Trigger real-time calculation setelah update percentages
-                        setTimeout(() => {
-                            calculateAllocatedCostRealtime(groupKey, 'percentage');
-                        }, 100);
-                    }
+                const $select = $(`.allocation-method-select[data-group="${groupKey}"]`);
+                $select.prop('disabled', false);
 
-                    showToast('success', 'Updated successfully');
-                } else {
-                    showToast(response.warning ? 'warning' : 'error', response.message);
+                // ⭐ FIX: Update method badge
+                const newMethod = response.updated_items[0]?.cost_allocation_method || 'value';
+                updateMethodBadge(groupKey, newMethod);
+
+                // ⭐ FIX: Toggle percentage columns AFTER AJAX success
+                togglePercentageColumns(groupKey, newMethod);
+
+                // ⭐ FIX: Update percentage total jika method = percentage
+                if (newMethod === 'percentage') {
+                    updatePercentageTotal(groupKey);
                 }
             }
 
             function handleUpdateError(xhr, status, error, groupKey, previousValue) {
-                let errorMessage = 'Failed to save';
+                hasUnsavedChanges = false;
 
-                if (status === 'timeout') errorMessage = 'Request timeout. Please try again.';
-                else if (xhr.status === 422) errorMessage = xhr.responseJSON?.message ||
-                    'Validation error occurred.';
-                else if (xhr.status >= 500) errorMessage = 'Server error. Please try again later.';
-                else if (xhr.status === 0) errorMessage = 'Network connection error.';
-
-                showToast('error', errorMessage);
-
-                // Rollback changes
-                if (previousValue) {
-                    $(`.allocation-method-select[data-group="${groupKey}"]`).val(previousValue);
-                    togglePercentageColumns(groupKey, previousValue);
-                    // Recalculate dengan previous method
-                    calculateAllocatedCostRealtime(groupKey, previousValue);
-                }
-            }
-
-            function updatePercentageTotal(groupKey) {
-                const $tbody = $(`tbody[data-group="${groupKey}"]`);
-                const $validation = $(`.percentage-validation[data-group="${groupKey}"]`);
-                let total = 0;
-                let hasValues = false;
-
-                $tbody.find('.percentage-input').each(function() {
-                    const value = parseFloat($(this).val()) || 0;
-                    if (value > 0) hasValues = true;
-                    total += value;
-                });
-
-                $validation.find('.total-percentage').text(formatDynamicNumber(total));
-                updateValidationState($validation, total, hasValues);
-            }
-
-            function updateValidationState($validation, total, hasValues) {
-                const $alert = $validation.find('.alert');
-                $validation.removeClass('valid invalid');
-
-                if (!hasValues) {
-                    $alert.removeClass('alert-success alert-warning alert-danger').addClass('alert-info');
-                } else if (Math.abs(total - 100) <= 1) {
-                    $validation.addClass('valid');
-                    $alert.removeClass('alert-warning alert-danger alert-info').addClass('alert-success');
-                } else if (total > 105) {
-                    $validation.addClass('invalid');
-                    $alert.removeClass('alert-success alert-info alert-warning').addClass('alert-danger');
+                if (status === 'timeout') {
+                    showToast('error', 'Request timeout. Please try again.');
+                } else if (xhr.status === 403) {
+                    showToast('error', 'Permission denied.');
                 } else {
-                    $validation.addClass('invalid');
-                    $alert.removeClass('alert-success alert-danger alert-info').addClass('alert-warning');
-                }
-            }
-
-            function autoUpdateGroup(groupKey) {
-                const data = {
-                    domestic_waybill_no: $(`.group-waybill-input[data-group="${groupKey}"]`).val(),
-                    domestic_cost: $(`.group-cost-input[data-group="${groupKey}"]`).val(),
-                    cost_allocation_method: $(`.allocation-method-select[data-group="${groupKey}"]`).val(),
-                    _token: '{{ csrf_token() }}'
-                };
-
-                sendSimpleUpdateRequest(groupKey, data, 'Group updated successfully');
-            }
-
-            function autoUpdateGroupWithPercentages(groupKey) {
-                const data = {
-                    domestic_waybill_no: $(`.group-waybill-input[data-group="${groupKey}"]`).val(),
-                    domestic_cost: $(`.group-cost-input[data-group="${groupKey}"]`).val(),
-                    cost_allocation_method: $(`.allocation-method-select[data-group="${groupKey}"]`).val(),
-                    _token: '{{ csrf_token() }}'
-                };
-
-                if (data.cost_allocation_method === 'percentage') {
-                    data.percentages = [];
-                    $(`tbody[data-group="${groupKey}"] .percentage-input`).each(function() {
-                        data.percentages.push(parseFloat($(this).val()) || 0);
-                    });
-
-                    const total = data.percentages.reduce((sum, val) => sum + val, 0);
-                    if (Math.abs(total - 100) > 0.1) return; // Don't send if not close to 100%
+                    showToast('error', xhr.responseJSON?.message || 'Update failed. Please try again.');
                 }
 
-                sendSimpleUpdateRequest(groupKey, data, 'Percentages updated successfully');
-            }
-
-            function sendSimpleUpdateRequest(groupKey, data, successMessage) {
-                const $card = $(`.card-group-item[data-group="${groupKey}"]`);
-                const $spinner = $card.find('.loading-spinner');
-                $spinner.show();
-
-                $.post(`/pre-shippings/${groupKey}/quick-update`, data)
-                    .done(function(response) {
-                        if (response.success) {
-                            $card.find('.auto-save-indicator').removeClass('saving').addClass('saved');
-                            hasUnsavedChanges = false;
-
-                            // Update allocated amounts dari response
-                            if (response.updated_items) {
-                                updateAllocatedAmounts(response.updated_items);
-                            }
-
-                            showToast('success', successMessage);
-                        } else {
-                            showToast('error', response.message || 'Failed to update');
-                        }
-                    })
-                    .fail(function(xhr) {
-                        showToast('error', xhr.responseJSON?.message || 'Failed to update');
-                    })
-                    .always(function() {
-                        $spinner.hide();
-                    });
-            }
-
-            function updateAllocatedAmounts(updatedItems) {
-                updatedItems.forEach(function(item) {
-                    // Find allocated amount by matching data attributes
-                    const $allocatedSpan = $(`.allocated-amount`).filter(function() {
-                        const $row = $(this).closest('tr');
-                        // You might need to add data-item-id to the rows for better matching
-                        return $row.find(`[data-item-id="${item.id}"]`).length > 0;
-                    });
-
-                    // If exact match not found, use index-based matching
-                    if ($allocatedSpan.length === 0) {
-                        const $allAllocatedSpans = $(`.allocated-amount`);
-                        if ($allAllocatedSpans.length > 0) {
-                            // Update all allocated amounts from the response
-                            updatedItems.forEach(function(responseItem, index) {
-                                if ($allAllocatedSpans.eq(index).length) {
-                                    $allAllocatedSpans.eq(index).text(formatDynamicNumber(
-                                        responseItem.allocated_cost));
-                                }
-                            });
-                        }
-                    } else {
-                        $allocatedSpan.text(formatDynamicNumber(item.allocated_cost));
-                    }
-                });
-            }
-
-            function updatePercentageInputs(groupKey, autoPercentages) {
-                const $tbody = $(`tbody[data-group="${groupKey}"]`);
-                $tbody.find('.percentage-input').each(function(index) {
-                    if (autoPercentages[index] !== undefined) {
-                        $(this).val(formatDynamicNumber(autoPercentages[index]));
-                    }
-                });
-                updatePercentageTotal(groupKey);
+                if (previousValue) {
+                    const $select = $(`.allocation-method-select[data-group="${groupKey}"]`);
+                    $select.val(previousValue).prop('disabled', false);
+                }
             }
 
             function showToast(type, message) {
-                // Remove existing toasts to prevent spam
-                $(`.toast`).remove();
+                const bgColor = type === 'success' ? '#28a745' : '#dc3545';
+                const icon = type === 'success' ? 'check-circle' : 'exclamation-triangle';
 
-                const bgClass = type === 'success' ? 'success' : type === 'warning' ? 'warning' : 'danger';
-                const iconClass = type === 'success' ? 'check-circle' : 'exclamation-triangle';
+                const toast = $(`
+            <div class="toast-custom" style="
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                background: ${bgColor};
+                color: white;
+                padding: 12px 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 9999;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                animation: slideInRight 0.3s ease-out;
+            ">
+                <i class="bi bi-${icon}"></i>
+                <span>${message}</span>
+            </div>
+        `);
 
-                const toastHtml = `
-                    <div class="toast align-items-center text-white bg-${bgClass} border-0" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="true" data-bs-delay="3000">
-                        <div class="d-flex">
-                            <div class="toast-body">
-                                <i class="fas fa-${iconClass} me-2"></i>
-                                ${message}
-                            </div>
-                            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-                        </div>
-                    </div>
-                `;
+                $('body').append(toast);
 
-                const $toast = $(toastHtml);
-                $('body').append($toast);
-
-                const toast = new bootstrap.Toast($toast[0]);
-                toast.show();
-
-                $toast.on('hidden.bs.toast', function() {
-                    $(this).remove();
-                });
+                setTimeout(() => {
+                    toast.fadeOut(300, function() {
+                        $(this).remove();
+                    });
+                }, 3000);
             }
+
+            // ⭐ REMOVED: checkOrphanedPRs() - tidak digunakan lagi karena sudah auto-generate
         });
     </script>
 @endpush

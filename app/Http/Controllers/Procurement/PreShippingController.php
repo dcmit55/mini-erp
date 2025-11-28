@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Procurement;
 use App\Http\Controllers\Controller;
 use App\Models\Procurement\PreShipping;
 use App\Models\Procurement\PurchaseRequest;
+use App\Models\Procurement\ShortageItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -28,15 +29,34 @@ class PreShippingController extends Controller
      */
     public function index()
     {
-        // Ambil semua purchase request yang sudah approved dan belum masuk shipping
-        $approvedRequests = PurchaseRequest::with(['project', 'supplier', 'preShipping', 'currency'])
+        // Eager load ALL necessary relations di awal
+        $approvedRequests = PurchaseRequest::with([
+            'project',
+            'supplier',
+            'preShipping.shippingDetail',
+            'currency',
+        ])
             ->where('approval_status', 'Approved')
             ->whereNotNull('supplier_id')
+            ->where('supplier_id', '>', 0)
             ->whereNotNull('delivery_date')
+            ->where('delivery_date', '!=', '')
             ->get();
 
+        // Filter data SEBELUM generate untuk safety
+        $validRequests = $approvedRequests->filter(function ($pr) {
+            return $pr->supplier_id && $pr->delivery_date && !$pr->hasBeenShipped();
+        });
+
+        // Log untuk debugging
+        \Log::info('Pre-Shipping Index - Approved Requests', [
+            'total_approved' => $approvedRequests->count(),
+            'valid_for_pre_shipping' => $validRequests->count(),
+            'filtered_out' => $approvedRequests->count() - $validRequests->count(),
+        ]);
+
         // Auto generate pre-shipping dengan grouping
-        $this->generatePreShippingGroups($approvedRequests);
+        $this->generatePreShippingGroups($validRequests);
 
         // Ambil data yang sudah di-group untuk ditampilkan
         $groupedPreShippings = $this->getGroupedPreShippings();
@@ -45,7 +65,7 @@ class PreShippingController extends Controller
     }
 
     /**
-     * Generate pre-shipping groups dari approved requests
+     * Generate pre-shipping groups dengan validation lebih ketat
      */
     private function generatePreShippingGroups($approvedRequests)
     {
@@ -53,7 +73,21 @@ class PreShippingController extends Controller
 
         // Group by supplier and delivery date
         foreach ($approvedRequests as $request) {
+            // Relax validation - hanya check supplier_id & delivery_date EXISTS
+            // Tidak perlu check supplier relation (karena sudah di-filter di index())
+            if (!$request->supplier_id || !$request->delivery_date) {
+                \Log::warning('PR skipped in generatePreShippingGroups - missing required data', [
+                    'pr_id' => $request->id,
+                    'supplier_id' => $request->supplier_id,
+                    'delivery_date' => $request->delivery_date,
+                    'material_name' => $request->material_name,
+                    'approval_status' => $request->approval_status,
+                ]);
+                continue;
+            }
+
             $groupKey = PreShipping::generateGroupKey($request->supplier_id, $request->delivery_date);
+
             $groups[$groupKey][] = $request;
         }
 
@@ -63,40 +97,73 @@ class PreShippingController extends Controller
                 $existingPreShipping = PreShipping::where('purchase_request_id', $request->id)->first();
 
                 if (!$existingPreShipping) {
-                    PreShipping::create([
+                    // Create new PreShipping
+                    $newPreShipping = PreShipping::create([
                         'purchase_request_id' => $request->id,
                         'group_key' => $groupKey,
                         'cost_allocation_method' => 'value',
+                    ]);
+
+                    \Log::info('PreShipping created', [
+                        'pre_shipping_id' => $newPreShipping->id,
+                        'purchase_request_id' => $request->id,
+                        'group_key' => $groupKey,
+                        'material_name' => $request->material_name,
                     ]);
                 } else {
                     // Jika sudah ada, update group_key jika berbeda
                     if ($existingPreShipping->group_key !== $groupKey) {
                         $existingPreShipping->update(['group_key' => $groupKey]);
+
+                        \Log::info('PreShipping group_key updated', [
+                            'pre_shipping_id' => $existingPreShipping->id,
+                            'old_group_key' => $existingPreShipping->group_key,
+                            'new_group_key' => $groupKey,
+                        ]);
                     }
                 }
             }
         }
+
+        // Log summary untuk monitoring
+        \Log::info('generatePreShippingGroups completed', [
+            'total_groups' => count($groups),
+            'total_items' => array_sum(array_map('count', $groups)),
+        ]);
     }
 
     /**
-     * Get grouped pre-shipping data untuk view
+     * Get grouped pre-shipping data TANPA N+1 queries
      */
     private function getGroupedPreShippings()
     {
-        $preShippings = PreShipping::with(['purchaseRequest.project', 'purchaseRequest.supplier', 'purchaseRequest.currency', 'shippingDetail'])
+        // Load ALL relations di satu query
+        $preShippings = PreShipping::with([
+            'purchaseRequest' => function ($query) {
+                $query->with(['project', 'supplier', 'currency']);
+            },
+            'shippingDetail.shipping',
+        ])
             ->whereHas('purchaseRequest')
             ->get();
 
-        // Group by group_key
+        // Group by group_key dengan NULL safety
         $grouped = $preShippings
             ->groupBy('group_key')
             ->map(function ($group) {
                 $firstItem = $group->first();
 
-                if (!$firstItem->purchaseRequest) {
+                // Null safety checks
+                if (!$firstItem || !$firstItem->purchaseRequest) {
+                    \Log::warning('PreShipping with missing purchaseRequest', [
+                        'pre_shipping_id' => $firstItem ? $firstItem->id : 'unknown',
+                        'group_key' => $firstItem ? $firstItem->group_key : 'unknown',
+                    ]);
                     return null;
                 }
 
+                // Check hasBeenShipped TANPA additional query
+                // Data sudah di-eager load, jadi tidak perlu query lagi
                 $hasBeenShipped = $group->contains(function ($item) {
                     return $item->shippingDetail !== null;
                 });
@@ -121,7 +188,7 @@ class PreShippingController extends Controller
                     'has_been_shipped' => $hasBeenShipped,
                 ];
             })
-            ->filter()
+            ->filter() // Remove null values
             ->values();
 
         // Sort: not shipped di atas, shipped di bawah
@@ -131,7 +198,7 @@ class PreShippingController extends Controller
     }
 
     /**
-     * Quick update group data
+     * Quick update dengan optimized query
      */
     public function quickUpdate(Request $request, $groupKey)
     {
@@ -165,12 +232,23 @@ class PreShippingController extends Controller
 
         DB::beginTransaction();
         try {
-            $groupItems = PreShipping::with(['purchaseRequest.project', 'purchaseRequest.supplier'])
+            // Eager load purchaseRequest untuk avoid N+1
+            $groupItems = PreShipping::with([
+                'purchaseRequest' => function ($query) {
+                    $query->with(['project', 'supplier']);
+                },
+            ])
                 ->where('group_key', $groupKey)
                 ->get();
 
             if ($groupItems->isEmpty()) {
-                return response()->json(['success' => false, 'message' => 'Group not found'], 404);
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => 'Group not found',
+                    ],
+                    404,
+                );
             }
 
             // Handle percentage validation
@@ -277,5 +355,30 @@ class PreShippingController extends Controller
                 500,
             );
         }
+    }
+
+    public function checkOrphanedPRs()
+    {
+        // Get all Approved PRs yang TIDAK punya PreShipping
+        $orphanedPRs = PurchaseRequest::with(['supplier', 'project'])
+            ->where('approval_status', 'Approved')
+            ->doesntHave('preShipping')
+            ->whereNotNull('supplier_id')
+            ->whereNotNull('delivery_date')
+            ->get();
+
+        return response()->json([
+            'orphaned_count' => $orphanedPRs->count(),
+            'orphaned_prs' => $orphanedPRs->map(function ($pr) {
+                return [
+                    'id' => $pr->id,
+                    'material_name' => $pr->material_name,
+                    'supplier_id' => $pr->supplier_id,
+                    'supplier_name' => $pr->supplier ? $pr->supplier->name : 'DELETED',
+                    'delivery_date' => $pr->delivery_date,
+                    'remark' => $pr->remark,
+                ];
+            }),
+        ]);
     }
 }

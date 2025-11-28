@@ -32,4 +32,15 @@ class GoodsReceiveDetail extends Model
     {
         return $this->extra_cost > 0;
     }
+
+    public function shortageItems()
+    {
+        return $this->hasMany(ShortageItem::class);
+    }
+
+    // ⭐ NEW METHOD: Check if this detail has shortage
+    public function hasShortage()
+    {
+        return $this->shortageItems()->resolvable()->exists();
+    }
 }
