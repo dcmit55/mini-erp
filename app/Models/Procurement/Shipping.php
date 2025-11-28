@@ -4,6 +4,7 @@ namespace App\Models\Procurement;
 
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Procurement\ShippingDetail;
+use App\Models\Procurement\GoodsReceive;
 use OwenIt\Auditing\Contracts\Auditable;
 
 class Shipping extends Model implements Auditable
@@ -19,6 +20,11 @@ class Shipping extends Model implements Auditable
     public function details()
     {
         return $this->hasMany(ShippingDetail::class);
+    }
+
+    public function goodsReceive()
+    {
+        return $this->hasOne(GoodsReceive::class);
     }
 
     // Helper method untuk check if Air Freight

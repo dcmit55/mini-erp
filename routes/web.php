@@ -249,8 +249,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/pre-shippings/check-orphaned-prs', [PreShippingController::class, 'checkOrphanedPRs'])->name('pre-shippings.check-orphaned-prs');
 
     // Shippings
-    Route::post('/shippings/create', [ShippingController::class, 'create'])->name('shippings.create');
-    Route::post('/shippings/store', [ShippingController::class, 'store'])->name('shippings.store');
+    Route::get('/shippings/create', [ShippingController::class, 'create'])->name('shippings.create'); // ✅ CHANGE to GET
+    Route::post('/shippings', [ShippingController::class, 'store'])->name('shippings.store'); // ✅ CORRECT - POST
 
     // Shipping Management
     Route::get('/shipping-management', [ShippingManagementController::class, 'index'])->name('shipping-management.index');

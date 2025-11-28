@@ -72,15 +72,23 @@ class GoodsReceiveController extends Controller
             $shortageCount = 0;
 
             foreach ($shipping->details as $idx => $detail) {
-                $purchasedQty = $detail->preShipping->purchaseRequest->qty_to_buy ?? $detail->preShipping->purchaseRequest->required_quantity;
-                $purchaseRequest = $detail->preShipping->purchaseRequest;
+                // ⭐ Get Purchase Request dari PreShipping ATAU ShortageItem
+                $purchaseRequest = $detail->getSourcePurchaseRequest();
 
-                // Parse received_qty (bisa string dengan koma)
+                if (!$purchaseRequest) {
+                    \Log::error('Shipping detail has no source PR', [
+                        'detail_id' => $detail->id,
+                        'pre_shipping_id' => $detail->pre_shipping_id,
+                        'shortage_item_id' => $detail->shortage_item_id,
+                    ]);
+                    continue;
+                }
+
+                $purchasedQty = $detail->isShortageResend() ? $detail->shortageItem->shortage_qty : $purchaseRequest->qty_to_buy ?? $purchaseRequest->required_quantity;
+
                 $receivedQtyRaw = $request->received_qty[$idx] ?? '0';
                 $receivedQty = (float) str_replace(',', '.', trim($receivedQtyRaw));
-
                 $finalDestination = $request->destination[$idx];
-                $originalDestination = $detail->destination;
 
                 // Create Goods Receive Detail
                 $goodsReceiveDetail = GoodsReceiveDetail::create([
@@ -91,78 +99,79 @@ class GoodsReceiveController extends Controller
                     'material_name' => $purchaseRequest->material_name,
                     'supplier_name' => $purchaseRequest->supplier->name ?? '-',
                     'unit_price' => $purchaseRequest->price_per_unit,
-                    'domestic_waybill_no' => $detail->preShipping->domestic_waybill_no,
+                    'domestic_waybill_no' => $detail->isShortageResend() ? $detail->shortageItem->old_domestic_wbl : $detail->preShipping->domestic_waybill_no ?? '-',
                     'purchased_qty' => $purchasedQty,
-                    'received_qty' => $receivedQtyRaw, // Save as string (original behavior)
+                    'received_qty' => $receivedQtyRaw,
                     'destination' => $finalDestination,
                     'extra_cost' => $detail->extra_cost ?? 0,
                     'extra_cost_reason' => $detail->extra_cost_reason,
                 ]);
 
-                // SHORTAGE DETECTION LOGIC
-                if ($receivedQty < $purchasedQty) {
-                    $shortageQty = $purchasedQty - $receivedQty;
+                // ⭐ HANDLE SHORTAGE ITEMS: Update after receiving
+                if ($detail->isShortageResend()) {
+                    $shortage = $detail->shortageItem;
 
-                    ShortageItem::create([
-                        'goods_receive_detail_id' => $goodsReceiveDetail->id,
-                        'purchase_request_id' => $purchaseRequest->id,
-                        'material_name' => $purchaseRequest->material_name,
-                        'purchased_qty' => $purchasedQty,
-                        'received_qty' => $receivedQty,
-                        'shortage_qty' => $shortageQty,
-                        'status' => 'pending',
-                        'resend_count' => 0,
-                        'old_domestic_wbl' => $detail->preShipping->domestic_waybill_no,
-                        'notes' => 'Auto-detected shortage on ' . now()->format('Y-m-d H:i:s'),
-                    ]);
-
-                    $shortageCount++;
-
-                    \Log::warning('Shortage detected', [
-                        'goods_receive_id' => $goodsReceive->id,
-                        'material_name' => $purchaseRequest->material_name,
-                        'purchased_qty' => $purchasedQty,
-                        'received_qty' => $receivedQty,
-                        'shortage_qty' => $shortageQty,
-                        'detected_by' => Auth::id(),
-                    ]);
-                }
-
-                // Log destination changes
-                if ($finalDestination !== $originalDestination) {
-                    \Log::info('Destination changed during Goods Receive', [
-                        'goods_receive_id' => $goodsReceive->id,
-                        'material_name' => $purchaseRequest->material_name,
-                        'original_destination' => $originalDestination,
-                        'final_destination' => $finalDestination,
-                        'changed_by' => Auth::id(),
-                        'reason' => 'Changed during goods receive process',
-                    ]);
-                }
-
-                // Update inventory supplier jika supplier berubah
-                if ($purchaseRequest->type === 'restock' && $purchaseRequest->hasSupplierChanged()) {
-                    $inventory = $purchaseRequest->inventory;
-
-                    if ($inventory) {
-                        $oldSupplierId = $inventory->supplier_id;
-                        $newSupplierId = $purchaseRequest->supplier_id;
-
-                        $inventory->update([
-                            'supplier_id' => $newSupplierId,
+                    if ($receivedQty >= $shortage->shortage_qty) {
+                        // Fully resolved
+                        $shortage->update([
+                            'status' => 'fully_reshipped',
+                            'notes' => ($shortage->notes ? $shortage->notes . "\n" : '') . 'Fully received on ' . now()->format('Y-m-d H:i:s') . " | Received: {$receivedQty}",
                         ]);
 
-                        \Log::info('Inventory supplier updated after Goods Receive', [
-                            'inventory_id' => $inventory->id,
-                            'inventory_name' => $inventory->name,
-                            'old_supplier_id' => $oldSupplierId,
-                            'new_supplier_id' => $newSupplierId,
+                        \Log::info('Shortage fully resolved', [
+                            'shortage_id' => $shortage->id,
+                            'original_shortage' => $shortage->shortage_qty,
+                            'received' => $receivedQty,
+                        ]);
+                    } else {
+                        // Partially resolved - create new shortage for remaining
+                        $remainingShortage = $shortage->shortage_qty - $receivedQty;
+
+                        $shortage->update([
+                            'status' => 'partially_reshipped',
+                            'notes' => ($shortage->notes ? $shortage->notes . "\n" : '') . 'Partially received on ' . now()->format('Y-m-d H:i:s') . " | Received: {$receivedQty} / {$shortage->shortage_qty}",
+                        ]);
+
+                        // ⭐ Create new shortage item for remaining qty
+                        ShortageItem::create([
+                            'goods_receive_detail_id' => $goodsReceiveDetail->id,
                             'purchase_request_id' => $purchaseRequest->id,
-                            'goods_receive_id' => $goodsReceive->id,
-                            'final_destination' => $finalDestination,
-                            'reason' => $purchaseRequest->supplier_change_reason ?? 'Updated via Goods Receive',
-                            'updated_by' => Auth::id(),
+                            'material_name' => $purchaseRequest->material_name,
+                            'purchased_qty' => $shortage->shortage_qty,
+                            'received_qty' => $receivedQty,
+                            'shortage_qty' => $remainingShortage,
+                            'status' => 'pending',
+                            'resend_count' => $shortage->resend_count + 1,
+                            'old_domestic_wbl' => null,
+                            'notes' => "Remaining shortage from previous resend #{$shortage->resend_count}",
                         ]);
+
+                        \Log::warning('Partial shortage after resend', [
+                            'original_shortage_id' => $shortage->id,
+                            'original_qty' => $shortage->shortage_qty,
+                            'received' => $receivedQty,
+                            'remaining_shortage' => $remainingShortage,
+                        ]);
+                    }
+                } else {
+                    // Normal item shortage detection (existing logic)
+                    if ($receivedQty < $purchasedQty) {
+                        $shortageQty = $purchasedQty - $receivedQty;
+
+                        ShortageItem::create([
+                            'goods_receive_detail_id' => $goodsReceiveDetail->id,
+                            'purchase_request_id' => $purchaseRequest->id,
+                            'material_name' => $purchaseRequest->material_name,
+                            'purchased_qty' => $purchasedQty,
+                            'received_qty' => $receivedQty,
+                            'shortage_qty' => $shortageQty,
+                            'status' => 'pending',
+                            'resend_count' => 0,
+                            'old_domestic_wbl' => $detail->preShipping->domestic_waybill_no,
+                            'notes' => 'Auto-detected shortage on ' . now()->format('Y-m-d H:i:s'),
+                        ]);
+
+                        $shortageCount++;
                     }
                 }
             }

@@ -842,27 +842,6 @@
                                     <tbody id="shortage-items-tbody"></tbody>
                                 </table>
                             </div>
-
-                            {{-- Bulk Action Buttons --}}
-                            <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
-                                <div>
-                                    <span class="text-muted">
-                                        <span id="selected-shortage-count">0</span> item(s) selected
-                                    </span>
-                                </div>
-                                <div class="d-flex gap-2">
-                                    <button type="button" class="btn btn-primary" id="btn-bulk-resend-shortage"
-                                        disabled>
-                                        <i class="bi bi-arrow-repeat me-2"></i>
-                                        Bulk Resend Selected Items
-                                    </button>
-                                    <button type="button" class="btn btn-outline-danger" id="btn-bulk-cancel-shortage"
-                                        disabled>
-                                        <i class="bi bi-x-circle me-2"></i>
-                                        Cancel Selected
-                                    </button>
-                                </div>
-                            </div>
                         </div>
 
                         <div id="shortage-empty-state" style="display: none;">
@@ -914,10 +893,8 @@
     </div>
 
     <!-- Form untuk proceed to shipping -->
-    <form id="proceed-shipping-form" action="{{ route('shippings.create') }}" method="POST" style="display: none;">
-        @csrf
+    <form id="proceed-shipping-form" action="{{ route('shippings.create') }}" method="GET" style="display: none;">
         <input type="hidden" name="group_keys" id="selected-group-keys">
-        <!-- ⭐ NEW: Hidden field untuk shortage items -->
         <input type="hidden" name="shortage_item_ids" id="selected-shortage-ids">
     </form>
 @endsection
@@ -1510,45 +1487,32 @@
 
             function handleProceedToShipping() {
                 if (selectedGroups.size === 0 && selectedShortages.size === 0) {
-                    Swal.fire('Warning', 'Please select at least one group or shortage item', 'warning');
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'No Selection',
+                        text: 'Please select at least one group or shortage item',
+                    });
                     return;
                 }
 
                 // Validate normal groups
                 let incompleteGroups = [];
                 selectedGroups.forEach(groupKey => {
-                    const $card = $(`.card-group-item[data-group="${groupKey}"]`);
-                    const waybill = $card.find(`.group-waybill-input[data-group="${groupKey}"]`).val();
-                    const cost = $card.find(`.group-cost-input[data-group="${groupKey}"]`).val();
+                    const card = $(`.card-group-item[data-group="${groupKey}"]`);
 
-                    if (!waybill || !cost || cost <= 0) {
-                        incompleteGroups.push({
-                            groupKey: groupKey,
-                            supplier: $card.find('strong').first().text(),
-                            missing: []
-                        });
+                    const waybill = card.find('.group-waybill-input').val();
+                    const cost = card.find('.group-cost-input').val();
 
-                        if (!waybill) incompleteGroups[incompleteGroups.length - 1].missing.push(
-                            'Domestic Waybill No');
-                        if (!cost || cost <= 0) incompleteGroups[incompleteGroups.length - 1].missing.push(
-                            'Domestic Cost');
+                    if (!waybill || !cost || parseFloat(cost) <= 0) {
+                        incompleteGroups.push(groupKey);
                     }
                 });
 
                 if (incompleteGroups.length > 0) {
-                    let errorHtml = '<div class="text-start"><p><strong>Incomplete Data:</strong></p><ul>';
-                    incompleteGroups.forEach(group => {
-                        errorHtml +=
-                            `<li><strong>${group.supplier}</strong>: ${group.missing.join(', ')} is required</li>`;
-                    });
-                    errorHtml += '</ul></div>';
-
                     Swal.fire({
                         icon: 'error',
-                        title: 'Cannot Proceed',
-                        html: errorHtml,
-                        confirmButtonText: 'OK, I\'ll fix it',
-                        confirmButtonColor: '#dc3545'
+                        title: 'Incomplete Data',
+                        text: `${incompleteGroups.length} group(s) have incomplete Domestic Waybill or Cost. Please fill all required fields.`,
                     });
                     return;
                 }
@@ -1570,19 +1534,25 @@
                 confirmHtml += '</div>';
 
                 Swal.fire({
-                    icon: 'question',
                     title: 'Proceed to Shipping?',
                     html: confirmHtml,
+                    icon: 'question',
                     showCancelButton: true,
+                    confirmButtonColor: '#0d6efd',
+                    cancelButtonColor: '#6c757d',
                     confirmButtonText: 'Yes, Proceed',
-                    confirmButtonColor: '#198754',
                     cancelButtonText: 'Cancel',
                     reverseButtons: true
                 }).then((result) => {
                     if (result.isConfirmed) {
+                        // Set hidden input values
                         $('#selected-group-keys').val(JSON.stringify(Array.from(selectedGroups)));
                         $('#selected-shortage-ids').val(JSON.stringify(Array.from(selectedShortages)));
-                        $('#proceed-shipping-form').submit();
+
+                        const form = document.getElementById('proceed-shipping-form');
+                        form.method = 'GET';
+                        form.action = "{{ route('shippings.create') }}";
+                        form.submit();
                     }
                 });
             }

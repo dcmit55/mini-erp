@@ -204,26 +204,23 @@
                     </div>
 
                     {{-- SECTION 3: DETAIL ITEMS - WITH ALL ORIGINAL DATA --}}
-                    @forelse ($validPreShippings as $idx => $pre)
+                    @forelse ($allItems as $idx => $item)
                         @php
-                            $purchaseRequest = $pre->purchaseRequest;
-                            $isShortage = $pre->is_shortage ?? false;
+                            $isShortage = $item->is_shortage ?? false;
+                            $pr = $item->purchaseRequest;
 
-                            if (!$purchaseRequest) {
-                                continue;
+                            if (!$pr) {
+                                continue; // Skip if no PR
                             }
 
-                            $purchasedQty = $purchaseRequest->qty_to_buy ?? $purchaseRequest->required_quantity;
+                            $purchasedQty = $isShortage
+                                ? $item->shortage_qty
+                                : $pr->qty_to_buy ?? $pr->required_quantity;
 
-                            // ⭐ For shortage, use shortage_qty instead
-                            if ($isShortage) {
-                                $purchasedQty = $pre->shortage_qty;
-                            }
-
-                            $unit = $purchaseRequest->unit ?? '-';
-                            $unitPrice = $purchaseRequest->price_per_unit ?? 0;
-                            $itemValue = $purchasedQty * $unitPrice;
-                            $currencyName = $purchaseRequest->currency ? $purchaseRequest->currency->name : '-';
+                            $unit = $pr->unit ?? '-';
+                            $unitPrice = $pr->price_per_unit ?? 0;
+                            $itemValue = $purchasedQty * ($pr->price_per_unit ?? 0);
+                            $currencyName = $pr->currency ? $pr->currency->name : '-';
                         @endphp
 
                         {{-- Item Card --}}
@@ -240,40 +237,31 @@
                                             SHORTAGE RESEND
                                         </span>
                                         <small class="text-muted">
-                                            Resend Count:
-                                            {{ $pre->shortage_item_id
-                                                ? \App\Models\Procurement\ShortageItem::find($pre->shortage_item_id)->resend_count
-                                                : 0 }}x
+                                            Resend #{{ $item->resend_count + 1 }} |
+                                            Original PR#{{ $pr->id }}
                                         </small>
                                     </div>
                                 @endif
 
-                                {{-- Hidden Inputs --}}
-                                <input type="hidden" name="pre_shipping_ids[]" value="{{ $pre->id }}">
-
-                                {{-- ⭐ Track if shortage --}}
-                                @if ($isShortage)
-                                    <input type="hidden" name="is_shortage[]" value="1">
-                                    <input type="hidden" name="shortage_item_ids[]"
-                                        value="{{ $pre->shortage_item_id }}">
-                                @else
-                                    <input type="hidden" name="is_shortage[]" value="0">
-                                    <input type="hidden" name="shortage_item_ids[]" value="">
-                                @endif
+                                {{-- Hidden Inputs untuk Item Identification --}}
+                                <input type="hidden" name="items[{{ $idx }}][item_id]"
+                                    value="{{ $item->id }}">
+                                <input type="hidden" name="items[{{ $idx }}][item_type]"
+                                    value="{{ $item->item_type }}">
 
                                 {{-- ROW 1: Material Info --}}
                                 <div class="row g-3 align-items-end mb-2">
                                     <div class="col-md-2">
                                         <label class="form-label text-muted mb-0">Purchase Type</label>
                                         <div class="fw-semibold">
-                                            {{ ucfirst(str_replace('_', ' ', $purchaseRequest->type)) }}
+                                            {{ ucfirst(str_replace('_', ' ', $pr->type)) }}
                                         </div>
                                     </div>
 
                                     <div class="col-md-2">
                                         <label class="form-label small text-muted">Material Name</label>
                                         <div class="fw-bold">
-                                            {{ $purchaseRequest->material_name }}
+                                            {{ $pr->material_name }}
                                             @if ($isShortage)
                                                 <small class="text-warning">(Resend)</small>
                                             @endif
@@ -293,7 +281,7 @@
                                     <div class="col-md-2">
                                         <label class="form-label text-muted mb-0">Supplier</label>
                                         <div class="fw-semibold">
-                                            {{ $purchaseRequest->supplier->name ?? '-' }}
+                                            {{ $pr->supplier->name ?? '-' }}
                                         </div>
                                     </div>
 
@@ -305,32 +293,39 @@
                                     <div class="col-md-2">
                                         <label class="form-label text-muted mb-0">Project Name</label>
                                         <div class="fw-semibold">
-                                            {{ $purchaseRequest->project->name ?? '-' }}
+                                            {{ $pr->project->name ?? '-' }}
                                         </div>
                                     </div>
                                 </div>
 
                                 {{-- ROW 2: Shipping Details --}}
                                 <div class="row g-3 align-items-top">
-                                    <div class="col-md-2">
-                                        <label class="form-label text-muted mb-0">Domestic Waybill</label>
-                                        <div class="fw-semibold">
-                                            <span class="badge bg-info">
-                                                {{ $pre->domestic_waybill_no ?? '-' }}
-                                            </span>
+                                    @if (!$isShortage)
+                                        <div class="col-md-2">
+                                            <label class="form-label text-muted mb-0">Domestic Waybill</label>
+                                            <div><small>{{ $item->domestic_waybill_no ?? '-' }}</small></div>
                                         </div>
-                                    </div>
+                                    @else
+                                        <div class="col-md-2">
+                                            <label class="form-label text-muted mb-0">Old Domestic Waybill</label>
+                                            <div><small>{{ $item->domestic_waybill_no ?? '-' }}</small></div>
+                                        </div>
+                                    @endif
 
                                     <div class="col-md-2">
                                         <label class="form-label text-muted mb-0">
                                             Allocated Domestic Cost
                                             <i class="bi bi-info-circle text-muted" data-bs-toggle="tooltip"
                                                 data-bs-html="true"
-                                                title="<strong>Domestic Allocation Method:</strong><br>{{ ucfirst($pre->cost_allocation_method ?? 'Value') }}"
+                                                title="<strong>Domestic Allocation Method:</strong><br>{{ ucfirst($item->cost_allocation_method ?? 'Value') }}"
                                                 style="font-size: 0.75rem; cursor: help;"></i>
                                         </label>
                                         <div class="fw-semibold text-primary">
-                                            {{ number_format($pre->allocated_cost ?? 0, 2) }}
+                                            @if ($isShortage)
+                                                <span class="text-muted">-</span>
+                                            @else
+                                                {{ number_format($item->allocated_cost ?? 0, 2) }}
+                                            @endif
                                         </div>
                                     </div>
 
@@ -436,12 +431,12 @@
                     @empty
                         <div class="alert alert-danger">
                             <i class="fas fa-exclamation-circle me-2"></i>
-                            No valid pre-shipping data available.
+                            No valid items found. Please go back and select items.
                         </div>
                     @endforelse
 
                     {{-- Submit Button --}}
-                    @if (!$validPreShippings->isEmpty())
+                    @if (!$allItems->isEmpty())
                         <div class="mt-4 d-flex justify-content-end">
                             <button class="btn btn-primary" type="submit" id="submit-btn">
                                 <i class="bi bi-send-fill me-2"></i>
@@ -796,7 +791,16 @@
             });
 
             // ===== FORM SUBMIT VALIDATION =====
+            let isFormSubmitting = false;
+
             $('#shipping-form').on('submit', function(e) {
+                // Jika sudah submit, cegah submit kedua
+                if (isFormSubmitting) {
+                    console.warn('❌ Form already submitting - prevented duplicate');
+                    e.preventDefault();
+                    return false;
+                }
+
                 const method = $('#int_allocation_method').val();
 
                 // Validate percentage total
@@ -829,19 +833,29 @@
 
                     if (hasExtraCostWithoutReason) {
                         e.preventDefault();
-                        alert('Please provide reason for all items with extra cost.');
-                        $('html, body').animate({
-                            scrollTop: $('.extra-cost-reason-input.is-invalid:first').offset().top -
-                                100
-                        }, 500);
+                        alert('Please provide reason for all extra costs in Air Freight mode.');
                         return false;
                     }
                 }
 
-                // Show loading spinner
+                // ⭐ SET FLAG & DISABLE BUTTON
+                isFormSubmitting = true;
+
                 const $submitBtn = $('#submit-btn');
                 $submitBtn.prop('disabled', true);
                 $submitBtn.find('.spinner-border').removeClass('d-none');
+                $submitBtn.find('i.bi-send-fill').addClass('d-none');
+
+                // Safety timeout - reset flag after 60 seconds
+                setTimeout(() => {
+                    isFormSubmitting = false;
+                    $submitBtn.prop('disabled', false);
+                    $submitBtn.find('.spinner-border').addClass('d-none');
+                    $submitBtn.find('i.bi-send-fill').removeClass('d-none');
+                    alert('⚠️ Request timeout. Please try again.');
+                }, 60000);
+
+                console.log('✅ Form submitting allowed - isFormSubmitting = true');
             });
 
             // Remove validation error on input

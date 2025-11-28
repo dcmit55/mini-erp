@@ -62,8 +62,6 @@ class ShortageItem extends Model implements Auditable
         };
     }
 
-    // ===== BUSINESS LOGIC =====
-
     /**
      * Check if shortage is resolvable (not canceled, not fully shipped)
      */

@@ -8,7 +8,16 @@ use App\Models\Procurement\Shipping;
 
 class ShippingDetail extends Model
 {
-    protected $fillable = ['shipping_id', 'pre_shipping_id', 'percentage', 'int_cost', 'extra_cost', 'extra_cost_reason', 'destination'];
+    protected $fillable = [
+        'shipping_id',
+        'pre_shipping_id',
+        'shortage_item_id', // NEW FIELD
+        'percentage',
+        'int_cost',
+        'extra_cost',
+        'extra_cost_reason',
+        'destination',
+    ];
 
     // Cast fields as decimal
     protected $casts = [
@@ -16,6 +25,23 @@ class ShippingDetail extends Model
         'extra_cost' => 'decimal:2',
         'percentage' => 'decimal:2',
     ];
+
+    public function preShipping()
+    {
+        return $this->belongsTo(PreShipping::class);
+    }
+
+    // Relasi ke Shipping
+    public function shipping()
+    {
+        return $this->belongsTo(Shipping::class);
+    }
+
+    // Shortage relation
+    public function shortageItem()
+    {
+        return $this->belongsTo(ShortageItem::class);
+    }
 
     // Accessor untuk destination label
     public function getDestinationLabelAttribute()
@@ -64,14 +90,23 @@ class ShippingDetail extends Model
         return ($this->extra_cost / $this->final_int_cost) * 100;
     }
 
-    public function preShipping()
+    // Helper method untuk get source data (PR from PreShipping OR ShortageItem)
+    public function getSourcePurchaseRequest()
     {
-        return $this->belongsTo(PreShipping::class);
+        if ($this->pre_shipping_id && $this->preShipping) {
+            return $this->preShipping->purchaseRequest;
+        }
+
+        if ($this->shortage_item_id && $this->shortageItem) {
+            return $this->shortageItem->purchaseRequest;
+        }
+
+        return null;
     }
 
-    // Relasi ke Shipping
-    public function shipping()
+    // Check if this is shortage resend
+    public function isShortageResend()
     {
-        return $this->belongsTo(Shipping::class);
+        return $this->shortage_item_id !== null;
     }
 }

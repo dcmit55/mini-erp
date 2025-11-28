@@ -56,66 +56,106 @@ class ShippingController extends Controller
                 ->whereIn('group_key', $groupKeys)
                 ->get();
 
-            // Filter yang valid (has domestic waybill & cost)
+            // Filter yang valid
             $normalPreShippings = $normalPreShippings->filter(function ($item) {
                 return $item->purchaseRequest !== null && !empty($item->domestic_waybill_no) && !empty($item->domestic_cost);
             });
         }
 
-        // STEP 2: Load Shortage Items & Convert to PreShipping-like Structure
-        $shortageAsPreShippings = collect();
+        // STEP 2: Load Shortage Items LANGSUNG (TANPA Create PR Baru)
+        $shortageItems = collect();
         if (!empty($shortageItemIds)) {
             $shortageItems = ShortageItem::with(['purchaseRequest.project', 'purchaseRequest.supplier', 'purchaseRequest.currency'])
                 ->whereIn('id', $shortageItemIds)
-                ->resolvable() // Only resolvable items
+                ->resolvable() // Only pending atau partially_reshipped
                 ->get();
 
-            // Convert ShortageItem to PreShipping-like object
-            foreach ($shortageItems as $shortage) {
-                if (!$shortage->purchaseRequest) {
-                    continue; // Skip if PR missing
+            // ⭐ PERBAIKAN: Filter HANYA berdasarkan status shortage & keberadaan di shipping_detail
+            $shortageItems = $shortageItems->filter(function ($shortage) {
+                // 1️⃣ Cek apakah shortage ini sudah pernah di-ship sebelumnya
+                // (NOTE: Bisa di-ship ulang berkali-kali, tapi tidak boleh diadd ke 2 shipping sekaligus)
+                $currentShippingDetail = \App\Models\Procurement\ShippingDetail::where('shortage_item_id', $shortage->id)
+                    ->whereHas('shipping', function ($q) {
+                        // Hanya block jika ada shipping yang BELUM di-terima
+                        $q->doesntHave('goodsReceive');
+                    })
+                    ->exists();
+
+                if ($currentShippingDetail) {
+                    \Log::warning('Shortage item SKIPPED - Already in pending shipment', [
+                        'shortage_id' => $shortage->id,
+                        'status' => $shortage->status,
+                        'reason' => 'Cannot add to multiple shipments simultaneously',
+                    ]);
+                    return false;
                 }
 
-                // Create virtual PreShipping object
-                $virtualPreShipping = new PreShipping([
-                    'purchase_request_id' => $shortage->purchase_request_id,
-                    'group_key' => 'SHORTAGE_' . $shortage->id,
-                    'domestic_waybill_no' => $shortage->old_domestic_wbl,
-                    'domestic_cost' => 0, // Shortage tidak punya domestic cost
-                    'cost_allocation_method' => 'value',
-                ]);
+                // 2️⃣ Ensure PR exists (TIDAK PERLU check apakah PR sudah shipped)
+                // Karena shortage = resend dari PR yang sudah shipped
+                if (!$shortage->purchaseRequest) {
+                    \Log::warning('Shortage item SKIPPED - No original PR', [
+                        'shortage_id' => $shortage->id,
+                    ]);
+                    return false;
+                }
 
-                // Attach purchaseRequest relation
-                $virtualPreShipping->setRelation('purchaseRequest', $shortage->purchaseRequest);
+                // ✅ Item ini VALID untuk di-ship (TERLEPAS dari status PR)
+                return true;
+            });
 
-                // Mark as shortage untuk identification
-                $virtualPreShipping->is_shortage = true;
-                $virtualPreShipping->shortage_item_id = $shortage->id;
-                $virtualPreShipping->shortage_qty = $shortage->shortage_qty;
-
-                $shortageAsPreShippings->push($virtualPreShipping);
-            }
+            \Log::info('Shortage Items Filtered', [
+                'requested' => count($shortageItemIds),
+                'valid_for_shipping' => $shortageItems->count(),
+                'skipped' => count($shortageItemIds) - $shortageItems->count(),
+            ]);
         }
 
-        // STEP 3: Merge Normal + Shortage Items
-        $validPreShippings = $normalPreShippings->merge($shortageAsPreShippings);
+        // STEP 3: Merge Collections
+        $allItems = collect();
 
-        if ($validPreShippings->isEmpty()) {
-            return redirect()->route('pre-shippings.index')->with('error', 'No valid items found. Some items may have incomplete data or been deleted.');
+        // Add normal items dengan flag
+        foreach ($normalPreShippings as $preShipping) {
+            $preShipping->is_shortage = false;
+            $preShipping->item_type = 'normal';
+            $allItems->push($preShipping);
         }
 
-        // Notifikasi summary
+        // Add shortage items dengan flag
+        foreach ($shortageItems as $shortage) {
+            // Create wrapper object mirip PreShipping untuk consistency di view
+            $wrapper = (object) [
+                'id' => 'SHORTAGE_' . $shortage->id, // Unique ID untuk form
+                'shortage_item_id' => $shortage->id,
+                'purchase_request_id' => $shortage->purchase_request_id,
+                'purchaseRequest' => $shortage->purchaseRequest,
+                'domestic_waybill_no' => $shortage->old_domestic_wbl,
+                'domestic_cost' => 0, // Shortage tidak punya domestic cost
+                'allocated_cost' => 0,
+                'is_shortage' => true,
+                'item_type' => 'shortage',
+                'shortage_qty' => $shortage->shortage_qty,
+                'resend_count' => $shortage->resend_count,
+            ];
+
+            $allItems->push($wrapper);
+        }
+
+        if ($allItems->isEmpty()) {
+            return redirect()->route('pre-shippings.index')->with('error', 'No valid items found.');
+        }
+
+        // Summary message
         $normalCount = $normalPreShippings->count();
-        $shortageCount = $shortageAsPreShippings->count();
+        $shortageCount = $shortageItems->count();
         $summaryMessage = "Creating shipping with {$normalCount} normal item(s)";
         if ($shortageCount > 0) {
-            $summaryMessage .= " and {$shortageCount} shortage item(s)";
+            $summaryMessage .= " and {$shortageCount} shortage resend item(s)";
         }
         session()->flash('info', $summaryMessage);
 
         $freightCompanies = ['DHL', 'FedEx', 'Maersk', 'CMA CGM'];
 
-        return view('procurement.shippings.create', compact('validPreShippings', 'freightCompanies'))->with('preShippings', $validPreShippings);
+        return view('procurement.shippings.create', compact('allItems', 'freightCompanies'))->with('preShippings', $allItems); // Backward compatibility
     }
 
     public function store(Request $request)
@@ -124,53 +164,51 @@ class ShippingController extends Controller
             return redirect()->route('pre-shippings.index')->with('error', 'You do not have permission to create shipping.');
         }
 
-        $request->validate(
-            [
-                'international_waybill_no' => 'required|string|max:255|unique:shippings,international_waybill_no',
-                'freight_company' => 'required|string|max:255',
-                'freight_method' => 'required|in:Sea Freight,Air Freight',
-                'freight_price' => 'required|numeric|min:0',
-                'eta_to_arrived' => 'required|date',
-                'pre_shipping_ids' => 'required|array|min:1',
-                'int_allocation_method' => 'required|in:quantity,percentage,value',
-                'percentage' => 'nullable|array',
-                'percentage.*' => 'nullable|numeric|min:0|max:100',
-                'int_cost' => 'required|array',
-                'int_cost.*' => 'required|numeric|min:0',
-                'extra_cost' => 'nullable|array',
-                'extra_cost.*' => 'nullable|numeric|min:0',
-                'extra_cost_reason' => 'nullable|array',
-                'extra_cost_reason.*' => 'nullable|string|max:255',
-                'destination' => 'required|array|min:1',
-                'destination.*' => 'required|in:SG,BT,CN,MY,Other',
-                'is_shortage' => 'nullable|array',
-                'is_shortage.*' => 'nullable|boolean',
-                'shortage_item_ids' => 'nullable|array',
-                'shortage_item_ids.*' => 'nullable|exists:shortage_items,id',
-            ],
-            [
-                'international_waybill_no.required' => 'International Waybill Number is required.',
-                'international_waybill_no.unique' => 'This International Waybill Number has already been used. Please use a different number.',
-                'freight_company.required' => 'International Freight Company is required.',
-                'freight_method.required' => 'International Freight Method is required.',
-            ],
-        );
+        \Log::info('🚀 ShippingController.store() called', [
+            'waybill' => $request->international_waybill_no,
+            'items_count' => count($request->items ?? []),
+            'timestamp' => now()->toDateTimeString(),
+        ]);
 
-        // Validasi percentage total jika method = percentage
+        $request->validate([
+            'international_waybill_no' => 'required|string|max:255',
+            'freight_company' => 'required|string|max:255',
+            'freight_method' => 'required|in:Sea Freight,Air Freight',
+            'freight_price' => 'required|numeric|min:0',
+            'eta_to_arrived' => 'required|date',
+            'items' => 'required|array|min:1',
+            'items.*.item_id' => 'required|string',
+            'items.*.item_type' => 'required|in:normal,shortage',
+            'int_allocation_method' => 'required|in:quantity,percentage,value',
+            'percentage' => 'nullable|array',
+            'percentage.*' => 'nullable|numeric|min:0|max:100',
+            'int_cost' => 'required|array',
+            'int_cost.*' => 'required|numeric|min:0',
+            'extra_cost' => 'nullable|array',
+            'extra_cost.*' => 'nullable|numeric|min:0',
+            'extra_cost_reason' => 'nullable|array',
+            'extra_cost_reason.*' => 'nullable|string|max:255',
+            'destination' => 'required|array|min:1',
+            'destination.*' => 'required|in:SG,BT,CN,MY,Other',
+        ]);
+
+        \Log::info('✅ Validation passed for waybill: ' . $request->international_waybill_no);
+
+        // Validasi percentage total
         if ($request->int_allocation_method === 'percentage') {
             $totalPercentage = array_sum($request->percentage ?? []);
-
             if (abs($totalPercentage - 100) > 0.5) {
                 return redirect()
                     ->back()
                     ->withInput()
-                    ->withErrors(['percentage' => "Total percentage must be close to 100%. Current total: {$totalPercentage}%"]);
+                    ->withErrors(['percentage' => "Total percentage must be 100%. Current: {$totalPercentage}%"]);
             }
         }
 
+        // ⭐ START TRANSACTION IMMEDIATELY - BEFORE ANY CREATE
         DB::beginTransaction();
         try {
-            // Create shipping record
+            // Create shipping
             $shipping = Shipping::create([
                 'international_waybill_no' => $request->international_waybill_no,
                 'freight_company' => $request->freight_company,
@@ -179,90 +217,104 @@ class ShippingController extends Controller
                 'eta_to_arrived' => $request->eta_to_arrived,
             ]);
 
+            \Log::info('✅ Shipping record created', [
+                'shipping_id' => $shipping->id,
+                'waybill' => $shipping->international_waybill_no,
+            ]);
+
             $normalItemCount = 0;
             $shortageItemCount = 0;
 
-            // STEP: Save Shipping Details (Mixed Normal + Shortage)
-            foreach ($request->pre_shipping_ids as $idx => $preShippingId) {
-                $isShortage = $request->is_shortage[$idx] ?? false;
+            // Process Mixed Items
+            foreach ($request->items as $idx => $item) {
+                $itemType = $item['item_type'];
+                $itemId = $item['item_id'];
 
-                // Create shipping detail (sama untuk normal & shortage)
-                ShippingDetail::create([
-                    'shipping_id' => $shipping->id,
-                    'pre_shipping_id' => $preShippingId,
-                    'percentage' => $request->percentage[$idx] ?? null,
-                    'int_cost' => $request->int_cost[$idx],
-                    'extra_cost' => $request->extra_cost[$idx] ?? 0,
-                    'extra_cost_reason' => $request->extra_cost_reason[$idx] ?? null,
-                    'destination' => $request->destination[$idx],
-                ]);
+                if ($itemType === 'shortage') {
+                    // SHORTAGE ITEM
+                    $shortageId = (int) str_replace('SHORTAGE_', '', $itemId);
+                    $shortage = ShortageItem::with('purchaseRequest.preShipping')->find($shortageId);
 
-                // Update shortage item status if this is shortage resend
-                if ($isShortage && isset($request->shortage_item_ids[$idx])) {
-                    $shortageItemId = $request->shortage_item_ids[$idx];
-                    $shortage = ShortageItem::find($shortageItemId);
-
-                    if ($shortage) {
-                        $shortage->update([
-                            'status' => 'reshipped',
-                            'notes' => ($shortage->notes ? $shortage->notes . "\n" : '') . 'Shipped on ' . now()->format('Y-m-d H:i:s') . " via International Waybill: {$shipping->international_waybill_no}",
-                        ]);
-
-                        $shortageItemCount++;
-
-                        \Log::info('Shortage item shipped', [
-                            'shortage_id' => $shortageItemId,
-                            'shipping_id' => $shipping->id,
-                            'international_waybill_no' => $shipping->international_waybill_no,
-                        ]);
+                    if (!$shortage) {
+                        throw new \Exception("Shortage item #{$shortageId} not found");
                     }
+
+                    // ⭐ GET ORIGINAL PRE_SHIPPING_ID dari shortage's purchase request
+                    $preShippingId = $shortage->purchaseRequest->preShipping->id ?? null;
+
+                    if (!$preShippingId) {
+                        throw new \Exception("Shortage item #{$shortageId} has no associated pre-shipping");
+                    }
+
+                    // CREATE SHIPPING DETAIL dengan pre_shipping_id yang valid
+                    ShippingDetail::create([
+                        'shipping_id' => $shipping->id,
+                        'pre_shipping_id' => $preShippingId, // ⭐ SET DARI ORIGINAL PR
+                        'shortage_item_id' => $shortageId,
+                        'percentage' => $request->percentage[$idx] ?? null,
+                        'int_cost' => $request->int_cost[$idx],
+                        'extra_cost' => $request->extra_cost[$idx] ?? 0,
+                        'extra_cost_reason' => $request->extra_cost_reason[$idx] ?? null,
+                        'destination' => $request->destination[$idx],
+                    ]);
+
+                    // UPDATE SHORTAGE STATUS
+                    $shortage->update([
+                        'status' => 'reshipped',
+                        'resend_count' => $shortage->resend_count + 1,
+                        'notes' => ($shortage->notes ? $shortage->notes . "\n" : '') . 'Reshipped on ' . now()->format('Y-m-d H:i:s') . " via Int. Waybill: {$shipping->international_waybill_no}",
+                    ]);
+
+                    $shortageItemCount++;
+
+                    \Log::info('Shortage item added to shipping', [
+                        'shortage_id' => $shortageId,
+                        'pre_shipping_id' => $preShippingId,
+                        'shipping_id' => $shipping->id,
+                    ]);
                 } else {
+                    // NORMAL ITEM
+                    $preShippingId = (int) $itemId;
+
+                    ShippingDetail::create([
+                        'shipping_id' => $shipping->id,
+                        'pre_shipping_id' => $preShippingId, // ⭐ NORMAL PRE_SHIPPING_ID
+                        'shortage_item_id' => null,
+                        'percentage' => $request->percentage[$idx] ?? null,
+                        'int_cost' => $request->int_cost[$idx],
+                        'extra_cost' => $request->extra_cost[$idx] ?? 0,
+                        'extra_cost_reason' => $request->extra_cost_reason[$idx] ?? null,
+                        'destination' => $request->destination[$idx],
+                    ]);
+
                     $normalItemCount++;
                 }
             }
 
+            // Commit transaction
             DB::commit();
 
-            // SUCCESS MESSAGE dengan breakdown
-            $successMessage = 'Shipping created successfully with cost allocation method: ' . ucfirst($request->int_allocation_method);
-
+            $successMessage = 'Shipping created successfully with ' . ucfirst($request->int_allocation_method) . ' allocation';
             if ($normalItemCount > 0) {
                 $successMessage .= " | {$normalItemCount} normal item(s)";
             }
-
             if ($shortageItemCount > 0) {
                 $successMessage .= " | {$shortageItemCount} shortage resend item(s)";
             }
 
-            if ($request->freight_method === 'Air Freight') {
-                $totalExtraCost = array_sum($request->extra_cost ?? []);
-                if ($totalExtraCost > 0) {
-                    $successMessage .= ' | Air Freight with extra cost: ' . number_format($totalExtraCost, 2);
-                }
-            }
+            \Log::info('✅ Shipping created successfully', [
+                'shipping_id' => $shipping->id,
+                'message' => $successMessage,
+            ]);
 
             return redirect()->route('shipping-management.index')->with('success', $successMessage);
-        } catch (\Illuminate\Database\QueryException $e) {
-            DB::rollBack();
-
-            if ($e->getCode() == 23000) {
-                \Log::error('Duplicate waybill number attempt: ' . $request->international_waybill_no);
-
-                return redirect()
-                    ->back()
-                    ->withInput()
-                    ->withErrors(['international_waybill_no' => 'This International Waybill Number has already been used. Please use a different number.']);
-            }
-
-            \Log::error('Error creating shipping: ' . $e->getMessage());
-
-            return redirect()
-                ->back()
-                ->withInput()
-                ->with('error', 'Failed to create shipping: ' . $e->getMessage());
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Error creating shipping: ' . $e->getMessage());
+
+            \Log::error('Error creating shipping: ' . $e->getMessage(), [
+                'waybill' => $request->international_waybill_no,
+                'trace' => $e->getTraceAsString(),
+            ]);
 
             return redirect()
                 ->back()
