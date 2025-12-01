@@ -7,40 +7,80 @@
                 <h2 class="mb-0 flex-shrink-0" style="font-size:1.3rem;">Create Shipping</h2>
             </div>
             <div class="card-body">
-                {{-- Success Alert --}}
+                {{-- SUCCESS/INFO MESSAGE --}}
                 @if (session('success'))
                     <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        {{ session('success') }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        <i class="bi bi-check-circle me-2"></i>
+                        {!! session('success') !!}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
                 @endif
 
-                {{-- Warning Alert --}}
-                @if (session('warning'))
+                @if (session('info'))
+                    <div class="alert alert-info alert-dismissible fade show" role="alert">
+                        <i class="bi bi-info-circle me-2"></i>
+                        {!! session('info') !!}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                @endif
+
+                {{-- VALIDATION ERRORS (User-facing) --}}
+                @if (session('validation_errors'))
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <div class="d-flex align-items-start">
+                            <i class="bi bi-exclamation-triangle-fill me-2 flex-shrink-0" style="font-size: 1.2rem;"></i>
+                            <div class="flex-grow-1">
+                                <strong>Validation Errors:</strong>
+                                <p class="mb-2 mt-1">The following items were <b>skipped</b> due to validation failures:</p>
+                                <ul class="mb-0">
+                                    @foreach (session('validation_errors') as $error)
+                                        <li>{!! $error !!}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                @endif
+
+                {{-- VALIDATION WARNINGS --}}
+                @if (session('validation_warnings'))
                     <div class="alert alert-warning alert-dismissible fade show" role="alert">
-                        {!! session('warning') !!}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        <div class="d-flex align-items-start">
+                            <i class="bi bi-exclamation-circle me-2 flex-shrink-0" style="font-size: 1.2rem;"></i>
+                            <div class="flex-grow-1">
+                                <strong>Warnings:</strong>
+                                <p class="mb-2 mt-1">Please review the following items before proceeding:</p>
+                                <ul class="mb-0">
+                                    @foreach (session('validation_warnings') as $warning)
+                                        <li>{!! $warning !!}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
                 @endif
 
-                {{-- Error Alert --}}
+                {{-- ❌ GENERAL ERRORS --}}
                 @if (session('error'))
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="bi bi-x-circle me-2"></i>
                         {!! session('error') !!}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
                 @endif
 
-                {{-- Alert validation errors --}}
+                {{-- Laravel validation errors --}}
                 @if ($errors->any())
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
                         <strong>Whoops!</strong> There were some problems with your input.
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         <ul class="mb-0 mt-2">
                             @foreach ($errors->all() as $error)
-                                <li>{!! $error !!}</li>
+                                <li>{{ $error }}</li>
                             @endforeach
                         </ul>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
                 @endif
 
@@ -193,7 +233,7 @@
                                 <label class="form-label">
                                     Total Items: <strong id="total-items">0</strong>
                                 </label>
-                                <div class="alert alert-info mb-0 py-2">
+                                <div class="alert alert-success mb-0 py-2">
                                     <small>
                                         <i class="bi bi-info-circle me-1"></i>
                                         Change allocation method to recalculate international cost for each item
@@ -229,7 +269,7 @@
                             data-price="{{ $unitPrice }}" data-value="{{ $itemValue }}">
 
                             <div class="card-body">
-                                {{-- ⭐ Shortage Badge --}}
+                                {{-- Shortage Badge --}}
                                 @if ($isShortage)
                                     <div class="d-flex align-items-center gap-2 mb-2">
                                         <span class="badge bg-warning text-dark">
@@ -561,13 +601,13 @@
             // ===== SHOW AIR FREIGHT INFO MESSAGE =====
             function showAirFreightInfo() {
                 const alertHtml = `
-            <div class="alert alert-warning alert-dismissible fade show mt-3" role="alert" id="air-freight-alert">
-                <i class="bi bi-airplane me-2"></i>
-                <strong>Air Freight Selected</strong> -
-                You can now add extra cost for oversized/overweight items.
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        `;
+                    <div class="alert alert-warning alert-dismissible fade show mt-3" role="alert" id="air-freight-alert">
+                        <i class="bi bi-airplane me-2"></i>
+                        <strong>Air Freight Selected</strong> -
+                        You can now add extra cost for oversized/overweight items.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                `;
 
                 if ($('#air-freight-alert').length === 0) {
                     $('.row.g-3.mb-4').after(alertHtml);
@@ -665,7 +705,7 @@
 
                     const finalCost = baseCost + extraCost;
 
-                    // ⭐ CHANGED: Use .val() instead of .text()
+                    // Use .val() instead of .text()
                     $card.find('.final-cost-display').val(finalCost.toFixed(2));
 
                     // Visual indicator for extra cost
@@ -704,7 +744,7 @@
             function updateGrandTotal() {
                 let grandTotal = 0;
                 $('.item-card').each(function() {
-                    // ⭐ CHANGED: Use .val() instead of .text()
+                    // Use .val() instead of .text()
                     const finalCost = parseFloat($(this).find('.final-cost-display').val()) || 0;
                     grandTotal += finalCost;
                 });
@@ -838,7 +878,7 @@
                     }
                 }
 
-                // ⭐ SET FLAG & DISABLE BUTTON
+                // SET FLAG & DISABLE BUTTON
                 isFormSubmitting = true;
 
                 const $submitBtn = $('#submit-btn');
@@ -854,8 +894,6 @@
                     $submitBtn.find('i.bi-send-fill').removeClass('d-none');
                     alert('⚠️ Request timeout. Please try again.');
                 }, 60000);
-
-                console.log('✅ Form submitting allowed - isFormSubmitting = true');
             });
 
             // Remove validation error on input
@@ -872,6 +910,12 @@
                 $('.extra-cost-column').show();
                 $('.extra-cost-reason-column').show();
             }
+
+            setTimeout(() => {
+                $('.alert-info').fadeOut('slow', function() {
+                    $(this).remove();
+                });
+            }, 8000);
         });
     </script>
 @endpush

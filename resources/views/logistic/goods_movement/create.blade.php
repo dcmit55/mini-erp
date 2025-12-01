@@ -29,7 +29,7 @@
 
                 <form action="{{ route('goods-movement.store') }}" method="POST" id="movementForm">
                     @csrf
-                    
+
                     <!-- Basic Information Section -->
                     <div class="card border-0 shadow-sm mb-4">
                         <div class="card-header bg-light border-0 py-3">
@@ -43,7 +43,7 @@
                                     <label class="form-label fw-semibold">
                                         <i class="fas fa-calendar-alt text-primary me-1"></i>Movement Date *
                                     </label>
-                                    <input type="date" name="movement_date" class="form-control form-control-lg" 
+                                    <input type="date" name="movement_date" class="form-control form-control-lg"
                                         value="{{ old('movement_date', now()->toDateString()) }}" required>
                                 </div>
                                 <div class="col-md-2">
@@ -81,7 +81,7 @@
                                         <select name="movement_type_value" id="movementTypeValue" class="form-select form-select-lg" required>
                                             <option value="">-- Select Type First --</option>
                                         </select>
-                                        <button type="button" class="btn btn-outline-info" id="detailPopupBtn" 
+                                        <button type="button" class="btn btn-outline-info" id="detailPopupBtn"
                                             onclick="openHandcarryPopup()" style="display: none;">
                                             <i class="fas fa-calculator"></i>
                                         </button>
@@ -128,21 +128,21 @@
                                     <label class="form-label fw-semibold">
                                         <i class="fas fa-user-check text-primary me-1"></i>Sender *
                                     </label>
-                                    <input type="text" name="sender" class="form-control form-control-lg" 
+                                    <input type="text" name="sender" class="form-control form-control-lg"
                                         placeholder="e.g., John Doe" value="{{ old('sender') }}" required>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label fw-semibold">
                                         <i class="fas fa-user-clock text-info me-1"></i>Receiver *
                                     </label>
-                                    <input type="text" name="receiver" class="form-control form-control-lg" 
+                                    <input type="text" name="receiver" class="form-control form-control-lg"
                                         placeholder="e.g., Jane Smith" value="{{ old('receiver') }}" required>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label fw-semibold">
                                         <i class="fas fa-sticky-note text-warning me-1"></i>Notes
                                     </label>
-                                    <input type="text" name="notes" class="form-control form-control-lg" 
+                                    <input type="text" name="notes" class="form-control form-control-lg"
                                         placeholder="Optional notes" value="{{ old('notes') }}">
                                 </div>
                             </div>
@@ -162,10 +162,10 @@
                         <div class="card-body" id="whatsappParserBody" style="display: none;">
                             <div class="mb-3">
                                 <label class="form-label fw-semibold">Paste WhatsApp Message</label>
-                                <textarea id="whatsappMessage" class="form-control" rows="5" 
+                                <textarea id="whatsappMessage" class="form-control" rows="5"
                                     placeholder="Paste one item per line&#10;Example:&#10;Johnny Walker Hat * 3 * pcs * Important&#10;Airbrush DCM * 2 * box"></textarea>
                             </div>
-                            
+
                             <!-- Format Guide -->
                             <div class="alert alert-info border-0 shadow-sm mb-3">
                                 <div class="d-flex align-items-start">
@@ -180,7 +180,7 @@
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <button type="button" class="btn btn-success btn-lg shadow" id="parseBtn" onclick="parseWhatsApp()">
                                 <i class="fas fa-magic me-2"></i>Parse Items
                             </button>
@@ -390,7 +390,7 @@
                     <label class="fw-bold fs-5 mb-2">
                         <i class="fas fa-money-bill-wave me-2"></i>Overall Cost (IDR)
                     </label>
-                    <input type="text" class="form-control form-control-lg fw-bold text-center fs-4 bg-white" 
+                    <input type="text" class="form-control form-control-lg fw-bold text-center fs-4 bg-white"
                         id="overall_cost" readonly placeholder="Rp 0.00">
                 </div>
             </div>
@@ -419,7 +419,7 @@
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
           </div>
           <div class="modal-body p-4" style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);">
-            
+
             <!-- Row 1: Invoice No -->
             <div class="row mb-3">
                 <div class="col-12">
@@ -500,7 +500,7 @@
                     <label class="fw-bold fs-5 mb-2">
                         <i class="fas fa-money-bill-wave me-2"></i>Overall Cost (IDR)
                     </label>
-                    <input type="text" class="form-control form-control-lg fw-bold text-center fs-4 bg-white" 
+                    <input type="text" class="form-control form-control-lg fw-bold text-center fs-4 bg-white"
                         id="overall_cost_courier_lcl" readonly placeholder="Rp 0.00">
                 </div>
             </div>
@@ -523,61 +523,61 @@
         .bg-gradient-primary {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
-        
+
         .bg-gradient-success {
             background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
         }
-        
+
         .bg-gradient-info {
             background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
         }
-        
+
         #parserToggleIcon {
             transition: transform 0.3s ease;
         }
-        
+
         #parserToggleIcon.rotated {
             transform: rotate(180deg);
         }
-        
+
         .transition-all {
             transition: all 0.3s ease;
         }
-        
+
         .form-control-lg, .form-select-lg {
             border-radius: 0.5rem;
             border: 2px solid #e0e0e0;
             transition: all 0.3s ease;
         }
-        
+
         .form-control-lg:focus, .form-select-lg:focus {
             border-color: #667eea;
             box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
         }
-        
+
         .card {
             transition: transform 0.2s ease;
         }
-        
+
         .card:hover {
             transform: translateY(-2px);
         }
-        
+
         .btn {
             border-radius: 0.5rem;
             transition: all 0.3s ease;
         }
-        
+
         .btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
-        
+
         .modal-content {
             border-radius: 1rem;
             overflow: hidden;
         }
-        
+
         .table-hover tbody tr:hover {
             background-color: #f8f9fa;
             transform: scale(1.01);
@@ -595,7 +595,7 @@
     document.addEventListener('DOMContentLoaded', function() {
         fetchProjects();
         fetchGoodsReceives();
-        
+
         if (document.getElementById('itemsContainer').children.length === 0) {
             addItemRow();
         }
@@ -637,7 +637,7 @@
     function toggleWhatsAppParser() {
         const body = document.getElementById('whatsappParserBody');
         const icon = document.getElementById('parserToggleIcon');
-        
+
         if (body.style.display === 'none') {
             body.style.display = 'block';
             icon.classList.add('rotated');
@@ -651,7 +651,7 @@
         const type = document.getElementById('movementType').value;
         const select = document.getElementById('movementTypeValue');
         const handcarryBtn = document.getElementById('detailPopupBtn');
-        
+
         if (!type) {
             select.innerHTML = '<option value="">-- Select Type First --</option>';
             handcarryBtn.style.display = 'none';
@@ -677,7 +677,7 @@
             .then(response => response.json())
             .then(data => {
                 select.innerHTML = '<option value="">-- Select Value --</option>';
-                
+
                 data.values.forEach(value => {
                     const option = document.createElement('option');
                     option.value = value;
@@ -704,7 +704,7 @@
 
         row.innerHTML = `
             <td>
-                <select name="items[${rowId}][material_type]" class="form-control form-control-sm material-type-select" 
+                <select name="items[${rowId}][material_type]" class="form-control form-control-sm material-type-select"
                     onchange="handleMaterialTypeChange(this, ${rowId})" required>
                     <option value="">-- Select Type --</option>
                     <option value="Project">Project</option>
@@ -714,37 +714,37 @@
                 </select>
             </td>
             <td>
-                <select name="items[${rowId}][reference_id]" class="form-control form-control-sm reference-select" 
+                <select name="items[${rowId}][reference_id]" class="form-control form-control-sm reference-select"
                     style="display:none;" disabled>
                     <option value="">-- Select First --</option>
                 </select>
             </td>
             <td>
-                <select name="items[${rowId}][goods_receive_detail_id]" class="form-control form-control-sm gds-receive-select" 
+                <select name="items[${rowId}][goods_receive_detail_id]" class="form-control form-control-sm gds-receive-select"
                     style="display:none;" onchange="handleGoodsReceiveItemChange(this, ${rowId})" disabled>
                     <option value="">-- Select Item --</option>
                 </select>
             </td>
             <td>
-                <input type="text" name="items[${rowId}][material_display]" class="form-control form-control-sm material-display" 
+                <input type="text" name="items[${rowId}][material_display]" class="form-control form-control-sm material-display"
                     placeholder="Material Name" readonly style="display:none;">
-                <select name="items[${rowId}][inventory_id]" class="form-control form-control-sm material-select" 
+                <select name="items[${rowId}][inventory_id]" class="form-control form-control-sm material-select"
                     style="display:none;" onchange="updateUnit(this)" disabled>
                     <option value="">-- Select Material --</option>
                 </select>
-                <input type="text" name="items[${rowId}][new_material_name]" class="form-control form-control-sm new-material-input" 
+                <input type="text" name="items[${rowId}][new_material_name]" class="form-control form-control-sm new-material-input"
                     placeholder="Enter material name" style="display:none;" disabled>
             </td>
             <td>
-                <input type="number" name="items[${rowId}][quantity]" class="form-control form-control-sm quantity-input" 
+                <input type="number" name="items[${rowId}][quantity]" class="form-control form-control-sm quantity-input"
                     min="0.01" step="0.01" placeholder="0.00" disabled required>
             </td>
             <td>
-                <input type="text" name="items[${rowId}][unit]" class="form-control form-control-sm unit-input" 
+                <input type="text" name="items[${rowId}][unit]" class="form-control form-control-sm unit-input"
                     value="pcs" disabled>
             </td>
             <td>
-                <input type="text" name="items[${rowId}][notes]" class="form-control form-control-sm notes-input" 
+                <input type="text" name="items[${rowId}][notes]" class="form-control form-control-sm notes-input"
                     placeholder="Optional" disabled>
             </td>
             <td class="text-center">
@@ -755,16 +755,12 @@
         `;
 
         container.appendChild(row);
-        console.log('✅ Item row added. Total rows:', container.children.length);
     }
 
     // ✅ TAMBAH: Debug form submission
         document.getElementById('movementForm').addEventListener('submit', function(e) {
-        console.log('🚀 Form submit triggered');
-        
         const itemsCount = document.getElementById('itemsContainer').children.length;
-        console.log('📊 Total items:', itemsCount);
-        
+
         if (itemsCount === 0) {
             e.preventDefault();
             alert('❌ Tambahkan minimal 1 item');
@@ -783,16 +779,6 @@
             const inventoryId = row.querySelector('[name*="inventory_id"]')?.value;
             const newMaterialName = row.querySelector('[name*="new_material_name"]')?.value;
             const quantity = row.querySelector('[name*="quantity"]')?.value;
-
-            console.log(`📋 Row ${index + 1}:`, {
-                materialType,
-                projectId,
-                goodsReceiveId,
-                goodsReceiveDetailId,
-                inventoryId,
-                newMaterialName,
-                quantity
-            });
 
             // Validasi
             if (!materialType) {
@@ -840,20 +826,14 @@
             return;
         }
 
-        console.log('✅ Validation passed, submitting form...');
-        
         // Log form data
         const formData = new FormData(this);
-        console.log('📤 Form data being sent:');
-        for (let [key, value] of formData.entries()) {
-            console.log(`  ${key}: ${value}`);
-        }
     });
 
     function handleMaterialTypeChange(select, rowId) {
     const row = select.closest('tr');
     const type = select.value;
-    
+
     const referenceSelect = row.querySelector('.reference-select');
     const gdsReceiveSelect = row.querySelector('.gds-receive-select');
     const materialDisplay = row.querySelector('.material-display');
@@ -868,33 +848,33 @@
     referenceSelect.style.display = 'none';
     referenceSelect.disabled = true;
     referenceSelect.innerHTML = '<option value="">-- Select First --</option>';
-    
+
     gdsReceiveSelect.removeAttribute('name');
     gdsReceiveSelect.style.display = 'none';
     gdsReceiveSelect.disabled = true;
     gdsReceiveSelect.innerHTML = '<option value="">-- Select Item --</option>';
-    
+
     materialDisplay.style.display = 'none';
     materialDisplay.value = '';
-    
+
     materialSelect.removeAttribute('name');
     materialSelect.style.display = 'none';
     materialSelect.disabled = true;
     materialSelect.innerHTML = '<option value="">-- Select Material --</option>';
-    
+
     newMaterialInput.removeAttribute('name');
     newMaterialInput.style.display = 'none';
     newMaterialInput.disabled = true;
     newMaterialInput.value = '';
-    
+
     quantityInput.disabled = true;
     quantityInput.value = '';
     quantityInput.readOnly = false;
-    
+
     unitInput.disabled = true;
     unitInput.value = 'pcs';
     unitInput.readOnly = false;
-    
+
     notesInput.disabled = true;
     notesInput.value = '';
 
@@ -906,14 +886,14 @@
             referenceSelect.setAttribute('name', `items[${rowId}][project_id]`);
             referenceSelect.style.display = 'block';
             referenceSelect.disabled = false;
-            
+
             projectsData.forEach(project => {
                 const option = document.createElement('option');
                 option.value = project.id;
                 option.textContent = project.name;
                 referenceSelect.appendChild(option);
             });
-            
+
             quantityInput.disabled = false;
             unitInput.disabled = false;
             notesInput.disabled = false;
@@ -924,7 +904,7 @@
             referenceSelect.setAttribute('name', `items[${rowId}][goods_receive_id]`);
             referenceSelect.style.display = 'block';
             referenceSelect.disabled = false;
-            
+
             goodsReceivesData.forEach(gr => {
                 const option = document.createElement('option');
                 option.value = gr.id;
@@ -932,16 +912,16 @@
                 option.textContent = `${gr.international_waybill_no} - ${date}`;
                 referenceSelect.appendChild(option);
             });
-                
+
                 referenceSelect.onchange = function() {
                 loadGoodsReceiveItems(this.value, rowId);
             };
-            
+
             // ✅ Show GDS Receive detail select
             gdsReceiveSelect.setAttribute('name', `items[${rowId}][goods_receive_detail_id]`);
             gdsReceiveSelect.style.display = 'block';
             gdsReceiveSelect.disabled = false;
-            
+
             // ✅ PENTING: Jangan disable unit untuk Goods Receive
             unitInput.disabled = false;
             notesInput.disabled = false;
@@ -958,7 +938,7 @@
                 option.dataset.unit = m.unit;
                 materialSelect.appendChild(option);
             });
-            
+
             quantityInput.disabled = false;
             unitInput.disabled = false;
             notesInput.disabled = false;
@@ -968,7 +948,7 @@
             newMaterialInput.setAttribute('name', `items[${rowId}][new_material_name]`);
             newMaterialInput.style.display = 'block';
             newMaterialInput.disabled = false;
-            
+
             quantityInput.disabled = false;
             unitInput.disabled = false;
             notesInput.disabled = false;
@@ -979,7 +959,7 @@
     async function loadGoodsReceiveItems(goodsReceiveId, rowId) {
         const row = document.querySelector(`tr:has(select[name="items[${rowId}][material_type]"])`);
         const gdsReceiveSelect = row.querySelector('.gds-receive-select');
-        
+
         if (!goodsReceiveId) {
             gdsReceiveSelect.innerHTML = '<option value="">-- Select Item --</option>';
             gdsReceiveSelect.disabled = true;
@@ -989,10 +969,10 @@
         try {
             const response = await fetch(`{{ route('goods-movement.getGoodsReceiveItems') }}?goods_receive_id=${goodsReceiveId}`);
             const data = await response.json();
-            
+
             gdsReceiveSelect.innerHTML = '<option value="">-- Select Item --</option>';
             gdsReceiveSelect.disabled = false;
-            
+
             data.items.forEach(item => {
                 const option = document.createElement('option');
                 option.value = item.id;
@@ -1014,18 +994,18 @@
         const materialDisplay = row.querySelector('.material-display');
         const quantityInput = row.querySelector('.quantity-input');
         const unitInput = row.querySelector('.unit-input');
-        
+
         if (!select.value) return;
-        
+
         // ✅ Tampilkan material name
         materialDisplay.style.display = 'block';
         materialDisplay.value = selectedOption.dataset.materialName;
-        
+
         // ✅ PERBAIKAN: Set value tapi JANGAN disable!
         quantityInput.value = selectedOption.dataset.quantity;
         quantityInput.disabled = false;  // ✅ JANGAN DISABLE
         quantityInput.readOnly = true;   // ✅ READ ONLY SAJA
-        
+
         unitInput.value = selectedOption.dataset.unit || 'pcs';
         unitInput.disabled = false;  // ✅ JANGAN DISABLE
         unitInput.readOnly = true;   // ✅ READ ONLY SAJA
@@ -1038,7 +1018,7 @@
 
     async function parseWhatsApp() {
         const message = document.getElementById('whatsappMessage').value;
-        
+
         if (!message.trim()) {
             alert('Please paste a WhatsApp message');
             return;
@@ -1064,7 +1044,7 @@
             if (data.items.length > 0) {
                 document.getElementById('itemsContainer').innerHTML = '';
                 itemCounter = 0;
-                
+
                 data.items.forEach(item => {
                     addItemRow();
                     const lastRow = document.querySelector('#itemsContainer tr:last-child');
@@ -1126,10 +1106,10 @@
             ${message}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         `;
-        
+
         const whatsappCard = document.querySelector('.card.border-0.shadow-sm.mb-4:nth-child(4)');
         whatsappCard.querySelector('.card-body').appendChild(alertDiv);
-        
+
         setTimeout(() => {
             alertDiv.remove();
         }, 5000);

@@ -386,14 +386,14 @@
         /* Empty state untuk groups */
         .empty-state-filter {
             text-align: center;
-            padding: 2rem;
+            padding: 1rem;
             background: #f9fafb;
             border-radius: 6px;
             border: 1px dashed #e5e7eb;
         }
 
         .empty-state-filter i {
-            font-size: 3rem;
+            font-size: 1.5rem;
             color: #d1d5db;
             margin-bottom: 0.75rem;
         }
@@ -500,6 +500,83 @@
                 </div>
             </div>
 
+            {{-- SUCCESS/INFO MESSAGE --}}
+            @if (session('success'))
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="bi bi-check-circle me-2"></i>
+                    {!! session('success') !!}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            @endif
+
+            @if (session('info'))
+                <div class="alert alert-info alert-dismissible fade show" role="alert">
+                    <i class="bi bi-info-circle me-2"></i>
+                    {!! session('info') !!}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            @endif
+
+            {{-- VALIDATION ERRORS (User-facing) --}}
+            @if (session('validation_errors'))
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <div class="d-flex align-items-start">
+                        <i class="bi bi-exclamation-triangle-fill me-2 flex-shrink-0" style="font-size: 1.2rem;"></i>
+                        <div class="flex-grow-1">
+                            <strong>Validation Errors:</strong>
+                            <p class="mb-2 mt-1">The following items were <b>skipped</b> due to validation failures:</p>
+                            <ul class="mb-0">
+                                @foreach (session('validation_errors') as $error)
+                                    <li>{!! $error !!}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            @endif
+
+            {{-- VALIDATION WARNINGS --}}
+            @if (session('validation_warnings'))
+                <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                    <div class="d-flex align-items-start">
+                        <i class="bi bi-exclamation-circle me-2 flex-shrink-0" style="font-size: 1.2rem;"></i>
+                        <div class="flex-grow-1">
+                            <strong>Warnings:</strong>
+                            <p class="mb-2 mt-1">Please review the following items before proceeding:</p>
+                            <ul class="mb-0">
+                                @foreach (session('validation_warnings') as $warning)
+                                    <li>{!! $warning !!}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            @endif
+
+            {{-- GENERAL ERRORS --}}
+            @if (session('error'))
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="bi bi-x-circle me-2"></i>
+                    {!! session('error') !!}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            @endif
+
+            {{-- Laravel validation errors --}}
+            @if ($errors->any())
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <strong>Whoops!</strong> There were some problems with your input.
+                    <ul class="mb-0 mt-2">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            @endif
+
             <!--  FILTER PILLS SECTION -->
             <div class="filter-pills-wrapper">
                 <div class="filter-pills-container" id="filter-pills-container">
@@ -594,8 +671,9 @@
                                         <span class="text-danger">*</span>
                                     </label>
                                     <input type="text" class="form-control allocation-input group-waybill-input"
-                                        data-group="{{ $group['group_key'] }}" value="{{ $group['domestic_waybill_no'] }}"
-                                        placeholder="Enter waybill number" required>
+                                        data-group="{{ $group['group_key'] }}"
+                                        value="{{ $group['domestic_waybill_no'] }}" placeholder="Enter waybill number"
+                                        required>
                                     <div class="auto-save-indicator"></div>
                                 </div>
 
@@ -781,7 +859,7 @@
                             Shortage Items Management
                         </h5>
 
-                        {{-- ⭐ NEW: Tabs untuk Pending vs History --}}
+                        {{-- Tabs untuk Pending vs History --}}
                         <ul class="nav nav-tabs nav-tabs-sm" id="shortage-tabs" role="tablist">
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link active" id="pending-tab" data-bs-toggle="tab"
@@ -928,15 +1006,6 @@
             const $tbody = $(`.item-tbody[data-group="${groupKey}"]`);
             const totalCost = parseFloat($(`.group-cost-input[data-group="${groupKey}"]`).val()) || 0;
 
-            // ⭐ DEBUG LOGGING
-            console.log('🔄 Calculate Allocated Cost', {
-                groupKey: groupKey,
-                method: method,
-                totalCost: totalCost,
-                tbodyFound: $tbody.length,
-                rowsFound: $tbody.find('tr[data-group]').length
-            });
-
             if (totalCost <= 0) {
                 console.warn('⚠️ Total cost is zero or invalid');
                 $tbody.find('.allocated-cost-display').text('0.00');
@@ -955,17 +1024,15 @@
                     calculateByValueRealtime($tbody, totalCost);
                     break;
             }
-
-            console.log('✅ Calculation complete for group:', groupKey);
         }
 
         function calculateByPercentageRealtime($tbody, totalCost) {
-            // ⭐ FIX: Access TR elements with proper data attributes
+            // Access TR elements with proper data attributes
             $tbody.find('tr[data-group]').each(function() {
                 const percentage = parseFloat($(this).find('.percentage-input').val()) || 0;
                 const allocatedCost = (percentage / 100) * totalCost;
 
-                // ⭐ FIX: Update display dengan formatDynamicNumber
+                // Update display dengan formatDynamicNumber
                 $(this).find('.allocated-cost-display').text(formatDynamicNumber(allocatedCost));
             });
         }
@@ -973,7 +1040,7 @@
         function calculateByQuantityRealtime($tbody, totalCost) {
             let totalQuantity = 0;
 
-            // ⭐ FIX: Calculate total dari data attributes
+            // Calculate total dari data attributes
             $tbody.find('tr[data-group]').each(function() {
                 const qty = parseFloat($(this).data('quantity')) || 0;
                 totalQuantity += qty;
@@ -984,7 +1051,7 @@
                 return;
             }
 
-            // ⭐ FIX: Distribute cost berdasarkan quantity proportion
+            // Distribute cost berdasarkan quantity proportion
             $tbody.find('tr[data-group]').each(function() {
                 const qty = parseFloat($(this).data('quantity')) || 0;
                 const allocatedCost = (qty / totalQuantity) * totalCost;
@@ -999,12 +1066,7 @@
             $tbody.find('tr[data-group]').each(function() {
                 const value = parseFloat($(this).data('value')) || 0;
                 totalValue += value;
-
-                // ⭐ DEBUG
-                console.log('  Item value:', value);
             });
-
-            console.log('📊 Total value:', totalValue);
 
             if (totalValue <= 0) {
                 console.warn('⚠️ Total value is zero');
@@ -1017,9 +1079,6 @@
                 const allocatedCost = (value / totalValue) * totalCost;
 
                 $(this).find('.allocated-cost-display').text(formatDynamicNumber(allocatedCost));
-
-                // ⭐ DEBUG
-                console.log('  Allocated cost:', allocatedCost, 'for value:', value);
             });
         }
 
@@ -1028,7 +1087,7 @@
             // ===== 3.1 GLOBAL VARIABLES =====
             let updateTimeout = {};
             let selectedGroups = new Set();
-            let selectedShortages = new Set(); // ⭐ SINGLE DECLARATION
+            let selectedShortages = new Set();
             let hasUnsavedChanges = false;
             let isOnline = navigator.onLine;
             let isInitializing = true;
@@ -1589,7 +1648,7 @@
             function handleInputChange() {
                 if (isInitializing) return;
 
-                // ⭐ FIX: Get group key dari closest TR dengan data-group
+                // Get group key dari closest TR dengan data-group
                 const $row = $(this).closest('tr[data-group]');
                 const groupKey = $row.data('group');
 
@@ -1608,7 +1667,7 @@
             function handlePercentageInput() {
                 if (isInitializing) return;
 
-                // ⭐ FIX: Get group key dari closest TR
+                // Get group key dari closest TR
                 const $row = $(this).closest('tr[data-group]');
                 const groupKey = $row.data('group');
 
@@ -1803,28 +1862,18 @@
             // ===== UTILITY FUNCTIONS =====
 
             function togglePercentageColumns(groupKey, method) {
-                // ⭐ FIX: Select ALL percentage columns (TH + TD) untuk group ini
+                // Select ALL percentage columns (TH + TD) untuk group ini
                 const $percentageColumnTH = $(`.percentage-column[data-group="${groupKey}"]`).filter('th');
                 const $percentageColumnTD = $(`.percentage-column[data-group="${groupKey}"]`).filter('td');
                 const $percentageValidation = $(`.percentage-validation[data-group="${groupKey}"]`);
 
-                console.log('🔄 Toggle Percentage Columns', {
-                    groupKey: groupKey,
-                    method: method,
-                    thFound: $percentageColumnTH.length,
-                    tdFound: $percentageColumnTD.length,
-                    validationFound: $percentageValidation.length
-                });
-
                 if (method === 'percentage') {
-                    // ⭐ SHOW: Remove d-none class first, then animate
+                    // Remove d-none class first, then animate
                     $percentageColumnTH.removeClass('d-none').hide().slideDown(300);
                     $percentageColumnTD.removeClass('d-none').hide().slideDown(300);
                     $percentageValidation.removeClass('d-none').hide().slideDown(300);
-
-                    console.log('✅ Percentage columns shown');
                 } else {
-                    // ⭐ HIDE: Animate first, then add d-none class after animation complete
+                    // Animate first, then add d-none class after animation complete
                     $percentageColumnTH.slideUp(300, function() {
                         $(this).addClass('d-none');
                     });
@@ -1836,8 +1885,6 @@
                     $percentageValidation.slideUp(300, function() {
                         $(this).addClass('d-none');
                     });
-
-                    console.log('✅ Percentage columns hidden');
                 }
             }
 
@@ -1945,14 +1992,14 @@
                 const $select = $(`.allocation-method-select[data-group="${groupKey}"]`);
                 $select.prop('disabled', false);
 
-                // ⭐ FIX: Update method badge
+                // Update method badge
                 const newMethod = response.updated_items[0]?.cost_allocation_method || 'value';
                 updateMethodBadge(groupKey, newMethod);
 
-                // ⭐ FIX: Toggle percentage columns AFTER AJAX success
+                // Toggle percentage columns AFTER AJAX success
                 togglePercentageColumns(groupKey, newMethod);
 
-                // ⭐ FIX: Update percentage total jika method = percentage
+                // Update percentage total jika method = percentage
                 if (newMethod === 'percentage') {
                     updatePercentageTotal(groupKey);
                 }
@@ -1980,25 +2027,25 @@
                 const icon = type === 'success' ? 'check-circle' : 'exclamation-triangle';
 
                 const toast = $(`
-            <div class="toast-custom" style="
-                position: fixed;
-                bottom: 20px;
-                right: 20px;
-                background: ${bgColor};
-                color: white;
-                padding: 12px 20px;
-                border-radius: 8px;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                z-index: 9999;
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                animation: slideInRight 0.3s ease-out;
-            ">
-                <i class="bi bi-${icon}"></i>
-                <span>${message}</span>
-            </div>
-        `);
+                    <div class="toast-custom" style="
+                        position: fixed;
+                        bottom: 20px;
+                        right: 20px;
+                        background: ${bgColor};
+                        color: white;
+                        padding: 12px 20px;
+                        border-radius: 8px;
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                        z-index: 9999;
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        animation: slideInRight 0.3s ease-out;
+                    ">
+                        <i class="bi bi-${icon}"></i>
+                        <span>${message}</span>
+                    </div>
+                `);
 
                 $('body').append(toast);
 
@@ -2009,7 +2056,11 @@
                 }, 3000);
             }
 
-            // ⭐ REMOVED: checkOrphanedPRs() - tidak digunakan lagi karena sudah auto-generate
+            setTimeout(() => {
+                $('.alert-success, .alert-info').fadeOut('slow', function() {
+                    $(this).remove();
+                });
+            }, 8000);
         });
     </script>
 @endpush

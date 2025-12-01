@@ -130,7 +130,7 @@ class ShortageItemController extends Controller
 
         $query = ShortageItem::with(['purchaseRequest.project', 'purchaseRequest.supplier', 'goodsReceiveDetail'])->recent();
 
-        // ⭐ FIX: Support 'all' status
+        // Support 'all' status
         if ($status === 'all') {
             // No filter - return all statuses
         } elseif ($status === 'resolvable') {

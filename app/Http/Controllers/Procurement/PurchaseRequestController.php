@@ -49,10 +49,33 @@ class PurchaseRequestController extends Controller
     public function getDataTablesData(Request $request)
     {
         try {
-            // Add whereHas to prevent NULL user errors
-            $query = PurchaseRequest::with(['inventory', 'project', 'user', 'supplier', 'currency', 'preShipping', 'preShipping.shippingDetail'])
-                ->whereHas('user') // prevent NULL user
-                ->latest();
+            // ✅ COMPLETE: Eager load SEMUA relations yang dibutuhkan
+            $query = PurchaseRequest::with([
+                'inventory',
+                'project',
+                'user', // ✅ CRITICAL: Load user untuk requested_by
+                'supplier',
+                'originalSupplier', // Include original supplier untuk change tracking
+                'currency',
+
+                // ✅ NESTED: Nested eager load untuk shipping status
+                'preShipping' => function ($q) {
+                    $q->with([
+                        'shippingDetail' => function ($q2) {
+                            $q2->with([
+                                'shipping' => function ($q3) {
+                                    $q3->with('goodsReceive'); // Load goodsReceive untuk hasBeenReceived()
+                                },
+                            ]);
+                        },
+                    ]);
+                },
+
+                // ✅ Load shortage items untuk detect unresolved issues
+                'shortageItems' => function ($q) {
+                    $q->resolvable(); // Only pending/partially_reshipped
+                },
+            ])->whereHas('user'); // Prevent NULL user errors
 
             // Apply filters
             if ($request->filled('type_filter')) {
@@ -83,11 +106,13 @@ class PurchaseRequestController extends Controller
                 });
             }
 
-            // DataTables search
+            // DataTables search (optional - jika tidak pakai custom_search)
             if ($request->filled('search.value')) {
                 $searchValue = $request->input('search.value');
                 $query->where(function ($q) use ($searchValue) {
-                    $q->where('material_name', 'LIKE', '%' . $searchValue . '%')->orWhere('remark', 'LIKE', '%' . $searchValue . '%');
+                    $q->where('material_name', 'LIKE', '%' . $searchValue . '%')
+                        ->orWhere('type', 'LIKE', '%' . $searchValue . '%')
+                        ->orWhere('remark', 'LIKE', '%' . $searchValue . '%');
                 });
             }
 
@@ -108,52 +133,79 @@ class PurchaseRequestController extends Controller
             }
 
             // Get total and filtered counts
-            $totalRecords = PurchaseRequest::whereHas('user')->count(); // Add whereHas
+            $totalRecords = PurchaseRequest::whereHas('user')->count();
             $filteredRecords = $query->count();
 
             // Pagination
             $start = $request->input('start', 0);
             $length = $request->input('length', 15);
+
+            // ✅ EXECUTE QUERY DENGAN EAGER LOADING
             $purchaseRequests = $query->skip($start)->take($length)->get();
 
             // Check if user can view unit price
             $canViewUnitPrice = in_array(auth()->user()->role, ['super_admin', 'admin', 'admin_procurement', 'admin_logistic', 'admin_finance']);
 
-            // Format data for DataTables 
+            // Format data for DataTables
             $data = [];
             foreach ($purchaseRequests as $index => $pr) {
-                // Skip if user is NULL
+                // ✅ SAFETY CHECK: Skip jika user NULL
                 if (!$pr->user) {
                     \Log::warning('Purchase Request with missing user', ['id' => $pr->id]);
                     continue;
                 }
 
                 try {
+                    // ✅ Shipping status SUDAH DI-LOAD, no additional query
+                    $shippingStatus = $this->getShippingStatusSafe($pr);
+
                     $data[] = [
                         'DT_RowIndex' => $start + $index + 1,
                         'DT_RowId' => 'row-' . $pr->id,
-                        'DT_status' => $this->getShippingStatusSafe($pr), 
-                        'type' => ucfirst(str_replace('_', ' ', $pr->type)),
-                        'material_name' => $this->formatMaterialNameEditable($pr), 
-                        'required_quantity' => $this->formatQuantity($pr->required_quantity, $pr->unit), 
-                        'qty_to_buy' => $this->formatQtyToBuyEditable($pr), 
-                        'supplier' => $this->formatSupplierSelect($pr), 
-                        'unit_price' => $canViewUnitPrice ? $this->formatPriceInput($pr) : '-',
-                        'currency' => $canViewUnitPrice ? $this->formatCurrencySelect($pr) : '-',
-                        'approval_status' => $this->formatApprovalSelect($pr), 
-                        'delivery_date' => $this->formatDeliveryDateInput($pr),
-                        'status_badge' => '',
-                        'project' => $pr->project ? $pr->project->name : '-',
-                        'requested_by' => $pr->user ? $pr->user->username : '-',
-                        'created_at' => $pr->created_at->format('d M Y'),
-                        'remark' => $this->formatRemarkEditable($pr), 
-                        'actions' => $this->getActionButtons($pr, $canViewUnitPrice),
-                    ];
-                } catch (\Exception $itemError) {
-                    // Catch individual item errors
-                    \Log::error('Error formatting purchase request row', [
+                        'DT_status' => $shippingStatus,
                         'id' => $pr->id,
-                        'error' => $itemError->getMessage(),
+                        'type' => ucfirst(str_replace('_', ' ', $pr->type)),
+
+                        // ✅ Material name dengan stock info (no extra query)
+                        'material_name' => $this->formatMaterialNameEditable($pr),
+
+                        // ✅ Quantities (no extra query)
+                        'required_quantity' => $this->formatQuantity($pr->required_quantity, $pr->unit),
+                        'qty_to_buy' => $this->formatQtyToBuyEditable($pr),
+
+                        // ✅ Project name (already loaded)
+                        'project' => $pr->project ? $pr->project->name : '-',
+
+                        // ✅ Supplier select (no extra query)
+                        'supplier' => $this->formatSupplierSelect($pr),
+
+                        // ✅ RESTORED: Price & Currency (conditional based on role)
+                        'price_per_unit' => $canViewUnitPrice ? $this->formatPriceInput($pr) : '<span class="text-muted">Hidden</span>',
+                        'currency' => $canViewUnitPrice ? $this->formatCurrencySelect($pr) : '<span class="text-muted">-</span>',
+
+                        // ✅ Approval status & delivery date
+                        'approval_status' => $this->formatApprovalSelect($pr),
+                        'delivery_date' => $this->formatDeliveryDateInput($pr),
+
+                        // ✅ RESTORED: Requested By (from eager loaded user)
+                        'requested_by' => $pr->user->username ?? 'Unknown',
+
+                        // ✅ RESTORED: Requested At (formatted date)
+                        'requested_at' => $pr->created_at ? $pr->created_at->format('Y-m-d H:i') : '-',
+
+                        // ✅ Remark with URL handling
+                        'remark' => $this->formatRemarkEditable($pr),
+
+                        // ✅ Actions (conditional based on permissions)
+                        'actions' => $this->getActionButtons($pr, $canViewUnitPrice),
+
+                        // ✅ Shortage indicator
+                        'has_shortage' => $pr->hasUnresolvedShortage(),
+                    ];
+                } catch (\Exception $e) {
+                    \Log::error('Error formatting PR row', [
+                        'pr_id' => $pr->id,
+                        'error' => $e->getMessage(),
                     ]);
                     continue;
                 }
@@ -685,7 +737,7 @@ class PurchaseRequestController extends Controller
                 if ($requestData['type'] === 'restock' && !empty($requestData['inventory_id'])) {
                     $inventory = Inventory::find($requestData['inventory_id']);
 
-                    // Set supplier dari inventory sebagai original_supplier_id
+                    // Set both supplier_id AND original_supplier_id untuk restock
                     $supplierData['supplier_id'] = $inventory->supplier_id;
                     $supplierData['original_supplier_id'] = $inventory->supplier_id;
                 }
@@ -702,8 +754,11 @@ class PurchaseRequestController extends Controller
                     'remark' => $requestData['remark'] ?? null,
                     'requested_by' => Auth::id(),
                     'approval_status' => 'Pending',
-                    'supplier_id' => $supplierData['supplier_id'] ?? null,
-                    'original_supplier_id' => $supplierData['original_supplier_id'] ?? null,
+                    // Merge supplier data (includes original_supplier_id for restock)
+                    ...$supplierData ?: [
+                        'supplier_id' => null,
+                        'original_supplier_id' => null, // Explicitly set NULL for new_material
+                    ],
                 ];
 
                 // Handle image upload
@@ -861,17 +916,47 @@ class PurchaseRequestController extends Controller
         $data = $request->only(['qty_to_buy', 'supplier_id', 'price_per_unit', 'currency_id', 'approval_status', 'delivery_date', 'remark']);
 
         // Track supplier change
-        if ($request->filled('supplier_id') && $purchaseRequest->supplier_id !== $request->supplier_id) {
-            $data['supplier_change_reason'] = $request->supplier_change_reason ?? 'Changed by admin';
+        if ($request->filled('supplier_id')) {
+            $newSupplierId = $request->supplier_id;
+            $currentSupplierId = $purchaseRequest->supplier_id;
+            $originalSupplierId = $purchaseRequest->original_supplier_id;
 
-            // Log supplier change
-            \Log::info('Supplier changed for Purchase Request', [
-                'purchase_request_id' => $purchaseRequest->id,
-                'old_supplier_id' => $purchaseRequest->supplier_id,
-                'new_supplier_id' => $request->supplier_id,
-                'reason' => $data['supplier_change_reason'],
-                'changed_by' => Auth::id(),
-            ]);
+            // CASE 1: First time setting supplier (original_supplier_id is NULL)
+            if ($originalSupplierId === null) {
+                // Set both supplier_id AND original_supplier_id
+                $data['supplier_id'] = $newSupplierId;
+                $data['original_supplier_id'] = $newSupplierId;
+
+                \Log::info('Supplier set for the first time', [
+                    'purchase_request_id' => $purchaseRequest->id,
+                    'supplier_id' => $newSupplierId,
+                    'type' => $purchaseRequest->type,
+                ]);
+            }
+            // CASE 2: Supplier change from existing original supplier
+            elseif ($newSupplierId != $originalSupplierId) {
+                $data['supplier_id'] = $newSupplierId;
+                $data['supplier_change_reason'] = $request->supplier_change_reason ?? 'Changed by admin';
+
+                \Log::info('Supplier changed from original', [
+                    'purchase_request_id' => $purchaseRequest->id,
+                    'old_supplier_id' => $originalSupplierId,
+                    'new_supplier_id' => $newSupplierId,
+                    'reason' => $data['supplier_change_reason'],
+                    'changed_by' => Auth::id(),
+                ]);
+            }
+            // CASE 3: Supplier restored to original (no change tracking needed)
+            else {
+                $data['supplier_id'] = $newSupplierId;
+                // Clear change reason if restored to original
+                $data['supplier_change_reason'] = null;
+
+                \Log::info('Supplier restored to original', [
+                    'purchase_request_id' => $purchaseRequest->id,
+                    'supplier_id' => $newSupplierId,
+                ]);
+            }
         }
 
         if ($purchaseRequest->type === 'new_material' && $request->filled('material_name')) {

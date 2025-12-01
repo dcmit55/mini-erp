@@ -457,8 +457,8 @@
                         name: 'supplier'
                     },
                     {
-                        data: 'unit_price',
-                        name: 'unit_price',
+                        data: 'price_per_unit',
+                        name: 'price_per_unit',
                         orderable: false
                     },
                     {
@@ -513,8 +513,9 @@
                         name: 'requested_by'
                     },
                     {
-                        data: 'created_at',
-                        name: 'created_at'
+                        data: 'requested_at',
+                        name: 'created_at',
+                        orderable: true
                     },
                     {
                         data: 'remark',

@@ -72,7 +72,7 @@ class GoodsReceiveController extends Controller
             $shortageCount = 0;
 
             foreach ($shipping->details as $idx => $detail) {
-                // ⭐ Get Purchase Request dari PreShipping ATAU ShortageItem
+                // Get Purchase Request dari PreShipping ATAU ShortageItem
                 $purchaseRequest = $detail->getSourcePurchaseRequest();
 
                 if (!$purchaseRequest) {
@@ -107,7 +107,7 @@ class GoodsReceiveController extends Controller
                     'extra_cost_reason' => $detail->extra_cost_reason,
                 ]);
 
-                // ⭐ HANDLE SHORTAGE ITEMS: Update after receiving
+                // Handle shortage items: Update after receiving
                 if ($detail->isShortageResend()) {
                     $shortage = $detail->shortageItem;
 
@@ -132,7 +132,7 @@ class GoodsReceiveController extends Controller
                             'notes' => ($shortage->notes ? $shortage->notes . "\n" : '') . 'Partially received on ' . now()->format('Y-m-d H:i:s') . " | Received: {$receivedQty} / {$shortage->shortage_qty}",
                         ]);
 
-                        // ⭐ Create new shortage item for remaining qty
+                        // Create new shortage item for remaining qty
                         ShortageItem::create([
                             'goods_receive_detail_id' => $goodsReceiveDetail->id,
                             'purchase_request_id' => $purchaseRequest->id,

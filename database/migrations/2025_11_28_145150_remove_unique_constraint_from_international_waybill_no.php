@@ -8,7 +8,7 @@ return new class extends Migration {
     public function up()
     {
         Schema::table('shippings', function (Blueprint $table) {
-            // ⭐ Hapus unique constraint
+            // Hapus unique constraint
             $table->dropUnique('shippings_waybill_unique');
         });
     }

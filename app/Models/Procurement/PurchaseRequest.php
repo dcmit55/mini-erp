@@ -3,6 +3,7 @@
 namespace App\Models\Procurement;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\Admin\User;
 use App\Models\Finance\Currency;
 use App\Models\Logistic\Inventory;
@@ -15,6 +16,7 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 class PurchaseRequest extends Model implements AuditableContract
 {
     use HasFactory, \OwenIt\Auditing\Auditable;
+    use SoftDeletes;
 
     protected $fillable = ['type', 'material_name', 'inventory_id', 'required_quantity', 'qty_to_buy', 'unit', 'stock_level', 'project_id', 'requested_by', 'supplier_id', 'price_per_unit', 'currency_id', 'approval_status', 'delivery_date', 'remark', 'img', 'original_supplier_id', 'supplier_change_reason'];
 
@@ -22,6 +24,7 @@ class PurchaseRequest extends Model implements AuditableContract
         'delivery_date' => 'date',
         'required_quantity' => 'decimal:2',
         'price_per_unit' => 'decimal:2',
+        'deleted_at' => 'datetime',
     ];
 
     protected $attributes = [
@@ -125,6 +128,13 @@ class PurchaseRequest extends Model implements AuditableContract
     // Helper method untuk cek apakah supplier berubah
     public function hasSupplierChanged()
     {
+        // ✅ FIX: Jika original_supplier_id NULL, berarti supplier belum pernah di-set
+        // (case: new_material atau restock yang baru dibuat)
+        if ($this->original_supplier_id === null) {
+            return false; // Not a "change", just first assignment
+        }
+
+        // Supplier dianggap changed jika current supplier != original supplier
         return $this->supplier_id !== $this->original_supplier_id;
     }
 

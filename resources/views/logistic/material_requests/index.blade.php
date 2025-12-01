@@ -1078,8 +1078,6 @@
                             if (window.updateBulkGoodsOutButton) {
                                 window.updateBulkGoodsOutButton();
                             }
-
-                            console.log(`Status updated: ${oldStatus} → ${newStatus}`);
                         } else {
                             throw new Error(response.message || 'Update failed');
                         }

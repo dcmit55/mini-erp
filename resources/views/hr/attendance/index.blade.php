@@ -1015,13 +1015,6 @@
                         $(this).find('[data-status="late"]').hasClass('active');
                 }).length;
 
-                console.log('Summary Update:', {
-                    totalEmployees,
-                    presentCount,
-                    absentCount,
-                    lateCount
-                });
-
                 // Update summary cards dengan animasi
                 updateCardValue('primary', totalEmployees); // Total
                 updateCardValue('success', presentCount); // Present
@@ -1087,7 +1080,6 @@
                 if (skillGapAnalysis.total_affected_employees > 0) {
                     // Jika alert tidak ada (baru ada skill gap), reload page
                     if (alertContainer.length === 0) {
-                        console.log('Skill Gap alert not found, reloading page...');
                         setTimeout(() => location.reload(), 1000);
                         return;
                     }

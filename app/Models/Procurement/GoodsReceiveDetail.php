@@ -38,7 +38,7 @@ class GoodsReceiveDetail extends Model
         return $this->hasMany(ShortageItem::class);
     }
 
-    // ⭐ NEW METHOD: Check if this detail has shortage
+    // Check if this detail has shortage
     public function hasShortage()
     {
         return $this->shortageItems()->resolvable()->exists();

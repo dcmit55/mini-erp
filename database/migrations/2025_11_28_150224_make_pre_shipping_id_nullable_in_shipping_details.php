@@ -8,7 +8,7 @@ return new class extends Migration {
     public function up()
     {
         Schema::table('shipping_details', function (Blueprint $table) {
-            // ⭐ Make pre_shipping_id nullable
+            // Make pre_shipping_id nullable
             $table->unsignedBigInteger('pre_shipping_id')->nullable()->change();
         });
     }

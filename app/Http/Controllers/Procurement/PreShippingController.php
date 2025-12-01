@@ -30,12 +30,7 @@ class PreShippingController extends Controller
     public function index()
     {
         // Eager load ALL necessary relations di awal
-        $approvedRequests = PurchaseRequest::with([
-            'project',
-            'supplier',
-            'preShipping.shippingDetail',
-            'currency',
-        ])
+        $approvedRequests = PurchaseRequest::with(['project', 'supplier', 'preShipping.shippingDetail', 'currency'])
             ->where('approval_status', 'Approved')
             ->whereNotNull('supplier_id')
             ->where('supplier_id', '>', 0)
@@ -74,7 +69,6 @@ class PreShippingController extends Controller
         // Group by supplier and delivery date
         foreach ($approvedRequests as $request) {
             // Relax validation - hanya check supplier_id & delivery_date EXISTS
-            // Tidak perlu check supplier relation (karena sudah di-filter di index())
             if (!$request->supplier_id || !$request->delivery_date) {
                 \Log::warning('PR skipped in generatePreShippingGroups - missing required data', [
                     'pr_id' => $request->id,
@@ -91,33 +85,36 @@ class PreShippingController extends Controller
             $groups[$groupKey][] = $request;
         }
 
-        // Create or update pre-shipping records
+        // ✅ FIX: Use firstOrCreate to prevent race condition
         foreach ($groups as $groupKey => $requests) {
             foreach ($requests as $request) {
-                $existingPreShipping = PreShipping::where('purchase_request_id', $request->id)->first();
-
-                if (!$existingPreShipping) {
-                    // Create new PreShipping
-                    $newPreShipping = PreShipping::create([
-                        'purchase_request_id' => $request->id,
+                // Atomic operation - prevents duplicate creation
+                $preShipping = PreShipping::firstOrCreate(
+                    [
+                        'purchase_request_id' => $request->id, // Unique constraint
+                    ],
+                    [
                         'group_key' => $groupKey,
                         'cost_allocation_method' => 'value',
-                    ]);
+                    ],
+                );
 
+                // Jika record sudah ada tapi group_key berbeda, update
+                if ($preShipping->wasRecentlyCreated) {
                     \Log::info('PreShipping created', [
-                        'pre_shipping_id' => $newPreShipping->id,
+                        'pre_shipping_id' => $preShipping->id,
                         'purchase_request_id' => $request->id,
                         'group_key' => $groupKey,
                         'material_name' => $request->material_name,
                     ]);
                 } else {
-                    // Jika sudah ada, update group_key jika berbeda
-                    if ($existingPreShipping->group_key !== $groupKey) {
-                        $existingPreShipping->update(['group_key' => $groupKey]);
+                    // Record sudah ada, check if group_key needs update
+                    if ($preShipping->group_key !== $groupKey) {
+                        $preShipping->update(['group_key' => $groupKey]);
 
                         \Log::info('PreShipping group_key updated', [
-                            'pre_shipping_id' => $existingPreShipping->id,
-                            'old_group_key' => $existingPreShipping->group_key,
+                            'pre_shipping_id' => $preShipping->id,
+                            'old_group_key' => $preShipping->getOriginal('group_key'),
                             'new_group_key' => $groupKey,
                         ]);
                     }

@@ -52,7 +52,12 @@ class ShippingController extends Controller
         // STEP 1: Load Normal Pre-Shipping Items
         $normalPreShippings = collect();
         if (!empty($groupKeys)) {
-            $normalPreShippings = PreShipping::with(['purchaseRequest.project', 'purchaseRequest.supplier', 'purchaseRequest.currency', 'shippingDetail'])
+            $normalPreShippings = PreShipping::with([
+                'purchaseRequest' => function ($q) {
+                    $q->with(['project', 'supplier', 'currency', 'originalSupplier', 'user', 'inventory']);
+                },
+                'shippingDetail',
+            ])
                 ->whereIn('group_key', $groupKeys)
                 ->get();
 
@@ -62,52 +67,153 @@ class ShippingController extends Controller
             });
         }
 
-        // STEP 2: Load Shortage Items LANGSUNG (TANPA Create PR Baru)
+        // STEP 2: Load Shortage Items dengan USER-FRIENDLY VALIDATION
         $shortageItems = collect();
-        if (!empty($shortageItemIds)) {
-            $shortageItems = ShortageItem::with(['purchaseRequest.project', 'purchaseRequest.supplier', 'purchaseRequest.currency'])
-                ->whereIn('id', $shortageItemIds)
-                ->resolvable() // Only pending atau partially_reshipped
-                ->get();
+        $validationErrors = []; // Collect user-facing errors
+        $validationWarnings = []; // Collect warnings
 
-            // ⭐ PERBAIKAN: Filter HANYA berdasarkan status shortage & keberadaan di shipping_detail
-            $shortageItems = $shortageItems->filter(function ($shortage) {
-                // 1️⃣ Cek apakah shortage ini sudah pernah di-ship sebelumnya
-                // (NOTE: Bisa di-ship ulang berkali-kali, tapi tidak boleh diadd ke 2 shipping sekaligus)
-                $currentShippingDetail = \App\Models\Procurement\ShippingDetail::where('shortage_item_id', $shortage->id)
+        if (!empty($shortageItemIds)) {
+            // Load shortage items dengan proper eager loading
+            $shortageItems = ShortageItem::whereIn('id', $shortageItemIds)->resolvable()->get();
+
+            // Load purchase requests
+            $shortageItems->load([
+                'purchaseRequest' => function ($query) {
+                    $query->with([
+                        'supplier',
+                        'originalSupplier',
+                        'project',
+                        'currency',
+                        'user',
+                        'inventory',
+                        'preShipping',
+                    ]);
+                },
+            ]);
+
+            // ENHANCED FILTER dengan USER-FACING ERROR MESSAGES
+            $shortageItems = $shortageItems->filter(function ($shortage) use (&$validationErrors, &$validationWarnings) {
+                // VALIDATION 1: PR not found
+                if (!$shortage->purchaseRequest) {
+                    $validationErrors[] = "Shortage ID #{$shortage->id}: Purchase Request not found or has been deleted.";
+
+                    \Log::warning('Shortage item SKIPPED - PR not found', [
+                        'shortage_id' => $shortage->id,
+                        'pr_id' => $shortage->purchase_request_id,
+                    ]);
+                    return false;
+                }
+
+                $pr = $shortage->purchaseRequest;
+
+                // VALIDATION 2: Supplier changed
+                if ($pr->hasSupplierChanged()) {
+                    $oldSupplier = $pr->originalSupplier ? $pr->originalSupplier->name : 'Unknown';
+                    $newSupplier = $pr->supplier ? $pr->supplier->name : 'Unknown';
+
+                    $validationErrors[] = "Material <b>{$pr->material_name}</b>: Supplier changed from <b>{$oldSupplier}</b> to <b>{$newSupplier}</b>. Cannot resend shortage to different supplier. Please create new PR instead.";
+
+                    \Log::warning('Shortage item SKIPPED - Supplier changed', [
+                        'shortage_id' => $shortage->id,
+                        'material' => $pr->material_name,
+                        'old_supplier' => $oldSupplier,
+                        'new_supplier' => $newSupplier,
+                    ]);
+                    return false;
+                }
+
+                // VALIDATION 3: Supplier blacklisted
+                if ($pr->supplier && $pr->supplier->status === 'blacklisted') {
+                    $validationErrors[] = "Material <b>{$pr->material_name}</b>: Supplier <b>{$pr->supplier->name}</b> is blacklisted. Cannot create shipment.";
+
+                    \Log::warning('Shortage item SKIPPED - Supplier blacklisted', [
+                        'shortage_id' => $shortage->id,
+                        'supplier' => $pr->supplier->name,
+                    ]);
+                    return false;
+                }
+
+                // WARNING: Supplier inactive
+                if ($pr->supplier && $pr->supplier->status === 'inactive') {
+                    $validationWarnings[] = "Material <b>{$pr->material_name}</b>: Supplier <b>{$pr->supplier->name}</b> is inactive. Shipment allowed but verify supplier status.";
+
+                    \Log::info('Shortage item WARNING - Supplier inactive', [
+                        'shortage_id' => $shortage->id,
+                        'supplier' => $pr->supplier->name,
+                    ]);
+                }
+
+                // VALIDATION 4: Supplier not found
+                if (!$pr->supplier) {
+                    $validationErrors[] = "Material <b>{$pr->material_name}</b>: Supplier not found (ID: {$pr->supplier_id}). Cannot create shipment.";
+
+                    \Log::warning('Shortage item SKIPPED - Supplier not found', [
+                        'shortage_id' => $shortage->id,
+                        'supplier_id' => $pr->supplier_id,
+                    ]);
+                    return false;
+                }
+
+                // WARNING: Delivery date too old
+                if ($pr->delivery_date) {
+                    $daysSinceDelivery = now()->diffInDays($pr->delivery_date);
+                    $maxDaysAllowed = 180; // 6 bulan
+
+                    if ($daysSinceDelivery > $maxDaysAllowed) {
+                        $validationWarnings[] = "Material <b>{$pr->material_name}</b>: Delivery date is <b>{$daysSinceDelivery} days old</b> (max recommended: {$maxDaysAllowed} days). Consider creating new PR.";
+
+                        \Log::info('Shortage item WARNING - Delivery date old', [
+                            'shortage_id' => $shortage->id,
+                            'days_old' => $daysSinceDelivery,
+                        ]);
+                    }
+                }
+
+                // VALIDATION 5: Already in pending shipment
+                $currentShippingDetail = ShippingDetail::where('shortage_item_id', $shortage->id)
                     ->whereHas('shipping', function ($q) {
-                        // Hanya block jika ada shipping yang BELUM di-terima
                         $q->doesntHave('goodsReceive');
                     })
                     ->exists();
 
                 if ($currentShippingDetail) {
-                    \Log::warning('Shortage item SKIPPED - Already in pending shipment', [
+                    $validationErrors[] = "Material <b>{$pr->material_name}</b>: Already in pending shipment. Cannot add to multiple shipments simultaneously.";
+
+                    \Log::warning('Shortage item SKIPPED - Already in shipment', [
                         'shortage_id' => $shortage->id,
-                        'status' => $shortage->status,
-                        'reason' => 'Cannot add to multiple shipments simultaneously',
+                        'material' => $pr->material_name,
                     ]);
                     return false;
                 }
 
-                // 2️⃣ Ensure PR exists (TIDAK PERLU check apakah PR sudah shipped)
-                // Karena shortage = resend dari PR yang sudah shipped
-                if (!$shortage->purchaseRequest) {
-                    \Log::warning('Shortage item SKIPPED - No original PR', [
+                // WARNING: Project inactive (if applicable)
+                if ($pr->project && method_exists($pr->project, 'isActive') && !$pr->project->isActive()) {
+                    $validationWarnings[] = "Material <b>{$pr->material_name}</b>: Project <b>{$pr->project->name}</b> is inactive. Verify project status.";
+
+                    \Log::info('Shortage item WARNING - Project inactive', [
                         'shortage_id' => $shortage->id,
+                        'project' => $pr->project->name,
                     ]);
-                    return false;
                 }
 
-                // ✅ Item ini VALID untuk di-ship (TERLEPAS dari status PR)
+                // ALL VALIDATIONS PASSED
+                \Log::info('Shortage item VALIDATED successfully', [
+                    'shortage_id' => $shortage->id,
+                    'material' => $pr->material_name,
+                    'supplier' => $pr->supplier->name,
+                ]);
+
                 return true;
             });
+        }
 
-            \Log::info('Shortage Items Filtered', [
-                'requested' => count($shortageItemIds),
-                'valid_for_shipping' => $shortageItems->count(),
-                'skipped' => count($shortageItemIds) - $shortageItems->count(),
-            ]);
+        // FLASH VALIDATION ERRORS TO SESSION (for UI display)
+        if (!empty($validationErrors)) {
+            session()->flash('validation_errors', $validationErrors);
+        }
+
+        if (!empty($validationWarnings)) {
+            session()->flash('validation_warnings', $validationWarnings);
         }
 
         // STEP 3: Merge Collections
@@ -122,14 +228,13 @@ class ShippingController extends Controller
 
         // Add shortage items dengan flag
         foreach ($shortageItems as $shortage) {
-            // Create wrapper object mirip PreShipping untuk consistency di view
             $wrapper = (object) [
-                'id' => 'SHORTAGE_' . $shortage->id, // Unique ID untuk form
+                'id' => 'SHORTAGE_' . $shortage->id,
                 'shortage_item_id' => $shortage->id,
                 'purchase_request_id' => $shortage->purchase_request_id,
                 'purchaseRequest' => $shortage->purchaseRequest,
                 'domestic_waybill_no' => $shortage->old_domestic_wbl,
-                'domestic_cost' => 0, // Shortage tidak punya domestic cost
+                'domestic_cost' => 0,
                 'allocated_cost' => 0,
                 'is_shortage' => true,
                 'item_type' => 'shortage',
@@ -140,22 +245,37 @@ class ShippingController extends Controller
             $allItems->push($wrapper);
         }
 
+        // HANDLE CASE: Semua items gagal validasi
         if ($allItems->isEmpty()) {
-            return redirect()->route('pre-shippings.index')->with('error', 'No valid items found.');
+            $errorMessage = 'No valid items found. ';
+
+            if (!empty($validationErrors)) {
+                $errorMessage .= 'Please fix the following issues and try again.';
+            } else {
+                $errorMessage .= 'All items failed validation.';
+            }
+
+            return redirect()->route('pre-shippings.index')->with('error', $errorMessage);
         }
 
-        // Summary message
+        // SUMMARY MESSAGE untuk user
         $normalCount = $normalPreShippings->count();
         $shortageCount = $shortageItems->count();
-        $summaryMessage = "Creating shipping with {$normalCount} normal item(s)";
+        $skippedCount = count($shortageItemIds) - $shortageCount;
+
+        $summaryMessage = "Creating shipping with <b>{$normalCount} normal item(s)</b>";
         if ($shortageCount > 0) {
-            $summaryMessage .= " and {$shortageCount} shortage resend item(s)";
+            $summaryMessage .= " and <b>{$shortageCount} shortage resend item(s)</b>";
         }
+        if ($skippedCount > 0) {
+            $summaryMessage .= " (<b>{$skippedCount} item(s) skipped</b> - see details below)";
+        }
+
         session()->flash('info', $summaryMessage);
 
         $freightCompanies = ['DHL', 'FedEx', 'Maersk', 'CMA CGM'];
 
-        return view('procurement.shippings.create', compact('allItems', 'freightCompanies'))->with('preShippings', $allItems); // Backward compatibility
+        return view('procurement.shippings.create', compact('allItems', 'freightCompanies'))->with('preShippings', $allItems);
     }
 
     public function store(Request $request)
@@ -205,7 +325,7 @@ class ShippingController extends Controller
             }
         }
 
-        // ⭐ START TRANSACTION IMMEDIATELY - BEFORE ANY CREATE
+        // START TRANSACTION IMMEDIATELY - BEFORE ANY CREATE
         DB::beginTransaction();
         try {
             // Create shipping
@@ -239,7 +359,7 @@ class ShippingController extends Controller
                         throw new \Exception("Shortage item #{$shortageId} not found");
                     }
 
-                    // ⭐ GET ORIGINAL PRE_SHIPPING_ID dari shortage's purchase request
+                    // GET ORIGINAL PRE_SHIPPING_ID dari shortage's purchase request
                     $preShippingId = $shortage->purchaseRequest->preShipping->id ?? null;
 
                     if (!$preShippingId) {
@@ -249,7 +369,7 @@ class ShippingController extends Controller
                     // CREATE SHIPPING DETAIL dengan pre_shipping_id yang valid
                     ShippingDetail::create([
                         'shipping_id' => $shipping->id,
-                        'pre_shipping_id' => $preShippingId, // ⭐ SET DARI ORIGINAL PR
+                        'pre_shipping_id' => $preShippingId, // SET DARI ORIGINAL PR
                         'shortage_item_id' => $shortageId,
                         'percentage' => $request->percentage[$idx] ?? null,
                         'int_cost' => $request->int_cost[$idx],
@@ -278,7 +398,7 @@ class ShippingController extends Controller
 
                     ShippingDetail::create([
                         'shipping_id' => $shipping->id,
-                        'pre_shipping_id' => $preShippingId, // ⭐ NORMAL PRE_SHIPPING_ID
+                        'pre_shipping_id' => $preShippingId,
                         'shortage_item_id' => null,
                         'percentage' => $request->percentage[$idx] ?? null,
                         'int_cost' => $request->int_cost[$idx],
