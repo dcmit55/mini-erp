@@ -1,4 +1,4 @@
-# iSyment - Mini ERP DCM
+# SymCore - Mini ERP DCM
 
 [![Laravel](https://img.shields.io/badge/Laravel-11.x-red.svg)](https://laravel.com)
 [![PHP](https://img.shields.io/badge/PHP-8.1+-blue.svg)](https://php.net)
@@ -171,7 +171,7 @@ Aplikasi dapat diakses di `http://localhost:8000`
 
 ```env
 # Application
-APP_NAME="iSyment Inventory"
+APP_NAME="SymCore"
 APP_ENV=local
 APP_DEBUG=true
 APP_URL=http://localhost
