@@ -482,40 +482,164 @@ class GoodsMovementController extends Controller
 
         $message = $request->message;
         $items = [];
+        $errors = [];
+        $lines = explode("\n", $message);
 
-        $patterns = ['/([^*\n]+)\s*\*\s*(\d+(?:\.\d+)?)\s*\*\s*(\w+)\s*\*\s*([^\n]*)/i', '/([^*\n]+)\s*\*\s*(\d+(?:\.\d+)?)\s*\*\s*(\w+)(?:\s*$|\s*\n)/i', '/([^-\n]+)\s*-\s*(\d+(?:\.\d+)?)\s*-\s*(\w+)(?:\s*$|\s*\n)/i'];
+        foreach ($lines as $lineNumber => $line) {
+            $line = trim($line);
+            if (empty($line)) {
+                continue;
+            }
 
-        foreach ($patterns as $pattern) {
-            if (preg_match_all($pattern, $message, $matches, PREG_SET_ORDER)) {
-                foreach ($matches as $match) {
-                    $itemName = trim($match[1]);
-                    $qty = (float) $match[2];
-                    $unit = isset($match[3]) ? trim($match[3]) : 'pcs';
-                    $notes = isset($match[4]) ? trim($match[4]) : '';
+            // Skip header lines
+            if (preg_match('/^(Handcarry|Soon Brothers|Courier)/i', $line)) {
+                continue;
+            }
 
-                    if (empty($itemName)) {
-                        continue;
-                    }
+            $parts = array_map('trim', explode('|', $line));
 
-                    $inventory = Inventory::where('name', 'like', '%' . $itemName . '%')->first();
+            // VALIDASI: Material type WAJIB ada
+            if (count($parts) < 1 || empty($parts[0])) {
+                $errors[] = '❌ Baris ' . ($lineNumber + 1) . ': Material Type wajib diisi!';
+                continue;
+            }
+
+            $materialTypeInput = strtolower($parts[0]);
+            $materialType = null;
+
+            // Map input ke material type yang valid
+            if (in_array($materialTypeInput, ['goods receive', 'gr', 'g'])) {
+                $materialType = 'Goods Receive';
+            } elseif (in_array($materialTypeInput, ['restock', 'r'])) {
+                $materialType = 'Restock';
+            } elseif (in_array($materialTypeInput, ['project', 'p'])) {
+                $materialType = 'Project';
+            } elseif (in_array($materialTypeInput, ['new', 'new material', 'n'])) {
+                $materialType = 'New Material';
+            } else {
+                $errors[] = '❌ Baris ' . ($lineNumber + 1) . ": Material type '$materialTypeInput' tidak valid.";
+                continue;
+            }
+
+            // ✅ GOODS RECEIVE: Format = Goods Receive | waybill | goods_item_name | qty | unit | notes
+            if ($materialType === 'Goods Receive') {
+                $waybill = isset($parts[1]) && !empty($parts[1]) ? $parts[1] : null;
+                $goodsItemName = isset($parts[2]) && !empty($parts[2]) ? $parts[2] : null;
+                $quantity = isset($parts[3]) && !empty($parts[3]) ? $parts[3] : null;
+                $unit = isset($parts[4]) && !empty($parts[4]) ? $parts[4] : 'pcs';
+                $notes = isset($parts[5]) && !empty($parts[5]) ? $parts[5] : null;
+
+                if (!$waybill) {
+                    $errors[] = '❌ Baris ' . ($lineNumber + 1) . ': Waybill wajib diisi untuk Goods Receive.';
+                    continue;
+                }
+                if (!$goodsItemName) {
+                    $errors[] = '❌ Baris ' . ($lineNumber + 1) . ': Nama barang wajib diisi untuk Goods Receive.';
+                    continue;
+                }
+
+                // Cari Goods Receive berdasarkan waybill
+                $goodsReceive = \App\Models\Procurement\GoodsReceive::where('international_waybill_no', $waybill)->first();
+                if (!$goodsReceive) {
+                    $errors[] = '❌ Baris ' . ($lineNumber + 1) . ": Waybill '$waybill' tidak ditemukan.";
+                    continue;
+                }
+
+                // Cari detail barang berdasarkan nama (partial match)
+                $goodsReceiveDetail = \App\Models\Procurement\GoodsReceiveDetail::where('goods_receive_id', $goodsReceive->id)
+                    ->whereRaw('LOWER(material_name) LIKE ?', ['%' . strtolower($goodsItemName) . '%'])
+                    ->first();
+
+                if (!$goodsReceiveDetail) {
+                    $errors[] = '❌ Baris ' . ($lineNumber + 1) . ": Barang '$goodsItemName' tidak ditemukan pada waybill '$waybill'.";
+                    continue;
+                }
+
+                $items[] = [
+                    'material_type' => $materialType,
+                    'goods_receive_id' => $goodsReceive->id,
+                    'goods_receive_detail_id' => $goodsReceiveDetail->id,
+                    'material_name' => $goodsReceiveDetail->material_name,
+                    'quantity' => $quantity,
+                    'unit' => $unit,
+                    'notes' => $notes,
+                    'waybill' => $waybill, // Untuk referensi di frontend
+                ];
+                continue;
+            }
+
+            // Parse untuk tipe lain (Restock, Project, New Material)
+            $materialName = isset($parts[1]) && !empty($parts[1]) ? $parts[1] : null;
+            $quantity = isset($parts[2]) && !empty($parts[2]) ? $parts[2] : null;
+            $unit = isset($parts[3]) && !empty($parts[3]) ? $parts[3] : 'pcs';
+            $notes = isset($parts[4]) && !empty($parts[4]) ? $parts[4] : null;
+
+            // Validasi quantity jika ada
+            if ($quantity !== null && !is_numeric($quantity)) {
+                $errors[] = '❌ Baris ' . ($lineNumber + 1) . ': Quantity harus berupa angka';
+                continue;
+            }
+
+            // Cari material di inventory/project jika ada nama material
+            $inventoryId = null;
+            $projectId = null;
+
+            if ($materialName) {
+                // Untuk Restock, cari di inventory
+                if ($materialType === 'Restock') {
+                    $inventory = Inventory::whereRaw('LOWER(name) LIKE ?', ['%' . strtolower($materialName) . '%'])->first();
 
                     if ($inventory) {
-                        $items[] = [
-                            'name' => $inventory->name,
-                            'inventory_id' => $inventory->id,
-                            'quantity' => $qty,
-                            'unit' => $unit ?: $inventory->unit ?? 'pcs',
-                            'notes' => $notes,
-                        ];
+                        $inventoryId = $inventory->id;
+                        $materialName = $inventory->name;
+                        $unit = $inventory->unit;
+                    } else {
+                        // Jika tidak ditemukan di inventory, ubah ke New Material
+                        $materialType = 'New Material';
+                        \Log::info("Material '$materialName' tidak ditemukan di inventory, diubah ke New Material");
                     }
                 }
-                break;
+
+                // Untuk Project, cari di projects
+                elseif ($materialType === 'Project') {
+                    $project = Project::whereRaw('LOWER(name) LIKE ?', ['%' . strtolower($materialName) . '%'])->first();
+
+                    if ($project) {
+                        $projectId = $project->id;
+                        $materialName = $project->name;
+                    } else {
+                        $errors[] = '❌ Baris ' . ($lineNumber + 1) . ": Project '$materialName' tidak ditemukan di database";
+                        continue;
+                    }
+                }
             }
+
+            // Buat item data
+            $itemData = [
+                'material_type' => $materialType,
+                'material_name' => $materialName,
+                'quantity' => $quantity,
+                'unit' => $unit,
+                'notes' => $notes,
+            ];
+
+            // Tambahkan field sesuai material type
+            if ($materialType === 'Restock' && $inventoryId) {
+                $itemData['inventory_id'] = $inventoryId;
+            } elseif ($materialType === 'Project' && $projectId) {
+                $itemData['project_id'] = $projectId;
+            } elseif ($materialType === 'New Material') {
+                $itemData['new_material_name'] = $materialName;
+            }
+
+            $items[] = $itemData;
         }
 
         return response()->json([
-            'items' => $items,
+            'success' => true,
             'count' => count($items),
+            'items' => $items,
+            'errors' => $errors,
         ]);
     }
 
