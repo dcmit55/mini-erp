@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;    
+use App\Http\Controllers\Controller;
 use App\Models\Production\Project;
 use App\Models\Hr\Employee;
 use Illuminate\Http\Request;
@@ -106,6 +106,63 @@ class ProjectApiController extends Controller
                 'success' => false,
                 'message' => 'Project not found'
             ], 404);
+        }
+    }
+
+    /**
+     * Get parts by project_id
+     * 
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getPartsByProject(Request $request)
+    {
+        try {
+            $projectId = $request->input('project_id');
+
+            if (!$projectId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'project_id is required'
+                ], 400);
+            }
+
+            $project = Project::with('parts:id,part_name,project_id')
+                ->select('id', 'name')
+                ->find($projectId);
+
+            if (!$project) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Project not found'
+                ], 404);
+            }
+
+            $parts = $project->parts->map(function($part) {
+                return [
+                    'id' => $part->id,
+                    'name' => $part->part_name,
+                    'project_id' => $part->project_id
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'project' => [
+                        'id' => $project->id,
+                        'name' => $project->name
+                    ],
+                    'parts' => $parts
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve parts',
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
 
