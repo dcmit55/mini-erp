@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Waktu pembuatan: 20 Nov 2025 pada 01.15
+-- Waktu pembuatan: 24 Des 2025 pada 07.07
 -- Versi server: 8.0.30
 -- Versi PHP: 8.3.26
 
@@ -1584,7 +1584,154 @@ INSERT INTO `audits` (`id`, `user_type`, `user_id`, `event`, `auditable_type`, `
 (1440, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 27, '{\"supplier_id\":23,\"supplier_change_reason\":\"Changed by admin\"}', '{\"supplier_id\":\"25\",\"supplier_change_reason\":\"habis lagi ternyata\"}', 'http://inventory-system-v2.test/purchase_requests/27/quick-update', '127.0.0.1', 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Mobile Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-19 03:09:04', '2025-11-19 03:09:04'),
 (1441, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 27, '{\"supplier_id\":25,\"supplier_change_reason\":\"habis lagi ternyata\"}', '{\"supplier_id\":\"41\",\"supplier_change_reason\":\"habis woy\"}', 'http://inventory-system-v2.test/purchase_requests/27/quick-update', '127.0.0.1', 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Mobile Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-19 03:09:32', '2025-11-19 03:09:32'),
 (1442, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 27, '{\"supplier_id\":41,\"supplier_change_reason\":\"habis woy\"}', '{\"supplier_id\":\"17\",\"supplier_change_reason\":\"habis heh\"}', 'http://inventory-system-v2.test/purchase_requests/27/quick-update', '127.0.0.1', 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Mobile Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-19 03:10:31', '2025-11-19 03:10:31'),
-(1443, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 27, '{\"supplier_id\":17,\"supplier_change_reason\":\"habis heh\"}', '{\"supplier_id\":\"25\",\"supplier_change_reason\":\"habis lagi huh\"}', 'http://inventory-system-v2.test/purchase_requests/27/quick-update', '127.0.0.1', 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Mobile Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-19 03:10:51', '2025-11-19 03:10:51');
+(1443, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 27, '{\"supplier_id\":17,\"supplier_change_reason\":\"habis heh\"}', '{\"supplier_id\":\"25\",\"supplier_change_reason\":\"habis lagi huh\"}', 'http://inventory-system-v2.test/purchase_requests/27/quick-update', '127.0.0.1', 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Mobile Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-19 03:10:51', '2025-11-19 03:10:51'),
+(1444, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 27, '{\"remark\":\"test\"}', '{\"remark\":\"undefined\"}', 'http://inventory-system-v2.test/purchase_requests/27/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-22 05:33:52', '2025-11-22 05:33:52'),
+(1445, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 27, '{\"remark\":\"test\"}', '{\"remark\":\"undefined\"}', 'http://inventory-system-v2.test/purchase_requests/27/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-22 05:33:52', '2025-11-22 05:33:52'),
+(1446, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 27, '{\"remark\":\"test\"}', '{\"remark\":\"undefined\"}', 'http://inventory-system-v2.test/purchase_requests/27/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-22 05:33:52', '2025-11-22 05:33:52'),
+(1447, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 27, '{\"remark\":\"test\"}', '{\"remark\":\"undefined\"}', 'http://inventory-system-v2.test/purchase_requests/27/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-22 05:33:52', '2025-11-22 05:33:52'),
+(1448, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 27, '{\"remark\":\"undefined\"}', '{\"remark\":null}', 'http://inventory-system-v2.test/purchase_requests/27/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-22 05:33:59', '2025-11-22 05:33:59'),
+(1449, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 27, '{\"remark\":\"undefined\"}', '{\"remark\":null}', 'http://inventory-system-v2.test/purchase_requests/27/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-22 05:33:59', '2025-11-22 05:33:59'),
+(1450, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 27, '{\"qty_to_buy\":\"10.00\"}', '{\"qty_to_buy\":\"9.99\"}', 'http://inventory-system-v2.test/purchase_requests/27/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-22 05:35:55', '2025-11-22 05:35:55'),
+(1451, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 27, '{\"qty_to_buy\":\"9.99\"}', '{\"qty_to_buy\":\"10\"}', 'http://inventory-system-v2.test/purchase_requests/27/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-22 05:35:56', '2025-11-22 05:35:56'),
+(1452, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 27, '{\"qty_to_buy\":\"10.00\"}', '{\"qty_to_buy\":\"10\"}', 'http://inventory-system-v2.test/purchase_requests/27/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-22 05:35:56', '2025-11-22 05:35:56'),
+(1453, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 27, '{\"qty_to_buy\":\"10.00\"}', '{\"qty_to_buy\":\"9.99\"}', 'http://inventory-system-v2.test/purchase_requests/27/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-22 05:35:56', '2025-11-22 05:35:56'),
+(1454, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 27, '{\"qty_to_buy\":\"9.99\"}', '{\"qty_to_buy\":\"10\"}', 'http://inventory-system-v2.test/purchase_requests/27/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-22 05:35:56', '2025-11-22 05:35:56'),
+(1455, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 27, '{\"approval_status\":\"Pending\"}', '{\"approval_status\":\"Approved\"}', 'http://inventory-system-v2.test/purchase_requests/27/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-22 05:35:59', '2025-11-22 05:35:59'),
+(1456, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 27, '{\"approval_status\":\"Pending\"}', '{\"approval_status\":\"Approved\"}', 'http://inventory-system-v2.test/purchase_requests/27/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-22 05:35:59', '2025-11-22 05:35:59'),
+(1457, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 27, '{\"approval_status\":\"Pending\"}', '{\"approval_status\":\"Approved\"}', 'http://inventory-system-v2.test/purchase_requests/27/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-22 05:35:59', '2025-11-22 05:35:59'),
+(1458, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 27, '{\"approval_status\":\"Approved\"}', '{\"approval_status\":null}', 'http://inventory-system-v2.test/purchase_requests/27/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-22 05:36:03', '2025-11-22 05:36:03'),
+(1459, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 27, '{\"approval_status\":\"Approved\"}', '{\"approval_status\":null}', 'http://inventory-system-v2.test/purchase_requests/27/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-22 05:36:03', '2025-11-22 05:36:03'),
+(1460, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 27, '{\"approval_status\":\"Approved\"}', '{\"approval_status\":null}', 'http://inventory-system-v2.test/purchase_requests/27/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-22 05:36:03', '2025-11-22 05:36:03'),
+(1461, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 27, '{\"currency_id\":null}', '{\"currency_id\":\"57\"}', 'http://inventory-system-v2.test/purchase_requests/27/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-22 05:36:05', '2025-11-22 05:36:05'),
+(1462, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 27, '{\"currency_id\":null}', '{\"currency_id\":\"57\"}', 'http://inventory-system-v2.test/purchase_requests/27/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-22 05:36:05', '2025-11-22 05:36:05'),
+(1463, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 27, '{\"currency_id\":null}', '{\"currency_id\":\"57\"}', 'http://inventory-system-v2.test/purchase_requests/27/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-22 05:36:05', '2025-11-22 05:36:05'),
+(1464, 'App\\Models\\User', 1, 'created', 'App\\Models\\Procurement\\ShortageItem', 1, '[]', '{\"shortage_qty\":1,\"status\":\"pending\",\"resend_count\":0,\"notes\":\"Auto-detected shortage on 2025-11-27 14:23:56\"}', 'http://inventory-system-v2.test/goods-receive/store', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-27 07:23:57', '2025-11-27 07:23:57'),
+(1465, 'App\\Models\\User', 1, 'created', 'App\\Models\\Procurement\\PurchaseRequest', 28, '[]', '{\"approval_status\":\"Approved\",\"type\":\"new_material\",\"material_name\":\"test req\",\"inventory_id\":null,\"required_quantity\":\"1.00\",\"qty_to_buy\":\"1.00\",\"supplier_id\":7,\"price_per_unit\":\"43.00\",\"currency_id\":58,\"delivery_date\":\"2025-10-02 00:00:00\",\"remark\":\"\\ud83d\\udd04 Resend shortage from PR#3 | Original purchased: 2.00, Received: 1.00, Shortage: 1.00\"}', 'http://inventory-system-v2.test/shortage-items/bulk-resend', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-27 07:26:18', '2025-11-27 07:26:18'),
+(1466, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\ShortageItem', 1, '{\"status\":\"pending\",\"resend_count\":0,\"notes\":\"Auto-detected shortage on 2025-11-27 14:23:56\"}', '{\"status\":\"reshipped\",\"resend_count\":1,\"notes\":\"Auto-detected shortage on 2025-11-27 14:23:56\\nReshipped on 2025-11-27 14:26:18 | New PR#28 created by logitech\"}', 'http://inventory-system-v2.test/shortage-items/bulk-resend', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-27 07:26:18', '2025-11-27 07:26:18'),
+(1467, 'App\\Models\\User', 1, 'created', 'App\\Models\\Procurement\\ShortageItem', 2, '[]', '{\"shortage_qty\":1,\"status\":\"pending\",\"resend_count\":0,\"notes\":\"Auto-detected shortage on 2025-11-27 14:29:13\"}', 'http://inventory-system-v2.test/goods-receive/store', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-27 07:29:13', '2025-11-27 07:29:13'),
+(1468, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\ShortageItem', 2, '{\"status\":\"pending\",\"notes\":\"Auto-detected shortage on 2025-11-27 14:29:13\"}', '{\"status\":\"canceled\",\"notes\":\"Canceled: cancel\"}', 'http://inventory-system-v2.test/shortage-items/2/cancel', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-27 07:45:00', '2025-11-27 07:45:00'),
+(1469, 'App\\Models\\User', 1, 'created', 'App\\Models\\Procurement\\ShortageItem', 3, '[]', '{\"shortage_qty\":1,\"status\":\"pending\",\"resend_count\":0,\"notes\":\"Auto-detected shortage on 2025-11-27 14:45:46\"}', 'http://inventory-system-v2.test/goods-receive/store', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-27 07:45:46', '2025-11-27 07:45:46'),
+(1470, 'App\\Models\\User', 1, 'created', 'App\\Models\\Procurement\\PurchaseRequest', 29, '[]', '{\"approval_status\":\"Approved\",\"type\":\"new_material\",\"material_name\":\"test req\",\"inventory_id\":null,\"required_quantity\":\"1.00\",\"qty_to_buy\":\"1.00\",\"supplier_id\":7,\"price_per_unit\":\"43.00\",\"currency_id\":58,\"delivery_date\":\"2025-10-02 00:00:00\",\"remark\":\"\\ud83d\\udd04 Resend shortage from PR#3 | Original purchased: 2.00, Received: 1.00, Shortage: 1.00\"}', 'http://inventory-system-v2.test/shortage-items/bulk-resend', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-27 07:47:09', '2025-11-27 07:47:09'),
+(1471, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\ShortageItem', 3, '{\"status\":\"pending\",\"resend_count\":0,\"notes\":\"Auto-detected shortage on 2025-11-27 14:45:46\"}', '{\"status\":\"reshipped\",\"resend_count\":1,\"notes\":\"Auto-detected shortage on 2025-11-27 14:45:46\\nReshipped on 2025-11-27 14:47:09 | New PR#29 created by logitech\"}', 'http://inventory-system-v2.test/shortage-items/bulk-resend', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-27 07:47:09', '2025-11-27 07:47:09'),
+(1472, 'App\\Models\\User', 1, 'created', 'App\\Models\\Procurement\\ShortageItem', 4, '[]', '{\"shortage_qty\":2,\"status\":\"pending\",\"resend_count\":0,\"notes\":\"Auto-detected shortage on 2025-11-27 14:50:08\"}', 'http://inventory-system-v2.test/goods-receive/store', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-27 07:50:08', '2025-11-27 07:50:08'),
+(1473, 'App\\Models\\User', 1, 'created', 'App\\Models\\Procurement\\PurchaseRequest', 30, '[]', '{\"approval_status\":\"Approved\",\"type\":\"new_material\",\"material_name\":\"test material998\",\"inventory_id\":null,\"required_quantity\":\"2.00\",\"qty_to_buy\":\"2.00\",\"supplier_id\":21,\"price_per_unit\":\"12.00\",\"currency_id\":57,\"delivery_date\":\"2025-11-18 00:00:00\",\"remark\":\"\\ud83d\\udd04 Resend shortage from PR#22 | Shortage: 2.00\"}', 'http://inventory-system-v2.test/shortage-items/bulk-resend', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-27 08:20:23', '2025-11-27 08:20:23'),
+(1474, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\ShortageItem', 4, '{\"status\":\"pending\",\"resend_count\":0,\"notes\":\"Auto-detected shortage on 2025-11-27 14:50:08\"}', '{\"status\":\"reshipped\",\"resend_count\":1,\"notes\":\"Auto-detected shortage on 2025-11-27 14:50:08\\nReshipped on 2025-11-27 15:20:23 | New PR#30\"}', 'http://inventory-system-v2.test/shortage-items/bulk-resend', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-27 08:20:23', '2025-11-27 08:20:23'),
+(1475, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 30, '{\"material_name\":\"test material998\"}', '{\"material_name\":\"butang\"}', 'http://inventory-system-v2.test/purchase_requests/30/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-27 08:22:30', '2025-11-27 08:22:30');
+INSERT INTO `audits` (`id`, `user_type`, `user_id`, `event`, `auditable_type`, `auditable_id`, `old_values`, `new_values`, `url`, `ip_address`, `user_agent`, `tags`, `created_at`, `updated_at`) VALUES
+(1476, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 30, '{\"approval_status\":\"Approved\"}', '{\"approval_status\":null}', 'http://inventory-system-v2.test/purchase_requests/30/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-27 08:22:47', '2025-11-27 08:22:47'),
+(1477, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 30, '{\"approval_status\":\"Approved\"}', '{\"approval_status\":null}', 'http://inventory-system-v2.test/purchase_requests/30/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-27 08:22:47', '2025-11-27 08:22:47'),
+(1478, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 30, '{\"approval_status\":null}', '{\"approval_status\":\"Approved\"}', 'http://inventory-system-v2.test/purchase_requests/30/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-27 08:22:49', '2025-11-27 08:22:49'),
+(1479, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 30, '{\"approval_status\":null}', '{\"approval_status\":\"Approved\"}', 'http://inventory-system-v2.test/purchase_requests/30/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-27 08:22:49', '2025-11-27 08:22:49'),
+(1480, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 27, '{\"price_per_unit\":null}', '{\"price_per_unit\":\"45\"}', 'http://inventory-system-v2.test/purchase_requests/27/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-27 08:23:14', '2025-11-27 08:23:14'),
+(1481, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 27, '{\"price_per_unit\":null}', '{\"price_per_unit\":\"45\"}', 'http://inventory-system-v2.test/purchase_requests/27/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-27 08:23:14', '2025-11-27 08:23:14'),
+(1482, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 27, '{\"approval_status\":null}', '{\"approval_status\":\"Approved\"}', 'http://inventory-system-v2.test/purchase_requests/27/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-27 08:23:16', '2025-11-27 08:23:16'),
+(1483, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 27, '{\"approval_status\":null}', '{\"approval_status\":\"Approved\"}', 'http://inventory-system-v2.test/purchase_requests/27/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-27 08:23:16', '2025-11-27 08:23:16'),
+(1484, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 27, '{\"delivery_date\":null}', '{\"delivery_date\":\"2025-11-26 00:00:00\"}', 'http://inventory-system-v2.test/purchase_requests/27/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-27 08:24:33', '2025-11-27 08:24:33'),
+(1485, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 27, '{\"delivery_date\":null}', '{\"delivery_date\":\"2025-11-26 00:00:00\"}', 'http://inventory-system-v2.test/purchase_requests/27/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-27 08:24:33', '2025-11-27 08:24:33'),
+(1486, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 26, '{\"delivery_date\":null}', '{\"delivery_date\":\"2025-11-27 00:00:00\"}', 'http://inventory-system-v2.test/purchase_requests/26/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-27 08:24:36', '2025-11-27 08:24:36'),
+(1487, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 26, '{\"delivery_date\":\"2025-11-27\"}', '{\"delivery_date\":\"2025-11-28 00:00:00\"}', 'http://inventory-system-v2.test/purchase_requests/26/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-27 08:24:39', '2025-11-27 08:24:39'),
+(1488, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 26, '{\"delivery_date\":\"2025-11-27\"}', '{\"delivery_date\":\"2025-11-28 00:00:00\"}', 'http://inventory-system-v2.test/purchase_requests/26/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-27 08:24:39', '2025-11-27 08:24:39'),
+(1489, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 26, '{\"delivery_date\":\"2025-11-28\"}', '{\"delivery_date\":\"2025-11-24 00:00:00\"}', 'http://inventory-system-v2.test/purchase_requests/26/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-27 08:24:41', '2025-11-27 08:24:41'),
+(1490, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 26, '{\"delivery_date\":\"2025-11-28\"}', '{\"delivery_date\":\"2025-11-24 00:00:00\"}', 'http://inventory-system-v2.test/purchase_requests/26/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-27 08:24:41', '2025-11-27 08:24:41'),
+(1491, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 30, '{\"approval_status\":\"Approved\"}', '{\"approval_status\":null}', 'http://inventory-system-v2.test/purchase_requests/30/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-27 08:52:37', '2025-11-27 08:52:37'),
+(1492, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 30, '{\"approval_status\":null}', '{\"approval_status\":\"Approved\"}', 'http://inventory-system-v2.test/purchase_requests/30/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-27 08:52:39', '2025-11-27 08:52:39'),
+(1493, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 30, '{\"approval_status\":\"Approved\"}', '{\"approval_status\":null}', 'http://inventory-system-v2.test/purchase_requests/30/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-27 08:52:44', '2025-11-27 08:52:44'),
+(1494, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 30, '{\"approval_status\":\"Approved\"}', '{\"approval_status\":null}', 'http://inventory-system-v2.test/purchase_requests/30/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-27 08:52:44', '2025-11-27 08:52:44'),
+(1495, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 30, '{\"approval_status\":null}', '{\"approval_status\":\"Approved\"}', 'http://inventory-system-v2.test/purchase_requests/30/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-27 08:52:48', '2025-11-27 08:52:48'),
+(1496, 'App\\Models\\User', 1, 'created', 'App\\Models\\Procurement\\ShortageItem', 5, '[]', '{\"shortage_qty\":1,\"status\":\"pending\",\"resend_count\":0,\"notes\":\"Auto-detected shortage on 2025-11-27 16:22:30\"}', 'http://inventory-system-v2.test/goods-receive/store', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-27 09:22:30', '2025-11-27 09:22:30'),
+(1497, 'App\\Models\\User', 1, 'created', 'App\\Models\\Procurement\\ShortageItem', 6, '[]', '{\"shortage_qty\":3,\"status\":\"pending\",\"resend_count\":0,\"notes\":\"Auto-detected shortage on 2025-11-27 16:22:30\"}', 'http://inventory-system-v2.test/goods-receive/store', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-27 09:22:30', '2025-11-27 09:22:30'),
+(1498, 'App\\Models\\User', 1, 'created', 'App\\Models\\Procurement\\ShortageItem', 7, '[]', '{\"shortage_qty\":2,\"status\":\"pending\",\"resend_count\":0,\"notes\":\"Auto-detected shortage on 2025-11-27 16:29:17\"}', 'http://inventory-system-v2.test/goods-receive/store', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-27 09:29:17', '2025-11-27 09:29:17'),
+(1499, 'App\\Models\\User', 1, 'created', 'App\\Models\\Procurement\\ShortageItem', 8, '[]', '{\"shortage_qty\":2,\"status\":\"pending\",\"resend_count\":0,\"notes\":\"Auto-detected shortage on 2025-11-27 16:30:20\"}', 'http://inventory-system-v2.test/goods-receive/store', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-27 09:30:20', '2025-11-27 09:30:20'),
+(1500, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\ShortageItem', 7, '{\"status\":\"pending\",\"notes\":\"Auto-detected shortage on 2025-11-27 16:29:17\"}', '{\"status\":\"canceled\",\"notes\":\"Canceled: takjadi\"}', 'http://inventory-system-v2.test/shortage-items/7/cancel', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-27 09:36:30', '2025-11-27 09:36:30'),
+(1501, 'App\\Models\\User', 1, 'created', 'App\\Models\\Procurement\\PurchaseRequest', 31, '[]', '{\"approval_status\":\"Approved\",\"type\":\"new_material\",\"material_name\":\"test material998\",\"inventory_id\":null,\"required_quantity\":\"2.00\",\"qty_to_buy\":\"2.00\",\"supplier_id\":21,\"price_per_unit\":\"12.00\",\"currency_id\":57,\"delivery_date\":\"2025-11-18 00:00:00\",\"remark\":\"\\ud83d\\udd04 Resend shortage from PR#22 | Shortage: 2.00\"}', 'http://inventory-system-v2.test/shortage-items/bulk-resend', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-27 09:51:28', '2025-11-27 09:51:28'),
+(1502, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\ShortageItem', 8, '{\"status\":\"pending\",\"resend_count\":0,\"notes\":\"Auto-detected shortage on 2025-11-27 16:30:20\"}', '{\"status\":\"reshipped\",\"resend_count\":1,\"notes\":\"Auto-detected shortage on 2025-11-27 16:30:20\\nReshipped on 2025-11-27 16:51:28 | New PR#31\"}', 'http://inventory-system-v2.test/shortage-items/bulk-resend', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-27 09:51:28', '2025-11-27 09:51:28'),
+(1503, 'App\\Models\\User', 1, 'created', 'App\\Models\\Procurement\\PurchaseRequest', 32, '[]', '{\"approval_status\":\"Approved\",\"type\":\"new_material\",\"material_name\":\"test kabelk\",\"inventory_id\":null,\"required_quantity\":\"1.00\",\"qty_to_buy\":\"1.00\",\"supplier_id\":16,\"price_per_unit\":\"13.00\",\"currency_id\":39,\"delivery_date\":\"2025-10-01 00:00:00\",\"remark\":\"\\ud83d\\udd04 Resend shortage from PR#4 | Shortage: 1.00\"}', 'http://inventory-system-v2.test/shortage-items/bulk-resend', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-27 10:08:01', '2025-11-27 10:08:01'),
+(1504, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\ShortageItem', 5, '{\"status\":\"pending\",\"resend_count\":0,\"notes\":\"Auto-detected shortage on 2025-11-27 16:22:30\"}', '{\"status\":\"reshipped\",\"resend_count\":1,\"notes\":\"Auto-detected shortage on 2025-11-27 16:22:30\\nReshipped on 2025-11-27 17:08:01 | New PR#32\"}', 'http://inventory-system-v2.test/shortage-items/bulk-resend', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-27 10:08:01', '2025-11-27 10:08:01'),
+(1505, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 19, '{\"approval_status\":null}', '{\"approval_status\":\"Approved\"}', 'http://inventory-system-v2.test/purchase_requests/19/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 01:13:10', '2025-11-28 01:13:10'),
+(1506, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 19, '{\"approval_status\":null}', '{\"approval_status\":\"Approved\"}', 'http://inventory-system-v2.test/purchase_requests/19/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 01:13:10', '2025-11-28 01:13:10'),
+(1520, 'App\\Models\\User', 1, 'created', 'App\\Models\\Procurement\\PurchaseRequest', 33, '[]', '{\"approval_status\":\"Pending\",\"type\":\"new_material\",\"material_name\":\"Cable\",\"inventory_id\":null,\"required_quantity\":\"32\",\"qty_to_buy\":\"32\",\"remark\":\"test proc\",\"supplier_id\":null,\"original_supplier_id\":null}', 'http://inventory-system-v2.test/purchase_requests', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:11:33', '2025-11-28 06:11:33'),
+(1521, 'App\\Models\\User', 1, 'created', 'App\\Models\\Procurement\\PurchaseRequest', 34, '[]', '{\"approval_status\":\"Pending\",\"type\":\"restock\",\"material_name\":\"oli castrol\",\"inventory_id\":\"180\",\"required_quantity\":\"12\",\"qty_to_buy\":\"12\",\"remark\":\"test proc2\",\"supplier_id\":23,\"original_supplier_id\":23}', 'http://inventory-system-v2.test/purchase_requests', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:11:33', '2025-11-28 06:11:33'),
+(1522, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 33, '{\"supplier_id\":null,\"supplier_change_reason\":null}', '{\"supplier_id\":\"22\",\"supplier_change_reason\":\"Changed by admin\"}', 'http://inventory-system-v2.test/purchase_requests/33/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:11:59', '2025-11-28 06:11:59'),
+(1523, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 34, '{\"price_per_unit\":null}', '{\"price_per_unit\":\"30\"}', 'http://inventory-system-v2.test/purchase_requests/34/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:12:14', '2025-11-28 06:12:14'),
+(1524, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 33, '{\"price_per_unit\":null}', '{\"price_per_unit\":\"3\"}', 'http://inventory-system-v2.test/purchase_requests/33/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:12:17', '2025-11-28 06:12:17'),
+(1525, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 33, '{\"price_per_unit\":null}', '{\"price_per_unit\":\"3\"}', 'http://inventory-system-v2.test/purchase_requests/33/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:12:17', '2025-11-28 06:12:17'),
+(1526, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 34, '{\"currency_id\":null}', '{\"currency_id\":\"27\"}', 'http://inventory-system-v2.test/purchase_requests/34/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:12:24', '2025-11-28 06:12:24'),
+(1527, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 33, '{\"currency_id\":null}', '{\"currency_id\":\"27\"}', 'http://inventory-system-v2.test/purchase_requests/33/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:12:27', '2025-11-28 06:12:27'),
+(1528, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 33, '{\"currency_id\":null}', '{\"currency_id\":\"27\"}', 'http://inventory-system-v2.test/purchase_requests/33/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:12:27', '2025-11-28 06:12:27'),
+(1529, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 34, '{\"approval_status\":\"Pending\"}', '{\"approval_status\":\"Approved\"}', 'http://inventory-system-v2.test/purchase_requests/34/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:12:28', '2025-11-28 06:12:28'),
+(1530, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 34, '{\"approval_status\":\"Pending\"}', '{\"approval_status\":\"Approved\"}', 'http://inventory-system-v2.test/purchase_requests/34/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:12:28', '2025-11-28 06:12:28'),
+(1531, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 33, '{\"approval_status\":\"Pending\"}', '{\"approval_status\":\"Approved\"}', 'http://inventory-system-v2.test/purchase_requests/33/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:12:31', '2025-11-28 06:12:31'),
+(1532, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 33, '{\"approval_status\":\"Pending\"}', '{\"approval_status\":\"Approved\"}', 'http://inventory-system-v2.test/purchase_requests/33/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:12:31', '2025-11-28 06:12:31'),
+(1533, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 34, '{\"delivery_date\":null}', '{\"delivery_date\":\"2025-11-29 00:00:00\"}', 'http://inventory-system-v2.test/purchase_requests/34/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:12:38', '2025-11-28 06:12:38'),
+(1534, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 34, '{\"delivery_date\":null}', '{\"delivery_date\":\"2025-11-29 00:00:00\"}', 'http://inventory-system-v2.test/purchase_requests/34/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:12:38', '2025-11-28 06:12:38'),
+(1535, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 33, '{\"delivery_date\":null}', '{\"delivery_date\":\"2025-11-29 00:00:00\"}', 'http://inventory-system-v2.test/purchase_requests/33/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:12:39', '2025-11-28 06:12:39'),
+(1536, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 33, '{\"delivery_date\":null}', '{\"delivery_date\":\"2025-11-29 00:00:00\"}', 'http://inventory-system-v2.test/purchase_requests/33/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:12:40', '2025-11-28 06:12:40'),
+(1537, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 33, '{\"supplier_id\":22}', '{\"supplier_id\":\"23\"}', 'http://inventory-system-v2.test/purchase_requests/33/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:13:11', '2025-11-28 06:13:11'),
+(1538, 'App\\Models\\User', 1, 'created', 'App\\Models\\Procurement\\PurchaseRequest', 35, '[]', '{\"approval_status\":\"Pending\",\"type\":\"restock\",\"material_name\":\"Foam 1\",\"inventory_id\":\"61\",\"required_quantity\":\"43\",\"qty_to_buy\":\"43\",\"remark\":\"test\",\"supplier_id\":null,\"original_supplier_id\":null}', 'http://inventory-system-v2.test/purchase_requests', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:13:55', '2025-11-28 06:13:55'),
+(1539, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 35, '{\"supplier_id\":null,\"supplier_change_reason\":null}', '{\"supplier_id\":\"32\",\"supplier_change_reason\":\"Changed by admin\"}', 'http://inventory-system-v2.test/purchase_requests/35/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:14:01', '2025-11-28 06:14:01'),
+(1540, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 35, '{\"price_per_unit\":null}', '{\"price_per_unit\":\"54\"}', 'http://inventory-system-v2.test/purchase_requests/35/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:14:05', '2025-11-28 06:14:05'),
+(1541, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 35, '{\"currency_id\":null}', '{\"currency_id\":\"27\"}', 'http://inventory-system-v2.test/purchase_requests/35/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:14:12', '2025-11-28 06:14:12'),
+(1542, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 35, '{\"currency_id\":null}', '{\"currency_id\":\"27\"}', 'http://inventory-system-v2.test/purchase_requests/35/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:14:12', '2025-11-28 06:14:12'),
+(1543, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 35, '{\"approval_status\":\"Pending\"}', '{\"approval_status\":\"Approved\"}', 'http://inventory-system-v2.test/purchase_requests/35/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:14:14', '2025-11-28 06:14:14'),
+(1544, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 35, '{\"approval_status\":\"Pending\"}', '{\"approval_status\":\"Approved\"}', 'http://inventory-system-v2.test/purchase_requests/35/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:14:14', '2025-11-28 06:14:14'),
+(1545, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 35, '{\"delivery_date\":null}', '{\"delivery_date\":\"2025-11-29 00:00:00\"}', 'http://inventory-system-v2.test/purchase_requests/35/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:14:17', '2025-11-28 06:14:17'),
+(1546, 'App\\Models\\User', 1, 'created', 'App\\Models\\Procurement\\Shipping', 21, '[]', '{\"international_waybill_no\":\"#int2811\",\"freight_company\":\"DHL\",\"freight_method\":\"Air Freight\",\"freight_price\":\"20\",\"eta_to_arrived\":\"2025-12-06T13:16\"}', 'http://inventory-system-v2.test/shippings', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:17:11', '2025-11-28 06:17:11'),
+(1547, 'App\\Models\\User', 1, 'created', 'App\\Models\\Procurement\\ShortageItem', 9, '[]', '{\"shortage_qty\":2,\"status\":\"pending\",\"resend_count\":0,\"notes\":\"Auto-detected shortage on 2025-11-28 13:18:40\"}', 'http://inventory-system-v2.test/goods-receive/store', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:18:40', '2025-11-28 06:18:40'),
+(1548, 'App\\Models\\User', 1, 'created', 'App\\Models\\Procurement\\ShortageItem', 10, '[]', '{\"shortage_qty\":4,\"status\":\"pending\",\"resend_count\":0,\"notes\":\"Auto-detected shortage on 2025-11-28 13:18:40\"}', 'http://inventory-system-v2.test/goods-receive/store', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:18:40', '2025-11-28 06:18:40'),
+(1549, 'App\\Models\\User', 1, 'created', 'App\\Models\\Procurement\\PurchaseRequest', 36, '[]', '{\"approval_status\":\"Pending\",\"type\":\"new_material\",\"material_name\":\"RAM 8GB\",\"inventory_id\":null,\"required_quantity\":\"4\",\"qty_to_buy\":\"4\",\"remark\":null,\"supplier_id\":null,\"original_supplier_id\":null}', 'http://inventory-system-v2.test/purchase_requests', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:20:03', '2025-11-28 06:20:03'),
+(1550, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 36, '{\"material_name\":\"RAM 8GB\"}', '{\"material_name\":\"RAM 8GB DDR4\"}', 'http://inventory-system-v2.test/purchase_requests/36/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:20:15', '2025-11-28 06:20:15'),
+(1551, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 36, '{\"material_name\":\"RAM 8GB\"}', '{\"material_name\":\"RAM 8GB DDR4\"}', 'http://inventory-system-v2.test/purchase_requests/36/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:20:15', '2025-11-28 06:20:15'),
+(1552, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 36, '{\"supplier_id\":null,\"supplier_change_reason\":null}', '{\"supplier_id\":\"18\",\"supplier_change_reason\":\"Changed by admin\"}', 'http://inventory-system-v2.test/purchase_requests/36/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:20:31', '2025-11-28 06:20:31'),
+(1553, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 36, '{\"price_per_unit\":null}', '{\"price_per_unit\":\"128\"}', 'http://inventory-system-v2.test/purchase_requests/36/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:20:36', '2025-11-28 06:20:36'),
+(1554, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 36, '{\"price_per_unit\":null}', '{\"price_per_unit\":\"128\"}', 'http://inventory-system-v2.test/purchase_requests/36/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:20:36', '2025-11-28 06:20:36'),
+(1555, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 36, '{\"currency_id\":null}', '{\"currency_id\":\"2\"}', 'http://inventory-system-v2.test/purchase_requests/36/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:20:38', '2025-11-28 06:20:38'),
+(1556, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 36, '{\"currency_id\":null}', '{\"currency_id\":\"2\"}', 'http://inventory-system-v2.test/purchase_requests/36/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:20:38', '2025-11-28 06:20:38'),
+(1557, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 36, '{\"currency_id\":2}', '{\"currency_id\":\"27\"}', 'http://inventory-system-v2.test/purchase_requests/36/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:20:41', '2025-11-28 06:20:41'),
+(1558, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 36, '{\"currency_id\":2}', '{\"currency_id\":\"27\"}', 'http://inventory-system-v2.test/purchase_requests/36/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:20:41', '2025-11-28 06:20:41'),
+(1559, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 36, '{\"approval_status\":\"Pending\"}', '{\"approval_status\":\"Approved\"}', 'http://inventory-system-v2.test/purchase_requests/36/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:20:43', '2025-11-28 06:20:43'),
+(1560, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 36, '{\"approval_status\":\"Pending\"}', '{\"approval_status\":\"Approved\"}', 'http://inventory-system-v2.test/purchase_requests/36/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:20:43', '2025-11-28 06:20:43'),
+(1561, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 36, '{\"delivery_date\":null}', '{\"delivery_date\":\"2025-11-29 00:00:00\"}', 'http://inventory-system-v2.test/purchase_requests/36/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:20:48', '2025-11-28 06:20:48'),
+(1562, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 36, '{\"delivery_date\":null}', '{\"delivery_date\":\"2025-11-29 00:00:00\"}', 'http://inventory-system-v2.test/purchase_requests/36/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:20:48', '2025-11-28 06:20:48'),
+(1564, 'App\\Models\\User', 1, 'created', 'App\\Models\\Procurement\\Shipping', 23, '[]', '{\"international_waybill_no\":\"#int2811xyz\",\"freight_company\":\"DHL\",\"freight_method\":\"Sea Freight\",\"freight_price\":\"16\",\"eta_to_arrived\":\"2025-12-03T13:23\"}', 'http://inventory-system-v2.test/shippings', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 06:23:26', '2025-11-28 06:23:26'),
+(1573, 'App\\Models\\User', 1, 'created', 'App\\Models\\Procurement\\Shipping', 32, '[]', '{\"international_waybill_no\":\"#44673\",\"freight_company\":\"DHL\",\"freight_method\":\"Air Freight\",\"freight_price\":\"16\",\"eta_to_arrived\":\"2025-11-28T18:02\"}', 'http://inventory-system-v2.test/shippings', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 07:02:54', '2025-11-28 07:02:54'),
+(1583, 'App\\Models\\User', 1, 'created', 'App\\Models\\Procurement\\Shipping', 42, '[]', '{\"international_waybill_no\":\"1231233345345345#3453\",\"freight_company\":\"DHL\",\"freight_method\":\"Air Freight\",\"freight_price\":\"1\",\"eta_to_arrived\":\"2025-11-29T15:05\"}', 'http://inventory-system-v2.test/shippings', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 08:05:09', '2025-11-28 08:05:09'),
+(1584, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\ShortageItem', 9, '{\"status\":\"pending\",\"resend_count\":0,\"notes\":\"Auto-detected shortage on 2025-11-28 13:18:40\"}', '{\"status\":\"reshipped\",\"resend_count\":1,\"notes\":\"Auto-detected shortage on 2025-11-28 13:18:40\\nReshipped on 2025-11-28 15:05:09 via Int. Waybill: 1231233345345345#3453\"}', 'http://inventory-system-v2.test/shippings', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 08:05:09', '2025-11-28 08:05:09'),
+(1585, 'App\\Models\\User', 1, 'created', 'App\\Models\\Procurement\\Shipping', 43, '[]', '{\"international_waybill_no\":\"#54654#34534\",\"freight_company\":\"DHL\",\"freight_method\":\"Air Freight\",\"freight_price\":\"1\",\"eta_to_arrived\":\"2025-11-29T15:10\"}', 'http://inventory-system-v2.test/shippings', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 08:10:29', '2025-11-28 08:10:29'),
+(1586, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\ShortageItem', 10, '{\"status\":\"pending\",\"resend_count\":0,\"notes\":\"Auto-detected shortage on 2025-11-28 13:18:40\"}', '{\"status\":\"reshipped\",\"resend_count\":1,\"notes\":\"Auto-detected shortage on 2025-11-28 13:18:40\\nReshipped on 2025-11-28 15:10:29 via Int. Waybill: #54654#34534\"}', 'http://inventory-system-v2.test/shippings', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 08:10:29', '2025-11-28 08:10:29'),
+(1587, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 36, '{\"supplier_id\":18}', '{\"supplier_id\":\"22\"}', 'http://inventory-system-v2.test/purchase_requests/36/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 10:08:43', '2025-11-28 10:08:43'),
+(1588, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 36, '{\"supplier_id\":22}', '{\"supplier_id\":\"18\"}', 'http://inventory-system-v2.test/purchase_requests/36/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 10:08:45', '2025-11-28 10:08:45'),
+(1589, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 36, '{\"supplier_id\":18}', '{\"supplier_id\":\"22\"}', 'http://inventory-system-v2.test/purchase_requests/36/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 10:08:50', '2025-11-28 10:08:50'),
+(1590, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 36, '{\"supplier_id\":22}', '{\"supplier_id\":\"18\"}', 'http://inventory-system-v2.test/purchase_requests/36/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 10:08:55', '2025-11-28 10:08:55'),
+(1591, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 2, '{\"approval_status\":\"Decline\"}', '{\"approval_status\":\"Approved\"}', 'http://inventory-system-v2.test/purchase_requests/2/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 10:09:54', '2025-11-28 10:09:54'),
+(1592, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 2, '{\"approval_status\":\"Decline\"}', '{\"approval_status\":\"Approved\"}', 'http://inventory-system-v2.test/purchase_requests/2/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-28 10:09:54', '2025-11-28 10:09:54'),
+(1593, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\ShortageItem', 6, '{\"status\":\"pending\",\"notes\":\"Auto-detected shortage on 2025-11-27 16:22:30\"}', '{\"status\":\"canceled\",\"notes\":\"Canceled: Supplier changed\"}', 'http://inventory-system-v2.test/shortage-items/6/cancel', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-29 02:40:51', '2025-11-29 02:40:51'),
+(1594, 'App\\Models\\User', 1, 'created', 'App\\Models\\Procurement\\Shipping', 44, '[]', '{\"international_waybill_no\":\"#29110944\",\"freight_company\":\"DHL\",\"freight_method\":\"Air Freight\",\"freight_price\":\"40\",\"eta_to_arrived\":\"2025-11-30T09:45\"}', 'http://inventory-system-v2.test/shippings', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-29 02:46:06', '2025-11-29 02:46:06'),
+(1595, 'App\\Models\\User', 1, 'created', 'App\\Models\\Procurement\\ShortageItem', 11, '[]', '{\"shortage_qty\":8,\"status\":\"pending\",\"resend_count\":0,\"notes\":\"Auto-detected shortage on 2025-11-29 09:46:34\"}', 'http://inventory-system-v2.test/goods-receive/store', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-29 02:46:34', '2025-11-29 02:46:34'),
+(1596, 'App\\Models\\User', 1, 'created', 'App\\Models\\Procurement\\PurchaseRequest', 37, '[]', '{\"approval_status\":\"Pending\",\"type\":\"new_material\",\"material_name\":\"Pena Biru\",\"inventory_id\":null,\"required_quantity\":\"10\",\"qty_to_buy\":\"10\",\"remark\":\"test\",\"supplier_id\":null,\"original_supplier_id\":null}', 'http://inventory-system-v2.test/purchase_requests', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-29 02:49:15', '2025-11-29 02:49:15'),
+(1597, 'App\\Models\\User', 1, 'created', 'App\\Models\\Procurement\\PurchaseRequest', 38, '[]', '{\"approval_status\":\"Pending\",\"type\":\"restock\",\"material_name\":\"Botol Aki\",\"inventory_id\":\"156\",\"required_quantity\":\"12\",\"qty_to_buy\":\"12\",\"remark\":null,\"supplier_id\":10,\"original_supplier_id\":10}', 'http://inventory-system-v2.test/purchase_requests', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-29 02:49:15', '2025-11-29 02:49:15'),
+(1598, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 37, '{\"supplier_id\":null,\"supplier_change_reason\":null}', '{\"supplier_id\":\"3\",\"supplier_change_reason\":\"Changed by admin\"}', 'http://inventory-system-v2.test/purchase_requests/37/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-29 02:49:23', '2025-11-29 02:49:23'),
+(1599, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 38, '{\"price_per_unit\":null}', '{\"price_per_unit\":\"12\"}', 'http://inventory-system-v2.test/purchase_requests/38/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-29 02:49:32', '2025-11-29 02:49:32'),
+(1600, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 38, '{\"price_per_unit\":null}', '{\"price_per_unit\":\"12\"}', 'http://inventory-system-v2.test/purchase_requests/38/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-29 02:49:32', '2025-11-29 02:49:32'),
+(1601, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 38, '{\"currency_id\":null}', '{\"currency_id\":\"57\"}', 'http://inventory-system-v2.test/purchase_requests/38/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-29 02:49:33', '2025-11-29 02:49:33'),
+(1602, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 38, '{\"currency_id\":null}', '{\"currency_id\":\"57\"}', 'http://inventory-system-v2.test/purchase_requests/38/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-29 02:49:33', '2025-11-29 02:49:33'),
+(1603, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 38, '{\"currency_id\":57}', '{\"currency_id\":\"6\"}', 'http://inventory-system-v2.test/purchase_requests/38/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-29 02:49:38', '2025-11-29 02:49:38'),
+(1604, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 38, '{\"currency_id\":57}', '{\"currency_id\":\"6\"}', 'http://inventory-system-v2.test/purchase_requests/38/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-29 02:49:38', '2025-11-29 02:49:38'),
+(1605, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 38, '{\"approval_status\":\"Pending\"}', '{\"approval_status\":\"Approved\"}', 'http://inventory-system-v2.test/purchase_requests/38/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-29 02:49:40', '2025-11-29 02:49:40'),
+(1606, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 38, '{\"approval_status\":\"Pending\"}', '{\"approval_status\":\"Approved\"}', 'http://inventory-system-v2.test/purchase_requests/38/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-29 02:49:40', '2025-11-29 02:49:40'),
+(1607, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 38, '{\"delivery_date\":null}', '{\"delivery_date\":\"2025-11-30 00:00:00\"}', 'http://inventory-system-v2.test/purchase_requests/38/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-29 02:49:46', '2025-11-29 02:49:46'),
+(1608, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 38, '{\"delivery_date\":null}', '{\"delivery_date\":\"2025-11-30 00:00:00\"}', 'http://inventory-system-v2.test/purchase_requests/38/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-29 02:49:46', '2025-11-29 02:49:46'),
+(1609, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 37, '{\"price_per_unit\":null}', '{\"price_per_unit\":\"13\"}', 'http://inventory-system-v2.test/purchase_requests/37/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-29 02:49:52', '2025-11-29 02:49:52'),
+(1610, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 37, '{\"price_per_unit\":null}', '{\"price_per_unit\":\"13\"}', 'http://inventory-system-v2.test/purchase_requests/37/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-29 02:49:52', '2025-11-29 02:49:52'),
+(1611, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 37, '{\"currency_id\":null}', '{\"currency_id\":\"2\"}', 'http://inventory-system-v2.test/purchase_requests/37/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-29 02:49:57', '2025-11-29 02:49:57'),
+(1612, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 37, '{\"currency_id\":null}', '{\"currency_id\":\"2\"}', 'http://inventory-system-v2.test/purchase_requests/37/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-29 02:49:57', '2025-11-29 02:49:57'),
+(1613, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 37, '{\"currency_id\":2}', '{\"currency_id\":\"6\"}', 'http://inventory-system-v2.test/purchase_requests/37/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-29 02:50:00', '2025-11-29 02:50:00'),
+(1614, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 37, '{\"currency_id\":2}', '{\"currency_id\":\"6\"}', 'http://inventory-system-v2.test/purchase_requests/37/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-29 02:50:00', '2025-11-29 02:50:00'),
+(1615, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 37, '{\"approval_status\":\"Pending\"}', '{\"approval_status\":\"Approved\"}', 'http://inventory-system-v2.test/purchase_requests/37/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-29 02:50:01', '2025-11-29 02:50:01'),
+(1616, 'App\\Models\\User', 1, 'updated', 'App\\Models\\Procurement\\PurchaseRequest', 37, '{\"delivery_date\":null}', '{\"delivery_date\":\"2025-11-30 00:00:00\"}', 'http://inventory-system-v2.test/purchase_requests/37/quick-update', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-29 02:50:04', '2025-11-29 02:50:04');
+INSERT INTO `audits` (`id`, `user_type`, `user_id`, `event`, `auditable_type`, `auditable_id`, `old_values`, `new_values`, `url`, `ip_address`, `user_agent`, `tags`, `created_at`, `updated_at`) VALUES
+(1617, 'App\\Models\\User', 1, 'created', 'App\\Models\\Procurement\\Shipping', 45, '[]', '{\"international_waybill_no\":\"#29110944a\",\"freight_company\":\"DHL\",\"freight_method\":\"Air Freight\",\"freight_price\":\"42\",\"eta_to_arrived\":\"2025-11-29T09:51\"}', 'http://inventory-system-v2.test/shippings', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-29 02:51:46', '2025-11-29 02:51:46'),
+(1618, 'App\\Models\\User', 1, 'created', 'App\\Models\\Procurement\\ShortageItem', 12, '[]', '{\"shortage_qty\":1,\"status\":\"pending\",\"resend_count\":0,\"notes\":\"Auto-detected shortage on 2025-11-29 09:52:13\"}', 'http://inventory-system-v2.test/goods-receive/store', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-29 02:52:13', '2025-11-29 02:52:13'),
+(1619, 'App\\Models\\User', 1, 'created', 'App\\Models\\Procurement\\ShortageItem', 13, '[]', '{\"shortage_qty\":2,\"status\":\"pending\",\"resend_count\":0,\"notes\":\"Auto-detected shortage on 2025-11-29 09:52:13\"}', 'http://inventory-system-v2.test/goods-receive/store', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', NULL, '2025-11-29 02:52:13', '2025-11-29 02:52:13');
 
 -- --------------------------------------------------------
 
@@ -2158,7 +2305,8 @@ CREATE TABLE `goods_movements` (
 INSERT INTO `goods_movements` (`id`, `department_id`, `movement_date`, `movement_type`, `movement_type_value`, `origin`, `destination`, `sender`, `receiver`, `status`, `sender_status`, `receiver_status`, `notes`, `created_by`, `created_at`, `updated_at`, `deleted_at`) VALUES
 (1, 4, '2025-11-06', 'Handcarry', 'Basuki', 'BT', 'SG', 'Dyla', 'JJ', 'Received', 'Pending', 'Pending', 'test notes', 1, '2025-11-06 03:40:54', '2025-11-14 01:33:22', NULL),
 (2, 4, '2025-11-15', 'Handcarry', 'Jarot', 'BT', 'SG', 'Dyla', 'JJ', 'Pending', 'Pending', 'Pending', 'test notes', 1, '2025-11-14 01:27:13', '2025-11-14 01:27:13', NULL),
-(3, 1, '2025-11-16', 'Courier', 'Harasoon', 'SG', 'BT', 'JJ', 'Dyla', 'Pending', 'Pending', 'Pending', 'test notes', 1, '2025-11-14 01:32:36', '2025-11-14 01:32:36', NULL);
+(3, 1, '2025-11-16', 'Courier', 'Harasoon', 'SG', 'BT', 'JJ', 'Dyla', 'Pending', 'Pending', 'Pending', 'test notes', 1, '2025-11-14 01:32:36', '2025-11-14 01:32:36', NULL),
+(4, 12, '2025-12-24', 'Handcarry', 'Basuki', 'BT', 'SG', 'Dyla', 'JJ', 'Pending', 'Pending', 'Pending', 'test notes', 1, '2025-12-24 06:26:30', '2025-12-24 06:26:30', NULL);
 
 -- --------------------------------------------------------
 
@@ -2202,7 +2350,8 @@ INSERT INTO `goods_movement_items` (`id`, `goods_movement_id`, `material_type`, 
 (10, 3, 'Project', 61, NULL, NULL, NULL, NULL, 1.00, 'pcs', NULL, 0, NULL, NULL, '2025-11-14 01:32:37', '2025-11-14 01:32:37'),
 (11, 3, 'Goods Receive', NULL, 1, NULL, NULL, 2, 11.00, 'pcs', NULL, 0, NULL, NULL, '2025-11-14 01:32:37', '2025-11-14 01:32:37'),
 (12, 3, 'Restock', NULL, NULL, 192, NULL, NULL, 1.00, 'cm', NULL, 0, NULL, NULL, '2025-11-14 01:32:37', '2025-11-14 01:32:37'),
-(13, 3, 'New Material', NULL, NULL, NULL, 'test goods receive 2', NULL, 1.00, 'pcs', NULL, 0, NULL, NULL, '2025-11-14 01:32:37', '2025-11-14 01:32:37');
+(13, 3, 'New Material', NULL, NULL, NULL, 'test goods receive 2', NULL, 1.00, 'pcs', NULL, 0, NULL, NULL, '2025-11-14 01:32:37', '2025-11-14 01:32:37'),
+(14, 4, 'Project', 226, NULL, NULL, NULL, NULL, 1.00, 'pcs', '122', 0, NULL, NULL, '2025-12-24 06:26:30', '2025-12-24 06:26:30');
 
 -- --------------------------------------------------------
 
@@ -2441,7 +2590,17 @@ CREATE TABLE `goods_receives` (
 
 INSERT INTO `goods_receives` (`id`, `shipping_id`, `international_waybill_no`, `freight_company`, `freight_price`, `arrived_date`, `created_at`, `updated_at`) VALUES
 (1, 1, '88552200', 'Maersk', 500.00, '2025-11-03 10:25:00', '2025-11-03 03:26:06', '2025-11-03 03:26:06'),
-(2, 1, '88552200', 'Maersk', 500.00, '2025-11-16 11:16:00', '2025-11-17 04:16:53', '2025-11-17 04:16:53');
+(2, 1, '88552200', 'Maersk', 500.00, '2025-11-16 11:16:00', '2025-11-17 04:16:53', '2025-11-17 04:16:53'),
+(3, 5, '#1213', 'FedEx', 123.00, '2025-11-27 14:23:00', '2025-11-27 07:23:56', '2025-11-27 07:23:56'),
+(4, 5, '#1213', 'FedEx', 123.00, '2025-11-28 14:29:00', '2025-11-27 07:29:13', '2025-11-27 07:29:13'),
+(5, 5, '#1213', 'FedEx', 123.00, '2025-11-27 14:45:00', '2025-11-27 07:45:46', '2025-11-27 07:45:46'),
+(6, 3, '#i779', 'FedEx', 500.00, '2025-11-27 14:50:00', '2025-11-27 07:50:08', '2025-11-27 07:50:08'),
+(7, 1, '88552200', 'Maersk', 500.00, '2025-11-27 16:22:00', '2025-11-27 09:22:30', '2025-11-27 09:22:30'),
+(8, 3, '#i779', 'FedEx', 500.00, '2025-11-26 16:29:00', '2025-11-27 09:29:17', '2025-11-27 09:29:17'),
+(9, 3, '#i779', 'FedEx', 500.00, '2025-11-30 16:30:00', '2025-11-27 09:30:20', '2025-11-27 09:30:20'),
+(10, 21, '#int2811', 'DHL', 20.00, '2025-12-06 13:17:00', '2025-11-28 06:18:40', '2025-11-28 06:18:40'),
+(11, 44, '#29110944', 'DHL', 40.00, '2025-12-06 09:46:00', '2025-11-29 02:46:34', '2025-11-29 02:46:34'),
+(12, 45, '#29110944a', 'DHL', 42.00, '2025-12-06 09:52:00', '2025-11-29 02:52:13', '2025-11-29 02:52:13');
 
 -- --------------------------------------------------------
 
@@ -2458,9 +2617,12 @@ CREATE TABLE `goods_receive_details` (
   `material_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `supplier_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `unit_price` decimal(15,2) DEFAULT NULL,
+  `extra_cost` decimal(15,2) NOT NULL DEFAULT '0.00' COMMENT 'Extra cost copied from shipping detail',
+  `extra_cost_reason` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Reason for extra cost',
   `domestic_waybill_no` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `purchased_qty` decimal(15,2) DEFAULT NULL,
   `received_qty` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `destination` enum('SG','BT','CN','MY','Other') COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Destination copied from shipping',
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -2469,11 +2631,26 @@ CREATE TABLE `goods_receive_details` (
 -- Dumping data untuk tabel `goods_receive_details`
 --
 
-INSERT INTO `goods_receive_details` (`id`, `goods_receive_id`, `shipping_detail_id`, `purchase_type`, `project_name`, `material_name`, `supplier_name`, `unit_price`, `domestic_waybill_no`, `purchased_qty`, `received_qty`, `created_at`, `updated_at`) VALUES
-(1, 1, 1, 'new_material', 'Bobo', 'test kabelk', 'An Tai 安泰 Antai Anruda X CCM 新加坡', 13.00, NULL, 2.00, '2', '2025-11-03 03:26:06', '2025-11-03 03:26:06'),
-(2, 1, 2, 'new_material', 'Bobo', 'test proc', '12asd', 12.00, NULL, 12.00, '11', '2025-11-03 03:26:06', '2025-11-03 03:26:06'),
-(3, 2, 1, 'new_material', 'Bobo', 'test kabelk', 'An Tai 安泰 Antai Anruda X CCM 新加坡', 13.00, NULL, 2.00, '2', '2025-11-17 04:16:53', '2025-11-17 04:16:53'),
-(4, 2, 2, 'new_material', 'Bobo', 'test proc', '12asd', 12.00, NULL, 12.00, '12', '2025-11-17 04:16:53', '2025-11-17 04:16:53');
+INSERT INTO `goods_receive_details` (`id`, `goods_receive_id`, `shipping_detail_id`, `purchase_type`, `project_name`, `material_name`, `supplier_name`, `unit_price`, `extra_cost`, `extra_cost_reason`, `domestic_waybill_no`, `purchased_qty`, `received_qty`, `destination`, `created_at`, `updated_at`) VALUES
+(1, 1, 1, 'new_material', 'Bobo', 'test kabelk', 'An Tai 安泰 Antai Anruda X CCM 新加坡', 13.00, 0.00, NULL, NULL, 2.00, '2', NULL, '2025-11-03 03:26:06', '2025-11-03 03:26:06'),
+(2, 1, 2, 'new_material', 'Bobo', 'test proc', '12asd', 12.00, 0.00, NULL, NULL, 12.00, '11', NULL, '2025-11-03 03:26:06', '2025-11-03 03:26:06'),
+(3, 2, 1, 'new_material', 'Bobo', 'test kabelk', 'An Tai 安泰 Antai Anruda X CCM 新加坡', 13.00, 0.00, NULL, NULL, 2.00, '2', NULL, '2025-11-17 04:16:53', '2025-11-17 04:16:53'),
+(4, 2, 2, 'new_material', 'Bobo', 'test proc', '12asd', 12.00, 0.00, NULL, NULL, 12.00, '12', NULL, '2025-11-17 04:16:53', '2025-11-17 04:16:53'),
+(5, 3, 6, 'new_material', 'test costume22', 'test req', 'dong chi', 43.00, 0.00, NULL, '#D123', 2.00, '1', 'SG', '2025-11-27 07:23:56', '2025-11-27 07:23:56'),
+(6, 4, 6, 'new_material', 'test costume22', 'test req', 'dong chi', 43.00, 0.00, NULL, '#D123', 2.00, '1', 'SG', '2025-11-27 07:29:13', '2025-11-27 07:29:13'),
+(7, 5, 6, 'new_material', 'test costume22', 'test req', 'dong chi', 43.00, 0.00, NULL, '#D123', 2.00, '1', 'SG', '2025-11-27 07:45:46', '2025-11-27 07:45:46'),
+(8, 6, 4, 'new_material', '-', 'test material998', '12asd', 12.00, 0.00, NULL, '0087', 3.00, '1', 'SG', '2025-11-27 07:50:08', '2025-11-27 07:50:08'),
+(9, 7, 1, 'new_material', 'Bobo', 'test kabelk', 'An Tai 安泰 Antai Anruda X CCM 新加坡', 13.00, 0.00, NULL, NULL, 2.00, '1', 'SG', '2025-11-27 09:22:30', '2025-11-27 09:22:30'),
+(10, 7, 2, 'new_material', 'Bobo', 'test proc', '12asd', 12.00, 0.00, NULL, NULL, 12.00, '9', 'SG', '2025-11-27 09:22:30', '2025-11-27 09:22:30'),
+(11, 8, 4, 'new_material', '-', 'test material998', '12asd', 12.00, 0.00, NULL, '0087', 3.00, '1', 'BT', '2025-11-27 09:29:17', '2025-11-27 09:29:17'),
+(12, 9, 4, 'new_material', '-', 'test material998', '12asd', 12.00, 0.00, NULL, '0087', 3.00, '1', 'BT', '2025-11-27 09:30:20', '2025-11-27 09:30:20'),
+(13, 10, 36, 'new_material', '-', 'Cable', 'Yamaha', 3.00, 10.00, 'max volume', '#dom2811a', 32.00, '30', 'BT', '2025-11-28 06:18:40', '2025-11-28 06:18:40'),
+(14, 10, 37, 'restock', 'Ablaze', 'oli castrol', 'Yamaha', 30.00, 0.00, NULL, '#dom2811a', 12.00, '12', 'SG', '2025-11-28 06:18:40', '2025-11-28 06:18:40'),
+(15, 10, 38, 'restock', 'Avatar Neytiri', 'Foam 1', 'GOGO', 54.00, 0.00, NULL, '#dom2811b', 43.00, '39', 'CN', '2025-11-28 06:18:40', '2025-11-28 06:18:40'),
+(16, 11, 44, 'restock', 'Bobo', 'test proc', 'Toko Cat', 45.00, 0.00, NULL, '009', 10.00, '2', 'SG', '2025-11-29 02:46:34', '2025-11-29 02:46:34'),
+(17, 11, 45, 'restock', 'buaya', 'aderai', 'Dunia Benang', 1.00, 10.00, 'max volume', '223', 28.00, '28', 'SG', '2025-11-29 02:46:34', '2025-11-29 02:46:34'),
+(18, 12, 46, 'restock', '-', 'Botol Aki', 'Dunia Jarum', 12.00, 0.00, NULL, '#29110950b', 12.00, '11', 'SG', '2025-11-29 02:52:13', '2025-11-29 02:52:13'),
+(19, 12, 47, 'new_material', '-', 'Pena Biru', 'Dunia Benang', 13.00, 9.00, 'max volume', '#29110950', 10.00, '8', 'SG', '2025-11-29 02:52:13', '2025-11-29 02:52:13');
 
 -- --------------------------------------------------------
 
@@ -6843,7 +7020,16 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES
 (130, '2025_11_10_101727_create_skillsets_table', 84),
 (131, '2025_11_10_101729_create_employee_skillset_table', 84),
 (132, '2025_11_11_141343_create_sessions_table', 85),
-(133, '2025_11_19_093252_add_supplier_tracking_fields_to_purchase_requests_table', 86);
+(133, '2025_11_19_093252_add_supplier_tracking_fields_to_purchase_requests_table', 86),
+(134, '2025_11_21_093710_add_destination_to_shipping_tables', 87),
+(135, '2025_11_21_165923_add_unique_to_international_waybill_no', 88),
+(136, '2025_11_22_090516_add_freight_method_and_extra_cost_to_shippings', 89),
+(137, '2025_11_27_100000_create_shortage_items_table', 90),
+(138, '2025_11_28_120000_add_shortage_item_id_to_shipping_details', 91),
+(139, '2025_11_28_145150_remove_unique_constraint_from_international_waybill_no', 92),
+(140, '2025_11_28_150224_make_pre_shipping_id_nullable_in_shipping_details', 93),
+(141, '2025_11_29_092430_add_soft_deletes_to_purchase_requests', 94),
+(142, '2025_11_07_093534_add_lark_fields_to_projects_table', 95);
 
 -- --------------------------------------------------------
 
@@ -6903,20 +7089,34 @@ CREATE TABLE `pre_shippings` (
 INSERT INTO `pre_shippings` (`id`, `purchase_request_id`, `group_key`, `domestic_waybill_no`, `same_supplier_selection`, `percentage_if_same_supplier`, `domestic_cost`, `cost_allocation_method`, `allocation_percentage`, `allocated_cost`, `created_at`, `updated_at`) VALUES
 (1, 1, 'GRP_5_20251004', '22', 0, NULL, 50.00, 'quantity', NULL, 50.00, '2025-09-15 07:53:28', '2025-11-15 06:05:54'),
 (2, 3, 'GRP_7_20251002', '#D123', 0, NULL, 2500.00, 'percentage', 100.00, 2500.00, '2025-09-15 07:53:28', '2025-11-17 03:59:04'),
-(3, 4, 'GRP_16_20251001', NULL, 0, NULL, NULL, 'quantity', NULL, NULL, '2025-09-15 07:53:28', '2025-10-03 07:56:26'),
+(3, 4, 'GRP_16_20251001', '2323', 0, NULL, 0.00, 'quantity', NULL, 0.00, '2025-09-15 07:53:28', '2025-11-27 09:27:55'),
 (4, 7, 'GRP_21_20251008', NULL, 0, NULL, NULL, 'quantity', NULL, NULL, '2025-09-15 08:00:38', '2025-10-03 07:56:26'),
 (5, 10, 'GRP_10_20251008', '223', 0, NULL, 2.00, 'value', NULL, 2.00, '2025-10-02 01:31:19', '2025-11-15 05:48:46'),
 (6, 13, 'GRP_19_20251009', '#dom12', 0, NULL, 2000.00, 'value', NULL, 2000.00, '2025-10-02 01:31:19', '2025-11-15 03:05:06'),
 (7, 14, 'GRP_21_20251008', NULL, 0, NULL, NULL, 'quantity', NULL, NULL, '2025-10-02 01:31:19', '2025-10-03 07:56:26'),
 (9, 17, 'GRP_3_20251212', '223', 0, NULL, 8.00, 'quantity', NULL, 3.76, '2025-10-03 07:53:56', '2025-11-18 08:36:41'),
-(10, 18, 'GRP_7_20251212', '223', 0, NULL, 8.00, 'quantity', NULL, 4.24, '2025-10-03 07:53:56', '2025-11-19 03:36:03'),
-(11, 12, 'GRP_3_20251008', '400kkj', 0, NULL, 34.00, 'quantity', NULL, 34.00, '2025-10-03 08:01:13', '2025-11-17 01:51:35'),
-(12, 16, 'GRP_3_20251011', '223', 0, NULL, 8.00, 'percentage', 100.00, 8.00, '2025-10-03 08:59:08', '2025-11-03 07:45:49'),
-(13, 11, 'GRP_16_20251008', '#D6677', 0, NULL, 400.00, 'value', NULL, 1.39, '2025-10-06 03:36:22', '2025-11-15 05:34:47'),
-(14, 6, 'GRP_16_20251008', '#D6677', 0, NULL, 400.00, 'value', NULL, 398.61, '2025-10-06 03:42:24', '2025-11-15 05:34:47'),
+(10, 18, 'GRP_7_20251212', '223', 0, NULL, 8.00, 'percentage', 100.00, 8.00, '2025-10-03 07:53:56', '2025-11-28 02:33:38'),
+(11, 12, 'GRP_3_20251008', '400kkj', 0, NULL, 34.00, 'value', NULL, 34.00, '2025-10-03 08:01:13', '2025-11-28 02:33:49'),
+(12, 16, 'GRP_3_20251011', '223', 0, NULL, 8.00, 'percentage', 100.00, 8.00, '2025-10-03 08:59:08', '2025-11-28 03:44:07'),
+(13, 11, 'GRP_16_20251008', '#D6677', 0, NULL, 2000.00, 'quantity', NULL, 142.86, '2025-10-06 03:36:22', '2025-11-28 02:34:06'),
+(14, 6, 'GRP_16_20251008', '#D6677', 0, NULL, 2000.00, 'quantity', NULL, 1857.14, '2025-10-06 03:42:24', '2025-11-28 02:34:06'),
 (15, 5, 'GRP_29_20251011', '332', 0, NULL, 2568.00, 'percentage', 100.00, 2568.00, '2025-10-06 04:32:26', '2025-11-15 05:34:18'),
 (16, 20, 'GRP_21_20251118', NULL, 0, NULL, NULL, 'value', NULL, NULL, '2025-11-17 04:01:55', '2025-11-17 04:01:55'),
-(17, 22, 'GRP_21_20251118', '0087', 0, NULL, 1000.00, 'quantity', NULL, 1000.00, '2025-11-17 04:01:55', '2025-11-19 03:36:03');
+(17, 22, 'GRP_21_20251118', '0087', 0, NULL, 1000.00, 'quantity', NULL, 1000.00, '2025-11-17 04:01:55', '2025-11-19 03:36:03'),
+(18, 28, 'GRP_7_20251002', '#D123', 0, NULL, NULL, 'value', NULL, NULL, '2025-11-27 07:26:18', '2025-11-27 07:26:18'),
+(19, 29, 'GRP_7_20251002', '#D123', 0, NULL, NULL, 'value', NULL, NULL, '2025-11-27 07:47:09', '2025-11-27 07:47:09'),
+(20, 30, 'GRP_21_20251118', '0087', 0, NULL, NULL, 'value', NULL, NULL, '2025-11-27 08:20:23', '2025-11-27 08:20:23'),
+(21, 27, 'GRP_25_20251126', '009', 0, NULL, 90.00, 'percentage', 100.00, 90.00, '2025-11-27 08:25:21', '2025-11-28 04:18:35'),
+(22, 31, 'GRP_21_20251118', '0087', 0, NULL, NULL, 'value', NULL, NULL, '2025-11-27 09:51:28', '2025-11-27 09:51:28'),
+(23, 32, 'GRP_16_20251001', '4500', 0, NULL, NULL, 'value', NULL, NULL, '2025-11-27 10:08:01', '2025-11-27 10:08:01'),
+(24, 19, 'GRP_19_20251011', NULL, 0, NULL, NULL, 'quantity', NULL, 0.00, '2025-11-28 01:13:23', '2025-11-28 02:17:17'),
+(25, 33, 'GRP_23_20251129', '#dom2811a', 0, NULL, 8.00, 'percentage', 21.05, 1.68, '2025-11-28 06:12:48', '2025-11-28 06:15:45'),
+(26, 34, 'GRP_23_20251129', '#dom2811a', 0, NULL, 8.00, 'percentage', 78.95, 6.32, '2025-11-28 06:12:48', '2025-11-28 06:15:45'),
+(27, 35, 'GRP_32_20251129', '#dom2811b', 0, NULL, 11.00, 'value', NULL, 11.00, '2025-11-28 06:14:19', '2025-11-28 06:16:05'),
+(28, 36, 'GRP_18_20251129', '#dom2811c', 0, NULL, 6.00, 'value', NULL, 6.00, '2025-11-28 06:20:51', '2025-11-28 06:21:15'),
+(29, 2, 'GRP_15_20251008', NULL, 0, NULL, NULL, 'value', NULL, NULL, '2025-11-28 10:10:06', '2025-11-28 10:10:06'),
+(30, 37, 'GRP_3_20251130', '#29110950', 0, NULL, 12.00, 'value', NULL, 12.00, '2025-11-29 02:50:07', '2025-11-29 02:50:43'),
+(31, 38, 'GRP_10_20251130', '#29110950b', 0, NULL, 10.00, 'value', NULL, 10.00, '2025-11-29 02:50:07', '2025-11-29 02:50:51');
 
 -- --------------------------------------------------------
 
@@ -7930,33 +8130,45 @@ CREATE TABLE `purchase_requests` (
   `img` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `requested_by` bigint UNSIGNED NOT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `deleted_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data untuk tabel `purchase_requests`
 --
 
-INSERT INTO `purchase_requests` (`id`, `type`, `material_name`, `inventory_id`, `required_quantity`, `qty_to_buy`, `unit`, `stock_level`, `project_id`, `supplier_id`, `original_supplier_id`, `supplier_change_reason`, `price_per_unit`, `currency_id`, `approval_status`, `delivery_date`, `remark`, `img`, `requested_by`, `created_at`, `updated_at`) VALUES
-(2, 'restock', 'ascasc', 84, 4.00, NULL, 'dm', 22.00, 70, 15, NULL, NULL, 11.00, 35, 'Decline', '2025-10-08', NULL, NULL, 1, '2025-09-04 07:52:39', '2025-10-03 07:55:26'),
-(3, 'new_material', 'test req', NULL, 2.00, 2.00, 'dcm', 0.00, 74, 7, NULL, NULL, 43.00, 58, 'Approved', '2025-10-02', NULL, NULL, 1, '2025-09-04 08:20:09', '2025-11-15 02:42:40'),
-(4, 'new_material', 'test kabelk', NULL, 2.00, NULL, 'gl', 0.00, 25, 16, NULL, NULL, 13.00, 39, 'Approved', '2025-10-01', NULL, NULL, 1, '2025-09-04 08:34:57', '2025-10-03 07:56:06'),
-(6, 'new_material', 'penggaris', NULL, 13.00, NULL, 'pcs', 0.00, 25, 16, NULL, NULL, 1233.00, 47, 'Approved', '2025-10-08', NULL, NULL, 1, '2025-09-13 03:32:11', '2025-10-06 03:42:21'),
-(7, 'new_material', 'test proc', NULL, 12.00, NULL, '16', 0.00, 25, 21, NULL, NULL, 12.00, 47, 'Approved', '2025-10-08', NULL, NULL, 1, '2025-09-15 08:00:24', '2025-10-03 07:56:10'),
-(10, 'new_material', 'abataa', NULL, 22.00, NULL, 'ascas', 1.00, NULL, 10, NULL, NULL, 344.00, 2, 'Approved', '2025-10-08', NULL, 'external_requests/2g74MVywrrRnSMBA3c08xnhLUCD0TfEEFTrGmtB2.png', 1, '2025-09-24 01:30:20', '2025-10-03 07:56:12'),
-(11, 'new_material', 'qeqw', NULL, 1.00, NULL, '16', 0.00, 70, 16, NULL, NULL, 56.00, 40, 'Approved', '2025-10-08', NULL, 'external_requests/PWqD6NNYwaO49UUfnpIW4tIqQcWg0imBO4ax5ejx.jpg', 1, '2025-09-24 03:25:10', '2025-10-06 03:36:14'),
-(12, 'new_material', 'akauypo', NULL, 12.00, NULL, 'cm', NULL, NULL, 3, NULL, NULL, 23.00, 28, 'Approved', '2025-10-08', NULL, 'external_requests/Kf3XcY6srQYGFg7amyt8EJOJyPecFv3bL8ub9qbs.jpg', 1, '2025-09-24 04:45:51', '2025-10-03 08:01:11'),
-(13, 'restock', 'abata', 192, 4.30, NULL, 'cm', 40.00, NULL, 19, NULL, NULL, 144.00, 2, 'Approved', '2025-10-09', NULL, NULL, 1, '2025-09-24 07:40:28', '2025-10-03 07:56:17'),
-(14, 'restock', 'aderai', 215, 7.00, NULL, 'cm', 15.10, NULL, 21, NULL, NULL, 999.00, 42, 'Approved', '2025-10-08', NULL, NULL, 1, '2025-09-26 04:16:35', '2025-10-03 07:56:19'),
-(16, 'restock', 'aderai', 215, 28.00, NULL, 'cm', 14.10, 43, 3, NULL, NULL, 1.00, 56, 'Approved', '2025-10-11', NULL, 'purchase_requests/uEp500rkzjsmY57lR2u6chSXcsRt3HydU2xSbI7x.png', 1, '2025-10-02 02:04:12', '2025-10-03 08:59:04'),
-(17, 'new_material', 'Jamu', NULL, 45.00, 40.00, 'dm', 0.00, 16, 3, NULL, NULL, 5.00, 45, 'Approved', '2025-12-12', NULL, NULL, 1, '2025-10-02 02:04:12', '2025-11-12 01:50:30'),
-(18, 'restock', 'cfcf2', 124, 45.00, NULL, 'm', 47.00, NULL, 7, NULL, 'Changed by admin', 7.00, 42, 'Approved', '2025-12-12', NULL, NULL, 1, '2025-10-02 02:04:12', '2025-11-19 02:49:05'),
-(19, 'new_material', 'abcd', NULL, 12.00, NULL, 'cm', 0.00, 25, 19, NULL, NULL, 12000.00, 2, NULL, '2025-10-11', NULL, 'purchase_requests/XNoZc1ojZy4QeiGGqRszTv2XnnQHVKKF6VykRR1a.jpg', 1, '2025-10-07 06:23:09', '2025-10-07 07:03:03'),
-(20, 'restock', 'abata', 192, 34.00, NULL, 'cm', 38.00, 25, 21, NULL, NULL, 9999.00, 43, 'Approved', '2025-11-18', 'https://github.com/itskulen/bigscreenproject/wiki', 'purchase_requests/SWmOpfy03EHCxFOPZvPxE1yM0RQIm5LgUYT7Fc7q.jpg', 1, '2025-10-07 07:11:24', '2025-11-17 04:01:50'),
-(22, 'new_material', 'test material998', NULL, 2.00, 3.00, '16', 0.00, NULL, 21, NULL, 'Changed by admin', 12.00, 57, 'Approved', '2025-11-18', 'https://www.larksuite.com/approval/admin/approvalList', NULL, 1, '2025-10-20 04:30:24', '2025-11-19 02:59:34'),
-(24, 'restock', 'abata', 192, 1.00, 1.00, 'cm', 38.00, 86, 24, NULL, 'Changed by admin', NULL, NULL, 'Pending', NULL, NULL, NULL, 1, '2025-11-19 02:49:43', '2025-11-19 03:00:35'),
-(26, 'new_material', 'test material 999', NULL, 20.00, 20.00, 'cm', 0.00, 689, 29, NULL, 'Changed by admin', NULL, NULL, 'Pending', NULL, 'test', NULL, 1, '2025-11-19 03:00:20', '2025-11-19 03:00:31'),
-(27, 'restock', 'test proc', 245, 10.00, 10.00, 'pcs', 11.00, 25, 25, 23, 'habis lagi huh', NULL, NULL, 'Pending', NULL, 'test', NULL, 1, '2025-11-19 03:04:08', '2025-11-19 03:10:51');
+INSERT INTO `purchase_requests` (`id`, `type`, `material_name`, `inventory_id`, `required_quantity`, `qty_to_buy`, `unit`, `stock_level`, `project_id`, `supplier_id`, `original_supplier_id`, `supplier_change_reason`, `price_per_unit`, `currency_id`, `approval_status`, `delivery_date`, `remark`, `img`, `requested_by`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(2, 'restock', 'ascasc', 84, 4.00, NULL, 'dm', 22.00, 70, 15, NULL, NULL, 11.00, 35, 'Approved', '2025-10-08', NULL, NULL, 1, '2025-09-04 07:52:39', '2025-11-28 10:09:54', NULL),
+(3, 'new_material', 'test req', NULL, 2.00, 2.00, 'dcm', 0.00, 74, 7, NULL, NULL, 43.00, 58, 'Approved', '2025-10-02', NULL, NULL, 1, '2025-09-04 08:20:09', '2025-11-15 02:42:40', NULL),
+(4, 'new_material', 'test kabelk', NULL, 2.00, NULL, 'gl', 0.00, 25, 16, NULL, NULL, 13.00, 39, 'Approved', '2025-10-01', NULL, NULL, 1, '2025-09-04 08:34:57', '2025-10-03 07:56:06', NULL),
+(6, 'new_material', 'penggaris', NULL, 13.00, NULL, 'pcs', 0.00, 25, 16, NULL, NULL, 1233.00, 47, 'Approved', '2025-10-08', NULL, NULL, 1, '2025-09-13 03:32:11', '2025-10-06 03:42:21', NULL),
+(7, 'new_material', 'test proc', NULL, 12.00, NULL, '16', 0.00, 25, 21, NULL, NULL, 12.00, 47, 'Approved', '2025-10-08', NULL, NULL, 1, '2025-09-15 08:00:24', '2025-10-03 07:56:10', NULL),
+(10, 'new_material', 'abataa', NULL, 22.00, NULL, 'ascas', 1.00, NULL, 10, NULL, NULL, 344.00, 2, 'Approved', '2025-10-08', NULL, 'external_requests/2g74MVywrrRnSMBA3c08xnhLUCD0TfEEFTrGmtB2.png', 1, '2025-09-24 01:30:20', '2025-10-03 07:56:12', NULL),
+(11, 'new_material', 'qeqw', NULL, 1.00, NULL, '16', 0.00, 70, 16, NULL, NULL, 56.00, 40, 'Approved', '2025-10-08', NULL, 'external_requests/PWqD6NNYwaO49UUfnpIW4tIqQcWg0imBO4ax5ejx.jpg', 1, '2025-09-24 03:25:10', '2025-10-06 03:36:14', NULL),
+(12, 'new_material', 'akauypo', NULL, 12.00, NULL, 'cm', NULL, NULL, 3, NULL, NULL, 23.00, 28, 'Approved', '2025-10-08', NULL, 'external_requests/Kf3XcY6srQYGFg7amyt8EJOJyPecFv3bL8ub9qbs.jpg', 1, '2025-09-24 04:45:51', '2025-10-03 08:01:11', NULL),
+(13, 'restock', 'abata', 192, 4.30, NULL, 'cm', 40.00, NULL, 19, NULL, NULL, 144.00, 2, 'Approved', '2025-10-09', NULL, NULL, 1, '2025-09-24 07:40:28', '2025-10-03 07:56:17', NULL),
+(14, 'restock', 'aderai', 215, 7.00, NULL, 'cm', 15.10, NULL, 21, NULL, NULL, 999.00, 42, 'Approved', '2025-10-08', NULL, NULL, 1, '2025-09-26 04:16:35', '2025-10-03 07:56:19', NULL),
+(16, 'restock', 'aderai', 215, 28.00, NULL, 'cm', 14.10, 43, 3, NULL, NULL, 1.00, 56, 'Approved', '2025-10-11', NULL, 'purchase_requests/uEp500rkzjsmY57lR2u6chSXcsRt3HydU2xSbI7x.png', 1, '2025-10-02 02:04:12', '2025-10-03 08:59:04', NULL),
+(17, 'new_material', 'Jamu', NULL, 45.00, 40.00, 'dm', 0.00, 16, 3, NULL, NULL, 5.00, 45, 'Approved', '2025-12-12', NULL, NULL, 1, '2025-10-02 02:04:12', '2025-11-12 01:50:30', NULL),
+(18, 'restock', 'cfcf2', 124, 45.00, NULL, 'm', 47.00, NULL, 7, NULL, 'Changed by admin', 7.00, 42, 'Approved', '2025-12-12', NULL, NULL, 1, '2025-10-02 02:04:12', '2025-11-19 02:49:05', NULL),
+(19, 'new_material', 'abcd', NULL, 12.00, NULL, 'cm', 0.00, 25, 19, NULL, NULL, 12000.00, 2, 'Approved', '2025-10-11', NULL, 'purchase_requests/XNoZc1ojZy4QeiGGqRszTv2XnnQHVKKF6VykRR1a.jpg', 1, '2025-10-07 06:23:09', '2025-11-28 01:13:10', NULL),
+(20, 'restock', 'abata', 192, 34.00, NULL, 'cm', 38.00, 25, 21, NULL, NULL, 9999.00, 43, 'Approved', '2025-11-18', 'https://github.com/itskulen/bigscreenproject/wiki', 'purchase_requests/SWmOpfy03EHCxFOPZvPxE1yM0RQIm5LgUYT7Fc7q.jpg', 1, '2025-10-07 07:11:24', '2025-11-17 04:01:50', NULL),
+(22, 'new_material', 'test material998', NULL, 2.00, 3.00, '16', 0.00, NULL, 21, NULL, 'Changed by admin', 12.00, 57, 'Approved', '2025-11-18', 'https://www.larksuite.com/approval/admin/approvalList', NULL, 1, '2025-10-20 04:30:24', '2025-11-19 02:59:34', NULL),
+(24, 'restock', 'abata', 192, 1.00, 1.00, 'cm', 38.00, 86, 24, NULL, 'Changed by admin', NULL, NULL, 'Pending', NULL, NULL, NULL, 1, '2025-11-19 02:49:43', '2025-11-19 03:00:35', NULL),
+(26, 'new_material', 'test material 999', NULL, 20.00, 20.00, 'cm', 0.00, 689, 29, NULL, 'Changed by admin', NULL, NULL, 'Pending', '2025-11-24', 'test', NULL, 1, '2025-11-19 03:00:20', '2025-11-27 08:24:41', NULL),
+(27, 'restock', 'test proc', 245, 10.00, 10.00, 'pcs', 11.00, 25, 25, 23, 'habis lagi huh', 45.00, 57, 'Approved', '2025-11-26', NULL, NULL, 1, '2025-11-19 03:04:08', '2025-11-27 08:24:33', NULL),
+(28, 'new_material', 'test req', NULL, 1.00, 1.00, 'dcm', 0.00, 74, 7, NULL, NULL, 43.00, 58, 'Approved', '2025-10-02', '🔄 Resend shortage from PR#3 | Original purchased: 2.00, Received: 1.00, Shortage: 1.00', NULL, 1, '2025-11-27 07:26:18', '2025-11-27 07:26:18', NULL),
+(29, 'new_material', 'test req', NULL, 1.00, 1.00, 'dcm', 0.00, 74, 7, NULL, NULL, 43.00, 58, 'Approved', '2025-10-02', '🔄 Resend shortage from PR#3 | Original purchased: 2.00, Received: 1.00, Shortage: 1.00', NULL, 1, '2025-11-27 07:47:09', '2025-11-27 07:47:09', NULL),
+(30, 'new_material', 'butang', NULL, 2.00, 2.00, '16', 0.00, NULL, 21, NULL, NULL, 12.00, 57, 'Approved', '2025-11-18', '🔄 Resend shortage from PR#22 | Shortage: 2.00', NULL, 1, '2025-11-27 08:20:23', '2025-11-27 08:52:48', NULL),
+(31, 'new_material', 'test material998', NULL, 2.00, 2.00, '16', 0.00, NULL, 21, NULL, NULL, 12.00, 57, 'Approved', '2025-11-18', '🔄 Resend shortage from PR#22 | Shortage: 2.00', NULL, 1, '2025-11-27 09:51:28', '2025-11-27 09:51:28', NULL),
+(32, 'new_material', 'test kabelk', NULL, 1.00, 1.00, 'gl', 0.00, 25, 16, NULL, NULL, 13.00, 39, 'Approved', '2025-10-01', '🔄 Resend shortage from PR#4 | Shortage: 1.00', NULL, 1, '2025-11-27 10:08:01', '2025-11-27 10:08:01', NULL),
+(33, 'new_material', 'Cable', NULL, 32.00, 32.00, 'roll', 0.00, NULL, 23, NULL, 'Changed by admin', 3.00, 27, 'Approved', '2025-11-29', 'test proc', NULL, 1, '2025-11-28 06:11:33', '2025-11-28 06:13:11', NULL),
+(34, 'restock', 'oli castrol', 180, 12.00, 12.00, 'drum', 52.52, 268, 23, 23, NULL, 30.00, 27, 'Approved', '2025-11-29', 'test proc2', NULL, 1, '2025-11-28 06:11:33', '2025-11-28 06:12:38', NULL),
+(35, 'restock', 'Foam 1', 61, 43.00, 43.00, 'm', 44.00, 753, 32, NULL, 'Changed by admin', 54.00, 27, 'Approved', '2025-11-29', 'test', NULL, 1, '2025-11-28 06:13:55', '2025-11-28 06:14:17', NULL),
+(36, 'new_material', 'RAM 8GB DDR4', NULL, 4.00, 4.00, 'pcs', NULL, 25, 18, NULL, 'Changed by admin', 128.00, 27, 'Approved', '2025-11-29', NULL, NULL, 1, '2025-11-28 06:20:03', '2025-11-28 10:08:55', NULL),
+(37, 'new_material', 'Pena Biru', NULL, 10.00, 10.00, 'pcs', 0.00, NULL, 3, NULL, 'Changed by admin', 13.00, 6, 'Approved', '2025-11-30', 'test', NULL, 1, '2025-11-29 02:49:15', '2025-11-29 02:50:04', NULL),
+(38, 'restock', 'Botol Aki', 156, 12.00, 12.00, 'dm', 1000.00, NULL, 10, 10, NULL, 12.00, 6, 'Approved', '2025-11-30', NULL, NULL, 1, '2025-11-29 02:49:15', '2025-11-29 02:49:46', NULL);
 
 -- --------------------------------------------------------
 
@@ -7980,7 +8192,7 @@ CREATE TABLE `sessions` (
 INSERT INTO `sessions` (`id`, `user_id`, `ip_address`, `user_agent`, `payload`, `last_activity`) VALUES
 ('2J4nQ4pXndty3jTOaef5k3FIwnBzkmtdKdQmAcKV', NULL, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36', 'YTozOntzOjY6Il90b2tlbiI7czo0MDoic1BjaFVXSkloczZwaE5GV2hMaUhsWXZWYlU3eWs5Z1JybWF6S25CMCI7czo5OiJfcHJldmlvdXMiO2E6MTp7czozOiJ1cmwiO3M6Mzc6Imh0dHA6Ly9pbnZlbnRvcnktc3lzdGVtLXYyLnRlc3QvbG9naW4iO31zOjY6Il9mbGFzaCI7YToyOntzOjM6Im9sZCI7YTowOnt9czozOiJuZXciO2E6MDp7fX19', 1763173471),
 ('jEEYJPB2RqDw5wmQMtgU7jqpbihA40syeoluX8ao', NULL, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', 'YTo0OntzOjY6Il90b2tlbiI7czo0MDoiYjJQWWsxNkl2NjRxRmcyRDkwSWxkOXdZS2JCbUJaNmlmc0puUkRMaCI7czozOiJ1cmwiO2E6MTp7czo4OiJpbnRlbmRlZCI7czo0MToiaHR0cDovL2ludmVudG9yeS1zeXN0ZW0tdjIudGVzdC9kYXNoYm9hcmQiO31zOjk6Il9wcmV2aW91cyI7YToxOntzOjM6InVybCI7czozNzoiaHR0cDovL2ludmVudG9yeS1zeXN0ZW0tdjIudGVzdC9sb2dpbiI7fXM6NjoiX2ZsYXNoIjthOjI6e3M6Mzoib2xkIjthOjA6e31zOjM6Im5ldyI7YTowOnt9fX0=', 1762845759),
-('xeBEME9wgy9J3wGVrWoRPNds2b62byGMhot0ZHO5', 1, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0', 'YTo1OntzOjY6Il90b2tlbiI7czo0MDoiUXNqMlFKbko4YWF6dFl3V2F3UXNEWnpiTkd6QkwxN0R6ZzhPcHF3dyI7czozOiJ1cmwiO2E6MDp7fXM6OToiX3ByZXZpb3VzIjthOjE6e3M6MzoidXJsIjtzOjQxOiJodHRwOi8vaW52ZW50b3J5LXN5c3RlbS12Mi50ZXN0L2ludmVudG9yeSI7fXM6NjoiX2ZsYXNoIjthOjI6e3M6Mzoib2xkIjthOjA6e31zOjM6Im5ldyI7YTowOnt9fXM6NTA6ImxvZ2luX3dlYl81OWJhMzZhZGRjMmIyZjk0MDE1ODBmMDE0YzdmNThlYTRlMzA5ODlkIjtpOjE7fQ==', 1763601268);
+('xeBEME9wgy9J3wGVrWoRPNds2b62byGMhot0ZHO5', 1, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'YTo1OntzOjY6Il90b2tlbiI7czo0MDoiUXNqMlFKbko4YWF6dFl3V2F3UXNEWnpiTkd6QkwxN0R6ZzhPcHF3dyI7czozOiJ1cmwiO2E6MDp7fXM6OToiX3ByZXZpb3VzIjthOjE6e3M6MzoidXJsIjtzOjQwOiJodHRwOi8vaW52ZW50b3J5LXN5c3RlbS12Mi50ZXN0L3Byb2plY3RzIjt9czo2OiJfZmxhc2giO2E6Mjp7czozOiJvbGQiO2E6MDp7fXM6MzoibmV3IjthOjA6e319czo1MDoibG9naW5fd2ViXzU5YmEzNmFkZGMyYjJmOTQwMTU4MGYwMTRjN2Y1OGVhNGUzMDk4OWQiO2k6MTt9', 1766559775);
 
 -- --------------------------------------------------------
 
@@ -7990,8 +8202,9 @@ INSERT INTO `sessions` (`id`, `user_id`, `ip_address`, `user_agent`, `payload`, 
 
 CREATE TABLE `shippings` (
   `id` bigint UNSIGNED NOT NULL,
-  `international_waybill_no` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `freight_company` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `international_waybill_no` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `freight_company` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `freight_method` enum('Sea Freight','Air Freight') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'Sea Freight' COMMENT 'Method of international shipping',
   `freight_price` decimal(15,2) DEFAULT NULL,
   `eta_to_arrived` datetime DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
@@ -8004,10 +8217,18 @@ CREATE TABLE `shippings` (
 -- Dumping data untuk tabel `shippings`
 --
 
-INSERT INTO `shippings` (`id`, `international_waybill_no`, `freight_company`, `freight_price`, `eta_to_arrived`, `created_at`, `updated_at`, `shipment_status`, `remarks`) VALUES
-(1, '88552200', 'Maersk', 500.00, '2025-10-11 15:52:00', '2025-09-19 08:52:35', '2025-09-19 08:52:35', 'On Process', NULL),
-(2, '#i778', 'DHL', 500.00, '2025-11-21 10:15:00', '2025-11-17 02:15:50', '2025-11-17 02:15:50', 'On Process', NULL),
-(3, '#i779', 'FedEx', 500.00, '2025-11-18 11:06:00', '2025-11-17 04:06:15', '2025-11-17 04:06:15', 'On Process', NULL);
+INSERT INTO `shippings` (`id`, `international_waybill_no`, `freight_company`, `freight_method`, `freight_price`, `eta_to_arrived`, `created_at`, `updated_at`, `shipment_status`, `remarks`) VALUES
+(1, '88552200', 'Maersk', 'Sea Freight', 500.00, '2025-10-11 15:52:00', '2025-09-19 08:52:35', '2025-09-19 08:52:35', 'On Process', NULL),
+(2, '#i778', 'DHL', 'Sea Freight', 500.00, '2025-11-21 10:15:00', '2025-11-17 02:15:50', '2025-11-17 02:15:50', 'On Process', NULL),
+(3, '#i779', 'FedEx', 'Sea Freight', 500.00, '2025-11-18 11:06:00', '2025-11-17 04:06:15', '2025-11-17 04:06:15', 'On Process', NULL),
+(5, '#1213', 'FedEx', 'Sea Freight', 123.00, '2025-11-20 15:52:00', '2025-11-21 08:53:07', '2025-11-21 08:53:07', 'On Process', NULL),
+(21, '#int2811', 'DHL', 'Air Freight', 20.00, '2025-12-06 13:16:00', '2025-11-28 06:17:11', '2025-11-28 06:17:11', 'On Process', NULL),
+(23, '#int2811xyz', 'DHL', 'Sea Freight', 16.00, '2025-12-03 13:23:00', '2025-11-28 06:23:26', '2025-11-28 06:23:26', 'On Process', NULL),
+(32, '#44673', 'DHL', 'Air Freight', 16.00, '2025-11-28 18:02:00', '2025-11-28 07:02:54', '2025-11-28 07:02:54', 'On Process', NULL),
+(42, '1231233345345345#3453', 'DHL', 'Air Freight', 1.00, '2025-11-29 15:05:00', '2025-11-28 08:05:09', '2025-11-28 08:05:09', 'On Process', NULL),
+(43, '#54654#34534', 'DHL', 'Air Freight', 1.00, '2025-11-29 15:10:00', '2025-11-28 08:10:29', '2025-11-28 08:10:29', 'On Process', NULL),
+(44, '#29110944', 'DHL', 'Air Freight', 40.00, '2025-11-30 09:45:00', '2025-11-29 02:46:06', '2025-11-29 02:46:06', 'On Process', NULL),
+(45, '#29110944a', 'DHL', 'Air Freight', 42.00, '2025-11-29 09:51:00', '2025-11-29 02:51:46', '2025-11-29 02:51:46', 'On Process', NULL);
 
 -- --------------------------------------------------------
 
@@ -8018,9 +8239,13 @@ INSERT INTO `shippings` (`id`, `international_waybill_no`, `freight_company`, `f
 CREATE TABLE `shipping_details` (
   `id` bigint UNSIGNED NOT NULL,
   `shipping_id` bigint UNSIGNED NOT NULL,
-  `pre_shipping_id` bigint UNSIGNED NOT NULL,
+  `pre_shipping_id` bigint UNSIGNED DEFAULT NULL,
+  `shortage_item_id` bigint UNSIGNED DEFAULT NULL COMMENT 'Direct link to shortage item (bypass PR creation)',
   `percentage` decimal(5,2) DEFAULT NULL,
   `int_cost` decimal(15,2) DEFAULT NULL,
+  `extra_cost` decimal(15,2) NOT NULL DEFAULT '0.00' COMMENT 'Extra cost for oversized/overweight items (Air Freight)',
+  `extra_cost_reason` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Reason for extra cost (e.g., dimension, weight)',
+  `destination` enum('SG','BT','CN','MY','Other') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'SG' COMMENT 'Final destination for this item',
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -8029,12 +8254,68 @@ CREATE TABLE `shipping_details` (
 -- Dumping data untuk tabel `shipping_details`
 --
 
-INSERT INTO `shipping_details` (`id`, `shipping_id`, `pre_shipping_id`, `percentage`, `int_cost`, `created_at`, `updated_at`) VALUES
-(1, 1, 3, 50.00, 250.00, '2025-09-19 08:52:35', '2025-09-19 08:52:35'),
-(2, 1, 4, 50.00, 250.00, '2025-09-19 08:52:35', '2025-09-19 08:52:35'),
-(3, 2, 15, 100.00, 500.00, '2025-11-17 02:15:50', '2025-11-17 02:15:50'),
-(4, 3, 17, 100.00, 500.00, '2025-11-17 04:06:15', '2025-11-17 04:06:15'),
-(5, 4, 17, 100.00, 500.00, '2025-11-17 04:07:40', '2025-11-17 04:07:40');
+INSERT INTO `shipping_details` (`id`, `shipping_id`, `pre_shipping_id`, `shortage_item_id`, `percentage`, `int_cost`, `extra_cost`, `extra_cost_reason`, `destination`, `created_at`, `updated_at`) VALUES
+(1, 1, 3, NULL, 50.00, 250.00, 0.00, NULL, 'SG', '2025-09-19 08:52:35', '2025-09-19 08:52:35'),
+(2, 1, 4, NULL, 50.00, 250.00, 0.00, NULL, 'SG', '2025-09-19 08:52:35', '2025-09-19 08:52:35'),
+(3, 2, 15, NULL, 100.00, 500.00, 0.00, NULL, 'SG', '2025-11-17 02:15:50', '2025-11-17 02:15:50'),
+(4, 3, 17, NULL, 100.00, 500.00, 0.00, NULL, 'SG', '2025-11-17 04:06:15', '2025-11-17 04:06:15'),
+(5, 4, 17, NULL, 100.00, 500.00, 0.00, NULL, 'SG', '2025-11-17 04:07:40', '2025-11-17 04:07:40'),
+(6, 5, 2, NULL, NULL, 123.00, 0.00, NULL, 'SG', '2025-11-21 08:53:07', '2025-11-21 08:53:07'),
+(7, 6, 5, NULL, 92.44, 113.70, 0.00, NULL, 'SG', '2025-11-21 09:26:15', '2025-11-21 09:26:15'),
+(8, 6, 6, NULL, 7.56, 9.30, 0.00, NULL, 'SG', '2025-11-21 09:26:15', '2025-11-21 09:26:15'),
+(9, 7, 9, NULL, 100.00, 123.00, 0.00, NULL, 'SG', '2025-11-21 09:51:56', '2025-11-21 09:51:56'),
+(36, 21, 25, NULL, 3.46, 0.69, 10.00, 'max volume', 'SG', '2025-11-28 06:17:11', '2025-11-28 06:17:11'),
+(37, 21, 26, NULL, 12.96, 2.59, 0.00, NULL, 'SG', '2025-11-28 06:17:11', '2025-11-28 06:17:11'),
+(38, 21, 27, NULL, 83.59, 16.72, 0.00, NULL, 'SG', '2025-11-28 06:17:11', '2025-11-28 06:17:11'),
+(40, 23, 28, NULL, NULL, 16.00, 0.00, NULL, 'SG', '2025-11-28 06:23:26', '2025-11-28 06:23:26'),
+(41, 32, 10, NULL, NULL, 16.00, 0.00, NULL, 'SG', '2025-11-28 07:02:54', '2025-11-28 07:02:54'),
+(42, 42, NULL, 9, 100.00, 1.00, 0.00, NULL, 'SG', '2025-11-28 08:05:09', '2025-11-28 08:05:09'),
+(43, 43, 27, 10, 100.00, 1.00, 0.00, NULL, 'SG', '2025-11-28 08:10:29', '2025-11-28 08:10:29'),
+(44, 44, 21, NULL, 94.14, 37.66, 0.00, NULL, 'SG', '2025-11-29 02:46:06', '2025-11-29 02:46:06'),
+(45, 44, 12, NULL, 5.86, 2.34, 10.00, 'max volume', 'SG', '2025-11-29 02:46:06', '2025-11-29 02:46:06'),
+(46, 45, 31, NULL, 52.55, 22.07, 0.00, NULL, 'SG', '2025-11-29 02:51:46', '2025-11-29 02:51:46'),
+(47, 45, 30, NULL, 47.45, 19.93, 9.00, 'max volume', 'SG', '2025-11-29 02:51:46', '2025-11-29 02:51:46');
+
+-- --------------------------------------------------------
+
+--
+-- Struktur dari tabel `shortage_items`
+--
+
+CREATE TABLE `shortage_items` (
+  `id` bigint UNSIGNED NOT NULL,
+  `goods_receive_detail_id` bigint UNSIGNED NOT NULL,
+  `purchase_request_id` bigint UNSIGNED DEFAULT NULL,
+  `material_name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `purchased_qty` decimal(15,2) NOT NULL,
+  `received_qty` decimal(15,2) NOT NULL,
+  `shortage_qty` decimal(15,2) NOT NULL,
+  `status` enum('pending','reshipped','partially_reshipped','fully_reshipped','canceled') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
+  `resend_count` int NOT NULL DEFAULT '0',
+  `notes` text COLLATE utf8mb4_unicode_ci,
+  `old_domestic_wbl` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data untuk tabel `shortage_items`
+--
+
+INSERT INTO `shortage_items` (`id`, `goods_receive_detail_id`, `purchase_request_id`, `material_name`, `purchased_qty`, `received_qty`, `shortage_qty`, `status`, `resend_count`, `notes`, `old_domestic_wbl`, `created_at`, `updated_at`) VALUES
+(1, 5, 3, 'test req', 2.00, 1.00, 1.00, 'reshipped', 1, 'Auto-detected shortage on 2025-11-27 14:23:56\nReshipped on 2025-11-27 14:26:18 | New PR#28 created by logitech', '#D123', '2025-11-27 07:23:56', '2025-11-27 07:26:18'),
+(2, 6, 3, 'test req', 2.00, 1.00, 1.00, 'canceled', 0, 'Canceled: cancel', '#D123', '2025-11-27 07:29:13', '2025-11-27 07:45:00'),
+(3, 7, 3, 'test req', 2.00, 1.00, 1.00, 'reshipped', 1, 'Auto-detected shortage on 2025-11-27 14:45:46\nReshipped on 2025-11-27 14:47:09 | New PR#29 created by logitech', '#D123', '2025-11-27 07:45:46', '2025-11-27 07:47:09'),
+(4, 8, 22, 'test material998', 3.00, 1.00, 2.00, 'reshipped', 1, 'Auto-detected shortage on 2025-11-27 14:50:08\nReshipped on 2025-11-27 15:20:23 | New PR#30', '0087', '2025-11-27 07:50:08', '2025-11-27 08:20:23'),
+(5, 9, 4, 'test kabelk', 2.00, 1.00, 1.00, 'reshipped', 1, 'Auto-detected shortage on 2025-11-27 16:22:30\nReshipped on 2025-11-27 17:08:01 | New PR#32', NULL, '2025-11-27 09:22:30', '2025-11-27 10:08:01'),
+(6, 10, 7, 'test proc', 12.00, 9.00, 3.00, 'canceled', 0, 'Canceled: Supplier changed', NULL, '2025-11-27 09:22:30', '2025-11-29 02:40:50'),
+(7, 11, 22, 'test material998', 3.00, 1.00, 2.00, 'canceled', 0, 'Canceled: takjadi', '0087', '2025-11-27 09:29:17', '2025-11-27 09:36:30'),
+(8, 12, 22, 'test material998', 3.00, 1.00, 2.00, 'reshipped', 1, 'Auto-detected shortage on 2025-11-27 16:30:20\nReshipped on 2025-11-27 16:51:28 | New PR#31', '0087', '2025-11-27 09:30:20', '2025-11-27 09:51:28'),
+(9, 13, 33, 'Cable', 32.00, 30.00, 2.00, 'reshipped', 1, 'Auto-detected shortage on 2025-11-28 13:18:40\nReshipped on 2025-11-28 15:05:09 via Int. Waybill: 1231233345345345#3453', '#dom2811a', '2025-11-28 06:18:40', '2025-11-28 08:05:09'),
+(10, 15, 35, 'Foam 1', 43.00, 39.00, 4.00, 'reshipped', 1, 'Auto-detected shortage on 2025-11-28 13:18:40\nReshipped on 2025-11-28 15:10:29 via Int. Waybill: #54654#34534', '#dom2811b', '2025-11-28 06:18:40', '2025-11-28 08:10:29'),
+(11, 16, 27, 'test proc', 10.00, 2.00, 8.00, 'pending', 0, 'Auto-detected shortage on 2025-11-29 09:46:34', '009', '2025-11-29 02:46:34', '2025-11-29 02:46:34'),
+(12, 18, 38, 'Botol Aki', 12.00, 11.00, 1.00, 'pending', 0, 'Auto-detected shortage on 2025-11-29 09:52:13', '#29110950b', '2025-11-29 02:52:13', '2025-11-29 02:52:13'),
+(13, 19, 37, 'Pena Biru', 10.00, 8.00, 2.00, 'pending', 0, 'Auto-detected shortage on 2025-11-29 09:52:13', '#29110950', '2025-11-29 02:52:13', '2025-11-29 02:52:13');
 
 -- --------------------------------------------------------
 
@@ -8421,7 +8702,8 @@ ALTER TABLE `goods_receives`
 ALTER TABLE `goods_receive_details`
   ADD PRIMARY KEY (`id`),
   ADD KEY `goods_receive_details_goods_receive_id_foreign` (`goods_receive_id`),
-  ADD KEY `goods_receive_details_shipping_detail_id_foreign` (`shipping_detail_id`);
+  ADD KEY `goods_receive_details_shipping_detail_id_foreign` (`shipping_detail_id`),
+  ADD KEY `goods_receive_details_destination_index` (`destination`);
 
 --
 -- Indeks untuk tabel `inventories`
@@ -8564,7 +8846,8 @@ ALTER TABLE `sessions`
 -- Indeks untuk tabel `shippings`
 --
 ALTER TABLE `shippings`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `shippings_freight_method_index` (`freight_method`);
 
 --
 -- Indeks untuk tabel `shipping_details`
@@ -8572,7 +8855,21 @@ ALTER TABLE `shippings`
 ALTER TABLE `shipping_details`
   ADD PRIMARY KEY (`id`),
   ADD KEY `shipping_details_shipping_id_foreign` (`shipping_id`),
-  ADD KEY `shipping_details_pre_shipping_id_foreign` (`pre_shipping_id`);
+  ADD KEY `shipping_details_pre_shipping_id_foreign` (`pre_shipping_id`),
+  ADD KEY `shipping_details_destination_index` (`destination`),
+  ADD KEY `shipping_details_extra_cost_index` (`extra_cost`),
+  ADD KEY `shipping_details_shortage_item_id_index` (`shortage_item_id`);
+
+--
+-- Indeks untuk tabel `shortage_items`
+--
+ALTER TABLE `shortage_items`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `shortage_items_goods_receive_detail_id_foreign` (`goods_receive_detail_id`),
+  ADD KEY `shortage_items_purchase_request_id_foreign` (`purchase_request_id`),
+  ADD KEY `idx_shortage_status` (`status`),
+  ADD KEY `idx_shortage_material` (`material_name`),
+  ADD KEY `idx_shortage_status_date` (`status`,`created_at`);
 
 --
 -- Indeks untuk tabel `skillsets`
@@ -8627,7 +8924,7 @@ ALTER TABLE `attendances`
 -- AUTO_INCREMENT untuk tabel `audits`
 --
 ALTER TABLE `audits`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1444;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1620;
 
 --
 -- AUTO_INCREMENT untuk tabel `categories`
@@ -8687,13 +8984,13 @@ ALTER TABLE `goods_in`
 -- AUTO_INCREMENT untuk tabel `goods_movements`
 --
 ALTER TABLE `goods_movements`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT untuk tabel `goods_movement_items`
 --
 ALTER TABLE `goods_movement_items`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
 -- AUTO_INCREMENT untuk tabel `goods_out`
@@ -8705,13 +9002,13 @@ ALTER TABLE `goods_out`
 -- AUTO_INCREMENT untuk tabel `goods_receives`
 --
 ALTER TABLE `goods_receives`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT untuk tabel `goods_receive_details`
 --
 ALTER TABLE `goods_receive_details`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
 
 --
 -- AUTO_INCREMENT untuk tabel `inventories`
@@ -8765,7 +9062,7 @@ ALTER TABLE `material_usages`
 -- AUTO_INCREMENT untuk tabel `migrations`
 --
 ALTER TABLE `migrations`
-  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=134;
+  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=143;
 
 --
 -- AUTO_INCREMENT untuk tabel `personal_access_tokens`
@@ -8777,7 +9074,7 @@ ALTER TABLE `personal_access_tokens`
 -- AUTO_INCREMENT untuk tabel `pre_shippings`
 --
 ALTER TABLE `pre_shippings`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
 
 --
 -- AUTO_INCREMENT untuk tabel `projects`
@@ -8807,19 +9104,25 @@ ALTER TABLE `project_statuses`
 -- AUTO_INCREMENT untuk tabel `purchase_requests`
 --
 ALTER TABLE `purchase_requests`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=39;
 
 --
 -- AUTO_INCREMENT untuk tabel `shippings`
 --
 ALTER TABLE `shippings`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=46;
 
 --
 -- AUTO_INCREMENT untuk tabel `shipping_details`
 --
 ALTER TABLE `shipping_details`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=48;
+
+--
+-- AUTO_INCREMENT untuk tabel `shortage_items`
+--
+ALTER TABLE `shortage_items`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT untuk tabel `skillsets`
@@ -8946,6 +9249,19 @@ ALTER TABLE `material_plannings`
 --
 ALTER TABLE `purchase_requests`
   ADD CONSTRAINT `purchase_requests_original_supplier_id_foreign` FOREIGN KEY (`original_supplier_id`) REFERENCES `suppliers` (`id`) ON DELETE SET NULL;
+
+--
+-- Ketidakleluasaan untuk tabel `shipping_details`
+--
+ALTER TABLE `shipping_details`
+  ADD CONSTRAINT `shipping_details_shortage_item_id_foreign` FOREIGN KEY (`shortage_item_id`) REFERENCES `shortage_items` (`id`) ON DELETE SET NULL;
+
+--
+-- Ketidakleluasaan untuk tabel `shortage_items`
+--
+ALTER TABLE `shortage_items`
+  ADD CONSTRAINT `shortage_items_goods_receive_detail_id_foreign` FOREIGN KEY (`goods_receive_detail_id`) REFERENCES `goods_receive_details` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `shortage_items_purchase_request_id_foreign` FOREIGN KEY (`purchase_request_id`) REFERENCES `purchase_requests` (`id`) ON DELETE SET NULL;
 
 --
 -- Ketidakleluasaan untuk tabel `suppliers`
