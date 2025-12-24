@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\ProjectApiController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -17,3 +18,9 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+// Projects & Employees API - SECURE dengan token
+    Route::prefix('v1')->group(function () {
+        Route::get('/projects', [ProjectApiController::class, 'getProjects']);
+        Route::get('/projects/{id}', [ProjectApiController::class, 'getProjectById']);
+        Route::get('/employees', [ProjectApiController::class, 'getEmployees']);
+    });
