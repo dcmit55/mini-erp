@@ -1249,6 +1249,327 @@ function validateForm(formData) {
 }
 ```
 
+## 🔐 API Token Authentication
+
+Sistem menggunakan **Static API Token** untuk komunikasi server-to-server yang ringan dan stateless. Token bersifat permanen tanpa expiration untuk konsumsi API oleh aplikasi eksternal (BotTime).
+
+### Mengapa Static Token?
+
+**Tidak Menggunakan Laravel Sanctum** karena:
+
+-   ❌ Terlalu _heavyweight_ untuk server-to-server
+-   ❌ Memerlukan user session & token rotation
+-   ❌ Overhead yang tidak diperlukan untuk internal API
+
+**Static Token Benefits**:
+
+-   ✅ **Ringan**: Hanya 1 query database per request
+-   ✅ **Stateless**: Tanpa session/cookie
+-   ✅ **Permanen**: Token tidak expired
+-   ✅ **Sederhana**: Setup minimal, mudah maintenance
+
+### Generate Token
+
+#### First Time Setup
+
+```bash
+# Via Artisan Command (Production)
+php artisan api:token:generate "BotTime Application"
+
+# Dengan IP Whitelist (Optional)
+php artisan api:token:generate "BotTime App" --ip=192.168.1.100
+```
+
+**Output**:
+
+```
+✅ API Token Created Successfully!
+
++------------+------------------------------------------------------------------+
+| ID         | 1                                                                |
+| Name       | BotTime Application                                              |
+| Token      | a7b8c9d0e1f2g3h4i5j6k7l8m9n0o1p2q3r4s5t6u7v8w9x0y1z2...        |
+| Status     |  Active                                                        |
++------------+------------------------------------------------------------------+
+
+⚠️  PENTING: Simpan token ini sekarang!
+```
+
+### Token Management
+
+```bash
+# List semua tokens
+php artisan api:token:list
+
+# Nonaktifkan token
+php artisan api:token:revoke 1
+
+# Aktifkan kembali
+php artisan api:token:activate 1
+
+# Menampilkan Token Via Id
+php artisan api:token:show (ID Token)
+```
+
+### Available API Endpoints
+
+| Method | Endpoint                | Description    | Auth Required |
+| ------ | ----------------------- | -------------- | ------------- |
+| GET    | `/api/health`           | Health check   | ❌ No         |
+| GET    | `/api/v1/projects`      | List projects  | ✅ Yes        |
+| GET    | `/api/v1/projects/{id}` | Project detail | ✅ Yes        |
+| GET    | `/api/v1/employees`     | List employees | ✅ Yes        |
+| GET    | `/api/v1/parts`         | List parts     | ✅ Yes        |
+
+### Request Format
+
+**Required Headers**:
+
+```http
+X-API-TOKEN: your_token_here
+Accept: application/json
+```
+
+**cURL Example**:
+
+```bash
+curl -X GET https://symcore.mascot.id/api/v1/projects \
+  -H "X-API-TOKEN: a7b8c9d0e1f2g3h4..." \
+  -H "Accept: application/json"
+```
+
+### Integration (BotTime PHP)
+
+**Config Setup**:
+
+```php
+// config.php
+define('SYMCORE_API_URL', 'https://symcore.mascot.id/api/v1');
+define('SYMCORE_API_TOKEN', 'a7b8c9d0e1f2...'); // From generate command
+```
+
+**Helper Function**:
+
+```php
+// api_helper.php
+function callSymcoreAPI($endpoint) {
+    $ch = curl_init();
+    curl_setopt_array($ch, [
+        CURLOPT_URL => SYMCORE_API_URL . $endpoint,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER => [
+            'X-API-TOKEN: ' . SYMCORE_API_TOKEN,
+            'Accept: application/json'
+        ],
+        CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_TIMEOUT => 30
+    ]);
+
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($httpCode !== 200) {
+        error_log("API Error: HTTP $httpCode");
+        return null;
+    }
+
+    return json_decode($response, true);
+}
+```
+
+**Usage Example**:
+
+```php
+// Get projects untuk dropdown
+$response = callSymcoreAPI('/projects');
+if ($response && $response['success']) {
+    $projects = $response['data'];
+}
+
+// Get employees
+$employees = callSymcoreAPI('/employees');
+
+// Get project detail
+$projectDetail = callSymcoreAPI('/projects/1');
+```
+
+### Response Format
+
+**Success (200)**:
+
+```json
+{
+    "success": true,
+    "data": [
+        {
+            "id": 1,
+            "name": "Project Alpha",
+            "qty": 100,
+            "department": {
+                "id": 1,
+                "name": "Production"
+            }
+        }
+    ],
+    "message": "Data retrieved successfully"
+}
+```
+
+**Errors**:
+
+```json
+// 401 - No Token
+{
+    "success": false,
+    "message": "API token is required. Please provide X-API-TOKEN header."
+}
+
+// 401 - Invalid Token
+{
+    "success": false,
+    "message": "Invalid or inactive API token."
+}
+
+// 403 - IP Blocked
+{
+    "success": false,
+    "message": "Your IP address is not allowed."
+}
+```
+
+### Security Best Practices
+
+#### ✅ DO:
+
+-   Simpan token di `.env` atau config file
+-   Gunakan HTTPS only (production)
+-   Tambahkan IP whitelist untuk keamanan ekstra
+-   Monitor `last_used_at` untuk aktivitas mencurigakan
+
+#### ❌ DON'T:
+
+-   Commit token ke Git repository
+-   Kirim token via URL query string
+-   Share token via email/chat plaintext
+-   Simpan token di frontend JavaScript
+
+### Troubleshooting
+
+#### ❌ Error: "API token is required"
+
+**Penyebab**: Header tidak dikirim atau format salah
+
+**Solusi**:
+
+```php
+// ✅ BENAR
+'X-API-TOKEN: your_token_here'
+
+// ❌ SALAH
+'Authorization: Bearer your_token_here'  // Ini untuk Sanctum/OAuth!
+```
+
+#### ❌ Error: "Invalid or inactive API token"
+
+**Penyebab**: Token salah atau sudah di-revoke
+
+**Solusi**:
+
+```bash
+# Check token status
+php artisan api:token:list
+
+# Activate jika inactive
+php artisan api:token:activate 1
+
+# Generate token baru jika hilang
+php artisan api:token:generate "New Token"
+```
+
+#### ❌ Error: "Your IP address is not allowed"
+
+**Penyebab**: IP whitelist aktif dan IP Anda tidak terdaftar
+
+**Solusi**:
+
+```bash
+# Check token configuration
+php artisan api:token:list
+
+# Buat token baru tanpa IP restriction
+php artisan api:token:generate "BotTime App"
+
+# Atau tambahkan IP ke existing token (via database)
+UPDATE api_tokens SET allowed_ips = '192.168.1.100,10.0.0.50' WHERE id = 1;
+```
+
+#### ❌ CORS Issues (jika dari browser)
+
+**Penyebab**: API dipanggil dari domain berbeda via JavaScript
+
+**Solusi**:
+
+```php
+// config/cors.php
+'paths' => ['api/*'],
+'allowed_origins' => ['https://bottime.yourdomain.com'],
+'allowed_headers' => ['X-API-TOKEN', 'Content-Type', 'Accept'],
+```
+
+#### ❌ Slow Response / Timeout
+
+**Penyebab**: Query database lambat atau network issue
+
+**Solusi**:
+
+```php
+// Increase timeout di BotTime
+curl_setopt($ch, CURLOPT_TIMEOUT, 60); // 60 detik
+
+// Check Laravel query performance
+php artisan api:token:list  // Cek last_used_at
+
+// Enable query log untuk debug
+DB::enableQueryLog();
+// ... your query
+dd(DB::getQueryLog());
+```
+
+### Monitoring Token Usage
+
+```bash
+# Via artisan
+php artisan api:token:list
+
+# Via database query
+SELECT id, name, is_active, last_used_at
+FROM api_tokens
+ORDER BY last_used_at DESC;
+```
+
+### Rate Limiting (Optional)
+
+Untuk mencegah abuse, tambahkan rate limiting:
+
+```php
+// routes/api.php
+Route::prefix('v1')->middleware(['api.token', 'throttle:60,1'])->group(function () {
+    // 60 requests per minute max
+    Route::get('/projects', [ProjectApiController::class, 'getProjects']);
+    Route::get('/employees', [ProjectApiController::class, 'getEmployees']);
+});
+```
+
+**Response saat limit terlampaui (429)**:
+
+```json
+{
+    "message": "Too Many Attempts.",
+    "exception": "Illuminate\\Http\\Exceptions\\ThrottleRequestsException"
+}
+```
+
 ## 🐛 Troubleshooting
 
 ### Common Issues
