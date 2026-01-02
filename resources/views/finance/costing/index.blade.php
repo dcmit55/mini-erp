@@ -79,6 +79,7 @@
                         <thead class="table-light text-nowrap">
                             <tr>
                                 <th>Material</th>
+                                {{-- <th>Status</th> --}}
                                 <th>Quantity</th>
                                 <th>Unit Price</th>
                                 <th>Domestic Freight</th>

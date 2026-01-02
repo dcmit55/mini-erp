@@ -29,8 +29,7 @@
                                 </button>
                             </span>
                         @endif
-                        <a href="{{ route('material_requests.export', request()->query()) }}"
-                            class="btn btn-outline-success btn-sm flex-shrink-0">
+                        <a href="#" id="export-btn" class="btn btn-outline-success btn-sm flex-shrink-0">
                             <i class="bi bi-file-earmark-excel me-1"></i> Export
                         </a>
                     </div>
@@ -691,6 +690,21 @@
                 $('#filter-project, #filter-material, #filter-status, #filter-requested-by, #filter-requested-at, #custom-search')
                     .val('').trigger('change');
                 table.draw();
+            });
+
+            // Export button handler with filters
+            $('#export-btn').on('click', function(e) {
+                e.preventDefault();
+                const params = {
+                    project: $('#filter-project').val(),
+                    material: $('#filter-material').val(),
+                    status: $('#filter-status').val(),
+                    requested_by: $('#filter-requested-by').val(),
+                    requested_at: $('#filter-requested-at').val(),
+                    search: $('#custom-search').val()
+                };
+                const query = $.param(params);
+                window.location.href = '{{ route('material_requests.export') }}' + '?' + query;
             });
 
             // Initialize Select2

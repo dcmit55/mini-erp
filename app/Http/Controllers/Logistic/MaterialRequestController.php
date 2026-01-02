@@ -266,7 +266,8 @@ class MaterialRequestController extends Controller
             $query->whereDate('created_at', $requestedAt);
         }
 
-        $requests = $query->get();
+        // Order by created_at descending (newest first)
+        $requests = $query->orderBy('created_at', 'desc')->get();
 
         // Buat nama file dinamis
         $fileName = 'material_requests';
