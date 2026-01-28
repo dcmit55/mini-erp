@@ -205,11 +205,15 @@ class ProjectCostingController extends Controller
 
                     $projectTotal += $totalCostIdr;
 
-                    // Get unit name
+                    // Get unit name - FIXED: Check relation loaded properly
                     $unitName = 'N/A';
-                    if (is_object($inventory->unit) && isset($inventory->unit->name)) {
-                        $unitName = $inventory->unit->name;
-                    } elseif (is_string($inventory->unit) && !empty($inventory->unit)) {
+
+                    // Check if unit relation is loaded (not just varchar field)
+                    if ($inventory->relationLoaded('unit') && $inventory->unit && is_object($inventory->unit)) {
+                        // Unit is loaded as relation object
+                        $unitName = $inventory->unit->name ?? 'N/A';
+                    } elseif (!empty($inventory->unit) && is_string($inventory->unit)) {
+                        // Unit is varchar field (legacy data)
                         $unitName = $inventory->unit;
                     }
 
@@ -226,11 +230,13 @@ class ProjectCostingController extends Controller
                     ];
                 }
 
-                $projectsData[] = [
-                    'project_name' => $project->name,
-                    'materials' => $materials,
-                    'grand_total' => $projectTotal,
-                ];
+                if (!empty($materials)) {
+                    $projectsData[] = [
+                        'project_name' => $project->name,
+                        'materials' => $materials,
+                        'grand_total' => $projectTotal,
+                    ];
+                }
             }
 
             if (empty($projectsData)) {
@@ -241,7 +247,10 @@ class ProjectCostingController extends Controller
 
             return Excel::download(new AllProjectsCostingExport($projectsData), $filename);
         } catch (\Exception $e) {
-            Log::error('Export All Projects Error: ' . $e->getMessage());
+            Log::error('Export All Projects Error: ' . $e->getMessage(), [
+                'user_id' => auth()->id(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return back()->withErrors(['error' => 'Export failed: ' . $e->getMessage()]);
         }
     }
