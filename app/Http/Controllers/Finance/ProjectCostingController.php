@@ -11,6 +11,7 @@ use App\Models\Logistic\GoodsOut;
 use App\Models\Admin\Department;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\ProjectCostingExport;
+use App\Exports\AllProjectsCostingExport;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Logistic\Inventory;
@@ -35,7 +36,7 @@ class ProjectCostingController extends Controller
 
         // Apply filters
         if ($request->has('department') && $request->department !== null) {
-            $query->whereHas('department', function ($q) use ($request) {
+            $query->whereHas('departments', function ($q) use ($request) {
                 $q->where('name', $request->department);
             });
         }
@@ -68,7 +69,22 @@ class ProjectCostingController extends Controller
             $totalUnitCost = $unitPrice + $domesticFreight + $internationalFreight;
 
             $usedQty = $usage->used_quantity ?? 0;
-            $unit = $inventory->unit ?? 'N/A';
+
+            // Get unit name - support both old (varchar) and new (relation) data
+            $unitName = 'N/A';
+            if ($inventory->unit_id) {
+                try {
+                    $unitRelation = $inventory->unit;
+                    if ($unitRelation) {
+                        $unitName = $unitRelation->name;
+                    }
+                } catch (\Exception $e) {
+                    $unitName = $inventory->unit ?? 'N/A';
+                }
+            } elseif (!empty($inventory->unit)) {
+                $unitName = $inventory->unit;
+            }
+
             $currency = $inventory->currency ?? (object) ['name' => 'N/A', 'exchange_rate' => 1];
             $exchangeRate = $currency->exchange_rate ?? 1;
 
@@ -79,7 +95,7 @@ class ProjectCostingController extends Controller
                 'inventory' => (object) [
                     'id' => $inventory->id ?? $usage->inventory_id,
                     'name' => $inventory->name ?? 'N/A',
-                    'unit' => $unit,
+                    'unit' => $unitName,
                     'price' => $unitPrice,
                     'domestic_freight' => $domesticFreight,
                     'international_freight' => $internationalFreight,
@@ -142,6 +158,92 @@ class ProjectCostingController extends Controller
         });
 
         return Excel::download(new ProjectCostingExport($materials, $project->name), 'project_costing_' . str_replace(' ', '_', $project->name) . '_' . now()->format('Y-m-d') . '.xlsx');
+    }
+
+    public function exportAllProjects(Request $request)
+    {
+        try {
+            $query = Project::query();
+
+            if ($request->has('department') && $request->department !== null) {
+                $query->whereHas('departments', function ($q) use ($request) {
+                    $q->where('name', $request->department);
+                });
+            }
+
+            $projects = $query->with('departments')->orderBy('name')->get();
+            $projectsData = [];
+
+            foreach ($projects as $project) {
+                $usages = MaterialUsage::where('project_id', $project->id)
+                    ->with(['inventory.currency', 'inventory.unit'])
+                    ->get();
+
+                if ($usages->isEmpty()) {
+                    continue;
+                }
+
+                $materials = [];
+                $projectTotal = 0;
+
+                foreach ($usages as $usage) {
+                    $inventory = $usage->inventory;
+
+                    if (!$inventory) {
+                        continue;
+                    }
+
+                    $currency = $inventory->currency;
+                    $unitPrice = $inventory->price ?? 0;
+                    $domesticFreight = $inventory->unit_domestic_freight_cost ?? 0;
+                    $internationalFreight = $inventory->unit_international_freight_cost ?? 0;
+                    $totalUnitCost = $unitPrice + $domesticFreight + $internationalFreight;
+
+                    $exchangeRate = $currency ? $currency->exchange_rate ?? 1 : 1;
+                    $usedQty = $usage->used_quantity ?? 0;
+                    $totalCostIdr = $totalUnitCost * $usedQty * $exchangeRate;
+
+                    $projectTotal += $totalCostIdr;
+
+                    // Get unit name
+                    $unitName = 'N/A';
+                    if (is_object($inventory->unit) && isset($inventory->unit->name)) {
+                        $unitName = $inventory->unit->name;
+                    } elseif (is_string($inventory->unit) && !empty($inventory->unit)) {
+                        $unitName = $inventory->unit;
+                    }
+
+                    $materials[] = [
+                        'material_name' => $inventory->name ?? 'N/A',
+                        'qty' => $usedQty,
+                        'unit' => $unitName,
+                        'currency' => $currency ? $currency->code ?? 'IDR' : 'IDR',
+                        'unit_price' => $unitPrice,
+                        'domestic_freight' => $domesticFreight,
+                        'intl_freight' => $internationalFreight,
+                        'total_unit_cost' => $totalUnitCost,
+                        'total_cost_idr' => $totalCostIdr,
+                    ];
+                }
+
+                $projectsData[] = [
+                    'project_name' => $project->name,
+                    'materials' => $materials,
+                    'grand_total' => $projectTotal,
+                ];
+            }
+
+            if (empty($projectsData)) {
+                return back()->with('error', 'No projects with material usage found.');
+            }
+
+            $filename = 'all_projects_costing_' . now()->format('Y-m-d_His') . '.xlsx';
+
+            return Excel::download(new AllProjectsCostingExport($projectsData), $filename);
+        } catch (\Exception $e) {
+            Log::error('Export All Projects Error: ' . $e->getMessage());
+            return back()->withErrors(['error' => 'Export failed: ' . $e->getMessage()]);
+        }
     }
 }
 
