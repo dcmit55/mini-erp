@@ -55,10 +55,21 @@ class Project extends Model implements Auditable
         return $this->hasMany(ProjectPart::class);
     }
 
-    // Ubah relasi dari belongsTo ke belongsToMany
+    /**
+     * Relasi Utama: Many to Many
+     */
     public function departments()
     {
         return $this->belongsToMany(Department::class, 'department_project')->withTimestamps();
+    }
+
+    /**
+     * ALIAS untuk menghindari RelationNotFoundException
+     * Karena TimingController memanggil 'department', kita arahkan ke fungsi departments()
+     */
+    public function department()
+    {
+        return $this->departments();
     }
 
     public function status()
