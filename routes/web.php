@@ -176,6 +176,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('job-orders/{id}/edit', [JobOrderController::class, 'edit'])->name('job-orders.edit');
         Route::put('job-orders/{id}', [JobOrderController::class, 'update'])->name('job-orders.update');
         Route::delete('job-orders/{id}', [JobOrderController::class, 'destroy'])->name('job-orders.destroy');
+        Route::get('job-orders/{id}', [JobOrderController::class, 'show'])->name('job-orders.show');
         
         // ✅ TAMBAHAN: Routes untuk soft delete functionality
         Route::put('job-orders/{id}/restore', [JobOrderController::class, 'restore'])->name('job-orders.restore');

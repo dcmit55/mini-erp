@@ -6,28 +6,48 @@ use App\Http\Controllers\Controller;
 use App\Models\Production\JobOrder;
 use App\Models\Production\Project;
 use App\Models\Admin\Department;
-use App\Models\Admin\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class JobOrderController extends Controller
 {
-    // INDEX - Tampilkan semua job order
+    // INDEX - Tampilkan semua job order dengan filter
     public function index(Request $request)
     {
-        $search = $request->search;
+        // Get filter data untuk dropdown
+        $projects = Project::orderBy('name')->get(['id', 'name']);
+        $departments = Department::orderBy('name')->get(['id', 'name']);
         
-        $jobOrders = JobOrder::with(['project', 'department', 'assignee', 'creator'])
-            ->when($search, function($query) use ($search) {
-                return $query->where('id', 'like', "%{$search}%")
-                    ->orWhere('name', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%")
-                    ->orWhere('notes', 'like', "%{$search}%");
-            })
-            ->latest()
-            ->paginate(20);
-            
-        return view('production.job-orders.index', compact('jobOrders'));
+        // Build query
+        $query = JobOrder::with(['project', 'department', 'creator']);
+        
+        // Apply filters
+        if ($request->filled('project_filter')) {
+            $query->where('project_id', $request->project_filter);
+        }
+        
+        if ($request->filled('department_filter')) {
+            $query->where('department_id', $request->department_filter);
+        }
+        
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('id', 'like', "%{$search}%")
+                  ->orWhere('name', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%")
+                  ->orWhere('notes', 'like', "%{$search}%");
+            });
+        }
+        
+        // Order and paginate
+        $jobOrders = $query->latest()->paginate(20)->withQueryString();
+        
+        return view('production.job-orders.index', compact(
+            'jobOrders',
+            'projects',
+            'departments'
+        ));
     }
 
     // CREATE - Form tambah job order
@@ -35,9 +55,8 @@ class JobOrderController extends Controller
     {
         $projects = Project::orderBy('name')->get(['id', 'name']);
         $departments = Department::orderBy('name')->get(['id', 'name']);
-        $users = User::orderBy('username')->get(['id', 'username']);
         
-        return view('production.job-orders.create', compact('projects', 'departments', 'users'));
+        return view('production.job-orders.create', compact('projects', 'departments'));
     }
 
     // STORE - Simpan job order baru
@@ -48,7 +67,6 @@ class JobOrderController extends Controller
             'name' => 'required|string|max:255',
             'project_id' => 'required|exists:projects,id',
             'department_id' => 'required|exists:departments,id',
-            'assigned_to' => 'nullable|exists:users,id',
             'description' => 'nullable|string',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
@@ -68,7 +86,7 @@ class JobOrderController extends Controller
     // SHOW - Tampilkan detail
     public function show($id)
     {
-        $jobOrder = JobOrder::with(['project', 'department', 'assignee', 'creator'])
+        $jobOrder = JobOrder::with(['project', 'department', 'creator'])
             ->findOrFail($id);
         return view('production.job-orders.show', compact('jobOrder'));
     }
@@ -79,9 +97,8 @@ class JobOrderController extends Controller
         $jobOrder = JobOrder::findOrFail($id);
         $projects = Project::orderBy('name')->get(['id', 'name']);
         $departments = Department::orderBy('name')->get(['id', 'name']);
-        $users = User::orderBy('username')->get(['id', 'username']);
         
-        return view('production.job-orders.edit', compact('jobOrder', 'projects', 'departments', 'users'));
+        return view('production.job-orders.edit', compact('jobOrder', 'projects', 'departments'));
     }
 
     // UPDATE - Update job order
@@ -93,7 +110,6 @@ class JobOrderController extends Controller
             'name' => 'required|string|max:255',
             'project_id' => 'required|exists:projects,id',
             'department_id' => 'required|exists:departments,id',
-            'assigned_to' => 'nullable|exists:users,id',
             'description' => 'nullable|string',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
@@ -111,10 +127,10 @@ class JobOrderController extends Controller
     {
         $jobOrder = JobOrder::findOrFail($id);
         $jobId = $jobOrder->id;
-        $jobOrder->delete(); // DELETE PERMANEN dari database
+        $jobOrder->delete();
         
         return redirect()->route('production.job-orders.index')
-            ->with('success', 'Job Order berhasil dihapus : ' . $jobId);
+            ->with('success', 'Job Order berhasil dihapus: ' . $jobId);
     }
 
     // API untuk get job orders by project (untuk dropdown)

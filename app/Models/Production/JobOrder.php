@@ -8,7 +8,6 @@ class JobOrder extends Model
 {
     protected $table = 'job_orders';
     
-    // ID adalah string custom (JO-26013001), bukan auto-increment
     public $incrementing = false;
     protected $keyType = 'string';
     protected $primaryKey = 'id';
@@ -21,7 +20,6 @@ class JobOrder extends Model
         'description',
         'start_date',
         'end_date',
-        'assigned_to',
         'created_by',
         'notes',
         'actual_start_date',
@@ -33,7 +31,6 @@ class JobOrder extends Model
         'end_date',
         'actual_start_date',
         'actual_end_date',
-        // HAPUS: 'deleted_at'
     ];
     
     protected $casts = [
@@ -41,12 +38,8 @@ class JobOrder extends Model
         'end_date' => 'date',
         'actual_start_date' => 'date',
         'actual_end_date' => 'date',
-        // HAPUS: 'deleted_at' => 'datetime',
     ];
 
-    /**
-     * Boot method untuk generate ID otomatis
-     */
     protected static function boot()
     {
         parent::boot();
@@ -58,17 +51,11 @@ class JobOrder extends Model
         });
     }
     
-    /**
-     * Generate custom Job Order ID
-     * Format: JO-YYMMDDXXX
-     * Contoh: JO-260130001
-     */
     public static function generateJobOrderId()
     {
         $date = date('ymd');
         $prefix = 'JO-' . $date;
         
-        // Cari sequence terakhir hari ini
         $lastJobOrder = self::where('id', 'like', $prefix . '%')
             ->orderBy('id', 'desc')
             ->first();
@@ -93,19 +80,11 @@ class JobOrder extends Model
         return $this->belongsTo(\App\Models\Admin\Department::class);
     }
     
-    public function assignee()
-    {
-        return $this->belongsTo(\App\Models\Admin\User::class, 'assigned_to');
-    }
-    
     public function creator()
     {
         return $this->belongsTo(\App\Models\Admin\User::class, 'created_by');
     }
     
-    /**
-     * Scope untuk search
-     */
     public function scopeSearch($query, $search)
     {
         if ($search) {

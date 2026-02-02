@@ -6,11 +6,68 @@
 <div class="container-fluid py-4">
     <div class="row justify-content-center">
         <div class="col-12">
-            <!-- Header dengan hanya tombol Buat Baru -->
-            <div class="d-flex justify-content-end mb-4">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4 class="mb-0">Job Orders</h4>
                 <a href="{{ route('production.job-orders.create') }}" class="btn btn-primary rounded-3 px-4 shadow-sm">
-                    <i class="fas fa-plus me-2"></i>Buat Baru
+                    <i class="fas fa-plus me-2"></i>Create New
                 </a>
+            </div>
+
+            <!-- Filter Section -->
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card-body p-3">
+                    <form id="filterForm" method="GET" action="{{ route('production.job-orders.index') }}" class="mb-0">
+                        <div class="row g-2 align-items-end">
+                            <!-- Project Filter -->
+                            <div class="col-md-4">
+                                <label for="project_filter" class="form-label small mb-1">Project</label>
+                                <select name="project_filter" id="project_filter" class="form-select form-select-sm">
+                                    <option value="">All Projects</option>
+                                    @foreach($projects as $project)
+                                        <option value="{{ $project->id }}" {{ request('project_filter') == $project->id ? 'selected' : '' }}>
+                                            {{ $project->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            
+                            <!-- Department Filter -->
+                            <div class="col-md-4">
+                                <label for="department_filter" class="form-label small mb-1">Department</label>
+                                <select name="department_filter" id="department_filter" class="form-select form-select-sm">
+                                    <option value="">All Departments</option>
+                                    @foreach($departments as $department)
+                                        <option value="{{ $department->id }}" {{ request('department_filter') == $department->id ? 'selected' : '' }}>
+                                            {{ $department->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            
+                            <!-- Search -->
+                            <div class="col-md-3">
+                                <label for="search" class="form-label small mb-1">Search</label>
+                                <input type="text" name="search" id="search" class="form-control form-control-sm" 
+                                       placeholder="Search job order..." value="{{ request('search') }}">
+                            </div>
+                            
+                            <!-- Action Buttons -->
+                            <div class="col-md-1">
+                                <div class="d-flex gap-1">
+                                    <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                    @if(request()->anyFilled(['project_filter', 'department_filter', 'search']))
+                                    <a href="{{ route('production.job-orders.index') }}" class="btn btn-outline-secondary btn-sm">
+                                        <i class="fas fa-redo"></i>
+                                    </a>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
             </div>
 
             <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
@@ -24,143 +81,152 @@
 
                     @if($jobOrders->isEmpty())
                         <div class="text-center py-5">
-                            <img src="https://illustrations.popsy.co/gray/not-found.svg" alt="empty" style="width: 150px;" class="mb-3">
-                            <h5 class="text-muted">Belum ada Job Order</h5>
-                            <p class="text-muted small">Mulai dengan membuat perintah kerja pertama Anda.</p>
-                            <a href="{{ route('production.job-orders.create') }}" class="btn btn-outline-primary btn-sm rounded-pill px-4">Buat Sekarang</a>
+                            <h5 class="text-muted">The data is not yet available in the job order list.</h5>
+                            <a href="{{ route('production.job-orders.create') }}" class="btn btn-outline-primary btn-sm rounded-pill px-4">Create Now</a>
                         </div>
                     @else
-                        <!-- Grid Container dengan garis tipis -->
-                        <div class="grid-container">
-                            <!-- Header Grid -->
-                            <div class="grid-header">
-                                <div class="grid-cell">Job Order</div>
-                                <div class="grid-cell">Project</div>
-                                <div class="grid-cell">Department</div>
-                                <div class="grid-cell">Assigned By</div>
-                                <div class="grid-cell">Start Date</div>
-                                <div class="grid-cell">End Date</div>
-                                <div class="grid-cell">Notes</div>
-                                <div class="grid-cell">Action Button</div>
-                            </div>
-
-                            <!-- Data Grid -->
-                            @foreach($jobOrders as $jobOrder)
-                            <div class="grid-row">
-                                <!-- Kolom 1: Nama Job Order -->
-                                <div class="grid-cell">
-                                    <div class="d-flex align-items-center">
-                                        <div class="grid-number me-3">{{ $loop->iteration }}</div>
-                                        <div class="fw-semibold text-dark">{{ $jobOrder->name }}</div>
-                                    </div>
+                        <!-- Grid Container -->
+                        <div class="table-responsive-container">
+                            <div class="grid-container">
+                                <!-- Header Grid -->
+                                <div class="grid-header">
+                                    <div class="grid-cell">Job Order</div>
+                                    <div class="grid-cell">Project</div>
+                                    <div class="grid-cell">Department</div>
+                                    <div class="grid-cell">Description</div>
+                                    <div class="grid-cell">Start Date</div>
+                                    <div class="grid-cell">End Date</div>
+                                    <div class="grid-cell">Notes</div>
+                                    <div class="grid-cell">Actions</div>
                                 </div>
-                                
-                                <!-- Kolom 2: Project -->
-                                <div class="grid-cell">
-                                    <span class="text-dark">
+
+                                <!-- Data Grid -->
+                                @foreach($jobOrders as $jobOrder)
+                                <div class="grid-row">
+                                    <!-- Kolom 1: Nama Job Order -->
+                                    <div class="grid-cell">
+                                        <div class="d-flex align-items-center">
+                                            <div class="grid-number">{{ $loop->iteration + (($jobOrders->currentPage() - 1) * $jobOrders->perPage()) }}</div>
+                                            <div class="ms-3">
+                                                <div class="fw-semibold text-dark">{{ $jobOrder->name }}</div>
+                                                <div class="small text-muted">{{ $jobOrder->id }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Kolom 2: Project -->
+                                    <div class="grid-cell">
                                         @if($jobOrder->project)
-                                            {{ $jobOrder->project->name }}
+                                            <div class="d-flex align-items-center">
+                                                <span>{{ $jobOrder->project->name }}</span>
+                                            </div>
                                         @else
                                             <span class="text-muted">-</span>
                                         @endif
-                                    </span>
-                                </div>
-                                
-                                <!-- Kolom 3: Department -->
-                                <div class="grid-cell">
-                                    @if($jobOrder->department)
-                                        <span class="badge bg-light text-dark border px-3 py-1 rounded-pill">
-                                            {{ $jobOrder->department->name }}
-                                        </span>
-                                    @else
-                                        <span class="text-muted">-</span>
-                                    @endif
-                                </div>
-                                
-                                <!-- Kolom 4: Assigned By -->
-                                <div class="grid-cell">
-                                    @if($jobOrder->assignee)
-                                        <div class="d-flex align-items-center">
-                                            <div class="assignee-avatar me-2">
-                                                <div class="avatar-circle bg-primary text-white">
-                                                    {{ substr($jobOrder->assignee->username, 0, 1) }}
-                                                </div>
-                                            </div>
-                                            <div class="small fw-medium">{{ $jobOrder->assignee->username }}</div>
-                                        </div>
-                                    @else
-                                        <span class="text-muted">-</span>
-                                    @endif
-                                </div>
-                                
-                                <!-- Kolom 5: Start Date -->
-                                <div class="grid-cell">
-                                    @if($jobOrder->start_date)
-                                        <div class="date-container">
-                                            <span class="text-dark">{{ $jobOrder->start_date->format('d M Y') }}</span>
-                                        </div>
-                                    @else
-                                        <div class="text-muted">-</div>
-                                    @endif
-                                </div>
-                                
-                                <!-- Kolom 6: End Date -->
-                                <div class="grid-cell">
-                                    @if($jobOrder->end_date)
-                                        <div class="date-container">
-                                            <span class="text-dark">{{ $jobOrder->end_date->format('d M Y') }}</span>
-                                        </div>
-                                    @else
-                                        <div class="text-muted">-</div>
-                                    @endif
-                                </div>
-                                
-                                <!-- Kolom 7: Notes -->
-                                <div class="grid-cell">
-                                    @if($jobOrder->notes)
-                                        <div class="notes-text" data-bs-toggle="tooltip" data-bs-placement="top" 
-                                             title="{{ $jobOrder->notes }}">
-                                            <span class="small text-truncate d-inline-block" style="max-width: 200px;">
-                                                {{ Str::limit($jobOrder->notes, 60) }}
+                                    </div>
+                                    
+                                    <!-- Kolom 3: Department -->
+                                    <div class="grid-cell">
+                                        @if($jobOrder->department)
+                                            <span class="badge bg-light text-dark border px-3 py-1 rounded-pill">
+                                                {{ $jobOrder->department->name }}
                                             </span>
+                                        @else
+                                            <span class="text-muted">-</span>
+                                        @endif
+                                    </div>
+                                    
+                                    <!-- Kolom 4: Description -->
+                                    <div class="grid-cell">
+                                        @if($jobOrder->description)
+                                            <div class="description-text" data-bs-toggle="tooltip" data-bs-placement="top" 
+                                                 title="{{ $jobOrder->description }}">
+                                                <span class="small text-truncate d-inline-block" style="max-width: 200px;">
+                                                    {{ Str::limit($jobOrder->description, 50) }}
+                                                </span>
+                                            </div>
+                                        @else
+                                            <div class="text-muted small">-</div>
+                                        @endif
+                                    </div>
+                                    
+                                    <!-- Kolom 5: Start Date -->
+                                    <div class="grid-cell">
+                                        @if($jobOrder->start_date)
+                                            <div class="date-container">
+                                                <span class="text-dark">{{ $jobOrder->start_date->format('d M Y') }}</span>
+                                            </div>
+                                        @else
+                                            <div class="text-muted">-</div>
+                                        @endif
+                                    </div>
+                                    
+                                    <!-- Kolom 6: End Date -->
+                                    <div class="grid-cell">
+                                        @if($jobOrder->end_date)
+                                            <div class="date-container">
+                                                <span class="text-dark">{{ $jobOrder->end_date->format('d M Y') }}</span>
+                                            </div>
+                                        @else
+                                            <div class="text-muted">-</div>
+                                        @endif
+                                    </div>
+                                    
+                                    <!-- Kolom 7: Notes -->
+                                    <div class="grid-cell">
+                                        @if($jobOrder->notes)
+                                            <div class="notes-text" data-bs-toggle="tooltip" data-bs-placement="top" 
+                                                 title="{{ $jobOrder->notes }}">
+                                                <span class="small text-truncate d-inline-block" style="max-width: 200px;">
+                                                    {{ Str::limit($jobOrder->notes, 60) }}
+                                                </span>
+                                            </div>
+                                        @else
+                                            <div class="text-muted small">-</div>
+                                        @endif
+                                    </div>
+                                    
+                                    <!-- Kolom 8: Actions -->
+                                    <div class="grid-cell">
+                                        <div class="d-flex gap-2">
+                                            <a href="{{ route('production.job-orders.show', $jobOrder->id) }}" 
+                                               class="btn btn-outline-info btn-sm border-1 px-3 action-btn"
+                                               data-bs-toggle="tooltip" data-bs-title="View Details">
+                                                <i class="fas fa-eye"></i>
+                                                <span class="ms-1 d-none d-sm-inline">View</span>
+                                            </a>
+                                            <a href="{{ route('production.job-orders.edit', $jobOrder->id) }}" 
+                                               class="btn btn-outline-primary btn-sm border-1 px-3 action-btn"
+                                               data-bs-toggle="tooltip" data-bs-title="Edit">
+                                                <i class="fas fa-edit"></i>
+                                                <span class="ms-1 d-none d-sm-inline">Edit</span>
+                                            </a>
+                                            <form action="{{ route('production.job-orders.destroy', $jobOrder->id) }}" method="POST" 
+                                                  class="d-inline" id="delete-form-{{ $jobOrder->id }}">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="button" 
+                                                        class="btn btn-outline-danger btn-sm border-1 px-3 action-btn delete-btn"
+                                                        data-id="{{ $jobOrder->id }}"
+                                                        data-name="{{ $jobOrder->name }}"
+                                                        data-bs-toggle="tooltip" data-bs-title="Delete">
+                                                    <i class="fas fa-trash"></i>
+                                                    <span class="ms-1 d-none d-sm-inline">Delete</span>
+                                                </button>
+                                            </form>
                                         </div>
-                                    @else
-                                        <div class="text-muted small">-</div>
-                                    @endif
-                                </div>
-                                
-                                <!-- Kolom 8: Actions -->
-                                <div class="grid-cell">
-                                    <div class="d-flex gap-2">
-                                        <a href="{{ route('production.job-orders.edit', $jobOrder->id) }}" 
-                                           class="btn btn-outline-primary btn-sm border-1 px-3 action-btn"
-                                           data-bs-toggle="tooltip" data-bs-title="Edit">
-                                            <i class="fas fa-edit"></i>
-                                            <span class="ms-1 d-none d-sm-inline">Edit</span>
-                                        </a>
-                                        <form action="{{ route('production.job-orders.destroy', $jobOrder->id) }}" method="POST" 
-                                              onsubmit="return confirm('Hapus job order ini?')" class="d-inline">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" 
-                                                    class="btn btn-outline-danger btn-sm border-1 px-3 action-btn"
-                                                    data-bs-toggle="tooltip" data-bs-title="Hapus">
-                                                <i class="fas fa-trash"></i>
-                                                <span class="ms-1 d-none d-sm-inline">Hapus</span>
-                                            </button>
-                                        </form>
                                     </div>
                                 </div>
+                                @endforeach
                             </div>
-                            @endforeach
                         </div>
                     @endif
                 </div>
                 <div class="card-footer bg-white border-0 py-3 px-4">
                     <div class="d-flex justify-content-between align-items-center text-muted small">
-                        <span>Total: <strong>{{ $jobOrders->total() }}</strong> Job Orders</span>
+                        <span>Showing {{ $jobOrders->firstItem() }} to {{ $jobOrders->lastItem() }} of {{ $jobOrders->total() }} Job Orders</span>
                         <div>
-                            {{ $jobOrders->links('pagination::bootstrap-4') }}
+                            {{ $jobOrders->appends(request()->query())->links('pagination::bootstrap-4') }}
                         </div>
                     </div>
                 </div>
@@ -170,15 +236,10 @@
 </div>
 
 <style>
-    /* Global Background */
-    body {
-        background-color: #f8fafc;
-    }
-
     /* Grid Container Styling */
     .grid-container {
         display: grid;
-        grid-template-columns: 2fr 1.2fr 1fr 1.2fr 1fr 1fr 1.5fr 1.2fr;
+        grid-template-columns: 2fr 1.2fr 1fr 1.5fr 1fr 1fr 1.5fr 1.2fr;
         border-bottom: 1px solid #e2e8f0;
         min-width: 1200px;
     }
@@ -219,7 +280,6 @@
         font-size: 0.875rem;
     }
 
-    /* Grid garis vertikal tipis */
     .grid-header .grid-cell:not(:last-child),
     .grid-row .grid-cell:not(:last-child) {
         border-right: 1px solid #f1f5f9;
@@ -240,35 +300,15 @@
         flex-shrink: 0;
     }
 
-    /* Assignee Avatar */
-    .avatar-circle {
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 600;
-        font-size: 0.875rem;
-        background-color: #4f46e5;
-        flex-shrink: 0;
-    }
-
-    /* Date Container */
-    .date-container {
-        font-size: 0.875rem;
-        color: #334155;
-    }
-
-    /* Notes Styling */
-    .notes-text {
+    /* Description Text */
+    .description-text {
         cursor: pointer;
         transition: all 0.2s;
         line-height: 1.4;
         color: #334155;
     }
 
-    .notes-text:hover {
+    .description-text:hover {
         color: #4f46e5;
     }
 
@@ -314,70 +354,18 @@
         border-color: #dc2626;
     }
 
-    /* Badge Styling */
-    .badge {
-        font-size: 0.75rem;
-        font-weight: 500;
-        border: 1px solid #e2e8f0;
-        white-space: nowrap;
+    .action-btn.btn-outline-info {
+        color: #0ea5e9;
+        border-color: #bae6fd;
+        background-color: #f8fafc;
     }
 
-    /* Pagination Styling */
-    .pagination {
-        margin-bottom: 0;
-    }
-
-    .page-link {
-        border-radius: 6px !important;
-        margin: 0 2px;
-        border: 1px solid #e2e8f0;
-        color: #64748b;
-        font-size: 0.8rem;
-        padding: 0.4rem 0.75rem;
-    }
-
-    .page-item.active .page-link {
-        background-color: #4f46e5;
-        border-color: #4f46e5;
-        box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);
-    }
-
-    /* Horizontal Scroll Container */
-    .table-responsive-container {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
+    .action-btn.btn-outline-info:hover {
+        background-color: #e0f2fe;
+        border-color: #0ea5e9;
     }
 
     /* Responsive Styles */
-    @media (max-width: 1400px) {
-        .grid-container {
-            min-width: 1100px;
-        }
-        
-        .grid-cell {
-            padding: 1rem;
-        }
-    }
-
-    @media (max-width: 1200px) {
-        .grid-container {
-            min-width: 1000px;
-        }
-        
-        .action-btn span {
-            display: none;
-        }
-        
-        .action-btn {
-            min-width: 34px;
-            padding: 0.35rem;
-        }
-        
-        .grid-cell {
-            padding: 0.875rem 1rem;
-        }
-    }
-
     @media (max-width: 992px) {
         .grid-container {
             display: block;
@@ -411,11 +399,6 @@
             font-size: 0.875rem;
         }
         
-        .grid-cell:last-child,
-        .grid-cell:nth-last-child(2) {
-            border-bottom: none !important;
-        }
-        
         .grid-cell:before {
             content: attr(data-label);
             display: block;
@@ -426,7 +409,6 @@
             text-transform: uppercase;
         }
         
-        /* Job Order Cell */
         .grid-cell:first-child {
             grid-column: 1 / -1;
             border-bottom: 1px solid #e2e8f0 !important;
@@ -441,83 +423,16 @@
             margin-right: 0.75rem;
         }
         
-        /* Notes Cell */
+        .grid-cell:nth-child(4),
         .grid-cell:nth-child(7) {
             grid-column: 1 / -1;
-            border-top: 1px solid #f1f5f9;
-            padding-top: 1rem;
-            margin-top: 0.5rem;
         }
         
-        /* Actions Cell */
         .grid-cell:nth-child(8) {
             grid-column: 1 / -1;
             padding-top: 1rem;
             border-top: 1px solid #f1f5f9;
             margin-top: 0.5rem;
-        }
-        
-        /* Align dates and text */
-        .grid-cell:nth-child(5),
-        .grid-cell:nth-child(6) {
-            align-items: flex-start;
-        }
-        
-        .date-container {
-            font-size: 0.875rem;
-        }
-        
-        .action-btn span {
-            display: inline-block !important;
-        }
-        
-        .action-btn {
-            height: 34px;
-        }
-    }
-
-    @media (max-width: 768px) {
-        .grid-row {
-            margin: 0 0.75rem 1rem 0.75rem;
-            padding: 1rem;
-        }
-        
-        .grid-cell:first-child {
-            padding-bottom: 0.875rem;
-            margin-bottom: 0.5rem;
-        }
-        
-        .grid-cell:nth-child(7),
-        .grid-cell:nth-child(8) {
-            padding-top: 0.875rem;
-            margin-top: 0.5rem;
-        }
-    }
-
-    @media (max-width: 576px) {
-        .grid-row {
-            grid-template-columns: 1fr;
-            padding: 0.875rem;
-        }
-        
-        .grid-cell:not(:first-child):not(:nth-child(7)):not(:nth-child(8)) {
-            grid-column: 1 / -1;
-        }
-        
-        .action-btn {
-            width: 100%;
-            margin-bottom: 0.5rem;
-            justify-content: center;
-        }
-        
-        .grid-cell:nth-child(8) .d-flex {
-            flex-direction: column;
-            width: 100%;
-        }
-        
-        .badge {
-            font-size: 0.7rem;
-            padding: 0.25rem 0.5rem;
         }
     }
 </style>
@@ -532,21 +447,35 @@
         
         // Tambahkan label untuk responsive
         const cells = document.querySelectorAll('.grid-cell');
-        const labels = ['Job Order', 'Project', 'Department', 'Assigned By', 'Start Date', 'End Date', 'Catatan', 'Aksi'];
+        const labels = ['Job Order', 'Project', 'Department', 'Description', 'Start Date', 'End Date', 'Notes', 'Actions'];
         
         cells.forEach((cell, index) => {
             const labelIndex = index % labels.length;
             cell.setAttribute('data-label', labels[labelIndex]);
         });
         
-        // Wrap grid container in responsive div
-        const gridContainer = document.querySelector('.grid-container');
-        if (gridContainer) {
-            const wrapper = document.createElement('div');
-            wrapper.className = 'table-responsive-container';
-            gridContainer.parentNode.insertBefore(wrapper, gridContainer);
-            wrapper.appendChild(gridContainer);
-        }
+        // Auto-submit on filter change
+        document.getElementById('project_filter')?.addEventListener('change', function() {
+            document.getElementById('filterForm').submit();
+        });
+        
+        document.getElementById('department_filter')?.addEventListener('change', function() {
+            document.getElementById('filterForm').submit();
+        });
+        
+        // Delete confirmation
+        document.querySelectorAll('.delete-btn').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const jobOrderId = this.getAttribute('data-id');
+                const jobOrderName = this.getAttribute('data-name');
+                const form = document.getElementById('delete-form-' + jobOrderId);
+                
+                if (confirm(`Delete Job Order: ${jobOrderName}? This action cannot be undone!`)) {
+                    form.submit();
+                }
+            });
+        });
     });
 </script>
 @endsection
