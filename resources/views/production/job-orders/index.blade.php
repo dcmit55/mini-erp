@@ -222,11 +222,70 @@
                         </div>
                     @endif
                 </div>
+                
+                <!-- DaisyUI-like Pagination -->
                 <div class="card-footer bg-white border-0 py-3 px-4">
-                    <div class="d-flex justify-content-between align-items-center text-muted small">
-                        <span>Showing {{ $jobOrders->firstItem() }} to {{ $jobOrders->lastItem() }} of {{ $jobOrders->total() }} Job Orders</span>
-                        <div>
-                            {{ $jobOrders->appends(request()->query())->links('pagination::bootstrap-4') }}
+                    <div class="d-flex flex-column md:flex-row justify-between items-center gap-3">
+                        <!-- Pagination di kiri -->
+                        <div class="join">
+                            {{-- Previous Page Link --}}
+                            @if ($jobOrders->onFirstPage())
+                                <button class="join-item btn btn-xs btn-disabled" disabled>
+                                    <i class="fas fa-chevron-left text-xs"></i>
+                                </button>
+                            @else
+                                <a href="{{ $jobOrders->previousPageUrl() }}" class="join-item btn btn-xs">
+                                    <i class="fas fa-chevron-left text-xs"></i>
+                                </a>
+                            @endif
+                            
+                            {{-- Pagination Elements --}}
+                            @php
+                                $current = $jobOrders->currentPage();
+                                $last = $jobOrders->lastPage();
+                                $start = max(1, $current - 2);
+                                $end = min($last, $current + 2);
+                            @endphp
+                            
+                            {{-- First Page --}}
+                            @if ($start > 1)
+                                <a href="{{ $jobOrders->url(1) }}" class="join-item btn btn-xs">1</a>
+                                @if ($start > 2)
+                                    <button class="join-item btn btn-xs btn-disabled" disabled>...</button>
+                                @endif
+                            @endif
+                            
+                            {{-- Page Numbers --}}
+                            @for ($i = $start; $i <= $end; $i++)
+                                <a href="{{ $jobOrders->url($i) }}" 
+                                   class="join-item btn btn-xs {{ $i == $current ? 'btn-active' : '' }}">
+                                    {{ $i }}
+                                </a>
+                            @endfor
+                            
+                            {{-- Last Page --}}
+                            @if ($end < $last)
+                                @if ($end < $last - 1)
+                                    <button class="join-item btn btn-xs btn-disabled" disabled>...</button>
+                                @endif
+                                <a href="{{ $jobOrders->url($last) }}" class="join-item btn btn-xs">{{ $last }}</a>
+                            @endif
+                            
+                            {{-- Next Page Link --}}
+                            @if ($jobOrders->hasMorePages())
+                                <a href="{{ $jobOrders->nextPageUrl() }}" class="join-item btn btn-xs">
+                                    <i class="fas fa-chevron-right text-xs"></i>
+                                </a>
+                            @else
+                                <button class="join-item btn btn-xs btn-disabled" disabled>
+                                    <i class="fas fa-chevron-right text-xs"></i>
+                                </button>
+                            @endif
+                        </div>
+                        
+                        <!-- Showing info di kanan -->
+                        <div class="text-xs text-gray-500">
+                            Showing {{ $jobOrders->firstItem() }} to {{ $jobOrders->lastItem() }} of {{ $jobOrders->total() }} entries
                         </div>
                     </div>
                 </div>
@@ -379,6 +438,75 @@
         white-space: nowrap;
     }
 
+    /* DaisyUI-like Pagination Styles */
+    .join {
+        display: inline-flex;
+        align-items: stretch;
+        border-radius: 0.5rem;
+        overflow: hidden;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+
+    .join-item {
+        border: 1px solid #e5e7eb;
+        background-color: white;
+        padding: 0.375rem 0.75rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: #374151;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 2rem;
+        height: 2rem;
+        transition: all 0.2s;
+        border-radius: 0;
+        margin-left: -1px;
+    }
+
+    .join-item.btn-xs {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.7rem;
+        min-width: 1.75rem;
+        height: 1.75rem;
+    }
+
+    .join-item:first-child {
+        border-top-left-radius: 0.375rem;
+        border-bottom-left-radius: 0.375rem;
+        margin-left: 0;
+    }
+
+    .join-item:last-child {
+        border-top-right-radius: 0.375rem;
+        border-bottom-right-radius: 0.375rem;
+    }
+
+    .join-item:hover:not(.btn-disabled) {
+        background-color: #f3f4f6;
+        color: #111827;
+        z-index: 1;
+    }
+
+    .join-item.btn-active {
+        background-color: #4f46e5;
+        color: white;
+        border-color: #4f46e5;
+        z-index: 2;
+    }
+
+    .join-item.btn-disabled {
+        background-color: #f9fafb;
+        color: #9ca3af;
+        cursor: not-allowed;
+        opacity: 0.7;
+    }
+
+    .join-item i {
+        font-size: 0.6rem;
+    }
+
     /* Responsive Styles */
     @media (max-width: 992px) {
         .grid-container {
@@ -493,12 +621,43 @@
             display: none;
         }
         
+        /* Responsive Pagination */
+        .join {
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.25rem;
+        }
+        
+        .join-item {
+            border-radius: 0.375rem !important;
+            margin-left: 0;
+        }
+        
+        .join-item.btn-disabled {
+            display: none;
+        }
+        
         .action-btn span {
             display: inline-block !important;
         }
         
         .action-btn {
             height: 34px;
+        }
+        
+        /* Responsive card footer */
+        .card-footer .d-flex {
+            flex-direction: column !important;
+            gap: 1rem !important;
+        }
+        
+        .card-footer .join {
+            order: 2;
+        }
+        
+        .card-footer .text-xs {
+            order: 1;
+            text-align: center !important;
         }
     }
 

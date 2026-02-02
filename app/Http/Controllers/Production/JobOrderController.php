@@ -41,7 +41,7 @@ class JobOrderController extends Controller
         }
         
         // Order and paginate
-        $jobOrders = $query->latest()->paginate(20)->withQueryString();
+        $jobOrders = $query->latest()->paginate(10)->withQueryString();
         
         return view('production.job-orders.index', compact(
             'jobOrders',
