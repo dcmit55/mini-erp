@@ -90,7 +90,8 @@
                             <div class="grid-container">
                                 <!-- Header Grid -->
                                 <div class="grid-header">
-                                    <div class="grid-cell">Job Order</div>
+                                    <div class="grid-cell">No</div>
+                                    <div class="grid-cell">Name</div>
                                     <div class="grid-cell">Project</div>
                                     <div class="grid-cell">Department</div>
                                     <div class="grid-cell">Description</div>
@@ -103,18 +104,17 @@
                                 <!-- Data Grid -->
                                 @foreach($jobOrders as $jobOrder)
                                 <div class="grid-row">
-                                    <!-- Kolom 1: Nama Job Order -->
+                                    <!-- Kolom 1: No -->
                                     <div class="grid-cell">
-                                        <div class="d-flex align-items-center">
-                                            <div class="grid-number">{{ $loop->iteration + (($jobOrders->currentPage() - 1) * $jobOrders->perPage()) }}</div>
-                                            <div class="ms-3">
-                                                <div class="fw-semibold text-dark">{{ $jobOrder->name }}</div>
-                                                <div class="small text-muted">{{ $jobOrder->id }}</div>
-                                            </div>
-                                        </div>
+                                        <div class="grid-number">{{ $loop->iteration + (($jobOrders->currentPage() - 1) * $jobOrders->perPage()) }}</div>
                                     </div>
                                     
-                                    <!-- Kolom 2: Project -->
+                                    <!-- Kolom 2: Name -->
+                                    <div class="grid-cell">
+                                        <div class="fw-semibold text-dark">{{ $jobOrder->name }}</div>
+                                    </div>
+                                    
+                                    <!-- Kolom 3: Project -->
                                     <div class="grid-cell">
                                         @if($jobOrder->project)
                                             <div class="d-flex align-items-center">
@@ -125,7 +125,7 @@
                                         @endif
                                     </div>
                                     
-                                    <!-- Kolom 3: Department -->
+                                    <!-- Kolom 4: Department -->
                                     <div class="grid-cell">
                                         @if($jobOrder->department)
                                             <span class="badge bg-light text-dark border px-3 py-1 rounded-pill">
@@ -136,13 +136,13 @@
                                         @endif
                                     </div>
                                     
-                                    <!-- Kolom 4: Description -->
+                                    <!-- Kolom 5: Description -->
                                     <div class="grid-cell">
                                         @if($jobOrder->description)
                                             <div class="description-text" data-bs-toggle="tooltip" data-bs-placement="top" 
                                                  title="{{ $jobOrder->description }}">
-                                                <span class="small text-truncate d-inline-block" style="max-width: 200px;">
-                                                    {{ Str::limit($jobOrder->description, 50) }}
+                                                <span class="small text-truncate d-inline-block" style="max-width: 150px;">
+                                                    {{ Str::limit($jobOrder->description, 40) }}
                                                 </span>
                                             </div>
                                         @else
@@ -150,7 +150,7 @@
                                         @endif
                                     </div>
                                     
-                                    <!-- Kolom 5: Start Date -->
+                                    <!-- Kolom 6: Start Date -->
                                     <div class="grid-cell">
                                         @if($jobOrder->start_date)
                                             <div class="date-container">
@@ -161,7 +161,7 @@
                                         @endif
                                     </div>
                                     
-                                    <!-- Kolom 6: End Date -->
+                                    <!-- Kolom 7: End Date -->
                                     <div class="grid-cell">
                                         @if($jobOrder->end_date)
                                             <div class="date-container">
@@ -172,13 +172,13 @@
                                         @endif
                                     </div>
                                     
-                                    <!-- Kolom 7: Notes -->
+                                    <!-- Kolom 8: Notes -->
                                     <div class="grid-cell">
                                         @if($jobOrder->notes)
                                             <div class="notes-text" data-bs-toggle="tooltip" data-bs-placement="top" 
                                                  title="{{ $jobOrder->notes }}">
-                                                <span class="small text-truncate d-inline-block" style="max-width: 200px;">
-                                                    {{ Str::limit($jobOrder->notes, 60) }}
+                                                <span class="small text-truncate d-inline-block" style="max-width: 150px;">
+                                                    {{ Str::limit($jobOrder->notes, 40) }}
                                                 </span>
                                             </div>
                                         @else
@@ -186,7 +186,7 @@
                                         @endif
                                     </div>
                                     
-                                    <!-- Kolom 8: Actions -->
+                                    <!-- Kolom 9: Actions -->
                                     <div class="grid-cell">
                                         <div class="d-flex gap-2">
                                             <a href="{{ route('production.job-orders.show', $jobOrder->id) }}" 
@@ -239,9 +239,9 @@
     /* Grid Container Styling */
     .grid-container {
         display: grid;
-        grid-template-columns: 2fr 1.2fr 1fr 1.5fr 1fr 1fr 1.5fr 1.2fr;
+        grid-template-columns: 0.5fr 2fr 1.2fr 1fr 1.5fr 1fr 1fr 1.5fr 1.2fr;
         border-bottom: 1px solid #e2e8f0;
-        min-width: 1200px;
+        min-width: 1300px;
     }
 
     .grid-header {
@@ -298,6 +298,12 @@
         font-size: 0.85rem;
         font-weight: 600;
         flex-shrink: 0;
+    }
+
+    /* Kolom Name styling */
+    .grid-cell:nth-child(2) .fw-semibold {
+        font-weight: 600;
+        color: #334155;
     }
 
     /* Description Text */
@@ -365,6 +371,14 @@
         border-color: #0ea5e9;
     }
 
+    /* Badge styling */
+    .badge {
+        font-size: 0.75rem;
+        font-weight: 500;
+        border: 1px solid #e2e8f0;
+        white-space: nowrap;
+    }
+
     /* Responsive Styles */
     @media (max-width: 992px) {
         .grid-container {
@@ -409,30 +423,114 @@
             text-transform: uppercase;
         }
         
-        .grid-cell:first-child {
-            grid-column: 1 / -1;
-            border-bottom: 1px solid #e2e8f0 !important;
-            padding-bottom: 1rem;
-            margin-bottom: 0.5rem;
+        /* No dan Name jadi satu kolom di mobile */
+        .grid-cell:nth-child(1),
+        .grid-cell:nth-child(2) {
+            grid-column: span 1;
+        }
+        
+        .grid-cell:nth-child(1) {
+            order: 1;
+            border-bottom: none !important;
+            padding-bottom: 0;
             flex-direction: row;
             align-items: center;
         }
         
-        .grid-cell:first-child:before {
-            margin-bottom: 0;
-            margin-right: 0.75rem;
+        .grid-cell:nth-child(2) {
+            order: 2;
+            border-bottom: none !important;
+            padding-bottom: 0;
         }
         
-        .grid-cell:nth-child(4),
+        /* Row untuk No dan Name di mobile */
+        .mobile-job-order-row {
+            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            border-bottom: 1px solid #e2e8f0 !important;
+            padding-bottom: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .grid-cell:nth-child(3),
+        .grid-cell:nth-child(4) {
+            order: 3;
+        }
+        
+        .grid-cell:nth-child(5),
+        .grid-cell:nth-child(6) {
+            order: 4;
+        }
+        
         .grid-cell:nth-child(7) {
+            order: 5;
+        }
+        
+        .grid-cell:nth-child(8),
+        .grid-cell:nth-child(9) {
             grid-column: 1 / -1;
         }
         
         .grid-cell:nth-child(8) {
-            grid-column: 1 / -1;
-            padding-top: 1rem;
+            order: 6;
             border-top: 1px solid #f1f5f9;
+            padding-top: 1rem;
             margin-top: 0.5rem;
+        }
+        
+        .grid-cell:nth-child(9) {
+            order: 7;
+            border-top: 1px solid #f1f5f9;
+            padding-top: 1rem;
+            margin-top: 0.5rem;
+        }
+        
+        /* Hide some labels on mobile */
+        .grid-cell:nth-child(1):before,
+        .grid-cell:nth-child(2):before {
+            display: none;
+        }
+        
+        .action-btn span {
+            display: inline-block !important;
+        }
+        
+        .action-btn {
+            height: 34px;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .grid-row {
+            grid-template-columns: 1fr;
+            padding: 0.875rem;
+        }
+        
+        .mobile-job-order-row {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+        
+        .grid-cell:nth-child(3),
+        .grid-cell:nth-child(4),
+        .grid-cell:nth-child(5),
+        .grid-cell:nth-child(6),
+        .grid-cell:nth-child(7) {
+            grid-column: 1 / -1;
+        }
+        
+        .action-btn {
+            width: 100%;
+            margin-bottom: 0.5rem;
+            justify-content: center;
+        }
+        
+        .grid-cell:nth-child(9) .d-flex {
+            flex-direction: column;
+            width: 100%;
         }
     }
 </style>
@@ -447,12 +545,38 @@
         
         // Tambahkan label untuk responsive
         const cells = document.querySelectorAll('.grid-cell');
-        const labels = ['Job Order', 'Project', 'Department', 'Description', 'Start Date', 'End Date', 'Notes', 'Actions'];
+        const labels = ['No', 'Name', 'Project', 'Department', 'Description', 'Start Date', 'End Date', 'Notes', 'Actions'];
         
         cells.forEach((cell, index) => {
             const labelIndex = index % labels.length;
             cell.setAttribute('data-label', labels[labelIndex]);
         });
+        
+        // Buat row untuk No dan Name di mobile
+        if (window.innerWidth < 992) {
+            document.querySelectorAll('.grid-row').forEach(row => {
+                const cells = row.querySelectorAll('.grid-cell');
+                if (cells.length >= 2) {
+                    const noCell = cells[0];
+                    const nameCell = cells[1];
+                    
+                    // Buat container baru untuk No dan Name
+                    const mobileRow = document.createElement('div');
+                    mobileRow.className = 'mobile-job-order-row';
+                    mobileRow.innerHTML = `
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            ${noCell.outerHTML}
+                            ${nameCell.outerHTML}
+                        </div>
+                    `;
+                    
+                    // Ganti cells lama dengan mobile row
+                    noCell.remove();
+                    nameCell.remove();
+                    row.prepend(mobileRow);
+                }
+            });
+        }
         
         // Auto-submit on filter change
         document.getElementById('project_filter')?.addEventListener('change', function() {
