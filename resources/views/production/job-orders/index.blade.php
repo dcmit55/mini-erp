@@ -40,8 +40,8 @@
                                 <div class="grid-cell">Assigned By</div>
                                 <div class="grid-cell">Start Date</div>
                                 <div class="grid-cell">End Date</div>
-                                <div class="grid-cell">Catatan</div>
-                                <div class="grid-cell">Aksi</div>
+                                <div class="grid-cell">Notes</div>
+                                <div class="grid-cell">Action Button</div>
                             </div>
 
                             <!-- Data Grid -->
