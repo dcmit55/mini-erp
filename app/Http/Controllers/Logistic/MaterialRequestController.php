@@ -8,6 +8,7 @@ use App\Models\Logistic\Inventory;
 use App\Models\Production\Project;
 use App\Models\Admin\Department;
 use App\Models\Logistic\Unit;
+use App\Rules\ValidProjectSource;
 use Illuminate\Http\Request;
 use App\Events\MaterialRequestUpdated;
 use App\Models\Admin\User;
@@ -297,7 +298,9 @@ class MaterialRequestController extends Controller
     public function create(Request $request)
     {
         $inventories = Inventory::orderBy('name')->get();
-        $projects = Project::with('departments', 'status')->notArchived()->orderBy('name')->get();
+        // DATA GOVERNANCE: Hanya ambil project dari Lark (created_by = 'Sync from Lark')
+        // Legacy projects TIDAK ditampilkan sama sekali di dropdown
+        $projects = Project::fromLark()->with('departments', 'status')->notArchived()->orderBy('name')->get();
         $departments = Department::orderBy('name')->get();
         $units = Unit::orderBy('name')->get();
 
@@ -318,7 +321,7 @@ class MaterialRequestController extends Controller
 
         $request->validate([
             'inventory_id' => 'required|exists:inventories,id',
-            'project_id' => 'required|exists:projects,id',
+            'project_id' => ['required', 'exists:projects,id', new ValidProjectSource()],
             'qty' => 'required|numeric|min:0.01',
         ]);
 

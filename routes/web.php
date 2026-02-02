@@ -104,6 +104,8 @@ Route::middleware(['auth'])->group(function () {
 
     // Projects
     Route::get('/projects/export', [ProjectController::class, 'export'])->name('projects.export');
+    Route::post('/projects/sync-from-lark', [ProjectController::class, 'syncFromLark'])->name('projects.sync.lark');
+    Route::get('/projects/lark-raw-data', [ProjectController::class, 'getLarkRawData'])->name('projects.lark.raw');
     Route::resource('projects', ProjectController::class);
     Route::post('/projects/quick-add', [ProjectController::class, 'storeQuick'])->name('projects.store.quick');
     Route::get('/projects/json', [ProjectController::class, 'json'])->name('projects.json');

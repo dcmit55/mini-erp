@@ -34,5 +34,6 @@ return [
         'app_secret' => env('LARK_APP_SECRET'),
         'base_id' => env('LARK_BASE_ID'),
         'table_id' => env('LARK_TABLE_ID'),
+        'view_id' => env('LARK_VIEW_ID'), // Optional: Filter data by specific view
     ],
 ];
