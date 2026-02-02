@@ -166,7 +166,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/projects/json', [ProjectController::class, 'json'])->name('projects.json');
     Route::post('/project-statuses', [ProjectStatusController::class, 'store'])->name('project-statuses.store');
 
-    // ✅ PERBAIKAN: Job Orders dengan route yang benar
+    // ✅ PERBAIKAN: Job Orders dengan route yang lengkap untuk soft delete
     Route::prefix('production')->name('production.')->group(function () {
         // Routes untuk Job Orders
         Route::get('job-orders', [JobOrderController::class, 'index'])->name('job-orders.index');
@@ -176,6 +176,10 @@ Route::middleware(['auth'])->group(function () {
         Route::get('job-orders/{id}/edit', [JobOrderController::class, 'edit'])->name('job-orders.edit');
         Route::put('job-orders/{id}', [JobOrderController::class, 'update'])->name('job-orders.update');
         Route::delete('job-orders/{id}', [JobOrderController::class, 'destroy'])->name('job-orders.destroy');
+        
+        // ✅ TAMBAHAN: Routes untuk soft delete functionality
+        Route::put('job-orders/{id}/restore', [JobOrderController::class, 'restore'])->name('job-orders.restore');
+        Route::delete('job-orders/{id}/force-delete', [JobOrderController::class, 'forceDelete'])->name('job-orders.force-delete');
     });
 
     // API untuk dropdown Job Orders

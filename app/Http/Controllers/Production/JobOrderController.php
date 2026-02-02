@@ -20,7 +20,9 @@ class JobOrderController extends Controller
         $jobOrders = JobOrder::with(['project', 'department', 'assignee', 'creator'])
             ->when($search, function($query) use ($search) {
                 return $query->where('id', 'like', "%{$search}%")
-                    ->orWhere('name', 'like', "%{$search}%");
+                    ->orWhere('name', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%")
+                    ->orWhere('notes', 'like', "%{$search}%");
             })
             ->latest()
             ->paginate(20);
@@ -38,7 +40,7 @@ class JobOrderController extends Controller
         return view('production.job-orders.create', compact('projects', 'departments', 'users'));
     }
 
-    // STORE - Simpan job order baru (VERSI SANGAT SEDERHANA)
+    // STORE - Simpan job order baru
     public function store(Request $request)
     {
         // Validasi
@@ -53,30 +55,21 @@ class JobOrderController extends Controller
             'notes' => 'nullable|string',
         ]);
         
-        // Generate ID
-        $date = date('ymd');
-        $lastId = JobOrder::where('id', 'like', 'JO-' . $date . '%')
-            ->orderBy('id', 'desc')
-            ->first();
-        
-        $sequence = $lastId ? intval(substr($lastId->id, -3)) + 1 : 1;
-        $id = 'JO-' . $date . str_pad($sequence, 3, '0', STR_PAD_LEFT);
-        
-        // Tambahkan data otomatis
-        $validated['id'] = $id;
+        // ID sudah otomatis digenerate oleh model
         $validated['created_by'] = Auth::id();
         
         // Simpan
-        JobOrder::create($validated);
+        $jobOrder = JobOrder::create($validated);
         
         return redirect()->route('production.job-orders.index')
-            ->with('success', 'Job Order berhasil dibuat: ' . $id);
+            ->with('success', 'Job Order berhasil dibuat: ' . $jobOrder->id);
     }
 
     // SHOW - Tampilkan detail
     public function show($id)
     {
-        $jobOrder = JobOrder::with(['project', 'department', 'assignee', 'creator'])->findOrFail($id);
+        $jobOrder = JobOrder::with(['project', 'department', 'assignee', 'creator'])
+            ->findOrFail($id);
         return view('production.job-orders.show', compact('jobOrder'));
     }
 
@@ -113,13 +106,24 @@ class JobOrderController extends Controller
             ->with('success', 'Job Order berhasil diperbarui: ' . $jobOrder->id);
     }
 
-    // DESTROY - Hapus job order
+    // DESTROY - Hapus PERMANEN job order
     public function destroy($id)
     {
         $jobOrder = JobOrder::findOrFail($id);
-        $jobOrder->delete();
+        $jobId = $jobOrder->id;
+        $jobOrder->delete(); // DELETE PERMANEN dari database
         
         return redirect()->route('production.job-orders.index')
-            ->with('success', 'Job Order berhasil dihapus: ' . $jobOrder->id);
+            ->with('success', 'Job Order berhasil dihapus : ' . $jobId);
+    }
+
+    // API untuk get job orders by project (untuk dropdown)
+    public function getByProject($projectId)
+    {
+        $jobOrders = JobOrder::where('project_id', $projectId)
+            ->orderBy('name')
+            ->get(['id', 'name', 'start_date', 'end_date']);
+            
+        return response()->json($jobOrders);
     }
 }

@@ -3,12 +3,9 @@
 namespace App\Models\Production;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class JobOrder extends Model
 {
-    use SoftDeletes;
-
     protected $table = 'job_orders';
     
     // ID adalah string custom (JO-26013001), bukan auto-increment
@@ -20,7 +17,7 @@ class JobOrder extends Model
         'id',
         'project_id',
         'department_id',
-        'name',           // HAPUS joborder_name, hanya name saja
+        'name',
         'description',
         'start_date',
         'end_date',
@@ -29,9 +26,6 @@ class JobOrder extends Model
         'notes',
         'actual_start_date',
         'actual_end_date',
-        'created_at',
-        'updated_at',
-        'deleted_at'
     ];
 
     protected $dates = [
@@ -39,9 +33,7 @@ class JobOrder extends Model
         'end_date',
         'actual_start_date',
         'actual_end_date',
-        'created_at',
-        'updated_at',
-        'deleted_at'
+        // HAPUS: 'deleted_at'
     ];
     
     protected $casts = [
@@ -49,6 +41,7 @@ class JobOrder extends Model
         'end_date' => 'date',
         'actual_start_date' => 'date',
         'actual_end_date' => 'date',
+        // HAPUS: 'deleted_at' => 'datetime',
     ];
 
     /**
@@ -111,28 +104,6 @@ class JobOrder extends Model
     }
     
     /**
-     * Scope untuk filtering status
-     */
-    public function scopeStatus($query, $status)
-    {
-        if ($status) {
-            return $query->where('status', $status);
-        }
-        return $query;
-    }
-    
-    /**
-     * Scope untuk filtering priority
-     */
-    public function scopePriority($query, $priority)
-    {
-        if ($priority) {
-            return $query->where('priority', $priority);
-        }
-        return $query;
-    }
-    
-    /**
      * Scope untuk search
      */
     public function scopeSearch($query, $search)
@@ -141,7 +112,8 @@ class JobOrder extends Model
             return $query->where(function($q) use ($search) {
                 $q->where('id', 'like', "%{$search}%")
                   ->orWhere('name', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%");
+                  ->orWhere('description', 'like', "%{$search}%")
+                  ->orWhere('notes', 'like', "%{$search}%");
             });
         }
         return $query;
