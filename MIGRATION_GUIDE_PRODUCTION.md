@@ -14,13 +14,13 @@ Panduan lengkap untuk deploy **semua pending migrations** dari development (`bac
 
 ## 📊 Ringkasan Pending Migrations
 
-| # | File Migration | Tabel | Jenis | Deskripsi |
-|---|---------------|-------|-------|-----------|
-| 1 | `2026_01_27_163205_add_unit_id_to_inventories_table.php` | `inventories` | Data Migration | Convert `unit` text → `unit_id` FK |
-| 2 | `2026_01_28_162636_add_sales_to_projects_table.php` | `projects` | Add Column | Tambah kolom `sales` (VARCHAR) |
-| 3 | `2026_01_30_100000_add_department_and_project_status_to_projects_table.php` | `projects` | Add Columns | Tambah `department`, `project_status`, `img`, `deadline` |
-| 4 | `2026_01_30_153720_add_department_and_project_status_to_projects_table.php` | `projects` | Duplicate | ⚠️ Sama dengan #3 - Skip saja |
-| 5 | `2026_01_31_120000_change_department_to_department_id_in_projects.php` | `projects` | Data Migration | Convert `department` → `type_dept` + `department_id` FK |
+| #   | File Migration                                                              | Tabel         | Jenis          | Deskripsi                                                |
+| --- | --------------------------------------------------------------------------- | ------------- | -------------- | -------------------------------------------------------- |
+| 1   | `2026_01_27_163205_add_unit_id_to_inventories_table.php`                    | `inventories` | Data Migration | Convert `unit` text → `unit_id` FK                       |
+| 2   | `2026_01_28_162636_add_sales_to_projects_table.php`                         | `projects`    | Add Column     | Tambah kolom `sales` (VARCHAR)                           |
+| 3   | `2026_01_30_100000_add_department_and_project_status_to_projects_table.php` | `projects`    | Add Columns    | Tambah `department`, `project_status`, `img`, `deadline` |
+| 4   | `2026_01_30_153720_add_department_and_project_status_to_projects_table.php` | `projects`    | Duplicate      | ⚠️ Sama dengan #3 - Skip saja                            |
+| 5   | `2026_01_31_120000_change_department_to_department_id_in_projects.php`      | `projects`    | Data Migration | Convert `department` → `type_dept` + `department_id` FK  |
 
 ---
 
@@ -55,9 +55,9 @@ gzip symcore_backup_*.sql
 USE symcore;
 
 -- Cek migration apa saja yang sudah jalan
-SELECT migration, batch 
-FROM migrations 
-WHERE migration LIKE '%2026%' 
+SELECT migration, batch
+FROM migrations
+WHERE migration LIKE '%2026%'
 ORDER BY migration;
 
 -- Harusnya masih kosong atau belum ada yang 2026
@@ -91,11 +91,11 @@ SELECT id, name FROM departments ORDER BY name;
 USE symcore;
 
 -- Tambah kolom baru (nullable dulu)
-ALTER TABLE inventories 
+ALTER TABLE inventories
 ADD COLUMN unit_id BIGINT UNSIGNED NULL AFTER unit;
 
 -- Tambah index untuk performance
-ALTER TABLE inventories 
+ALTER TABLE inventories
 ADD INDEX idx_unit_id (unit_id);
 
 -- Verify
@@ -109,10 +109,10 @@ SHOW COLUMNS FROM inventories WHERE Field LIKE 'unit%';
 USE symcore;
 
 -- PREVIEW dulu: Lihat apa yang akan dimigrate
-SELECT 
-    i.id, 
-    i.name, 
-    i.unit as old_unit, 
+SELECT
+    i.id,
+    i.name,
+    i.unit as old_unit,
     u.id as new_unit_id,
     u.name as unit_name
 FROM inventories i
@@ -127,10 +127,10 @@ SET i.unit_id = u.id
 WHERE i.unit IS NOT NULL AND i.unit != '';
 
 -- Cek hasil
-SELECT 
+SELECT
     COUNT(*) as berhasil_migrate,
     (SELECT COUNT(*) FROM inventories WHERE unit IS NOT NULL AND unit != '') as total_punya_unit
-FROM inventories 
+FROM inventories
 WHERE unit_id IS NOT NULL;
 
 -- Harus sama atau hampir sama (yang beda = data invalid)
@@ -142,24 +142,24 @@ WHERE unit_id IS NOT NULL;
 USE symcore;
 
 -- Cari inventory dengan unit tapi tidak dapat unit_id
-SELECT id, name, unit, unit_id 
-FROM inventories 
-WHERE unit IS NOT NULL 
-  AND unit != '' 
+SELECT id, name, unit, unit_id
+FROM inventories
+WHERE unit IS NOT NULL
+  AND unit != ''
   AND unit_id IS NULL
 ORDER BY unit;
 
 -- Kalau ada, ada 2 opsi:
 
 -- OPSI 1: Set NULL untuk data invalid
-UPDATE inventories 
-SET unit = NULL 
-WHERE unit IS NOT NULL 
-  AND unit != '' 
+UPDATE inventories
+SET unit = NULL
+WHERE unit IS NOT NULL
+  AND unit != ''
   AND unit_id IS NULL;
 
 -- OPSI 2: Buat unit baru dulu (kalau memang valid tapi belum ada)
--- INSERT INTO units (name, created_at, updated_at) 
+-- INSERT INTO units (name, created_at, updated_at)
 -- VALUES ('Nama Unit Baru', NOW(), NOW());
 -- Lalu ulangi Step 2.2
 ```
@@ -170,8 +170,8 @@ WHERE unit IS NOT NULL
 USE symcore;
 
 -- Tambah FK constraint
-ALTER TABLE inventories 
-ADD CONSTRAINT inventories_unit_id_foreign 
+ALTER TABLE inventories
+ADD CONSTRAINT inventories_unit_id_foreign
 FOREIGN KEY (unit_id) REFERENCES units(id) ON DELETE SET NULL;
 
 -- Verify constraint ada
@@ -198,8 +198,8 @@ USE symcore;
 USE symcore;
 
 -- Insert ke tabel migrations
-INSERT INTO migrations (migration, batch) 
-VALUES ('2026_01_27_163205_add_unit_id_to_inventories_table', 
+INSERT INTO migrations (migration, batch)
+VALUES ('2026_01_27_163205_add_unit_id_to_inventories_table',
         (SELECT IFNULL(MAX(batch), 0) + 1 FROM (SELECT batch FROM migrations) as m));
 
 -- Verify
@@ -210,7 +210,8 @@ SELECT * FROM migrations WHERE migration LIKE '%unit_id%';
 
 # BAGIAN 3: PROJECTS - TAMBAH KOLOM BARU
 
-**File Migration**: 
+**File Migration**:
+
 - `2026_01_28_162636_add_sales_to_projects_table.php`
 - `2026_01_30_100000_add_department_and_project_status_to_projects_table.php`
 
@@ -220,15 +221,15 @@ SELECT * FROM migrations WHERE migration LIKE '%unit_id%';
 USE symcore;
 
 -- Tambah kolom sales
-ALTER TABLE projects 
+ALTER TABLE projects
 ADD COLUMN sales VARCHAR(255) NULL AFTER name;
 
 -- Verify
 SHOW COLUMNS FROM projects LIKE 'sales';
 
 -- Mark migration complete
-INSERT INTO migrations (migration, batch) 
-VALUES ('2026_01_28_162636_add_sales_to_projects_table', 
+INSERT INTO migrations (migration, batch)
+VALUES ('2026_01_28_162636_add_sales_to_projects_table',
         (SELECT IFNULL(MAX(batch), 0) + 1 FROM (SELECT batch FROM migrations) as m));
 ```
 
@@ -238,32 +239,32 @@ VALUES ('2026_01_28_162636_add_sales_to_projects_table',
 USE symcore;
 
 -- Tambah department (nanti akan direname jadi type_dept)
-ALTER TABLE projects 
+ALTER TABLE projects
 ADD COLUMN department VARCHAR(255) NULL AFTER sales;
 
 -- Tambah project_status
-ALTER TABLE projects 
+ALTER TABLE projects
 ADD COLUMN project_status TEXT NULL AFTER department;
 
 -- Tambah img (image URLs dari Lark)
-ALTER TABLE projects 
+ALTER TABLE projects
 ADD COLUMN img VARCHAR(255) NULL AFTER project_status;
 
 -- Tambah deadline
-ALTER TABLE projects 
+ALTER TABLE projects
 ADD COLUMN deadline DATE NULL AFTER img;
 
 -- Verify semua kolom ada
 SHOW COLUMNS FROM projects WHERE Field IN ('sales', 'department', 'project_status', 'img', 'deadline');
 
 -- Mark migration complete
-INSERT INTO migrations (migration, batch) 
-VALUES ('2026_01_30_100000_add_department_and_project_status_to_projects_table', 
+INSERT INTO migrations (migration, batch)
+VALUES ('2026_01_30_100000_add_department_and_project_status_to_projects_table',
         (SELECT IFNULL(MAX(batch), 0) + 1 FROM (SELECT batch FROM migrations) as m));
 
 -- Skip duplicate migration (sama persis dengan yang di atas)
-INSERT INTO migrations (migration, batch) 
-VALUES ('2026_01_30_153720_add_department_and_project_status_to_projects_table', 
+INSERT INTO migrations (migration, batch)
+VALUES ('2026_01_30_153720_add_department_and_project_status_to_projects_table',
         (SELECT IFNULL(MAX(batch), 0) + 1 FROM (SELECT batch FROM migrations) as m));
 ```
 
@@ -279,11 +280,11 @@ VALUES ('2026_01_30_153720_add_department_and_project_status_to_projects_table',
 USE symcore;
 
 -- Tambah kolom untuk FK relation
-ALTER TABLE projects 
+ALTER TABLE projects
 ADD COLUMN department_id BIGINT UNSIGNED NULL AFTER department;
 
 -- Tambah index
-ALTER TABLE projects 
+ALTER TABLE projects
 ADD INDEX idx_department_id (department_id);
 
 -- Verify
@@ -297,7 +298,7 @@ SHOW COLUMNS FROM projects WHERE Field LIKE '%depart%';
 USE symcore;
 
 -- PREVIEW: Lihat yang akan dimigrate
-SELECT 
+SELECT
     p.id,
     p.name,
     p.department as old_dept_text,
@@ -315,10 +316,10 @@ SET p.department_id = d.id
 WHERE p.department IS NOT NULL AND p.department != '';
 
 -- Cek hasil
-SELECT 
+SELECT
     COUNT(*) as berhasil_migrate,
     (SELECT COUNT(*) FROM projects WHERE department IS NOT NULL AND department != '') as total_punya_dept
-FROM projects 
+FROM projects
 WHERE department_id IS NOT NULL;
 ```
 
@@ -328,17 +329,17 @@ WHERE department_id IS NOT NULL;
 USE symcore;
 
 -- Cari projects dengan multiple departments (ada koma)
-SELECT id, name, department 
-FROM projects 
+SELECT id, name, department
+FROM projects
 WHERE department LIKE '%,%'
 ORDER BY id;
 
 -- Untuk multi-department, populate tabel pivot department_project
 -- CONTOH untuk project id=123 dengan "Planning, Production":
 
--- INSERT INTO department_project (project_id, department_id, created_at, updated_at) 
+-- INSERT INTO department_project (project_id, department_id, created_at, updated_at)
 -- SELECT 123, id, NOW(), NOW()
--- FROM departments 
+-- FROM departments
 -- WHERE name IN ('Planning', 'Production');
 
 -- ⚠️ Ini manual - sesuaikan dengan data aktual
@@ -352,7 +353,7 @@ ORDER BY id;
 USE symcore;
 
 -- Rename kolom
-ALTER TABLE projects 
+ALTER TABLE projects
 CHANGE COLUMN department type_dept VARCHAR(255) NULL;
 
 -- Verify
@@ -366,8 +367,8 @@ SHOW COLUMNS FROM projects WHERE Field LIKE '%dept%';
 USE symcore;
 
 -- Tambah FK constraint
-ALTER TABLE projects 
-ADD CONSTRAINT projects_department_id_foreign 
+ALTER TABLE projects
+ADD CONSTRAINT projects_department_id_foreign
 FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE SET NULL;
 
 -- Verify
@@ -381,14 +382,14 @@ SHOW CREATE TABLE projects;
 USE symcore;
 
 -- Insert migration record
-INSERT INTO migrations (migration, batch) 
-VALUES ('2026_01_31_120000_change_department_to_department_id_in_projects', 
+INSERT INTO migrations (migration, batch)
+VALUES ('2026_01_31_120000_change_department_to_department_id_in_projects',
         (SELECT IFNULL(MAX(batch), 0) + 1 FROM (SELECT batch FROM migrations) as m));
 
 -- Verify semua 2026 migrations
-SELECT migration, batch 
-FROM migrations 
-WHERE migration LIKE '%2026%' 
+SELECT migration, batch
+FROM migrations
+WHERE migration LIKE '%2026%'
 ORDER BY migration;
 -- Harusnya ada 5 migrations
 ```
@@ -445,9 +446,9 @@ php artisan queue:restart
 USE symcore;
 
 -- Cek semua migrations tercatat
-SELECT migration, batch 
-FROM migrations 
-WHERE migration LIKE '%2026%' 
+SELECT migration, batch
+FROM migrations
+WHERE migration LIKE '%2026%'
 ORDER BY migration;
 -- Harusnya ada 5 migrations
 
@@ -472,18 +473,21 @@ LIMIT 10;
 ## Step 6.2: Test Aplikasi
 
 ### Test Inventory Module
+
 - [ ] Akses `/inventories` - harus load tanpa error
 - [ ] Create inventory baru - dropdown unit harus muncul
 - [ ] Edit inventory - unit harus tampil benar
 - [ ] Cek Material Request form - units harus ada
 
 ### Test Projects Module
+
 - [ ] Akses `/production/projects` - harus tampil kolom Sales, Department
 - [ ] Department harus tampil nama (bukan ID)
 - [ ] Create project baru - dropdown department harus ada
 - [ ] Edit project - semua field baru bisa disave
 
 ### Test Lark Sync (jika ada)
+
 - [ ] Run: `php artisan lark:sync-projects`
 - [ ] Cek logs tidak ada error
 - [ ] Field sales, project_status, img, deadline harus terisi
@@ -533,7 +537,7 @@ gunzip < symcore_backup_YYYYMMDD_HHMMSS.sql.gz | mysql -u root -p symcore
 USE symcore;
 
 -- Hapus migration records yang baru ditambahkan
-DELETE FROM migrations 
+DELETE FROM migrations
 WHERE migration IN (
     '2026_01_27_163205_add_unit_id_to_inventories_table',
     '2026_01_28_162636_add_sales_to_projects_table',
@@ -562,6 +566,7 @@ sudo systemctl start nginx
 # BAGIAN 8: POST-MIGRATION CHECKLIST
 
 ## Database
+
 - [ ] Semua 5 migrations ada di tabel `migrations`
 - [ ] `inventories.unit_id` terisi dengan benar
 - [ ] FK constraint `inventories_unit_id_foreign` ada
@@ -573,6 +578,7 @@ sudo systemctl start nginx
 - [ ] Tidak ada orphaned records (semua FK valid)
 
 ## Aplikasi
+
 - [ ] Inventory index page load OK
 - [ ] Projects index tampil kolom Sales dan Department
 - [ ] Department tampil nama (dari relation), bukan ID
@@ -584,12 +590,14 @@ sudo systemctl start nginx
 - [ ] Tidak ada error di web server logs
 
 ## Backup & Recovery
+
 - [ ] Backup production tersimpan dan accessible
 - [ ] Backup sudah ditest (bisa direstore)
 - [ ] Prosedur rollback didokumentasi
 - [ ] Backup disimpan minimal 30 hari
 
 ## Performance
+
 - [ ] Page load time masih OK
 - [ ] Tidak ada N+1 query issues
 - [ ] Query database optimal (cek pakai Debugbar)
@@ -599,39 +607,42 @@ sudo systemctl start nginx
 
 # Timeline Estimasi
 
-| Step | Task | Waktu |
-|------|------|-------|
-| 1 | Backup & Persiapan | 5 menit |
-| 2 | Inventories Migration | 10 menit |
-| 3 | Projects - Add Columns | 5 menit |
-| 4 | Projects - Department Migration | 10 menit |
-| 5 | Laravel Update | 3 menit |
-| 6 | Verifikasi & Testing | 10 menit |
-| **TOTAL** | **Estimated Downtime** | **30-45 menit** |
+| Step      | Task                            | Waktu           |
+| --------- | ------------------------------- | --------------- |
+| 1         | Backup & Persiapan              | 5 menit         |
+| 2         | Inventories Migration           | 10 menit        |
+| 3         | Projects - Add Columns          | 5 menit         |
+| 4         | Projects - Department Migration | 10 menit        |
+| 5         | Laravel Update                  | 3 menit         |
+| 6         | Verifikasi & Testing            | 10 menit        |
+| **TOTAL** | **Estimated Downtime**          | **30-45 menit** |
 
 ---
 
 # Troubleshooting
 
 ## Issue: "Foreign key constraint fails"
+
 **Solusi**: Cek semua ID ada di tabel reference
 
 ```sql
 -- Cari unit_id yang invalid
-SELECT * FROM inventories 
-WHERE unit_id IS NOT NULL 
+SELECT * FROM inventories
+WHERE unit_id IS NOT NULL
   AND unit_id NOT IN (SELECT id FROM units);
 
 -- Cari department_id yang invalid
-SELECT * FROM projects 
-WHERE department_id IS NOT NULL 
+SELECT * FROM projects
+WHERE department_id IS NOT NULL
   AND department_id NOT IN (SELECT id FROM departments);
 ```
 
 ## Issue: "Duplicate column name"
+
 **Solusi**: Kolom sudah ada, skip ALTER TABLE atau drop dulu
 
 ## Issue: "Laravel masih tampil struktur lama"
+
 **Solusi**: Clear semua caches
 
 ```bash
@@ -642,6 +653,7 @@ php artisan route:clear
 ```
 
 ## Issue: "Relation tidak berfungsi"
+
 **Solusi**: Verify model code pakai FK yang benar
 
 - `Inventory` model: `unit()` relation pakai `unit_id`
