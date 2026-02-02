@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('job_orders', function (Blueprint $table) {
-            $table->string('id', 20)->primary(); // Format: JO-30012601
+            $table->string('id', 20)->primary(); 
             
             $table->foreignId('project_id')->constrained('projects');
             $table->foreignId('department_id')->constrained('departments');

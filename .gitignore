@@ -1,19 +1,4 @@
-/node_modules
-/public/hot
-/public/storage
-/public/favicon.png
-/storage/*.key
-/vendor
-.env
-.env.backup
-.phpunit.result.cache
-docker-compose.override.yml
-Homestead.json
-Homestead.yaml
-npm-debug.log
-yarn-error.log
-/.idea
-/.vscode
 
-# Ignore custom layout changes
-resources/views/layouts/app.blade.php
+/vendor/
+.env
+node_modules/
