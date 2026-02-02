@@ -32,9 +32,6 @@ class DashboardController extends Controller
     public function index()
     {
         $user = Auth::user();
-        
-        // SERVER TIME untuk real-time clock
-        $serverTime = Carbon::now();  // <-- INI YANG DITAMBAHKAN
 
         // Basic Metrics
         $inventoryCount = Inventory::count();
@@ -58,19 +55,13 @@ class DashboardController extends Controller
 
         // Inventory Statistics
         $lowStockItems = Inventory::where('quantity', '<=', 10)->count();
-        
         // Data untuk low stock items di dashboard dengan relasi category dan supplier
         $veryLowStockItems = Inventory::with(['category', 'supplier'])
             ->where('quantity', '<', 3)
             ->orderBy('quantity', 'asc')
             ->get();
-            
         $outOfStockItems = Inventory::where('quantity', '<=', 0)->count();
-        
-        // Calculate total inventory value with currency conversion
-        $totalInventoryValue = Inventory::join('currencies', 'inventories.currency_id', '=', 'currencies.id')
-            ->selectRaw('SUM(inventories.quantity * inventories.price * currencies.exchange_rate) as total_value')
-            ->value('total_value') ?? 0;
+        $totalInventoryValue = Inventory::join('currencies', 'inventories.currency_id', '=', 'currencies.id')->selectRaw('SUM(inventories.quantity * inventories.price * currencies.exchange_rate) as total_value')->value('total_value') ?? 0;
 
         // Recent Activities
         $recentGoodsIn = GoodsIn::with(['inventory', 'project'])
@@ -89,10 +80,7 @@ class DashboardController extends Controller
             ->get();
 
         // Top Categories by Inventory Count
-        $topCategories = Category::withCount('inventories')
-            ->orderBy('inventories_count', 'desc')
-            ->limit(5)
-            ->get();
+        $topCategories = Category::withCount('inventories')->orderBy('inventories_count', 'desc')->limit(5)->get();
 
         // Department Statistics
         $departmentStats = Department::withCount(['projects', 'users'])->get();
@@ -103,18 +91,10 @@ class DashboardController extends Controller
             $date = Carbon::now()->subMonths($i);
             $monthlyData[] = [
                 'month' => $date->format('M Y'),
-                'projects' => Project::whereMonth('created_at', $date->month)
-                    ->whereYear('created_at', $date->year)
-                    ->count(),
-                'goods_in' => GoodsIn::whereMonth('created_at', $date->month)
-                    ->whereYear('created_at', $date->year)
-                    ->count(),
-                'goods_out' => GoodsOut::whereMonth('created_at', $date->month)
-                    ->whereYear('created_at', $date->year)
-                    ->count(),
-                'requests' => MaterialRequest::whereMonth('created_at', $date->month)
-                    ->whereYear('created_at', $date->year)
-                    ->count(),
+                'projects' => Project::whereMonth('created_at', $date->month)->whereYear('created_at', $date->year)->count(),
+                'goods_in' => GoodsIn::whereMonth('created_at', $date->month)->whereYear('created_at', $date->year)->count(),
+                'goods_out' => GoodsOut::whereMonth('created_at', $date->month)->whereYear('created_at', $date->year)->count(),
+                'requests' => MaterialRequest::whereMonth('created_at', $date->month)->whereYear('created_at', $date->year)->count(),
             ];
         }
 
@@ -133,34 +113,7 @@ class DashboardController extends Controller
             ->whereYear('created_at', Carbon::now()->year)
             ->sum('used_quantity');
 
-        // PASS ALL DATA TO NEW DASHBOARD STRUCTURE
-        return view('dashboard.index', compact(
-            'user',
-            'serverTime',  // <-- INI YANG DITAMBAHKAN
-            'inventoryCount',
-            'projectCount',
-            'employeeCount',
-            'departmentCount',
-            'pendingRequests',
-            'approvedRequests',
-            'deliveredRequests',
-            'totalRequests',
-            'activeProjects',
-            'completedProjects',
-            'projectsThisMonth',
-            'lowStockItems',
-            'veryLowStockItems',
-            'outOfStockItems',
-            'totalInventoryValue',
-            'recentGoodsIn',
-            'recentGoodsOut',
-            'recentRequests',
-            'topCategories',
-            'departmentStats',
-            'monthlyData',
-            'upcomingDeadlines',
-            'materialUsageThisMonth',
-            'totalCategories'
-        ));
+        // Pass veryLowStockItems ke view untuk ditampilkan di dashboard
+        return view('dashboard', compact('user', 'inventoryCount', 'projectCount', 'employeeCount', 'departmentCount', 'pendingRequests', 'approvedRequests', 'deliveredRequests', 'totalRequests', 'activeProjects', 'completedProjects', 'projectsThisMonth', 'lowStockItems', 'veryLowStockItems', 'outOfStockItems', 'totalInventoryValue', 'recentGoodsIn', 'recentGoodsOut', 'recentRequests', 'topCategories', 'departmentStats', 'monthlyData', 'upcomingDeadlines', 'materialUsageThisMonth', 'totalCategories'));
     }
 }

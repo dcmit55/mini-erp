@@ -31,13 +31,14 @@ use App\Http\Controllers\Procurement\PurchaseRequestController;
 use App\Http\Controllers\Procurement\ShippingController;
 use App\Http\Controllers\Procurement\ShippingManagementController;
 use App\Http\Controllers\Procurement\GoodsReceiveController;
+use App\Models\Procurement\Shippings;
 use App\Http\Controllers\Procurement\PreShippingController;
+use App\Models\Procurement\PreShipping;
 use App\Http\Controllers\Hr\LeaveRequestController;
 use App\Http\Controllers\Production\MaterialPlanningController;
 use App\Http\Controllers\Hr\AttendanceController;
 use App\Http\Controllers\Logistic\GoodsMovementController;
 use App\Http\Controllers\Procurement\ShortageItemController;
-use App\Http\Controllers\Production\JobOrderController;
 
 /*
 |--------------------------------------------------------------------------
@@ -69,78 +70,20 @@ Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->na
 Route::post('/register', [RegisterController::class, 'register']);
 
 Route::middleware(['auth'])->group(function () {
-    // Dashboard
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-
-    // Artisan Actions
-    Route::prefix('artisan')->group(function () {
-        Route::get('/{action}', function ($action) {
-            try {
-                // Check if user is super_admin
-                if (auth()->user()->role !== 'super_admin') {
-                    return response()->json(
-                        [
-                            'status' => 'error',
-                            'message' => 'You do not have the required permissions to perform this operation. This action is restricted to system administrators.',
-                        ],
-                        403,
-                    );
-                }
-
-                // Normalize action name
-                $actionMap = [
-                    'storage-link' => 'storage:link',
-                    'clear-cache' => 'cache:clear',
-                    'config-clear' => 'config:clear',
-                    'config-cache' => 'config:cache',
-                    'route-clear' => 'route:clear',
-                    'route-cache' => 'route:cache',
-                    'view-cache' => 'view:clear',
-                    'optimize' => 'optimize',
-                    'optimize-clear' => 'optimize:clear',
-                    'lark-fetch-job-orders' => 'lark:fetch-job-orders',
-                ];
-
-                if (!isset($actionMap[$action])) {
-                    throw new Exception("Invalid action: {$action}");
-                }
-
-                $command = $actionMap[$action];
-                Artisan::call($command);
-
-                $messages = [
-                    'storage:link' => 'Storage link created successfully.',
-                    'cache:clear' => 'Cache cleared successfully.',
-                    'config:clear' => 'Configuration cleared successfully.',
-                    'config:cache' => 'Configuration cache cleared successfully.',
-                    'route:clear' => 'Route cache cleared successfully.',
-                    'route:cache' => 'Route cache created successfully.',
-                    'view:clear' => 'View cache cleared successfully.',
-                    'optimize' => 'Application optimized successfully.',
-                    'optimize:clear' => 'Application optimized and cache cleared successfully.',
-                    'lark:fetch-job-orders' => 'Job orders fetched from Lark successfully.',
-                ];
-
-                $message = $messages[$command] ?? 'Command executed successfully.';
-
-                return response()->json(['status' => 'success', 'message' => $message]);
-            } catch (Exception $e) {
-                return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
-            }
-        })->name('artisan.action');
-    });
-
     // Audit
     Route::prefix('audit')
         ->name('audit.')
         ->group(function () {
-            Route::get('/', [AuditController::class, 'index'])->name('index');
-            Route::get('/changes/{id}', [AuditController::class, 'getChanges'])->name('getChanges');
-            Route::delete('/{id}', [AuditController::class, 'destroy'])->name('destroy');
-            Route::post('/bulk-delete', [AuditController::class, 'bulkDelete'])->name('bulkDelete');
-            Route::post('/delete-by-date', [AuditController::class, 'deleteByDateRange'])->name('deleteByDateRange');
-            Route::post('/purge-old', [AuditController::class, 'purgeOldLogs'])->name('purgeOldLogs');
+            Route::get('/', [\App\Http\Controllers\AuditController::class, 'index'])->name('index');
+            Route::get('/changes/{id}', [\App\Http\Controllers\AuditController::class, 'getChanges'])->name('getChanges');
+            Route::delete('/{id}', [\App\Http\Controllers\AuditController::class, 'destroy'])->name('destroy');
+            Route::post('/bulk-delete', [\App\Http\Controllers\AuditController::class, 'bulkDelete'])->name('bulkDelete');
+            Route::post('/delete-by-date', [\App\Http\Controllers\AuditController::class, 'deleteByDateRange'])->name('deleteByDateRange');
+            Route::post('/purge-old', [\App\Http\Controllers\AuditController::class, 'purgeOldLogs'])->name('purgeOldLogs');
         });
+
+    // Dashboard
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Users
     Route::resource('users', UserController::class);
@@ -161,30 +104,12 @@ Route::middleware(['auth'])->group(function () {
 
     // Projects
     Route::get('/projects/export', [ProjectController::class, 'export'])->name('projects.export');
+    Route::post('/projects/sync-from-lark', [ProjectController::class, 'syncFromLark'])->name('projects.sync.lark');
+    Route::get('/projects/lark-raw-data', [ProjectController::class, 'getLarkRawData'])->name('projects.lark.raw');
     Route::resource('projects', ProjectController::class);
     Route::post('/projects/quick-add', [ProjectController::class, 'storeQuick'])->name('projects.store.quick');
     Route::get('/projects/json', [ProjectController::class, 'json'])->name('projects.json');
     Route::post('/project-statuses', [ProjectStatusController::class, 'store'])->name('project-statuses.store');
-
-    // ✅ PERBAIKAN: Job Orders dengan route yang lengkap untuk soft delete
-    Route::prefix('production')->name('production.')->group(function () {
-        // Routes untuk Job Orders
-        Route::get('job-orders', [JobOrderController::class, 'index'])->name('job-orders.index');
-        Route::get('job-orders/create', [JobOrderController::class, 'create'])->name('job-orders.create');
-        Route::post('job-orders', [JobOrderController::class, 'store'])->name('job-orders.store');
-        Route::get('job-orders/{id}', [JobOrderController::class, 'show'])->name('job-orders.show');
-        Route::get('job-orders/{id}/edit', [JobOrderController::class, 'edit'])->name('job-orders.edit');
-        Route::put('job-orders/{id}', [JobOrderController::class, 'update'])->name('job-orders.update');
-        Route::delete('job-orders/{id}', [JobOrderController::class, 'destroy'])->name('job-orders.destroy');
-        Route::get('job-orders/{id}', [JobOrderController::class, 'show'])->name('job-orders.show');
-        
-        // ✅ TAMBAHAN: Routes untuk soft delete functionality
-        Route::put('job-orders/{id}/restore', [JobOrderController::class, 'restore'])->name('job-orders.restore');
-        Route::delete('job-orders/{id}/force-delete', [JobOrderController::class, 'forceDelete'])->name('job-orders.force-delete');
-    });
-
-    // API untuk dropdown Job Orders
-    Route::get('/api/job-orders/project/{projectId}', [JobOrderController::class, 'getByProject']);
 
     // Material Requests
     Route::get('/material_requests/export', [MaterialRequestController::class, 'export'])->name('material_requests.export');
@@ -201,14 +126,16 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/material_requests/{id}/quick-update', [MaterialRequestController::class, 'quickUpdate'])->name('material_requests.quick_update');
 
     // Material Planning
-    Route::get('/material-planning', [MaterialPlanningController::class, 'index'])->name('material_planning.index');
-    Route::get('/material-planning/create', [MaterialPlanningController::class, 'create'])->name('material_planning.create');
-    Route::post('/material-planning', [MaterialPlanningController::class, 'store'])->name('material_planning.store');
-    Route::delete('/material-planning/project/{projectId}', [MaterialPlanningController::class, 'destroyProject'])->name('material_planning.destroy_project');
-    Route::delete('/material-planning/{id}', [MaterialPlanningController::class, 'destroy'])->name('material_planning.destroy');
-    Route::get('/material-planning/related-items/{projectId}', [MaterialPlanningController::class, 'getRelatedItems'])
-        ->name('material_planning.related_items')
-        ->where('projectId', '[0-9]+');
+    Route::middleware(['auth'])->group(function () {
+        Route::get('/material-planning', [MaterialPlanningController::class, 'index'])->name('material_planning.index');
+        Route::get('/material-planning/create', [MaterialPlanningController::class, 'create'])->name('material_planning.create');
+        Route::post('/material-planning', [MaterialPlanningController::class, 'store'])->name('material_planning.store');
+        Route::delete('/material-planning/project/{projectId}', [MaterialPlanningController::class, 'destroyProject'])->name('material_planning.destroy_project');
+        Route::delete('/material-planning/{id}', [MaterialPlanningController::class, 'destroy'])->name('material_planning.destroy');
+        Route::get('/material-planning/related-items/{projectId}', [MaterialPlanningController::class, 'getRelatedItems'])
+            ->name('material_planning.related_items')
+            ->where('projectId', '[0-9]+');
+    });
 
     // Categories
     Route::post('/categories/quick-add', [CategoryController::class, 'store'])->name('categories.store');
@@ -261,8 +188,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/costing-report', [ProjectCostingController::class, 'index'])->name('costing.report');
     Route::get('/costing-report/{project_id}', [ProjectCostingController::class, 'viewCosting'])->name('costing.view');
     Route::get('/costing-report/export/{project_id}', [ProjectCostingController::class, 'exportCosting'])->name('costing.export');
+    Route::get('/costing-report-export-all', [ProjectCostingController::class, 'exportAllProjects'])->name('costing.export.all');
 
-    // Set inventory
+    //set inventory
     Route::post('/set-inventory', function (Request $request) {
         $request->session()->put('inventory_id', $request->input('inventory_id'));
         return redirect()->back();
@@ -291,16 +219,16 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/skillsets/json', [App\Http\Controllers\Hr\SkillsetController::class, 'json'])->name('skillsets.json');
     Route::get('/skillsets/search', [App\Http\Controllers\Hr\SkillsetController::class, 'search'])->name('skillsets.search');
 
-    // Employee leave balance check
+    // Employee leave balance check - Authenticated only
     Route::get('/employees/{employee}/leave-balance', [EmployeeController::class, 'getLeaveBalance'])->name('employees.leave-balance');
 
-    // Leave Request
+    // Leave Request - Authenticated only
     Route::get('leave_requests/{id}/edit', [LeaveRequestController::class, 'edit'])->name('leave_requests.edit');
     Route::put('leave_requests/{id}', [LeaveRequestController::class, 'update'])->name('leave_requests.update');
     Route::delete('leave_requests/{id}', [LeaveRequestController::class, 'destroy'])->name('leave_requests.destroy');
     Route::post('leave_requests/{id}/approval', [LeaveRequestController::class, 'updateApproval'])->name('leave_requests.updateApproval');
 
-    // Timing
+    //Timming
     Route::resource('timings', TimingController::class);
     Route::post('timings/store-multiple', [TimingController::class, 'storeMultiple'])->name('timings.storeMultiple');
     Route::post('/timings/ajax-search', [TimingController::class, 'ajaxSearch'])->name('timings.ajax_search');
@@ -308,14 +236,14 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/timings-import', [TimingController::class, 'import'])->name('timings.import');
     Route::get('/timings-template', [TimingController::class, 'downloadTemplate'])->name('timings.template');
 
-    // Final Project Summary
+    //Final Project Summary
     Route::get('final_project_summary', [FinalProjectSummaryController::class, 'index'])->name('final_project_summary.index');
     Route::get('final_project_summary/{project}', [FinalProjectSummaryController::class, 'show'])->name('final_project_summary.show');
     Route::get('/final-project-summary/ajax-search', [FinalProjectSummaryController::class, 'ajaxSearch'])->name('final_project_summary.ajax_search');
 
     // Purchase Requests
     Route::get('/purchase_requests/export', [PurchaseRequestController::class, 'export'])->name('purchase_requests.export');
-    Route::resource('purchase_requests', PurchaseRequestController::class);
+    Route::resource('purchase_requests', PurchaseRequestController::class)->middleware('auth');
     Route::post('/purchase_requests/{id}/quick-update', [PurchaseRequestController::class, 'quickUpdate'])->name('purchase_requests.quick_update');
 
     // Pre Shippings
@@ -324,8 +252,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/pre-shippings/check-orphaned-prs', [PreShippingController::class, 'checkOrphanedPRs'])->name('pre-shippings.check-orphaned-prs');
 
     // Shippings
-    Route::get('/shippings/create', [ShippingController::class, 'create'])->name('shippings.create');
-    Route::post('/shippings', [ShippingController::class, 'store'])->name('shippings.store');
+    Route::get('/shippings/create', [ShippingController::class, 'create'])->name('shippings.create'); // ✅ CHANGE to GET
+    Route::post('/shippings', [ShippingController::class, 'store'])->name('shippings.store'); // ✅ CORRECT - POST
 
     // Shipping Management
     Route::get('/shipping-management', [ShippingManagementController::class, 'index'])->name('shipping-management.index');
@@ -335,12 +263,21 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/goods-receive/store', [GoodsReceiveController::class, 'store'])->name('goods-receive.store');
     Route::get('/goods-receive', [GoodsReceiveController::class, 'index'])->name('goods-receive.index');
 
-    // Shortage Item
+    // SHORTAGE ITEM
     Route::prefix('shortage-items')->group(function () {
+        // Index/List shortage items
         Route::get('/', [ShortageItemController::class, 'index'])->name('shortage-items.index');
+
+        // Show single shortage detail
         Route::get('/{id}', [ShortageItemController::class, 'show'])->name('shortage-items.show');
+
+        // BULK RESEND ACTION (Main feature)
         Route::post('/bulk-resend', [ShortageItemController::class, 'bulkResend'])->name('shortage-items.bulk-resend');
+
+        // Cancel shortage item
         Route::post('/{id}/cancel', [ShortageItemController::class, 'cancel'])->name('shortage-items.cancel');
+
+        // Get by status (AJAX endpoint)
         Route::get('/status/filter', [ShortageItemController::class, 'getByStatus'])->name('shortage-items.by-status');
     });
 
@@ -365,8 +302,66 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/bulk-update', [AttendanceController::class, 'bulkUpdate'])->name('bulk-update');
             Route::post('/bulk-update-individual', [AttendanceController::class, 'bulkUpdateIndividual'])->name('bulk-update-individual');
             Route::post('/initialize', [AttendanceController::class, 'initializeDefault'])->name('initialize');
+
+            // Attendance List/History
             Route::get('/list', [AttendanceController::class, 'list'])->name('list');
             Route::get('/export', [AttendanceController::class, 'exportList'])->name('export');
             Route::delete('/{id}', [AttendanceController::class, 'destroy'])->name('destroy');
         });
 });
+
+Route::get('/artisan/{action}', function ($action) {
+    try {
+        // Check if user is super_admin
+        if (auth()->user()->role !== 'super_admin') {
+            return response()->json(
+                [
+                    'status' => 'error',
+                    'message' => 'You do not have the required permissions to perform this operation. This action is restricted to system administrators.',
+                ],
+                403,
+            );
+        }
+
+        // Normalize action name - convert hyphen to colon untuk Lark command
+        $actionMap = [
+            'storage-link' => 'storage:link',
+            'clear-cache' => 'cache:clear',
+            'config-clear' => 'config:clear',
+            'config-cache' => 'config:cache',
+            'route-clear' => 'route:clear',
+            'route-cache' => 'route:cache',
+            'view-cache' => 'view:clear',
+            'optimize' => 'optimize',
+            'optimize-clear' => 'optimize:clear',
+            'lark-fetch-job-orders' => 'lark:fetch-job-orders', // Convert hyphen to colon
+        ];
+
+        if (!isset($actionMap[$action])) {
+            throw new Exception("Invalid action: {$action}");
+        }
+
+        $command = $actionMap[$action];
+        Artisan::call($command);
+
+        // Generate success message
+        $messages = [
+            'storage:link' => 'Storage link created successfully.',
+            'cache:clear' => 'Cache cleared successfully.',
+            'config:clear' => 'Configuration cleared successfully.',
+            'config:cache' => 'Configuration cache cleared successfully.',
+            'route:clear' => 'Route cache cleared successfully.',
+            'route:cache' => 'Route cache created successfully.',
+            'view:clear' => 'View cache cleared successfully.',
+            'optimize' => 'Application optimized successfully.',
+            'optimize:clear' => 'Application optimized and cache cleared successfully.',
+            'lark:fetch-job-orders' => 'Job orders fetched from Lark successfully.',
+        ];
+
+        $message = $messages[$command] ?? 'Command executed successfully.';
+
+        return response()->json(['status' => 'success', 'message' => $message]);
+    } catch (Exception $e) {
+        return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
+    }
+})->name('artisan.action');

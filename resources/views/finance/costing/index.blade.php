@@ -4,9 +4,14 @@
     <div class="container mt-4">
         <div class="card shadow rounded">
             <div class="card-body">
-                <div class="d-flex align-items-center mb-3">
-                    <i class="fas fa-file-invoice-dollar gradient-icon me-2" style="font-size: 1.5rem;"></i>
-                    <h2 class="mb-0 flex-shrink-0" style="font-size:1.3rem;">Project Costing Report</h2>
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-file-invoice-dollar gradient-icon me-2" style="font-size: 1.5rem;"></i>
+                        <h2 class="mb-0 flex-shrink-0" style="font-size:1.3rem;">Project Costing Report</h2>
+                    </div>
+                    <a href="{{ route('costing.export.all', request()->query()) }}" class="btn btn-success btn-sm">
+                        <i class="fas fa-file-excel me-1"></i> Export All Projects
+                    </a>
                 </div>
                 <div class="mb-3">
                     <form id="filter-form" method="GET" action="{{ route('costing.report') }}" class="row g-2">

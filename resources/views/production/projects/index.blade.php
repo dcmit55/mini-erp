@@ -17,11 +17,16 @@
                             <i class="bi bi-plus-circle me-1"></i> Create Project
                         </a>
                         @if (in_array(auth()->user()->role, ['super_admin', 'admin']))
-                            <button type="button" class="btn btn-info btn-sm flex-shrink-0 artisan-action"
-                                data-action="lark-fetch-job-orders" data-bs-toggle="tooltip" data-bs-placement="bottom"
-                                title="Sync job orders from Lark">
-                                <i class="fas fa-sync me-1"></i> Sync from Lark
-                            </button>
+                            <form action="{{ route('projects.sync.lark') }}" method="POST" class="d-inline"
+                                id="syncLarkForm">
+                                @csrf
+                                <button type="button" class="btn btn-info btn-sm flex-shrink-0" id="btnSyncLark"
+                                    data-bs-toggle="tooltip" data-bs-placement="bottom"
+                                    title="Sync projects from Lark Base">
+                                    <i class="fas fa-sync me-1" id="syncIcon"></i>
+                                    <span id="syncText">Sync from Lark</span>
+                                </button>
+                            </form>
                         @endif
                         <a href="{{ route('projects.export', request()->query()) }}"
                             class="btn btn-outline-success btn-sm flex-shrink-0">
@@ -98,16 +103,15 @@
                 <table class="table table-sm table-hover align-middle" id="datatable">
                     <thead class="table-light align-middle">
                         <tr>
-                            <th></th>
-                            <th class="text-center">ID</th>
+                            <th>No</th>
                             <th>Name</th>
-                            <th>Quantity</th>
+                            <th>Sales</th>
                             <th>Department</th>
-                            <th>Start Date</th>
+                            <th class="text-center">Quantity</th>
                             <th>Deadline</th>
                             <th>Status</th>
                             <th>Stage</th>
-                            <th>Submission Form</th>
+                            <th>Project Status</th>
                             <th>Created By</th>
                             <th>Actions</th>
                         </tr>
@@ -116,22 +120,26 @@
                         @foreach ($projects as $project)
                             <tr>
                                 <td class="text-center">{{ $loop->iteration }}</td>
-                                <td class="text-center">{{ $project->id }}</td>
                                 <td>{{ $project->name }}</td>
-                                <td>{{ $project->qty === null ? '-' : $project->qty }}</td>
                                 <td>
-                                    @if ($project->departments->isNotEmpty())
-                                        @foreach ($project->departments as $dept)
-                                            <span class="badge bg-primary" style="font-weight:500;">
-                                                {{ ucfirst($dept->name) }}
-                                            </span>
-                                        @endforeach
+                                    @if ($project->sales)
+                                        <span class="badge bg-info" style="font-weight:500;">
+                                            {{ $project->sales }}
+                                        </span>
                                     @else
                                         <span class="text-muted">-</span>
                                     @endif
                                 </td>
-                                <td>{{ $project->start_date ? \Carbon\Carbon::parse($project->start_date)->translatedFormat('d F Y') : '-' }}
+                                <td>
+                                    @if ($project->department)
+                                        @include('components.department-badge', [
+                                            'department' => $project->department->name,
+                                        ])
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
                                 </td>
+                                <td class="text-center">{{ $project->qty === null ? '-' : $project->qty }}</td>
                                 <td>{{ $project->deadline ? \Carbon\Carbon::parse($project->deadline)->translatedFormat('d F Y') : '-' }}
                                 </td>
                                 <td>
@@ -145,14 +153,9 @@
                                 </td>
                                 <td>{{ $project->stage ?? '-' }}</td>
                                 <td>
-                                    @if ($project->submission_form)
-                                        <a href="{{ $project->submission_form }}" target="_blank"
-                                            class="btn btn-sm btn-info">
-                                            <i class="bi bi-box-arrow-up-right"></i> Open Form
-                                        </a>
-                                    @else
-                                        <span class="text-muted">-</span>
-                                    @endif
+                                    @include('components.project-status-badges', [
+                                        'statuses' => $project->project_status,
+                                    ])
                                 </td>
                                 <td>
                                     <span class="badge bg-secondary">{{ $project->created_by ?? '-' }}</span>
@@ -336,6 +339,33 @@
             tooltipTriggerList.forEach(function(tooltipTriggerEl) {
                 new bootstrap.Tooltip(tooltipTriggerEl);
             });
+
+            // Sync from Lark button handler
+            const syncBtn = document.getElementById('btnSyncLark');
+            const syncForm = document.getElementById('syncLarkForm');
+
+            if (syncBtn && syncForm) {
+                syncBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+
+                    if (confirm(
+                            'Sync all projects from Lark?\n\nThis will:\n- Fetch latest data from Lark Base\n- Create/update projects\n- Mark with "Sync from Lark"\n- Deactivate missing projects\n\nContinue?'
+                        )) {
+                        // Show loading state
+                        const syncIcon = document.getElementById('syncIcon');
+                        const syncText = document.getElementById('syncText');
+
+                        syncBtn.disabled = true;
+                        syncIcon.classList.add('fa-spin');
+                        syncText.textContent = 'Syncing...';
+                        syncBtn.classList.remove('btn-info');
+                        syncBtn.classList.add('btn-secondary');
+
+                        // Submit form
+                        syncForm.submit();
+                    }
+                });
+            }
         });
     </script>
 @endpush

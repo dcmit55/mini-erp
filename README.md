@@ -8,6 +8,7 @@ Sistem manajemen inventori berbasis Laravel 11 yang pada saat ini fokus pada mat
 
 ## 📋 Daftar Isi
 
+<<<<<<< HEAD
 -   [Fitur Utama](#-fitur-utama)
 -   [Teknologi Stack](#-teknologi-stack)
 -   [Persyaratan Sistem](#-persyaratan-sistem)
@@ -21,11 +22,27 @@ Sistem manajemen inventori berbasis Laravel 11 yang pada saat ini fokus pada mat
 -   [Export & Reporting](#-export--reporting)
 -   [Troubleshooting](#-troubleshooting)
 -   [Contributing](#-contributing)
+=======
+- [Fitur Utama](#-fitur-utama)
+- [Teknologi Stack](#-teknologi-stack)
+- [Persyaratan Sistem](#-persyaratan-sistem)
+- [Instalasi](#-instalasi)
+- [Konfigurasi](#-konfigurasi)
+- [Struktur Database](#-struktur-database)
+- [Alur Kerja Sistem](#-alur-kerja-sistem)
+- [Modul & Fitur](#-modul--fitur)
+- [Role & Permissions](#-role--permissions)
+- [API & Broadcasting](#-api--broadcasting)
+- [Export & Reporting](#-export--reporting)
+- [Troubleshooting](#-troubleshooting)
+- [Contributing](#-contributing)
+>>>>>>> 7d24dfd0cab8ae87f6f6d3365cd893deab81ab40
 
 ## 🎯 Fitur Utama
 
 ### Material Management
 
+<<<<<<< HEAD
 -   ✅ Katalog inventori dengan multi-currency support
 -   ✅ Tracking stock real-time dengan lock mechanism
 -   ✅ Material request workflow (pending → approved → delivered)
@@ -54,11 +71,42 @@ Sistem manajemen inventori berbasis Laravel 11 yang pada saat ini fokus pada mat
 -   ✅ Audit trail dengan owen-it/auditing
 -   ✅ Excel export untuk semua modul
 -   ✅ Material planning & forecasting
+=======
+- ✅ Katalog inventori dengan multi-currency support
+- ✅ Tracking stock real-time dengan lock mechanism
+- ✅ Material request workflow (pending → approved → delivered)
+- ✅ Bulk operations untuk efisiensi
+- ✅ QR Code generation untuk tracking
+
+### Goods Operations
+
+- ✅ Goods Out (pengeluaran barang untuk project)
+- ✅ Goods In (pengembalian barang dari project)
+- ✅ Material Usage tracking otomatis
+- ✅ Integration dengan project costing
+
+### Project Management
+
+- ✅ Project tracking dengan status & timeline
+- ✅ Department assignment
+- ✅ Material usage per project
+- ✅ Cost calculation dengan freight costs
+- ✅ Project summary & reports
+
+### Advanced Features
+
+- ✅ Real-time notifications dengan Pusher
+- ✅ Role-based access control (RBAC)
+- ✅ Audit trail dengan owen-it/auditing
+- ✅ Excel export untuk semua modul
+- ✅ Material planning & forecasting
+>>>>>>> 7d24dfd0cab8ae87f6f6d3365cd893deab81ab40
 
 ## 🛠 Teknologi Stack
 
 ### Backend
 
+<<<<<<< HEAD
 -   **Framework**: Laravel 11.x
 -   **PHP**: 8.1+
 -   **Database**: MySQL 8.0+
@@ -73,6 +121,22 @@ Sistem manajemen inventori berbasis Laravel 11 yang pada saat ini fokus pada mat
 -   **Select2**: Advanced select boxes
 -   **SweetAlert2**: Beautiful alerts
 -   **Chart.js**: Data visualization
+=======
+- **Framework**: Laravel 11.x
+- **PHP**: 8.1+
+- **Database**: MySQL 8.0+
+- **Broadcasting**: Pusher
+- **Package Manager**: Composer
+
+### Frontend
+
+- **UI Framework**: Bootstrap 5.3
+- **JavaScript**: jQuery 3.6
+- **DataTables**: Server-side processing
+- **Select2**: Advanced select boxes
+- **SweetAlert2**: Beautiful alerts
+- **Chart.js**: Data visualization
+>>>>>>> 7d24dfd0cab8ae87f6f6d3365cd893deab81ab40
 
 ### Key Laravel Packages
 
@@ -88,11 +152,19 @@ Sistem manajemen inventori berbasis Laravel 11 yang pada saat ini fokus pada mat
 
 ## 💻 Persyaratan Sistem
 
+<<<<<<< HEAD
 -   PHP >= 8.1
 -   Composer 2.x
 -   Node.js >= 18.x & NPM
 -   MySQL >= 8.0
 -   Extension PHP: BCMath, Ctype, Fileinfo, JSON, Mbstring, OpenSSL, PDO, Tokenizer, XML
+=======
+- PHP >= 8.1
+- Composer 2.x
+- Node.js >= 18.x & NPM
+- MySQL >= 8.0
+- Extension PHP: BCMath, Ctype, Fileinfo, JSON, Mbstring, OpenSSL, PDO, Tokenizer, XML
+>>>>>>> 7d24dfd0cab8ae87f6f6d3365cd893deab81ab40
 
 ## 📦 Instalasi
 
@@ -299,6 +371,7 @@ MAIL_FROM_NAME="${APP_NAME}"
 
 ### Supporting Tables
 
+<<<<<<< HEAD
 -   `users`: User management dengan role
 -   `departments`: Departemen/divisi
 -   `categories`: Kategori material
@@ -307,6 +380,16 @@ MAIL_FROM_NAME="${APP_NAME}"
 -   `project_statuses`: Status project (active, completed, dll)
 -   `project_parts`: Part/komponen project
 -   `audits`: Audit trail (owen-it/auditing)
+=======
+- `users`: User management dengan role
+- `departments`: Departemen/divisi
+- `categories`: Kategori material
+- `suppliers`: Data supplier
+- `currencies`: Multi-currency dengan exchange rate
+- `project_statuses`: Status project (active, completed, dll)
+- `project_parts`: Part/komponen project
+- `audits`: Audit trail (owen-it/auditing)
+>>>>>>> 7d24dfd0cab8ae87f6f6d3365cd893deab81ab40
 
 ## 🔄 Alur Kerja Sistem
 
@@ -366,6 +449,7 @@ Grand Total Project = Sum of all materials
 
 **Fitur**:
 
+<<<<<<< HEAD
 -   CRUD operations untuk material
 -   Quick Add via modal AJAX
 -   Multi-currency pricing
@@ -374,6 +458,16 @@ Grand Total Project = Sum of all materials
 -   QR Code generation
 -   Export to Excel
 -   Detail view dengan material usage history
+=======
+- CRUD operations untuk material
+- Quick Add via modal AJAX
+- Multi-currency pricing
+- Freight cost calculation
+- Stock validation dengan locking
+- QR Code generation
+- Export to Excel
+- Detail view dengan material usage history
+>>>>>>> 7d24dfd0cab8ae87f6f6d3365cd893deab81ab40
 
 **Controller**: `InventoryController.php`
 
@@ -394,6 +488,7 @@ export()         // Excel export dengan filter
 
 **Fitur**:
 
+<<<<<<< HEAD
 -   Request workflow (pending/approved/delivered/canceled)
 -   Bulk request creation
 -   Bulk approval untuk logistic admin
@@ -401,6 +496,15 @@ export()         // Excel export dengan filter
 -   Permission-based actions
 -   Real-time notifications
 -   Export dengan dynamic filename
+=======
+- Request workflow (pending/approved/delivered/canceled)
+- Bulk request creation
+- Bulk approval untuk logistic admin
+- Remaining quantity calculation
+- Permission-based actions
+- Real-time notifications
+- Export dengan dynamic filename
+>>>>>>> 7d24dfd0cab8ae87f6f6d3365cd893deab81ab40
 
 **Controller**: `MaterialRequestController.php`
 
@@ -419,12 +523,21 @@ canceled   // Rejected/canceled
 
 **Fitur**:
 
+<<<<<<< HEAD
 -   Create from material request atau independent
 -   User assignment
 -   Project assignment (optional)
 -   Stock validation dengan transaction
 -   Automatic material usage recording
 -   Export functionality
+=======
+- Create from material request atau independent
+- User assignment
+- Project assignment (optional)
+- Stock validation dengan transaction
+- Automatic material usage recording
+- Export functionality
+>>>>>>> 7d24dfd0cab8ae87f6f6d3365cd893deab81ab40
 
 **Controller**: `GoodsOutController.php`
 
@@ -434,11 +547,19 @@ canceled   // Rejected/canceled
 
 **Fitur**:
 
+<<<<<<< HEAD
 -   Return barang dari goods out
 -   Independent goods in (tanpa goods out reference)
 -   Stock reconciliation
 -   Material usage sync
 -   Project tracking
+=======
+- Return barang dari goods out
+- Independent goods in (tanpa goods out reference)
+- Stock reconciliation
+- Material usage sync
+- Project tracking
+>>>>>>> 7d24dfd0cab8ae87f6f6d3365cd893deab81ab40
 
 **Controller**: `GoodsInController.php`
 
@@ -448,11 +569,19 @@ canceled   // Rejected/canceled
 
 **Fitur**:
 
+<<<<<<< HEAD
 -   View usage per project/material
 -   Automatic calculation
 -   Usage rate percentage
 -   Export to Excel
 -   Delete (super admin only)
+=======
+- View usage per project/material
+- Automatic calculation
+- Usage rate percentage
+- Export to Excel
+- Delete (super admin only)
+>>>>>>> 7d24dfd0cab8ae87f6f6d3365cd893deab81ab40
 
 **Controller**: `MaterialUsageController.php`
 
@@ -469,6 +598,7 @@ MaterialUsageHelper::sync($inventoryId, $projectId)
 
 **Fitur**:
 
+<<<<<<< HEAD
 -   Project CRUD
 -   Department assignment
 -   Status management
@@ -477,6 +607,16 @@ MaterialUsageHelper::sync($inventoryId, $projectId)
 -   Image upload
 -   Export to Excel
 -   Archive functionality
+=======
+- Project CRUD
+- Department assignment
+- Status management
+- Timeline tracking (start_date, deadline, finish_date)
+- Project parts management
+- Image upload
+- Export to Excel
+- Archive functionality
+>>>>>>> 7d24dfd0cab8ae87f6f6d3365cd893deab81ab40
 
 **Controller**: `ProjectController.php`
 
@@ -486,12 +626,21 @@ MaterialUsageHelper::sync($inventoryId, $projectId)
 
 **Fitur**:
 
+<<<<<<< HEAD
 -   Cost calculation per project
 -   Material breakdown
 -   Multi-currency conversion to IDR
 -   Freight cost inclusion
 -   Grand total calculation
 -   Export to Excel
+=======
+- Cost calculation per project
+- Material breakdown
+- Multi-currency conversion to IDR
+- Freight cost inclusion
+- Grand total calculation
+- Export to Excel
+>>>>>>> 7d24dfd0cab8ae87f6f6d3365cd893deab81ab40
 
 **Controller**: `ProjectCostingController.php`
 
@@ -508,11 +657,19 @@ Total Material Cost = Unit Cost × Used Qty × Exchange Rate (to IDR)
 
 **Fitur**:
 
+<<<<<<< HEAD
 -   Planning per project
 -   Multi-material planning
 -   Qty estimation
 -   Created date & last update tracking
 -   Export functionality
+=======
+- Planning per project
+- Multi-material planning
+- Qty estimation
+- Created date & last update tracking
+- Export functionality
+>>>>>>> 7d24dfd0cab8ae87f6f6d3365cd893deab81ab40
 
 **Controller**: `MaterialPlanningController.php`
 
@@ -522,11 +679,19 @@ Total Material Cost = Unit Cost × Used Qty × Exchange Rate (to IDR)
 
 **Fitur**:
 
+<<<<<<< HEAD
 -   Low stock alerts
 -   Pending material requests
 -   Recent activities
 -   Statistics charts
 -   Quick actions
+=======
+- Low stock alerts
+- Pending material requests
+- Recent activities
+- Statistics charts
+- Quick actions
+>>>>>>> 7d24dfd0cab8ae87f6f6d3365cd893deab81ab40
 
 **Controller**: `DashboardController.php`
 
@@ -538,12 +703,21 @@ Total Material Cost = Unit Cost × Used Qty × Exchange Rate (to IDR)
 
 **Full Access**:
 
+<<<<<<< HEAD
 -   ✅ Semua CRUD operations
 -   ✅ Approve/reject material requests
 -   ✅ Delete any records
 -   ✅ Manage users & departments
 -   ✅ Archive projects
 -   ✅ Edit finish_date untuk project
+=======
+- ✅ Semua CRUD operations
+- ✅ Approve/reject material requests
+- ✅ Delete any records
+- ✅ Manage users & departments
+- ✅ Archive projects
+- ✅ Edit finish_date untuk project
+>>>>>>> 7d24dfd0cab8ae87f6f6d3365cd893deab81ab40
 
 **Helper Method**:
 
@@ -555,11 +729,19 @@ $user->isSuperAdmin() // Returns boolean
 
 **Material Management**:
 
+<<<<<<< HEAD
 -   ✅ View all material requests
 -   ✅ Approve material requests
 -   ✅ Create goods out/in
 -   ✅ View all inventory
 -   ❌ Delete records (read-only untuk beberapa modul)
+=======
+- ✅ View all material requests
+- ✅ Approve material requests
+- ✅ Create goods out/in
+- ✅ View all inventory
+- ❌ Delete records (read-only untuk beberapa modul)
+>>>>>>> 7d24dfd0cab8ae87f6f6d3365cd893deab81ab40
 
 **Helper Method**:
 
@@ -571,12 +753,21 @@ $user->isLogisticAdmin() // Returns boolean
 
 **Limited Access**:
 
+<<<<<<< HEAD
 -   ✅ Create material requests (own requests only)
 -   ✅ View own requests
 -   ✅ View inventory (read-only)
 -   ❌ Approve requests
 -   ❌ Delete records
 -   ❌ Create goods out
+=======
+- ✅ Create material requests (own requests only)
+- ✅ View own requests
+- ✅ View inventory (read-only)
+- ❌ Approve requests
+- ❌ Delete records
+- ❌ Create goods out
+>>>>>>> 7d24dfd0cab8ae87f6f6d3365cd893deab81ab40
 
 **Helper Method**:
 
@@ -794,7 +985,13 @@ $(".select2")
 
 ```javascript
 // Add new option to Select2
+<<<<<<< HEAD
 $("#select-id").append(new Option(text, value, true, true)).trigger("change");
+=======
+$("#select-id")
+    .append(new Option(text, value, true, true))
+    .trigger("change");
+>>>>>>> 7d24dfd0cab8ae87f6f6d3365cd893deab81ab40
 
 // Refresh all Select2 instances
 $(".select2").each(function () {
@@ -875,7 +1072,11 @@ $(document).ready(function () {
         // Loading state
         submitBtn
             .html(
+<<<<<<< HEAD
                 '<span class="spinner-border spinner-border-sm me-2"></span>Saving...'
+=======
+                '<span class="spinner-border spinner-border-sm me-2"></span>Saving...',
+>>>>>>> 7d24dfd0cab8ae87f6f6d3365cd893deab81ab40
             )
             .prop("disabled", true);
 
@@ -890,7 +1091,11 @@ $(document).ready(function () {
                         response.data.name,
                         response.data.id,
                         true,
+<<<<<<< HEAD
                         true
+=======
+                        true,
+>>>>>>> 7d24dfd0cab8ae87f6f6d3365cd893deab81ab40
                     );
                     $("#target-select").append(newOption).trigger("change");
 
@@ -1257,6 +1462,7 @@ Sistem menggunakan **Static API Token** untuk komunikasi server-to-server yang r
 
 **Tidak Menggunakan Laravel Sanctum** karena:
 
+<<<<<<< HEAD
 -   ❌ Terlalu _heavyweight_ untuk server-to-server
 -   ❌ Memerlukan user session & token rotation
 -   ❌ Overhead yang tidak diperlukan untuk internal API
@@ -1267,6 +1473,491 @@ Sistem menggunakan **Static API Token** untuk komunikasi server-to-server yang r
 -   ✅ **Stateless**: Tanpa session/cookie
 -   ✅ **Permanen**: Token tidak expired
 -   ✅ **Sederhana**: Setup minimal, mudah maintenance
+=======
+## 🛡️ Data Governance: Lark Integration
+
+Sistem ini menerapkan **data governance ketat** untuk memastikan integritas data project yang berasal dari Lark sebagai **single source of truth**.
+
+### Aturan Bisnis
+
+#### Project Source Classification
+
+| Source Type          | `created_by` Value                | Status       | Can Be Used in Business Process?          | Visibility          |
+| -------------------- | --------------------------------- | ------------ | ----------------------------------------- | ------------------- |
+| **Lark (VALID)**     | `'Sync from Lark'`                | ✅ Active    | ✅ YES - Boleh dipilih untuk semua proses | Full access         |
+| **Legacy (INVALID)** | `!= 'Sync from Lark'` atau `NULL` | 🔒 Read-only | ❌ NO - Hanya untuk historical reporting  | View only, disabled |
+
+#### Business Rules
+
+1. **ONLY Lark projects** dapat digunakan untuk:
+    - Material Requests (create/edit)
+    - Goods Out/In operations
+    - Material Planning
+    - Purchase Requests
+    - Timing records
+    - Semua proses bisnis aktif
+
+2. **Legacy projects**:
+    - Tetap bisa **dilihat** (untuk audit trail & reporting)
+    - **TIDAK bisa dipilih** di form apa pun
+    - Muncul dengan badge "🔒 Legacy - Cannot be used"
+    - Disabled dan berwarna abu-abu di UI
+    - Ditolak di backend jika dipaksa via manipulasi request
+
+3. **Enforcement Level**:
+    - ✅ **Model Level**: Scope & helper methods
+    - ✅ **Validation Level**: Custom validation rule
+    - ✅ **Controller Level**: Query filter & validation
+    - ✅ **View Level**: Disabled options dengan styling
+
+### Implementasi Teknis
+
+#### 1. Model Scopes & Helper Methods
+
+```php
+// app/Models/Production/Project.php
+
+// SCOPES
+Project::fromLark()->get();  // Hanya project valid dari Lark
+Project::legacy()->get();    // Hanya project legacy (historical)
+
+// HELPER METHODS
+$project->isFromLark();  // bool: Apakah project dari Lark?
+$project->isLegacy();    // bool: Apakah project legacy?
+$project->canBeUsed();   // bool: Boleh digunakan di proses bisnis?
+```
+
+**Implementasi Model**:
+
+```php
+// Scope untuk project VALID dari Lark
+public function scopeFromLark($query)
+{
+    return $query->where('created_by', 'Sync from Lark');
+}
+
+// Scope untuk project LEGACY
+public function scopeLegacy($query)
+{
+    return $query->where('created_by', '!=', 'Sync from Lark')
+                 ->orWhereNull('created_by');
+}
+
+// Check apakah project dari Lark (VALID)
+public function isFromLark(): bool
+{
+    return $this->created_by === 'Sync from Lark';
+}
+
+// Check apakah project legacy (TIDAK VALID)
+public function isLegacy(): bool
+{
+    return !$this->isFromLark();
+}
+
+// Check apakah boleh digunakan dalam proses bisnis
+public function canBeUsed(): bool
+{
+    return $this->isFromLark();
+}
+```
+
+#### 2. Custom Validation Rule
+
+```php
+// app/Rules/ValidProjectSource.php
+
+use App\Rules\ValidProjectSource;
+
+// Penggunaan di Controller:
+$request->validate([
+    'project_id' => ['required', 'exists:projects,id', new ValidProjectSource],
+]);
+```
+
+**Rule Implementation**:
+
+```php
+public function validate(string $attribute, mixed $value, Closure $fail): void
+{
+    if (empty($value)) return;
+
+    $project = Project::find($value);
+
+    if (!$project) {
+        $fail('The selected project does not exist.');
+        return;
+    }
+
+    // ENFORCEMENT: Tolak project legacy
+    if (!$project->isFromLark()) {
+        $fail('The selected project is a legacy project and cannot be used. Please select a project synced from Lark.');
+        return;
+    }
+
+    // Additional: Check soft delete
+    if ($project->trashed()) {
+        $fail('The selected project has been deleted and cannot be used.');
+        return;
+    }
+}
+```
+
+#### 3. Controller Query Pattern
+
+**BEFORE (Vulnerable - accepts legacy)**:
+
+```php
+// ❌ BAHAYA: Semua project termasuk legacy
+$projects = Project::orderBy('name')->get();
+```
+
+**AFTER (Secure - only Lark projects)**:
+
+```php
+// ✅ AMAN: Hanya project dari Lark
+$projects = Project::fromLark()
+    ->with('departments', 'status')
+    ->notArchived()
+    ->orderBy('name')
+    ->get();
+```
+
+**Contoh Implementasi di Controller**:
+
+```php
+// MaterialRequestController.php
+use App\Rules\ValidProjectSource;
+
+public function create(Request $request)
+{
+    // Hanya ambil project dari Lark untuk dropdown
+    $projects = Project::fromLark()
+        ->with('departments', 'status')
+        ->notArchived()
+        ->orderBy('name')
+        ->get();
+
+    return view('logistic.material_requests.create', compact('projects'));
+}
+
+public function store(Request $request)
+{
+    $request->validate([
+        'inventory_id' => 'required|exists:inventories,id',
+        'project_id' => ['required', 'exists:projects,id', new ValidProjectSource],
+        'qty' => 'required|numeric|min:0.01',
+    ]);
+
+    // Backend enforcement akan menolak jika project legacy dipaksa
+    // ...
+}
+```
+
+#### 4. Blade View Pattern
+
+**Component-Based (Recommended)**:
+
+```blade
+{{-- Gunakan component untuk konsistensi --}}
+<select name="project_id" class="form-select select2" required>
+    <option value="">Select Project</option>
+    @include('components.project-options', [
+        'projects' => $projects,
+        'selected' => old('project_id', $record->project_id ?? null),
+        'showLegacy' => false  // false = hide legacy (untuk form create/edit)
+    ])
+</select>
+```
+
+**Manual Rendering (dengan Legacy Display)**:
+
+```blade
+<select name="project_id" class="form-select select2">
+    <option value="">Select Project</option>
+    @foreach ($projects as $project)
+        @if($project->isFromLark())
+            {{-- Project VALID: Normal selectable --}}
+            <option value="{{ $project->id }}"
+                    data-department="{{ $project->departments->pluck('name')->implode(', ') }}">
+                {{ $project->name }}
+            </option>
+        @else
+            {{-- Project LEGACY: Disabled dengan visual berbeda --}}
+            <option value="{{ $project->id }}"
+                    disabled
+                    class="text-muted"
+                    style="background-color: #f8f9fa; color: #6c757d !important;">
+                🔒 {{ $project->name }} (Legacy - Cannot be used)
+            </option>
+        @endif
+    @endforeach
+</select>
+```
+
+**CSS Styling**:
+
+```css
+/* Styling untuk project legacy */
+option[data-source="legacy"] {
+    background-color: #f8f9fa !important;
+    color: #6c757d !important;
+    font-style: italic;
+}
+
+option[data-source="lark"] {
+    background-color: white;
+    color: #212529;
+}
+```
+
+### Use Cases & Examples
+
+#### ✅ ALLOWED: Proses Bisnis dengan Lark Project
+
+```php
+// Material Request: BERHASIL
+MaterialRequest::create([
+    'project_id' => 1234,  // Project dengan created_by = 'Sync from Lark'
+    'inventory_id' => 56,
+    'qty' => 10,
+]);
+// ✅ SUCCESS: Validasi lolos, data tersimpan
+
+// Goods Out: BERHASIL
+GoodsOut::create([
+    'project_id' => 1234,  // Lark project
+    'inventory_id' => 56,
+    'quantity' => 5,
+]);
+// ✅ SUCCESS
+```
+
+#### ❌ REJECTED: Proses Bisnis dengan Legacy Project
+
+```php
+// Material Request: DITOLAK
+$request->validate([
+    'project_id' => ['required', 'exists:projects,id', new ValidProjectSource],
+]);
+// Input: project_id = 999 (legacy project dengan created_by = 'manual')
+
+// ❌ VALIDATION ERROR:
+// "The selected project is a legacy project and cannot be used.
+//  Please select a project synced from Lark."
+```
+
+```javascript
+// AJAX Manipulation Attempt: DITOLAK
+$.ajax({
+    url: "/material-requests/store",
+    data: {
+        project_id: 999, // Legacy project dipaksa via JS
+        inventory_id: 56,
+        qty: 10,
+    },
+});
+
+// Backend Response:
+// HTTP 422 Unprocessable Entity
+// {
+//     "errors": {
+//         "project_id": [
+//             "The selected project is a legacy project and cannot be used."
+//         ]
+//     }
+// }
+```
+
+#### ✅ ALLOWED: Historical Reporting dengan Legacy Project
+
+```php
+// Reporting Query: DIIZINKAN untuk view historical data
+$materialRequests = MaterialRequest::with('project')
+    ->whereHas('project', function($q) {
+        $q->legacy();  // Bisa query legacy untuk reporting
+    })
+    ->get();
+
+// Export: DIIZINKAN
+$allProjects = Project::withTrashed()->get();  // Termasuk legacy
+Excel::download(new ProjectExport($allProjects), 'all_projects.xlsx');
+```
+
+### Migration & Transition Strategy
+
+#### Jika Ada Data Legacy yang Masih Aktif
+
+1. **Identifikasi Legacy Projects**:
+
+    ```sql
+    -- Find all legacy projects yang masih digunakan
+    SELECT p.id, p.name, p.created_by, COUNT(mr.id) as active_requests
+    FROM projects p
+    LEFT JOIN material_requests mr ON p.id = mr.project_id
+    WHERE (p.created_by != 'Sync from Lark' OR p.created_by IS NULL)
+      AND p.deleted_at IS NULL
+    GROUP BY p.id
+    HAVING active_requests > 0;
+    ```
+
+2. **Sync Manual Projects ke Lark**:
+    - Export project legacy ke Excel
+    - Import ke Lark Base
+    - Re-sync dari Lark
+    - Sistem otomatis mark sebagai `created_by = 'Sync from Lark'`
+
+3. **Archive Legacy Projects**:
+    ```php
+    // Soft delete legacy projects yang sudah tidak aktif
+    Project::legacy()
+        ->whereDoesntHave('materialRequests', function($q) {
+            $q->where('status', '!=', 'canceled');
+        })
+        ->delete();
+    ```
+
+### Security Benefits
+
+| Threat                                                   | Protection                                | Enforcement Level     |
+| -------------------------------------------------------- | ----------------------------------------- | --------------------- |
+| Frontend manipulation (change option value via DevTools) | ✅ Backend validation rejects             | **Controller + Rule** |
+| API call with legacy project_id                          | ✅ ValidProjectSource rule fails          | **Validation Layer**  |
+| Direct DB insert bypass Laravel                          | ✅ Model events + foreign key constraints | **Database Level**    |
+| SQL injection dengan legacy ID                           | ✅ Eloquent ORM + prepared statements     | **ORM Level**         |
+| Accidental selection in old forms                        | ✅ Query scope `fromLark()` di create()   | **Controller Query**  |
+
+### Monitoring & Logging
+
+```php
+// Log project source violations
+if (!$project->isFromLark()) {
+    \Log::warning('Attempted to use legacy project in business process', [
+        'project_id' => $project->id,
+        'project_name' => $project->name,
+        'user_id' => auth()->id(),
+        'ip' => request()->ip(),
+        'endpoint' => request()->path(),
+    ]);
+}
+```
+
+### Testing
+
+```php
+// tests/Feature/ProjectGovernanceTest.php
+
+public function test_legacy_project_cannot_be_used_in_material_request()
+{
+    $legacyProject = Project::factory()->create(['created_by' => 'manual']);
+
+    $response = $this->post('/material-requests', [
+        'project_id' => $legacyProject->id,
+        'inventory_id' => 1,
+        'qty' => 10,
+    ]);
+
+    $response->assertStatus(422);
+    $response->assertJsonValidationErrors('project_id');
+}
+
+public function test_lark_project_can_be_used_in_material_request()
+{
+    $larkProject = Project::factory()->create(['created_by' => 'Sync from Lark']);
+
+    $response = $this->post('/material-requests', [
+        'project_id' => $larkProject->id,
+        'inventory_id' => 1,
+        'qty' => 10,
+    ]);
+
+    $response->assertStatus(302);  // Redirect after success
+}
+```
+
+### Best Practices
+
+1. **Selalu Gunakan Scope di Controller**:
+
+    ```php
+    // ✅ BENAR
+    $projects = Project::fromLark()->get();
+
+    // ❌ SALAH
+    $projects = Project::all();
+    ```
+
+2. **Tambahkan ValidProjectSource di Semua Form**:
+
+    ```php
+    'project_id' => ['required', 'exists:projects,id', new ValidProjectSource],
+    ```
+
+3. **Gunakan Component untuk Konsistensi**:
+
+    ```blade
+    @include('components.project-options', ['projects' => $projects])
+    ```
+
+4. **Monitor Legacy Usage**:
+    - Setup alert jika ada attempt menggunakan legacy project
+    - Log semua validation failures
+    - Review quarterly untuk cleanup
+
+### FAQ
+
+**Q: Bagaimana jika user butuh edit data lama dengan legacy project?**
+A: Legacy project tetap bisa **dilihat** di detail view & reports, tapi **tidak bisa diubah**. Jika perlu update, project harus di-sync ke Lark terlebih dahulu.
+
+**Q: Apakah validation rule `ValidProjectSource` wajib di semua controller?**
+A: Ya, untuk semua endpoint yang menerima `project_id` dalam proses bisnis aktif (create/update).
+
+**Q: Bagaimana menampilkan legacy project di reporting?**
+A: Gunakan query tanpa scope `fromLark()`:
+
+```php
+$allProjects = Project::all();  // Include legacy
+```
+
+Tapi tetap tampilkan badge/indicator di UI.
+
+**Q: Apakah bisa force-enable legacy project untuk emergency?**
+A: Secara teknis bisa dengan temporary disable validation, tapi **TIDAK DISARANKAN**. Lebih baik sync project ke Lark dahulu (5 menit) daripada compromise data governance.
+
+### Summary
+
+- ✅ **Model**: Scope `fromLark()` dan helper `canBeUsed()`
+- ✅ **Validation**: Custom rule `ValidProjectSource`
+- ✅ **Controller**: Query filter + validation enforcement
+- ✅ **View**: Component dengan disabled legacy + styling
+- ✅ **Security**: Multi-layer enforcement (Model → Validation → Controller → View)
+- ✅ **User Experience**: Clear visual indicator untuk legacy projects
+- ✅ **Audit**: Logging untuk compliance
+- ✅ **Future-proof**: Scalable pattern untuk table lain (departments, materials, dll)
+
+**Kesimpulan**: Implementasi ini memastikan bahwa **HANYA data dari Lark yang dapat digunakan** dalam proses bisnis, dengan enforcement di semua layer aplikasi untuk mencegah data corruption dan memastikan single source of truth.
+
+---
+
+## 🔐 API Token Authentication
+
+Sistem menggunakan **Static API Token** untuk komunikasi server-to-server yang ringan dan stateless. Token bersifat permanen tanpa expiration untuk konsumsi API oleh aplikasi eksternal (BotTime).
+
+### Mengapa Static Token?
+
+**Tidak Menggunakan Laravel Sanctum** karena:
+
+- ❌ Terlalu _heavyweight_ untuk server-to-server
+- ❌ Memerlukan user session & token rotation
+- ❌ Overhead yang tidak diperlukan untuk internal API
+
+**Static Token Benefits**:
+
+- ✅ **Ringan**: Hanya 1 query database per request
+- ✅ **Stateless**: Tanpa session/cookie
+- ✅ **Permanen**: Token tidak expired
+- ✅ **Sederhana**: Setup minimal, mudah maintenance
+>>>>>>> 7d24dfd0cab8ae87f6f6d3365cd893deab81ab40
 
 ### Generate Token
 
@@ -1442,6 +2133,7 @@ $projectDetail = callSymcoreAPI('/projects/1');
 
 #### ✅ DO:
 
+<<<<<<< HEAD
 -   Simpan token di `.env` atau config file
 -   Gunakan HTTPS only (production)
 -   Tambahkan IP whitelist untuk keamanan ekstra
@@ -1453,6 +2145,19 @@ $projectDetail = callSymcoreAPI('/projects/1');
 -   Kirim token via URL query string
 -   Share token via email/chat plaintext
 -   Simpan token di frontend JavaScript
+=======
+- Simpan token di `.env` atau config file
+- Gunakan HTTPS only (production)
+- Tambahkan IP whitelist untuk keamanan ekstra
+- Monitor `last_used_at` untuk aktivitas mencurigakan
+
+#### ❌ DON'T:
+
+- Commit token ke Git repository
+- Kirim token via URL query string
+- Share token via email/chat plaintext
+- Simpan token di frontend JavaScript
+>>>>>>> 7d24dfd0cab8ae87f6f6d3365cd893deab81ab40
 
 ### Troubleshooting
 
@@ -1759,6 +2464,7 @@ if (app()->environment('local')) {
 
 ### Documentation Links
 
+<<<<<<< HEAD
 -   [Laravel 11 Documentation](https://laravel.com/docs/11.x)
 -   [Bootstrap 5 Documentation](https://getbootstrap.com/docs/5.3)
 -   [DataTables Documentation](https://datatables.net/)
@@ -1771,6 +2477,20 @@ if (app()->environment('local')) {
 -   [Maatwebsite Excel](https://docs.laravel-excel.com/)
 -   [Laravel Auditing](https://laravel-auditing.com/)
 -   [Simple QR Code](https://www.simplesoftware.io/#/docs/simple-qrcode)
+=======
+- [Laravel 11 Documentation](https://laravel.com/docs/11.x)
+- [Bootstrap 5 Documentation](https://getbootstrap.com/docs/5.3)
+- [DataTables Documentation](https://datatables.net/)
+- [Select2 Documentation](https://select2.org/)
+- [Pusher Documentation](https://pusher.com/docs)
+
+### Package Documentation
+
+- [Yajra DataTables](https://yajrabox.com/docs/laravel-datatables)
+- [Maatwebsite Excel](https://docs.laravel-excel.com/)
+- [Laravel Auditing](https://laravel-auditing.com/)
+- [Simple QR Code](https://www.simplesoftware.io/#/docs/simple-qrcode)
+>>>>>>> 7d24dfd0cab8ae87f6f6d3365cd893deab81ab40
 
 ## 🤝 Contributing
 
@@ -1784,11 +2504,19 @@ Contributions are welcome! Please follow these steps:
 
 **Coding Standards**:
 
+<<<<<<< HEAD
 -   Follow PSR-12 for PHP code
 -   Use meaningful variable/function names
 -   Add comments for complex logic
 -   Write tests for new features
 -   Update documentation
+=======
+- Follow PSR-12 for PHP code
+- Use meaningful variable/function names
+- Add comments for complex logic
+- Write tests for new features
+- Update documentation
+>>>>>>> 7d24dfd0cab8ae87f6f6d3365cd893deab81ab40
 
 ## 📄 License
 
@@ -1800,10 +2528,17 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
+<<<<<<< HEAD
 -   Laravel Framework
 -   Bootstrap Team
 -   All open-source contributors
 -   Community support
+=======
+- Laravel Framework
+- Bootstrap Team
+- All open-source contributors
+- Community support
+>>>>>>> 7d24dfd0cab8ae87f6f6d3365cd893deab81ab40
 
 ---
 

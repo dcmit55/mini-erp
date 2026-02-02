@@ -20,7 +20,7 @@ class Inventory extends Model implements Auditable
 
     protected $auditTimestamps = true;
 
-    protected $fillable = ['name', 'category_id', 'quantity', 'unit', 'price', 'unit_domestic_freight_cost', 'unit_international_freight_cost', 'currency_id', 'supplier_id', 'location_id', 'remark', 'img', 'status'];
+    protected $fillable = ['name', 'category_id', 'quantity', 'unit', 'unit_id', 'price', 'unit_domestic_freight_cost', 'unit_international_freight_cost', 'currency_id', 'supplier_id', 'location_id', 'remark', 'img', 'status'];
 
     protected $casts = [
         'price' => 'decimal:2',
@@ -52,6 +52,11 @@ class Inventory extends Model implements Auditable
     public function location()
     {
         return $this->belongsTo(Location::class);
+    }
+
+    public function unit()
+    {
+        return $this->belongsTo(Unit::class);
     }
 
     // Method untuk menghitung total unit cost
