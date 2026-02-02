@@ -1,7 +1,7 @@
 <style>
     /* Professional ERP Dashboard Styles */
     .bg-gradient-brand {
-        background: linear-gradient(45deg, #8F12FE, #4A25AA) !important;
+        background: linear-gradient(45deg, #9072d1ff, #811fd1ff) !important;
     }
 
     .bg-gradient-primary {

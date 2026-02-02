@@ -14,6 +14,10 @@ class DatabaseSeeder extends Seeder
      */
     public function run()
     {
+        $this->call([
+            JobOrderSeeder::class,
+        ]);
+
         // \App\Models\Admin\User::factory(10)->create();
     }
 }

@@ -31,14 +31,13 @@ use App\Http\Controllers\Procurement\PurchaseRequestController;
 use App\Http\Controllers\Procurement\ShippingController;
 use App\Http\Controllers\Procurement\ShippingManagementController;
 use App\Http\Controllers\Procurement\GoodsReceiveController;
-use App\Models\Procurement\Shippings;
 use App\Http\Controllers\Procurement\PreShippingController;
-use App\Models\Procurement\PreShipping;
 use App\Http\Controllers\Hr\LeaveRequestController;
 use App\Http\Controllers\Production\MaterialPlanningController;
 use App\Http\Controllers\Hr\AttendanceController;
 use App\Http\Controllers\Logistic\GoodsMovementController;
 use App\Http\Controllers\Procurement\ShortageItemController;
+use App\Http\Controllers\Production\JobOrderController;
 
 /*
 |--------------------------------------------------------------------------
@@ -73,7 +72,7 @@ Route::middleware(['auth'])->group(function () {
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // Artisan Actions - Dipindahkan ke dalam middleware auth
+    // Artisan Actions
     Route::prefix('artisan')->group(function () {
         Route::get('/{action}', function ($action) {
             try {
@@ -88,7 +87,7 @@ Route::middleware(['auth'])->group(function () {
                     );
                 }
 
-                // Normalize action name - convert hyphen to colon untuk Lark command
+                // Normalize action name
                 $actionMap = [
                     'storage-link' => 'storage:link',
                     'clear-cache' => 'cache:clear',
@@ -99,7 +98,7 @@ Route::middleware(['auth'])->group(function () {
                     'view-cache' => 'view:clear',
                     'optimize' => 'optimize',
                     'optimize-clear' => 'optimize:clear',
-                    'lark-fetch-job-orders' => 'lark:fetch-job-orders', // Convert hyphen to colon
+                    'lark-fetch-job-orders' => 'lark:fetch-job-orders',
                 ];
 
                 if (!isset($actionMap[$action])) {
@@ -109,7 +108,6 @@ Route::middleware(['auth'])->group(function () {
                 $command = $actionMap[$action];
                 Artisan::call($command);
 
-                // Generate success message
                 $messages = [
                     'storage:link' => 'Storage link created successfully.',
                     'cache:clear' => 'Cache cleared successfully.',
@@ -167,6 +165,21 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/projects/quick-add', [ProjectController::class, 'storeQuick'])->name('projects.store.quick');
     Route::get('/projects/json', [ProjectController::class, 'json'])->name('projects.json');
     Route::post('/project-statuses', [ProjectStatusController::class, 'store'])->name('project-statuses.store');
+
+    // ✅ PERBAIKAN: Job Orders dengan route yang benar
+    Route::prefix('production')->name('production.')->group(function () {
+        // Routes untuk Job Orders
+        Route::get('job-orders', [JobOrderController::class, 'index'])->name('job-orders.index');
+        Route::get('job-orders/create', [JobOrderController::class, 'create'])->name('job-orders.create');
+        Route::post('job-orders', [JobOrderController::class, 'store'])->name('job-orders.store');
+        Route::get('job-orders/{id}', [JobOrderController::class, 'show'])->name('job-orders.show');
+        Route::get('job-orders/{id}/edit', [JobOrderController::class, 'edit'])->name('job-orders.edit');
+        Route::put('job-orders/{id}', [JobOrderController::class, 'update'])->name('job-orders.update');
+        Route::delete('job-orders/{id}', [JobOrderController::class, 'destroy'])->name('job-orders.destroy');
+    });
+
+    // API untuk dropdown Job Orders
+    Route::get('/api/job-orders/project/{projectId}', [JobOrderController::class, 'getByProject']);
 
     // Material Requests
     Route::get('/material_requests/export', [MaterialRequestController::class, 'export'])->name('material_requests.export');
@@ -244,7 +257,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/costing-report/{project_id}', [ProjectCostingController::class, 'viewCosting'])->name('costing.view');
     Route::get('/costing-report/export/{project_id}', [ProjectCostingController::class, 'exportCosting'])->name('costing.export');
 
-    //set inventory
+    // Set inventory
     Route::post('/set-inventory', function (Request $request) {
         $request->session()->put('inventory_id', $request->input('inventory_id'));
         return redirect()->back();
@@ -273,16 +286,16 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/skillsets/json', [App\Http\Controllers\Hr\SkillsetController::class, 'json'])->name('skillsets.json');
     Route::get('/skillsets/search', [App\Http\Controllers\Hr\SkillsetController::class, 'search'])->name('skillsets.search');
 
-    // Employee leave balance check - Authenticated only
+    // Employee leave balance check
     Route::get('/employees/{employee}/leave-balance', [EmployeeController::class, 'getLeaveBalance'])->name('employees.leave-balance');
 
-    // Leave Request - Authenticated only
+    // Leave Request
     Route::get('leave_requests/{id}/edit', [LeaveRequestController::class, 'edit'])->name('leave_requests.edit');
     Route::put('leave_requests/{id}', [LeaveRequestController::class, 'update'])->name('leave_requests.update');
     Route::delete('leave_requests/{id}', [LeaveRequestController::class, 'destroy'])->name('leave_requests.destroy');
     Route::post('leave_requests/{id}/approval', [LeaveRequestController::class, 'updateApproval'])->name('leave_requests.updateApproval');
 
-    //Timming
+    // Timing
     Route::resource('timings', TimingController::class);
     Route::post('timings/store-multiple', [TimingController::class, 'storeMultiple'])->name('timings.storeMultiple');
     Route::post('/timings/ajax-search', [TimingController::class, 'ajaxSearch'])->name('timings.ajax_search');
@@ -290,7 +303,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/timings-import', [TimingController::class, 'import'])->name('timings.import');
     Route::get('/timings-template', [TimingController::class, 'downloadTemplate'])->name('timings.template');
 
-    //Final Project Summary
+    // Final Project Summary
     Route::get('final_project_summary', [FinalProjectSummaryController::class, 'index'])->name('final_project_summary.index');
     Route::get('final_project_summary/{project}', [FinalProjectSummaryController::class, 'show'])->name('final_project_summary.show');
     Route::get('/final-project-summary/ajax-search', [FinalProjectSummaryController::class, 'ajaxSearch'])->name('final_project_summary.ajax_search');
@@ -317,21 +330,12 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/goods-receive/store', [GoodsReceiveController::class, 'store'])->name('goods-receive.store');
     Route::get('/goods-receive', [GoodsReceiveController::class, 'index'])->name('goods-receive.index');
 
-    // SHORTAGE ITEM
+    // Shortage Item
     Route::prefix('shortage-items')->group(function () {
-        // Index/List shortage items
         Route::get('/', [ShortageItemController::class, 'index'])->name('shortage-items.index');
-
-        // Show single shortage detail
         Route::get('/{id}', [ShortageItemController::class, 'show'])->name('shortage-items.show');
-
-        // BULK RESEND ACTION (Main feature)
         Route::post('/bulk-resend', [ShortageItemController::class, 'bulkResend'])->name('shortage-items.bulk-resend');
-
-        // Cancel shortage item
         Route::post('/{id}/cancel', [ShortageItemController::class, 'cancel'])->name('shortage-items.cancel');
-
-        // Get by status (AJAX endpoint)
         Route::get('/status/filter', [ShortageItemController::class, 'getByStatus'])->name('shortage-items.by-status');
     });
 
@@ -356,11 +360,8 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/bulk-update', [AttendanceController::class, 'bulkUpdate'])->name('bulk-update');
             Route::post('/bulk-update-individual', [AttendanceController::class, 'bulkUpdateIndividual'])->name('bulk-update-individual');
             Route::post('/initialize', [AttendanceController::class, 'initializeDefault'])->name('initialize');
-
-            // Attendance List/History
             Route::get('/list', [AttendanceController::class, 'list'])->name('list');
             Route::get('/export', [AttendanceController::class, 'exportList'])->name('export');
             Route::delete('/{id}', [AttendanceController::class, 'destroy'])->name('destroy');
         });
 });
-
