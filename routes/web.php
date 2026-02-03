@@ -31,13 +31,16 @@ use App\Http\Controllers\Procurement\PurchaseRequestController;
 use App\Http\Controllers\Procurement\ShippingController;
 use App\Http\Controllers\Procurement\ShippingManagementController;
 use App\Http\Controllers\Procurement\GoodsReceiveController;
+use App\Models\Procurement\Shippings;
 use App\Http\Controllers\Procurement\PreShippingController;
+use App\Models\Procurement\PreShipping;
 use App\Http\Controllers\Hr\LeaveRequestController;
 use App\Http\Controllers\Production\MaterialPlanningController;
 use App\Http\Controllers\Hr\AttendanceController;
 use App\Http\Controllers\Logistic\GoodsMovementController;
 use App\Http\Controllers\Procurement\ShortageItemController;
 use App\Http\Controllers\Production\JobOrderController;
+use App\Http\Controllers\Hr\SkillsetController;
 
 /*
 |--------------------------------------------------------------------------
@@ -68,11 +71,78 @@ Route::get('/', function () {
 Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
 Route::post('/register', [RegisterController::class, 'register']);
 
+// Public Artisan Action Route (for compatibility)
+Route::get('/artisan/{action}', function ($action) {
+    try {
+        // Check if user is authenticated
+        if (!auth()->check()) {
+            return response()->json(
+                [
+                    'status' => 'error',
+                    'message' => 'Authentication required.',
+                ],
+                401,
+            );
+        }
+        
+        // Check if user is super_admin
+        if (auth()->user()->role !== 'super_admin') {
+            return response()->json(
+                [
+                    'status' => 'error',
+                    'message' => 'You do not have the required permissions to perform this operation. This action is restricted to system administrators.',
+                ],
+                403,
+            );
+        }
+
+        // Normalize action name
+        $actionMap = [
+            'storage-link' => 'storage:link',
+            'clear-cache' => 'cache:clear',
+            'config-clear' => 'config:clear',
+            'config-cache' => 'config:cache',
+            'route-clear' => 'route:clear',
+            'route-cache' => 'route:cache',
+            'view-cache' => 'view:clear',
+            'optimize' => 'optimize',
+            'optimize-clear' => 'optimize:clear',
+            'lark-fetch-job-orders' => 'lark:fetch-job-orders',
+        ];
+
+        if (!isset($actionMap[$action])) {
+            throw new Exception("Invalid action: {$action}");
+        }
+
+        $command = $actionMap[$action];
+        Artisan::call($command);
+
+        $messages = [
+            'storage:link' => 'Storage link created successfully.',
+            'cache:clear' => 'Cache cleared successfully.',
+            'config:clear' => 'Configuration cleared successfully.',
+            'config:cache' => 'Configuration cache cleared successfully.',
+            'route:clear' => 'Route cache cleared successfully.',
+            'route:cache' => 'Route cache created successfully.',
+            'view:clear' => 'View cache cleared successfully.',
+            'optimize' => 'Application optimized successfully.',
+            'optimize:clear' => 'Application optimized and cache cleared successfully.',
+            'lark:fetch-job-orders' => 'Job orders fetched from Lark successfully.',
+        ];
+
+        $message = $messages[$command] ?? 'Command executed successfully.';
+
+        return response()->json(['status' => 'success', 'message' => $message]);
+    } catch (Exception $e) {
+        return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
+    }
+})->name('artisan.action.public');
+
 Route::middleware(['auth'])->group(function () {
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // Artisan Actions
+    // Artisan Actions (Protected Version)
     Route::prefix('artisan')->group(function () {
         Route::get('/{action}', function ($action) {
             try {
@@ -161,12 +231,14 @@ Route::middleware(['auth'])->group(function () {
 
     // Projects
     Route::get('/projects/export', [ProjectController::class, 'export'])->name('projects.export');
+    Route::post('/projects/sync-from-lark', [ProjectController::class, 'syncFromLark'])->name('projects.sync.lark');
+    Route::get('/projects/lark-raw-data', [ProjectController::class, 'getLarkRawData'])->name('projects.lark.raw');
     Route::resource('projects', ProjectController::class);
     Route::post('/projects/quick-add', [ProjectController::class, 'storeQuick'])->name('projects.store.quick');
     Route::get('/projects/json', [ProjectController::class, 'json'])->name('projects.json');
     Route::post('/project-statuses', [ProjectStatusController::class, 'store'])->name('project-statuses.store');
 
-    // ✅ PERBAIKAN: Job Orders dengan route yang benar
+    // Job Orders
     Route::prefix('production')->name('production.')->group(function () {
         // Routes untuk Job Orders
         Route::get('job-orders', [JobOrderController::class, 'index'])->name('job-orders.index');
@@ -176,6 +248,15 @@ Route::middleware(['auth'])->group(function () {
         Route::get('job-orders/{id}/edit', [JobOrderController::class, 'edit'])->name('job-orders.edit');
         Route::put('job-orders/{id}', [JobOrderController::class, 'update'])->name('job-orders.update');
         Route::delete('job-orders/{id}', [JobOrderController::class, 'destroy'])->name('job-orders.destroy');
+        
+        // Routes untuk soft delete functionality
+        Route::put('job-orders/{id}/restore', [JobOrderController::class, 'restore'])->name('job-orders.restore');
+        Route::delete('job-orders/{id}/force-delete', [JobOrderController::class, 'forceDelete'])->name('job-orders.force-delete');
+        
+        // Additional Job Order routes
+        Route::get('job-orders/export', [JobOrderController::class, 'export'])->name('job-orders.export');
+        Route::post('job-orders/import', [JobOrderController::class, 'import'])->name('job-orders.import');
+        Route::get('job-orders/template', [JobOrderController::class, 'downloadTemplate'])->name('job-orders.template');
     });
 
     // API untuk dropdown Job Orders
@@ -256,6 +337,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/costing-report', [ProjectCostingController::class, 'index'])->name('costing.report');
     Route::get('/costing-report/{project_id}', [ProjectCostingController::class, 'viewCosting'])->name('costing.view');
     Route::get('/costing-report/export/{project_id}', [ProjectCostingController::class, 'exportCosting'])->name('costing.export');
+    Route::get('/costing-report-export-all', [ProjectCostingController::class, 'exportAllProjects'])->name('costing.export.all');
 
     // Set inventory
     Route::post('/set-inventory', function (Request $request) {
@@ -282,9 +364,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/employees/{employee}/documents', [EmployeeController::class, 'getDocuments'])->name('employees.documents');
 
     // Skillsets
-    Route::post('/skillsets/store', [App\Http\Controllers\Hr\SkillsetController::class, 'store'])->name('skillsets.store');
-    Route::get('/skillsets/json', [App\Http\Controllers\Hr\SkillsetController::class, 'json'])->name('skillsets.json');
-    Route::get('/skillsets/search', [App\Http\Controllers\Hr\SkillsetController::class, 'search'])->name('skillsets.search');
+    Route::post('/skillsets/store', [SkillsetController::class, 'store'])->name('skillsets.store');
+    Route::get('/skillsets/json', [SkillsetController::class, 'json'])->name('skillsets.json');
+    Route::get('/skillsets/search', [SkillsetController::class, 'search'])->name('skillsets.search');
 
     // Employee leave balance check
     Route::get('/employees/{employee}/leave-balance', [EmployeeController::class, 'getLeaveBalance'])->name('employees.leave-balance');
