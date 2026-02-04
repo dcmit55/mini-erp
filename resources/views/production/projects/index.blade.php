@@ -165,16 +165,21 @@
                                         <a href="{{ route('projects.edit', $project) }}" class="btn btn-sm btn-warning"
                                             data-bs-toggle="tooltip" data-bs-placement="bottom" title="Edit"><i
                                                 class="bi bi-pencil-square"></i></a>
-                                        @if (auth()->user()->username === $project->created_by || auth()->user()->role === 'super_admin')
+                                        @if (auth()->user()->username === $project->created_by ||
+                                                // permission action delete data project
+                                                auth()->user()->role === 'super_admin' ||
+                                                auth()->user()->role === 'admin')
                                             <form action="{{ route('projects.destroy', $project) }}" method="POST"
                                                 class="delete-form">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="button" class="btn btn-sm btn-danger btn-delete"
-                                                    data-bs-toggle="tooltip" data-bs-placement="bottom" title="Delete"><i
-                                                        class="bi bi-trash3"></i></button>
+                                                    data-bs-toggle="tooltip" data-bs-placement="bottom" title="Delete">
+                                                    <i class="bi bi-trash3"></i>
+                                                </button>
                                             </form>
                                         @endif
+
                                         <button type="button" class="btn btn-info btn-sm btn-show-image"
                                             title="View Image"
                                             data-img="{{ $project->img ? asset('storage/' . $project->img) : '' }}"
