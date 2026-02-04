@@ -43,6 +43,7 @@
                         <tr>
                             <th>Project Name</th>
                             <th>Department</th>
+                            <th>Created By</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -57,6 +58,7 @@
                                         -
                                     @endif
                                 </td>
+                                <td>{{ $project->created_by ?? '-' }}</td>
                                 <td>
                                     <button class="btn btn-primary btn-sm" onclick="viewCosting('{{ $project->id }}')"
                                         title="View Report"><i class="bi bi-eye"></i></button>

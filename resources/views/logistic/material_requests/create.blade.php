@@ -34,32 +34,32 @@
                     <div class="row">
                         <div class="col-lg-6 mb-3">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <label>Project <span class="text-danger">*</span></label>
-                                {{-- <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal"
-                                    data-bs-target="#addProjectModal">
-                                    + Quick Add Project
-                                </button> --}}
+                                <label>Job Order <span class="text-danger">*</span></label>
                             </div>
-                            <select name="project_id" id="project_id" class="form-select select2" required>
-                                <option value="">Select an option</option>
-                                @foreach ($projects as $proj)
-                                    <option value="{{ $proj->id }}"
-                                        data-department="{{ $proj->departments->pluck('name')->implode(', ') }}">
-                                        {{ $proj->name }}
+                            <select name="job_order_id" id="job_order_id" class="form-select select2" required>
+                                <option value="">Select Job Order</option>
+                                @foreach ($jobOrders as $jo)
+                                    <option value="{{ $jo->id }}" data-project-id="{{ $jo->project_id }}"
+                                        data-project-name="{{ $jo->project->name ?? '' }}">
+                                        {{ $jo->name }}
                                     </option>
                                 @endforeach
                             </select>
-                            <div id="department" class="form-text d-none">Department</div>
-                            @error('project_id')
+                            <!-- Project name display -->
+                            <div id="project-display" class="mt-2 p-2 bg-light rounded d-none">
+                                <small class="text-muted d-block mb-1">Project:</small>
+                                <strong id="project-name-text" class="text-primary"></strong>
+                            </div>
+                            @error('job_order_id')
                                 <small class="text-danger">{{ $message }}</small>
                             @enderror
                         </div>
                         <div class="col-lg-6 mb-3">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <label>Material <span class="text-danger">*</span></label>
-                                <button type="button" class="btn btn-sm btn-outline-primary" id="btnQuickAddMaterial">
+                                {{-- <button type="button" class="btn btn-sm btn-outline-primary" id="btnQuickAddMaterial">
                                     + Quick Add Material
-                                </button>
+                                </button> --}}
                             </div>
                             <select name="inventory_id" id="inventory_id" class="form-select select2" required>
                                 <option value="">Select an option</option>
@@ -77,6 +77,9 @@
                             @enderror
                         </div>
                     </div>
+
+                    <!-- Hidden input untuk project_id -->
+                    <input type="hidden" name="project_id" id="project_id" required>
 
                     <div class="row">
                         <div class="col-lg-6 mb-3">
@@ -289,7 +292,26 @@
                 }, 100);
             });
 
-            // Update unit label dynamically when material is selected
+            // Auto-fill project when Job Order is selected
+            $('#job_order_id').on('change', function() {
+                const selectedOption = $(this).find(':selected');
+                const projectId = selectedOption.data('project-id');
+                const projectName = selectedOption.data('project-name');
+
+                if (projectId && projectName) {
+                    // Set hidden project_id input
+                    $('#project_id').val(projectId);
+
+                    // Show project display
+                    $('#project-display').removeClass('d-none');
+                    $('#project-name-text').text(projectName);
+                } else {
+                    // Hide project display if no job order selected
+                    $('#project_id').val('');
+                    $('#project-display').addClass('d-none');
+                    $('#project-name-text').text('');
+                }
+            }); // Update unit label dynamically when material is selected
             $('select[name="inventory_id"]').on('change', function() {
                 const selectedUnit = $(this).find(':selected').data('unit');
                 $('.unit-label').text(selectedUnit || 'unit');

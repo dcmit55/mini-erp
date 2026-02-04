@@ -20,7 +20,7 @@ class MaterialRequest extends Model implements Auditable
 
     protected $auditTimestamps = true;
 
-    protected $fillable = ['inventory_id', 'project_id', 'qty', 'processed_qty', 'requested_by', 'status', 'remark', 'approved_at'];
+    protected $fillable = ['inventory_id', 'project_id', 'job_order_id', 'qty', 'processed_qty', 'requested_by', 'status', 'remark', 'approved_at'];
 
     protected $casts = [
         'created_at' => 'datetime', // Pastikan created_at di-cast sebagai datetime
@@ -34,6 +34,11 @@ class MaterialRequest extends Model implements Auditable
     public function project()
     {
         return $this->belongsTo(Project::class);
+    }
+
+    public function jobOrder()
+    {
+        return $this->belongsTo(\App\Models\Production\JobOrder::class, 'job_order_id', 'id');
     }
 
     public function goodsOuts()

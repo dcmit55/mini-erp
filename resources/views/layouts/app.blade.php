@@ -230,6 +230,10 @@
                                                     href="{{ route('projects.index') }}">
                                                     <i class="fas fa-project-diagram"></i> Project
                                                 </a></li>
+                                            <li><a class="dropdown-item {{ request()->is('job-orders*') ? 'active' : '' }}"
+                                                    href="{{ route('job-orders.index') }}">
+                                                    <i class="fas fa-briefcase"></i> Job Order
+                                                </a></li>
                                             <li><a class="dropdown-item {{ request()->is('material_requests*') ? 'active' : '' }}"
                                                     href="{{ route('material_requests.index') }}">
                                                     <i class="fas fa-clipboard-list"></i> Material Request

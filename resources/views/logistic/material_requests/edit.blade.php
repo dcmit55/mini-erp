@@ -35,10 +35,10 @@
                         <div class="col-lg-6 mb-3">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <label>Project <span class="text-danger">*</span></label>
-                                <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal"
+                                {{-- <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal"
                                     data-bs-target="#addProjectModal">
                                     + Quick Add Project
-                                </button>
+                                </button> --}}
                             </div>
                             <select name="project_id" id="project_id" class="form-select select2" required>
                                 <option value="">Select an option</option>
@@ -59,9 +59,9 @@
                         <div class="col-lg-6 mb-3">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <label>Material <span class="text-danger">*</span></label>
-                                <button type="button" class="btn btn-sm btn-outline-primary" id="btnQuickAddMaterial">
+                                {{-- <button type="button" class="btn btn-sm btn-outline-primary" id="btnQuickAddMaterial">
                                     + Quick Add Material
-                                </button>
+                                </button> --}}
                             </div>
                             <select name="inventory_id" class="form-select select2" required>
                                 @foreach ($inventories as $inv)

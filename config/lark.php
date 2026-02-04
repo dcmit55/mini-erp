@@ -29,6 +29,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Job Orders Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Lark Job Orders table/view configuration
+    | Uses same base_id as projects
+    |
+    */
+
+    'job_orders' => [
+        'table_id' => env('LARK_JOB_ORDERS_TABLE_ID', 'tblXJcCC3h7gF5aF'),
+        'view_id' => env('LARK_JOB_ORDERS_VIEW_ID', 'vewvk3plGP'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Sync Configuration
     |--------------------------------------------------------------------------
     */

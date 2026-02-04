@@ -12,7 +12,32 @@ return new class extends Migration {
      */
     public function up(): void
     {
+        // Step 0: Create department_id column if not exists
+        if (!Schema::hasColumn('projects', 'department_id')) {
+            Schema::table('projects', function (Blueprint $table) {
+                $table->foreignId('department_id')->nullable()->after('name');
+            });
+        }
+
+        // Step 0.1: Create pivot table if not exists
+        if (!Schema::hasTable('department_project')) {
+            Schema::create('department_project', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('project_id')->constrained()->onDelete('cascade');
+                $table->foreignId('department_id')->constrained()->onDelete('cascade');
+                $table->timestamps();
+
+                $table->unique(['project_id', 'department_id']);
+            });
+        }
+
         // Step 1: Migrate data from department (text) to department_id (foreign key)
+        // HANYA jika kolom 'department' masih ada
+        if (!Schema::hasColumn('projects', 'department')) {
+            \Log::info('Column projects.department already dropped, skipping data migration');
+            return; // Skip migration if column already dropped
+        }
+
         $departments = Department::all()->keyBy('name');
 
         DB::table('projects')
@@ -74,6 +99,14 @@ return new class extends Migration {
 
         // Step 2: Add foreign key constraint if not exists
         Schema::table('projects', function (Blueprint $table) {
+            // Clean invalid department_id values FIRST (set to NULL if department not exists)
+            DB::statement('
+                UPDATE projects p
+                LEFT JOIN departments d ON p.department_id = d.id
+                SET p.department_id = NULL
+                WHERE p.department_id IS NOT NULL AND d.id IS NULL
+            ');
+
             // Check if foreign key exists
             $foreignKeys = DB::select("
                 SELECT CONSTRAINT_NAME
@@ -89,10 +122,12 @@ return new class extends Migration {
             }
         });
 
-        // Step 3: Drop old department column
-        Schema::table('projects', function (Blueprint $table) {
-            $table->dropColumn('department');
-        });
+        // Step 3: Drop old department column (ONLY if exists)
+        if (Schema::hasColumn('projects', 'department')) {
+            Schema::table('projects', function (Blueprint $table) {
+                $table->dropColumn('department');
+            });
+        }
     }
 
     /**

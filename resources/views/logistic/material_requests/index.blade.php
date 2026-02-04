@@ -59,6 +59,14 @@
                 <div class="mb-3">
                     <form id="filter-form" class="row g-1">
                         <div class="col-md-2">
+                            <select id="filter-job-order" name="job_order" class="form-select form-select-sm select2">
+                                <option value="">All Job Orders</option>
+                                @foreach ($jobOrders as $jobOrder)
+                                    <option value="{{ $jobOrder->id }}">{{ $jobOrder->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-2">
                             <select id="filter-project" name="project" class="form-select form-select-sm select2">
                                 <option value="">All Projects</option>
                                 @foreach ($projects as $project)
@@ -74,7 +82,7 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-1">
                             <select id="filter-status" name="status" class="form-select form-select-sm select2">
                                 <option value="">All Status</option>
                                 <option value="pending">Pending</option>
@@ -91,7 +99,7 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-1">
                             <input type="text" id="filter-requested-at" name="requested_at"
                                 class="form-control form-control-sm" placeholder="Requested At Date">
                         </div>
@@ -114,6 +122,7 @@
                         <tr>
                             <th></th>
                             <th style="display:none">ID</th>
+                            <th>Job Order</th>
                             <th>Project</th>
                             <th>Material</th>
                             <th>Requested Qty</th>
@@ -552,6 +561,7 @@
                     url: "{{ route('material_requests.index') }}",
                     data: function(d) {
                         // Add filter parameters
+                        d.job_order = $('#filter-job-order').val();
                         d.project = $('#filter-project').val();
                         d.material = $('#filter-material').val();
                         d.status = $('#filter-status').val();
@@ -583,14 +593,19 @@
                         visible: false
                     },
                     {
+                        data: 'job_order',
+                        name: 'jobOrder.name',
+                        width: '12%'
+                    },
+                    {
                         data: 'project_name',
                         name: 'project.name',
-                        width: '16%'
+                        width: '13%'
                     },
                     {
                         data: 'material_name',
                         name: 'inventory.name',
-                        width: '16%'
+                        width: '15%'
                     },
                     {
                         data: 'requested_qty',
@@ -682,12 +697,12 @@
             }, 300);
 
             // Update event listener untuk include custom search
-            $('#filter-project, #filter-material, #filter-status, #filter-requested-by, #filter-requested-at, #custom-search')
+            $('#filter-job-order, #filter-project, #filter-material, #filter-status, #filter-requested-by, #filter-requested-at, #custom-search')
                 .on('change input', debouncedFilter);
 
             // Reset filters juga harus reset search
             $('#reset-filters').on('click', function() {
-                $('#filter-project, #filter-material, #filter-status, #filter-requested-by, #filter-requested-at, #custom-search')
+                $('#filter-job-order, #filter-project, #filter-material, #filter-status, #filter-requested-by, #filter-requested-at, #custom-search')
                     .val('').trigger('change');
                 table.draw();
             });
@@ -696,6 +711,7 @@
             $('#export-btn').on('click', function(e) {
                 e.preventDefault();
                 const params = {
+                    job_order: $('#filter-job-order').val(),
                     project: $('#filter-project').val(),
                     material: $('#filter-material').val(),
                     status: $('#filter-status').val(),
@@ -717,6 +733,7 @@
             });
 
             // Set placeholder untuk setiap select
+            $('#filter-job-order').attr('data-placeholder', 'All Job Orders');
             $('#filter-project').attr('data-placeholder', 'All Projects');
             $('#filter-material').attr('data-placeholder', 'All Materials');
             $('#filter-status').attr('data-placeholder', 'All Status');

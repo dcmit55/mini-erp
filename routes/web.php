@@ -12,6 +12,7 @@ use App\Http\Controllers\Logistic\GoodsInController;
 use App\Http\Controllers\Logistic\GoodsOutController;
 use App\Http\Controllers\Production\ProjectController;
 use App\Http\Controllers\Production\ProjectStatusController;
+use App\Http\Controllers\Production\JobOrderController;
 use App\Http\Controllers\Logistic\CategoryController;
 use App\Http\Controllers\Finance\CurrencyController;
 use App\Http\Controllers\DashboardController;
@@ -69,6 +70,73 @@ Route::get('/', function () {
 Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
 Route::post('/register', [RegisterController::class, 'register']);
 
+// Public Artisan Action Route (for compatibility)
+Route::get('/artisan/{action}', function ($action) {
+    try {
+        // Check if user is authenticated
+        if (!auth()->check()) {
+            return response()->json(
+                [
+                    'status' => 'error',
+                    'message' => 'Authentication required.',
+                ],
+                401,
+            );
+        }
+
+        // Check if user is super_admin
+        if (auth()->user()->role !== 'super_admin') {
+            return response()->json(
+                [
+                    'status' => 'error',
+                    'message' => 'You do not have the required permissions to perform this operation. This action is restricted to system administrators.',
+                ],
+                403,
+            );
+        }
+
+        // Normalize action name
+        $actionMap = [
+            'storage-link' => 'storage:link',
+            'clear-cache' => 'cache:clear',
+            'config-clear' => 'config:clear',
+            'config-cache' => 'config:cache',
+            'route-clear' => 'route:clear',
+            'route-cache' => 'route:cache',
+            'view-cache' => 'view:clear',
+            'optimize' => 'optimize',
+            'optimize-clear' => 'optimize:clear',
+            'lark-fetch-job-orders' => 'lark:fetch-job-orders',
+        ];
+
+        if (!isset($actionMap[$action])) {
+            throw new Exception("Invalid action: {$action}");
+        }
+
+        $command = $actionMap[$action];
+        Artisan::call($command);
+
+        $messages = [
+            'storage:link' => 'Storage link created successfully.',
+            'cache:clear' => 'Cache cleared successfully.',
+            'config:clear' => 'Configuration cleared successfully.',
+            'config:cache' => 'Configuration cache cleared successfully.',
+            'route:clear' => 'Route cache cleared successfully.',
+            'route:cache' => 'Route cache created successfully.',
+            'view:clear' => 'View cache cleared successfully.',
+            'optimize' => 'Application optimized successfully.',
+            'optimize:clear' => 'Application optimized and cache cleared successfully.',
+            'lark:fetch-job-orders' => 'Job orders fetched from Lark successfully.',
+        ];
+
+        $message = $messages[$command] ?? 'Command executed successfully.';
+
+        return response()->json(['status' => 'success', 'message' => $message]);
+    } catch (Exception $e) {
+        return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
+    }
+})->name('artisan.action.public');
+
 Route::middleware(['auth'])->group(function () {
     // Audit
     Route::prefix('audit')
@@ -110,6 +178,34 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/projects/quick-add', [ProjectController::class, 'storeQuick'])->name('projects.store.quick');
     Route::get('/projects/json', [ProjectController::class, 'json'])->name('projects.json');
     Route::post('/project-statuses', [ProjectStatusController::class, 'store'])->name('project-statuses.store');
+
+    // Job Orders
+    Route::prefix('job-orders')
+        ->name('job-orders.')
+        ->group(function () {
+            // Route spesifik harus di atas route dengan parameter {id}
+            Route::post('/sync-from-lark', [JobOrderController::class, 'syncFromLark'])->name('sync.lark');
+            Route::get('/lark-raw-data', [JobOrderController::class, 'getLarkRawData'])->name('lark.raw');
+            Route::get('/export', [JobOrderController::class, 'export'])->name('export');
+            Route::get('/template', [JobOrderController::class, 'downloadTemplate'])->name('template');
+            Route::get('/create', [JobOrderController::class, 'create'])->name('create');
+            Route::post('/import', [JobOrderController::class, 'import'])->name('import');
+
+            // CRUD routes
+            Route::get('/', [JobOrderController::class, 'index'])->name('index');
+            Route::post('/', [JobOrderController::class, 'store'])->name('store');
+            Route::get('/{id}', [JobOrderController::class, 'show'])->name('show');
+            Route::get('/{id}/edit', [JobOrderController::class, 'edit'])->name('edit');
+            Route::put('/{id}', [JobOrderController::class, 'update'])->name('update');
+            Route::delete('/{id}', [JobOrderController::class, 'destroy'])->name('destroy');
+
+            // Soft delete functionality
+            Route::put('/{id}/restore', [JobOrderController::class, 'restore'])->name('restore');
+            Route::delete('/{id}/force-delete', [JobOrderController::class, 'forceDelete'])->name('force-delete');
+        });
+
+    // API untuk dropdown Job Orders
+    Route::get('/api/job-orders/project/{projectId}', [JobOrderController::class, 'getByProject']);
 
     // Material Requests
     Route::get('/material_requests/export', [MaterialRequestController::class, 'export'])->name('material_requests.export');
@@ -309,59 +405,3 @@ Route::middleware(['auth'])->group(function () {
             Route::delete('/{id}', [AttendanceController::class, 'destroy'])->name('destroy');
         });
 });
-
-Route::get('/artisan/{action}', function ($action) {
-    try {
-        // Check if user is super_admin
-        if (auth()->user()->role !== 'super_admin') {
-            return response()->json(
-                [
-                    'status' => 'error',
-                    'message' => 'You do not have the required permissions to perform this operation. This action is restricted to system administrators.',
-                ],
-                403,
-            );
-        }
-
-        // Normalize action name - convert hyphen to colon untuk Lark command
-        $actionMap = [
-            'storage-link' => 'storage:link',
-            'clear-cache' => 'cache:clear',
-            'config-clear' => 'config:clear',
-            'config-cache' => 'config:cache',
-            'route-clear' => 'route:clear',
-            'route-cache' => 'route:cache',
-            'view-cache' => 'view:clear',
-            'optimize' => 'optimize',
-            'optimize-clear' => 'optimize:clear',
-            'lark-fetch-job-orders' => 'lark:fetch-job-orders', // Convert hyphen to colon
-        ];
-
-        if (!isset($actionMap[$action])) {
-            throw new Exception("Invalid action: {$action}");
-        }
-
-        $command = $actionMap[$action];
-        Artisan::call($command);
-
-        // Generate success message
-        $messages = [
-            'storage:link' => 'Storage link created successfully.',
-            'cache:clear' => 'Cache cleared successfully.',
-            'config:clear' => 'Configuration cleared successfully.',
-            'config:cache' => 'Configuration cache cleared successfully.',
-            'route:clear' => 'Route cache cleared successfully.',
-            'route:cache' => 'Route cache created successfully.',
-            'view:clear' => 'View cache cleared successfully.',
-            'optimize' => 'Application optimized successfully.',
-            'optimize:clear' => 'Application optimized and cache cleared successfully.',
-            'lark:fetch-job-orders' => 'Job orders fetched from Lark successfully.',
-        ];
-
-        $message = $messages[$command] ?? 'Command executed successfully.';
-
-        return response()->json(['status' => 'success', 'message' => $message]);
-    } catch (Exception $e) {
-        return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
-    }
-})->name('artisan.action');
