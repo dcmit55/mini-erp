@@ -29,13 +29,7 @@ class MaterialRequestController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = MaterialRequest::with([
-                'inventory:id,name,quantity,unit',
-                'project:id,name,department_id',
-                'jobOrder:id,name,project_id',
-                'user:id,username,department_id',
-                'user.department:id,name'
-            ])->latest();
+            $query = MaterialRequest::with(['inventory:id,name,quantity,unit', 'project:id,name,department_id', 'jobOrder:id,name,project_id', 'user:id,username,department_id', 'user.department:id,name'])->latest();
 
             // Apply filters with null checks
             if ($request->filled('project')) {
@@ -524,12 +518,14 @@ class MaterialRequestController extends Controller
                 return $inventory;
             });
 
-        $projects = Project::with('departments', 'status')->notArchived()->orderBy('name')->get();
+        $jobOrders = \App\Models\Production\JobOrder::with('project:id,name')
+            ->orderBy('id', 'desc')
+            ->get(['id', 'name', 'project_id']);
 
         return view('logistic.material_requests.edit', [
             'request' => $materialRequest,
             'inventories' => $inventories,
-            'projects' => $projects,
+            'jobOrders' => $jobOrders,
             'departments' => $departments,
             'units' => $units,
         ]);
@@ -558,6 +554,7 @@ class MaterialRequestController extends Controller
         // Validasi untuk pembaruan lengkap
         $request->validate([
             'inventory_id' => 'required|exists:inventories,id',
+            'job_order_id' => 'required|exists:job_orders,id',
             'project_id' => 'required|exists:projects,id',
             'qty' => 'required|numeric|min:0.01',
             'status' => 'required|in:pending,approved,delivered,canceled',
@@ -594,6 +591,7 @@ class MaterialRequestController extends Controller
             // Siapkan data update
             $updateData = [
                 'inventory_id' => $request->inventory_id,
+                'job_order_id' => $request->job_order_id,
                 'project_id' => $request->project_id,
                 'qty' => $request->qty,
                 'status' => $request->status,

@@ -36,7 +36,8 @@
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <label>Job Order <span class="text-danger">*</span></label>
                             </div>
-                            <select name="job_order_id" id="job_order_id" class="form-select select2" required>
+                            <select name="job_order_id" id="job_order_id" class="form-select select2"
+                                data-placeholder="Select Job Order" required>
                                 <option value="">Select Job Order</option>
                                 @foreach ($jobOrders as $jo)
                                     <option value="{{ $jo->id }}" data-project-id="{{ $jo->project_id }}"
@@ -61,7 +62,8 @@
                                     + Quick Add Material
                                 </button> --}}
                             </div>
-                            <select name="inventory_id" id="inventory_id" class="form-select select2" required>
+                            <select name="inventory_id" id="inventory_id" class="form-select select2"
+                                data-placeholder="Select Material" required>
                                 <option value="">Select an option</option>
                                 @foreach ($inventories as $inv)
                                     <option value="{{ $inv->id }}" data-unit="{{ $inv->unit }}"
@@ -285,6 +287,9 @@
                 width: '100%',
                 allowClear: true,
                 theme: 'bootstrap-5',
+                placeholder: function() {
+                    return $(this).data('placeholder') || 'Select an option';
+                }
             }).on('select2:open', function() {
                 setTimeout(function() {
                     document.querySelector('.select2-container--open .select2-search__field')
