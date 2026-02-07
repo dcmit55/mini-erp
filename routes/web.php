@@ -12,6 +12,7 @@ use App\Http\Controllers\Logistic\GoodsInController;
 use App\Http\Controllers\Logistic\GoodsOutController;
 use App\Http\Controllers\Production\ProjectController;
 use App\Http\Controllers\Production\ProjectStatusController;
+use App\Http\Controllers\Production\JobOrderController;
 use App\Http\Controllers\Logistic\CategoryController;
 use App\Http\Controllers\Finance\CurrencyController;
 use App\Http\Controllers\DashboardController;
@@ -39,8 +40,10 @@ use App\Http\Controllers\Production\MaterialPlanningController;
 use App\Http\Controllers\Hr\AttendanceController;
 use App\Http\Controllers\Logistic\GoodsMovementController;
 use App\Http\Controllers\Procurement\ShortageItemController;
-use App\Http\Controllers\Production\JobOrderController;
-use App\Http\Controllers\Hr\SkillsetController;
+use App\Http\Controllers\Procurement\ProjectPurchaseController;
+use App\Http\Controllers\InternalProjectController;
+use App\Http\Controllers\Finance\DcmCostingController;
+use App\Http\Controllers\Finance\PurchaseApprovalController;
 
 /*
 |--------------------------------------------------------------------------
@@ -84,7 +87,7 @@ Route::get('/artisan/{action}', function ($action) {
                 401,
             );
         }
-        
+
         // Check if user is super_admin
         if (auth()->user()->role !== 'super_admin') {
             return response()->json(
@@ -104,7 +107,7 @@ Route::get('/artisan/{action}', function ($action) {
             'config-cache' => 'config:cache',
             'route-clear' => 'route:clear',
             'route-cache' => 'route:cache',
-            'view-cache' => 'view:clear',
+            'view-clear' => 'view:clear',
             'optimize' => 'optimize',
             'optimize-clear' => 'optimize:clear',
             'lark-fetch-job-orders' => 'lark:fetch-job-orders',
@@ -139,78 +142,20 @@ Route::get('/artisan/{action}', function ($action) {
 })->name('artisan.action.public');
 
 Route::middleware(['auth'])->group(function () {
-    // Dashboard
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-
-    // Artisan Actions (Protected Version)
-    Route::prefix('artisan')->group(function () {
-        Route::get('/{action}', function ($action) {
-            try {
-                // Check if user is super_admin
-                if (auth()->user()->role !== 'super_admin') {
-                    return response()->json(
-                        [
-                            'status' => 'error',
-                            'message' => 'You do not have the required permissions to perform this operation. This action is restricted to system administrators.',
-                        ],
-                        403,
-                    );
-                }
-
-                // Normalize action name
-                $actionMap = [
-                    'storage-link' => 'storage:link',
-                    'clear-cache' => 'cache:clear',
-                    'config-clear' => 'config:clear',
-                    'config-cache' => 'config:cache',
-                    'route-clear' => 'route:clear',
-                    'route-cache' => 'route:cache',
-                    'view-cache' => 'view:clear',
-                    'optimize' => 'optimize',
-                    'optimize-clear' => 'optimize:clear',
-                    'lark-fetch-job-orders' => 'lark:fetch-job-orders',
-                ];
-
-                if (!isset($actionMap[$action])) {
-                    throw new Exception("Invalid action: {$action}");
-                }
-
-                $command = $actionMap[$action];
-                Artisan::call($command);
-
-                $messages = [
-                    'storage:link' => 'Storage link created successfully.',
-                    'cache:clear' => 'Cache cleared successfully.',
-                    'config:clear' => 'Configuration cleared successfully.',
-                    'config:cache' => 'Configuration cache cleared successfully.',
-                    'route:clear' => 'Route cache cleared successfully.',
-                    'route:cache' => 'Route cache created successfully.',
-                    'view:clear' => 'View cache cleared successfully.',
-                    'optimize' => 'Application optimized successfully.',
-                    'optimize:clear' => 'Application optimized and cache cleared successfully.',
-                    'lark:fetch-job-orders' => 'Job orders fetched from Lark successfully.',
-                ];
-
-                $message = $messages[$command] ?? 'Command executed successfully.';
-
-                return response()->json(['status' => 'success', 'message' => $message]);
-            } catch (Exception $e) {
-                return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
-            }
-        })->name('artisan.action');
-    });
-
     // Audit
     Route::prefix('audit')
         ->name('audit.')
         ->group(function () {
-            Route::get('/', [AuditController::class, 'index'])->name('index');
-            Route::get('/changes/{id}', [AuditController::class, 'getChanges'])->name('getChanges');
-            Route::delete('/{id}', [AuditController::class, 'destroy'])->name('destroy');
-            Route::post('/bulk-delete', [AuditController::class, 'bulkDelete'])->name('bulkDelete');
-            Route::post('/delete-by-date', [AuditController::class, 'deleteByDateRange'])->name('deleteByDateRange');
-            Route::post('/purge-old', [AuditController::class, 'purgeOldLogs'])->name('purgeOldLogs');
+            Route::get('/', [\App\Http\Controllers\AuditController::class, 'index'])->name('index');
+            Route::get('/changes/{id}', [\App\Http\Controllers\AuditController::class, 'getChanges'])->name('getChanges');
+            Route::delete('/{id}', [\App\Http\Controllers\AuditController::class, 'destroy'])->name('destroy');
+            Route::post('/bulk-delete', [\App\Http\Controllers\AuditController::class, 'bulkDelete'])->name('bulkDelete');
+            Route::post('/delete-by-date', [\App\Http\Controllers\AuditController::class, 'deleteByDateRange'])->name('deleteByDateRange');
+            Route::post('/purge-old', [\App\Http\Controllers\AuditController::class, 'purgeOldLogs'])->name('purgeOldLogs');
         });
+
+    // Dashboard
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Users
     Route::resource('users', UserController::class);
@@ -239,25 +184,29 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/project-statuses', [ProjectStatusController::class, 'store'])->name('project-statuses.store');
 
     // Job Orders
-    Route::prefix('production')->name('production.')->group(function () {
-        // Routes untuk Job Orders
-        Route::get('job-orders', [JobOrderController::class, 'index'])->name('job-orders.index');
-        Route::get('job-orders/create', [JobOrderController::class, 'create'])->name('job-orders.create');
-        Route::post('job-orders', [JobOrderController::class, 'store'])->name('job-orders.store');
-        Route::get('job-orders/{id}', [JobOrderController::class, 'show'])->name('job-orders.show');
-        Route::get('job-orders/{id}/edit', [JobOrderController::class, 'edit'])->name('job-orders.edit');
-        Route::put('job-orders/{id}', [JobOrderController::class, 'update'])->name('job-orders.update');
-        Route::delete('job-orders/{id}', [JobOrderController::class, 'destroy'])->name('job-orders.destroy');
-        
-        // Routes untuk soft delete functionality
-        Route::put('job-orders/{id}/restore', [JobOrderController::class, 'restore'])->name('job-orders.restore');
-        Route::delete('job-orders/{id}/force-delete', [JobOrderController::class, 'forceDelete'])->name('job-orders.force-delete');
-        
-        // Additional Job Order routes
-        Route::get('job-orders/export', [JobOrderController::class, 'export'])->name('job-orders.export');
-        Route::post('job-orders/import', [JobOrderController::class, 'import'])->name('job-orders.import');
-        Route::get('job-orders/template', [JobOrderController::class, 'downloadTemplate'])->name('job-orders.template');
-    });
+    Route::prefix('job-orders')
+        ->name('job-orders.')
+        ->group(function () {
+            // Route spesifik harus di atas route dengan parameter {id}
+            Route::post('/sync-from-lark', [JobOrderController::class, 'syncFromLark'])->name('sync.lark');
+            Route::get('/lark-raw-data', [JobOrderController::class, 'getLarkRawData'])->name('lark.raw');
+            Route::get('/export', [JobOrderController::class, 'export'])->name('export');
+            Route::get('/template', [JobOrderController::class, 'downloadTemplate'])->name('template');
+            Route::get('/create', [JobOrderController::class, 'create'])->name('create');
+            Route::post('/import', [JobOrderController::class, 'import'])->name('import');
+
+            // CRUD routes
+            Route::get('/', [JobOrderController::class, 'index'])->name('index');
+            Route::post('/', [JobOrderController::class, 'store'])->name('store');
+            Route::get('/{id}', [JobOrderController::class, 'show'])->name('show');
+            Route::get('/{id}/edit', [JobOrderController::class, 'edit'])->name('edit');
+            Route::put('/{id}', [JobOrderController::class, 'update'])->name('update');
+            Route::delete('/{id}', [JobOrderController::class, 'destroy'])->name('destroy');
+
+            // Soft delete functionality
+            Route::put('/{id}/restore', [JobOrderController::class, 'restore'])->name('restore');
+            Route::delete('/{id}/force-delete', [JobOrderController::class, 'forceDelete'])->name('force-delete');
+        });
 
     // API untuk dropdown Job Orders
     Route::get('/api/job-orders/project/{projectId}', [JobOrderController::class, 'getByProject']);
@@ -277,14 +226,16 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/material_requests/{id}/quick-update', [MaterialRequestController::class, 'quickUpdate'])->name('material_requests.quick_update');
 
     // Material Planning
-    Route::get('/material-planning', [MaterialPlanningController::class, 'index'])->name('material_planning.index');
-    Route::get('/material-planning/create', [MaterialPlanningController::class, 'create'])->name('material_planning.create');
-    Route::post('/material-planning', [MaterialPlanningController::class, 'store'])->name('material_planning.store');
-    Route::delete('/material-planning/project/{projectId}', [MaterialPlanningController::class, 'destroyProject'])->name('material_planning.destroy_project');
-    Route::delete('/material-planning/{id}', [MaterialPlanningController::class, 'destroy'])->name('material_planning.destroy');
-    Route::get('/material-planning/related-items/{projectId}', [MaterialPlanningController::class, 'getRelatedItems'])
-        ->name('material_planning.related_items')
-        ->where('projectId', '[0-9]+');
+    Route::middleware(['auth'])->group(function () {
+        Route::get('/material-planning', [MaterialPlanningController::class, 'index'])->name('material_planning.index');
+        Route::get('/material-planning/create', [MaterialPlanningController::class, 'create'])->name('material_planning.create');
+        Route::post('/material-planning', [MaterialPlanningController::class, 'store'])->name('material_planning.store');
+        Route::delete('/material-planning/project/{projectId}', [MaterialPlanningController::class, 'destroyProject'])->name('material_planning.destroy_project');
+        Route::delete('/material-planning/{id}', [MaterialPlanningController::class, 'destroy'])->name('material_planning.destroy');
+        Route::get('/material-planning/related-items/{projectId}', [MaterialPlanningController::class, 'getRelatedItems'])
+            ->name('material_planning.related_items')
+            ->where('projectId', '[0-9]+');
+    });
 
     // Categories
     Route::post('/categories/quick-add', [CategoryController::class, 'store'])->name('categories.store');
@@ -339,7 +290,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/costing-report/export/{project_id}', [ProjectCostingController::class, 'exportCosting'])->name('costing.export');
     Route::get('/costing-report-export-all', [ProjectCostingController::class, 'exportAllProjects'])->name('costing.export.all');
 
-    // Set inventory
+    //set inventory
     Route::post('/set-inventory', function (Request $request) {
         $request->session()->put('inventory_id', $request->input('inventory_id'));
         return redirect()->back();
@@ -364,20 +315,20 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/employees/{employee}/documents', [EmployeeController::class, 'getDocuments'])->name('employees.documents');
 
     // Skillsets
-    Route::post('/skillsets/store', [SkillsetController::class, 'store'])->name('skillsets.store');
-    Route::get('/skillsets/json', [SkillsetController::class, 'json'])->name('skillsets.json');
-    Route::get('/skillsets/search', [SkillsetController::class, 'search'])->name('skillsets.search');
+    Route::post('/skillsets/store', [App\Http\Controllers\Hr\SkillsetController::class, 'store'])->name('skillsets.store');
+    Route::get('/skillsets/json', [App\Http\Controllers\Hr\SkillsetController::class, 'json'])->name('skillsets.json');
+    Route::get('/skillsets/search', [App\Http\Controllers\Hr\SkillsetController::class, 'search'])->name('skillsets.search');
 
-    // Employee leave balance check
+    // Employee leave balance check - Authenticated only
     Route::get('/employees/{employee}/leave-balance', [EmployeeController::class, 'getLeaveBalance'])->name('employees.leave-balance');
 
-    // Leave Request
+    // Leave Request - Authenticated only
     Route::get('leave_requests/{id}/edit', [LeaveRequestController::class, 'edit'])->name('leave_requests.edit');
     Route::put('leave_requests/{id}', [LeaveRequestController::class, 'update'])->name('leave_requests.update');
     Route::delete('leave_requests/{id}', [LeaveRequestController::class, 'destroy'])->name('leave_requests.destroy');
     Route::post('leave_requests/{id}/approval', [LeaveRequestController::class, 'updateApproval'])->name('leave_requests.updateApproval');
 
-    // Timing
+    //Timming
     Route::resource('timings', TimingController::class);
     Route::post('timings/store-multiple', [TimingController::class, 'storeMultiple'])->name('timings.storeMultiple');
     Route::post('/timings/ajax-search', [TimingController::class, 'ajaxSearch'])->name('timings.ajax_search');
@@ -385,14 +336,14 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/timings-import', [TimingController::class, 'import'])->name('timings.import');
     Route::get('/timings-template', [TimingController::class, 'downloadTemplate'])->name('timings.template');
 
-    // Final Project Summary
+    //Final Project Summary
     Route::get('final_project_summary', [FinalProjectSummaryController::class, 'index'])->name('final_project_summary.index');
     Route::get('final_project_summary/{project}', [FinalProjectSummaryController::class, 'show'])->name('final_project_summary.show');
     Route::get('/final-project-summary/ajax-search', [FinalProjectSummaryController::class, 'ajaxSearch'])->name('final_project_summary.ajax_search');
 
     // Purchase Requests
     Route::get('/purchase_requests/export', [PurchaseRequestController::class, 'export'])->name('purchase_requests.export');
-    Route::resource('purchase_requests', PurchaseRequestController::class);
+    Route::resource('purchase_requests', PurchaseRequestController::class)->middleware('auth');
     Route::post('/purchase_requests/{id}/quick-update', [PurchaseRequestController::class, 'quickUpdate'])->name('purchase_requests.quick_update');
 
     // Pre Shippings
@@ -401,8 +352,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/pre-shippings/check-orphaned-prs', [PreShippingController::class, 'checkOrphanedPRs'])->name('pre-shippings.check-orphaned-prs');
 
     // Shippings
-    Route::get('/shippings/create', [ShippingController::class, 'create'])->name('shippings.create');
-    Route::post('/shippings', [ShippingController::class, 'store'])->name('shippings.store');
+    Route::get('/shippings/create', [ShippingController::class, 'create'])->name('shippings.create'); // ✅ CHANGE to GET
+    Route::post('/shippings', [ShippingController::class, 'store'])->name('shippings.store'); // ✅ CORRECT - POST
 
     // Shipping Management
     Route::get('/shipping-management', [ShippingManagementController::class, 'index'])->name('shipping-management.index');
@@ -412,12 +363,21 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/goods-receive/store', [GoodsReceiveController::class, 'store'])->name('goods-receive.store');
     Route::get('/goods-receive', [GoodsReceiveController::class, 'index'])->name('goods-receive.index');
 
-    // Shortage Item
+    // SHORTAGE ITEM
     Route::prefix('shortage-items')->group(function () {
+        // Index/List shortage items
         Route::get('/', [ShortageItemController::class, 'index'])->name('shortage-items.index');
+
+        // Show single shortage detail
         Route::get('/{id}', [ShortageItemController::class, 'show'])->name('shortage-items.show');
+
+        // BULK RESEND ACTION (Main feature)
         Route::post('/bulk-resend', [ShortageItemController::class, 'bulkResend'])->name('shortage-items.bulk-resend');
+
+        // Cancel shortage item
         Route::post('/{id}/cancel', [ShortageItemController::class, 'cancel'])->name('shortage-items.cancel');
+
+        // Get by status (AJAX endpoint)
         Route::get('/status/filter', [ShortageItemController::class, 'getByStatus'])->name('shortage-items.by-status');
     });
 
@@ -442,8 +402,98 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/bulk-update', [AttendanceController::class, 'bulkUpdate'])->name('bulk-update');
             Route::post('/bulk-update-individual', [AttendanceController::class, 'bulkUpdateIndividual'])->name('bulk-update-individual');
             Route::post('/initialize', [AttendanceController::class, 'initializeDefault'])->name('initialize');
+
+            // Attendance List/History
             Route::get('/list', [AttendanceController::class, 'list'])->name('list');
             Route::get('/export', [AttendanceController::class, 'exportList'])->name('export');
             Route::delete('/{id}', [AttendanceController::class, 'destroy'])->name('destroy');
         });
+
+    Route::prefix('project-purchases')->group(function () {
+        // CRUD Routes
+        Route::get('/', [ProjectPurchaseController::class, 'index'])
+            ->name('project-purchases.index');
+        
+        Route::get('/create', [ProjectPurchaseController::class, 'create'])
+            ->name('project-purchases.create');
+        
+        Route::post('/', [ProjectPurchaseController::class, 'store'])
+            ->name('project-purchases.store');
+        
+        Route::get('/{id}', [ProjectPurchaseController::class, 'show'])
+            ->name('project-purchases.show');
+        
+        Route::get('/{id}/edit', [ProjectPurchaseController::class, 'edit'])
+            ->name('project-purchases.edit');
+        
+        Route::put('/{id}', [ProjectPurchaseController::class, 'update'])
+            ->name('project-purchases.update');
+        
+        Route::delete('/{id}', [ProjectPurchaseController::class, 'destroy'])
+            ->name('project-purchases.destroy');
+        
+        // Approval Routes (Finance)
+        Route::post('/{id}/approve', [ProjectPurchaseController::class, 'approve'])
+            ->name('project-purchases.approve');
+        
+        Route::post('/{id}/reject', [ProjectPurchaseController::class, 'reject'])
+            ->name('project-purchases.reject');
+        
+        // Update Tracking Route
+        Route::post('/{id}/update-tracking', [ProjectPurchaseController::class, 'updateTracking'])
+            ->name('project-purchases.update-tracking');
+        
+        // Item Receipt Routes
+        Route::post('/{id}/mark-as-received', [ProjectPurchaseController::class, 'markAsReceived'])
+            ->name('project-purchases.mark-as-received');
+        
+        Route::post('/{id}/mark-as-not-received', [ProjectPurchaseController::class, 'markAsNotReceived'])
+            ->name('project-purchases.mark-as-not-received');
+        
+        // AJAX Routes
+        Route::get('/material/{id}/price', [ProjectPurchaseController::class, 'getMaterialPrice'])
+            ->name('project-purchases.get-material-price');
+        
+        Route::get('/job-order/{id}/details', [ProjectPurchaseController::class, 'getJobOrderDetails'])
+            ->name('project-purchases.get-job-order-details');
+    });
+    
+    Route::resource('internal-projects', InternalProjectController::class);
+
+    Route::resource('internal-projects', InternalProjectController::class)
+     ->parameters(['internal-projects' => 'internalProject']);
+
+     Route::get('project-purchases/internal-project/{id}', [ProjectPurchaseController::class, 'getInternalProjectDetails'])
+    ->name('project-purchases.internal-project-details');
+
+    // DCM Costings Routes
+    Route::prefix('dcm-costings')->name('dcm-costings.')->group(function () {
+        Route::get('/', [DcmCostingController::class, 'index'])->name('index');
+        Route::get('/export', [DcmCostingController::class, 'export'])->name('export'); 
+        Route::get('/statistics', [DcmCostingController::class, 'statistics'])->name('statistics');
+        Route::get('/create', [DcmCostingController::class, 'create'])->name('create');
+        Route::post('/', [DcmCostingController::class, 'store'])->name('store');
+        Route::get('/{costing:uid}', [DcmCostingController::class, 'show'])->name('show');        
+        Route::get('/{costing:uid}/edit', [DcmCostingController::class, 'edit'])->name('edit');
+        Route::put('/{costing:uid}', [DcmCostingController::class, 'update'])->name('update');
+        Route::delete('/{costing:uid}', [DcmCostingController::class, 'destroy'])->name('destroy');
+    });
+    // Purchase Approvals Routes
+    Route::prefix('purchase-approvals')->name('purchase-approvals.')->group(function () {
+        Route::get('/', [PurchaseApprovalController::class, 'index'])->name('index');
+        Route::get('/statistics', [PurchaseApprovalController::class, 'statistics'])->name('statistics');
+        Route::get('/{id}/details', [PurchaseApprovalController::class, 'viewDetails'])->name('view-details');
+        Route::post('/{id}/approve', [PurchaseApprovalController::class, 'approve'])->name('approve');
+        Route::post('/{id}/reject', [PurchaseApprovalController::class, 'reject'])->name('reject');
+        Route::post('/bulk-approve', [PurchaseApprovalController::class, 'bulkApprove'])->name('bulk-approve');
+    });
+
+    // Finance Dashboard Redirects
+    Route::get('/finance-dashboard', function() {
+        return redirect()->route('purchase-approvals.index');
+    })->name('finance.dashboard');
+
+    Route::get('/finance-costings', function() {
+        return redirect()->route('dcm-costings.index');
+    })->name('finance.costings');
 });

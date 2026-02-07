@@ -1,6 +1,6 @@
-@extends('layouts.app')
 
-@section('content')
+
+<?php $__env->startSection('content'); ?>
     <div class="container-fluid mt-4">
         <div class="card shadow rounded">
             <div class="card-body">
@@ -13,13 +13,13 @@
 
                     <!-- Spacer untuk mendorong tombol ke kanan -->
                     <div class="ms-sm-auto d-flex flex-wrap gap-2">
-                        <a href="{{ route('job-orders.create') }}" class="btn btn-primary btn-sm flex-shrink-0">
+                        <a href="<?php echo e(route('job-orders.create')); ?>" class="btn btn-primary btn-sm flex-shrink-0">
                             <i class="bi bi-plus-circle me-1"></i> Create Job Order
                         </a>
-                        @if (in_array(auth()->user()->role, ['super_admin', 'admin']))
-                            <form action="{{ route('job-orders.sync.lark') }}" method="POST" class="d-inline"
+                        <?php if(in_array(auth()->user()->role, ['super_admin', 'admin'])): ?>
+                            <form action="<?php echo e(route('job-orders.sync.lark')); ?>" method="POST" class="d-inline"
                                 id="syncLarkForm">
-                                @csrf
+                                <?php echo csrf_field(); ?>
                                 <button type="button" class="btn btn-info btn-sm flex-shrink-0" id="btnSyncLark"
                                     data-bs-toggle="tooltip" data-bs-placement="bottom"
                                     title="Sync job orders from Lark Base">
@@ -27,7 +27,7 @@
                                     <span id="syncText">Sync from Lark</span>
                                 </button>
                             </form>
-                        @endif
+                        <?php endif; ?>
                         <a href="#" id="export-btn" class="btn btn-outline-success btn-sm flex-shrink-0">
                             <i class="bi bi-file-earmark-excel me-1"></i> Export
                         </a>
@@ -35,18 +35,20 @@
                 </div>
 
                 <!-- Alerts -->
-                @if (session('success'))
+                <?php if(session('success')): ?>
                     <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        {!! session('success') !!}
+                        <?php echo session('success'); ?>
+
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
-                @endif
-                @if (session('error'))
+                <?php endif; ?>
+                <?php if(session('error')): ?>
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        {!! session('error') !!}
+                        <?php echo session('error'); ?>
+
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
-                @endif
+                <?php endif; ?>
 
                 <!-- filter form -->
                 <div class="mb-3">
@@ -54,17 +56,17 @@
                         <div class="col-md-3">
                             <select id="filter-project" name="project" class="form-select form-select-sm select2">
                                 <option value="">All Projects</option>
-                                @foreach ($projects as $project)
-                                    <option value="{{ $project->id }}">{{ $project->name }}</option>
-                                @endforeach
+                                <?php $__currentLoopData = $projects; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $project): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                    <option value="<?php echo e($project->id); ?>"><?php echo e($project->name); ?></option>
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                             </select>
                         </div>
                         <div class="col-md-3">
                             <select id="filter-department" name="department" class="form-select form-select-sm select2">
                                 <option value="">All Departments</option>
-                                @foreach ($departments as $department)
-                                    <option value="{{ $department->id }}">{{ $department->name }}</option>
-                                @endforeach
+                                <?php $__currentLoopData = $departments; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $department): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                    <option value="<?php echo e($department->id); ?>"><?php echo e($department->name); ?></option>
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                             </select>
                         </div>
                         <div class="col-md-3">
@@ -96,15 +98,15 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {{-- Data akan dimuat via AJAX --}}
+                        
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
-@endsection
+<?php $__env->stopSection(); ?>
 
-@push('styles')
+<?php $__env->startPush('styles'); ?>
     <style>
         .gradient-icon {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -121,9 +123,9 @@
             overflow: visible !important;
         }
     </style>
-@endpush
+<?php $__env->stopPush(); ?>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
     <script>
         $(document).ready(function() {
             // Initialize DataTable with Server-Side Processing
@@ -133,7 +135,7 @@
                 searching: false,
                 stateSave: true,
                 ajax: {
-                    url: "{{ route('job-orders.index') }}",
+                    url: "<?php echo e(route('job-orders.index')); ?>",
                     data: function(d) {
                         d.project = $('#filter-project').val();
                         d.department = $('#filter-department').val();
@@ -248,7 +250,7 @@
                     search: $('#custom-search').val()
                 };
                 const query = $.param(params);
-                window.location.href = '{{ route('job-orders.export') }}' + '?' + query;
+                window.location.href = '<?php echo e(route('job-orders.export')); ?>' + '?' + query;
             });
 
             // Initialize Select2
@@ -342,4 +344,6 @@
             initializeTooltips();
         });
     </script>
-@endpush
+<?php $__env->stopPush(); ?>
+
+<?php echo $__env->make('layouts.app', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?><?php /**PATH D:\27JAN\resources\views/production/job-orders/index.blade.php ENDPATH**/ ?>
