@@ -76,13 +76,13 @@
 
                 {{-- DataTable dengan server-side processing --}}
                 <div class="table-responsive">
-                    <table class="table table-hover table-sm align-middle" id="datatable"
-                        data-material-usage-table="1">
+                    <table class="table table-hover table-sm align-middle" id="datatable" data-material-usage-table="1">
                         <thead class="table-light text-nowrap">
                             <tr>
                                 <th width="50">#</th>
                                 <th>Material</th>
                                 <th>Project</th>
+                                <th>Job Order</th>
                                 <th>Goods Out Qty</th>
                                 <th>Goods In Qty</th>
                                 <th>Used Qty</th>
@@ -223,8 +223,8 @@
         /* Center align checkbox and actions */
         #datatable thead th:nth-child(1),
         #datatable tbody td:nth-child(1),
-        #datatable thead th:nth-child(9),
-        #datatable tbody td:nth-child(9) {
+        #datatable thead th:nth-child(10),
+        #datatable tbody td:nth-child(10) {
             text-align: center !important;
         }
     </style>
@@ -270,6 +270,9 @@
                     },
                     {
                         data: 'project_name'
+                    },
+                    {
+                        data: 'job_order'
                     },
                     {
                         data: 'goods_out_qty',

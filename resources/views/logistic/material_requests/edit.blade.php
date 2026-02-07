@@ -34,36 +34,43 @@
                     <div class="row">
                         <div class="col-lg-6 mb-3">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <label>Project <span class="text-danger">*</span></label>
-                                <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal"
-                                    data-bs-target="#addProjectModal">
-                                    + Quick Add Project
-                                </button>
+                                <label>Job Order <span class="text-danger">*</span></label>
                             </div>
-                            <select name="project_id" id="project_id" class="form-select select2" required>
-                                <option value="">Select an option</option>
-                                @foreach ($projects as $proj)
-                                    <option value="{{ $proj->id }}"
-                                        data-department="{{ $proj->departments->pluck('name')->implode(', ') }}"
-                                        {{ old('project_id', $request->project_id) == $proj->id ? 'selected' : '' }}>
-                                        {{ $proj->name }}
+                            <select name="job_order_id" id="job_order_id" class="form-select select2"
+                                data-placeholder="Select Job Order" required>
+                                <option value="">Select Job Order</option>
+                                @foreach ($jobOrders as $jo)
+                                    <option value="{{ $jo->id }}" data-project-id="{{ $jo->project_id }}"
+                                        data-project-name="{{ $jo->project->name ?? '' }}"
+                                        {{ old('job_order_id', $request->job_order_id) == $jo->id ? 'selected' : '' }}>
+                                        {{ $jo->name }}
                                     </option>
                                 @endforeach
                             </select>
-                            <div id="department" class="form-text d-none">Department</div>
-                            @error('project_id')
+                            @error('job_order_id')
                                 <small class="text-danger">{{ $message }}</small>
                             @enderror
+
+                            <!-- Hidden Project ID (Auto-filled) -->
+                            <input type="hidden" name="project_id" id="project_id"
+                                value="{{ old('project_id', $request->project_id) }}" required>
+
+                            <!-- Project Display (Read-only) -->
+                            <div id="project-display" class="mt-2 {{ $request->project_id ? '' : 'd-none' }}">
+                                <small class="text-muted">Project:</small>
+                                <strong id="project-name-text">{{ $request->project->name ?? '' }}</strong>
+                            </div>
                         </div>
 
                         <div class="col-lg-6 mb-3">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <label>Material <span class="text-danger">*</span></label>
-                                <button type="button" class="btn btn-sm btn-outline-primary" id="btnQuickAddMaterial">
+                                {{-- <button type="button" class="btn btn-sm btn-outline-primary" id="btnQuickAddMaterial">
                                     + Quick Add Material
-                                </button>
+                                </button> --}}
                             </div>
-                            <select name="inventory_id" class="form-select select2" required>
+                            <select name="inventory_id" class="form-select select2" data-placeholder="Select Material"
+                                required>
                                 @foreach ($inventories as $inv)
                                     <option value="{{ $inv->id }}" data-unit="{{ $inv->unit }}"
                                         data-stock="{{ $inv->quantity }}"
@@ -320,12 +327,36 @@
                 width: '100%',
                 allowClear: true,
                 theme: 'bootstrap-5',
+                placeholder: function() {
+                    return $(this).data('placeholder') || 'Select an option';
+                }
             }).on('select2:open', function() {
                 setTimeout(function() {
                     document.querySelector('.select2-container--open .select2-search__field')
                         .focus();
                 }, 100);
             });
+
+            // Auto-fill project_id when Job Order is selected
+            $('#job_order_id').on('change', function() {
+                const selectedOption = $(this).find(':selected');
+                const projectId = selectedOption.data('project-id');
+                const projectName = selectedOption.data('project-name');
+
+                if (projectId && projectName) {
+                    $('#project_id').val(projectId);
+                    $('#project-display').removeClass('d-none');
+                    $('#project-name-text').text(projectName);
+                } else {
+                    $('#project_id').val('');
+                    $('#project-display').addClass('d-none');
+                }
+            });
+
+            // Trigger on page load if job order already selected
+            if ($('#job_order_id').val()) {
+                $('#job_order_id').trigger('change');
+            }
 
             // Update unit label dynamically when material is selected
             $('select[name="inventory_id"]').on('change', function() {

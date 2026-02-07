@@ -59,6 +59,14 @@
                 <div class="mb-3">
                     <form id="filter-form" class="row g-1">
                         <div class="col-md-2">
+                            <select id="filter-job-order" name="job_order" class="form-select form-select-sm select2">
+                                <option value="">All Job Orders</option>
+                                @foreach ($jobOrders as $jo)
+                                    <option value="{{ $jo->id }}">{{ $jo->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-2">
                             <select id="filter-project" name="project" class="form-select form-select-sm select2">
                                 <option value="">All Projects</option>
                                 @foreach ($projects as $project)
@@ -83,7 +91,7 @@
                                 <option value="canceled">Canceled</option>
                             </select>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-1">
                             <select id="filter-requested-by" name="requested_by" class="form-select form-select-sm select2">
                                 <option value="">All Requester</option>
                                 @foreach ($users as $user)
@@ -114,6 +122,7 @@
                         <tr>
                             <th></th>
                             <th style="display:none">ID</th>
+                            <th>Job Order</th>
                             <th>Project</th>
                             <th>Material</th>
                             <th>Requested Qty</th>
@@ -159,6 +168,7 @@
                                 <thead>
                                     <tr>
                                         <th>Material</th>
+                                        <th>Job order</th>
                                         <th>Project</th>
                                         <th>Req / Rem Qty</th>
                                         <th>Qty to Goods Out</th>
@@ -583,14 +593,20 @@
                         visible: false
                     },
                     {
+                        data: 'job_order',
+                        name: 'jobOrder.name',
+                        width: '14%'
+                    },
+                    {
                         data: 'project_name',
                         name: 'project.name',
-                        width: '16%'
+                        width: '14%'
                     },
+
                     {
                         data: 'material_name',
                         name: 'inventory.name',
-                        width: '16%'
+                        width: '14%'
                     },
                     {
                         data: 'requested_qty',
@@ -682,12 +698,12 @@
             }, 300);
 
             // Update event listener untuk include custom search
-            $('#filter-project, #filter-material, #filter-status, #filter-requested-by, #filter-requested-at, #custom-search')
+            $('#filter-project, #filter-job-order, #filter-material, #filter-status, #filter-requested-by, #filter-requested-at, #custom-search')
                 .on('change input', debouncedFilter);
 
             // Reset filters juga harus reset search
             $('#reset-filters').on('click', function() {
-                $('#filter-project, #filter-material, #filter-status, #filter-requested-by, #filter-requested-at, #custom-search')
+                $('#filter-project, #filter-job-order, #filter-material, #filter-status, #filter-requested-by, #filter-requested-at, #custom-search')
                     .val('').trigger('change');
                 table.draw();
             });
@@ -697,6 +713,7 @@
                 e.preventDefault();
                 const params = {
                     project: $('#filter-project').val(),
+                    job_order: $('#filter-job-order').val(),
                     material: $('#filter-material').val(),
                     status: $('#filter-status').val(),
                     requested_by: $('#filter-requested-by').val(),
@@ -821,7 +838,7 @@
 
                 // Show loading in modal
                 $('#bulk-goods-out-table-body').html(
-                    '<tr><td colspan="5" class="text-center py-4"><div class="spinner-border" role="status"></div></td></tr>'
+                    '<tr><td colspan="6" class="text-center py-4"><div class="spinner-border" role="status"></div></td></tr>'
                 );
                 $('#bulkGoodsOutModal').modal('show');
 
@@ -838,6 +855,7 @@
                             $('#bulk-goods-out-table-body').append(`
                         <tr>
                             <td>${item.material_name}</td>
+                            <td>${item.job_order_name || '-'}</td>
                             <td>
                                 ${item.project_name}
                                 <span data-bs-toggle="tooltip" data-bs-placement="bottom" title="Requested By: ${item.requested_by}">
@@ -866,7 +884,7 @@
                     },
                     error: function(xhr) {
                         $('#bulk-goods-out-table-body').html(
-                            '<tr><td colspan="5" class="text-center text-danger">Failed to load data. Please try again.</td></tr>'
+                            '<tr><td colspan="6" class="text-center text-danger">Failed to load data. Please try again.</td></tr>'
                         );
                         console.error('Bulk details error:', xhr);
                     }

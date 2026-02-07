@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Logistic\MaterialUsage;
 use App\Models\Production\ProjectPart;
+use App\Models\Production\JobOrder;
 use App\Models\Admin\Department;
 use App\Models\Production\ProjectStatus;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -65,6 +66,12 @@ class Project extends Model implements Auditable
     public function departments()
     {
         return $this->belongsToMany(Department::class, 'department_project')->withTimestamps();
+    }
+
+    // Job Orders relation (one-to-many)
+    public function jobOrders()
+    {
+        return $this->hasMany(JobOrder::class, 'project_id');
     }
 
     public function status()

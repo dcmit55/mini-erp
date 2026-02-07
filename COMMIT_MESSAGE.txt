@@ -1,0 +1,177 @@
+feat: Enhanced Project Costing Report with Job Order Tracking & UX Improvements
+
+## Database Schema Changes
+- add: job_order_id column to material_usages table with foreign key
+- add: job_order_id column to goods_out table with foreign key
+- add: job_order_id column to goods_in table with foreign key
+- add: migration to sync existing material_usages with job_order_id from goods_out (4,878 records)
+
+## Models & Relationships
+- add: jobOrder() relationship to MaterialUsage model
+- add: jobOrder() relationship to GoodsOut model
+- add: jobOrder() relationship to GoodsIn model
+- add: jobOrders() relationship to Project model
+- update: fillable and auditInclude arrays to include job_order_id
+
+## Bug Fixes
+### Bulk Material Request Module
+- **fix: Add Row button not working - Comprehensive solution**
+  - **ROOT CAUSE**: Multiple issues identified:
+    1. Lack of defensive checks in initSelect2() function
+    2. Select2 instances not properly destroyed before cloning
+    3. Cloned DOM elements retained Select2 classes/attributes causing conflicts
+    4. Race condition between DOM manipulation and Select2 initialization
+
+  - **SOLUTION IMPLEMENTED**:
+    1. Added comprehensive error handling in initSelect2() function
+    2. Validate row parameter before processing (null/empty checks)
+    3. Individual Select2 initialization with try-catch blocks
+    4. Proper destruction of Select2 instances using .select2-hidden-accessible selector
+    5. Clean removal of Select2 generated classes (select2-hidden-accessible, data-select2-id)
+    6. Remove Select2 container remnants from cloned row
+    7. Improved regex for name attribute replacement: /\[(\d+)\]/ instead of /\d+/
+    8. Added setTimeout(100ms) delay for Select2 re-initialization to avoid race conditions
+    9. Added console.log() for debugging and monitoring
+    10. User-friendly alert message when template row not found
+
+  - **TECHNICAL DETAILS**:
+    - Changed clone() from `clone()` to `clone(false, false)` (no events/data)
+    - Changed event delegation (already correct): `$(document).on('click', '#add-row')`
+    - Better jQuery selectors: `$lastRow`, `$newRow` with $ prefix for clarity
+    - Event handler cleanup: `.off('change').on('change')` to prevent duplicate handlers
+
+  - Location: `resources/views/logistic/material_requests/bulk_create.blade.php`
+    - Lines 354-475: Refactored initSelect2() and Add Row click handler
+
+### Project Costing Report Module
+- **fix: Search triggers only on Enter/Button click**
+  - Removed auto-submit on every keystroke (debounced keyup handler)
+  - Added Enter key handler for better UX
+  - Prevents cursor jumping and excessive server requests
+  - Location: `resources/views/finance/costing/index.blade.php` lines 405-410
+
+## Feature Enhancements
+### Project Costing Report - Display Updates
+- **remove: Domestic Freight and International Freight columns**
+  - Removed from modal table headers
+  - Removed from AJAX table rendering
+  - Removed from Excel export
+  - Cost calculation still includes freight costs in total_unit_cost
+  - Display-only change, business logic unchanged
+
+- **add: Job Order column to all displays**
+  - Added to modal table headers (first column)
+  - Added to AJAX-loaded materials table (primary badge)
+  - Added to Excel export (first column)
+  - Shows "No Job Order" when unassigned
+  - Locations: All displays in costing module
+
+- **add: Job Order filter dropdown**
+  - New dropdown filter in index page UI
+  - Auto-submit on selection change
+  - Default option: "All Job Orders"
+  - Location: `resources/views/finance/costing/index.blade.php` lines 134-145
+
+- **add: Materials sorted by Job Order**
+  - viewCosting() now orders by job_order_id
+  - Eager loads jobOrder relationship
+  - Returns job_order_name in response
+  - Location: `app/Http/Controllers/Finance/ProjectCostingController.php`
+
+## Controllers
+- update: GoodsOutController - pass job_order_id to MaterialUsageHelper in 6 locations
+  - store() - from material request
+  - storeIndependent() - from request input
+  - bulkStore() - from material request
+  - update() - from request input
+  - restore() - from existing goods out
+  - destroy() - from existing goods out
+
+- update: GoodsInController - pass job_order_id to MaterialUsageHelper in 6 locations
+  - store() - from goods out
+  - storeIndependent() - from request input
+  - bulkGoodsIn() - from goods out
+  - update() - from request input
+  - restore() - from existing goods in
+  - destroy() - from existing goods in
+
+- update: ProjectCostingController
+  - add: search functionality by project name
+  - add: pagination (10 items per page)
+  - add: Job Order filter with whereHas() query
+  - add: $jobOrders data for dropdown population
+  - add: getJobOrderMaterials() method for AJAX material loading
+  - update: viewCosting() to eager load jobOrder and sort by job_order_id
+  - update: exportCosting() to include job_order_name in export data
+  - update: eager load jobOrders.department relationship
+
+## Helpers
+- update: MaterialUsageHelper::sync() signature to accept job_order_id parameter
+  - old: sync($inventory_id, $project_id)
+  - new: sync($inventory_id, $project_id, $job_order_id = null)
+  - update: WHERE clauses to filter by job_order_id
+  - update: updateOrCreate to include job_order_id in unique constraint
+
+## Exports
+- update: ProjectCostingExport
+  - add: Job Order column as first column
+  - remove: Domestic Freight column
+  - remove: International Freight column
+  - update: headings array to match new structure
+  - Location: `app/Exports/ProjectCostingExport.php`
+
+## Views - Project Costing Report
+- remove: DataTables library (causing DOM manipulation issues)
+- add: simple jQuery toggle functionality (following shipping management pattern)
+- add: search input field for project names
+- add: auto-submit on filter change (removed manual filter button)
+- add: pagination UI with item counts
+- add: hierarchical dropdown structure:
+  - Level 1: Projects (toggle to show job orders)
+  - Level 2: Job Orders (toggle to show materials via AJAX)
+  - Level 3: Materials table (loaded dynamically)
+- fix: detail rows visibility and toggle functionality
+- add: loading spinner for AJAX material loading
+- update: styling for better UX
+- add: column job order in project costing
+
+## Services
+- fix: LarkProjectSyncService::syncDepartmentsToPivot() method restored
+  - Syncs department relationships from Lark to project_department pivot table
+
+## Routes
+- add: /costing-report/{project_id}/job-order/{job_order_id}/materials route
+
+## Bug Fixes
+- fix: dropdown not showing in project costing due to DataTables interference
+- fix: detail rows being removed by DataTables responsive mode
+- fix: event handlers not working after DataTables redraw
+- fix: SQL error "Column 'job_order_id' not found" in goods_out/goods_in queries
+- fix: material_usages not tracking job_order_id from source transactions
+
+## Performance
+- optimize: eager loading with jobOrders.department to reduce N+1 queries
+- add: database indexes on job_order_id columns
+- add: pagination to reduce memory usage on large datasets
+
+## Breaking Changes
+None. All changes are backward compatible with nullable job_order_id fields.
+
+## Migration Notes
+- Run migrations in order:
+  1. 2026_02_05_103637_add_job_order_id_to_material_usages_table
+  2. 2026_02_05_111451_add_job_order_id_to_goods_out_table
+  3. 2026_02_05_112047_add_job_order_id_to_goods_in_table
+  4. 2026_02_05_114847_sync_job_order_id_to_material_usages_from_goods_out
+
+- Data sync migration processes 4,878 material usage records
+- All existing data remains intact with job_order_id as NULL for historical records
+
+## Testing
+- Verify: Projects with job orders show dropdown chevron button
+- Verify: Clicking chevron expands job orders list
+- Verify: Clicking job order chevron loads materials via AJAX
+- Verify: Search filters projects in real-time
+- Verify: Pagination shows 10 items per page
+- Verify: Filter by department/creator auto-submits
+- Verify: Material usage tracking includes job_order_id for new transactions

@@ -29,11 +29,14 @@ class MaterialRequestController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = MaterialRequest::with(['inventory:id,name,quantity,unit', 'project:id,name,department_id', 'user:id,username,department_id', 'user.department:id,name'])->latest();
+            $query = MaterialRequest::with(['inventory:id,name,quantity,unit', 'project:id,name,department_id', 'jobOrder:id,name,project_id', 'user:id,username,department_id', 'user.department:id,name'])->latest();
 
             // Apply filters with null checks
             if ($request->filled('project')) {
                 $query->where('project_id', $request->project);
+            }
+            if ($request->filled('job_order')) {
+                $query->where('job_order_id', $request->job_order);
             }
             if ($request->filled('material')) {
                 $query->where('inventory_id', $request->material);
@@ -69,6 +72,9 @@ class MaterialRequestController extends Controller
                 })
                 ->addColumn('project_name', function ($req) {
                     return $req->project->name ?? '(No Project)';
+                })
+                ->addColumn('job_order', function ($req) {
+                    return $req->jobOrder ? $req->jobOrder->name : '-';
                 })
                 ->addColumn('material_name', function ($req) {
                     return '<span class="material-detail-link gradient-link" data-id="' . ($req->inventory->id ?? '') . '">' . ($req->inventory->name ?? '(No Material)') . '</span>';
@@ -210,7 +216,7 @@ class MaterialRequestController extends Controller
 
                     return $actions;
                 })
-                ->rawColumns(['checkbox', 'material_name', 'remaining_qty', 'processed_qty', 'requested_by', 'status', 'remark', 'actions'])
+                ->rawColumns(['checkbox', 'job_order', 'material_name', 'remaining_qty', 'processed_qty', 'requested_by', 'status', 'remark', 'actions'])
                 ->setRowId(function ($req) {
                     return 'row-' . $req->id;
                 })
@@ -232,23 +238,32 @@ class MaterialRequestController extends Controller
             return User::orderBy('username')->get(['username']);
         });
 
-        return view('logistic.material_requests.index', compact('projects', 'materials', 'users'));
+        $jobOrders = Cache::remember('material_requests_job_orders', 300, function () {
+            return \App\Models\Production\JobOrder::orderBy('id', 'desc')->get(['id', 'name']);
+        });
+
+        return view('logistic.material_requests.index', compact('projects', 'materials', 'users', 'jobOrders'));
     }
 
     public function export(Request $request)
     {
         // Ambil filter dari request
         $project = $request->project;
+        $jobOrder = $request->job_order;
         $material = $request->material;
         $status = $request->status;
         $requestedBy = $request->requested_by;
         $requestedAt = $request->requested_at;
 
         // Filter data berdasarkan request
-        $query = MaterialRequest::with(['inventory', 'project', 'user.department']);
+        $query = MaterialRequest::with(['inventory', 'project', 'jobOrder', 'user.department']);
 
         if ($project) {
             $query->where('project_id', $project);
+        }
+
+        if ($jobOrder) {
+            $query->where('job_order_id', $jobOrder);
         }
 
         if ($material) {
@@ -276,6 +291,10 @@ class MaterialRequestController extends Controller
             $projectName = Project::find($project)->name ?? 'Unknown Project';
             $fileName .= '_project-' . str_replace(' ', '-', strtolower($projectName));
         }
+        if ($jobOrder) {
+            $jobOrderName = \App\Models\Production\JobOrder::find($jobOrder)->name ?? 'Unknown JobOrder';
+            $fileName .= '_joborder-' . str_replace(' ', '-', strtolower($jobOrderName));
+        }
         if ($material) {
             $materialName = Inventory::find($material)->name ?? 'Unknown Material';
             $fileName .= '_material-' . str_replace(' ', '-', strtolower($materialName));
@@ -301,6 +320,12 @@ class MaterialRequestController extends Controller
         // DATA GOVERNANCE: Hanya ambil project dari Lark (created_by = 'Sync from Lark')
         // Legacy projects TIDAK ditampilkan sama sekali di dropdown
         $projects = Project::fromLark()->with('departments', 'status')->notArchived()->orderBy('name')->get();
+
+        // Ambil job orders untuk dropdown
+        $jobOrders = \App\Models\Production\JobOrder::with('project:id,name')
+            ->orderBy('id', 'desc')
+            ->get(['id', 'name', 'project_id']);
+
         $departments = Department::orderBy('name')->get();
         $units = Unit::orderBy('name')->get();
 
@@ -310,7 +335,7 @@ class MaterialRequestController extends Controller
             $selectedMaterial = Inventory::find($request->material_id);
         }
 
-        return view('logistic.material_requests.create', compact('inventories', 'projects', 'selectedMaterial', 'departments', 'units'));
+        return view('logistic.material_requests.create', compact('inventories', 'projects', 'jobOrders', 'selectedMaterial', 'departments', 'units'));
     }
 
     public function store(Request $request)
@@ -322,6 +347,7 @@ class MaterialRequestController extends Controller
         $request->validate([
             'inventory_id' => 'required|exists:inventories,id',
             'project_id' => ['required', 'exists:projects,id', new ValidProjectSource()],
+            'job_order_id' => 'nullable|exists:job_orders,id',
             'qty' => 'required|numeric|min:0.01',
         ]);
 
@@ -344,6 +370,7 @@ class MaterialRequestController extends Controller
             $materialRequest = MaterialRequest::create([
                 'inventory_id' => $request->inventory_id,
                 'project_id' => $request->project_id,
+                'job_order_id' => $request->job_order_id, // Tambahkan job_order_id
                 'qty' => $request->qty,
                 'requested_by' => $user->username,
                 'remark' => $request->remark,
@@ -375,10 +402,13 @@ class MaterialRequestController extends Controller
     {
         $inventories = Inventory::orderBy('name')->get();
         $projects = Project::with('departments', 'status')->notArchived()->orderBy('name')->get();
+        $jobOrders = \App\Models\Production\JobOrder::with('project:id,name')
+            ->orderBy('id', 'desc')
+            ->get(['id', 'name', 'project_id']);
         $departments = Department::orderBy('name')->get();
         $units = Unit::orderBy('name')->get();
 
-        return view('logistic.material_requests.bulk_create', compact('inventories', 'projects', 'departments', 'units'));
+        return view('logistic.material_requests.bulk_create', compact('inventories', 'projects', 'jobOrders', 'departments', 'units'));
     }
 
     public function bulkStore(Request $request)
@@ -390,6 +420,19 @@ class MaterialRequestController extends Controller
         $request->validate([
             'requests.*.inventory_id' => 'required|exists:inventories,id',
             'requests.*.project_id' => 'required|exists:projects,id',
+            'requests.*.job_order_id' => [
+                'required',
+                'exists:job_orders,id',
+                function ($attribute, $value, $fail) use ($request) {
+                    $index = explode('.', $attribute)[1];
+                    $projectId = $request->input("requests.$index.project_id");
+                    $jobOrder = \App\Models\Production\JobOrder::find($value);
+
+                    if ($jobOrder && $jobOrder->project_id != $projectId) {
+                        $fail('The selected job order does not belong to the selected project.');
+                    }
+                },
+            ],
             'requests.*.qty' => 'required|numeric|min:0.01',
         ]);
 
@@ -412,6 +455,7 @@ class MaterialRequestController extends Controller
                     $materialRequest = MaterialRequest::create([
                         'inventory_id' => $req['inventory_id'],
                         'project_id' => $req['project_id'],
+                        'job_order_id' => $req['job_order_id'],
                         'qty' => $req['qty'],
                         'processed_qty' => 0,
                         'requested_by' => $user->username,
@@ -500,12 +544,14 @@ class MaterialRequestController extends Controller
                 return $inventory;
             });
 
-        $projects = Project::with('departments', 'status')->notArchived()->orderBy('name')->get();
+        $jobOrders = \App\Models\Production\JobOrder::with('project:id,name')
+            ->orderBy('id', 'desc')
+            ->get(['id', 'name', 'project_id']);
 
         return view('logistic.material_requests.edit', [
             'request' => $materialRequest,
             'inventories' => $inventories,
-            'projects' => $projects,
+            'jobOrders' => $jobOrders,
             'departments' => $departments,
             'units' => $units,
         ]);
@@ -534,6 +580,7 @@ class MaterialRequestController extends Controller
         // Validasi untuk pembaruan lengkap
         $request->validate([
             'inventory_id' => 'required|exists:inventories,id',
+            'job_order_id' => 'required|exists:job_orders,id',
             'project_id' => 'required|exists:projects,id',
             'qty' => 'required|numeric|min:0.01',
             'status' => 'required|in:pending,approved,delivered,canceled',
@@ -570,6 +617,7 @@ class MaterialRequestController extends Controller
             // Siapkan data update
             $updateData = [
                 'inventory_id' => $request->inventory_id,
+                'job_order_id' => $request->job_order_id,
                 'project_id' => $request->project_id,
                 'qty' => $request->qty,
                 'status' => $request->status,
@@ -729,13 +777,14 @@ class MaterialRequestController extends Controller
             'selected_ids.*' => 'exists:material_requests,id',
         ]);
 
-        $requests = MaterialRequest::with('inventory', 'project')->whereIn('id', $request->selected_ids)->get();
+        $requests = MaterialRequest::with('inventory', 'project', 'jobOrder')->whereIn('id', $request->selected_ids)->get();
 
         $data = $requests->map(function ($req) {
             return [
                 'id' => $req->id,
                 'material_name' => $req->inventory->name ?? '-',
                 'unit' => $req->inventory->unit ?? '',
+                'job_order_name' => $req->jobOrder->name ?? '-',
                 'project_name' => $req->project->name ?? '-',
                 'requested_by' => $req->requested_by,
                 'requested_qty' => rtrim(rtrim(number_format($req->qty, 2, '.', ''), '0'), '.'),

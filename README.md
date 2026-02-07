@@ -2545,3 +2545,53 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **Initial Release Date**: July 2025
 **Version**: 2.0  
 **Laravel Version**: 11.x
+
+
+## í³… Changelog - Latest Updates
+
+### [2.3.0] - 2026-02-05 - Job Order Tracking Enhancement
+
+#### âœ¨ Added
+
+**Database Schema**
+- âœ… `job_order_id` column in `material_usages` table (nullable, indexed, FK to job_orders)
+- âœ… `job_order_id` column in `goods_out` table (nullable, indexed, FK to job_orders)
+- âœ… `job_order_id` column in `goods_in` table (nullable, indexed, FK to job_orders)
+- âœ… Data migration synced 4,878 material_usages records with job_order_id
+
+**Project Costing Report**
+- âœ… Search field for project names (auto-submit with 500ms debounce)
+- âœ… Pagination (10 items per page)
+- âœ… Auto-filter on select change (removed manual filter button)
+- âœ… Hierarchical dropdown: Projects â†’ Job Orders â†’ Materials
+- âœ… AJAX loading for materials (lazy loading)
+- âœ… Loading spinner during data fetch
+
+**Controllers**
+- âœ… Updated 12 MaterialUsageHelper::sync() calls across GoodsOutController (6) and GoodsInController (6)
+- âœ… Added getJobOrderMaterials() method to ProjectCostingController for AJAX
+
+#### í°› Fixed
+
+- âœ… Dropdown not showing in project costing (removed DataTables - using plain jQuery now)
+- âœ… Detail rows disappearing (DataTables DOM manipulation issue)
+- âœ… SQL error "Column job_order_id not found" in goods_out/goods_in
+- âœ… Event handlers not working after table redraw
+- âœ… Missing jobOrders() relationship in Project model
+
+#### í´§ Changed
+
+- âœ… Removed DataTables library from project costing (following shipping management pattern)
+- âœ… MaterialUsageHelper::sync() now accepts job_order_id parameter
+- âœ… Filter behavior changed to auto-submit (better UX)
+
+**Migration Commands:**
+```bash
+php artisan migrate
+php artisan cache:clear && php artisan view:clear
+```
+
+---
+
+í³– **Full documentation**: See sections above for detailed technical documentation.
+

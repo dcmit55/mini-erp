@@ -137,6 +137,7 @@ class GoodsOutController extends Controller
                 'quantity' => $this->formatQuantity($goodsOut),
                 'remaining_quantity' => $this->formatRemainingQuantity($goodsOut),
                 'project' => $goodsOut->project ? $goodsOut->project->name : '(No project)',
+                'job_order' => $goodsOut->jobOrder ? $goodsOut->jobOrder->name : '-',
                 'requested_by' => $this->formatRequestedBy($goodsOut),
                 'created_at' => $goodsOut->created_at->format('d M Y, H:i'),
                 'remark' => $goodsOut->remark ?? '-',
@@ -337,6 +338,7 @@ class GoodsOutController extends Controller
                 'material_request_id' => $materialRequest->id,
                 'inventory_id' => $inventory->id,
                 'project_id' => $materialRequest->project_id,
+                'job_order_id' => $materialRequest->job_order_id,
                 'requested_by' => $materialRequest->requested_by,
                 'quantity' => $request->quantity,
                 'remark' => $request->remark,
@@ -346,7 +348,7 @@ class GoodsOutController extends Controller
             $inventory->quantity -= $request->quantity;
             $inventory->save();
 
-            MaterialUsageHelper::sync($inventory->id, $materialRequest->project_id);
+            MaterialUsageHelper::sync($inventory->id, $materialRequest->project_id, $materialRequest->job_order_id);
 
             DB::commit();
             return redirect()
@@ -364,15 +366,19 @@ class GoodsOutController extends Controller
     {
         $inventories = Inventory::orderBy('name')->get();
         $projects = Project::with('departments', 'status')->notArchived()->orderBy('name')->get();
+        $jobOrders = \App\Models\Production\JobOrder::with(['project:id,name', 'department:id,name'])
+            ->orderBy('id', 'desc')
+            ->get(['id', 'name', 'project_id', 'department_id']);
         $users = User::with('department')->orderBy('username')->get();
-        return view('logistic.goods_out.create_independent', compact('inventories', 'projects', 'users'));
+        return view('logistic.goods_out.create_independent', compact('inventories', 'projects', 'jobOrders', 'users'));
     }
 
     public function storeIndependent(Request $request)
     {
         $request->validate([
             'inventory_id' => 'required|exists:inventories,id',
-            'project_id' => 'nullable|exists:projects,id',
+            'job_order_id' => 'required|exists:job_orders,id',
+            'project_id' => 'required|exists:projects,id',
             'user_id' => 'required|exists:users,id',
             'quantity' => 'required|numeric|min:0.01',
             'remark' => 'nullable|string',
@@ -380,6 +386,13 @@ class GoodsOutController extends Controller
 
         DB::beginTransaction();
         try {
+            // Validate job_order belongs to project
+            $jobOrder = \App\Models\Production\JobOrder::findOrFail($request->job_order_id);
+            if ($jobOrder->project_id != $request->project_id) {
+                return back()
+                    ->withInput()
+                    ->withErrors(['job_order_id' => 'Job Order does not belong to the selected project.']);
+            }
             // Lock inventory row
             $inventory = Inventory::where('id', $request->inventory_id)->lockForUpdate()->first();
             $user = User::with('department')->findOrFail($request->user_id);
@@ -396,20 +409,18 @@ class GoodsOutController extends Controller
             $inventory->quantity -= $request->quantity;
             $inventory->save();
 
-            // Pastikan project_id null jika kosong
-            $projectId = $request->filled('project_id') ? $request->project_id : null;
-
             // Simpan Goods Out
             GoodsOut::create([
                 'inventory_id' => $request->inventory_id,
-                'project_id' => $request->project_id, // Bisa null
+                'project_id' => $request->project_id,
+                'job_order_id' => $request->job_order_id,
                 'requested_by' => $user->username,
                 'quantity' => $request->quantity,
                 'remark' => $request->remark,
             ]);
 
-            // Sync Material Usage hanya jika ada project
-            MaterialUsageHelper::sync($request->inventory_id, $projectId);
+            // Sync Material Usage
+            MaterialUsageHelper::sync($request->inventory_id, $request->project_id, $request->job_order_id);
 
             DB::commit();
 
@@ -493,6 +504,7 @@ class GoodsOutController extends Controller
                     'material_request_id' => $materialRequest->id,
                     'inventory_id' => $inventory->id,
                     'project_id' => $materialRequest->project_id,
+                    'job_order_id' => $materialRequest->job_order_id,
                     'requested_by' => $materialRequest->requested_by,
                     'quantity' => $qtyToGoodsOut,
                     'remark' => 'Bulk Goods Out',
@@ -507,7 +519,7 @@ class GoodsOutController extends Controller
 
                 $updatedRequests[] = $materialRequest->fresh(['inventory', 'project']);
 
-                MaterialUsageHelper::sync($inventory->id, $materialRequest->project_id);
+                MaterialUsageHelper::sync($inventory->id, $materialRequest->project_id, $materialRequest->job_order_id);
             }
 
             DB::commit();
@@ -547,24 +559,28 @@ class GoodsOutController extends Controller
 
     public function edit($id)
     {
-        $goodsOut = GoodsOut::with('inventory', 'project', 'materialRequest')->findOrFail($id);
+        $goodsOut = GoodsOut::with('inventory', 'project', 'materialRequest', 'jobOrder.department')->findOrFail($id);
         $inventories = Inventory::orderBy('name')->get();
         $projects = Project::with('departments', 'status')->notArchived()->orderBy('name')->get();
+        $jobOrders = \App\Models\Production\JobOrder::with(['project:id,name', 'department:id,name'])
+            ->orderBy('id', 'desc')
+            ->get(['id', 'name', 'project_id', 'department_id']);
         $users = User::with('department')->orderBy('username')->get();
 
         $fromMaterialRequest = $goodsOut->material_request_id ? true : false;
 
-        return view('logistic.goods_out.edit', compact('goodsOut', 'inventories', 'projects', 'users', 'fromMaterialRequest'));
+        return view('logistic.goods_out.edit', compact('goodsOut', 'inventories', 'projects', 'jobOrders', 'users', 'fromMaterialRequest'));
     }
 
     public function update(Request $request, $id)
     {
         $goodsOut = GoodsOut::findOrFail($id);
 
-        // Jika dari Material Request, pakai project_id lama
+        // Jika dari Material Request, pakai project_id dan job_order_id lama
         if ($goodsOut->material_request_id) {
             $request->merge([
                 'project_id' => $goodsOut->project_id,
+                'job_order_id' => $goodsOut->job_order_id,
                 'inventory_id' => $goodsOut->inventory_id,
                 'user_id' => User::where('username', $goodsOut->requested_by)->value('id'),
             ]);
@@ -572,11 +588,22 @@ class GoodsOutController extends Controller
 
         $request->validate([
             'inventory_id' => 'required|exists:inventories,id',
+            'job_order_id' => 'required|exists:job_orders,id',
             'project_id' => 'required|exists:projects,id',
             'user_id' => 'required|exists:users,id',
             'quantity' => 'required|numeric|min:0.01',
             'remark' => 'nullable|string',
         ]);
+
+        // Validate job_order belongs to project
+        if (!$goodsOut->material_request_id) {
+            $jobOrder = \App\Models\Production\JobOrder::findOrFail($request->job_order_id);
+            if ($jobOrder->project_id != $request->project_id) {
+                return back()
+                    ->withInput()
+                    ->withErrors(['job_order_id' => 'Job Order does not belong to the selected project.']);
+            }
+        }
 
         DB::beginTransaction();
         try {
@@ -634,12 +661,13 @@ class GoodsOutController extends Controller
             $goodsOut->update([
                 'inventory_id' => $request->inventory_id,
                 'project_id' => $request->project_id,
+                'job_order_id' => $request->job_order_id,
                 'requested_by' => $user->username,
                 'quantity' => $request->quantity,
                 'remark' => $request->remark,
             ]);
 
-            MaterialUsageHelper::sync($goodsOut->inventory_id, $goodsOut->project_id);
+            MaterialUsageHelper::sync($goodsOut->inventory_id, $goodsOut->project_id, $goodsOut->job_order_id);
 
             DB::commit();
 
@@ -667,7 +695,7 @@ class GoodsOutController extends Controller
         }
 
         // Sinkronkan Material Usage
-        MaterialUsageHelper::sync($goodsOut->inventory_id, $goodsOut->project_id);
+        MaterialUsageHelper::sync($goodsOut->inventory_id, $goodsOut->project_id, $goodsOut->job_order_id);
 
         return redirect()->route('goods_out.index')->with('success', 'Goods Out restored successfully.');
     }
@@ -734,7 +762,7 @@ class GoodsOutController extends Controller
             $goodsOut->delete();
 
             // Sync material usage setelah delete (termasuk null project)
-            MaterialUsageHelper::sync($goodsOut->inventory_id, $goodsOut->project_id);
+            MaterialUsageHelper::sync($goodsOut->inventory_id, $goodsOut->project_id, $goodsOut->job_order_id);
 
             DB::commit();
 
