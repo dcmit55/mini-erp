@@ -117,6 +117,7 @@ class GoodsInController extends Controller
                 'material' => $goodsIn->goodsOut && $goodsIn->goodsOut->inventory ? $goodsIn->goodsOut->inventory->name : ($goodsIn->inventory ? $goodsIn->inventory->name : '(no material)'),
                 'quantity' => $this->formatQuantity($goodsIn),
                 'project' => $goodsIn->goodsOut && $goodsIn->goodsOut->project ? $goodsIn->goodsOut->project->name : ($goodsIn->project ? $goodsIn->project->name : '(no project)'),
+                'job_order' => $goodsIn->jobOrder ? $goodsIn->jobOrder->name : '-',
                 'returned_by' => $this->formatReturnedBy($goodsIn),
                 'returned_at' => $goodsIn->returned_at->format('d M Y, H:i'),
                 'remark' => $goodsIn->remark ?? '-',
@@ -293,6 +294,7 @@ class GoodsInController extends Controller
             'goods_out_id' => $goodsOut->id,
             'inventory_id' => $goodsOut->inventory_id,
             'project_id' => $goodsOut->project_id,
+            'job_order_id' => $goodsOut->job_order_id,
             'quantity' => $request->quantity,
             'returned_by' => Auth::user()->username,
             'returned_at' => $request->returned_at,
@@ -300,7 +302,7 @@ class GoodsInController extends Controller
         ]);
 
         // Sinkronkan data penggunaan material
-        MaterialUsageHelper::sync($inventory->id, $goodsOut->project_id);
+        MaterialUsageHelper::sync($inventory->id, $goodsOut->project_id, $goodsOut->job_order_id);
 
         $projectName = $goodsOut->project ? $goodsOut->project->name : 'No Project';
 
@@ -343,13 +345,14 @@ class GoodsInController extends Controller
             'inventory_id' => $request->inventory_id,
             'project_id' => $request->project_id,
             'quantity' => $request->quantity,
+            'job_order_id' => $request->job_order_id ?? null,
             'returned_by' => Auth::user()->username,
             'returned_at' => $request->returned_at,
             'remark' => $request->remark,
         ]);
 
         if ($request->filled('project_id')) {
-            MaterialUsageHelper::sync($request->inventory_id, $request->project_id);
+            MaterialUsageHelper::sync($request->inventory_id, $request->project_id, $request->job_order_id ?? null);
         }
 
         return redirect()
@@ -382,13 +385,14 @@ class GoodsInController extends Controller
                 'goods_out_id' => $goodsOut->id,
                 'inventory_id' => $goodsOut->inventory_id,
                 'project_id' => $goodsOut->project_id,
+                'job_order_id' => $goodsOut->job_order_id,
                 'quantity' => $quantity,
                 'returned_by' => Auth::user()->username,
                 'returned_at' => now(),
                 'remark' => 'Bulk Goods In',
             ]);
 
-            MaterialUsageHelper::sync($goodsOut->inventory_id, $goodsOut->project_id);
+            MaterialUsageHelper::sync($goodsOut->inventory_id, $goodsOut->project_id, $goodsOut->job_order_id);
         }
 
         return response()->json(['success' => 'Bulk Goods In processed successfully.']);
@@ -436,13 +440,14 @@ class GoodsInController extends Controller
         $goods_in->update([
             'inventory_id' => $request->inventory_id,
             'project_id' => $request->project_id,
+            'job_order_id' => $request->job_order_id ?? null,
             'quantity' => $request->quantity,
             'returned_at' => $request->returned_at,
             'remark' => $request->remark,
         ]);
 
         if ($request->filled('project_id')) {
-            MaterialUsageHelper::sync($request->inventory_id, $request->project_id);
+            MaterialUsageHelper::sync($request->inventory_id, $request->project_id, $request->job_order_id ?? null);
         }
 
         $inventory = Inventory::findOrFail($request->inventory_id);
@@ -474,7 +479,7 @@ class GoodsInController extends Controller
             }
 
             // Re-sync Material Usage
-            MaterialUsageHelper::sync($inventoryId, $projectId);
+            MaterialUsageHelper::sync($inventoryId, $projectId, $goods_in->job_order_id);
 
             DB::commit();
 
@@ -511,7 +516,7 @@ class GoodsInController extends Controller
             $goods_in->delete();
 
             // Sinkronkan Material Usage (akan otomatis update)
-            MaterialUsageHelper::sync($inventoryId, $projectId);
+            MaterialUsageHelper::sync($inventoryId, $projectId, $goods_in->job_order_id);
 
             DB::commit();
 

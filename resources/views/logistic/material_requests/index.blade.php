@@ -551,6 +551,13 @@
 @push('scripts')
     <script>
         $(document).ready(function() {
+            // Auto-dismiss alerts after 5 seconds
+            setTimeout(function() {
+                $('.alert-dismissible').fadeOut('slow', function() {
+                    $(this).remove();
+                });
+            }, 5000);
+
             // Initialize DataTable with Server-Side Processing
             const table = $('#datatable').DataTable({
                 processing: false, // Hide processing indicator

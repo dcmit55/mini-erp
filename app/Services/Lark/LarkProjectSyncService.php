@@ -4,6 +4,7 @@ namespace App\Services\Lark;
 
 use App\DTO\LarkProjectDTO;
 use App\Models\Production\Project;
+use App\Models\Admin\Department;
 use App\Transformers\ProjectTransformer;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -89,6 +90,11 @@ class LarkProjectSyncService
 
                     // Upsert to database
                     $project = Project::updateOrCreate(['lark_record_id' => $dto->recordId], $data);
+
+                    // Sync departments to pivot table (department_project)
+                    if (!empty($dto->departmentRaw)) {
+                        $this->syncDepartmentsToPivot($project, $dto->departmentRaw);
+                    }
 
                     if ($project->wasRecentlyCreated) {
                         $stats['created']++;
@@ -182,6 +188,11 @@ class LarkProjectSyncService
                 ]),
             );
 
+            // Sync departments to pivot table
+            if (!empty($dto->departmentRaw)) {
+                $this->syncDepartmentsToPivot($project, $dto->departmentRaw);
+            }
+
             DB::commit();
 
             return $project;
@@ -189,5 +200,53 @@ class LarkProjectSyncService
             DB::rollBack();
             throw $e;
         }
+    }
+
+    /**
+     * Sync multiple departments to pivot table
+     *
+     * Parse comma-separated department names dari Lark dan attach ke project
+     * Menggunakan sync() untuk replace existing departments (idempotent)
+     */
+    private function syncDepartmentsToPivot(Project $project, ?string $departmentRaw): void
+    {
+        if (empty($departmentRaw) || trim($departmentRaw) === '') {
+            // Clear all departments if empty
+            $project->departments()->sync([]);
+            return;
+        }
+
+        // Parse comma-separated department names
+        $departmentNames = array_map('trim', explode(',', $departmentRaw));
+        $departmentIds = [];
+
+        foreach ($departmentNames as $departmentName) {
+            if (empty($departmentName)) {
+                continue;
+            }
+
+            // Find department by name (case-insensitive)
+            $department = Department::whereRaw('LOWER(name) = ?', [strtolower($departmentName)])->first();
+
+            if ($department) {
+                $departmentIds[] = $department->id;
+            } else {
+                Log::warning('Department not found during pivot sync', [
+                    'project_id' => $project->id,
+                    'department_name' => $departmentName,
+                    'raw_value' => $departmentRaw,
+                ]);
+            }
+        }
+
+        // Sync departments (replace existing)
+        // Using sync() instead of attach() to avoid duplicates
+        $project->departments()->sync($departmentIds);
+
+        Log::debug('Departments synced to pivot table', [
+            'project_id' => $project->id,
+            'department_ids' => $departmentIds,
+            'department_count' => count($departmentIds),
+        ]);
     }
 }

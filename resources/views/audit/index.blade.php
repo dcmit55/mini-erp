@@ -175,6 +175,7 @@
                             <strong>Warning:</strong> All audit logs older than the specified days will be permanently
                             deleted and cannot be recovered.
                         </div>
+                        
                     </form>
                 </div>
                 <div class="modal-footer">

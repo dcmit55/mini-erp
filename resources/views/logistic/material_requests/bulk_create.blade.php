@@ -8,12 +8,12 @@
                 <p class="text-muted mb-3">Use this form to create multiple material requests at once. You can add multiple
                     rows for different projects and materials.</p>
                 <div class="mb-3">
-                    <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal"
+                    {{-- <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal"
                         data-bs-target="#quickAddProjectModal">+
                         Quick Add Project</button>
                     <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddMaterial">
                         + Quick Add Material
-                    </button>
+                    </button> --}}
                 </div>
 
                 @if (session('error'))
@@ -42,29 +42,39 @@
                             style="min-width: 100%;">
                             <thead class="table-light">
                                 <tr>
-                                    <th style="width: 25%;">Project <span class="text-danger">*</span></th>
-                                    <th style="width: 25%;">Material <span class="text-danger">*</span></th>
+                                    <th style="width: 20%;">Job Order <span class="text-danger">*</span></th>
+                                    <th style="width: 20%;">Project <span class="text-muted">(auto)</span></th>
+                                    <th style="width: 20%;">Material <span class="text-danger">*</span></th>
                                     <th style="width: 15%;">Quantity <span class="text-danger">*</span></th>
-                                    <th style="width: 25%;">Remark (optional)</th>
+                                    <th style="width: 15%;">Remark</th>
                                     <th style="width: 10%;">Action</th>
                                 </tr>
                             </thead>
                             <tbody id="bulk-rows">
                                 @foreach (old('requests', [0 => []]) as $index => $request)
                                     <tr class="align-top">
-                                        <td data-label="Project">
-                                            <select name="requests[{{ $index }}][project_id]"
-                                                class="form-select select2 project-select" required>
-                                                <option value="">Select Project</option>
-                                                @foreach ($projects as $project)
-                                                    <option value="{{ $project->id }}"
-                                                        data-department="{{ $project->departments->pluck('name')->implode(', ') }}"
-                                                        {{ old("requests.$index.project_id") == $project->id ? 'selected' : '' }}>
-                                                        {{ $project->name }}
+                                        <td data-label="Job Order">
+                                            <select name="requests[{{ $index }}][job_order_id]"
+                                                class="form-select select2 job-order-select" required>
+                                                <option value="">Select Job Order</option>
+                                                @foreach ($jobOrders as $jo)
+                                                    <option value="{{ $jo->id }}"
+                                                        data-project-id="{{ $jo->project_id }}"
+                                                        data-project-name="{{ $jo->project->name ?? '' }}"
+                                                        {{ old("requests.$index.job_order_id") == $jo->id ? 'selected' : '' }}>
+                                                        {{ $jo->name }}
                                                     </option>
                                                 @endforeach
                                             </select>
-                                            <div class="department-text form-text d-none">Department</div>
+                                            @error("requests.$index.job_order_id")
+                                                <span class="text-danger">{{ $message }}</span>
+                                            @enderror
+                                        </td>
+                                        <td data-label="Project">
+                                            <input type="hidden" name="requests[{{ $index }}][project_id]"
+                                                class="project-id-input" required>
+                                            <input type="text" class="form-control project-name-display" readonly
+                                                placeholder="Select Job Order first">
                                             @error("requests.$index.project_id")
                                                 <span class="text-danger">{{ $message }}</span>
                                             @enderror
@@ -74,7 +84,8 @@
                                                 class="form-select select2 material-select" required>
                                                 <option value="">Select Material</option>
                                                 @foreach ($inventories as $inventory)
-                                                    <option value="{{ $inventory->id }}" data-unit="{{ $inventory->unit }}"
+                                                    <option value="{{ $inventory->id }}"
+                                                        data-unit="{{ $inventory->unit }}"
                                                         data-stock="{{ $inventory->quantity }}"
                                                         {{ old("requests.$index.inventory_id") == $inventory->id ? 'selected' : '' }}>
                                                         {{ $inventory->name }}
@@ -130,7 +141,8 @@
                     <div class="modal-content">
                         <div class="modal-header">
                             <h5 class="modal-title" id="confirmAddMaterialModalLabel">Confirm Add Material!</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
                             <b>Please make sure this material does not already exist in the inventory table.</b><br>
@@ -176,12 +188,12 @@
                                 <input type="number" step="any" name="quantity" class="form-control" required>
 
                                 <label class="mt-2">Unit <span class="text-danger">*</span></label>
-                                    <select name="unit" id="unit-select-modal" class="form-select select2" required>
-                                        <option value="">Select Unit</option>
-                                        @foreach ($units ?? [] as $unit)
-                                            <option value="{{ $unit->name }}">{{ $unit->name }}</option>
-                                        @endforeach
-                                    </select>
+                                <select name="unit" id="unit-select-modal" class="form-select select2" required>
+                                    <option value="">Select Unit</option>
+                                    @foreach ($units ?? [] as $unit)
+                                        <option value="{{ $unit->name }}">{{ $unit->name }}</option>
+                                    @endforeach
+                                </select>
 
                                 <label class="mt-2">Remark (optional)</label>
                                 <textarea name="remark" class="form-control" rows="2"></textarea>
@@ -359,65 +371,103 @@
         $(document).ready(function() {
             initSelect2($('#bulk-rows tr').first());
 
+            // Auto-fill Project when Job Order is selected
+            $(document).on('change', '.job-order-select', function() {
+                const selected = $(this).find(':selected');
+                const projectId = selected.data('project-id');
+                const projectName = selected.data('project-name');
+                const $row = $(this).closest('tr');
+
+                if (projectId && projectName) {
+                    $row.find('.project-id-input').val(projectId);
+                    $row.find('.project-name-display').val(projectName);
+                } else {
+                    $row.find('.project-id-input').val('');
+                    $row.find('.project-name-display').val('');
+                }
+            });
+
+            // Trigger on page load for old values
+            $('.job-order-select').trigger('change');
+
             $('#add-row').click(function() {
-                let lastRow = $('#bulk-rows tr').last(); // Ambil baris terakhir
-
-                // Check if Select2 is initialized before destroying
-                lastRow.find('.select2').each(function() {
-                    if ($(this).data('select2')) {
-                        $(this).select2('destroy');
-                    }
-                });
-
-                // Clone the last row
-                let newRow = lastRow.clone();
+                let lastRow = $('#bulk-rows tr').last();
                 let rowCount = $('#bulk-rows tr').length;
 
-                // Reset select elements
-                newRow.find('select').each(function() {
-                    let name = $(this).attr('name').replace(/\d+/, rowCount);
-                    $(this).attr('name', name);
-
-                    // If it's the project-select, copy the value from the last row
-                    if ($(this).hasClass('project-select')) {
-                        let previousValue = lastRow.find('.project-select').val();
-                        $(this).val(previousValue).trigger('change');
-                    } else {
-                        // Clear the value for other select elements
-                        $(this).val('').trigger('change');
+                // Destroy Select2 on last row before cloning
+                lastRow.find('.select2').each(function() {
+                    if ($(this).data('select2')) {
+                        try {
+                            $(this).select2('destroy');
+                        } catch (e) {
+                            console.log('Select2 destroy error:', e);
+                        }
                     }
                 });
 
-                // Reset input elements
-                newRow.find('input').each(function() {
-                    let name = $(this).attr('name').replace(/\d+/, rowCount);
-                    $(this).attr('name', name).val('').removeClass('is-invalid');
+                // Clone without events and data
+                let newRow = lastRow.clone(false, false);
+
+                // Remove Select2 artifacts from cloned row
+                newRow.find('.select2-container').remove();
+                newRow.find('select').removeClass('select2-hidden-accessible');
+
+                // Update names and reset values
+                newRow.find('select, input, textarea').each(function() {
+                    let $elem = $(this);
+                    let name = $elem.attr('name');
+
+                    if (name) {
+                        // Update index in name attribute
+                        let newName = name.replace(/\[\d+\]/, '[' + rowCount + ']');
+                        $elem.attr('name', newName);
+                    }
+
+                    // Handle different element types
+                    if ($elem.is('select')) {
+                        if ($elem.hasClass('job-order-select')) {
+                            // Keep job order value from last row
+                            let previousValue = lastRow.find('.job-order-select').val();
+                            $elem.val(previousValue);
+                        } else {
+                            // Clear material select
+                            $elem.val('');
+                        }
+                    } else if ($elem.hasClass('project-id-input') || $elem.hasClass(
+                            'project-name-display')) {
+                        // Keep project values (will be updated by job order trigger)
+                        // Don't clear these
+                    } else if ($elem.is('input[type="number"]') || $elem.is('textarea')) {
+                        // Clear quantity and remark
+                        $elem.val('').removeClass('is-invalid');
+                    }
                 });
 
-                // Reset textarea elements
-                newRow.find('textarea').each(function() {
-                    let name = $(this).attr('name').replace(/\d+/, rowCount);
-                    $(this).attr('name', name).val('');
-                });
-
-                // Hapus error message pada row baru
+                // Remove error messages
                 newRow.find('.text-danger').remove();
 
                 // Reset unit label
                 newRow.find('.unit-label').text('unit');
 
-                // Reset available qty di row baru
+                // Reset available qty display
                 newRow.find('.available-qty-text').addClass('d-none').removeClass(
                     'text-danger text-warning').text('');
 
-                // Append the new row
+                // Append new row
                 $('#bulk-rows').append(newRow);
 
-                // Reinitialize Select2 for the new row
-                initSelect2(newRow);
+                // Reinitialize Select2 for both rows
+                setTimeout(function() {
+                    try {
+                        initSelect2(lastRow);
+                        initSelect2(newRow);
 
-                // Reinitialize Select2 for the last row
-                initSelect2(lastRow);
+                        // Trigger job order change to auto-fill project
+                        newRow.find('.job-order-select').trigger('change');
+                    } catch (e) {
+                        console.log('Select2 init error:', e);
+                    }
+                }, 150);
             });
 
             $(document).on('click', '.remove-row', function() {
@@ -568,21 +618,6 @@
                     }
                 });
             });
-
-            // Department per-row
-            $(document).on('change', '.project-select', function() {
-                const selected = $(this).find(':selected');
-                const department = selected.data('department');
-                const $deptDiv = $(this).closest('td').find('.department-text');
-                $deptDiv.removeClass('d-none text-danger text-warning');
-                if (selected.val() && department) {
-                    $deptDiv.text(
-                        `Department: ${department.charAt(0).toUpperCase() + department.slice(1)}`);
-                } else {
-                    $deptDiv.addClass('d-none').text('Department');
-                }
-            });
-            $('.project-select').trigger('change');
 
             // Available Qty per-row
             $(document).on('change', '.material-select', function() {

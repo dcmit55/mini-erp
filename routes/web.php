@@ -285,6 +285,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/costing-report/{project_id}', [ProjectCostingController::class, 'viewCosting'])->name('costing.view');
     Route::get('/costing-report/export/{project_id}', [ProjectCostingController::class, 'exportCosting'])->name('costing.export');
     Route::get('/costing-report-export-all', [ProjectCostingController::class, 'exportAllProjects'])->name('costing.export.all');
+    Route::get('/costing-report/{project_id}/job-order/{job_order_id}/materials', [ProjectCostingController::class, 'getJobOrderMaterials'])->name('costing.job_order_materials');
 
     //set inventory
     Route::post('/set-inventory', function (Request $request) {

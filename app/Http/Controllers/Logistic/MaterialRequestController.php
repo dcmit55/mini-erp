@@ -393,10 +393,13 @@ class MaterialRequestController extends Controller
     {
         $inventories = Inventory::orderBy('name')->get();
         $projects = Project::with('departments', 'status')->notArchived()->orderBy('name')->get();
+        $jobOrders = \App\Models\Production\JobOrder::with('project:id,name')
+            ->orderBy('id', 'desc')
+            ->get(['id', 'name', 'project_id']);
         $departments = Department::orderBy('name')->get();
         $units = Unit::orderBy('name')->get();
 
-        return view('logistic.material_requests.bulk_create', compact('inventories', 'projects', 'departments', 'units'));
+        return view('logistic.material_requests.bulk_create', compact('inventories', 'projects', 'jobOrders', 'departments', 'units'));
     }
 
     public function bulkStore(Request $request)
@@ -408,6 +411,19 @@ class MaterialRequestController extends Controller
         $request->validate([
             'requests.*.inventory_id' => 'required|exists:inventories,id',
             'requests.*.project_id' => 'required|exists:projects,id',
+            'requests.*.job_order_id' => [
+                'required',
+                'exists:job_orders,id',
+                function ($attribute, $value, $fail) use ($request) {
+                    $index = explode('.', $attribute)[1];
+                    $projectId = $request->input("requests.$index.project_id");
+                    $jobOrder = \App\Models\Production\JobOrder::find($value);
+
+                    if ($jobOrder && $jobOrder->project_id != $projectId) {
+                        $fail('The selected job order does not belong to the selected project.');
+                    }
+                },
+            ],
             'requests.*.qty' => 'required|numeric|min:0.01',
         ]);
 
@@ -430,6 +446,7 @@ class MaterialRequestController extends Controller
                     $materialRequest = MaterialRequest::create([
                         'inventory_id' => $req['inventory_id'],
                         'project_id' => $req['project_id'],
+                        'job_order_id' => $req['job_order_id'],
                         'qty' => $req['qty'],
                         'processed_qty' => 0,
                         'requested_by' => $user->username,

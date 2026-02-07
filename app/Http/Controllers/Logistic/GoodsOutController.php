@@ -137,6 +137,7 @@ class GoodsOutController extends Controller
                 'quantity' => $this->formatQuantity($goodsOut),
                 'remaining_quantity' => $this->formatRemainingQuantity($goodsOut),
                 'project' => $goodsOut->project ? $goodsOut->project->name : '(No project)',
+                'job_order' => $goodsOut->jobOrder ? $goodsOut->jobOrder->name : '-',
                 'requested_by' => $this->formatRequestedBy($goodsOut),
                 'created_at' => $goodsOut->created_at->format('d M Y, H:i'),
                 'remark' => $goodsOut->remark ?? '-',
@@ -337,6 +338,7 @@ class GoodsOutController extends Controller
                 'material_request_id' => $materialRequest->id,
                 'inventory_id' => $inventory->id,
                 'project_id' => $materialRequest->project_id,
+                'job_order_id' => $materialRequest->job_order_id,
                 'requested_by' => $materialRequest->requested_by,
                 'quantity' => $request->quantity,
                 'remark' => $request->remark,
@@ -346,7 +348,7 @@ class GoodsOutController extends Controller
             $inventory->quantity -= $request->quantity;
             $inventory->save();
 
-            MaterialUsageHelper::sync($inventory->id, $materialRequest->project_id);
+            MaterialUsageHelper::sync($inventory->id, $materialRequest->project_id, $materialRequest->job_order_id);
 
             DB::commit();
             return redirect()
@@ -403,13 +405,14 @@ class GoodsOutController extends Controller
             GoodsOut::create([
                 'inventory_id' => $request->inventory_id,
                 'project_id' => $request->project_id, // Bisa null
+                'job_order_id' => $request->job_order_id ?? null,
                 'requested_by' => $user->username,
                 'quantity' => $request->quantity,
                 'remark' => $request->remark,
             ]);
 
             // Sync Material Usage hanya jika ada project
-            MaterialUsageHelper::sync($request->inventory_id, $projectId);
+            MaterialUsageHelper::sync($request->inventory_id, $projectId, $request->job_order_id ?? null);
 
             DB::commit();
 
@@ -493,6 +496,7 @@ class GoodsOutController extends Controller
                     'material_request_id' => $materialRequest->id,
                     'inventory_id' => $inventory->id,
                     'project_id' => $materialRequest->project_id,
+                    'job_order_id' => $materialRequest->job_order_id,
                     'requested_by' => $materialRequest->requested_by,
                     'quantity' => $qtyToGoodsOut,
                     'remark' => 'Bulk Goods Out',
@@ -507,7 +511,7 @@ class GoodsOutController extends Controller
 
                 $updatedRequests[] = $materialRequest->fresh(['inventory', 'project']);
 
-                MaterialUsageHelper::sync($inventory->id, $materialRequest->project_id);
+                MaterialUsageHelper::sync($inventory->id, $materialRequest->project_id, $materialRequest->job_order_id);
             }
 
             DB::commit();
@@ -634,12 +638,13 @@ class GoodsOutController extends Controller
             $goodsOut->update([
                 'inventory_id' => $request->inventory_id,
                 'project_id' => $request->project_id,
+                'job_order_id' => $request->job_order_id ?? null,
                 'requested_by' => $user->username,
                 'quantity' => $request->quantity,
                 'remark' => $request->remark,
             ]);
 
-            MaterialUsageHelper::sync($goodsOut->inventory_id, $goodsOut->project_id);
+            MaterialUsageHelper::sync($goodsOut->inventory_id, $goodsOut->project_id, $goodsOut->job_order_id);
 
             DB::commit();
 
@@ -667,7 +672,7 @@ class GoodsOutController extends Controller
         }
 
         // Sinkronkan Material Usage
-        MaterialUsageHelper::sync($goodsOut->inventory_id, $goodsOut->project_id);
+        MaterialUsageHelper::sync($goodsOut->inventory_id, $goodsOut->project_id, $goodsOut->job_order_id);
 
         return redirect()->route('goods_out.index')->with('success', 'Goods Out restored successfully.');
     }
@@ -734,7 +739,7 @@ class GoodsOutController extends Controller
             $goodsOut->delete();
 
             // Sync material usage setelah delete (termasuk null project)
-            MaterialUsageHelper::sync($goodsOut->inventory_id, $goodsOut->project_id);
+            MaterialUsageHelper::sync($goodsOut->inventory_id, $goodsOut->project_id, $goodsOut->job_order_id);
 
             DB::commit();
 

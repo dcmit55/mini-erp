@@ -162,9 +162,9 @@
                                 </td>
                                 <td>
                                     <div class="d-flex flex-wrap gap-1">
-                                        <a href="{{ route('projects.edit', $project) }}" class="btn btn-sm btn-warning"
+                                        {{-- <a href="{{ route('projects.edit', $project) }}" class="btn btn-sm btn-warning"
                                             data-bs-toggle="tooltip" data-bs-placement="bottom" title="Edit"><i
-                                                class="bi bi-pencil-square"></i></a>
+                                                class="bi bi-pencil-square"></i></a> --}}
                                         @if (auth()->user()->username === $project->created_by ||
                                                 // permission action delete data project
                                                 auth()->user()->role === 'super_admin' ||
@@ -180,12 +180,12 @@
                                             </form>
                                         @endif
 
-                                        <button type="button" class="btn btn-info btn-sm btn-show-image"
+                                        {{-- <button type="button" class="btn btn-info btn-sm btn-show-image"
                                             title="View Image"
                                             data-img="{{ $project->img ? asset('storage/' . $project->img) : '' }}"
                                             data-name="{{ $project->name }}">
                                             <i class="bi bi-file-earmark-image"></i>
-                                        </button>
+                                        </button> --}}
                                     </div>
                                 </td>
                             </tr>

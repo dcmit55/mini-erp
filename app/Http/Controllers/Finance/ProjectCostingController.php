@@ -34,6 +34,11 @@ class ProjectCostingController extends Controller
     {
         $query = Project::query();
 
+        // Search filter
+        if ($request->has('search') && $request->search !== null) {
+            $query->where('name', 'LIKE', '%' . $request->search . '%');
+        }
+
         // Apply filters
         if ($request->has('department') && $request->department !== null) {
             $query->whereHas('departments', function ($q) use ($request) {
@@ -41,21 +46,50 @@ class ProjectCostingController extends Controller
             });
         }
 
-        $projects = $query->with('departments')->orderBy('name')->get();
+        // Filter by created_by
+        if ($request->has('created_by') && $request->created_by !== null) {
+            if ($request->created_by === 'sync_from_lark') {
+                $query->where('created_by', 'Sync from Lark');
+            } elseif ($request->created_by === 'manual') {
+                $query->where('created_by', '!=', 'Sync from Lark')->orWhereNull('created_by');
+            } else {
+                // Filter by specific username
+                $query->where('created_by', $request->created_by);
+            }
+        }
+
+        // Filter by job order - show only projects that have this job order
+        if ($request->has('job_order') && $request->job_order !== null) {
+            $query->whereHas('jobOrders', function ($q) use ($request) {
+                $q->where('id', $request->job_order);
+            });
+        }
+
+        $projects = $query
+            ->with(['departments', 'jobOrders.materialRequests', 'jobOrders.department'])
+            ->orderBy('name')
+            ->paginate(10);
 
         // Pass data for filters
         $departments = Department::orderBy('name')->pluck('name');
 
-        return view('finance.costing.index', compact('projects', 'departments'));
+        // Get unique created_by values for filter
+        $createdByOptions = Project::selectRaw('DISTINCT created_by')->whereNotNull('created_by')->orderBy('created_by')->pluck('created_by');
+
+        // Get all job orders for filter dropdown
+        $jobOrders = \App\Models\Production\JobOrder::select('id', 'name')->orderBy('name')->get();
+
+        return view('finance.costing.index', compact('projects', 'departments', 'createdByOptions', 'jobOrders'));
     }
 
     public function viewCosting($project_id)
     {
         $project = Project::findOrFail($project_id);
 
-        // Ambil semua material usage untuk project
+        // Ambil semua material usage untuk project dengan eager load jobOrder
         $usages = MaterialUsage::where('project_id', $project_id)
-            ->with(['inventory.currency'])
+            ->with(['inventory.currency', 'jobOrder'])
+            ->orderBy('job_order_id')
             ->get();
 
         // Hitung total biaya per material dengan rumus baru dan konversi ke IDR
@@ -92,13 +126,12 @@ class ProjectCostingController extends Controller
             $totalCostInIDR = $totalCost * $exchangeRate;
 
             return (object) [
+                'job_order_name' => $usage->jobOrder ? $usage->jobOrder->name : 'No Job Order',
                 'inventory' => (object) [
                     'id' => $inventory->id ?? $usage->inventory_id,
                     'name' => $inventory->name ?? 'N/A',
                     'unit' => $unitName,
                     'price' => $unitPrice,
-                    'domestic_freight' => $domesticFreight,
-                    'international_freight' => $internationalFreight,
                     'total_unit_cost' => $totalUnitCost,
                     'currency' => $currency,
                 ],
@@ -123,7 +156,7 @@ class ProjectCostingController extends Controller
         $project = Project::findOrFail($project_id);
 
         $usages = MaterialUsage::where('project_id', $project_id)
-            ->with(['inventory.currency'])
+            ->with(['inventory.currency', 'jobOrder'])
             ->get();
 
         // Gunakan rumus yang sama dengan viewCosting()
@@ -144,6 +177,7 @@ class ProjectCostingController extends Controller
             $totalCostInIDR = $totalPrice * $exchangeRate;
 
             return [
+                'job_order_name' => $usage->jobOrder ? $usage->jobOrder->name : 'No Job Order',
                 'material_name' => $inventory->name ?? 'N/A',
                 'used_quantity' => $usedQty,
                 'unit' => $inventory->unit ?? 'N/A',
@@ -252,6 +286,88 @@ class ProjectCostingController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
             return back()->withErrors(['error' => 'Export failed: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Get materials breakdown by job order (AJAX endpoint)
+     */
+    public function getJobOrderMaterials($project_id, $job_order_id)
+    {
+        try {
+            $project = Project::findOrFail($project_id);
+            $jobOrder = \App\Models\Production\JobOrder::findOrFail($job_order_id);
+
+            // Get material usages for this job order
+            $usages = MaterialUsage::where('project_id', $project_id)
+                ->where('job_order_id', $job_order_id)
+                ->with(['inventory.currency', 'inventory.unit', 'jobOrder'])
+                ->get();
+
+            // Calculate costs per material
+            $materials = $usages->map(function ($usage) {
+                $inventory = $usage->inventory;
+
+                // RUMUS: Unit Price + Domestic Freight + International Freight
+                $unitPrice = $inventory->price ?? 0;
+                $domesticFreight = $inventory->unit_domestic_freight_cost ?? 0;
+                $internationalFreight = $inventory->unit_international_freight_cost ?? 0;
+                $totalUnitCost = $unitPrice + $domesticFreight + $internationalFreight;
+
+                $usedQty = $usage->used_quantity ?? 0;
+
+                // Get unit name
+                $unitName = 'N/A';
+                if ($inventory->unit_id) {
+                    try {
+                        $unitRelation = $inventory->unit;
+                        if ($unitRelation) {
+                            $unitName = $unitRelation->name;
+                        }
+                    } catch (\Exception $e) {
+                        $unitName = $inventory->unit ?? 'N/A';
+                    }
+                } elseif (!empty($inventory->unit)) {
+                    $unitName = $inventory->unit;
+                }
+
+                $currency = $inventory->currency ?? (object) ['name' => 'N/A', 'exchange_rate' => 1];
+                $exchangeRate = $currency->exchange_rate ?? 1;
+
+                $totalCost = $totalUnitCost * $usedQty;
+                $totalCostInIDR = $totalCost * $exchangeRate;
+
+                return [
+                    'job_order_name' => $usage->jobOrder ? $usage->jobOrder->name : 'No Job Order',
+                    'material_name' => $inventory->name ?? 'N/A',
+                    'quantity' => number_format($usedQty, 2),
+                    'unit' => $unitName,
+                    'unit_price' => number_format($unitPrice, 2),
+                    'domestic_freight' => number_format($domesticFreight, 2),
+                    'international_freight' => number_format($internationalFreight, 2),
+                    'total_unit_cost' => number_format($totalUnitCost, 2),
+                    'total_cost_idr' => 'Rp ' . number_format($totalCostInIDR, 2, ',', '.'),
+                    'currency' => $currency->name ?? 'N/A',
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'job_order' => [
+                    'id' => $jobOrder->id,
+                    'name' => $jobOrder->name,
+                ],
+                'materials' => $materials,
+                'total_materials' => $materials->count(),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ],
+                500,
+            );
         }
     }
 }

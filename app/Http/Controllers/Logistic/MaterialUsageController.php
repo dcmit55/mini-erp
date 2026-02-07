@@ -23,7 +23,7 @@ class MaterialUsageController extends Controller
     {
         // Check if AJAX request for DataTables
         if ($request->ajax()) {
-            $query = MaterialUsage::with(['inventory', 'project'])
+            $query = MaterialUsage::with(['inventory', 'project', 'jobOrder'])
                 ->select('material_usages.*')
                 ->latest();
 
@@ -54,6 +54,9 @@ class MaterialUsageController extends Controller
                 })
                 ->addColumn('project_name', function ($item) {
                     return $item->project ? $item->project->name : 'No Project';
+                })
+                ->addColumn('job_order', function ($item) {
+                    return $item->jobOrder ? $item->jobOrder->name : '-';
                 })
                 ->addColumn('goods_out_qty', function ($item) {
                     return GoodsOut::where('inventory_id', $item->inventory_id)
