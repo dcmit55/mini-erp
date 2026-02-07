@@ -315,18 +315,30 @@ class GoodsInController extends Controller
     {
         $inventories = Inventory::orderBy('name')->get();
         $projects = Project::orderBy('name')->get();
-        return view('logistic.goods_in.create_independent', compact('inventories', 'projects'));
+        $jobOrders = \App\Models\Production\JobOrder::with(['project:id,name', 'department:id,name'])
+            ->orderBy('id', 'desc')
+            ->get(['id', 'name', 'project_id', 'department_id']);
+        return view('logistic.goods_in.create_independent', compact('inventories', 'projects', 'jobOrders'));
     }
 
     public function storeIndependent(Request $request)
     {
         $request->validate([
             'inventory_id' => 'required|exists:inventories,id',
-            'project_id' => 'nullable|exists:projects,id',
+            'job_order_id' => 'required|exists:job_orders,id',
+            'project_id' => 'required|exists:projects,id',
             'quantity' => 'required|numeric|min:0.01',
             'returned_at' => 'required',
             'remark' => 'nullable|string',
         ]);
+
+        // Validate job_order belongs to project
+        $jobOrder = \App\Models\Production\JobOrder::findOrFail($request->job_order_id);
+        if ($jobOrder->project_id != $request->project_id) {
+            return back()
+                ->withInput()
+                ->withErrors(['job_order_id' => 'Job Order does not belong to the selected project.']);
+        }
 
         $inventory = Inventory::findOrFail($request->inventory_id);
 
@@ -345,15 +357,14 @@ class GoodsInController extends Controller
             'inventory_id' => $request->inventory_id,
             'project_id' => $request->project_id,
             'quantity' => $request->quantity,
-            'job_order_id' => $request->job_order_id ?? null,
+            'job_order_id' => $request->job_order_id,
             'returned_by' => Auth::user()->username,
             'returned_at' => $request->returned_at,
             'remark' => $request->remark,
         ]);
 
-        if ($request->filled('project_id')) {
-            MaterialUsageHelper::sync($request->inventory_id, $request->project_id, $request->job_order_id ?? null);
-        }
+        // Sync Material Usage
+        MaterialUsageHelper::sync($request->inventory_id, $request->project_id, $request->job_order_id);
 
         return redirect()
             ->route('goods_in.index')
@@ -402,22 +413,36 @@ class GoodsInController extends Controller
     {
         $inventories = Inventory::orderBy('name')->get();
         $projects = Project::with('departments')->orderBy('name')->get();
+        $jobOrders = \App\Models\Production\JobOrder::with(['project:id,name', 'department:id,name'])
+            ->orderBy('id', 'desc')
+            ->get(['id', 'name', 'project_id', 'department_id']);
         $userDept = null;
         if ($goods_in->returned_by) {
             $userDept = User::with('department')->where('username', $goods_in->returned_by)->first();
         }
-        return view('logistic.goods_in.edit', compact('goods_in', 'inventories', 'projects', 'userDept'));
+        return view('logistic.goods_in.edit', compact('goods_in', 'inventories', 'projects', 'jobOrders', 'userDept'));
     }
 
     public function update(Request $request, GoodsIn $goods_in)
     {
         $request->validate([
             'inventory_id' => 'required|exists:inventories,id',
+            'job_order_id' => 'nullable|exists:job_orders,id',
             'project_id' => 'nullable|exists:projects,id',
             'quantity' => 'required|numeric|min:0.01',
             'returned_at' => 'required',
             'remark' => 'nullable|string',
         ]);
+
+        // Validate job_order belongs to project (if both provided)
+        if ($request->filled('job_order_id') && $request->filled('project_id')) {
+            $jobOrder = \App\Models\Production\JobOrder::findOrFail($request->job_order_id);
+            if ($jobOrder->project_id != $request->project_id) {
+                return back()
+                    ->withInput()
+                    ->withErrors(['job_order_id' => 'Job Order does not belong to the selected project.']);
+            }
+        }
 
         // Jika terkait Goods Out, validasi sisa qty
         if ($goods_in->goods_out_id) {
@@ -430,24 +455,25 @@ class GoodsInController extends Controller
                     ->withInput()
                     ->withErrors(['quantity' => "Returned quantity cannot exceed remaining quantity to Goods In ({$maxQty})."]);
             }
-            // Paksa inventory_id dan project_id tetap sama
+            // Paksa inventory_id, project_id, dan job_order_id tetap sama
             $request->merge([
                 'inventory_id' => $goodsOut->inventory_id,
                 'project_id' => $goodsOut->project_id,
+                'job_order_id' => $goodsOut->job_order_id,
             ]);
         }
 
         $goods_in->update([
             'inventory_id' => $request->inventory_id,
             'project_id' => $request->project_id,
-            'job_order_id' => $request->job_order_id ?? null,
+            'job_order_id' => $request->job_order_id,
             'quantity' => $request->quantity,
             'returned_at' => $request->returned_at,
             'remark' => $request->remark,
         ]);
 
         if ($request->filled('project_id')) {
-            MaterialUsageHelper::sync($request->inventory_id, $request->project_id, $request->job_order_id ?? null);
+            MaterialUsageHelper::sync($request->inventory_id, $request->project_id, $request->job_order_id);
         }
 
         $inventory = Inventory::findOrFail($request->inventory_id);

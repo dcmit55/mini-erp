@@ -61,8 +61,8 @@
                         <div class="col-md-2">
                             <select id="filter-job-order" name="job_order" class="form-select form-select-sm select2">
                                 <option value="">All Job Orders</option>
-                                @foreach ($jobOrders as $jobOrder)
-                                    <option value="{{ $jobOrder->id }}">{{ $jobOrder->name }}</option>
+                                @foreach ($jobOrders as $jo)
+                                    <option value="{{ $jo->id }}">{{ $jo->name }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -82,7 +82,7 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-1">
+                        <div class="col-md-2">
                             <select id="filter-status" name="status" class="form-select form-select-sm select2">
                                 <option value="">All Status</option>
                                 <option value="pending">Pending</option>
@@ -91,7 +91,7 @@
                                 <option value="canceled">Canceled</option>
                             </select>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-1">
                             <select id="filter-requested-by" name="requested_by" class="form-select form-select-sm select2">
                                 <option value="">All Requester</option>
                                 @foreach ($users as $user)
@@ -99,7 +99,7 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-1">
+                        <div class="col-md-2">
                             <input type="text" id="filter-requested-at" name="requested_at"
                                 class="form-control form-control-sm" placeholder="Requested At Date">
                         </div>
@@ -168,6 +168,7 @@
                                 <thead>
                                     <tr>
                                         <th>Material</th>
+                                        <th>Job order</th>
                                         <th>Project</th>
                                         <th>Req / Rem Qty</th>
                                         <th>Qty to Goods Out</th>
@@ -551,13 +552,6 @@
 @push('scripts')
     <script>
         $(document).ready(function() {
-            // Auto-dismiss alerts after 5 seconds
-            setTimeout(function() {
-                $('.alert-dismissible').fadeOut('slow', function() {
-                    $(this).remove();
-                });
-            }, 5000);
-
             // Initialize DataTable with Server-Side Processing
             const table = $('#datatable').DataTable({
                 processing: false, // Hide processing indicator
@@ -568,7 +562,6 @@
                     url: "{{ route('material_requests.index') }}",
                     data: function(d) {
                         // Add filter parameters
-                        d.job_order = $('#filter-job-order').val();
                         d.project = $('#filter-project').val();
                         d.material = $('#filter-material').val();
                         d.status = $('#filter-status').val();
@@ -602,17 +595,18 @@
                     {
                         data: 'job_order',
                         name: 'jobOrder.name',
-                        width: '12%'
+                        width: '14%'
                     },
                     {
                         data: 'project_name',
                         name: 'project.name',
-                        width: '13%'
+                        width: '14%'
                     },
+
                     {
                         data: 'material_name',
                         name: 'inventory.name',
-                        width: '15%'
+                        width: '14%'
                     },
                     {
                         data: 'requested_qty',
@@ -704,12 +698,12 @@
             }, 300);
 
             // Update event listener untuk include custom search
-            $('#filter-job-order, #filter-project, #filter-material, #filter-status, #filter-requested-by, #filter-requested-at, #custom-search')
+            $('#filter-project, #filter-job-order, #filter-material, #filter-status, #filter-requested-by, #filter-requested-at, #custom-search')
                 .on('change input', debouncedFilter);
 
             // Reset filters juga harus reset search
             $('#reset-filters').on('click', function() {
-                $('#filter-job-order, #filter-project, #filter-material, #filter-status, #filter-requested-by, #filter-requested-at, #custom-search')
+                $('#filter-project, #filter-job-order, #filter-material, #filter-status, #filter-requested-by, #filter-requested-at, #custom-search')
                     .val('').trigger('change');
                 table.draw();
             });
@@ -718,8 +712,8 @@
             $('#export-btn').on('click', function(e) {
                 e.preventDefault();
                 const params = {
-                    job_order: $('#filter-job-order').val(),
                     project: $('#filter-project').val(),
+                    job_order: $('#filter-job-order').val(),
                     material: $('#filter-material').val(),
                     status: $('#filter-status').val(),
                     requested_by: $('#filter-requested-by').val(),
@@ -740,7 +734,6 @@
             });
 
             // Set placeholder untuk setiap select
-            $('#filter-job-order').attr('data-placeholder', 'All Job Orders');
             $('#filter-project').attr('data-placeholder', 'All Projects');
             $('#filter-material').attr('data-placeholder', 'All Materials');
             $('#filter-status').attr('data-placeholder', 'All Status');
@@ -845,7 +838,7 @@
 
                 // Show loading in modal
                 $('#bulk-goods-out-table-body').html(
-                    '<tr><td colspan="5" class="text-center py-4"><div class="spinner-border" role="status"></div></td></tr>'
+                    '<tr><td colspan="6" class="text-center py-4"><div class="spinner-border" role="status"></div></td></tr>'
                 );
                 $('#bulkGoodsOutModal').modal('show');
 
@@ -862,6 +855,7 @@
                             $('#bulk-goods-out-table-body').append(`
                         <tr>
                             <td>${item.material_name}</td>
+                            <td>${item.job_order_name || '-'}</td>
                             <td>
                                 ${item.project_name}
                                 <span data-bs-toggle="tooltip" data-bs-placement="bottom" title="Requested By: ${item.requested_by}">
@@ -890,7 +884,7 @@
                     },
                     error: function(xhr) {
                         $('#bulk-goods-out-table-body').html(
-                            '<tr><td colspan="5" class="text-center text-danger">Failed to load data. Please try again.</td></tr>'
+                            '<tr><td colspan="6" class="text-center text-danger">Failed to load data. Please try again.</td></tr>'
                         );
                         console.error('Bulk details error:', xhr);
                     }

@@ -249,16 +249,21 @@ class MaterialRequestController extends Controller
     {
         // Ambil filter dari request
         $project = $request->project;
+        $jobOrder = $request->job_order;
         $material = $request->material;
         $status = $request->status;
         $requestedBy = $request->requested_by;
         $requestedAt = $request->requested_at;
 
         // Filter data berdasarkan request
-        $query = MaterialRequest::with(['inventory', 'project', 'user.department']);
+        $query = MaterialRequest::with(['inventory', 'project', 'jobOrder', 'user.department']);
 
         if ($project) {
             $query->where('project_id', $project);
+        }
+
+        if ($jobOrder) {
+            $query->where('job_order_id', $jobOrder);
         }
 
         if ($material) {
@@ -285,6 +290,10 @@ class MaterialRequestController extends Controller
         if ($project) {
             $projectName = Project::find($project)->name ?? 'Unknown Project';
             $fileName .= '_project-' . str_replace(' ', '-', strtolower($projectName));
+        }
+        if ($jobOrder) {
+            $jobOrderName = \App\Models\Production\JobOrder::find($jobOrder)->name ?? 'Unknown JobOrder';
+            $fileName .= '_joborder-' . str_replace(' ', '-', strtolower($jobOrderName));
         }
         if ($material) {
             $materialName = Inventory::find($material)->name ?? 'Unknown Material';
@@ -768,13 +777,14 @@ class MaterialRequestController extends Controller
             'selected_ids.*' => 'exists:material_requests,id',
         ]);
 
-        $requests = MaterialRequest::with('inventory', 'project')->whereIn('id', $request->selected_ids)->get();
+        $requests = MaterialRequest::with('inventory', 'project', 'jobOrder')->whereIn('id', $request->selected_ids)->get();
 
         $data = $requests->map(function ($req) {
             return [
                 'id' => $req->id,
                 'material_name' => $req->inventory->name ?? '-',
                 'unit' => $req->inventory->unit ?? '',
+                'job_order_name' => $req->jobOrder->name ?? '-',
                 'project_name' => $req->project->name ?? '-',
                 'requested_by' => $req->requested_by,
                 'requested_qty' => rtrim(rtrim(number_format($req->qty, 2, '.', ''), '0'), '.'),

@@ -63,21 +63,52 @@
                                 <small class="text-danger">{{ $message }}</small>
                             @enderror
                         </div>
-                        <div class="mb-3">
-                            <label>Project <span class="text-danger">*</span></label>
-                            <select name="project_id" class="form-select select2"
-                                {{ $fromMaterialRequest ? 'disabled' : '' }}>
-                                @foreach ($projects as $project)
-                                    <option value="{{ $project->id }}"
-                                        {{ $project->id == $goodsOut->project_id ? 'selected' : '' }}>
-                                        {{ $project->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            @if ($fromMaterialRequest)
+
+                        @if ($fromMaterialRequest)
+                            {{-- From Material Request: Show Job Order & Project (readonly) --}}
+                            <div class="mb-3">
+                                <label>Job Order</label>
+                                <input type="text" class="form-control" value="{{ $goodsOut->jobOrder->name ?? '-' }}"
+                                    disabled>
+                                <input type="hidden" name="job_order_id" value="{{ $goodsOut->job_order_id }}">
+                            </div>
+                            <div class="mb-3">
+                                <label>Project <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" value="{{ $goodsOut->project->name ?? '-' }}"
+                                    disabled>
                                 <input type="hidden" name="project_id" value="{{ $goodsOut->project_id }}">
-                            @endif
-                        </div>
+                            </div>
+                        @else
+                            {{-- Independent Goods Out: Select Job Order (auto-fill Project) --}}
+                            <div class="mb-3">
+                                <label>Job Order <span class="text-danger">*</span></label>
+                                <select name="job_order_id" id="job_order_id" class="form-select select2"
+                                    data-placeholder="Select Job Order" required>
+                                    <option value="">Select Job Order</option>
+                                    @foreach ($jobOrders as $jo)
+                                        <option value="{{ $jo->id }}" data-project-id="{{ $jo->project_id }}"
+                                            data-project-name="{{ $jo->project->name ?? '' }}"
+                                            data-department-name="{{ $jo->department->name ?? '' }}"
+                                            {{ $jo->id == $goodsOut->job_order_id ? 'selected' : '' }}>
+                                            {{ $jo->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('job_order_id')
+                                    <small class="text-danger">{{ $message }}</small>
+                                @enderror
+
+                                <!-- Hidden Project ID (Auto-filled) -->
+                                <input type="hidden" name="project_id" id="project_id" value="{{ $goodsOut->project_id }}"
+                                    required>
+
+                                <!-- Project Display (Read-only) -->
+                                <div id="project-display" class="mt-2 {{ $goodsOut->project_id ? '' : 'd-none' }}">
+                                    <small class="text-muted">Project:</small>
+                                    <strong id="project-name-text">{{ $goodsOut->project->name ?? '' }}</strong>
+                                </div>
+                            </div>
+                        @endif
                     </div>
 
                     <div class="row">
@@ -114,7 +145,8 @@
 
                     <a href="{{ route('goods_out.index') }}" class="btn btn-secondary">Cancel</a>
                     <button type="submit" class="btn btn-success" id="goodsout-update-btn">
-                        <span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>
+                        <span class="spinner-border spinner-border-sm me-1 d-none" role="status"
+                            aria-hidden="true"></span>
                         Update
                     </button>
                 </form>
@@ -136,6 +168,36 @@
                 }, 100);
             });
 
+            @if (!$fromMaterialRequest)
+                // Auto-fill Project and Department when Job Order is selected (for independent goods out)
+                $('#job_order_id').on('change', function() {
+                    const selected = $(this).find(':selected');
+                    const projectId = selected.data('project-id');
+                    const projectName = selected.data('project-name');
+                    const departmentName = selected.data('department-name');
+
+                    if (projectId && projectName) {
+                        $('#project_id').val(projectId);
+                        $('#project-name-text').text(projectName);
+                        $('#project-display').removeClass('d-none');
+                    } else {
+                        $('#project_id').val('');
+                        $('#project-name-text').text('');
+                        $('#project-display').addClass('d-none');
+                    }
+
+                    // Auto-fill department
+                    if (departmentName) {
+                        $('#department').val(departmentName);
+                    } else {
+                        $('#department').val('');
+                    }
+                });
+
+                // Trigger on page load
+                $('#job_order_id').trigger('change');
+            @endif
+
             // Set initial department value
             const initialDepartment = $('select[name="user_id"]').find(':selected').data('department');
             $('#department').val(initialDepartment || '');
@@ -145,10 +207,6 @@
                 const selectedDepartment = $(this).find(':selected').data('department');
                 $('#department').val(selectedDepartment || '');
             });
-
-            @if ($fromMaterialRequest)
-                $('select[name="project_id"]').prop('disabled', true);
-            @endif
         });
 
         document.addEventListener('DOMContentLoaded', function() {
