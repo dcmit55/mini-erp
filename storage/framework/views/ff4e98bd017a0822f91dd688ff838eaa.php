@@ -97,6 +97,7 @@
                     </div>
                 </div>
             </div>
+
             <!-- Filters -->
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-body p-3">
@@ -186,7 +187,7 @@
                             <i class="fas fa-check-circle me-2"></i> 
                             <div class="flex-grow-1"><?php echo e(session('success')); ?></div>
                             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
+                        </div>  
                     <?php endif; ?>
 
                     <?php if(session('error')): ?>
