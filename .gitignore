@@ -15,4 +15,6 @@ yarn-error.log
 /.idea
 /.vscode
 
+# Ignore storage framework views
+/storage/framework/views
 # Ignore custom layout changes
