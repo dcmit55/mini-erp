@@ -399,33 +399,6 @@
                                         </div>
                                     </div>
                                 </div>
-                                
-                                <!-- Tracking Information -->
-                                <div class="row g-2 mt-2" id="trackingSection">
-                                    <div class="col-md-6">
-                                        <label class="form-label small text-dark">Tracking Number</label>
-                                        <input type="text" 
-                                               class="form-control border-1 rounded-2 py-2 px-3 @error('tracking_number') is-invalid @enderror" 
-                                               name="tracking_number" 
-                                               value="{{ old('tracking_number') }}"
-                                               placeholder="Optional tracking number">
-                                        @error('tracking_number')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                    
-                                    <div class="col-md-6">
-                                        <label class="form-label small text-dark">Resi Number</label>
-                                        <input type="text" 
-                                               class="form-control border-1 rounded-2 py-2 px-3 @error('resi_number') is-invalid @enderror" 
-                                               name="resi_number" 
-                                               value="{{ old('resi_number') }}"
-                                               placeholder="Optional resi number">
-                                        @error('resi_number')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                </div>
                             </div>
 
                             <!-- New Supplier Section -->
@@ -492,7 +465,7 @@
                                             <div class="form-check me-3">
                                                 <input class="form-check-input new-supplier-order-type" type="radio" 
                                                        name="new_supplier_is_offline_order" 
-                                                       value="0" checked required>
+                                                       id="newOnlineOrder" value="0" checked required>
                                                 <label class="form-check-label d-flex align-items-center small" for="newOnlineOrder">
                                                     <i class="fas fa-globe me-1 fa-sm"></i>
                                                     Online
@@ -501,13 +474,38 @@
                                             <div class="form-check">
                                                 <input class="form-check-input new-supplier-order-type" type="radio" 
                                                        name="new_supplier_is_offline_order" 
-                                                       value="1">
+                                                       id="newOfflineOrder" value="1">
                                                 <label class="form-check-label d-flex align-items-center small" for="newOfflineOrder">
                                                     <i class="fas fa-store me-1 fa-sm"></i>
                                                     Offline
                                                 </label>
                                             </div>
                                         </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Resi Number Section - SELALU TAMPIL, TAPI TIDAK WAJIB -->
+                        <div class="mb-4">
+                            <h6 class="fw-medium text-dark mb-2">
+                                <i class="fas fa-truck-loading me-2 text-primary"></i>Shipping Information
+                            </h6>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label small text-dark">Resi Number</label>
+                                    <input type="text" 
+                                           class="form-control border-1 rounded-2 py-2 px-3 @error('resi_number') is-invalid @enderror" 
+                                           name="resi_number" 
+                                           id="resiNumber"
+                                           value="{{ old('resi_number') }}"
+                                           placeholder="Enter resi/shipping number (optional)">
+                                    @error('resi_number')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                    <div class="form-text text-muted small mt-1">
+                                        Optional: Enter resi number for tracking (recommended for online orders)
                                     </div>
                                 </div>
                             </div>
@@ -804,7 +802,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const onlineOrderRadio = document.getElementById('onlineOrder');
     const offlineOrderRadio = document.getElementById('offlineOrder');
     const newSupplierOrderTypes = document.querySelectorAll('.new-supplier-order-type');
-    const trackingSection = document.getElementById('trackingSection');
+    
+    // Resi elements
+    const resiNumberInput = document.getElementById('resiNumber');
     
     // Price elements
     const totalPriceInput = document.getElementById('totalPrice');
@@ -921,18 +921,6 @@ document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('input[name="is_offline_order"]').forEach(radio => {
                 radio.disabled = true;
             });
-        }
-    }
-
-    // Toggle tracking section based on order type
-    function toggleTrackingSection() {
-        const isOnlineOrder = onlineOrderRadio.checked;
-        console.log('Toggle Tracking - Is Online Order:', isOnlineOrder);
-        
-        if (isOnlineOrder) {
-            trackingSection.style.display = 'flex';
-        } else {
-            trackingSection.style.display = 'none';
         }
     }
 
@@ -1114,15 +1102,6 @@ document.addEventListener('DOMContentLoaded', function() {
     newItemRadio.addEventListener('change', togglePurchaseType);
     existingSupplierRadio.addEventListener('change', toggleSupplierType);
     newSupplierRadio.addEventListener('change', toggleSupplierType);
-    onlineOrderRadio.addEventListener('change', toggleTrackingSection);
-    offlineOrderRadio.addEventListener('change', toggleTrackingSection);
-    
-    // Add event listeners for new supplier order types
-    newSupplierOrderTypes.forEach(radio => {
-        radio.addEventListener('change', function() {
-            console.log('New Supplier Order Type Changed:', this.value);
-        });
-    });
     
     // Calculate totals on input change
     [quantityInput, unitPriceInput, freightInput, otherCostsInput].forEach(input => {
@@ -1239,6 +1218,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (field.name === 'new_item_name' && isRestock) return;
                 // Skip is_offline_order if new supplier
                 if (field.name === 'is_offline_order' && !isExistingSupplier) return;
+                // Skip new_supplier_is_offline_order if existing supplier
+                if (field.name === 'new_supplier_is_offline_order' && isExistingSupplier) return;
                 
                 isValid = false;
                 if (!firstInvalidField) {
@@ -1270,31 +1251,6 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // Validate online order tracking (optional but warn)
-        let isOnlineOrder = false;
-        if (isExistingSupplier) {
-            isOnlineOrder = onlineOrderRadio.checked;
-        } else {
-            isOnlineOrder = document.querySelector('.new-supplier-order-type[value="0"]')?.checked || false;
-        }
-        
-        console.log('Is Online Order:', isOnlineOrder);
-        
-        if (isOnlineOrder) {
-            let trackingNumber = '', resiNumber = '';
-            
-            if (isExistingSupplier) {
-                trackingNumber = this.querySelector('input[name="tracking_number"]').value;
-                resiNumber = this.querySelector('input[name="resi_number"]').value;
-            }
-            
-            if (!trackingNumber && !resiNumber) {
-                if (!confirm('No tracking number or resi number provided for online order. Continue anyway?')) {
-                    return;
-                }
-            }
-        }
-        
         // Show loading state
         const submitBtn = this.querySelector('button[type="submit"]');
         const originalText = submitBtn.innerHTML;
@@ -1319,7 +1275,6 @@ document.addEventListener('DOMContentLoaded', function() {
     toggleProjectType();
     togglePurchaseType();
     toggleSupplierType();
-    toggleTrackingSection();
     calculateTotals();
     
     // Auto-calculate with debounce

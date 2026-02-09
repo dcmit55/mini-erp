@@ -3,31 +3,33 @@
 namespace App\Models\Procurement;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ProjectPurchase extends Model
 {
+    use SoftDeletes;
+
     protected $table = 'indo_purchases';
 
     protected $fillable = [
         'po_number',
         'date',
+        'project_type',
         'purchase_type',
         'material_id',
         'new_item_name',
         'quantity',
+        'actual_quantity',
         'unit_price',
         'department_id',
-        'project_type',
         'project_id',
         'internal_project_id',
         'job_order_id',
         'category_id',
         'unit_id',
         'supplier_id',
-        'material_id',
         'is_offline_order',
         'pic_id',
-        'tracking_number',
         'resi_number',
         'total_price',
         'freight',
@@ -36,6 +38,8 @@ class ProjectPurchase extends Model
         'item_status',
         'note',
         'finance_notes',
+        'checked_at',
+        'checked_by',
         'approved_at',
         'approved_by',
         'received_at',
@@ -45,10 +49,12 @@ class ProjectPurchase extends Model
     protected $casts = [
         'date' => 'date',
         'quantity' => 'integer',
+        'actual_quantity' => 'integer',
         'unit_price' => 'decimal:2',
         'total_price' => 'decimal:2',
         'freight' => 'decimal:2',
         'invoice_total' => 'decimal:2',
+        'checked_at' => 'datetime',
         'approved_at' => 'datetime',
         'received_at' => 'datetime',
         'is_offline_order' => 'boolean',
@@ -60,6 +66,7 @@ class ProjectPurchase extends Model
         'formatted_total_price',
         'formatted_freight',
         'formatted_invoice_total',
+        'formatted_checked_at',
         'formatted_approved_at',
         'formatted_received_at',
         'material_name',
@@ -71,6 +78,7 @@ class ProjectPurchase extends Model
         'project_type_text',
         'project_name',
         'job_name',
+        'is_offline_order_text',
     ];
 
     // Relationships
@@ -119,6 +127,11 @@ class ProjectPurchase extends Model
         return $this->belongsTo(\App\Models\Admin\User::class, 'pic_id');
     }
 
+    public function checker()
+    {
+        return $this->belongsTo(\App\Models\Admin\User::class, 'checked_by');
+    }
+
     public function approver()
     {
         return $this->belongsTo(\App\Models\Admin\User::class, 'approved_by');
@@ -162,17 +175,27 @@ class ProjectPurchase extends Model
 
     public function scopeItemPending($query)
     {
-        return $query->where('item_status', 'pending');
+        return $query->whereIn('item_status', ['pending_check', 'pending']);
     }
 
-    public function scopeItemReceived($query)
+    public function scopeItemMatched($query)
     {
-        return $query->where('item_status', 'received');
+        return $query->where('item_status', 'matched');
     }
 
-    public function scopeItemNotReceived($query)
+    public function scopeItemNotMatched($query)
     {
-        return $query->where('item_status', 'not_received');
+        return $query->where('item_status', 'not_matched');
+    }
+
+    public function scopeItemChecked($query)
+    {
+        return $query->whereNotNull('checked_at');
+    }
+
+    public function scopeItemNotChecked($query)
+    {
+        return $query->whereNull('checked_at');
     }
 
     public function scopeOfflineOrder($query)
@@ -193,6 +216,16 @@ class ProjectPurchase extends Model
     public function scopeInternalProjects($query)
     {
         return $query->where('project_type', 'internal');
+    }
+
+    public function scopeWithTracking($query)
+    {
+        return $query->whereNotNull('resi_number');
+    }
+
+    public function scopeWithoutTracking($query)
+    {
+        return $query->whereNull('resi_number');
     }
 
     // Accessors
@@ -219,6 +252,11 @@ class ProjectPurchase extends Model
     public function getFormattedDateAttribute()
     {
         return $this->date ? $this->date->format('d/m/Y') : '-';
+    }
+
+    public function getFormattedCheckedAtAttribute()
+    {
+        return $this->checked_at ? $this->checked_at->format('d/m/Y H:i') : '-';
     }
 
     public function getFormattedApprovedAtAttribute()
@@ -263,6 +301,11 @@ class ProjectPurchase extends Model
         return 'N/A';
     }
 
+    public function getIsOfflineOrderTextAttribute()
+    {
+        return $this->is_offline_order ? 'Offline Order' : 'Online Order';
+    }
+
     // Business Logic Methods
     public function canEdit()
     {
@@ -272,6 +315,31 @@ class ProjectPurchase extends Model
     public function canDelete()
     {
         return $this->status === 'pending';
+    }
+
+    public function canCheck()
+    {
+        return $this->status === 'approved' && is_null($this->checked_at);
+    }
+
+    public function canApprove()
+    {
+        return $this->status === 'pending';
+    }
+
+    public function canReject()
+    {
+        return $this->status === 'pending';
+    }
+
+    public function canMarkAsReceived()
+    {
+        return $this->status === 'approved' && in_array($this->item_status, ['pending_check', 'pending']);
+    }
+
+    public function canUpdateResi()
+    {
+        return $this->status === 'approved' && in_array($this->item_status, ['pending_check', 'pending']);
     }
 
     public function isApproved()
@@ -289,29 +357,24 @@ class ProjectPurchase extends Model
         return $this->status === 'rejected';
     }
 
-    public function isItemReceived()
+    public function isItemMatched()
     {
-        return $this->item_status === 'received';
+        return $this->item_status === 'matched';
     }
 
-    public function isItemNotReceived()
+    public function isItemNotMatched()
     {
-        return $this->item_status === 'not_received';
+        return $this->item_status === 'not_matched';
     }
 
     public function isItemPending()
     {
-        return $this->item_status === 'pending';
+        return in_array($this->item_status, ['pending_check', 'pending']);
     }
 
-    public function canMarkAsReceived()
+    public function isItemChecked()
     {
-        return $this->isApproved() && $this->isItemPending();
-    }
-
-    public function canUpdateTracking()
-    {
-        return $this->isApproved() && $this->isItemPending();
+        return !is_null($this->checked_at);
     }
 
     public function isOfflineOrder()
@@ -343,6 +406,11 @@ class ProjectPurchase extends Model
         return $this->project_type === 'internal';
     }
 
+    public function hasResiNumber()
+    {
+        return !empty($this->resi_number);
+    }
+
     public function getMaterialNameAttribute()
     {
         if ($this->isRestock() && $this->material) {
@@ -368,9 +436,10 @@ class ProjectPurchase extends Model
     public function getItemStatusBadgeClassAttribute()
     {
         $classes = [
+            'pending_check' => 'badge bg-secondary',
             'pending' => 'badge bg-secondary',
-            'received' => 'badge bg-success',
-            'not_received' => 'badge bg-danger',
+            'matched' => 'badge bg-success',
+            'not_matched' => 'badge bg-danger',
         ];
         
         return $classes[$this->item_status] ?? 'badge bg-secondary';
@@ -390,9 +459,10 @@ class ProjectPurchase extends Model
     public function getItemStatusTextAttribute()
     {
         $statuses = [
-            'pending' => 'Pending Receipt',
-            'received' => 'Received',
-            'not_received' => 'Tidak Diterima',
+            'pending_check' => 'Pending Check',
+            'pending' => 'Pending',
+            'matched' => 'Matched',
+            'not_matched' => 'Not Matched',
         ];
         
         return $statuses[$this->item_status] ?? 'Unknown';
@@ -408,10 +478,70 @@ class ProjectPurchase extends Model
         return $types[$this->purchase_type] ?? 'Unknown';
     }
 
+    // Helper Methods
+    public function markAsChecked($userId, $status = 'matched')
+    {
+        $this->checked_at = now();
+        $this->checked_by = $userId;
+        $this->item_status = $status;
+        return $this->save();
+    }
+
+    public function markAsApproved($userId)
+    {
+        $this->status = 'approved';
+        $this->approved_at = now();
+        $this->approved_by = $userId;
+        return $this->save();
+    }
+
+    public function markAsRejected($userId)
+    {
+        $this->status = 'rejected';
+        $this->approved_at = now();
+        $this->approved_by = $userId;
+        return $this->save();
+    }
+
+    public function markAsReceived($userId)
+    {
+        $this->received_at = now();
+        $this->received_by = $userId;
+        $this->item_status = 'matched';
+        return $this->save();
+    }
+
+    public function updateResiNumber($resiNumber)
+    {
+        $this->resi_number = $resiNumber;
+        return $this->save();
+    }
+
+    public function calculateTotalPrice()
+    {
+        if ($this->quantity && $this->unit_price) {
+            $this->total_price = $this->quantity * $this->unit_price;
+        }
+        return $this->total_price;
+    }
+
+    public function calculateInvoiceTotal()
+    {
+        $this->invoice_total = ($this->total_price ?? 0) + ($this->freight ?? 0);
+        return $this->invoice_total;
+    }
+
     // Boot Method
     protected static function boot()
     {
         parent::boot();
+
+        static::creating(function ($purchase) {
+            // Generate PO number jika kosong
+            if (empty($purchase->po_number)) {
+                $purchase->po_number = 'PO-' . date('ymd') . str_pad(static::count() + 1, 3, '0', STR_PAD_LEFT);
+            }
+        });
 
         static::saving(function ($purchase) {
             // Auto-calculate total_price
@@ -429,14 +559,14 @@ class ProjectPurchase extends Model
                 $purchase->is_offline_order = true;
             }
             
-            // Set PIC jika kosong
+            // Set PIC jika kosong dan user sedang login
             if (!$purchase->pic_id && auth()->check()) {
                 $purchase->pic_id = auth()->id();
             }
             
-            // Set default item_status
+            // Set default item_status sesuai dengan database
             if (!$purchase->item_status) {
-                $purchase->item_status = 'pending';
+                $purchase->item_status = 'pending_check'; // Default dari database
             }
             
             // Set default status
@@ -447,6 +577,11 @@ class ProjectPurchase extends Model
             // Set default project_type
             if (!$purchase->project_type) {
                 $purchase->project_type = 'client';
+            }
+            
+            // Set default purchase_type
+            if (!$purchase->purchase_type) {
+                $purchase->purchase_type = 'restock';
             }
         });
     }

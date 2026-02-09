@@ -287,7 +287,7 @@
                                             <span class="badge {{ $purchase->item_status_badge_class }} px-3 py-1 rounded-pill">
                                                 {{ $purchase->item_status_text }}
                                             </span>
-                                            @if($purchase->isItemReceived() && $purchase->received_at)
+                                            @if($purchase->isItemMatched() && $purchase->received_at)
                                             @endif
                                         </td>
                                         <td class="text-center">
@@ -375,11 +375,6 @@
                                                         <p class="fw-medium">{{ $purchase->po_number }} - {{ $purchase->material_name }}</p>
                                                         
                                                         @if(!$purchase->is_offline_order)
-                                                        <div class="mb-2">
-                                                            <label class="form-label small">Tracking Number</label>
-                                                            <input type="text" name="tracking_number" class="form-control form-control-sm" 
-                                                                   placeholder="Optional">
-                                                        </div>
                                                         <div class="mb-2">
                                                             <label class="form-label small">Resi Number</label>
                                                             <input type="text" name="resi_number" class="form-control form-control-sm" 

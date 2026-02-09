@@ -72,7 +72,6 @@ class PurchaseApprovalController extends Controller
         try {
             $request->validate([
                 'finance_notes' => 'nullable|string|max:1000',
-                'tracking_number' => 'nullable|string|max:255',
                 'resi_number' => 'nullable|string|max:255',
             ]);
             
@@ -90,7 +89,6 @@ class PurchaseApprovalController extends Controller
             $updateData = [
                 'status' => 'approved',
                 'finance_notes' => $request->input('finance_notes', $purchase->finance_notes),
-                'tracking_number' => $request->input('tracking_number', $purchase->tracking_number),
                 'resi_number' => $request->input('resi_number', $purchase->resi_number),
             ];
             
@@ -134,7 +132,6 @@ class PurchaseApprovalController extends Controller
                 'status' => 'approved',
                 'item_status' => 'pending',
                 'finance_notes' => $request->input('finance_notes', ''),
-                'tracking_number' => $request->input('tracking_number', ''),
                 'resi_number' => $request->input('resi_number', ''),
                 'approved_at' => now(),
             ];

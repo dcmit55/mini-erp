@@ -313,16 +313,7 @@
                             </div>
                             
                             <!-- Tracking Information (only for online orders) -->
-                            <div class="row g-2 mt-2" id="trackingSection">
-                                <div class="col-md-6 mb-2">
-                                    <label class="form-label small text-dark">Tracking Number</label>
-                                    <input type="text" 
-                                           class="form-control border-1 rounded-2 py-2 px-3" 
-                                           name="tracking_number" 
-                                           value="{{ $purchase->tracking_number }}"
-                                           placeholder="Optional tracking number">
-                                </div>
-                                
+                            <div class="row g-2 mt-2" id="trackingSection">                                
                                 <div class="col-md-6 mb-2">
                                     <label class="form-label small text-dark">Resi Number</label>
                                     <input type="text" 

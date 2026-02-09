@@ -45,6 +45,10 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 
     <link rel="stylesheet" href="{{ asset('css/custom-app.css') }}">
+    
+    <!-- Page Specific Styles -->
+    @yield('styles')
+    
     @stack('styles')
 </head>
 
@@ -167,12 +171,7 @@
                                                 <i class="fas fa-boxes me-2"></i>Inventory Listing
                                             </a>
                                         </li>
-                                        <li>
-                                            <a class="dropdown-item {{ request()->is('suppliers*') ? 'active' : '' }}"
-                                                href="{{ route('suppliers.index') }}">
-                                                <i class="fas fa-truck me-2"></i>Suppliers
-                                            </a>
-                                        </li>
+                                        {{-- Menu Suppliers dihapus dari Logistics --}}
                                         <li>
                                             <a class="dropdown-item {{ request()->is('material_requests*') ? 'active' : '' }}"
                                                 href="{{ route('material_requests.index') }}">
@@ -561,6 +560,10 @@
     </script>
 
     <script src="{{ asset('js/custom-app.js') }}"></script>
+    
+    <!-- Page Specific Scripts -->
+    @yield('scripts')
+    
     @stack('scripts')
 
     <footer class="bg-light text-center text-lg-start mt-5">

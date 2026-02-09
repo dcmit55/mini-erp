@@ -386,22 +386,6 @@
                         <textarea name="finance_notes" class="form-control" rows="3" 
                                   placeholder="Add notes for this approval..."></textarea>
                     </div>
-                    <div class="row g-2">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Tracking Number (Optional)</label>
-                                <input type="text" name="tracking_number" class="form-control" 
-                                       placeholder="Enter tracking number">
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Resi Number (Optional)</label>
-                                <input type="text" name="resi_number" class="form-control" 
-                                       placeholder="Enter resi number">
-                            </div>
-                        </div>
-                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -588,8 +572,6 @@ function setupEventListeners() {
             
             // Clear previous values
             document.querySelector('#approveForm textarea').value = '';
-            document.querySelector('#approveForm input[name="tracking_number"]').value = '';
-            document.querySelector('#approveForm input[name="resi_number"]').value = '';
             
             // Show modal
             const modal = new bootstrap.Modal(document.getElementById('approveModal'));

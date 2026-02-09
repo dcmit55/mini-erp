@@ -10,10 +10,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule; 
+use Illuminate\Support\Facades\Validator;
 
 class ProjectPurchaseService
 {
-    public function getPurchasesWithFilters(Request $request)
+    public function getPurchasesWithFilters(Request $request, $paginate = true)
     {
         $query = ProjectPurchase::with([ 
             'material:id,name',
@@ -30,6 +31,11 @@ class ProjectPurchaseService
         // Filter by status
         if ($request->filled('status')) {
             $query->where('status', $request->status);
+        }
+        
+        // Filter by item_status
+        if ($request->filled('item_status')) {
+            $query->where('item_status', $request->item_status);
         }
         
         // Filter by department
@@ -71,15 +77,21 @@ class ProjectPurchaseService
             $query->whereDate('date', '<=', $request->end_date);
         }
         
-        // Search by PO number
+        // Filter by purchase type
+        if ($request->filled('purchase_type')) {
+            $query->where('purchase_type', $request->purchase_type);
+        }
+        
+        // Search by PO number, material name, supplier, etc.
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
                 $q->where('po_number', 'like', "%{$search}%")
+                  ->orWhere('resi_number', 'like', "%{$search}%")
+                  ->orWhere('new_item_name', 'like', "%{$search}%")
                   ->orWhereHas('material', function($q) use ($search) {
                       $q->where('name', 'like', "%{$search}%");
                   })
-                  ->orWhere('new_item_name', 'like', "%{$search}%")
                   ->orWhereHas('supplier', function($q) use ($search) {
                       $q->where('name', 'like', "%{$search}%");
                   })
@@ -96,7 +108,11 @@ class ProjectPurchaseService
         // Order by latest
         $query->orderBy('created_at', 'desc');
         
-        return $query->paginate(20);
+        if ($paginate) {
+            return $query->paginate(20);
+        }
+        
+        return $query->get();
     }
     
     public function getInternalProjectDetails($id)
@@ -141,30 +157,11 @@ class ProjectPurchaseService
         try {
             Log::info('=== GETTING PURCHASE STATS ===');
             
-            // Debug 1: Cek model dan tabel
-            $model = new ProjectPurchase();
-            $tableName = $model->getTable();
-            Log::info('Table name for ProjectPurchase: ' . $tableName);
+            // Debug: Cek apakah ada data
+            $totalCount = ProjectPurchase::count();
+            Log::info('Total Purchase Count: ' . $totalCount);
             
-            // Debug 2: Cek apakah tabel ada
-            $tableExists = DB::select("SHOW TABLES LIKE ?", [$tableName]);
-            Log::info('Table ' . $tableName . ' exists: ' . (!empty($tableExists) ? 'YES' : 'NO'));
-            
-            if (!empty($tableExists)) {
-                // Debug 3: Cek apakah ada data
-                $totalCount = ProjectPurchase::count();
-                Log::info('Total Purchase Count: ' . $totalCount);
-                
-                // Debug 4: Tampilkan 5 data terbaru
-                $recentData = ProjectPurchase::latest()->take(5)->get();
-                Log::info('Recent purchase data:', $recentData->toArray());
-                
-                // Debug 5: Cek kolom yang ada
-                $columns = DB::getSchemaBuilder()->getColumnListing($tableName);
-                Log::info('Columns in ' . $tableName . ':', $columns);
-            }
-            
-            // Query statistik dengan COALESCE untuk handle NULL values
+            // Query statistik yang sesuai dengan database (menggunakan pending_check, matched, not_matched)
             $stats = ProjectPurchase::query()
                 ->select([
                     DB::raw('COUNT(*) as total'),
@@ -172,9 +169,9 @@ class ProjectPurchaseService
                     DB::raw("COALESCE(SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END), 0) as pending"),
                     DB::raw("COALESCE(SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END), 0) as rejected"),
                     DB::raw("COALESCE(SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END), 0) as approved"),
-                    DB::raw("COALESCE(SUM(CASE WHEN item_status = 'pending' THEN 1 ELSE 0 END), 0) as pending_receipt"),
-                    DB::raw("COALESCE(SUM(CASE WHEN item_status = 'received' THEN 1 ELSE 0 END), 0) as received"),
-                    DB::raw("COALESCE(SUM(CASE WHEN item_status = 'not_received' THEN 1 ELSE 0 END), 0) as not_received"),
+                    DB::raw("COALESCE(SUM(CASE WHEN item_status IN ('pending_check', 'pending') THEN 1 ELSE 0 END), 0) as pending_check"),
+                    DB::raw("COALESCE(SUM(CASE WHEN item_status = 'matched' THEN 1 ELSE 0 END), 0) as matched"),
+                    DB::raw("COALESCE(SUM(CASE WHEN item_status = 'not_matched' THEN 1 ELSE 0 END), 0) as not_matched"),
                     DB::raw("COALESCE(SUM(CASE WHEN DATE(created_at) = CURDATE() THEN 1 ELSE 0 END), 0) as today"),
                     DB::raw("COALESCE(SUM(CASE WHEN project_type = 'client' THEN 1 ELSE 0 END), 0) as client_projects"),
                     DB::raw("COALESCE(SUM(CASE WHEN project_type = 'internal' THEN 1 ELSE 0 END), 0) as internal_projects")
@@ -190,9 +187,9 @@ class ProjectPurchaseService
                 'pending' => (int) ($stats->pending ?? 0),
                 'rejected' => (int) ($stats->rejected ?? 0),
                 'approved' => (int) ($stats->approved ?? 0),
-                'received' => (int) ($stats->received ?? 0),
-                'pending_receipt' => (int) ($stats->pending_receipt ?? 0),
-                'not_received' => (int) ($stats->not_received ?? 0),
+                'received' => (int) ($stats->matched ?? 0), // matched = received
+                'pending_check' => (int) ($stats->pending_check ?? 0),
+                'not_matched' => (int) ($stats->not_matched ?? 0),
                 'today' => (int) ($stats->today ?? 0),
                 'client_projects' => (int) ($stats->client_projects ?? 0),
                 'internal_projects' => (int) ($stats->internal_projects ?? 0),
@@ -214,8 +211,8 @@ class ProjectPurchaseService
                 'rejected' => 0,
                 'approved' => 0,
                 'received' => 0,
-                'pending_receipt' => 0,
-                'not_received' => 0,
+                'pending_check' => 0,
+                'not_matched' => 0,
                 'today' => 0,
                 'client_projects' => 0,
                 'internal_projects' => 0,
@@ -269,9 +266,7 @@ class ProjectPurchaseService
             'supplier_type' => 'required|in:existing,new',
             'is_offline_order' => 'required|in:0,1',
             'freight' => 'nullable|numeric|min:0',
-            'other_costs' => 'nullable|numeric|min:0',
-            'tracking_number' => 'nullable|string|max:100',
-            'resi_number' => 'nullable|string|max:100',
+            'resi_number' => 'nullable|string|max:255', // Resi number tidak wajib
             'note' => 'nullable|string',
             'material_id' => 'nullable|exists:inventories,id',
         ]);
@@ -310,6 +305,19 @@ class ProjectPurchaseService
         
         $validated = $request->validate($rules);
         
+        // RESI NUMBER TIDAK WAJIB - Hapus validasi khusus untuk online order
+        // if ($request->is_offline_order == 0 || ($request->supplier_type === 'new' && $request->new_supplier_is_offline_order == 0)) {
+        //     // Online order, resi_number wajib
+        //     if (empty($validated['resi_number'])) {
+        //         throw new \Illuminate\Validation\ValidationException(
+        //             validator()->make([], [])->errors()->add(
+        //                 'resi_number',
+        //                 'Untuk order online, nomor resi wajib diisi.'
+        //             )
+        //         );
+        //     }
+        // }
+        
         if ($request->purchase_type === 'new_item' && isset($validated['material_id']) && $validated['material_id'] === null) {
             unset($validated['material_id']);
         }
@@ -328,8 +336,9 @@ class ProjectPurchaseService
         try {
             Log::info('Creating purchase with data:', $data);
             
+            // Handle material_id untuk new_item
             if (isset($data['purchase_type']) && $data['purchase_type'] === 'new_item' && 
-                (isset($data['material_id']) && $data['material_id'] === null)) {
+                isset($data['material_id'])) {
                 unset($data['material_id']);
             }
             
@@ -338,18 +347,16 @@ class ProjectPurchaseService
                 throw new \Exception('Material harus dipilih untuk purchase type restock');
             }
             
+            // Set default values
             if (!isset($data['freight'])) {
                 $data['freight'] = 0;
-            }
-            
-            if (!isset($data['other_costs'])) {
-                $data['other_costs'] = 0;
             }
             
             if (!isset($data['is_offline_order'])) {
                 $data['is_offline_order'] = 0;
             }
             
+            // Handle internal project
             if ($data['project_type'] === 'internal' && isset($data['internal_project_id'])) {
                 $internalProject = InternalProject::find($data['internal_project_id']);
                 if ($internalProject) {
@@ -363,13 +370,18 @@ class ProjectPurchaseService
                 }
             }
             
+            // Calculate prices
             $data['total_price'] = $data['quantity'] * $data['unit_price'];
-            $data['invoice_total'] = $data['total_price'] + ($data['freight'] ?? 0) + ($data['other_costs'] ?? 0);
+            $data['invoice_total'] = $data['total_price'] + ($data['freight'] ?? 0);
             
+            // Set default statuses
             $data['status'] = 'pending';
-            $data['item_status'] = 'pending';
-            $data['pic_id'] = auth()->id();
+            $data['item_status'] = 'pending_check'; // Sesuai dengan database
             
+            // FIX: Handle PIC ID dengan benar - Cek langsung di database
+            $data['pic_id'] = $this->getValidPicIdFromDatabase();
+            
+            // Clean up project-related fields
             if ($data['project_type'] === 'client' && empty($data['job_order_id'])) {
                 $data['job_order_id'] = null;
             }
@@ -390,9 +402,12 @@ class ProjectPurchaseService
                 'id' => $purchase->id,
                 'po_number' => $purchase->po_number,
                 'status' => $purchase->status,
+                'item_status' => $purchase->item_status,
                 'project_type' => $purchase->project_type,
                 'material_id' => $purchase->material_id,
-                'new_item_name' => $purchase->new_item_name
+                'new_item_name' => $purchase->new_item_name,
+                'resi_number' => $purchase->resi_number,
+                'pic_id' => $purchase->pic_id
             ]);
             
             DB::commit();
@@ -420,8 +435,9 @@ class ProjectPurchaseService
                 $data['job_order_id'] = $data['job_order_id'] ?? null;
             }
             
+            // Calculate prices
             $data['total_price'] = $data['quantity'] * $data['unit_price'];
-            $data['invoice_total'] = $data['total_price'] + ($data['freight'] ?? 0) + ($data['other_costs'] ?? 0);
+            $data['invoice_total'] = $data['total_price'] + ($data['freight'] ?? 0);
             
             $purchase->update($data);
             
@@ -439,14 +455,19 @@ class ProjectPurchaseService
         DB::beginTransaction();
         
         try {
-            $purchase->update([
+            $updateData = [
                 'status' => 'approved',
                 'approved_at' => now(),
-                'finance_approver_id' => auth()->id(),
-                'tracking_number' => $data['tracking_number'] ?? null,
-                'resi_number' => $data['resi_number'] ?? null,
+                'approved_by' => auth()->id(),
                 'finance_notes' => $data['finance_notes'] ?? null,
-            ]);
+            ];
+            
+            // Hanya set resi_number jika disediakan
+            if (isset($data['resi_number']) && !empty($data['resi_number'])) {
+                $updateData['resi_number'] = $data['resi_number'];
+            }
+            
+            $purchase->update($updateData);
             
             DB::commit();
             
@@ -464,7 +485,7 @@ class ProjectPurchaseService
             $purchase->update([
                 'status' => 'rejected',
                 'approved_at' => now(),
-                'finance_approver_id' => auth()->id(),
+                'approved_by' => auth()->id(),
                 'finance_notes' => $data['finance_notes'],
             ]);
             
@@ -476,12 +497,54 @@ class ProjectPurchaseService
         }
     }
     
-    public function updateTracking(ProjectPurchase $purchase, array $data)
+    public function updateResiNumber(ProjectPurchase $purchase, array $data)
     {
-        $purchase->update([
-            'tracking_number' => $data['tracking_number'] ?? null,
-            'resi_number' => $data['resi_number'] ?? null,
-        ]);
+        $updateData = [];
+        
+        // Update resi_number jika disediakan
+        if (isset($data['resi_number'])) {
+            $updateData['resi_number'] = $data['resi_number'];
+        }
+        
+        if (!empty($updateData)) {
+            $purchase->update($updateData);
+        }
+    }
+    
+    public function markAsChecked(ProjectPurchase $purchase, array $data)
+    {
+        DB::beginTransaction();
+        
+        try {
+            $updateData = [
+                'item_status' => $data['item_status'],
+                'checked_at' => now(),
+                'checked_by' => auth()->id(),
+            ];
+            
+            // Update actual_quantity jika ada
+            if (isset($data['actual_quantity'])) {
+                $updateData['actual_quantity'] = $data['actual_quantity'];
+            }
+            
+            // Update note jika ada
+            if (isset($data['note'])) {
+                $updateData['note'] = $purchase->note ? $purchase->note . "\n[Checked] " . $data['note'] : $data['note'];
+            }
+            
+            // Jika matched (sesuai), tambahkan ke inventory
+            if ($data['item_status'] === 'matched') {
+                $this->insertToInventory($purchase);
+            }
+            
+            $purchase->update($updateData);
+            
+            DB::commit();
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
     }
     
     public function markAsReceived(ProjectPurchase $purchase)
@@ -490,11 +553,12 @@ class ProjectPurchaseService
         
         try {
             $purchase->update([
-                'item_status' => 'received',
+                'item_status' => 'matched',
                 'received_at' => now(),
                 'received_by' => auth()->id(),
             ]);
             
+            // Tambahkan ke inventory
             $this->insertToInventory($purchase);
             
             DB::commit();
@@ -505,12 +569,12 @@ class ProjectPurchaseService
         }
     }
     
-    public function markAsNotReceived(ProjectPurchase $purchase)
+    public function markAsNotMatched(ProjectPurchase $purchase)
     {
         $purchase->update([
-            'item_status' => 'not_received',
-            'received_at' => now(),
-            'received_by' => auth()->id(),
+            'item_status' => 'not_matched',
+            'checked_at' => now(),
+            'checked_by' => auth()->id(),
         ]);
     }
     
@@ -540,6 +604,98 @@ class ProjectPurchaseService
             }
         } else {
             Inventory::create($inventoryData);
+        }
+    }
+    
+    /**
+     * Get valid PIC ID langsung dari database
+     */
+    private function getValidPicIdFromDatabase()
+    {
+        try {
+            // Cek apakah tabel employees ada
+            $tableExists = DB::select("SHOW TABLES LIKE 'employees'");
+            
+            if (empty($tableExists)) {
+                Log::warning('Tabel employees tidak ditemukan');
+                
+                // Coba tabel users
+                $usersTableExists = DB::select("SHOW TABLES LIKE 'users'");
+                if (!empty($usersTableExists)) {
+                    $firstUserId = DB::table('users')->min('id');
+                    if ($firstUserId) {
+                        Log::info('Menggunakan user pertama sebagai PIC', ['user_id' => $firstUserId]);
+                        return $firstUserId;
+                    }
+                }
+                
+                // Jika tidak ada kedua tabel, return null (asumsi kolom nullable)
+                Log::error('Tidak ada tabel employees atau users. Setting pic_id ke null.');
+                return null;
+            }
+            
+            // Coba gunakan user yang sedang login jika ada
+            if (auth()->check()) {
+                $userId = auth()->id();
+                
+                // Cek apakah user_id ada di tabel employees
+                $exists = DB::table('employees')->where('id', $userId)->exists();
+                if ($exists) {
+                    Log::info('Menggunakan user login sebagai PIC', ['employee_id' => $userId]);
+                    return $userId;
+                }
+                
+                Log::warning('User ID ' . $userId . ' tidak ditemukan di tabel employees');
+            }
+            
+            // Cari employee pertama
+            $firstEmployee = DB::table('employees')->orderBy('id')->first();
+            if ($firstEmployee) {
+                Log::info('Menggunakan employee pertama sebagai PIC', ['employee_id' => $firstEmployee->id]);
+                return $firstEmployee->id;
+            }
+            
+            // Jika tidak ada employee sama sekali
+            Log::error('Tabel employees ada tapi kosong. Setting pic_id ke null.');
+            return null;
+            
+        } catch (\Exception $e) {
+            Log::error('Error mendapatkan PIC ID: ' . $e->getMessage());
+            
+            // Fallback: return null atau nilai default
+            return null;
+        }
+    }
+    
+    /**
+     * Export to Excel
+     */
+    public function exportToExcel($purchases)
+    {
+        try {
+            // Return data untuk di-export
+            return [
+                'success' => true,
+                'purchases' => $purchases,
+                'headers' => [
+                    'PO Number',
+                    'Date',
+                    'Project Type',
+                    'Purchase Type',
+                    'Material/Item Name',
+                    'Quantity',
+                    'Unit Price',
+                    'Total Price',
+                    'Supplier',
+                    'Status',
+                    'Item Status',
+                    'Resi Number',
+                    'Created At'
+                ]
+            ];
+        } catch (\Exception $e) {
+            Log::error('Export to Excel error: ' . $e->getMessage());
+            throw $e;
         }
     }
 }

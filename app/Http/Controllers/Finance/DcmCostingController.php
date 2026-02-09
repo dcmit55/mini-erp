@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Str;
 
 class DcmCostingController extends Controller
 {
@@ -23,6 +24,9 @@ class DcmCostingController extends Controller
         $search = $request->get('search');
         
         $query = DcmCosting::query();
+        
+        // HANYA TAMPILKAN YANG CURRENT (REVISI TERBARU)
+        $query->where('is_current', true);
         
         // Search filter
         if ($search) {
@@ -52,7 +56,8 @@ class DcmCostingController extends Controller
         $costings = $query->orderBy('created_at', 'desc')->paginate(20);
         
         // Get unique departments for filter dropdown
-        $departments = DcmCosting::select('department')
+        $departments = DcmCosting::where('is_current', true)
+            ->select('department')
             ->distinct()
             ->orderBy('department')
             ->pluck('department');
@@ -73,7 +78,12 @@ class DcmCostingController extends Controller
      */
     public function show(DcmCosting $costing)
     {
-        return view('finance.dcm-costings.show', compact('costing'));
+        // Get all revisions for this PO number
+        $revisions = DcmCosting::where('po_number', $costing->po_number)
+            ->orderBy('created_at', 'desc')
+            ->get();
+            
+        return view('finance.dcm-costings.show', compact('costing', 'revisions'));
     }
     
     /**
@@ -104,12 +114,24 @@ class DcmCostingController extends Controller
             'project_name' => 'nullable|string|max:255',
             'job_order' => 'nullable|string|max:100',
             'supplier' => 'required|string|max:255',
-            'tracking_number' => 'nullable|string|max:100',
             'resi_number' => 'nullable|string|max:100',
             'status' => 'required|string|in:pending,approved,rejected',
             'item_status' => 'required|string|in:pending,received,not_received',
             'finance_notes' => 'nullable|string|max:1000',
         ]);
+        
+        // Check if PO already exists, set old ones to not current
+        $existingPO = DcmCosting::where('po_number', $validated['po_number'])
+            ->where('is_current', true)
+            ->first();
+            
+        if ($existingPO) {
+            $existingPO->update(['is_current' => false]);
+        }
+        
+        // Set default revision fields
+        $validated['revision_at'] = null;
+        $validated['is_current'] = true;
         
         DcmCosting::create($validated);
         
@@ -122,40 +144,91 @@ class DcmCostingController extends Controller
      */
     public function edit(DcmCosting $costing)
     {
+        // Hanya boleh edit yang current
+        if (!$costing->is_current) {
+            return redirect()->route('dcm-costings.show', $costing->uid)
+                ->with('error', 'Cannot edit non-current revision. Please edit the current version.');
+        }
+        
         return view('finance.dcm-costings.edit', compact('costing'));
     }
     
     /**
-     * Update the specified DCM costing
+     * Update the specified DCM costing - CREATE NEW REVISION
      */
     public function update(Request $request, DcmCosting $costing)
     {
+        // Hanya boleh update yang current
+        if (!$costing->is_current) {
+            return redirect()->route('dcm-costings.show', $costing->uid)
+                ->with('error', 'Cannot update non-current revision.');
+        }
+        
         $validated = $request->validate([
-            'po_number' => 'required|string|max:100',
-            'date' => 'required|date',
-            'purchase_type' => 'required|string|max:50',
-            'item_name' => 'required|string|max:255',
-            'quantity' => 'required|numeric|min:0',
             'unit_price' => 'required|numeric|min:0',
             'total_price' => 'required|numeric|min:0',
             'freight' => 'nullable|numeric|min:0',
             'invoice_total' => 'required|numeric|min:0',
-            'department' => 'required|string|max:100',
-            'project_type' => 'required|string|max:50',
-            'project_name' => 'nullable|string|max:255',
-            'job_order' => 'nullable|string|max:100',
-            'supplier' => 'required|string|max:255',
-            'tracking_number' => 'nullable|string|max:100',
-            'resi_number' => 'nullable|string|max:100',
-            'status' => 'required|string|in:pending,approved,rejected',
-            'item_status' => 'required|string|in:pending,received,not_received',
-            'finance_notes' => 'nullable|string|max:1000',
+            'revision_notes' => 'nullable|string|max:500',
         ]);
         
-        $costing->update($validated);
-        
-        return redirect()->route('dcm-costings.show', $costing->uid)
-            ->with('success', 'DCM Costing updated successfully.');
+        DB::beginTransaction();
+        try {
+            // 1. Set old record to not current
+            $costing->update(['is_current' => false]);
+            
+            // 2. Clone all data for new revision
+            $newCostingData = $costing->toArray();
+            
+            // Remove unwanted fields
+            unset($newCostingData['id'], $newCostingData['uid'], $newCostingData['created_at'], 
+                  $newCostingData['updated_at'], $newCostingData['deleted_at']);
+            
+            // 3. Update financial values from request
+            $newCostingData['unit_price'] = $validated['unit_price'];
+            $newCostingData['total_price'] = $validated['total_price'];
+            $newCostingData['freight'] = $validated['freight'];
+            $newCostingData['invoice_total'] = $validated['invoice_total'];
+            
+            // 4. Set revision fields
+            $newCostingData['uid'] = Str::uuid();
+            $newCostingData['revision_at'] = now();
+            $newCostingData['is_current'] = true;
+            
+            // 5. Add revision notes to finance notes
+            if (!empty($validated['revision_notes'])) {
+                $revisionNote = "\n\n=== REVISION ===" .
+                               "\nDate: " . now()->format('d/m/Y H:i') .
+                               "\nChanges:" .
+                               "\n- Unit Price: Rp " . number_format($costing->unit_price, 0, ',', '.') . 
+                                 " → Rp " . number_format($validated['unit_price'], 0, ',', '.') .
+                               "\n- Total Price: Rp " . number_format($costing->total_price, 0, ',', '.') . 
+                                 " → Rp " . number_format($validated['total_price'], 0, ',', '.') .
+                               "\n- Freight: Rp " . number_format($costing->freight ?? 0, 0, ',', '.') . 
+                                 " → Rp " . number_format($validated['freight'] ?? 0, 0, ',', '.') .
+                               "\n- Invoice Total: Rp " . number_format($costing->invoice_total, 0, ',', '.') . 
+                                 " → Rp " . number_format($validated['invoice_total'], 0, ',', '.') .
+                               "\nNotes: " . $validated['revision_notes'] .
+                               "\n" . str_repeat('=', 15);
+                
+                $newCostingData['finance_notes'] = ($costing->finance_notes ?? '') . $revisionNote;
+            }
+            
+            // 6. Create new revision
+            $newCosting = DcmCosting::create($newCostingData);
+            
+            DB::commit();
+            
+            return redirect()->route('dcm-costings.show', $newCosting->uid)
+                ->with('success', 'DCM Costing updated successfully. New revision created.');
+                
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            return redirect()->back()
+                ->with('error', 'Failed to update DCM Costing: ' . $e->getMessage())
+                ->withInput();
+        }
     }
     
     /**
@@ -163,10 +236,33 @@ class DcmCostingController extends Controller
      */
     public function destroy(DcmCosting $costing)
     {
-        $costing->delete();
-        
-        return redirect()->route('dcm-costings.index')
-            ->with('success', 'DCM Costing deleted successfully.');
+        DB::beginTransaction();
+        try {
+            // Jika ini adalah current revision, set revision sebelumnya sebagai current
+            if ($costing->is_current) {
+                $previousRevision = DcmCosting::where('po_number', $costing->po_number)
+                    ->where('id', '!=', $costing->id)
+                    ->orderBy('created_at', 'desc')
+                    ->first();
+                
+                if ($previousRevision) {
+                    $previousRevision->update(['is_current' => true]);
+                }
+            }
+            
+            $costing->delete();
+            
+            DB::commit();
+            
+            return redirect()->route('dcm-costings.index')
+                ->with('success', 'DCM Costing deleted successfully.');
+                
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            return redirect()->back()
+                ->with('error', 'Failed to delete DCM Costing: ' . $e->getMessage());
+        }
     }
     
     /**
@@ -181,6 +277,9 @@ class DcmCostingController extends Controller
         $department = $request->get('department');
         
         $query = DcmCosting::query();
+        
+        // Hanya export yang current
+        $query->where('is_current', true);
         
         if ($status) {
             $query->where('status', $status);
@@ -226,6 +325,7 @@ class DcmCostingController extends Controller
             // Header CSV
             fputcsv($file, [
                 'PO Number',
+                'Revision Date',
                 'Date',
                 'Department',
                 'Project Type',
@@ -252,6 +352,7 @@ class DcmCostingController extends Controller
             foreach ($costings as $costing) {
                 fputcsv($file, [
                     $costing->po_number,
+                    $costing->revision_at ? $costing->revision_at->format('d/m/Y H:i') : 'Original',
                     $costing->date ? $costing->date->format('d/m/Y') : '',
                     $costing->department,
                     ucfirst($costing->project_type),
@@ -268,7 +369,6 @@ class DcmCostingController extends Controller
                     ucfirst($costing->status),
                     ucfirst($costing->item_status),
                     $costing->finance_notes ?? '',
-                    $costing->tracking_number ?? '',
                     $costing->resi_number ?? '',
                     $costing->approved_at ? $costing->approved_at->format('d/m/Y H:i') : '',
                     $costing->created_at ? $costing->created_at->format('d/m/Y H:i') : ''
@@ -286,11 +386,12 @@ class DcmCostingController extends Controller
      */
     public function statistics()
     {
-        $total = DcmCosting::count();
-        $approved = DcmCosting::where('status', 'approved')->count();
-        $pending = DcmCosting::where('status', 'pending')->count();
-        $rejected = DcmCosting::where('status', 'rejected')->count();
-        $totalAmount = DcmCosting::sum('invoice_total');
+        // Hanya hitung yang current
+        $total = DcmCosting::where('is_current', true)->count();
+        $approved = DcmCosting::where('is_current', true)->where('status', 'approved')->count();
+        $pending = DcmCosting::where('is_current', true)->where('status', 'pending')->count();
+        $rejected = DcmCosting::where('is_current', true)->where('status', 'rejected')->count();
+        $totalAmount = DcmCosting::where('is_current', true)->sum('invoice_total');
         
         return response()->json([
             'total' => $total,
@@ -309,5 +410,77 @@ class DcmCostingController extends Controller
     {
         $pdf = Pdf::loadView('finance.dcm-costings.print', compact('costing'));
         return $pdf->stream('dcm-costing-' . $costing->uid . '.pdf');
+    }
+    
+    /**
+     * View revision history for a PO number
+     */
+    public function revisions($poNumber)
+    {
+        $revisions = DcmCosting::where('po_number', $poNumber)
+            ->orderBy('created_at', 'desc')
+            ->get();
+            
+        if ($revisions->isEmpty()) {
+            abort(404, 'No DCM Costing found with PO Number: ' . $poNumber);
+        }
+        
+        $current = $revisions->firstWhere('is_current', true);
+        
+        return view('finance.dcm-costings.revisions', compact('revisions', 'current', 'poNumber'));
+    }
+    
+    /**
+     * Restore to specific revision
+     */
+    public function restoreRevision(DcmCosting $costing)
+    {
+        // Hanya bisa restore dari revision yang bukan current
+        if ($costing->is_current) {
+            return redirect()->route('dcm-costings.show', $costing->uid)
+                ->with('error', 'This is already the current revision.');
+        }
+        
+        DB::beginTransaction();
+        try {
+            // 1. Set semua revision dari PO ini menjadi not current
+            DcmCosting::where('po_number', $costing->po_number)
+                      ->update(['is_current' => false]);
+            
+            // 2. Clone data dari revision yang dipilih
+            $newCostingData = $costing->toArray();
+            
+            // Remove unwanted fields
+            unset($newCostingData['id'], $newCostingData['uid'], $newCostingData['created_at'], 
+                  $newCostingData['updated_at'], $newCostingData['deleted_at']);
+            
+            // 3. Set new revision fields
+            $newCostingData['uid'] = Str::uuid();
+            $newCostingData['revision_at'] = now();
+            $newCostingData['is_current'] = true;
+            
+            // 4. Add restoration note
+            $restoreNote = "\n\n=== RESTORED FROM PREVIOUS REVISION ===" .
+                          "\nDate: " . now()->format('d/m/Y H:i') .
+                          "\nOriginal Revision Date: " . ($costing->revision_at ? $costing->revision_at->format('d/m/Y H:i') : 'Original') .
+                          "\nRestored by: " . auth()->user()->name .
+                          "\n" . str_repeat('=', 40);
+            
+            $newCostingData['finance_notes'] = ($costing->finance_notes ?? '') . $restoreNote;
+            
+            // 5. Create new revision
+            $newCosting = DcmCosting::create($newCostingData);
+            
+            DB::commit();
+            
+            return redirect()->route('dcm-costings.show', $newCosting->uid)
+                ->with('success', 'Restored to previous revision successfully.');
+                
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            return redirect()->back()
+                ->with('error', 'Failed to restore revision: ' . $e->getMessage());
+        }
     }
 }

@@ -6,6 +6,7 @@ use App\Models\Procurement\ProjectPurchase;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
 class DcmCosting extends Model
@@ -30,19 +31,22 @@ class DcmCosting extends Model
         'project_name',
         'job_order',
         'supplier',
-        'tracking_number',
         'resi_number',
         'status',
         'item_status',
         'finance_notes',
         'approved_at',
-        'purchase_id'
+        'purchase_id',
+        'revision_at',  // TAMBAH
+        'is_current',   // TAMBAH
     ];
 
     protected $casts = [
         'uid' => 'string',
         'date' => 'date',
         'approved_at' => 'datetime',
+        'revision_at' => 'datetime',  // TAMBAH
+        'is_current' => 'boolean',    // TAMBAH
         'quantity' => 'decimal:2',
         'unit_price' => 'decimal:2',
         'total_price' => 'decimal:2',
@@ -61,6 +65,19 @@ class DcmCosting extends Model
             if (empty($model->uid)) {
                 $model->uid = Str::uuid();
             }
+            // Set default is_current untuk data baru
+            if (empty($model->is_current)) {
+                $model->is_current = true;
+            }
+        });
+        
+        // Set data lama dengan po_number sama menjadi tidak current saat buat data baru
+        static::created(function ($model) {
+            if ($model->is_current) {
+                DcmCosting::where('po_number', $model->po_number)
+                    ->where('id', '!=', $model->id)
+                    ->update(['is_current' => false]);
+            }
         });
     }
 
@@ -78,6 +95,14 @@ class DcmCosting extends Model
     public function scopeByUid($query, $uid)
     {
         return $query->where('uid', $uid);
+    }
+    
+    /**
+     * Scope untuk versi current saja
+     */
+    public function scopeCurrent($query)
+    {
+        return $query->where('is_current', true);
     }
     
     /**
@@ -198,5 +223,72 @@ class DcmCosting extends Model
     public function getFormattedApprovedAtAttribute()
     {
         return $this->approved_at ? $this->approved_at->format('d/m/Y H:i') : '-';
+    }
+    
+    /**
+     * Get formatted revision at
+     */
+    public function getFormattedRevisionAtAttribute()
+    {
+        return $this->revision_at ? $this->revision_at->format('d/m/Y H:i') : '-';
+    }
+    
+    /**
+     * Get revision number (calculated from created_at order)
+     */
+    public function getRevisionNumberAttribute()
+    {
+        $count = DcmCosting::where('po_number', $this->po_number)
+            ->where('created_at', '<=', $this->created_at)
+            ->count();
+        return $count;
+    }
+    
+    /**
+     * Get all revisions for this PO
+     */
+    public function getRevisionsAttribute()
+    {
+        return DcmCosting::where('po_number', $this->po_number)
+            ->orderBy('created_at', 'desc')
+            ->get();
+    }
+    
+    /**
+     * Get previous revision
+     */
+    public function getPreviousRevisionAttribute()
+    {
+        return DcmCosting::where('po_number', $this->po_number)
+            ->where('created_at', '<', $this->created_at)
+            ->orderBy('created_at', 'desc')
+            ->first();
+    }
+    
+    /**
+     * Create a new revision
+     */
+    public function createRevision(array $data)
+    {
+        // Clone data
+        $revisionData = $this->toArray();
+        
+        // Remove unwanted fields
+        unset($revisionData['id'], $revisionData['uid'], $revisionData['created_at'], 
+              $revisionData['updated_at'], $revisionData['deleted_at']);
+        
+        // Merge with new data
+        $revisionData = array_merge($revisionData, $data);
+        
+        // Set new UID and revision timestamp
+        $revisionData['uid'] = Str::uuid();
+        $revisionData['revision_at'] = now();
+        $revisionData['is_current'] = true;
+        
+        // Set old record to not current
+        $this->update(['is_current' => false]);
+        
+        // Create new revision
+        return DcmCosting::create($revisionData);
     }
 }

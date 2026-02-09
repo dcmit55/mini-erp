@@ -53,7 +53,8 @@ class ProjectPurchaseController extends Controller
                 'approved_check' => ProjectPurchase::where('status', 'approved')->count(),
                 'pending_check' => ProjectPurchase::where('status', 'pending')->count(),
                 'rejected_check' => ProjectPurchase::where('status', 'rejected')->count(),
-                'received_check' => ProjectPurchase::where('item_status', 'received')->count(),
+                'received_check' => ProjectPurchase::whereIn('item_status', ['matched', 'received'])->count(),
+                'pending_check_count' => ProjectPurchase::whereIn('item_status', ['pending_check', 'pending'])->count(),
             ];
             
             Log::info('Manual verification:', $manualVerification);
@@ -72,8 +73,8 @@ class ProjectPurchaseController extends Controller
                 'rejected' => 0,
                 'approved' => 0,
                 'received' => 0,
-                'pending_receipt' => 0,
-                'not_received' => 0,
+                'pending_check' => 0,
+                'not_matched' => 0,
                 'today' => 0,
                 'client_projects' => 0,
                 'internal_projects' => 0,
@@ -139,10 +140,10 @@ class ProjectPurchaseController extends Controller
             $approved = ProjectPurchase::where('status', 'approved')->count();
             $rejected = ProjectPurchase::where('status', 'rejected')->count();
             
-            // Status item (receipt)
-            $received = ProjectPurchase::where('item_status', 'received')->count();
-            $pendingReceipt = ProjectPurchase::where('item_status', 'pending')->count();
-            $notReceived = ProjectPurchase::where('item_status', 'not_received')->count();
+            // Status item (sesuai dengan database: pending_check, matched, not_matched)
+            $matched = ProjectPurchase::where('item_status', 'matched')->count();
+            $pendingCheck = ProjectPurchase::whereIn('item_status', ['pending_check', 'pending'])->count();
+            $notMatched = ProjectPurchase::where('item_status', 'not_matched')->count();
             
             // Today's purchases
             $today = ProjectPurchase::whereDate('created_at', today())->count();
@@ -157,9 +158,9 @@ class ProjectPurchaseController extends Controller
                 'pending' => $pending,
                 'rejected' => $rejected,
                 'approved' => $approved,
-                'received' => $received,
-                'pending_receipt' => $pendingReceipt,
-                'not_received' => $notReceived,
+                'received' => $matched, // matched = received
+                'pending_check' => $pendingCheck,
+                'not_matched' => $notMatched,
                 'today' => $today,
                 'client_projects' => $clientProjects,
                 'internal_projects' => $internalProjects,
@@ -178,8 +179,8 @@ class ProjectPurchaseController extends Controller
                 'rejected' => 0,
                 'approved' => 0,
                 'received' => 0,
-                'pending_receipt' => 0,
-                'not_received' => 0,
+                'pending_check' => 0,
+                'not_matched' => 0,
                 'today' => 0,
                 'client_projects' => 0,
                 'internal_projects' => 0,
@@ -191,7 +192,7 @@ class ProjectPurchaseController extends Controller
     {
         try {
             return view('Procurement.Project-Purchase.create', [
-                'materials' => Inventory::select('id', 'name', 'price')->get(),
+                'materials' => Inventory::select('id', 'name', 'price', 'unit_id', 'category_id')->get(),
                 'departments' => Department::select('id', 'name')->get(),
                 'projects' => Project::select('id', 'name')->get(),
                 'internal_projects' => InternalProject::select('id', 'project', 'job', 'department', 'department_id', 'description')
@@ -224,7 +225,7 @@ class ProjectPurchaseController extends Controller
         try {
             // OPSIONAL: Override department_id untuk internal projects
             if ($request->project_type === 'internal') {
-                $request->merge(['department_id' => 24]);
+                $request->merge(['department_id' => 24]); // Sesuaikan dengan department_id yang sesuai
             }
             
             $validated = $this->purchaseService->validatePurchaseRequest($request);
@@ -256,7 +257,9 @@ class ProjectPurchaseController extends Controller
                 'unit:id,name',
                 'supplier:id,name',
                 'pic:id,username',
-                'approver:id,username'
+                'approver:id,username',
+                'checker:id,username',
+                'receiver:id,username'
             ])->find($id);
             
             Log::info("Purchase found: " . ($purchase ? 'YES' : 'NO'));
@@ -405,15 +408,15 @@ class ProjectPurchaseController extends Controller
     {
         try {
             $validated = $request->validate([
-                'tracking_number' => 'nullable|string|max:100',
-                'resi_number' => 'nullable|string|max:100',
+                'resi_number' => 'nullable|string|max:255',
                 'finance_notes' => 'nullable|string',
             ]);
 
             $purchase = ProjectPurchase::findOrFail($id);
             
-            if (!$purchase->isOfflineOrder() && empty($validated['tracking_number']) && empty($validated['resi_number'])) {
-                return back()->with('error', 'Untuk order online, harus mengisi tracking number atau nomor resi.');
+            // Validasi: untuk online order, harus ada resi_number
+            if (!$purchase->isOfflineOrder() && empty($validated['resi_number'])) {
+                return back()->with('error', 'Untuk order online, harus mengisi nomor resi.');
             }
 
             $this->purchaseService->approvePurchase($purchase, $validated);
@@ -452,35 +455,64 @@ class ProjectPurchaseController extends Controller
         }
     }
 
-    public function updateTracking(Request $request, $id)
+    public function updateResi(Request $request, $id)
     {
         try {
             $validated = $request->validate([
-                'tracking_number' => 'nullable|string|max:100',
-                'resi_number' => 'nullable|string|max:100',
+                'resi_number' => 'nullable|string|max:255',
             ]);
 
             $purchase = ProjectPurchase::findOrFail($id);
             
-            if (!$purchase->canUpdateTracking()) {
-                return back()->with('error', 'Tidak dapat mengupdate tracking karena PO belum disetujui atau barang sudah diterima.');
+            if (!$purchase->canUpdateResi()) {
+                return back()->with('error', 'Tidak dapat mengupdate resi karena PO belum disetujui atau barang sudah dicek.');
             }
 
-            if (!$purchase->isOfflineOrder() && empty($validated['tracking_number']) && empty($validated['resi_number'])) {
-                return back()->with('error', 'Untuk order online, harus mengisi tracking number atau nomor resi.');
+            if (!$purchase->isOfflineOrder() && empty($validated['resi_number'])) {
+                return back()->with('error', 'Untuk order online, harus mengisi nomor resi.');
             }
 
-            $this->purchaseService->updateTracking($purchase, $validated);
+            $this->purchaseService->updateResiNumber($purchase, $validated);
 
-            return back()->with('success', 'Tracking berhasil diperbarui!');
+            return back()->with('success', 'Nomor resi berhasil diperbarui!');
         } catch (\Illuminate\Validation\ValidationException $e) {
             return back()->withErrors($e->errors())->withInput();
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return redirect()->route('project-purchases.index')
                 ->with('error', 'Data purchase order tidak ditemukan.');
         } catch (\Exception $e) {
-            Log::error('Tracking update error: ' . $e->getMessage());
-            return back()->with('error', 'Gagal memperbarui tracking: ' . $e->getMessage());
+            Log::error('Resi update error: ' . $e->getMessage());
+            return back()->with('error', 'Gagal memperbarui nomor resi: ' . $e->getMessage());
+        }
+    }
+
+    public function markAsChecked(Request $request, $id)
+    {
+        try {
+            $validated = $request->validate([
+                'item_status' => 'required|in:matched,not_matched',
+                'actual_quantity' => 'nullable|integer|min:0',
+                'note' => 'nullable|string',
+            ]);
+
+            $purchase = ProjectPurchase::findOrFail($id);
+            
+            if (!$purchase->canCheck()) {
+                return back()->with('error', 'Tidak dapat mengecek barang karena PO belum disetujui atau sudah dicek.');
+            }
+
+            $this->purchaseService->markAsChecked($purchase, $validated);
+
+            $statusText = $validated['item_status'] === 'matched' ? 'sesuai' : 'tidak sesuai';
+            return back()->with('success', 'Barang berhasil ditandai sebagai ' . $statusText . '!');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return back()->withErrors($e->errors())->withInput();
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return redirect()->route('project-purchases.index')
+                ->with('error', 'Data purchase order tidak ditemukan.');
+        } catch (\Exception $e) {
+            Log::error('Mark as checked error: ' . $e->getMessage());
+            return back()->with('error', 'Gagal menandai barang: ' . $e->getMessage());
         }
     }
 
@@ -505,24 +537,24 @@ class ProjectPurchaseController extends Controller
         }
     }
 
-    public function markAsNotReceived($id)
+    public function markAsNotMatched($id)
     {
         try {
             $purchase = ProjectPurchase::findOrFail($id);
             
             if (!$purchase->isItemPending()) {
-                return back()->with('error', 'Tidak dapat menandai sebagai tidak diterima karena barang sudah ditandai.');
+                return back()->with('error', 'Tidak dapat menandai sebagai tidak sesuai karena barang sudah ditandai.');
             }
 
-            $this->purchaseService->markAsNotReceived($purchase);
+            $this->purchaseService->markAsNotMatched($purchase);
 
-            return back()->with('success', 'Barang berhasil ditandai sebagai tidak diterima!');
+            return back()->with('success', 'Barang berhasil ditandai sebagai tidak sesuai!');
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return redirect()->route('project-purchases.index')
                 ->with('error', 'Data purchase order tidak ditemukan.');
         } catch (\Exception $e) {
-            Log::error('Mark as not received error: ' . $e->getMessage());
-            return back()->with('error', 'Gagal menandai barang sebagai tidak diterima: ' . $e->getMessage());
+            Log::error('Mark as not matched error: ' . $e->getMessage());
+            return back()->with('error', 'Gagal menandai barang sebagai tidak sesuai: ' . $e->getMessage());
         }
     }
 
@@ -600,6 +632,50 @@ class ProjectPurchaseController extends Controller
                 'job' => null,
                 'department' => null
             ]);
+        }
+    }
+
+    /**
+     * Export purchases to Excel
+     */
+    public function export(Request $request)
+    {
+        try {
+            $purchases = $this->purchaseService->getPurchasesWithFilters($request, false); // tanpa pagination
+            
+            return $this->purchaseService->exportToExcel($purchases);
+        } catch (\Exception $e) {
+            Log::error('Export error: ' . $e->getMessage());
+            return back()->with('error', 'Gagal mengexport data: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Print purchase order
+     */
+    public function print($id)
+    {
+        try {
+            $purchase = ProjectPurchase::with([
+                'material:id,name,price',
+                'department:id,name',
+                'project:id,name',
+                'internalProject:id,project,job,department,department_id,description',
+                'jobOrder:id,name',
+                'category:id,name',
+                'unit:id,name',
+                'supplier:id,name,address,phone,email',
+                'pic:id,username,name',
+                'approver:id,username,name'
+            ])->findOrFail($id);
+
+            return view('Procurement.Project-Purchase.print', compact('purchase'));
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return redirect()->route('project-purchases.index')
+                ->with('error', 'Data purchase order tidak ditemukan.');
+        } catch (\Exception $e) {
+            Log::error('Print error: ' . $e->getMessage());
+            return back()->with('error', 'Gagal mencetak purchase order: ' . $e->getMessage());
         }
     }
 }
