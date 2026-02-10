@@ -637,10 +637,19 @@
                                 </h5>
                                 <div class="image-container">
                                     @if ($inventory->img)
-                                        <a href="{{ asset('storage/' . $inventory->img) }}" data-fancybox="gallery"
+                                        @php
+                                            // Check if it's Lark URL (starts with http) or local path
+$isLarkUrl =
+    str_starts_with($inventory->img, 'http://') ||
+    str_starts_with($inventory->img, 'https://');
+$imageUrl = $isLarkUrl
+    ? $inventory->img
+    : asset('storage/' . $inventory->img);
+                                        @endphp
+                                        <a href="{{ $imageUrl }}" data-fancybox="gallery"
                                             data-caption="{{ $inventory->name }}">
-                                            <img src="{{ asset('storage/' . $inventory->img) }}"
-                                                class="img-fluid rounded shadow-sm" alt="{{ $inventory->name }}"
+                                            <img src="{{ $imageUrl }}" class="img-fluid rounded shadow-sm"
+                                                alt="{{ $inventory->name }}"
                                                 style="max-height: 300px; width: 100%; object-fit: cover;">
                                         </a>
                                     @else

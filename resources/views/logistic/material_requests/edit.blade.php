@@ -34,11 +34,11 @@
                     <div class="row">
                         <div class="col-lg-6 mb-3">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <label>Job Order <span class="text-danger">*</span></label>
+                                <label>Job Order</label>
                             </div>
                             <select name="job_order_id" id="job_order_id" class="form-select select2"
-                                data-placeholder="Select Job Order" required>
-                                <option value="">Select Job Order</option>
+                                data-placeholder="Select Job Order">
+                                <option value="">Select Job Order (Optional)</option>
                                 @foreach ($jobOrders as $jo)
                                     <option value="{{ $jo->id }}" data-project-id="{{ $jo->project_id }}"
                                         data-project-name="{{ $jo->project->name ?? '' }}"
@@ -53,7 +53,7 @@
 
                             <!-- Hidden Project ID (Auto-filled) -->
                             <input type="hidden" name="project_id" id="project_id"
-                                value="{{ old('project_id', $request->project_id) }}" required>
+                                value="{{ old('project_id', $request->project_id) }}">
 
                             <!-- Project Display (Read-only) -->
                             <div id="project-display" class="mt-2 {{ $request->project_id ? '' : 'd-none' }}">

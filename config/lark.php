@@ -44,6 +44,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Inventory Listing Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Lark Inventory Listing table/view configuration
+    | Uses same base_id as projects and job orders
+    | Filter: Destination = BATAM AND Status = Sent Out
+    |
+    */
+
+    'inventory' => [
+        'table_id' => env('LARK_INVENTORY_TABLE_ID', 'tblTulpgtvkyrKxo'),
+        'view_id' => env('LARK_INVENTORY_VIEW_ID', 'vewEW56Qcr'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Sync Configuration
     |--------------------------------------------------------------------------
     */

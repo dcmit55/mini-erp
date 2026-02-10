@@ -14,6 +14,12 @@
 
                     <!-- Spacer untuk mendorong tombol ke kanan -->
                     <div class="ms-sm-auto d-flex flex-wrap gap-2">
+                        @if (auth()->user()->isSuperAdmin() || auth()->user()->isLogisticAdmin())
+                            <a href="{{ route('material_usage.bulk.create') }}"
+                                class="btn btn-primary btn-sm flex-shrink-0">
+                                <i class="fas fa-plus-circle me-1"></i> Bulk Add
+                            </a>
+                        @endif
                         <a href="#" id="export-btn" class="btn btn-outline-success btn-sm flex-shrink-0">
                             <i class="bi bi-file-earmark-excel me-1"></i> Export
                         </a>

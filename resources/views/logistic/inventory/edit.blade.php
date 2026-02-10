@@ -86,8 +86,14 @@
                             <select id="unit-select" class="form-select select2" name="unit" required>
                                 <option value="">Select Unit</option>
                                 @foreach ($units as $unit)
+                                    @php
+                                        // Prioritize unit_id for Lark synced data to maintain consistency
+                                        $selectedUnitName = $inventory->unit_id
+                                            ? $units->find($inventory->unit_id)?->name ?? $inventory->unit
+                                            : $inventory->unit;
+                                    @endphp
                                     <option value="{{ $unit->name }}"
-                                        {{ old('unit', $inventory->unit ?? '') == $unit->name ? 'selected' : '' }}>
+                                        {{ old('unit', $selectedUnitName) == $unit->name ? 'selected' : '' }}>
                                         {{ $unit->name }}
                                     </option>
                                 @endforeach
@@ -360,8 +366,7 @@
                         <div class="mb-3">
                             <label for="supplier_lead_time_days" class="form-label">Lead Time <span
                                     class="text-danger">*</span>
-                                <i class="bi bi-info-circle text-info" data-bs-toggle="tooltip"
-                                    data-bs-placement="top"
+                                <i class="bi bi-info-circle text-info" data-bs-toggle="tooltip" data-bs-placement="top"
                                     title="Lead Time refers to the number of days required by the supplier to deliver goods after an order is placed. This value is typically based on past delivery records or can be confirmed directly with the supplier. Accurate lead time helps ensure timely procurement and project planning.">
                                 </i>
                             </label>

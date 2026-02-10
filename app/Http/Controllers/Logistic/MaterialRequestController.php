@@ -580,8 +580,8 @@ class MaterialRequestController extends Controller
         // Validasi untuk pembaruan lengkap
         $request->validate([
             'inventory_id' => 'required|exists:inventories,id',
-            'job_order_id' => 'required|exists:job_orders,id',
-            'project_id' => 'required|exists:projects,id',
+            'job_order_id' => 'nullable|exists:job_orders,id',
+            'project_id' => 'nullable|exists:projects,id',
             'qty' => 'required|numeric|min:0.01',
             'status' => 'required|in:pending,approved,delivered,canceled',
             'remark' => 'nullable|string',
