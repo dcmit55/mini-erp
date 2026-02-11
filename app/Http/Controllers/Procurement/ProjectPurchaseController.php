@@ -45,6 +45,7 @@ class ProjectPurchaseController extends Controller
                 'categories' => Category::select('id', 'name')->get(),
                 'units' => Unit::select('id', 'name')->get(),
                 'suppliers' => Supplier::select('id', 'name')->get(),
+                'supplierLocations' => \App\Models\Procurement\LocationSupplier::select('id', 'name')->get(),
                 'filters' => $request->all(),
             ]);
             
@@ -79,45 +80,62 @@ class ProjectPurchaseController extends Controller
         }
     }
 
-    public function create()
-    {
-        try {
-            // Generate PO number dari service
-            $poNumber = $this->purchaseService->generatePONumber();
-            
-            return view('Procurement.Project-Purchase.create', [
-                'poNumber' => $poNumber, // Kirim PO number ke view
-                'materials' => Inventory::select('id', 'name', 'price', 'unit_id', 'category_id')->get(),
-                'departments' => Department::select('id', 'name')->get(),
-                'projects' => Project::select('id', 'name')->get(),
-                'internal_projects' => InternalProject::select('id', 'project', 'job', 'department', 'department_id', 'description')
-                    ->orderBy('project')
-                    ->get(),
-                'categories' => Category::select('id', 'name')->get(),
-                'units' => Unit::select('id', 'name')->get(),
-                'jobOrders' => JobOrder::leftJoin('departments', 'job_orders.department_id', '=', 'departments.id')
-                    ->leftJoin('projects', 'job_orders.project_id', '=', 'projects.id')
-                    ->select(
-                        'job_orders.id',
-                        'job_orders.name',
-                        'job_orders.project_id',
-                        'job_orders.department_id',
-                        'departments.name as department_name',
-                        'projects.name as project_name'
-                    )
-                    ->get(),
-                'suppliers' => Supplier::select('id', 'name')->get(),
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Create view error: ' . $e->getMessage());
-            return redirect()->route('project-purchases.index')
-                ->with('error', 'Gagal memuat halaman pembelian: ' . $e->getMessage());
-        }
-    }
+public function create()
+{
+    try {
+        // Generate PO number dari service
+        $poNumber = $this->purchaseService->generatePONumber();
+        
+        // PERBAIKAN 1: Job Orders dengan data attributes yang benar
+        $jobOrders = JobOrder::with(['department:id,name', 'project:id,name'])
+            ->select('id', 'name', 'department_id', 'project_id')
+            ->get()
+            ->map(function($jobOrder) {
+                return [
+                    'id' => $jobOrder->id,
+                    'name' => $jobOrder->name,
+                    'department_id' => $jobOrder->department_id,
+                    'department_name' => $jobOrder->department->name ?? 'N/A',
+                    'project_id' => $jobOrder->project_id,
+                    'project_name' => $jobOrder->project->name ?? 'N/A',
+                ];
+            });
 
+        // PERBAIKAN 2: Materials dengan relasi unit dan category
+        $materials = Inventory::with(['unit:id,name', 'category:id,name'])
+            ->select('id', 'name', 'price', 'unit_id', 'category_id')
+            ->get();
+
+        // PERBAIKAN 3: Units dan Categories untuk dropdown
+        $units = Unit::select('id', 'name')->get();
+        $categories = Category::select('id', 'name')->get();
+
+        return view('Procurement.Project-Purchase.create', [
+            'poNumber' => $poNumber,
+            'materials' => $materials,
+            'departments' => Department::select('id', 'name')->get(),
+            'projects' => Project::select('id', 'name')->get(),
+            'internal_projects' => InternalProject::select('id', 'project', 'job', 'department', 'department_id', 'description')
+                ->orderBy('project')
+                ->get(),
+            'categories' => $categories,
+            'units' => $units,
+            'jobOrders' => $jobOrders, // Sekarang array dengan data attributes
+            'suppliers' => Supplier::select('id', 'name')->get(),
+            'supplierLocations' => \App\Models\Procurement\LocationSupplier::select('id', 'name')->get(),
+        ]);
+    } catch (\Exception $e) {
+        Log::error('Create view error: ' . $e->getMessage());
+        return redirect()->route('project-purchases.index')
+            ->with('error', 'Gagal memuat halaman pembelian: ' . $e->getMessage());
+    }
+}
     public function store(Request $request)
     {
         try {
+            // Simpan semua input ke session untuk menjaga data form jika validasi gagal
+            $request->flash();
+            
             if ($request->project_type === 'internal') {
                 $request->merge(['department_id' => 24]);
             }
@@ -128,10 +146,11 @@ class ProjectPurchaseController extends Controller
             return redirect()->route('project-purchases.index')
                 ->with('success', 'Purchase Order berhasil dibuat dengan status Pending!');
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return back()->withErrors($e->errors())->withInput();
+            // Kembalikan semua input ke form dengan error
+            return back()->withErrors($e->errors())->withInput($request->all());
         } catch (\Exception $e) {
             Log::error('Purchase Order creation error: ' . $e->getMessage());
-            return back()->withInput()->with('error', 'Gagal membuat Purchase Order: ' . $e->getMessage());
+            return back()->withInput($request->all())->with('error', 'Gagal membuat Purchase Order: ' . $e->getMessage());
         }
     }
 
@@ -278,13 +297,13 @@ class ProjectPurchaseController extends Controller
                     'revision_count' => $updatedPurchase->total_revisions,
                 ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return back()->withErrors($e->errors())->withInput();
+            return back()->withErrors($e->errors())->withInput($request->all());
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return redirect()->route('project-purchases.index')
                 ->with('error', 'Data purchase order tidak ditemukan.');
         } catch (\Exception $e) {
             Log::error('Purchase Order update error: ' . $e->getMessage());
-            return back()->withInput()->with('error', 'Gagal update Purchase Order: ' . $e->getMessage());
+            return back()->withInput($request->all())->with('error', 'Gagal update Purchase Order: ' . $e->getMessage());
         }
     }
 
@@ -487,7 +506,7 @@ class ProjectPurchaseController extends Controller
     public function getMaterialPrice($id)
     {
         try {
-            $material = Inventory::find($id);
+            $material = Inventory::with(['unit:id,name', 'category:id,name'])->find($id);
             
             if (!$material) {
                 return response()->json([
@@ -501,7 +520,10 @@ class ProjectPurchaseController extends Controller
                 'success' => true,
                 'price' => $material->price ?? 0,
                 'unit_id' => $material->unit_id ?? null,
-                'category_id' => $material->category_id ?? null
+                'unit_name' => $material->unit->name ?? null, // ✅ TAMBAH: Nama unit
+                'category_id' => $material->category_id ?? null,
+                'category_name' => $material->category->name ?? null, // ✅ TAMBAH: Nama kategori
+                'material_name' => $material->name ?? null // ✅ TAMBAH: Nama material
             ]);
         } catch (\Exception $e) {
             Log::error('Get material price error: ' . $e->getMessage());
@@ -532,7 +554,8 @@ class ProjectPurchaseController extends Controller
                 'department_id' => $jobOrder->department_id,
                 'department_name' => $jobOrder->department->name ?? null,
                 'project_id' => $jobOrder->project_id,
-                'project_name' => $jobOrder->project->name ?? null
+                'project_name' => $jobOrder->project->name ?? null,
+                'job_order_name' => $jobOrder->name ?? null
             ]);
         } catch (\Exception $e) {
             Log::error('Get job order details error: ' . $e->getMessage());
@@ -598,6 +621,29 @@ class ProjectPurchaseController extends Controller
         } catch (\Exception $e) {
             Log::error('Print error: ' . $e->getMessage());
             return back()->with('error', 'Gagal mencetak purchase order: ' . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Get all materials data for dropdown
+     */
+    public function getMaterials()
+    {
+        try {
+            $materials = Inventory::with(['unit:id,name', 'category:id,name'])
+                ->select('id', 'name', 'price', 'unit_id', 'category_id')
+                ->get();
+            
+            return response()->json([
+                'success' => true,
+                'materials' => $materials
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Get materials error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat mengambil data material'
+            ]);
         }
     }
 }
