@@ -197,10 +197,6 @@
                                     </div>
                                     <div class="col-md-4">
                                         <label class="form-label small text-dark">&nbsp;</label>
-                                        <div class="alert alert-info border small p-2 rounded-2 h-100">
-                                            <i class="fas fa-plus-circle me-1"></i>
-                                            This will create a new inventory item
-                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -599,11 +595,25 @@
     }
 </style>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+{{-- ✅ PERBAIKAN: Load jQuery SEBELUM Select2 --}}
+@push('styles')
 <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+@endpush
+
+@push('scripts')
+{{-- jQuery harus dimuat PERTAMA --}}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+{{-- Baru kemudian Select2 --}}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // ✅ Pastikan jQuery sudah loaded
+    if (typeof jQuery === 'undefined') {
+        console.error('jQuery is not loaded!');
+        return;
+    }
+
     // Initialize Select2
     $('.select2-material, .select2-department, .select2-project, .select2-joborder, .select2-supplier').select2({
         placeholder: "Select an option",
@@ -813,11 +823,10 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Validate online order tracking
         if (onlineOrderRadio.checked) {
-            const trackingNumber = this.querySelector('input[name="tracking_number"]').value;
-            const resiNumber = this.querySelector('input[name="resi_number"]').value;
+            const resiNumber = this.querySelector('input[name="resi_number"]');
             
-            if (!trackingNumber && !resiNumber) {
-                if (!confirm('No tracking number or resi number provided for online order. Continue anyway?')) {
+            if (resiNumber && !resiNumber.value) {
+                if (!confirm('No resi number provided for online order. Continue anyway?')) {
                     e.preventDefault();
                     return;
                 }
@@ -852,4 +861,5 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+@endpush
 @endsection

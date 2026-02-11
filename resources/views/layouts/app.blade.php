@@ -330,7 +330,8 @@
                                         request()->is('costing-report*') || 
                                         request()->is('final_project_summary*') ||
                                         request()->is('dcm-costings*') ||
-                                        request()->is('purchase-approvals*')
+                                        request()->is('purchase-approvals*') ||
+                                        request()->is('purchase-edited*')
                                         ? 'active' : '' }}" 
                                         href="#" id="financesDropdown" role="button"
                                         data-bs-toggle="dropdown" aria-expanded="false">
@@ -367,10 +368,16 @@
                                                 <i class="fas fa-clipboard-check me-2"></i>Purchase Approvals
                                             </a>
                                         </li>
+                                        <!-- TAMBAHKAN MENU INI -->
+                                        <li>
+                                            <a class="dropdown-item {{ request()->is('purchase-edited*') ? 'active' : '' }}"
+                                                href="{{ route('purchase-edited.index') }}">
+                                                <i class="fas fa-edit me-2"></i>Purchase Edited
+                                            </a>
+                                        </li>
                                     </ul>
                                 </li>
                             @endif
-
                             <!-- HR Dropdown -->
                             @auth
                                 @if (in_array(auth()->user()->role, ['super_admin', 'admin_hr', 'admin']))

@@ -116,24 +116,7 @@
                                 <option value="restock" {{ request('purchase_type') == 'restock' ? 'selected' : '' }}>Restock</option>
                                 <option value="new_item" {{ request('purchase_type') == 'new_item' ? 'selected' : '' }}>New Item</option>
                             </select>
-                        </div>
-                        
-                        <div class="col-md-2">
-                            <label class="form-label small text-dark">Start Date</label>
-                            <input type="date" 
-                                   class="form-control border-1 rounded-2 py-2 px-3" 
-                                   name="start_date" 
-                                   value="{{ request('start_date') }}">
-                        </div>
-                        
-                        <div class="col-md-2">
-                            <label class="form-label small text-dark">End Date</label>
-                            <input type="date" 
-                                   class="form-control border-1 rounded-2 py-2 px-3" 
-                                   name="end_date" 
-                                   value="{{ request('end_date') }}">
-                        </div>
-                        
+                        </div>                        
                         <div class="col-md-1 d-flex align-items-end">
                             <div class="d-flex gap-1 w-100">
                                 <button type="submit" class="btn btn-primary rounded-2 px-3 w-100">
