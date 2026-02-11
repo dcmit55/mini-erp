@@ -593,11 +593,6 @@
       'table_id' => 'tblXJcCC3h7gF5aF',
       'view_id' => 'vewvk3plGP',
     ),
-    'inventory' => 
-    array (
-      'table_id' => 'tblTulpgtvkyrKxo',
-      'view_id' => 'vewEW56Qcr',
-    ),
     'sync' => 
     array (
       'enabled' => true,
