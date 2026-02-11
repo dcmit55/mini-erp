@@ -25,6 +25,7 @@ class PurchaseApprovalController extends Controller
         
         $query = ProjectPurchase::with(['department', 'supplier', 'pic', 'material', 'jobOrder'])
             ->where('status', 'pending')
+            ->where('is_current', 1)
             ->orderBy('created_at', 'desc');
         
         if ($search) {
@@ -53,10 +54,9 @@ class PurchaseApprovalController extends Controller
         $purchases = $query->paginate(20);
         $departments = \App\Models\Admin\Department::orderBy('name')->get();
         
-        // PASTIKAN VIEW PATH INI BENAR:
-        // Jika view ada di resources/views/finance/purchase-approvals/index.blade.php
         return view('finance.purchase-approvals.index', compact(
-            'purchases', 'search', 'startDate', 'endDate', 'department', 'purchaseType', 'departments'
+            'purchases', 'search', 'startDate', 'endDate', 
+            'department', 'purchaseType', 'departments'
         ));
     }
     
@@ -66,8 +66,6 @@ class PurchaseApprovalController extends Controller
     public function approve(Request $request, $id)
     {
         \Log::info("=== APPROVE PURCHASE ID: {$id} ===");
-        \Log::info("User: " . (auth()->user() ? auth()->user()->name : 'Guest'));
-        \Log::info("Input: " . json_encode($request->all()));
         
         try {
             $request->validate([
@@ -75,76 +73,32 @@ class PurchaseApprovalController extends Controller
                 'resi_number' => 'nullable|string|max:255',
             ]);
             
-            $purchase = ProjectPurchase::with(['department', 'supplier', 'pic', 'material', 'jobOrder'])->findOrFail($id);
-            
-            \Log::info("Purchase before update:", [
-                'po_number' => $purchase->po_number,
-                'status' => $purchase->status,
-                'finance_notes' => $purchase->finance_notes
-            ]);
+            $purchase = ProjectPurchase::where('is_current', 1)
+                ->with(['department', 'supplier', 'pic', 'material', 'jobOrder'])
+                ->findOrFail($id);
             
             DB::beginTransaction();
             
-            // PERBAIKAN: Hanya update kolom yang ADA di tabel
             $updateData = [
                 'status' => 'approved',
                 'finance_notes' => $request->input('finance_notes', $purchase->finance_notes),
                 'resi_number' => $request->input('resi_number', $purchase->resi_number),
             ];
             
-            // Hanya tambahkan approved_at jika kolomnya ada
             if (Schema::hasColumn('indo_purchases', 'approved_at')) {
                 $updateData['approved_at'] = now();
             }
             
-            // Hanya tambahkan approved_by jika kolomnya ada  
             if (Schema::hasColumn('indo_purchases', 'approved_by')) {
                 $updateData['approved_by'] = Auth::id();
             }
             
-            \Log::info("Updating purchase with data:", $updateData);
-            
             $purchase->update($updateData);
             
-            \Log::info("Purchase after update:", [
-                'status' => $purchase->status,
-                'updated_at' => $purchase->updated_at
-            ]);
-            
-            // Buat DCM costing TANPA field pic
-            $dcmData = [
-                'purchase_id' => $purchase->id,
-                'po_number' => $purchase->po_number ?? 'N/A',
-                'date' => $purchase->date ?? now(),
-                'purchase_type' => $purchase->purchase_type ?? 'restock',
-                'item_name' => $purchase->new_item_name ?: ($purchase->material ? $purchase->material->name : 'N/A'),
-                'quantity' => $purchase->quantity ?? 1,
-                'unit_price' => $purchase->unit_price ?? 0,
-                'total_price' => $purchase->total_price ?? 0,
-                'freight' => $purchase->freight ?? 0,
-                'invoice_total' => $purchase->invoice_total ?? 0,
-                'department' => $purchase->department ? $purchase->department->name : 'N/A',
-                'project_type' => $purchase->project_type ?? 'client',
-                'project_name' => $purchase->project_name ?? '',
-                'job_order' => $purchase->jobOrder ? $purchase->jobOrder->name : '',
-                'supplier' => $purchase->supplier ? $purchase->supplier->name : 'N/A',
-                // FIELD pic DIHAPUS karena sudah tidak ada di database
-                'status' => 'approved',
-                'item_status' => 'pending',
-                'finance_notes' => $request->input('finance_notes', ''),
-                'resi_number' => $request->input('resi_number', ''),
-                'approved_at' => now(),
-            ];
-            
-            \Log::info("Creating DCM costing with data:", $dcmData);
-            
-            $costing = DcmCosting::create($dcmData);
-            
-            \Log::info("DCM Costing created with ID: " . $costing->id);
+            // Create DCM costing
+            $this->createDcmCosting($purchase, 'approved', $request);
             
             DB::commit();
-            
-            \Log::info("=== APPROVE SUCCESS ===");
             
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
@@ -159,7 +113,6 @@ class PurchaseApprovalController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('Approval error: ' . $e->getMessage());
-            \Log::error('Trace: ' . $e->getTraceAsString());
             
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
@@ -185,11 +138,12 @@ class PurchaseApprovalController extends Controller
                 'finance_notes' => 'required|string|min:5|max:1000',
             ]);
             
-            $purchase = ProjectPurchase::with(['department', 'supplier', 'pic', 'material', 'jobOrder'])->findOrFail($id);
+            $purchase = ProjectPurchase::where('is_current', 1)
+                ->with(['department', 'supplier', 'pic', 'material', 'jobOrder'])
+                ->findOrFail($id);
             
             DB::beginTransaction();
             
-            // PERBAIKAN: Hanya update kolom yang ADA
             $updateData = [
                 'status' => 'rejected',
                 'finance_notes' => $request->finance_notes,
@@ -197,31 +151,7 @@ class PurchaseApprovalController extends Controller
             
             $purchase->update($updateData);
             
-            // Create DCM costing rejected TANPA field pic
-            $dcmData = [
-                'purchase_id' => $purchase->id,
-                'po_number' => $purchase->po_number ?? 'N/A',
-                'date' => $purchase->date ?? now(),
-                'purchase_type' => $purchase->purchase_type ?? 'restock',
-                'item_name' => $purchase->new_item_name ?: ($purchase->material ? $purchase->material->name : 'N/A'),
-                'quantity' => $purchase->quantity ?? 1,
-                'unit_price' => $purchase->unit_price ?? 0,
-                'total_price' => $purchase->total_price ?? 0,
-                'freight' => $purchase->freight ?? 0,
-                'invoice_total' => $purchase->invoice_total ?? 0,
-                'department' => $purchase->department ? $purchase->department->name : 'N/A',
-                'project_type' => $purchase->project_type ?? 'client',
-                'project_name' => $purchase->project_name ?? '',
-                'job_order' => $purchase->jobOrder ? $purchase->jobOrder->name : '',
-                'supplier' => $purchase->supplier ? $purchase->supplier->name : 'N/A',
-                // FIELD pic DIHAPUS
-                'status' => 'rejected',
-                'item_status' => 'not_received',
-                'finance_notes' => $request->finance_notes,
-                'approved_at' => now(),
-            ];
-            
-            DcmCosting::create($dcmData);
+            $this->createDcmCosting($purchase, 'rejected', $request);
             
             DB::commit();
             
@@ -237,44 +167,6 @@ class PurchaseApprovalController extends Controller
             return redirect()->route('purchase-approvals.index')
                 ->with('error', 'Error: ' . $e->getMessage());
         }
-    }
-    
-    /**
-     * Get statistics for dashboard
-     */
-    public function statistics()
-    {
-        $totalPending = ProjectPurchase::where('status', 'pending')->count();
-        $thisMonth = ProjectPurchase::where('status', 'pending')
-            ->whereMonth('created_at', now()->month)
-            ->whereYear('created_at', now()->year)
-            ->count();
-        $totalAmount = ProjectPurchase::where('status', 'pending')->sum('invoice_total');
-        $avgProcessingDays = ProjectPurchase::where('status', 'pending')
-            ->avg(DB::raw('DATEDIFF(NOW(), created_at)'));
-        
-        return response()->json([
-            'total_pending' => $totalPending,
-            'this_month' => $thisMonth,
-            'total_amount' => $totalAmount,
-            'avg_processing_days' => round($avgProcessingDays ?? 0, 1)
-        ]);
-    }
-    
-    /**
-     * View purchase details for approval
-     */
-    public function viewDetails($id)
-    {
-        $purchase = ProjectPurchase::with([
-            'department', 'supplier', 'pic', 'material',
-            'project', 'internalProject', 'jobOrder',
-            'category', 'unit'
-        ])->findOrFail($id);
-        
-        // PASTIKAN VIEW PATH INI BENAR:
-        // Jika view ada di resources/views/finance/purchase-approvals/details.blade.php
-        return view('finance.purchase-approvals.details', compact('purchase'));
     }
     
     /**
@@ -294,15 +186,15 @@ class PurchaseApprovalController extends Controller
         foreach ($request->purchase_ids as $purchaseId) {
             try {
                 DB::transaction(function () use ($purchaseId, $request) {
-                    $purchase = ProjectPurchase::with(['department', 'supplier', 'pic', 'material', 'jobOrder'])->findOrFail($purchaseId);
+                    $purchase = ProjectPurchase::where('is_current', 1)
+                        ->with(['department', 'supplier', 'pic', 'material', 'jobOrder'])
+                        ->findOrFail($purchaseId);
                     
-                    // PERBAIKAN: Hanya update kolom yang ADA
                     $updateData = [
                         'status' => 'approved',
                         'finance_notes' => $request->finance_notes,
                     ];
                     
-                    // Hanya tambahkan jika kolom ada
                     if (Schema::hasColumn('indo_purchases', 'approved_at')) {
                         $updateData['approved_at'] = now();
                     }
@@ -313,29 +205,7 @@ class PurchaseApprovalController extends Controller
                     
                     $purchase->update($updateData);
                     
-                    // Create DCM costing TANPA field pic
-                    DcmCosting::create([
-                        'purchase_id' => $purchase->id,
-                        'po_number' => $purchase->po_number ?? 'N/A',
-                        'date' => $purchase->date ?? now(),
-                        'purchase_type' => $purchase->purchase_type ?? 'restock',
-                        'item_name' => $purchase->new_item_name ?: ($purchase->material ? $purchase->material->name : 'N/A'),
-                        'quantity' => $purchase->quantity ?? 1,
-                        'unit_price' => $purchase->unit_price ?? 0,
-                        'total_price' => $purchase->total_price ?? 0,
-                        'freight' => $purchase->freight ?? 0,
-                        'invoice_total' => $purchase->invoice_total ?? 0,
-                        'department' => $purchase->department ? $purchase->department->name : 'N/A',
-                        'project_type' => $purchase->project_type ?? 'client',
-                        'project_name' => $purchase->project_name ?? '',
-                        'job_order' => $purchase->jobOrder ? $purchase->jobOrder->name : '',
-                        'supplier' => $purchase->supplier ? $purchase->supplier->name : 'N/A',
-                        // FIELD pic DIHAPUS
-                        'status' => 'approved',
-                        'item_status' => 'pending',
-                        'finance_notes' => $request->finance_notes,
-                        'approved_at' => now(),
-                    ]);
+                    $this->createDcmCosting($purchase, 'approved', $request);
                 });
                 
                 $approvedCount++;
@@ -353,5 +223,84 @@ class PurchaseApprovalController extends Controller
         
         return redirect()->route('purchase-approvals.index')
             ->with('success', $message);
+    }
+    
+    /**
+     * Get statistics for dashboard
+     */
+    public function statistics()
+    {
+        $totalPending = ProjectPurchase::where('status', 'pending')
+            ->where('is_current', 1)
+            ->count();
+            
+        $thisMonth = ProjectPurchase::where('status', 'pending')
+            ->where('is_current', 1)
+            ->whereMonth('created_at', now()->month)
+            ->whereYear('created_at', now()->year)
+            ->count();
+            
+        $totalAmount = ProjectPurchase::where('status', 'pending')
+            ->where('is_current', 1)
+            ->sum('invoice_total');
+            
+        $avgProcessingDays = ProjectPurchase::where('status', 'pending')
+            ->where('is_current', 1)
+            ->avg(DB::raw('DATEDIFF(NOW(), created_at)'));
+        
+        return response()->json([
+            'total_pending' => $totalPending,
+            'this_month' => $thisMonth,
+            'total_amount' => $totalAmount,
+            'avg_processing_days' => round($avgProcessingDays ?? 0, 1)
+        ]);
+    }
+    
+    /**
+     * View purchase details for approval
+     */
+    public function viewDetails($id)
+    {
+        $purchase = ProjectPurchase::where('is_current', 1)
+            ->with([
+                'department', 'supplier', 'pic', 'material',
+                'project', 'internalProject', 'jobOrder',
+                'category', 'unit'
+            ])
+            ->findOrFail($id);
+        
+        return view('finance.purchase-approvals.details', compact('purchase'));
+    }
+    
+    /**
+     * Create DCM Costing
+     */
+    private function createDcmCosting($purchase, $status, $request)
+    {
+        $dcmData = [
+            'purchase_id' => $purchase->id,
+            'po_number' => $purchase->po_number ?? 'N/A',
+            'date' => $purchase->date ?? now(),
+            'purchase_type' => $purchase->purchase_type ?? 'restock',
+            'item_name' => $purchase->new_item_name ?: ($purchase->material ? $purchase->material->name : 'N/A'),
+            'quantity' => $purchase->quantity ?? 1,
+            'unit_price' => $purchase->unit_price ?? 0,
+            'total_price' => $purchase->total_price ?? 0,
+            'freight' => $purchase->freight ?? 0,
+            'invoice_total' => $purchase->invoice_total ?? 0,
+            'department' => $purchase->department ? $purchase->department->name : 'N/A',
+            'project_type' => $purchase->project_type ?? 'client',
+            'project_name' => $purchase->project_name ?? '',
+            'job_order' => $purchase->jobOrder ? $purchase->jobOrder->name : '',
+            'supplier' => $purchase->supplier ? $purchase->supplier->name : 'N/A',
+            'status' => $status,
+            'item_status' => $status === 'approved' ? 'pending' : 'not_received',
+            'finance_notes' => $request->input('finance_notes', ''),
+            'resi_number' => $request->input('resi_number', $purchase->resi_number),
+            'approved_at' => $status === 'approved' ? now() : null,
+            'is_current' => true,
+        ];
+        
+        return DcmCosting::create($dcmData);
     }
 }

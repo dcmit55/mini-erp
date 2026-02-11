@@ -29,63 +29,10 @@ class ProjectPurchaseController extends Controller
     public function index(Request $request)
     {
         try {
-            Log::info('=== PROJECT PURCHASE INDEX START ===');
-            Log::info('Request filters:', $request->all());
-            
-            // 1. Get purchases with filters
+            // Gunakan service yang sudah diperbaiki
             $purchases = $this->purchaseService->getPurchasesWithFilters($request);
             
-            // 2. Get stats - DENGAN FALLBACK LANGSUNG JIKA SERVICE GAGAL
-            $stats = [];
-            
-            try {
-                $stats = $this->purchaseService->getPurchaseStats();
-                Log::info('Stats from service:', $stats);
-            } catch (\Exception $serviceError) {
-                Log::error('Service getPurchaseStats error: ' . $serviceError->getMessage());
-                // Fallback: Hitung manual di controller
-                $stats = $this->calculateStatsDirectly();
-            }
-            
-            // 3. Verify stats data
-            $manualVerification = [
-                'total_check' => ProjectPurchase::count(),
-                'approved_check' => ProjectPurchase::where('status', 'approved')->count(),
-                'pending_check' => ProjectPurchase::where('status', 'pending')->count(),
-                'rejected_check' => ProjectPurchase::where('status', 'rejected')->count(),
-                'received_check' => ProjectPurchase::whereIn('item_status', ['matched', 'received'])->count(),
-                'pending_check_count' => ProjectPurchase::whereIn('item_status', ['pending_check', 'pending'])->count(),
-            ];
-            
-            Log::info('Manual verification:', $manualVerification);
-            
-            // 4. Jika stats dari service masih 0, tapi manual verification ada data
-            if (($stats['total'] ?? 0) == 0 && $manualVerification['total_check'] > 0) {
-                Log::warning('Service returned 0 stats but manual check has data! Using manual calculation.');
-                $stats = $this->calculateStatsDirectly();
-            }
-            
-            // 5. Ensure all required keys exist
-            $defaultStats = [
-                'total' => 0,
-                'total_amount' => 0,
-                'pending' => 0,
-                'rejected' => 0,
-                'approved' => 0,
-                'received' => 0,
-                'pending_check' => 0,
-                'not_matched' => 0,
-                'today' => 0,
-                'client_projects' => 0,
-                'internal_projects' => 0,
-            ];
-            
-            $stats = array_merge($defaultStats, $stats);
-            
-            // 6. Debug final stats
-            Log::info('Final stats to view:', $stats);
-            Log::info('Purchases total: ' . $purchases->total());
-            Log::info('=== PROJECT PURCHASE INDEX END ===');
+            $stats = $this->purchaseService->getPurchaseStats();
             
             return view('Procurement.Project-Purchase.index', [
                 'purchases' => $purchases,
@@ -103,11 +50,22 @@ class ProjectPurchaseController extends Controller
             
         } catch (\Exception $e) {
             Log::error('Index error: ' . $e->getMessage());
-            Log::error('Stack trace: ' . $e->getTraceAsString());
             
             return view('Procurement.Project-Purchase.index', [
-                'purchases' => ProjectPurchase::query()->paginate(20),
-                'stats' => $this->calculateStatsDirectly(),
+                'purchases' => ProjectPurchase::current()->paginate(20),
+                'stats' => [
+                    'total' => 0,
+                    'total_amount' => 0,
+                    'pending' => 0,
+                    'rejected' => 0,
+                    'approved' => 0,
+                    'received' => 0,
+                    'pending_check' => 0,
+                    'not_matched' => 0,
+                    'today' => 0,
+                    'client_projects' => 0,
+                    'internal_projects' => 0,
+                ],
                 'departments' => Department::select('id', 'name')->get(),
                 'projects' => Project::select('id', 'name')->get(),
                 'internal_projects' => InternalProject::select('id', 'project', 'job', 'department', 'department_id', 'description')
@@ -120,78 +78,15 @@ class ProjectPurchaseController extends Controller
             ]);
         }
     }
-    
-    /**
-     * Calculate stats directly without service (fallback method)
-     */
-    private function calculateStatsDirectly()
-    {
-        try {
-            Log::info('Calculating stats directly...');
-            
-            // Total semua PO
-            $total = ProjectPurchase::count();
-            
-            // Total amount (hanya PO yang approved)
-            $totalAmount = ProjectPurchase::where('status', 'approved')->sum('invoice_total');
-            
-            // Status PO
-            $pending = ProjectPurchase::where('status', 'pending')->count();
-            $approved = ProjectPurchase::where('status', 'approved')->count();
-            $rejected = ProjectPurchase::where('status', 'rejected')->count();
-            
-            // Status item (sesuai dengan database: pending_check, matched, not_matched)
-            $matched = ProjectPurchase::where('item_status', 'matched')->count();
-            $pendingCheck = ProjectPurchase::whereIn('item_status', ['pending_check', 'pending'])->count();
-            $notMatched = ProjectPurchase::where('item_status', 'not_matched')->count();
-            
-            // Today's purchases
-            $today = ProjectPurchase::whereDate('created_at', today())->count();
-            
-            // Project types
-            $clientProjects = ProjectPurchase::where('project_type', 'client')->count();
-            $internalProjects = ProjectPurchase::where('project_type', 'internal')->count();
-            
-            $stats = [
-                'total' => $total,
-                'total_amount' => $totalAmount,
-                'pending' => $pending,
-                'rejected' => $rejected,
-                'approved' => $approved,
-                'received' => $matched, // matched = received
-                'pending_check' => $pendingCheck,
-                'not_matched' => $notMatched,
-                'today' => $today,
-                'client_projects' => $clientProjects,
-                'internal_projects' => $internalProjects,
-            ];
-            
-            Log::info('Direct calculation stats:', $stats);
-            
-            return $stats;
-            
-        } catch (\Exception $e) {
-            Log::error('Direct stats calculation error: ' . $e->getMessage());
-            return [
-                'total' => 0,
-                'total_amount' => 0,
-                'pending' => 0,
-                'rejected' => 0,
-                'approved' => 0,
-                'received' => 0,
-                'pending_check' => 0,
-                'not_matched' => 0,
-                'today' => 0,
-                'client_projects' => 0,
-                'internal_projects' => 0,
-            ];
-        }
-    }
 
     public function create()
     {
         try {
+            // Generate PO number dari service
+            $poNumber = $this->purchaseService->generatePONumber();
+            
             return view('Procurement.Project-Purchase.create', [
+                'poNumber' => $poNumber, // Kirim PO number ke view
                 'materials' => Inventory::select('id', 'name', 'price', 'unit_id', 'category_id')->get(),
                 'departments' => Department::select('id', 'name')->get(),
                 'projects' => Project::select('id', 'name')->get(),
@@ -223,9 +118,8 @@ class ProjectPurchaseController extends Controller
     public function store(Request $request)
     {
         try {
-            // OPSIONAL: Override department_id untuk internal projects
             if ($request->project_type === 'internal') {
-                $request->merge(['department_id' => 24]); // Sesuaikan dengan department_id yang sesuai
+                $request->merge(['department_id' => 24]);
             }
             
             $validated = $this->purchaseService->validatePurchaseRequest($request);
@@ -244,33 +138,43 @@ class ProjectPurchaseController extends Controller
     public function show($id)
     {
         try {
-            Log::info("=== SHOW PURCHASE ORDER ===");
-            Log::info("Purchase ID: " . $id);
-            
-            $purchase = ProjectPurchase::with([
-                'material:id,name,price',
-                'department:id,name',
-                'project:id,name',
-                'internalProject:id,project,job,department,department_id,description',
-                'jobOrder:id,name',
-                'category:id,name',
-                'unit:id,name',
-                'supplier:id,name',
-                'pic:id,username',
-                'approver:id,username',
-                'checker:id,username',
-                'receiver:id,username'
-            ])->find($id);
-            
-            Log::info("Purchase found: " . ($purchase ? 'YES' : 'NO'));
+            // ✅ PERBAIKAN: Ambil current revision saja dan load username
+            $purchase = ProjectPurchase::current()
+                ->with([
+                    'material:id,name,price',
+                    'department:id,name',
+                    'project:id,name',
+                    'internalProject:id,project,job,department,department_id,description',
+                    'jobOrder:id,name',
+                    'category:id,name',
+                    'unit:id,name',
+                    'supplier:id,name',
+                    'pic:id,username', // ✅ GUNAKAN username
+                    'approver:id,username', // ✅ GUNAKAN username
+                    'checker:id,username', // ✅ GUNAKAN username
+                    'receiver:id,username' // ✅ GUNAKAN username
+                ])->find($id);
             
             if (!$purchase) {
-                Log::error("Purchase not found with ID: " . $id);
                 return redirect()->route('project-purchases.index')
                     ->with('error', 'Data purchase order tidak ditemukan (ID: ' . $id . ').');
             }
             
-            return view('Procurement.Project-Purchase.show', compact('purchase'));
+            // Get revision history untuk PO yang sama
+            $revisions = ProjectPurchase::where('po_number', $purchase->po_number)
+                ->orderBy('created_at', 'desc')
+                ->with(['pic:id,username'])
+                ->get();
+            
+            return view('Procurement.Project-Purchase.show', [
+                'purchase' => $purchase,
+                'revisions' => $revisions,
+                'revision_info' => [
+                    'total_revisions' => $revisions->count(),
+                    'current_revision_id' => $purchase->id,
+                    'revision_number' => $revisions->where('created_at', '<=', $purchase->created_at)->count(),
+                ]
+            ]);
             
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             Log::error('ModelNotFoundException in show: ' . $e->getMessage());
@@ -286,30 +190,38 @@ class ProjectPurchaseController extends Controller
     public function edit($id)
     {
         try {
-            $purchase = ProjectPurchase::with([
-                'material:id,name,price',
-                'department:id,name',
-                'project:id,name',
-                'internalProject:id,project,job,department,department_id,description',
-                'jobOrder:id,name',
-                'category:id,name',
-                'unit:id,name',
-                'supplier:id,name',
-                'pic:id,username'
-            ])->findOrFail($id);
-
-            if ($purchase->isApproved() || $purchase->isRejected()) {
-                return redirect()->route('project-purchases.show', $purchase->id)
-                    ->with('error', 'Purchase Order tidak dapat diedit karena sudah disetujui/ditolak oleh Finance.');
-            }
+            // ✅ PERBAIKAN: Ambil current revision saja
+            $purchase = ProjectPurchase::current()
+                ->with([
+                    'material:id,name,price',
+                    'department:id,name',
+                    'project:id,name',
+                    'internalProject:id,project,job,department,department_id,description',
+                    'jobOrder:id,name',
+                    'category:id,name',
+                    'unit:id,name',
+                    'supplier:id,name',
+                    'pic:id,username' // ✅ GUNAKAN username
+                ])->findOrFail($id);
 
             if (!$purchase->canEdit()) {
                 return redirect()->route('project-purchases.show', $purchase->id)
                     ->with('error', 'Purchase Order tidak dapat diedit.');
             }
 
+            // Get all revisions untuk ditampilkan di edit page
+            $revisions = ProjectPurchase::where('po_number', $purchase->po_number)
+                ->orderBy('created_at', 'desc')
+                ->get(['id', 'revision_at', 'status', 'item_status', 'created_at', 'is_current']);
+
             return view('Procurement.Project-Purchase.edit', [
                 'purchase' => $purchase,
+                'revisions' => $revisions,
+                'revision_info' => [
+                    'total_revisions' => $revisions->count(),
+                    'current_revision_id' => $purchase->id,
+                    'revision_number' => $revisions->where('created_at', '<=', $purchase->created_at)->count(),
+                ],
                 'materials' => Inventory::select('id', 'name', 'price')->get(),
                 'departments' => Department::select('id', 'name')->get(),
                 'projects' => Project::select('id', 'name')->get(),
@@ -344,12 +256,8 @@ class ProjectPurchaseController extends Controller
     public function update(Request $request, $id)
     {
         try {
-            $purchase = ProjectPurchase::findOrFail($id);
-
-            if ($purchase->isApproved() || $purchase->isRejected()) {
-                return redirect()->route('project-purchases.show', $purchase->id)
-                    ->with('error', 'Purchase Order tidak dapat diupdate karena sudah disetujui/ditolak oleh Finance.');
-            }
+            // ✅ PERBAIKAN: Cari current revision saja
+            $purchase = ProjectPurchase::current()->findOrFail($id);
 
             if (!$purchase->canEdit()) {
                 return redirect()->route('project-purchases.show', $purchase->id)
@@ -357,10 +265,18 @@ class ProjectPurchaseController extends Controller
             }
 
             $validated = $this->purchaseService->validatePurchaseRequest($request, $purchase->id);
-            $this->purchaseService->updatePurchase($purchase, $validated);
+            
+            // Update purchase akan membuat REVISION baru
+            $updatedPurchase = $this->purchaseService->updatePurchase($purchase, $validated);
 
-            return redirect()->route('project-purchases.show', $purchase->id)
-                ->with('success', 'Purchase Order berhasil diperbarui!');
+            return redirect()->route('project-purchases.show', $updatedPurchase->id)
+                ->with('success', 'Purchase Order berhasil diperbarui (revisi baru dibuat)!')
+                ->with('revision_info', [
+                    'old_record_id' => $purchase->id,
+                    'new_record_id' => $updatedPurchase->id,
+                    'po_number' => $updatedPurchase->po_number,
+                    'revision_count' => $updatedPurchase->total_revisions,
+                ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return back()->withErrors($e->errors())->withInput();
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
@@ -375,12 +291,8 @@ class ProjectPurchaseController extends Controller
     public function destroy($id)
     {
         try {
-            $purchase = ProjectPurchase::findOrFail($id);
-
-            if ($purchase->isApproved() || $purchase->isRejected()) {
-                return redirect()->route('project-purchases.show', $purchase->id)
-                    ->with('error', 'Purchase Order tidak dapat dihapus karena sudah disetujui/ditolak oleh Finance.');
-            }
+            // ✅ PERBAIKAN: Cari current revision saja
+            $purchase = ProjectPurchase::current()->findOrFail($id);
 
             if (!$purchase->canDelete()) {
                 return redirect()->route('project-purchases.show', $purchase->id)
@@ -412,9 +324,13 @@ class ProjectPurchaseController extends Controller
                 'finance_notes' => 'nullable|string',
             ]);
 
-            $purchase = ProjectPurchase::findOrFail($id);
+            // ✅ PERBAIKAN: Cari current revision saja
+            $purchase = ProjectPurchase::current()->findOrFail($id);
             
-            // Validasi: untuk online order, harus ada resi_number
+            if (!$purchase->canApprove()) {
+                return back()->with('error', 'Tidak dapat menyetujui Purchase Order ini.');
+            }
+
             if (!$purchase->isOfflineOrder() && empty($validated['resi_number'])) {
                 return back()->with('error', 'Untuk order online, harus mengisi nomor resi.');
             }
@@ -440,7 +356,13 @@ class ProjectPurchaseController extends Controller
                 'finance_notes' => 'required|string',
             ]);
 
-            $purchase = ProjectPurchase::findOrFail($id);
+            // ✅ PERBAIKAN: Cari current revision saja
+            $purchase = ProjectPurchase::current()->findOrFail($id);
+            
+            if (!$purchase->canReject()) {
+                return back()->with('error', 'Tidak dapat menolak Purchase Order ini.');
+            }
+            
             $this->purchaseService->rejectPurchase($purchase, $validated);
 
             return back()->with('success', 'Purchase Order berhasil ditolak!');
@@ -462,7 +384,8 @@ class ProjectPurchaseController extends Controller
                 'resi_number' => 'nullable|string|max:255',
             ]);
 
-            $purchase = ProjectPurchase::findOrFail($id);
+            // ✅ PERBAIKAN: Cari current revision saja
+            $purchase = ProjectPurchase::current()->findOrFail($id);
             
             if (!$purchase->canUpdateResi()) {
                 return back()->with('error', 'Tidak dapat mengupdate resi karena PO belum disetujui atau barang sudah dicek.');
@@ -495,7 +418,8 @@ class ProjectPurchaseController extends Controller
                 'note' => 'nullable|string',
             ]);
 
-            $purchase = ProjectPurchase::findOrFail($id);
+            // ✅ PERBAIKAN: Cari current revision saja
+            $purchase = ProjectPurchase::current()->findOrFail($id);
             
             if (!$purchase->canCheck()) {
                 return back()->with('error', 'Tidak dapat mengecek barang karena PO belum disetujui atau sudah dicek.');
@@ -519,7 +443,8 @@ class ProjectPurchaseController extends Controller
     public function markAsReceived($id)
     {
         try {
-            $purchase = ProjectPurchase::findOrFail($id);
+            // ✅ PERBAIKAN: Cari current revision saja
+            $purchase = ProjectPurchase::current()->findOrFail($id);
             
             if (!$purchase->canMarkAsReceived()) {
                 return back()->with('error', 'Tidak dapat menandai sebagai diterima karena PO belum disetujui atau sudah diterima.');
@@ -540,7 +465,8 @@ class ProjectPurchaseController extends Controller
     public function markAsNotMatched($id)
     {
         try {
-            $purchase = ProjectPurchase::findOrFail($id);
+            // ✅ PERBAIKAN: Cari current revision saja
+            $purchase = ProjectPurchase::current()->findOrFail($id);
             
             if (!$purchase->isItemPending()) {
                 return back()->with('error', 'Tidak dapat menandai sebagai tidak sesuai karena barang sudah ditandai.');
@@ -635,13 +561,10 @@ class ProjectPurchaseController extends Controller
         }
     }
 
-    /**
-     * Export purchases to Excel
-     */
     public function export(Request $request)
     {
         try {
-            $purchases = $this->purchaseService->getPurchasesWithFilters($request, false); // tanpa pagination
+            $purchases = $this->purchaseService->getPurchasesWithFilters($request, false);
             
             return $this->purchaseService->exportToExcel($purchases);
         } catch (\Exception $e) {
@@ -650,24 +573,23 @@ class ProjectPurchaseController extends Controller
         }
     }
 
-    /**
-     * Print purchase order
-     */
     public function print($id)
     {
         try {
-            $purchase = ProjectPurchase::with([
-                'material:id,name,price',
-                'department:id,name',
-                'project:id,name',
-                'internalProject:id,project,job,department,department_id,description',
-                'jobOrder:id,name',
-                'category:id,name',
-                'unit:id,name',
-                'supplier:id,name,address,phone,email',
-                'pic:id,username,name',
-                'approver:id,username,name'
-            ])->findOrFail($id);
+            // ✅ PERBAIKAN: Cari current revision saja
+            $purchase = ProjectPurchase::current()
+                ->with([
+                    'material:id,name,price',
+                    'department:id,name',
+                    'project:id,name',
+                    'internalProject:id,project,job,department,department_id,description',
+                    'jobOrder:id,name',
+                    'category:id,name',
+                    'unit:id,name',
+                    'supplier:id,name,address,phone,email',
+                    'pic:id,username',
+                    'approver:id,username'
+                ])->findOrFail($id);
 
             return view('Procurement.Project-Purchase.print', compact('purchase'));
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {

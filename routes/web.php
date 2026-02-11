@@ -44,7 +44,7 @@ use App\Http\Controllers\Procurement\ProjectPurchaseController;
 use App\Http\Controllers\InternalProjectController;
 use App\Http\Controllers\Finance\DcmCostingController;
 use App\Http\Controllers\Finance\PurchaseApprovalController;
-
+use App\Http\Controllers\Finance\PurchaseEditedController;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -467,7 +467,7 @@ Route::middleware(['auth'])->group(function () {
      Route::get('project-purchases/internal-project/{id}', [ProjectPurchaseController::class, 'getInternalProjectDetails'])
     ->name('project-purchases.internal-project-details');
 
-    // DCM Costings Routes
+// DCM Costings Routes
     Route::prefix('dcm-costings')->name('dcm-costings.')->group(function () {
         Route::get('/', [DcmCostingController::class, 'index'])->name('index');
         Route::get('/export', [DcmCostingController::class, 'export'])->name('export'); 
@@ -478,8 +478,14 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/{costing:uid}/edit', [DcmCostingController::class, 'edit'])->name('edit');
         Route::put('/{costing:uid}', [DcmCostingController::class, 'update'])->name('update');
         Route::delete('/{costing:uid}', [DcmCostingController::class, 'destroy'])->name('destroy');
+        
+        // New routes for edited purchases integration
+        Route::get('/check-updates', [DcmCostingController::class, 'checkForUpdates'])->name('check-updates');
+        Route::post('/{poNumber}/manual-update', [DcmCostingController::class, 'manualUpdate'])->name('manual-update');
+        Route::get('/pending-updates', [DcmCostingController::class, 'getPendingUpdates'])->name('pending-updates');
+        Route::post('/bulk-update', [DcmCostingController::class, 'bulkUpdate'])->name('bulk-update');
     });
-    // Purchase Approvals Routes
+
     Route::prefix('purchase-approvals')->name('purchase-approvals.')->group(function () {
         Route::get('/', [PurchaseApprovalController::class, 'index'])->name('index');
         Route::get('/statistics', [PurchaseApprovalController::class, 'statistics'])->name('statistics');
@@ -487,14 +493,21 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{id}/approve', [PurchaseApprovalController::class, 'approve'])->name('approve');
         Route::post('/{id}/reject', [PurchaseApprovalController::class, 'reject'])->name('reject');
         Route::post('/bulk-approve', [PurchaseApprovalController::class, 'bulkApprove'])->name('bulk-approve');
-    });
+        
+    });    
+    Route::prefix('finance/purchase-edited')->name('purchase-edited.')->group(function () {
+            Route::get('/', [PurchaseEditedController::class, 'index'])->name('index');
+            Route::get('/compare/{poNumber}', [PurchaseEditedController::class, 'compare'])->name('compare');
+            Route::post('/verify/{poNumber}', [PurchaseEditedController::class, 'verify'])->name('verify');
+            Route::post('/bulk-verify', [PurchaseEditedController::class, 'bulkVerify'])->name('bulk-verify');
+            Route::get('/check/{poNumber}', [PurchaseEditedController::class, 'check'])->name('check');
+            Route::get('/count', [PurchaseEditedController::class, 'getCount'])->name('count');
+        });       
+        Route::get('/finance-dashboard', function() {
+            return redirect()->route('purchase-approvals.index');
+        })->name('finance.dashboard');
 
-    // Finance Dashboard Redirects
-    Route::get('/finance-dashboard', function() {
-        return redirect()->route('purchase-approvals.index');
-    })->name('finance.dashboard');
-
-    Route::get('/finance-costings', function() {
-        return redirect()->route('dcm-costings.index');
-    })->name('finance.costings');
-});
+        Route::get('/finance-costings', function() {
+            return redirect()->route('dcm-costings.index');
+        })->name('finance.costings');
+    });       
