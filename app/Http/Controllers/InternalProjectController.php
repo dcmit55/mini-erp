@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\InternalProject;
+use App\Models\Admin\Department;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 class InternalProjectController extends Controller
 {
@@ -18,7 +20,7 @@ class InternalProjectController extends Controller
         $search = $request->input('search');
         $projectType = $request->input('project_type');
 
-        $projects = InternalProject::query()
+        $projects = InternalProject::with(['picUser', 'updateUser', 'department'])
             ->when($search, function($query) use ($search) {
                 $query->where('job', 'like', '%' . $search . '%')
                     ->orWhere('description', 'like', '%' . $search . '%')
@@ -41,12 +43,21 @@ class InternalProjectController extends Controller
     {
         $projectTypes = [
             'Office' => 'Office',
-            'Machine' => 'Machine', 
+            'Machine' => 'Machine',
             'Testing' => 'Testing',
             'Facilities' => 'Facilities',
         ];
 
-        return view('internal-projects.create', compact('projectTypes'));
+        $departments = Department::orderBy('name')->get();
+
+        // Cari department PT DCM untuk default value
+        $ptDcmDepartment = Department::where('name', 'PT DCM')->first();
+        if (!$ptDcmDepartment) {
+            $ptDcmDepartment = Department::orderBy('id')->first();
+        }
+        $defaultPtDcmDepartmentId = $ptDcmDepartment ? $ptDcmDepartment->id : null;
+
+        return view('internal-projects.create', compact('projectTypes', 'departments', 'defaultPtDcmDepartmentId'));
     }
 
     /**
@@ -55,10 +66,10 @@ class InternalProjectController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'project' => 'required|string|in:Office,Machine,Testing,Facilities',
-            'job' => 'required|string|max:200',
-            'description' => 'nullable|string',
-            // PIC dihapus dari validation karena akan auto diambil
+            'project'       => 'required|string|in:Office,Machine,Testing,Facilities',
+            'job'           => 'required|string|max:200',
+            'description'   => 'nullable|string',
+            'department_id' => 'required|exists:departments,id',
         ]);
 
         if ($validator->fails()) {
@@ -70,23 +81,18 @@ class InternalProjectController extends Controller
         try {
             DB::beginTransaction();
 
-            // Get current user
-            $user = Auth::user();
-            
-            // Create new project
-            $project = new InternalProject();
-            $project->project = $request->project;
-            $project->job = $request->job;
-            $project->description = $request->description;
-            
-            // Auto set PIC dari user yang login
-            if ($user) {
-                $project->pic = $user->id; // Simpan user ID
-                $project->update_by = $user->id;
-            }
-            
-            // Simpan
-            $project->save();
+            $department = Department::find($request->department_id);
+            $departmentName = $department ? $department->name : 'PT DCM';
+
+            $project = InternalProject::create([
+                'project'       => $request->project,
+                'job'           => $request->job,
+                'description'   => $request->description,
+                'department'    => $departmentName,
+                'department_id' => $request->department_id,
+                'pic'           => auth()->id(),
+                'update_by'     => auth()->id(),
+            ]);
 
             DB::commit();
 
@@ -96,11 +102,67 @@ class InternalProjectController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
             return redirect()
                 ->back()
                 ->withInput()
                 ->with('error', 'Failed to create project: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Quick store internal project from modal (AJAX) – Digunakan di halaman Create Material Request.
+     */
+    public function quickStore(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'project'       => 'required|in:Office,Machine,Testing,Facilities',
+            'department_id' => 'required|exists:departments,id',
+            'job'           => 'required|string|max:200',
+            'description'   => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors'  => $validator->errors()
+            ], 422);
+        }
+
+        DB::beginTransaction();
+        try {
+            $department = Department::find($request->department_id);
+            $departmentName = $department ? $department->name : 'PT DCM';
+
+            $internalProject = InternalProject::create([
+                'project'       => $request->project,
+                'job'           => $request->job,
+                'description'   => $request->description,
+                'department'    => $departmentName,
+                'department_id' => $request->department_id,
+                'pic'           => auth()->id(),
+                'update_by'     => auth()->id(),
+                'uid'           => Str::uuid(),
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Internal project added successfully!',
+                'internal_project' => [
+                    'id'      => $internalProject->id,
+                    'project' => $internalProject->project,
+                    'job'     => $internalProject->job,
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to add internal project: ' . $e->getMessage()
+            ], 500);
         }
     }
 
@@ -110,7 +172,7 @@ class InternalProjectController extends Controller
     public function show(string $id)
     {
         try {
-            $internalProject = InternalProject::findOrFail($id);
+            $internalProject = InternalProject::with(['picUser', 'updateUser', 'department'])->findOrFail($id);
             return view('internal-projects.show', compact('internalProject'));
         } catch (\Exception $e) {
             return redirect()
@@ -125,7 +187,7 @@ class InternalProjectController extends Controller
     public function edit(string $id)
     {
         try {
-            $internalProject = InternalProject::findOrFail($id); // Changed to $internalProject
+            $internalProject = InternalProject::findOrFail($id);
             $projectTypes = [
                 'Office' => 'Office',
                 'Machine' => 'Machine',
@@ -133,7 +195,15 @@ class InternalProjectController extends Controller
                 'Facilities' => 'Facilities',
             ];
 
-            return view('internal-projects.edit', compact('internalProject', 'projectTypes'));
+            $departments = Department::orderBy('name')->get();
+
+            $ptDcmDepartment = Department::where('name', 'PT DCM')->first();
+            if (!$ptDcmDepartment) {
+                $ptDcmDepartment = Department::orderBy('id')->first();
+            }
+            $defaultPtDcmDepartmentId = $ptDcmDepartment ? $ptDcmDepartment->id : null;
+
+            return view('internal-projects.edit', compact('internalProject', 'projectTypes', 'departments', 'defaultPtDcmDepartmentId'));
         } catch (\Exception $e) {
             return redirect()
                 ->route('internal-projects.index')
@@ -147,10 +217,10 @@ class InternalProjectController extends Controller
     public function update(Request $request, string $id)
     {
         $validator = Validator::make($request->all(), [
-            'project' => 'required|string|in:Office,Machine,Testing,Facilities',
-            'job' => 'required|string|max:200',
-            'description' => 'nullable|string',
-            // PIC tidak perlu di update
+            'project'       => 'required|string|in:Office,Machine,Testing,Facilities',
+            'job'           => 'required|string|max:200',
+            'description'   => 'nullable|string',
+            'department_id' => 'required|exists:departments,id',
         ]);
 
         if ($validator->fails()) {
@@ -162,20 +232,19 @@ class InternalProjectController extends Controller
         try {
             DB::beginTransaction();
 
-            $internalProject = InternalProject::findOrFail($id); // Changed to $internalProject
-            
-            // Get current user untuk update_by
+            $internalProject = InternalProject::findOrFail($id);
             $user = Auth::user();
-            
-            $internalProject->project = $request->project;
-            $internalProject->job = $request->job;
-            $internalProject->description = $request->description;
-            
-            // Update update_by dengan user yang login
-            if ($user) {
-                $internalProject->update_by = $user->id;
-            }
-            
+
+            $department = Department::find($request->department_id);
+            $departmentName = $department ? $department->name : 'PT DCM';
+
+            $internalProject->project       = $request->project;
+            $internalProject->job           = $request->job;
+            $internalProject->description   = $request->description;
+            $internalProject->department    = $departmentName;
+            $internalProject->department_id = $request->department_id;
+            $internalProject->update_by     = $user->id;
+
             $internalProject->save();
 
             DB::commit();
@@ -186,7 +255,6 @@ class InternalProjectController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
             return redirect()
                 ->back()
                 ->withInput()
@@ -202,7 +270,7 @@ class InternalProjectController extends Controller
         try {
             DB::beginTransaction();
 
-            $internalProject = InternalProject::findOrFail($id); // Changed to $internalProject
+            $internalProject = InternalProject::findOrFail($id);
             $internalProject->delete();
 
             DB::commit();
@@ -213,7 +281,6 @@ class InternalProjectController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
             return redirect()
                 ->route('internal-projects.index')
                 ->with('error', 'Failed to delete project: ' . $e->getMessage());

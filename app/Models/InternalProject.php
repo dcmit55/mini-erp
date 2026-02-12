@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use App\Models\Admin\User;
+use App\Models\Admin\Department;
 
 class InternalProject extends Model
 {
@@ -16,13 +17,14 @@ class InternalProject extends Model
     public $incrementing = false;
     protected $keyType = 'string';
     
-    public $timestamps = false; // Karena kita pakai created_at manual
-    
+    public $timestamps = false;
+
     protected $fillable = [
-        'project',      // project type
-        'job',          // job singkat
-        'description',  // deskripsi lengkap (TAMBAHAN)
+        'project',
+        'job',
+        'description',
         'department',
+        'department_id',
         'pic',
         'update_by'
     ];
@@ -70,6 +72,7 @@ class InternalProject extends Model
         });
     }
 
+    // ========== RELASI ==========
     public function picUser()
     {
         return $this->belongsTo(User::class, 'pic');
@@ -80,6 +83,12 @@ class InternalProject extends Model
         return $this->belongsTo(User::class, 'update_by');
     }
 
+    public function department()
+    {
+        return $this->belongsTo(Department::class, 'department_id');
+    }
+
+    // ========== ACCESSORS ==========
     public function getPicUsernameAttribute()
     {
         return $this->picUser->username ?? 'N/A';
@@ -96,11 +105,9 @@ class InternalProject extends Model
             if ($this->created_at instanceof \Illuminate\Support\Carbon) {
                 return $this->created_at->format('d/m/Y');
             }
-            
             if (is_string($this->created_at)) {
                 return \Carbon\Carbon::parse($this->created_at)->format('d/m/Y');
             }
-            
             return 'N/A';
         } catch (\Exception $e) {
             return 'N/A';
@@ -129,16 +136,11 @@ class InternalProject extends Model
         };
     }
 
-    /**
-     * Get short description (untuk display di table)
-     */
     public function getShortDescriptionAttribute()
     {
         if ($this->description) {
             return Str::limit($this->description, 80);
         }
-        
-        // Fallback ke job jika description kosong
         return Str::limit($this->job, 80);
     }
 }

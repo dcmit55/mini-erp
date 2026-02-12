@@ -460,12 +460,12 @@ Route::middleware(['auth'])->group(function () {
     });
     
     Route::resource('internal-projects', InternalProjectController::class);
-
     Route::resource('internal-projects', InternalProjectController::class)
      ->parameters(['internal-projects' => 'internalProject']);
-
      Route::get('project-purchases/internal-project/{id}', [ProjectPurchaseController::class, 'getInternalProjectDetails'])
     ->name('project-purchases.internal-project-details');
+    Route::post('/internal-projects/quick', [InternalProjectController::class, 'quickStore'])
+    ->name('internal_projects.quick');
 
 // DCM Costings Routes
     Route::prefix('dcm-costings')->name('dcm-costings.')->group(function () {

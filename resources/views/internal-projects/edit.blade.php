@@ -14,7 +14,7 @@
                         <i class="fas fa-arrow-left me-1"></i>Back
                     </a>
                     <h5 class="text-dark mb-1 mt-2">Edit Internal Project</h5>
-                    <p class="text-muted small mb-0">Edit internal project information</p>
+                    <p class="text-muted small mb-0">Update internal project information</p>
                 </div>
             </div>
 
@@ -70,11 +70,34 @@
                                     @enderror
                                 </div>
                                 
-                                <!-- Department -->
-                                <div class="col-md-6 mb-2">
-                                    <label class="form-label small text-dark">Department</label>
-                                    <div class="form-control border-1 rounded-2 py-2 px-3 bg-light">
-                                        <strong>PT DCM</strong>
+                                <!-- Department Section (Dinamis) -->
+                                @php
+                                    $isTesting = old('project', $internalProject->project) == 'Testing';
+                                @endphp
+                                <div class="col-md-6 mb-2" id="department-section">
+                                    <!-- Untuk non-Testing: tampilkan teks PT DCM + hidden input -->
+                                    <div id="dept-static" class="{{ $isTesting ? 'd-none' : '' }}">
+                                        <label class="form-label small text-dark">Department <span class="text-danger">*</span></label>
+                                        <div class="form-control border-1 rounded-2 py-2 px-3 bg-light" readonly>
+                                            <strong>PT DCM</strong>
+                                        </div>
+                                        <input type="hidden" name="department_id" id="hidden_department_id" 
+                                               value="{{ old('department_id', $internalProject->department_id ?? $defaultPtDcmDepartmentId ?? '') }}">
+                                    </div>
+                                    
+                                    <!-- Untuk Testing: tampilkan dropdown department (Select2) -->
+                                    <div id="dept-dropdown" class="{{ $isTesting ? '' : 'd-none' }}">
+                                        <label class="form-label small text-dark">Department <span class="text-danger">*</span></label>
+                                        <select name="department_id" id="department_id" 
+                                                class="form-select border-1 rounded-2 py-2 px-3 select2 @error('department_id') is-invalid @enderror">
+                                            <option value="">Select Department</option>
+                                            @foreach ($departments as $dept)
+                                                <option value="{{ $dept->id }}" {{ old('department_id', $internalProject->department_id) == $dept->id ? 'selected' : '' }}>{{ $dept->name }}</option>
+                                            @endforeach
+                                        </select>
+                                        @error('department_id')
+                                            <div class="invalid-feedback small">{{ $message }}</div>
+                                        @enderror
                                     </div>
                                 </div>
                                 
@@ -89,7 +112,6 @@
                                            placeholder="Enter job title or brief description"
                                            maxlength="200"
                                            required>
-                                    <small class="text-muted">Maximum 200 characters</small>
                                     @error('job')
                                         <div class="invalid-feedback small">{{ $message }}</div>
                                     @enderror
@@ -105,22 +127,6 @@
                                               placeholder="Enter detailed description (optional)">{{ old('description', $internalProject->description) }}</textarea>
                                     <small class="text-muted">Detailed project description (optional)</small>
                                     @error('description')
-                                        <div class="invalid-feedback small">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                                
-                                <!-- PIC -->
-                                <div class="col-md-12 mb-2">
-                                    <label for="pic" class="form-label small text-dark">Person In Charge (PIC) <span class="text-danger">*</span></label>
-                                    <input type="text" 
-                                           class="form-control border-1 rounded-2 py-2 px-3 @error('pic') is-invalid @enderror" 
-                                           id="pic" 
-                                           name="pic" 
-                                           value="{{ old('pic', $internalProject->pic) }}"
-                                           placeholder="Enter PIC ID"
-                                           maxlength="100"
-                                           required>
-                                    @error('pic')
                                         <div class="invalid-feedback small">{{ $message }}</div>
                                     @enderror
                                 </div>
@@ -145,7 +151,6 @@
 </div>
 
 <style>
-    /* Sama seperti create.blade.php */
     .form-control, .form-select {
         border-color: #e2e8f0;
         font-size: 0.9rem;
@@ -232,23 +237,76 @@
     }
 </style>
 
+@push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Counter untuk job
-    const jobInput = document.getElementById('job');
-    const jobCounter = document.createElement('small');
-    jobCounter.className = 'text-muted float-end mt-1';
-    jobCounter.innerHTML = (jobInput.value ? jobInput.value.length : 0) + '/200';
-    jobInput.parentNode.appendChild(jobCounter);
-    
-    jobInput.addEventListener('input', function() {
-        jobCounter.textContent = this.value.length + '/200';
-        if (this.value.length > 200) {
-            jobCounter.className = 'text-danger float-end mt-1';
+    // Inisialisasi Select2
+    if (typeof $.fn.select2 !== 'undefined') {
+        $('.select2').select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Select Department',
+            allowClear: true,
+            width: '100%'
+        });
+    }
+
+    // Logika toggle department berdasarkan project type
+    function toggleDepartment() {
+        const projectType = document.getElementById('project').value;
+        const deptStatic = document.getElementById('dept-static');
+        const deptDropdown = document.getElementById('dept-dropdown');
+        const hiddenDeptId = document.getElementById('hidden_department_id');
+        const deptSelect = document.getElementById('department_id');
+
+        if (projectType === 'Testing') {
+            deptStatic.classList.add('d-none');
+            deptDropdown.classList.remove('d-none');
+            hiddenDeptId.removeAttribute('required');
+            if (deptSelect) {
+                deptSelect.setAttribute('required', 'required');
+                // Trigger change untuk select2 (mempertahankan selected value)
+                $(deptSelect).trigger('change');
+            }
         } else {
-            jobCounter.className = 'text-muted float-end mt-1';
+            deptStatic.classList.remove('d-none');
+            deptDropdown.classList.add('d-none');
+            hiddenDeptId.setAttribute('required', 'required');
+            if (deptSelect) {
+                deptSelect.removeAttribute('required');
+                // Tidak perlu reset value, karena hidden input yang akan terkirim
+            }
         }
-    });
+    }
+
+    const projectSelect = document.getElementById('project');
+    if (projectSelect) {
+        projectSelect.addEventListener('change', toggleDepartment);
+        toggleDepartment(); // Jalankan saat halaman dimuat
+    }
+
+    // Character counter untuk job
+    const jobInput = document.getElementById('job');
+    if (jobInput) {
+        const jobCounter = document.createElement('small');
+        jobCounter.className = 'text-muted float-end mt-1';
+        jobCounter.innerHTML = '0/200';
+        jobInput.parentNode.appendChild(jobCounter);
+        
+        jobInput.addEventListener('input', function() {
+            jobCounter.textContent = this.value.length + '/200';
+            if (this.value.length > 200) {
+                jobCounter.className = 'text-danger float-end mt-1';
+            } else {
+                jobCounter.className = 'text-muted float-end mt-1';
+            }
+        });
+        
+        // Trigger initial count
+        if (jobInput.value) {
+            jobCounter.textContent = jobInput.value.length + '/200';
+        }
+    }
 });
 </script>
+@endpush
 @endsection

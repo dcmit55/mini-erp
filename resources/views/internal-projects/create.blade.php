@@ -69,11 +69,30 @@
                                     @enderror
                                 </div>
                                 
-                                <!-- Department -->
-                                <div class="col-md-6 mb-2">
-                                    <label class="form-label small text-dark">Department</label>
-                                    <div class="form-control border-1 rounded-2 py-2 px-3 bg-light">
-                                        <strong>PT DCM</strong>
+                                <!-- Department Section (Dinamis) -->
+                                <div class="col-md-6 mb-2" id="department-section">
+                                    <!-- Untuk non-Testing: tampilkan teks PT DCM + hidden input -->
+                                    <div id="dept-static" class="{{ old('project') == 'Testing' ? 'd-none' : '' }}">
+                                        <label class="form-label small text-dark">Department <span class="text-danger">*</span></label>
+                                        <div class="form-control border-1 rounded-2 py-2 px-3 bg-light" readonly>
+                                            <strong>PT DCM</strong>
+                                        </div>
+                                        <input type="hidden" name="department_id" id="hidden_department_id" value="{{ old('department_id', $defaultPtDcmDepartmentId ?? '') }}">
+                                    </div>
+                                    
+                                    <!-- Untuk Testing: tampilkan dropdown department (Select2) -->
+                                    <div id="dept-dropdown" class="{{ old('project') == 'Testing' ? '' : 'd-none' }}">
+                                        <label class="form-label small text-dark">Department <span class="text-danger">*</span></label>
+                                        <select name="department_id" id="department_id" 
+                                                class="form-select border-1 rounded-2 py-2 px-3 select2 @error('department_id') is-invalid @enderror">
+                                            <option value="">Select Department</option>
+                                            @foreach ($departments as $dept)
+                                                <option value="{{ $dept->id }}" {{ old('department_id') == $dept->id ? 'selected' : '' }}>{{ $dept->name }}</option>
+                                            @endforeach
+                                        </select>
+                                        @error('department_id')
+                                            <div class="invalid-feedback small">{{ $message }}</div>
+                                        @enderror
                                     </div>
                                 </div>
                                 
@@ -106,10 +125,6 @@
                                         <div class="invalid-feedback small">{{ $message }}</div>
                                     @enderror
                                 </div>
-                                
-                                
-                                <!-- Hidden fields -->
-                                <input type="hidden" name="department" value="PT DCM">
                             </div>
                         </div>
 
@@ -217,28 +232,76 @@
     }
 </style>
 
+@push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Counter untuk job
-    const jobInput = document.getElementById('job');
-    const jobCounter = document.createElement('small');
-    jobCounter.className = 'text-muted float-end mt-1';
-    jobCounter.innerHTML = '0/200';
-    jobInput.parentNode.appendChild(jobCounter);
-    
-    jobInput.addEventListener('input', function() {
-        jobCounter.textContent = this.value.length + '/200';
-        if (this.value.length > 200) {
-            jobCounter.className = 'text-danger float-end mt-1';
+    // Inisialisasi Select2 untuk dropdown department
+    if (typeof $.fn.select2 !== 'undefined') {
+        $('.select2').select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Select Department',
+            allowClear: true,
+            width: '100%'
+        });
+    }
+
+    // Logika toggle department berdasarkan project type
+    function toggleDepartment() {
+        const projectType = document.getElementById('project').value;
+        const deptStatic = document.getElementById('dept-static');
+        const deptDropdown = document.getElementById('dept-dropdown');
+        const hiddenDeptId = document.getElementById('hidden_department_id');
+        const deptSelect = document.getElementById('department_id');
+
+        if (projectType === 'Testing') {
+            deptStatic.classList.add('d-none');
+            deptDropdown.classList.remove('d-none');
+            hiddenDeptId.removeAttribute('required');
+            if (deptSelect) {
+                deptSelect.setAttribute('required', 'required');
+                // Trigger change untuk select2
+                $(deptSelect).val('').trigger('change');
+            }
         } else {
-            jobCounter.className = 'text-muted float-end mt-1';
+            deptStatic.classList.remove('d-none');
+            deptDropdown.classList.add('d-none');
+            hiddenDeptId.setAttribute('required', 'required');
+            if (deptSelect) {
+                deptSelect.removeAttribute('required');
+                $(deptSelect).val('').trigger('change');
+            }
         }
-    });
-    
-    // Trigger initial count
-    if (jobInput.value) {
-        jobCounter.textContent = jobInput.value.length + '/200';
+    }
+
+    const projectSelect = document.getElementById('project');
+    if (projectSelect) {
+        projectSelect.addEventListener('change', toggleDepartment);
+        toggleDepartment(); // Jalankan saat halaman dimuat
+    }
+
+    // Character counter untuk job
+    const jobInput = document.getElementById('job');
+    if (jobInput) {
+        const jobCounter = document.createElement('small');
+        jobCounter.className = 'text-muted float-end mt-1';
+        jobCounter.innerHTML = '0/200';
+        jobInput.parentNode.appendChild(jobCounter);
+        
+        jobInput.addEventListener('input', function() {
+            jobCounter.textContent = this.value.length + '/200';
+            if (this.value.length > 200) {
+                jobCounter.className = 'text-danger float-end mt-1';
+            } else {
+                jobCounter.className = 'text-muted float-end mt-1';
+            }
+        });
+        
+        // Trigger initial count
+        if (jobInput.value) {
+            jobCounter.textContent = jobInput.value.length + '/200';
+        }
     }
 });
 </script>
+@endpush
 @endsection
