@@ -56,8 +56,7 @@ use App\Http\Controllers\Finance\PurchaseEditedController;
 |
 */
 
-// Leave Requests - Public access untuk create & index
-Route::get('leave_requests', [LeaveRequestController::class, 'index'])->name('leave_requests.index');
+// Leave Requests - Public access ONLY for create & store
 Route::get('leave_requests/create', [LeaveRequestController::class, 'create'])->name('leave_requests.create');
 Route::post('leave_requests', [LeaveRequestController::class, 'store'])->name('leave_requests.store');
 
@@ -324,6 +323,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/employees/{employee}/leave-balance', [EmployeeController::class, 'getLeaveBalance'])->name('employees.leave-balance');
 
     // Leave Request - Authenticated only
+    Route::get('leave_requests', [LeaveRequestController::class, 'index'])->name('leave_requests.index');
     Route::get('leave_requests/{id}/edit', [LeaveRequestController::class, 'edit'])->name('leave_requests.edit');
     Route::put('leave_requests/{id}', [LeaveRequestController::class, 'update'])->name('leave_requests.update');
     Route::delete('leave_requests/{id}', [LeaveRequestController::class, 'destroy'])->name('leave_requests.destroy');

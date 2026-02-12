@@ -33,7 +33,7 @@
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
                 @endif
-                <form method="POST" action="{{ route('leave_requests.store') }}">
+                <form method="POST" action="{{ route('leave_requests.store') }}" id="leaveRequestForm">
                     @csrf
                     <div class="row">
                         <div class="col-lg-3 mb-3">
@@ -113,8 +113,30 @@
                             <textarea name="reason" class="form-control" rows="4"></textarea>
                         </div>
                     </div>
+
+                    @guest
+                        <!-- reCAPTCHA v2 - Only for unauthenticated users -->
+                        <div class="row">
+                            <div class="col-lg-12 mb-3">
+                                <label class="form-label">Security Verification <span class="text-danger">*</span></label>
+                                <div class="g-recaptcha" data-sitekey="6LfD2WgsAAAAAKM7FHahZOxYuFvtRHDIVt_uhkPX"></div>
+                                <small class="text-muted">
+                                    <i class="bi bi-shield-check"></i> Please complete the reCAPTCHA to prevent spam
+                                </small>
+                                @error('g-recaptcha-response')
+                                    <div class="text-danger small mt-1">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+                    @endguest
+
                     <div class="d-flex gap-2 mt-2 justify-content-end">
-                        <a href="{{ route('leave_requests.index') }}" class="btn btn-secondary">Cancel</a>
+                        @auth
+                            <a href="{{ route('leave_requests.index') }}" class="btn btn-secondary">Cancel</a>
+                        @else
+                            <button type="button" class="btn btn-secondary"
+                                onclick="window.location.reload()">Reset</button>
+                        @endauth
                         <button type="submit" class="btn btn-success">Submit</button>
                     </div>
                 </form>
@@ -125,152 +147,209 @@
 
 @push('styles')
     <style>
+        .g-recaptcha {
+            display: inline-block;
+        }
     </style>
 @endpush
 
 @push('scripts')
+    <!-- Google reCAPTCHA v2 Script -->
+    @guest
+        <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    @endguest
+
     <script>
         $(document).ready(function() {
-            $('#employee_id').select2({
-                width: '100%',
-                placeholder: 'Select',
-                allowClear: true,
-                theme: 'bootstrap-5'
-            });
+            // Check for guest success message
+            @if (session('guest_success'))
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Request Submitted!',
+                    html: `
+                        <p class="mb-3">{{ session('guest_success') }}</p>
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i>
+                            Your request will be reviewed by HR department.
+                        </div>
+                    `,
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#28a745',
+                    allowOutsideClick: false
+                }).then((result) => {
+                        if (result.isConfirmed) {
+                            // Reset form after success
+                            $('#leaveRequestForm')[0].reset();
+                            $('#employee_id').val(null).trigger('change');
+                            $('#department, #position, #hire_date').val('');
+                            $('#leave-balance-info').html('');
 
-            $('#employee_id').on('change', function() {
-                const selected = this.options[this.selectedIndex];
-                $('#department').val(selected.getAttribute('data-department') || '');
-                $('#position').val(selected.getAttribute('data-position') || '');
-                $('#hire_date').val(selected.getAttribute('data-hiredate') || '');
-            });
+                            @guest
+                            // Reset reCAPTCHA for guest users
+                            if (typeof grecaptcha !== 'undefined') {
+                                grecaptcha.reset();
+                            }
+                        @endguest
+                    }
+                });
+        @endif
 
-            $('#start_date, #end_date').on('change', function() {
-                let start = $('#start_date').val();
-                let end = $('#end_date').val();
+        $('#employee_id').select2({
+            width: '100%',
+            placeholder: 'Select',
+            allowClear: true,
+            theme: 'bootstrap-5'
+        });
 
-                if (start && end) {
-                    let d1 = new Date(start);
-                    let d2 = new Date(end);
-                    let diff = Math.floor((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
+        $('#employee_id').on('change', function() {
+            const selected = this.options[this.selectedIndex];
+            $('#department').val(selected.getAttribute('data-department') || '');
+            $('#position').val(selected.getAttribute('data-position') || '');
+            $('#hire_date').val(selected.getAttribute('data-hiredate') || '');
+        });
 
-                    if (diff > 0) {
-                        $('#duration').val(diff);
-                        const infoElement = $('#leave-balance-info');
-                        if (diff === 1) {
-                            infoElement.html(
-                                '<i class="bi bi-lightbulb text-info"></i> Tip: You can change to 0.5 for half day'
-                            );
-                        }
-                    } else {
-                        $('#duration').val('');
-                        if (diff < 0) {
-                            Swal.fire({
-                                icon: 'warning',
-                                title: 'Invalid Date Range',
-                                text: 'End date must be equal to or after start date',
-                                confirmButtonColor: '#dc3545'
-                            });
-                        }
+        $('#start_date, #end_date').on('change', function() {
+            let start = $('#start_date').val();
+            let end = $('#end_date').val();
+
+            if (start && end) {
+                let d1 = new Date(start);
+                let d2 = new Date(end);
+                let diff = Math.floor((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
+
+                if (diff > 0) {
+                    $('#duration').val(diff);
+                    const infoElement = $('#leave-balance-info');
+                    if (diff === 1) {
+                        infoElement.html(
+                            '<i class="bi bi-lightbulb text-info"></i> Tip: You can change to 0.5 for half day'
+                        );
                     }
                 } else {
                     $('#duration').val('');
-                }
-            });
-
-            $(function() {
-                $('[data-bs-toggle="tooltip"]').tooltip();
-            });
-
-            $('#duration').on('input', function() {
-                let value = parseFloat($(this).val());
-                if ($(this).val().includes('.')) {
-                    let parts = $(this).val().split('.');
-                    if (parts[1].length > 2) {
-                        $(this).val(parseFloat($(this).val()).toFixed(2));
+                    if (diff < 0) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Invalid Date Range',
+                            text: 'End date must be equal to or after start date',
+                            confirmButtonColor: '#dc3545'
+                        });
                     }
                 }
-                const employeeId = $('#employee_id').val();
-                const leaveType = $('input[name="type"]:checked').val();
-                const infoElement = $('#leave-balance-info');
+            } else {
+                $('#duration').val('');
+            }
+        });
 
-                if (employeeId && leaveType === 'ANNUAL' && value) {
-                    $.ajax({
-                        url: `/employees/${employeeId}/leave-balance`,
-                        method: 'GET',
-                        success: function(response) {
-                            if (response.success) {
-                                const balance = parseFloat(response.balance);
-                                if (value > balance) {
-                                    $('#duration').addClass('is-invalid');
+        $(function() {
+            $('[data-bs-toggle="tooltip"]').tooltip();
+        });
+
+        $('#duration').on('input', function() {
+            let value = parseFloat($(this).val());
+            if ($(this).val().includes('.')) {
+                let parts = $(this).val().split('.');
+                if (parts[1].length > 2) {
+                    $(this).val(parseFloat($(this).val()).toFixed(2));
+                }
+            }
+            const employeeId = $('#employee_id').val();
+            const leaveType = $('input[name="type"]:checked').val();
+            const infoElement = $('#leave-balance-info');
+
+            if (employeeId && leaveType === 'ANNUAL' && value) {
+                $.ajax({
+                    url: `/employees/${employeeId}/leave-balance`,
+                    method: 'GET',
+                    success: function(response) {
+                        if (response.success) {
+                            const balance = parseFloat(response.balance);
+                            if (value > balance) {
+                                $('#duration').addClass('is-invalid');
+                                infoElement.html(
+                                    `<i class="bi bi-exclamation-triangle text-danger"></i> Insufficient balance! Available: <strong>${balance} days</strong>`
+                                );
+                            } else {
+                                $('#duration').removeClass('is-invalid');
+                                infoElement.html(
+                                    `<i class="bi bi-info-circle"></i> Available balance: <strong>${balance} days</strong>`
+                                );
+                            }
+                        }
+                    }
+                });
+            }
+        });
+
+        $('#employee_id, input[name="type"]').on('change', function() {
+            const employeeId = $('#employee_id').val();
+            const leaveType = $('input[name="type"]:checked').val();
+            const infoElement = $('#leave-balance-info');
+
+            if (employeeId && leaveType === 'ANNUAL') {
+                const selectedOption = $('#employee_id option:selected');
+                const employeeName = selectedOption.text();
+                $.ajax({
+                    url: `/employees/${employeeId}/leave-balance`,
+                    method: 'GET',
+                    success: function(response) {
+                        if (response.success) {
+                            infoElement.html(
+                                `<i class="bi bi-info-circle"></i> Available balance: <strong>${response.balance} days</strong>`
+                            );
+                            $('#duration').attr('max', response.balance);
+                            $('#duration').on('input', function() {
+                                const duration = parseFloat($(this).val());
+                                if (duration > response.balance) {
+                                    $(this).addClass('is-invalid');
                                     infoElement.html(
-                                        `<i class="bi bi-exclamation-triangle text-danger"></i> Insufficient balance! Available: <strong>${balance} days</strong>`
+                                        `<i class="bi bi-exclamation-triangle text-danger"></i> Insufficient balance! Available: <strong>${response.balance} days</strong>`
                                     );
                                 } else {
-                                    $('#duration').removeClass('is-invalid');
+                                    $(this).removeClass('is-invalid');
                                     infoElement.html(
-                                        `<i class="bi bi-info-circle"></i> Available balance: <strong>${balance} days</strong>`
+                                        `<i class="bi bi-info-circle"></i> Available balance: <strong>${response.balance} days</strong>`
                                     );
                                 }
-                            }
+                            });
                         }
-                    });
-                }
-            });
+                    },
+                    error: function() {
+                        infoElement.html('');
+                    }
+                });
+            } else {
+                infoElement.html('');
+                $('#duration').removeAttr('max').removeClass('is-invalid');
+            }
+        });
 
-            $('#employee_id, input[name="type"]').on('change', function() {
-                const employeeId = $('#employee_id').val();
-                const leaveType = $('input[name="type"]:checked').val();
-                const infoElement = $('#leave-balance-info');
-
-                if (employeeId && leaveType === 'ANNUAL') {
-                    const selectedOption = $('#employee_id option:selected');
-                    const employeeName = selectedOption.text();
-                    $.ajax({
-                        url: `/employees/${employeeId}/leave-balance`,
-                        method: 'GET',
-                        success: function(response) {
-                            if (response.success) {
-                                infoElement.html(
-                                    `<i class="bi bi-info-circle"></i> Available balance: <strong>${response.balance} days</strong>`
-                                );
-                                $('#duration').attr('max', response.balance);
-                                $('#duration').on('input', function() {
-                                    const duration = parseFloat($(this).val());
-                                    if (duration > response.balance) {
-                                        $(this).addClass('is-invalid');
-                                        infoElement.html(
-                                            `<i class="bi bi-exclamation-triangle text-danger"></i> Insufficient balance! Available: <strong>${response.balance} days</strong>`
-                                        );
-                                    } else {
-                                        $(this).removeClass('is-invalid');
-                                        infoElement.html(
-                                            `<i class="bi bi-info-circle"></i> Available balance: <strong>${response.balance} days</strong>`
-                                        );
-                                    }
-                                });
-                            }
-                        },
-                        error: function() {
-                            infoElement.html('');
-                        }
-                    });
-                } else {
-                    infoElement.html('');
-                    $('#duration').removeAttr('max').removeClass('is-invalid');
-                }
-            });
-
-            // Prevent multiple submit & show loading spinner
-            $('form').on('submit', function(e) {
+        // Prevent multiple submit & show loading spinner
+        $('#leaveRequestForm').on('submit', function(e) {
                 var $btn = $(this).find('button[type="submit"]');
-                if ($btn.prop('disabled')) {
+
+                @guest
+                // Validate reCAPTCHA for guest users
+                var recaptchaResponse = grecaptcha.getResponse();
+                if (!recaptchaResponse) {
                     e.preventDefault();
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'reCAPTCHA Required',
+                        text: 'Please complete the reCAPTCHA verification before submitting.',
+                        confirmButtonColor: '#ffc107'
+                    });
                     return false;
                 }
-                $btn.prop('disabled', true);
-                $btn.html('<span class="spinner-border spinner-border-sm me-2"></span>Submitting...');
-            });
+            @endguest
+
+            if ($btn.prop('disabled')) {
+                e.preventDefault();
+                return false;
+            }
+            $btn.prop('disabled', true); $btn.html(
+                '<span class="spinner-border spinner-border-sm me-2"></span>Submitting...');
+        });
         });
     </script>
 @endpush

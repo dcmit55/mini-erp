@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Hr;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use App\Models\Hr\Employee;
 use App\Models\Hr\LeaveRequest;
 use App\Models\Admin\Department;
@@ -14,7 +15,9 @@ class LeaveRequestController extends Controller
 {
     public function __construct()
     {
-        // No middleware - allow guest access
+        // Allow guest access only for create & store
+        // Index requires authentication
+        $this->middleware('auth')->except(['create', 'store']);
     }
 
     /**
@@ -286,6 +289,36 @@ class LeaveRequestController extends Controller
      */
     public function store(Request $request)
     {
+        // reCAPTCHA validation for unauthenticated users
+        if (!Auth::check()) {
+            $request->validate(
+                [
+                    'g-recaptcha-response' => 'required',
+                ],
+                [
+                    'g-recaptcha-response.required' => 'Please complete the reCAPTCHA verification.',
+                ],
+            );
+
+            // Verify reCAPTCHA
+            $recaptchaSecret = '6LfD2WgsAAAAAFWpgoubzDNlqh_0q7ns5v_5mYgj';
+            $recaptchaResponse = $request->input('g-recaptcha-response');
+
+            $response = Http::asForm()->post('https://www.google.com/recaptcha/api/siteverify', [
+                'secret' => $recaptchaSecret,
+                'response' => $recaptchaResponse,
+                'remoteip' => $request->ip(),
+            ]);
+
+            $result = $response->json();
+
+            if (!$result['success']) {
+                return back()
+                    ->withInput()
+                    ->withErrors(['g-recaptcha-response' => 'reCAPTCHA verification failed. Please try again.']);
+            }
+        }
+
         // Validate employee is active
         $employee = Employee::findOrFail($request->employee_id);
 
@@ -328,7 +361,14 @@ class LeaveRequestController extends Controller
             ]);
 
             DB::commit();
-            return redirect()->route('leave_requests.index')->with('success', 'Leave request submitted successfully! Please wait for approval.');
+
+            // Different response for authenticated vs guest users
+            if (Auth::check()) {
+                return redirect()->route('leave_requests.index')->with('success', 'Leave request submitted successfully! Please wait for approval.');
+            } else {
+                // For guest users, return with success flag for JS to handle
+                return back()->with('guest_success', 'Your leave request has been submitted successfully and is being processed. Thank you!');
+            }
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('Leave request creation error: ' . $e->getMessage());
