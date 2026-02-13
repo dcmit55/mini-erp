@@ -22,6 +22,7 @@ use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Storage;
 use App\Exports\ImportInventoryTemplate;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
+use App\Services\Lark\LarkInventorySyncService;
 
 class InventoryController extends Controller
 {
@@ -115,6 +116,13 @@ class InventoryController extends Controller
         }
         if ($request->filled('unitFilter')) {
             $query->where('unit', $request->unitFilter);
+        }
+        if ($request->filled('sourceFilter')) {
+            if ($request->sourceFilter === 'lark') {
+                $query->whereNotNull('lark_record_id');
+            } elseif ($request->sourceFilter === 'manual') {
+                $query->whereNull('lark_record_id');
+            }
         }
 
         if ($request->filled('custom_search')) {
@@ -214,6 +222,14 @@ class InventoryController extends Controller
             // Generate category badge with color
             $categoryBadge = $inventory->category ? '<span class="badge ' . $this->getCategoryBadgeColor($inventory->category->name) . '">' . $inventory->category->name . '</span>' : '<span class="text-muted">-</span>';
 
+            // Source badge (Lark vs Manual)
+            $sourceBadge = '';
+            if ($inventory->lark_record_id) {
+                $sourceBadge = '<span class="badge bg-info"><i class="fas fa-cloud-download-alt"></i> Lark Sync</span>';
+            } else {
+                $sourceBadge = '<span class="badge bg-secondary"><i class="fas fa-keyboard"></i> Manual</span>';
+            }
+
             $data[] = [
                 'DT_RowId' => 'row_' . $inventory->id,
                 'number' => $rowNumber,
@@ -225,6 +241,8 @@ class InventoryController extends Controller
                 'international_freight' => in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance', 'admin']) ? '<span class="fw-semibold text-warning">' . $internationalFreightValue . '</span> ' . $currencyName : '',
                 'supplier' => $inventory->supplier ? $inventory->supplier->name : '-',
                 'location' => $inventory->location ? $inventory->location->name : '-',
+                'project_lark' => $inventory->project_lark ?? '<span class="text-muted">-</span>',
+                'source' => $sourceBadge,
                 'remark' => '<div class="text-truncate" style="max-width: 250px;" title="' . strip_tags($inventory->remark ?? '-') . '">' . ($inventory->remark ?? '-') . '</div>',
                 'updated_at' => [
                     'display' => $inventory->updated_at ? \Carbon\Carbon::parse($inventory->updated_at)->format('d M Y') : '-',
@@ -540,6 +558,7 @@ class InventoryController extends Controller
             'category_id' => 'required|exists:categories,id',
             'quantity' => 'required|numeric|min:0',
             'unit' => 'required|string',
+            'unit_id' => 'nullable|exists:units,id',
             'new_unit' => 'required_if:unit,__new__|nullable|string|max:255',
             'currency_id' => 'nullable|exists:currencies,id',
             'price' => 'nullable|numeric|min:0',
@@ -574,8 +593,12 @@ class InventoryController extends Controller
         if ($request->unit === '__new__' && $request->new_unit) {
             $unit = Unit::firstOrCreate(['name' => $request->new_unit]);
             $inventory->unit = $unit->name;
+            $inventory->unit_id = $unit->id;
         } else {
+            // Find unit_id dari unit name
+            $unit = Unit::where('name', $request->unit)->first();
             $inventory->unit = $request->unit;
+            $inventory->unit_id = $unit ? $unit->id : null;
         }
 
         // Upload image jika ada
@@ -758,5 +781,63 @@ class InventoryController extends Controller
         return redirect()
             ->route('inventory.index')
             ->with('success', "Inventory <b>{$name}</b> deleted successfully.");
+    }
+
+    /**
+     * Sync inventories from Lark Base
+     * Following iSyment pattern: Controller as trigger, Service handles logic
+     */
+    public function syncFromLark(LarkInventorySyncService $syncService)
+    {
+        try {
+            $stats = $syncService->sync();
+
+            $message = sprintf('Lark sync completed! Fetched: %d | Filtered: %d | Created: %d | Updated: %d | Skipped: %d', $stats['fetched'], $stats['filtered'], $stats['created'], $stats['updated'], $stats['skipped']);
+
+            if (isset($stats['deactivated']) && $stats['deactivated'] > 0) {
+                $message .= sprintf(' | Deactivated: %d', $stats['deactivated']);
+            }
+
+            if ($stats['errors'] > 0) {
+                $message .= sprintf(' | Errors: %d', $stats['errors']);
+                return redirect()->route('inventory.index')->with('warning', $message);
+            }
+
+            return redirect()->route('inventory.index')->with('success', $message);
+        } catch (\Exception $e) {
+            \Log::error('Lark inventory sync failed', [
+                'error' => $e->getMessage(),
+                'user_id' => auth()->id(),
+            ]);
+
+            return redirect()
+                ->route('inventory.index')
+                ->withErrors(['error' => 'Sync failed: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Get raw Lark response for debugging
+     * Only accessible by super admin
+     */
+    public function getLarkRawData(LarkInventorySyncService $syncService)
+    {
+        if (!auth()->user()->isSuperAdmin()) {
+            abort(403, 'Unauthorized');
+        }
+
+        try {
+            $data = $syncService->getRawData();
+
+            return response()->json($data, 200, [], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        } catch (\Exception $e) {
+            return response()->json(
+                [
+                    'error' => 'Failed to fetch Lark data',
+                    'message' => $e->getMessage(),
+                ],
+                500,
+            );
+        }
     }
 }

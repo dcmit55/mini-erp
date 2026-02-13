@@ -156,6 +156,9 @@ Route::middleware(['auth'])->group(function () {
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
+    // Departments
+    Route::resource('departments', DepartmentController::class);
+
     // Users
     Route::resource('users', UserController::class);
 
@@ -163,10 +166,14 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('material_usage', MaterialUsageController::class);
     Route::get('/material-usage/export', [MaterialUsageController::class, 'export'])->name('material_usage.export');
     Route::get('/material-usage/get-by-inventory', [MaterialUsageController::class, 'getByInventory'])->name('material_usage.get_by_inventory');
+    Route::get('/material-usage-bulk/create', [MaterialUsageController::class, 'bulkCreate'])->name('material_usage.bulk.create');
+    Route::post('/material-usage-bulk/store', [MaterialUsageController::class, 'bulkStore'])->name('material_usage.bulk.store');
 
     // Inventory
     Route::get('/inventory/template', [InventoryController::class, 'downloadTemplate'])->name('inventory.template');
     Route::get('/inventory/export', [InventoryController::class, 'export'])->name('inventory.export');
+    Route::post('/inventory/sync-from-lark', [InventoryController::class, 'syncFromLark'])->name('inventory.sync.lark');
+    Route::get('/inventory/lark-raw-data', [InventoryController::class, 'getLarkRawData'])->name('inventory.lark.raw');
     Route::resource('inventory', InventoryController::class);
     Route::post('/inventory/import', [InventoryController::class, 'import'])->name('inventory.import');
     Route::get('/inventory/detail/{id}', [InventoryController::class, 'detail'])->name('inventory.detail');
@@ -250,9 +257,6 @@ Route::middleware(['auth'])->group(function () {
 
     // Locations
     Route::post('/locations', [LocationController::class, 'store'])->name('locations.store');
-
-    // Departments
-    Route::post('/departments/store', [DepartmentController::class, 'store'])->name('departments.store');
 
     // Currencies
     Route::resource('currencies', CurrencyController::class)->only(['index', 'store', 'update', 'destroy']);

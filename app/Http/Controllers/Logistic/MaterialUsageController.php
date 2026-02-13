@@ -13,6 +13,7 @@ use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\MaterialUsageExport;
 use Yajra\Datatables\Datatables;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class MaterialUsageController extends Controller
 {
@@ -276,6 +277,79 @@ class MaterialUsageController extends Controller
             return redirect()
                 ->back()
                 ->with('error', 'Failed to delete material usage record: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Show bulk create form for legacy project materials
+     */
+    public function bulkCreate()
+    {
+        if (!Auth::user()->isSuperAdmin() && !Auth::user()->isLogisticAdmin()) {
+            return redirect()->back()->with('error', 'Permission denied');
+        }
+
+        $projects = Project::orderBy('name')->get();
+        $jobOrders = \App\Models\Production\JobOrder::orderBy('name')->get();
+        $inventories = Inventory::with('category')->orderBy('name')->get();
+
+        return view('logistic.material_usage.bulk_create', compact('projects', 'jobOrders', 'inventories'));
+    }
+
+    /**
+     * Store bulk material usage records for legacy projects
+     */
+    public function bulkStore(Request $request)
+    {
+        if (!Auth::user()->isSuperAdmin() && !Auth::user()->isLogisticAdmin()) {
+            return redirect()->back()->with('error', 'Permission denied');
+        }
+
+        $validated = $request->validate([
+            'items' => 'required|array|min:1',
+            'items.*.inventory_id' => 'required|exists:inventories,id',
+            'items.*.project_id' => 'nullable|exists:projects,id',
+            'items.*.job_order_id' => 'nullable|string|max:50',
+            'items.*.used_quantity' => 'required|numeric|min:0.01',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $successCount = 0;
+            $errors = [];
+
+            foreach ($validated['items'] as $index => $item) {
+                try {
+                    MaterialUsage::create([
+                        'inventory_id' => $item['inventory_id'],
+                        'project_id' => $item['project_id'] ?? null,
+                        'job_order_id' => $item['job_order_id'] ?? null,
+                        'used_quantity' => $item['used_quantity'],
+                    ]);
+                    $successCount++;
+                } catch (\Exception $e) {
+                    $errors[] = 'Row ' . ($index + 1) . ': ' . $e->getMessage();
+                }
+            }
+
+            if (count($errors) > 0) {
+                DB::rollBack();
+                return redirect()
+                    ->back()
+                    ->withInput()
+                    ->withErrors(['bulk_errors' => $errors]);
+            }
+
+            DB::commit();
+            return redirect()
+                ->route('material_usage.index')
+                ->with('success', "Successfully added {$successCount} material usage records!");
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', 'Failed to process bulk add: ' . $e->getMessage());
         }
     }
 }

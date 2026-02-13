@@ -23,7 +23,7 @@ class ProjectController extends Controller
 
     public function index(Request $request)
     {
-        $query = Project::with('departments', 'status');
+        $query = Project::with('departments', 'department', 'status');
 
         // Apply Filters
         if ($request->has('quantity') && $request->quantity !== null) {
@@ -66,7 +66,7 @@ class ProjectController extends Controller
         $department = $request->department;
 
         // Filter data berdasarkan request
-        $query = Project::with('departments');
+        $query = Project::with('departments', 'department');
 
         if ($quantity) {
             $query->where('qty', $quantity);

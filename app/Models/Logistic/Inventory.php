@@ -16,11 +16,11 @@ class Inventory extends Model implements Auditable
 {
     use HasFactory, SoftDeletes, \OwenIt\Auditing\Auditable;
 
-    protected $auditInclude = ['name', 'quantity', 'price', 'freight_cost', 'currency_id', 'category_id', 'unit_id', 'supplier_id', 'location_id'];
+    protected $auditInclude = ['name', 'quantity', 'price', 'freight_cost', 'currency_id', 'category_id', 'unit_id', 'supplier_id', 'location_id', 'lark_record_id'];
 
     protected $auditTimestamps = true;
 
-    protected $fillable = ['name', 'category_id', 'quantity', 'unit', 'unit_id', 'price', 'unit_domestic_freight_cost', 'unit_international_freight_cost', 'currency_id', 'supplier_id', 'location_id', 'remark', 'img', 'status'];
+    protected $fillable = ['name', 'category_id', 'quantity', 'unit', 'unit_id', 'price', 'unit_domestic_freight_cost', 'unit_international_freight_cost', 'currency_id', 'supplier_id', 'location_id', 'remark', 'img', 'status', 'project_lark', 'supplier_lark', 'lark_record_id', 'last_sync_at'];
 
     protected $casts = [
         'price' => 'decimal:2',
