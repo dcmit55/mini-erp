@@ -36,4 +36,9 @@ return [
         'table_id' => env('LARK_TABLE_ID'),
         'view_id' => env('LARK_VIEW_ID'), // Optional: Filter data by specific view
     ],
+
+    'recaptcha' => [
+        'site_key' => env('RECAPTCHA_SITE_KEY', '6LfD2WgsAAAAAKM7FHahZOxYuFvtRHDIVt_uhkPX'),
+        'secret_key' => env('RECAPTCHA_SECRET_KEY', '6LfD2WgsAAAAAFWpgoubzDNlqh_0q7ns5v_5mYgj'),
+    ],
 ];

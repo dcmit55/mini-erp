@@ -1038,29 +1038,55 @@
                         }
                     });
 
-                    fetch(`/artisan/${action}`)
-                        .then(response => response.json())
+                    fetch(`/artisan/${action}`, {
+                            method: 'GET',
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            credentials: 'same-origin'
+                        })
+                        .then(response => {
+                            // Check if response is JSON
+                            const contentType = response.headers.get('content-type');
+                            if (!contentType || !contentType.includes('application/json')) {
+                                throw new Error(
+                                    'Server returned non-JSON response. Please check your configuration.'
+                                    );
+                            }
+
+                            return response.json().then(data => {
+                                if (!response.ok) {
+                                    return Promise.reject(data);
+                                }
+                                return data;
+                            });
+                        })
                         .then(data => {
                             if (data.status === 'success') {
                                 Swal.fire({
                                     title: 'Success!',
                                     text: data.message,
                                     icon: 'success',
+                                    timer: 2000,
+                                    showConfirmButton: true,
                                     confirmButtonText: 'OK'
                                 });
                             } else {
                                 Swal.fire({
-                                    title: 'Error!',
-                                    text: data.message,
+                                    title: 'Error',
+                                    text: data.message || 'Command failed.',
                                     icon: 'error',
                                     confirmButtonText: 'OK'
                                 });
                             }
                         })
                         .catch(error => {
+                            console.error('Artisan error:', error);
                             Swal.fire({
                                 title: 'Error!',
-                                text: 'An unexpected error occurred.',
+                                text: error.message ||
+                                    'An unexpected error occurred. Please check the logs.',
                                 icon: 'error',
                                 confirmButtonText: 'OK'
                             });

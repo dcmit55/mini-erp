@@ -73,72 +73,58 @@ Route::get('/', function () {
 Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
 Route::post('/register', [RegisterController::class, 'register']);
 
-// Public Artisan Action Route (for compatibility)
+// Artisan Action Route
 Route::get('/artisan/{action}', function ($action) {
+    if (!Auth::check() || !Auth::user()->isSuperAdmin()) {
+        return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 403);
+    }
+
+    $allowedActions = [
+        'clear-cache' => 'cache:clear',
+        'config-clear' => 'config:clear',
+        'config-cache' => 'config:cache',
+        'optimize' => 'optimize',
+        'optimize-clear' => 'optimize:clear',
+    ];
+
+    if (!isset($allowedActions[$action])) {
+        return response()->json(['status' => 'error', 'message' => 'Invalid action'], 400);
+    }
+
     try {
-        // Check if user is authenticated
-        if (!auth()->check()) {
-            return response()->json(
-                [
-                    'status' => 'error',
-                    'message' => 'Authentication required.',
-                ],
-                401,
-            );
-        }
-
-        // Check if user is super_admin
-        if (auth()->user()->role !== 'super_admin') {
-            return response()->json(
-                [
-                    'status' => 'error',
-                    'message' => 'You do not have the required permissions to perform this operation. This action is restricted to system administrators.',
-                ],
-                403,
-            );
-        }
-
-        // Normalize action name
-        $actionMap = [
-            'storage-link' => 'storage:link',
-            'clear-cache' => 'cache:clear',
-            'config-clear' => 'config:clear',
-            'config-cache' => 'config:cache',
-            'route-clear' => 'route:clear',
-            'route-cache' => 'route:cache',
-            'view-clear' => 'view:clear',
-            'optimize' => 'optimize',
-            'optimize-clear' => 'optimize:clear',
-            'lark-fetch-job-orders' => 'lark:fetch-job-orders',
-        ];
-
-        if (!isset($actionMap[$action])) {
-            throw new Exception("Invalid action: {$action}");
-        }
-
-        $command = $actionMap[$action];
-        Artisan::call($command);
+        Artisan::call($allowedActions[$action]);
+        $output = Artisan::output();
 
         $messages = [
-            'storage:link' => 'Storage link created successfully.',
-            'cache:clear' => 'Cache cleared successfully.',
-            'config:clear' => 'Configuration cleared successfully.',
-            'config:cache' => 'Configuration cache cleared successfully.',
-            'route:clear' => 'Route cache cleared successfully.',
-            'route:cache' => 'Route cache created successfully.',
-            'view:clear' => 'View cache cleared successfully.',
-            'optimize' => 'Application optimized successfully.',
-            'optimize:clear' => 'Application optimized and cache cleared successfully.',
-            'lark:fetch-job-orders' => 'Job orders fetched from Lark successfully.',
+            'clear-cache' => 'Cache cleared successfully!',
+            'config-clear' => 'Configuration cleared successfully!',
+            'config-cache' => 'Configuration cache created successfully!',
+            'optimize' => 'Application optimized successfully!',
+            'optimize-clear' => 'Optimized cache cleared successfully!',
         ];
 
-        $message = $messages[$command] ?? 'Command executed successfully.';
+        return response()->json([
+            'status' => 'success',
+            'message' => $messages[$action],
+            'output' => $output,
+        ]);
+    } catch (\Exception $e) {
+        \Log::error("Artisan command error: {$action}", [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+        ]);
 
-        return response()->json(['status' => 'success', 'message' => $message]);
-    } catch (Exception $e) {
-        return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
+        return response()->json(
+            [
+                'status' => 'error',
+                'message' => 'Error: ' . $e->getMessage(),
+            ],
+            500,
+        );
     }
-})->name('artisan.action.public');
+})
+    ->name('artisan.action.public')
+    ->middleware('auth');
 
 Route::middleware(['auth'])->group(function () {
     // Audit
@@ -228,7 +214,7 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/material_requests/{id}', [MaterialRequestController::class, 'update'])->name('material_requests.update');
     Route::delete('/material_requests/{id}', [MaterialRequestController::class, 'destroy'])->name('material_requests.destroy');
     Route::post('/material_requests/{id}/reminder', [MaterialRequestController::class, 'sendReminder'])->name('material_requests.reminder');
-    Route::get('material_requests/bulk_details', [MaterialRequestController::class, 'bulkDetails'])->name('material_requests.bulk_details');
+    Route::post('/material_requests/bulk_details', [MaterialRequestController::class, 'bulkDetails'])->name('material_requests.bulk_details');
     Route::post('/material_requests/{id}/quick-update', [MaterialRequestController::class, 'quickUpdate'])->name('material_requests.quick_update');
 
     // Material Planning
@@ -416,102 +402,89 @@ Route::middleware(['auth'])->group(function () {
 
     Route::prefix('project-purchases')->group(function () {
         // CRUD Routes
-        Route::get('/', [ProjectPurchaseController::class, 'index'])
-            ->name('project-purchases.index');
-        
-        Route::get('/create', [ProjectPurchaseController::class, 'create'])
-            ->name('project-purchases.create');
-        
-        Route::post('/', [ProjectPurchaseController::class, 'store'])
-            ->name('project-purchases.store');
-        
-        Route::get('/{id}', [ProjectPurchaseController::class, 'show'])
-            ->name('project-purchases.show');
-        
-        Route::get('/{id}/edit', [ProjectPurchaseController::class, 'edit'])
-            ->name('project-purchases.edit');
-        
-        Route::put('/{id}', [ProjectPurchaseController::class, 'update'])
-            ->name('project-purchases.update');
-        
-        Route::delete('/{id}', [ProjectPurchaseController::class, 'destroy'])
-            ->name('project-purchases.destroy');
-        
+        Route::get('/', [ProjectPurchaseController::class, 'index'])->name('project-purchases.index');
+
+        Route::get('/create', [ProjectPurchaseController::class, 'create'])->name('project-purchases.create');
+
+        Route::post('/', [ProjectPurchaseController::class, 'store'])->name('project-purchases.store');
+
+        Route::get('/{id}', [ProjectPurchaseController::class, 'show'])->name('project-purchases.show');
+
+        Route::get('/{id}/edit', [ProjectPurchaseController::class, 'edit'])->name('project-purchases.edit');
+
+        Route::put('/{id}', [ProjectPurchaseController::class, 'update'])->name('project-purchases.update');
+
+        Route::delete('/{id}', [ProjectPurchaseController::class, 'destroy'])->name('project-purchases.destroy');
+
         // Approval Routes (Finance)
-        Route::post('/{id}/approve', [ProjectPurchaseController::class, 'approve'])
-            ->name('project-purchases.approve');
-        
-        Route::post('/{id}/reject', [ProjectPurchaseController::class, 'reject'])
-            ->name('project-purchases.reject');
-        
+        Route::post('/{id}/approve', [ProjectPurchaseController::class, 'approve'])->name('project-purchases.approve');
+
+        Route::post('/{id}/reject', [ProjectPurchaseController::class, 'reject'])->name('project-purchases.reject');
+
         // Update Tracking Route
-        Route::post('/{id}/update-tracking', [ProjectPurchaseController::class, 'updateTracking'])
-            ->name('project-purchases.update-tracking');
-        
+        Route::post('/{id}/update-tracking', [ProjectPurchaseController::class, 'updateTracking'])->name('project-purchases.update-tracking');
+
         // Item Receipt Routes
-        Route::post('/{id}/mark-as-received', [ProjectPurchaseController::class, 'markAsReceived'])
-            ->name('project-purchases.mark-as-received');
-        
-        Route::post('/{id}/mark-as-not-received', [ProjectPurchaseController::class, 'markAsNotReceived'])
-            ->name('project-purchases.mark-as-not-received');
-        
+        Route::post('/{id}/mark-as-received', [ProjectPurchaseController::class, 'markAsReceived'])->name('project-purchases.mark-as-received');
+
+        Route::post('/{id}/mark-as-not-received', [ProjectPurchaseController::class, 'markAsNotReceived'])->name('project-purchases.mark-as-not-received');
+
         // AJAX Routes
-        Route::get('/material/{id}/price', [ProjectPurchaseController::class, 'getMaterialPrice'])
-            ->name('project-purchases.get-material-price');
-        
-        Route::get('/job-order/{id}/details', [ProjectPurchaseController::class, 'getJobOrderDetails'])
-            ->name('project-purchases.get-job-order-details');
-    });
-    
-    Route::resource('internal-projects', InternalProjectController::class);
-    Route::resource('internal-projects', InternalProjectController::class)
-     ->parameters(['internal-projects' => 'internalProject']);
-     Route::get('project-purchases/internal-project/{id}', [ProjectPurchaseController::class, 'getInternalProjectDetails'])
-    ->name('project-purchases.internal-project-details');
-    Route::post('/internal-projects/quick', [InternalProjectController::class, 'quickStore'])
-    ->name('internal_projects.quick');
+        Route::get('/material/{id}/price', [ProjectPurchaseController::class, 'getMaterialPrice'])->name('project-purchases.get-material-price');
 
-// DCM Costings Routes
-    Route::prefix('dcm-costings')->name('dcm-costings.')->group(function () {
-        Route::get('/', [DcmCostingController::class, 'index'])->name('index');
-        Route::get('/export', [DcmCostingController::class, 'export'])->name('export'); 
-        Route::get('/statistics', [DcmCostingController::class, 'statistics'])->name('statistics');
-        Route::get('/create', [DcmCostingController::class, 'create'])->name('create');
-        Route::post('/', [DcmCostingController::class, 'store'])->name('store');
-        Route::get('/{costing:uid}', [DcmCostingController::class, 'show'])->name('show');        
-        Route::get('/{costing:uid}/edit', [DcmCostingController::class, 'edit'])->name('edit');
-        Route::put('/{costing:uid}', [DcmCostingController::class, 'update'])->name('update');
-        Route::delete('/{costing:uid}', [DcmCostingController::class, 'destroy'])->name('destroy');
-        
-        // New routes for edited purchases integration
-        Route::get('/check-updates', [DcmCostingController::class, 'checkForUpdates'])->name('check-updates');
-        Route::post('/{poNumber}/manual-update', [DcmCostingController::class, 'manualUpdate'])->name('manual-update');
-        Route::get('/pending-updates', [DcmCostingController::class, 'getPendingUpdates'])->name('pending-updates');
-        Route::post('/bulk-update', [DcmCostingController::class, 'bulkUpdate'])->name('bulk-update');
+        Route::get('/job-order/{id}/details', [ProjectPurchaseController::class, 'getJobOrderDetails'])->name('project-purchases.get-job-order-details');
     });
 
-    Route::prefix('purchase-approvals')->name('purchase-approvals.')->group(function () {
-        Route::get('/', [PurchaseApprovalController::class, 'index'])->name('index');
-        Route::get('/statistics', [PurchaseApprovalController::class, 'statistics'])->name('statistics');
-        Route::get('/{id}/details', [PurchaseApprovalController::class, 'viewDetails'])->name('view-details');
-        Route::post('/{id}/approve', [PurchaseApprovalController::class, 'approve'])->name('approve');
-        Route::post('/{id}/reject', [PurchaseApprovalController::class, 'reject'])->name('reject');
-        Route::post('/bulk-approve', [PurchaseApprovalController::class, 'bulkApprove'])->name('bulk-approve');
-        
-    });    
-    Route::prefix('finance/purchase-edited')->name('purchase-edited.')->group(function () {
+    Route::resource('internal-projects', InternalProjectController::class)->parameters(['internal-projects' => 'internalProject']);
+    Route::get('project-purchases/internal-project/{id}', [ProjectPurchaseController::class, 'getInternalProjectDetails'])->name('project-purchases.internal-project-details');
+    Route::post('/internal-projects/quick', [InternalProjectController::class, 'quickStore'])->name('internal_projects.quick');
+
+    // DCM Costings Routes
+    Route::prefix('dcm-costings')
+        ->name('dcm-costings.')
+        ->group(function () {
+            Route::get('/', [DcmCostingController::class, 'index'])->name('index');
+            Route::get('/export', [DcmCostingController::class, 'export'])->name('export');
+            Route::get('/statistics', [DcmCostingController::class, 'statistics'])->name('statistics');
+            Route::get('/create', [DcmCostingController::class, 'create'])->name('create');
+            Route::post('/', [DcmCostingController::class, 'store'])->name('store');
+            Route::get('/{costing:uid}', [DcmCostingController::class, 'show'])->name('show');
+            Route::get('/{costing:uid}/edit', [DcmCostingController::class, 'edit'])->name('edit');
+            Route::put('/{costing:uid}', [DcmCostingController::class, 'update'])->name('update');
+            Route::delete('/{costing:uid}', [DcmCostingController::class, 'destroy'])->name('destroy');
+
+            // New routes for edited purchases integration
+            Route::get('/check-updates', [DcmCostingController::class, 'checkForUpdates'])->name('check-updates');
+            Route::post('/{poNumber}/manual-update', [DcmCostingController::class, 'manualUpdate'])->name('manual-update');
+            Route::get('/pending-updates', [DcmCostingController::class, 'getPendingUpdates'])->name('pending-updates');
+            Route::post('/bulk-update', [DcmCostingController::class, 'bulkUpdate'])->name('bulk-update');
+        });
+
+    Route::prefix('purchase-approvals')
+        ->name('purchase-approvals.')
+        ->group(function () {
+            Route::get('/', [PurchaseApprovalController::class, 'index'])->name('index');
+            Route::get('/statistics', [PurchaseApprovalController::class, 'statistics'])->name('statistics');
+            Route::get('/{id}/details', [PurchaseApprovalController::class, 'viewDetails'])->name('view-details');
+            Route::post('/{id}/approve', [PurchaseApprovalController::class, 'approve'])->name('approve');
+            Route::post('/{id}/reject', [PurchaseApprovalController::class, 'reject'])->name('reject');
+            Route::post('/bulk-approve', [PurchaseApprovalController::class, 'bulkApprove'])->name('bulk-approve');
+        });
+    Route::prefix('finance/purchase-edited')
+        ->name('purchase-edited.')
+        ->group(function () {
             Route::get('/', [PurchaseEditedController::class, 'index'])->name('index');
             Route::get('/compare/{poNumber}', [PurchaseEditedController::class, 'compare'])->name('compare');
             Route::post('/verify/{poNumber}', [PurchaseEditedController::class, 'verify'])->name('verify');
             Route::post('/bulk-verify', [PurchaseEditedController::class, 'bulkVerify'])->name('bulk-verify');
             Route::get('/check/{poNumber}', [PurchaseEditedController::class, 'check'])->name('check');
             Route::get('/count', [PurchaseEditedController::class, 'getCount'])->name('count');
-        });       
-        Route::get('/finance-dashboard', function() {
-            return redirect()->route('purchase-approvals.index');
-        })->name('finance.dashboard');
+        });
+    Route::get('/finance-dashboard', function () {
+        return redirect()->route('purchase-approvals.index');
+    })->name('finance.dashboard');
 
-        Route::get('/finance-costings', function() {
-            return redirect()->route('dcm-costings.index');
-        })->name('finance.costings');
-    });       
+    Route::get('/finance-costings', function () {
+        return redirect()->route('dcm-costings.index');
+    })->name('finance.costings');
+});

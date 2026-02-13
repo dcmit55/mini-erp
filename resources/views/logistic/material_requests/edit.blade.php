@@ -31,6 +31,11 @@
                     <input type="hidden" name="filter_status" value="{{ request('status') }}">
                     <input type="hidden" name="filter_requested_by" value="{{ request('requested_by') }}">
                     <input type="hidden" name="filter_requested_at" value="{{ request('requested_at') }}">
+
+                    <!-- Hidden fields for validation -->
+                    <input type="hidden" name="project_type" value="{{ $request->project_type ?? 'client' }}">
+                    <input type="hidden" name="internal_project_id" value="{{ $request->internal_project_id ?? '' }}">
+
                     <div class="row">
                         <div class="col-lg-6 mb-3">
                             <div class="d-flex justify-content-between align-items-center mb-2">

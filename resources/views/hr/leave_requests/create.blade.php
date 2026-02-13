@@ -119,7 +119,9 @@
                         <div class="row">
                             <div class="col-lg-12 mb-3">
                                 <label class="form-label">Security Verification <span class="text-danger">*</span></label>
-                                <div class="g-recaptcha" data-sitekey="6LfD2WgsAAAAAKM7FHahZOxYuFvtRHDIVt_uhkPX"></div>
+                                <div class="g-recaptcha"
+                                    data-sitekey="{{ config('services.recaptcha.site_key', '6LfD2WgsAAAAAKM7FHahZOxYuFvtRHDIVt_uhkPX') }}">
+                                </div>
                                 <small class="text-muted">
                                     <i class="bi bi-shield-check"></i> Please complete the reCAPTCHA to prevent spam
                                 </small>
@@ -208,7 +210,71 @@
             $('#hire_date').val(selected.getAttribute('data-hiredate') || '');
         });
 
-        $('#start_date, #end_date').on('change', function() {
+        // Leave type change handler - Auto calculate dates for fixed-day types
+        $('input[name="type"]').on('change', function() {
+            const leaveType = $(this).val();
+            const startDate = $('#start_date');
+            const endDate = $('#end_date');
+            const duration = $('#duration');
+
+            // Define fixed-day leave types with their durations
+            const fixedDayTypes = {
+                'EMP_SELF_WEDDING': 3,
+                'BIRTH_CHILD_MISCARRIAGE': 2,
+                'DEATH_FAMILY_SAME_HOUSE': 1,
+                'CHILD_CIRCUMCISION_BAPTISM': 2,
+                'SON_DAUGHTER_WEDDING': 2,
+                'DEATH_SPOUSE_CHILD_PARENT_IN_LAW': 2
+            };
+
+            if (fixedDayTypes[leaveType]) {
+                // Fixed-day leave: disable to_date field and auto-calculate
+                endDate.prop('readonly', true)
+                    .prop('disabled', true)
+                    .prop('required', false)
+                    .css('background-color', '#e9ecef')
+                    .attr('title', 'Auto-calculated based on leave type');
+
+                duration.prop('readonly', true)
+                    .css('background-color', '#e9ecef')
+                    .val(fixedDayTypes[leaveType]);
+
+                // Auto-calculate end_date when start_date is selected
+                startDate.off('change').on('change', function() {
+                    if ($(this).val()) {
+                        const start = new Date($(this).val());
+                        const days = fixedDayTypes[leaveType];
+                        const end = new Date(start);
+                        end.setDate(end.getDate() + days - 1);
+
+                        endDate.val(end.toISOString().split('T')[0]);
+                        duration.val(days);
+                    }
+                });
+
+                // Trigger if start_date already has value
+                if (startDate.val()) {
+                    startDate.trigger('change');
+                }
+            } else {
+                // Annual Leave and Unpaid Leave: allow manual date selection
+                endDate.prop('readonly', false)
+                    .prop('disabled', false)
+                    .prop('required', true)
+                    .css('background-color', '')
+                    .removeAttr('title');
+
+                duration.prop('readonly', false)
+                    .css('background-color', '');
+
+                // Re-attach manual date calculation
+                startDate.off('change').on('change', calculateDuration);
+                endDate.off('change').on('change', calculateDuration);
+            }
+        });
+
+        // Manual date calculation function
+        function calculateDuration() {
             let start = $('#start_date').val();
             let end = $('#end_date').val();
 
@@ -239,7 +305,10 @@
             } else {
                 $('#duration').val('');
             }
-        });
+        }
+
+        // Initial setup for manual date calculation
+        $('#start_date, #end_date').on('change', calculateDuration);
 
         $(function() {
             $('[data-bs-toggle="tooltip"]').tooltip();

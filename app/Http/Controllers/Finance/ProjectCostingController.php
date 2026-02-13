@@ -67,7 +67,7 @@ class ProjectCostingController extends Controller
 
         $projects = $query
             ->with(['departments', 'jobOrders.materialRequests', 'jobOrders.department'])
-            ->orderBy('name')
+            ->latest() // Sort by most recent first
             ->paginate(10);
 
         // Pass data for filters

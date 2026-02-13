@@ -300,22 +300,37 @@ class LeaveRequestController extends Controller
                 ],
             );
 
-            // Verify reCAPTCHA
-            $recaptchaSecret = '6LfD2WgsAAAAAFWpgoubzDNlqh_0q7ns5v_5mYgj';
+            // Verify reCAPTCHA with v2 secret from config
+            $recaptchaSecret = config('services.recaptcha.secret_key', '6LfD2WgsAAAAAFWpgoubzDNlqh_0q7ns5v_5mYgj');
             $recaptchaResponse = $request->input('g-recaptcha-response');
 
-            $response = Http::asForm()->post('https://www.google.com/recaptcha/api/siteverify', [
-                'secret' => $recaptchaSecret,
-                'response' => $recaptchaResponse,
-                'remoteip' => $request->ip(),
-            ]);
+            try {
+                $response = Http::timeout(10)
+                    ->asForm()
+                    ->post('https://www.google.com/recaptcha/api/siteverify', [
+                        'secret' => $recaptchaSecret,
+                        'response' => $recaptchaResponse,
+                        'remoteip' => $request->ip(),
+                    ]);
 
-            $result = $response->json();
+                $result = $response->json();
 
-            if (!$result['success']) {
-                return back()
-                    ->withInput()
-                    ->withErrors(['g-recaptcha-response' => 'reCAPTCHA verification failed. Please try again.']);
+                if (!isset($result['success']) || !$result['success']) {
+                    $errorCodes = $result['error-codes'] ?? [];
+                    \Log::warning('reCAPTCHA verification failed', [
+                        'error_codes' => $errorCodes,
+                        'ip' => $request->ip(),
+                        'result' => $result,
+                    ]);
+
+                    return back()
+                        ->withInput()
+                        ->withErrors(['g-recaptcha-response' => 'reCAPTCHA verification failed. Please try again.']);
+                }
+            } catch (\Exception $e) {
+                \Log::error('reCAPTCHA API error: ' . $e->getMessage());
+                // Allow submission if reCAPTCHA service is down (graceful degradation)
+                // But log the error for monitoring
             }
         }
 
@@ -337,15 +352,48 @@ class LeaveRequestController extends Controller
             'duration' => 'required|numeric|min:0.01|max:999.99',
         ]);
 
+        // Auto-calculate end_date for fixed-day leave types
+        $fixedDayTypes = [
+            'EMP_SELF_WEDDING' => 3,
+            'BIRTH_CHILD_MISCARRIAGE' => 2,
+            'DEATH_FAMILY_SAME_HOUSE' => 1,
+            'CHILD_CIRCUMCISION_BAPTISM' => 2,
+            'SON_DAUGHTER_WEDDING' => 2,
+            'DEATH_SPOUSE_CHILD_PARENT_IN_LAW' => 2,
+        ];
+
+        $leaveType = strtoupper($request->type);
+        if (isset($fixedDayTypes[$leaveType])) {
+            // Auto-calculate end_date based on start_date + fixed duration
+            $startDate = new \DateTime($request->start_date);
+            $duration = $fixedDayTypes[$leaveType];
+            $endDate = clone $startDate;
+            $endDate->modify('+' . ($duration - 1) . ' days');
+
+            // Override end_date and duration from request
+            $request->merge([
+                'end_date' => $endDate->format('Y-m-d'),
+                'duration' => $duration,
+            ]);
+        }
+
         DB::beginTransaction();
         try {
-            // Check leave balance for Annual Leave
+            // Check leave balance for Annual Leave BEFORE creating
             if (strtoupper($request->type) === 'ANNUAL') {
                 if (bccomp($employee->saldo_cuti, $request->duration, 2) < 0) {
                     DB::rollBack();
+
+                    $message = 'Maaf, saldo cuti tidak mencukupi. Saldo tersedia: ' . number_format($employee->saldo_cuti, 1) . ' hari, permintaan: ' . number_format($request->duration, 1) . ' hari.';
+
+                    if (!Auth::check()) {
+                        // For guest, show SweetAlert
+                        return back()->withInput()->with('error_alert', $message);
+                    }
+
                     return back()
                         ->withInput()
-                        ->withErrors(['duration' => 'Insufficient leave balance. Employee has ' . number_format($employee->saldo_cuti, 1) . ' days, but requesting ' . number_format($request->duration, 1) . ' days.']);
+                        ->withErrors(['duration' => $message]);
                 }
             }
 
@@ -376,9 +424,7 @@ class LeaveRequestController extends Controller
                 ->withInput()
                 ->withErrors(['error' => 'Failed to create leave request: ' . $e->getMessage()]);
         }
-    }
-
-    /**
+    } /**
      * Show the form for editing the specified resource.
      */
     public function edit($id)
