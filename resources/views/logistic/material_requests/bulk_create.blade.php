@@ -73,6 +73,8 @@
                                         <td data-label="Project">
                                             <input type="hidden" name="requests[{{ $index }}][project_id]"
                                                 class="project-id-input" required>
+                                            <!-- Tambahkan hidden project_type -->
+                                            <input type="hidden" name="requests[{{ $index }}][project_type]" value="client">
                                             <input type="text" class="form-control project-name-display" readonly
                                                 placeholder="Select Job Order first">
                                             @error("requests.$index.project_id")

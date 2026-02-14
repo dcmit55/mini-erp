@@ -41,7 +41,7 @@
                         </div>
                     @endif
 
-                    <form action="{{ route('internal-projects.store') }}" method="POST">
+                    <form action="{{ route('internal-projects.store') }}" method="POST" id="internalProjectForm">
                         @csrf
                         
                         <!-- Project Information -->
@@ -69,31 +69,31 @@
                                     @enderror
                                 </div>
                                 
-                                <!-- Department Section (Dinamis) -->
-                                <div class="col-md-6 mb-2" id="department-section">
-                                    <!-- Untuk non-Testing: tampilkan teks PT DCM + hidden input -->
-                                    <div id="dept-static" class="{{ old('project') == 'Testing' ? 'd-none' : '' }}">
-                                        <label class="form-label small text-dark">Department <span class="text-danger">*</span></label>
-                                        <div class="form-control border-1 rounded-2 py-2 px-3 bg-light" readonly>
-                                            <strong>PT DCM</strong>
-                                        </div>
-                                        <input type="hidden" name="department_id" id="hidden_department_id" value="{{ old('department_id', $defaultPtDcmDepartmentId ?? '') }}">
+                                <!-- Department Section (Hanya SATU hidden field) -->
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label small text-dark">Department <span class="text-danger">*</span></label>
+                                    
+                                    <!-- Tampilan untuk non-Testing: teks readonly PT DCM -->
+                                    <div id="dept-static-display" class="form-control bg-light">
+                                        PT DCM
                                     </div>
                                     
-                                    <!-- Untuk Testing: tampilkan dropdown department (Select2) -->
-                                    <div id="dept-dropdown" class="{{ old('project') == 'Testing' ? '' : 'd-none' }}">
-                                        <label class="form-label small text-dark">Department <span class="text-danger">*</span></label>
-                                        <select name="department_id" id="department_id" 
-                                                class="form-select border-1 rounded-2 py-2 px-3 select2 @error('department_id') is-invalid @enderror">
+                                    <!-- Tampilan untuk Testing: dropdown select (awalnya hidden) -->
+                                    <div id="dept-dropdown-wrapper" style="display: none;">
+                                        <select id="dept-dropdown-select" class="form-select select2">
                                             <option value="">Select Department</option>
                                             @foreach ($departments as $dept)
-                                                <option value="{{ $dept->id }}" {{ old('department_id') == $dept->id ? 'selected' : '' }}>{{ $dept->name }}</option>
+                                                <option value="{{ $dept->id }}">{{ $dept->name }}</option>
                                             @endforeach
                                         </select>
-                                        @error('department_id')
-                                            <div class="invalid-feedback small">{{ $message }}</div>
-                                        @enderror
                                     </div>
+
+                                    <!-- Hidden field yang akan dikirim sebagai department_id -->
+                                    <input type="hidden" name="department_id" id="final_department_id" value="{{ old('department_id', $defaultPtDcmDepartmentId ?? '') }}">
+                                    
+                                    @error('department_id')
+                                        <div class="invalid-feedback d-block small">{{ $message }}</div>
+                                    @enderror
                                 </div>
                                 
                                 <!-- Job (Singkat) -->
@@ -235,9 +235,12 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const defaultDeptId = '{{ $defaultPtDcmDepartmentId ?? '' }}';
+    console.log('Default PT DCM ID:', defaultDeptId);
+
     // Inisialisasi Select2 untuk dropdown department
     if (typeof $.fn.select2 !== 'undefined') {
-        $('.select2').select2({
+        $('#dept-dropdown-select').select2({
             theme: 'bootstrap-5',
             placeholder: 'Select Department',
             allowClear: true,
@@ -245,39 +248,50 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Logika toggle department berdasarkan project type
-    function toggleDepartment() {
-        const projectType = document.getElementById('project').value;
-        const deptStatic = document.getElementById('dept-static');
-        const deptDropdown = document.getElementById('dept-dropdown');
-        const hiddenDeptId = document.getElementById('hidden_department_id');
-        const deptSelect = document.getElementById('department_id');
+    // Elemen-elemen yang diperlukan
+    const projectSelect = document.getElementById('project');
+    const staticDisplay = document.getElementById('dept-static-display');
+    const dropdownWrapper = document.getElementById('dept-dropdown-wrapper');
+    const finalHidden = document.getElementById('final_department_id');
+    const dropdownSelect = document.getElementById('dept-dropdown-select');
 
-        if (projectType === 'Testing') {
-            deptStatic.classList.add('d-none');
-            deptDropdown.classList.remove('d-none');
-            hiddenDeptId.removeAttribute('required');
-            if (deptSelect) {
-                deptSelect.setAttribute('required', 'required');
-                // Trigger change untuk select2
-                $(deptSelect).val('').trigger('change');
-            }
+    // Fungsi untuk memperbarui tampilan dan hidden field
+    function updateDepartmentField() {
+        const projectType = projectSelect.value;
+        const isTesting = projectType === 'Testing';
+
+        if (isTesting) {
+            // Testing: tampilkan dropdown, sembunyikan static
+            staticDisplay.style.display = 'none';
+            dropdownWrapper.style.display = 'block';
+            // Hidden field mengikuti pilihan dropdown (atau kosong)
+            finalHidden.value = dropdownSelect.value || '';
         } else {
-            deptStatic.classList.remove('d-none');
-            deptDropdown.classList.add('d-none');
-            hiddenDeptId.setAttribute('required', 'required');
-            if (deptSelect) {
-                deptSelect.removeAttribute('required');
-                $(deptSelect).val('').trigger('change');
+            // Non-Testing: tampilkan static, sembunyikan dropdown
+            staticDisplay.style.display = 'block';
+            dropdownWrapper.style.display = 'none';
+            // Hidden field diisi dengan default PT DCM ID
+            finalHidden.value = defaultDeptId;
+            // Reset dropdown (opsional)
+            dropdownSelect.value = '';
+            if (typeof $(dropdownSelect).val !== 'undefined') {
+                $(dropdownSelect).val('').trigger('change');
             }
         }
     }
 
-    const projectSelect = document.getElementById('project');
-    if (projectSelect) {
-        projectSelect.addEventListener('change', toggleDepartment);
-        toggleDepartment(); // Jalankan saat halaman dimuat
-    }
+    // Event ketika project type berubah
+    projectSelect.addEventListener('change', updateDepartmentField);
+
+    // Event ketika dropdown berubah (hanya untuk Testing)
+    dropdownSelect.addEventListener('change', function() {
+        if (projectSelect.value === 'Testing') {
+            finalHidden.value = this.value;
+        }
+    });
+
+    // Panggil saat halaman dimuat untuk menyesuaikan dengan old value
+    updateDepartmentField();
 
     // Character counter untuk job
     const jobInput = document.getElementById('job');
@@ -301,6 +315,14 @@ document.addEventListener('DOMContentLoaded', function() {
             jobCounter.textContent = jobInput.value.length + '/200';
         }
     }
+
+    // Validasi form sebelum submit (pastikan department_id terisi)
+    document.getElementById('internalProjectForm').addEventListener('submit', function(e) {
+        if (!finalHidden.value) {
+            e.preventDefault();
+            alert('Department is required.');
+        }
+    });
 });
 </script>
 @endpush
