@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use App\Enums\InternalProjectType;
+use Illuminate\Validation\Rule;
 
 class InternalProjectController extends Controller
 {
@@ -41,12 +43,10 @@ class InternalProjectController extends Controller
      */
     public function create()
     {
-        $projectTypes = [
-            'Office' => 'Office',
-            'Machine' => 'Machine',
-            'Testing' => 'Testing',
-            'Facilities' => 'Facilities',
-        ];
+        // Ambil daftar project dari enum
+        $projectTypes = collect(InternalProjectType::cases())
+            ->mapWithKeys(fn($case) => [$case->value => $case->value])
+            ->toArray();
 
         $departments = Department::orderBy('name')->get();
 
@@ -66,7 +66,7 @@ class InternalProjectController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'project'       => 'required|string|in:Office,Machine,Testing,Facilities',
+            'project'       => ['required', 'string', Rule::in(InternalProjectType::values())],
             'job'           => 'required|string|max:200',
             'description'   => 'nullable|string',
             'department_id' => 'required|exists:departments,id',
@@ -115,7 +115,7 @@ class InternalProjectController extends Controller
     public function quickStore(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'project'       => 'required|in:Office,Machine,Testing,Facilities',
+            'project'       => ['required', Rule::in(InternalProjectType::values())],
             'department_id' => 'required|exists:departments,id',
             'job'           => 'required|string|max:200',
             'description'   => 'nullable|string',
@@ -147,12 +147,13 @@ class InternalProjectController extends Controller
 
             DB::commit();
 
+            // Ambil nilai string dari enum untuk response
             return response()->json([
                 'success' => true,
                 'message' => 'Internal project added successfully!',
                 'internal_project' => [
                     'id'      => $internalProject->id,
-                    'project' => $internalProject->project,
+                    'project' => $internalProject->project->value, // ambil string asli
                     'job'     => $internalProject->job,
                 ]
             ]);
@@ -188,12 +189,11 @@ class InternalProjectController extends Controller
     {
         try {
             $internalProject = InternalProject::findOrFail($id);
-            $projectTypes = [
-                'Office' => 'Office',
-                'Machine' => 'Machine',
-                'Testing' => 'Testing',
-                'Facilities' => 'Facilities',
-            ];
+
+            // Ambil daftar project dari enum
+            $projectTypes = collect(InternalProjectType::cases())
+                ->mapWithKeys(fn($case) => [$case->value => $case->value])
+                ->toArray();
 
             $departments = Department::orderBy('name')->get();
 
@@ -217,7 +217,7 @@ class InternalProjectController extends Controller
     public function update(Request $request, string $id)
     {
         $validator = Validator::make($request->all(), [
-            'project'       => 'required|string|in:Office,Machine,Testing,Facilities',
+            'project'       => ['required', 'string', Rule::in(InternalProjectType::values())],
             'job'           => 'required|string|max:200',
             'description'   => 'nullable|string',
             'department_id' => 'required|exists:departments,id',
