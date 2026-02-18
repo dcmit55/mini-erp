@@ -487,4 +487,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/finance-costings', function () {
         return redirect()->route('dcm-costings.index');
     })->name('finance.costings');
+
+    // Material Request Inventory Detail
+    Route::get('/material-requests/inventory/{id}', [App\Http\Controllers\Logistic\MaterialRequestController::class, 'getInventoryDetail'])
+        ->name('material_requests.inventory_detail');
+
 });

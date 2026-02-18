@@ -8,12 +8,14 @@
                 <p class="text-muted mb-3">Use this form to create multiple material requests at once. You can add multiple
                     rows for different projects and materials.</p>
                 <div class="mb-3">
-                    {{-- <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal"
-                        data-bs-target="#quickAddProjectModal">+
-                        Quick Add Project</button>
+                    <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal"
+                        data-bs-target="#quickAddProjectModal">+ Quick Add Client Project</button>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddInternalProject">
+                        + Quick Add Internal Project
+                    </button>
                     <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddMaterial">
                         + Quick Add Material
-                    </button> --}}
+                    </button>
                 </div>
 
                 @if (session('error'))
@@ -42,10 +44,11 @@
                             style="min-width: 100%;">
                             <thead class="table-light">
                                 <tr>
+                                    <th style="width: 10%;">Project Type <span class="text-danger">*</span></th>
                                     <th style="width: 20%;">Job Order <span class="text-danger">*</span></th>
-                                    <th style="width: 20%;">Project <span class="text-muted">(auto)</span></th>
+                                    <th style="width: 15%;">Project <span class="text-muted">(auto)</span></th>
                                     <th style="width: 20%;">Material <span class="text-danger">*</span></th>
-                                    <th style="width: 15%;">Quantity <span class="text-danger">*</span></th>
+                                    <th style="width: 10%;">Quantity <span class="text-danger">*</span></th>
                                     <th style="width: 15%;">Remark</th>
                                     <th style="width: 10%;">Action</th>
                                 </tr>
@@ -53,34 +56,47 @@
                             <tbody id="bulk-rows">
                                 @foreach (old('requests', [0 => []]) as $index => $request)
                                     <tr class="align-top">
-                                        <td data-label="Job Order">
-                                            <select name="requests[{{ $index }}][job_order_id]"
-                                                class="form-select select2 job-order-select" required>
-                                                <option value="">Select Job Order</option>
-                                                @foreach ($jobOrders as $jo)
-                                                    <option value="{{ $jo->id }}"
-                                                        data-project-id="{{ $jo->project_id }}"
-                                                        data-project-name="{{ $jo->project->name ?? '' }}"
-                                                        {{ old("requests.$index.job_order_id") == $jo->id ? 'selected' : '' }}>
-                                                        {{ $jo->name }}
-                                                    </option>
-                                                @endforeach
+                                        <!-- Project Type -->
+                                        <td data-label="Project Type">
+                                            <select name="requests[{{ $index }}][project_type]"
+                                                    class="form-select project-type-select" required>
+                                                <option value="">Select Type</option>
+                                                <option value="client" {{ old("requests.$index.project_type") == 'client' ? 'selected' : '' }}>Client Project</option>
+                                                <option value="internal" {{ old("requests.$index.project_type") == 'internal' ? 'selected' : '' }}>Internal Project</option>
                                             </select>
-                                            @error("requests.$index.job_order_id")
+                                            @error("requests.$index.project_type")
                                                 <span class="text-danger">{{ $message }}</span>
                                             @enderror
                                         </td>
+
+                                        <!-- Job Order (dinamis) -->
+                                        <td data-label="Job Order">
+                                            <select name="requests[{{ $index }}][job_source_id]"
+                                                    class="form-select select2 job-order-select"
+                                                    data-client-options='@json($jobOrders)'
+                                                    data-internal-options='@json($internalProjects)'
+                                                    data-old-value="{{ old("requests.$index.job_source_id") }}"
+                                                    required>
+                                                <option value="">Select Job Order</option>
+                                            </select>
+                                            <input type="hidden" name="requests[{{ $index }}][job_source_type]" class="job-source-type" value="{{ old("requests.$index.job_source_type") }}">
+                                            @error("requests.$index.job_source_id")
+                                                <span class="text-danger">{{ $message }}</span>
+                                            @enderror
+                                        </td>
+
+                                        <!-- Project Info (readonly) -->
                                         <td data-label="Project">
-                                            <input type="hidden" name="requests[{{ $index }}][project_id]"
-                                                class="project-id-input" required>
-                                            <!-- Tambahkan hidden project_type -->
-                                            <input type="hidden" name="requests[{{ $index }}][project_type]" value="client">
+                                            <input type="hidden" name="requests[{{ $index }}][project_id]" class="project-id-input" value="{{ old("requests.$index.project_id") }}">
+                                            <input type="hidden" name="requests[{{ $index }}][internal_project_id]" class="internal-project-id-input" value="{{ old("requests.$index.internal_project_id") }}">
                                             <input type="text" class="form-control project-name-display" readonly
-                                                placeholder="Select Job Order first">
+                                                placeholder="Auto fill" value="{{ old("requests.$index.project_display") }}">
                                             @error("requests.$index.project_id")
                                                 <span class="text-danger">{{ $message }}</span>
                                             @enderror
                                         </td>
+
+                                        <!-- Material -->
                                         <td data-label="Material">
                                             <select name="requests[{{ $index }}][inventory_id]"
                                                 class="form-select select2 material-select" required>
@@ -99,6 +115,8 @@
                                                 <span class="text-danger">{{ $message }}</span>
                                             @enderror
                                         </td>
+
+                                        <!-- Quantity -->
                                         <td data-label="Quantity">
                                             <div class="input-group">
                                                 <input type="number" name="requests[{{ $index }}][qty]"
@@ -110,12 +128,16 @@
                                                 <span class="text-danger">{{ $message }}</span>
                                             @enderror
                                         </td>
+
+                                        <!-- Remark -->
                                         <td data-label="Remark">
                                             <textarea name="requests[{{ $index }}][remark]" class="form-control" rows="1">{{ old("requests.$index.remark") }}</textarea>
                                             @error("requests.$index.remark")
                                                 <span class="text-danger">{{ $message }}</span>
                                             @enderror
                                         </td>
+
+                                        <!-- Action -->
                                         <td data-label="Action">
                                             <button type="button" class="btn btn-danger btn-sm remove-row">Remove</button>
                                         </td>
@@ -135,131 +157,182 @@
                     </div>
                 </form>
             </div>
+        </div>
+    </div>
 
-            <!-- Confirmation Modal Before Quick Add Material -->
-            <div class="modal fade" id="confirmAddMaterialModal" tabindex="-1"
-                aria-labelledby="confirmAddMaterialModalLabel" aria-hidden="true">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="confirmAddMaterialModalLabel">Confirm Add Material!</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"
-                                aria-label="Close"></button>
+    <!-- ========== MODAL QUICK ADD MATERIAL ========== -->
+    <div class="modal fade" id="confirmAddMaterialModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Add Material!</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <b>Please make sure this material does not already exist in the inventory table.</b><br>
+                    <span class="text-danger">Use this feature only if the material is truly not available and is
+                        urgently needed.<br> Adding duplicate materials will cause data inconsistency!</span>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="btnConfirmAddMaterial">Yes, I Understand</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="addMaterialModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <form id="quickAddMaterialForm" method="POST" action="{{ route('inventories.store.quick') }}">
+                @csrf
+                <div class="modal-content">
+                    <div class="modal-header flex-column align-items-start pb-1 pt-3">
+                        <h5 class="modal-title w-100 mb-2">Quick Add Material</h5>
+                        <div class="w-100 mb-2">
+                            <small class="text-muted d-block" style="font-size: 0.92em;">
+                                <i class="bi bi-search"></i> Search Material Before Adding <span class="fst-italic">(optional)</span>
+                            </small>
+                            <input type="text" id="search-material-autocomplete"
+                                class="form-control form-control-sm mt-1"
+                                placeholder="Type material name to search...">
+                            <div id="search-material-result" class="form-text mt-1 mb-0"></div>
                         </div>
-                        <div class="modal-body">
-                            <b>Please make sure this material does not already exist in the inventory table.</b><br>
-                            <span class="text-danger">Use this feature only if the material is truly not available and is
-                                urgently needed.<br>
-                                Adding duplicate materials will cause data inconsistency!</span>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="button" class="btn btn-danger" id="btnConfirmAddMaterial">Yes, I
-                                Understand</button>
-                        </div>
+                        <button type="button" class="btn-close position-absolute end-0 top-0 m-3"
+                            data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body pt-2">
+                        <label>Material Name <span class="text-danger">*</span></label>
+                        <input type="text" name="name" class="form-control" required>
+
+                        <label class="mt-2">Quantity <span class="text-danger">*</span></label>
+                        <input type="number" step="any" name="quantity" class="form-control" required>
+
+                        <label class="mt-2">Unit <span class="text-danger">*</span></label>
+                        <select name="unit" id="unit-select-modal" class="form-select select2" required>
+                            <option value="">Select Unit</option>
+                            @foreach ($units ?? [] as $unit)
+                                <option value="{{ $unit->name }}">{{ $unit->name }}</option>
+                            @endforeach
+                        </select>
+
+                        <label class="mt-2">Remark (optional)</label>
+                        <textarea name="remark" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary w-100">Add Material</button>
                     </div>
                 </div>
-            </div>
-            <!-- Add Material Modal -->
-            <div class="modal fade" id="addMaterialModal" tabindex="-1" aria-labelledby="addMaterialModalLabel"
-                aria-hidden="true">
-                <div class="modal-dialog">
-                    <form id="quickAddMaterialForm" method="POST" action="{{ route('inventories.store.quick') }}">
-                        @csrf
-                        <div class="modal-content">
-                            <div class="modal-header flex-column align-items-start pb-1 pt-3">
-                                <h5 class="modal-title w-100 mb-2">Quick Add Material</h5>
-                                <div class="w-100 mb-2">
-                                    <small class="text-muted d-block" style="font-size: 0.92em;">
-                                        <i class="bi bi-search"></i>
-                                        Search Material Before Adding <span class="fst-italic">(optional)</span>
-                                    </small>
-                                    <input type="text" id="search-material-autocomplete"
-                                        class="form-control form-control-sm mt-1"
-                                        placeholder="Type material name to search...">
-                                    <div id="search-material-result" class="form-text mt-1 mb-0"></div>
-                                </div>
-                                <button type="button" class="btn-close position-absolute end-0 top-0 m-3"
-                                    data-bs-dismiss="modal" aria-label="Close"></button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========== MODAL QUICK ADD CLIENT PROJECT ========== -->
+    <div class="modal fade" id="quickAddProjectModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <form id="quickAddProjectForm" method="POST" action="{{ route('projects.store.quick') }}">
+                @csrf
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Quick Add Client Project</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="project-error" class="alert alert-danger d-none"></div>
+                        <div class="mb-3">
+                            <label for="project_name" class="form-label">Project Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="project_name" name="name" required
+                                placeholder="Enter project name">
+                        </div>
+                        <div class="mb-3">
+                            <label for="project_qty" class="form-label">Quantity <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="project_qty" name="qty" required
+                                min="1" placeholder="Enter quantity">
+                        </div>
+                        <div class="mb-3">
+                            <label for="project_departments" class="form-label">Department <span class="text-danger">*</span></label>
+                            <select name="department_ids[]" id="project_departments" class="form-select" multiple required>
+                                @foreach ($departments as $dept)
+                                    <option value="{{ $dept->id }}">{{ $dept->name }}</option>
+                                @endforeach
+                            </select>
+                            <small class="text-muted">You can select multiple departments</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Project</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========== MODAL QUICK ADD INTERNAL PROJECT ========== -->
+    <div class="modal fade" id="addInternalProjectModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <form id="quickAddInternalProjectForm" method="POST">
+                @csrf
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Add Internal Project</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="internal-project-error" class="alert alert-danger d-none"></div>
+
+                        <!-- Project Type -->
+                        <div class="mb-3">
+                            <label class="form-label fw-medium">Project Type <span class="text-danger">*</span></label>
+                            <select name="project" id="modal_project_type" class="form-select" required>
+                                <option value="">Select Project Type</option>
+                                <option value="Office">Office</option>
+                                <option value="Machine">Machine</option>
+                                <option value="Testing">Testing</option>
+                                <option value="Facilities">Facilities</option>
+                            </select>
+                        </div>
+
+                        <!-- Department Section -->
+                        <div class="mb-3">
+                            <label class="form-label fw-medium">Department <span class="text-danger">*</span></label>
+                            <!-- Tampilan untuk non-Testing: teks readonly PT DCM -->
+                            <div id="dept-static-display" class="form-control bg-light">
+                                PT DCM
                             </div>
-                            <div class="modal-body pt-2">
-                                <label>Material Name <span class="text-danger">*</span></label>
-                                <input type="text" name="name" class="form-control" required>
-
-                                <label class="mt-2">Quantity <span class="text-danger">*</span></label>
-                                <input type="number" step="any" name="quantity" class="form-control" required>
-
-                                <label class="mt-2">Unit <span class="text-danger">*</span></label>
-                                <select name="unit" id="unit-select-modal" class="form-select select2" required>
-                                    <option value="">Select Unit</option>
-                                    @foreach ($units ?? [] as $unit)
-                                        <option value="{{ $unit->name }}">{{ $unit->name }}</option>
+                            <!-- Tampilan untuk Testing: dropdown select (awalnya hidden) -->
+                            <div id="dept-dropdown-wrapper" style="display: none;">
+                                <select id="dept-dropdown-select" class="form-select select2-modal">
+                                    <option value="">Select Department</option>
+                                    @foreach ($departments as $dept)
+                                        <option value="{{ $dept->id }}">{{ $dept->name }}</option>
                                     @endforeach
                                 </select>
-
-                                <label class="mt-2">Remark (optional)</label>
-                                <textarea name="remark" class="form-control" rows="2"></textarea>
                             </div>
-                            <div class="modal-footer">
-                                <button type="submit" class="btn btn-primary w-100">Add Material</button>
-                            </div>
+                            <!-- Hidden field yang akan dikirim sebagai department_id -->
+                            <input type="hidden" name="department_id" id="final_department_id" value="{{ $defaultPtDcmDepartmentId ?? '' }}">
                         </div>
-                    </form>
-                </div>
-            </div>
 
-            <!-- Add Project Modal -->
-            <div class="modal fade" id="quickAddProjectModal" tabindex="-1" aria-labelledby="quickAddProjectModalLabel"
-                aria-hidden="true">
-                <div class="modal-dialog">
-                    <form id="quickAddProjectForm" method="POST" action="{{ route('projects.store.quick') }}">
-                        @csrf
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="quickAddProjectModalLabel">Quick Add Project</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"
-                                    aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">
-                                <div id="project-error" class="alert alert-danger d-none"></div>
-
-                                <!-- Project Name -->
-                                <div class="mb-3">
-                                    <label for="project_name" class="form-label">Project Name <span
-                                            class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="project_name" name="name" required
-                                        placeholder="Enter project name">
-                                </div>
-
-                                <!-- Quantity -->
-                                <div class="mb-3">
-                                    <label for="project_qty" class="form-label">Quantity <span
-                                            class="text-danger">*</span></label>
-                                    <input type="number" class="form-control" id="project_qty" name="qty" required
-                                        min="1" placeholder="Enter quantity">
-                                </div>
-
-                                <!-- Departments -->
-                                <div class="mb-3">
-                                    <label for="project_departments" class="form-label">Department <span
-                                            class="text-danger">*</span></label>
-                                    <select name="department_ids[]" id="project_departments" class="form-select" multiple
-                                        required>
-                                        @foreach ($departments as $dept)
-                                            <option value="{{ $dept->id }}">{{ $dept->name }}</option>
-                                        @endforeach
-                                    </select>
-                                    <small class="text-muted">You can select multiple departments</small>
-                                </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                <button type="submit" class="btn btn-primary">Save Project</button>
-                            </div>
+                        <!-- Job -->
+                        <div class="mb-3">
+                            <label class="form-label fw-medium">Job <span class="text-danger">*</span></label>
+                            <input type="text" name="job" class="form-control" placeholder="Enter job name" maxlength="200" required>
                         </div>
-                    </form>
+
+                        <!-- Description -->
+                        <div class="mb-3">
+                            <label class="form-label fw-medium">Description (Optional)</label>
+                            <textarea name="description" class="form-control" rows="2" placeholder="Enter description"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="btnSaveInternalProject">
+                            <span class="spinner-border spinner-border-sm me-1 d-none" role="status"></span>
+                            Save Project
+                        </button>
+                    </div>
                 </div>
-            </div>
+            </form>
         </div>
     </div>
 @endsection
@@ -270,25 +343,20 @@
             height: calc(2.375rem + 2px);
             padding: 0.375rem 0.75rem;
         }
-
         .select2-selection__rendered {
             line-height: 1.5;
         }
-
         .unit-label {
             min-width: 50px;
         }
-
         @media (max-width: 576px) {
             #addMaterialModal .modal-dialog {
                 max-width: 98vw;
                 margin: 0.5rem auto;
             }
-
             #addMaterialModal .modal-content {
                 padding: 0.5rem;
             }
-
             #addMaterialModal .modal-header,
             #addMaterialModal .modal-body,
             #addMaterialModal .modal-footer {
@@ -296,9 +364,7 @@
                 padding-right: 0.5rem;
             }
         }
-
         @media (max-width: 992px) {
-
             .table-responsive table,
             .table-responsive thead,
             .table-responsive tbody,
@@ -308,17 +374,14 @@
                 display: block !important;
                 width: 100% !important;
             }
-
             .table-responsive thead {
                 display: none !important;
             }
-
             .table-responsive tr {
                 margin-bottom: 1.5rem;
                 border-bottom: 2px solid #dee2e6;
                 box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
             }
-
             .table-responsive td {
                 position: relative;
                 padding-left: 120px;
@@ -328,7 +391,6 @@
                 box-sizing: border-box;
                 word-break: break-word;
             }
-
             .table-responsive td:before {
                 position: absolute;
                 left: 10px;
@@ -342,7 +404,6 @@
                 box-sizing: border-box;
                 text-align: left;
             }
-
             .table-responsive td:last-child {
                 border-bottom: 2px solid #dee2e6;
             }
@@ -359,8 +420,7 @@
                 dropdownAutoWidth: true,
             }).on('select2:open', function() {
                 setTimeout(function() {
-                    document.querySelector('.select2-container--open .select2-search__field')
-                        .focus();
+                    document.querySelector('.select2-container--open .select2-search__field')?.focus();
                 }, 100);
             });
 
@@ -371,27 +431,80 @@
         }
 
         $(document).ready(function() {
+            // Initialize first row
             initSelect2($('#bulk-rows tr').first());
 
-            // Auto-fill Project when Job Order is selected
-            $(document).on('change', '.job-order-select', function() {
-                const selected = $(this).find(':selected');
-                const projectId = selected.data('project-id');
-                const projectName = selected.data('project-name');
-                const $row = $(this).closest('tr');
+            // Function to render job order options based on project type
+            function renderJobOrderOptions($select, type) {
+                const clientOptions = JSON.parse($select.attr('data-client-options') || '[]');
+                const internalOptions = JSON.parse($select.attr('data-internal-options') || '[]');
+                const oldValue = $select.data('old-value');
+                let html = '<option value="">Select Job Order</option>';
 
-                if (projectId && projectName) {
-                    $row.find('.project-id-input').val(projectId);
-                    $row.find('.project-name-display').val(projectName);
-                } else {
+                if (type === 'client') {
+                    clientOptions.forEach(jo => {
+                        const projectName = jo.project ? jo.project.name : '';
+                        html += `<option value="${jo.id}" data-project-id="${jo.project_id}" data-project-name="${projectName}">${jo.name}</option>`;
+                    });
+                } else if (type === 'internal') {
+                    internalOptions.forEach(ip => {
+                        html += `<option value="${ip.id}" data-internal-id="${ip.id}" data-project="${ip.project}">${ip.job}</option>`;
+                    });
+                }
+                $select.html(html);
+                if (oldValue) {
+                    $select.val(oldValue).trigger('change');
+                }
+            }
+
+            // When project type changes
+            $(document).on('change', '.project-type-select', function() {
+                const $row = $(this).closest('tr');
+                const type = $(this).val();
+                const $jobSelect = $row.find('.job-order-select');
+                const $sourceType = $row.find('.job-source-type');
+
+                // Clear hidden inputs
+                $row.find('.project-id-input, .internal-project-id-input, .project-name-display').val('');
+                $sourceType.val(type);
+
+                renderJobOrderOptions($jobSelect, type);
+                $jobSelect.trigger('change.select2');
+            });
+
+            // When job order is selected
+            $(document).on('change', '.job-order-select', function() {
+                const $row = $(this).closest('tr');
+                const type = $row.find('.project-type-select').val();
+                const selected = $(this).find(':selected');
+
+                if (type === 'client') {
+                    const projectId = selected.data('project-id');
+                    const projectName = selected.data('project-name');
+                    $row.find('.project-id-input').val(projectId || '');
+                    $row.find('.internal-project-id-input').val('');
+                    $row.find('.project-name-display').val(projectName || '');
+                } else if (type === 'internal') {
+                    const internalId = selected.data('internal-id');
+                    const project = selected.data('project');
+                    $row.find('.internal-project-id-input').val(internalId || '');
                     $row.find('.project-id-input').val('');
-                    $row.find('.project-name-display').val('');
+                    $row.find('.project-name-display').val(project || '');
                 }
             });
 
-            // Trigger on page load for old values
-            $('.job-order-select').trigger('change');
+            // Restore old values on page load
+            $('.project-type-select').each(function() {
+                const $row = $(this).closest('tr');
+                const type = $(this).val();
+                if (type) {
+                    const $jobSelect = $row.find('.job-order-select');
+                    renderJobOrderOptions($jobSelect, type);
+                    $jobSelect.trigger('change');
+                }
+            });
 
+            // Add row functionality
             $('#add-row').click(function() {
                 let lastRow = $('#bulk-rows tr').last();
                 let rowCount = $('#bulk-rows tr').length;
@@ -425,22 +538,16 @@
                         $elem.attr('name', newName);
                     }
 
-                    // Handle different element types
+                    // Reset values
                     if ($elem.is('select')) {
-                        if ($elem.hasClass('job-order-select')) {
-                            // Keep job order value from last row
-                            let previousValue = lastRow.find('.job-order-select').val();
-                            $elem.val(previousValue);
+                        if ($elem.hasClass('project-type-select')) {
+                            $elem.val('');
                         } else {
-                            // Clear material select
                             $elem.val('');
                         }
-                    } else if ($elem.hasClass('project-id-input') || $elem.hasClass(
-                            'project-name-display')) {
-                        // Keep project values (will be updated by job order trigger)
-                        // Don't clear these
+                    } else if ($elem.hasClass('project-id-input') || $elem.hasClass('internal-project-id-input') || $elem.hasClass('project-name-display') || $elem.hasClass('job-source-type')) {
+                        $elem.val('');
                     } else if ($elem.is('input[type="number"]') || $elem.is('textarea')) {
-                        // Clear quantity and remark
                         $elem.val('').removeClass('is-invalid');
                     }
                 });
@@ -452,8 +559,7 @@
                 newRow.find('.unit-label').text('unit');
 
                 // Reset available qty display
-                newRow.find('.available-qty-text').addClass('d-none').removeClass(
-                    'text-danger text-warning').text('');
+                newRow.find('.available-qty-text').addClass('d-none').removeClass('text-danger text-warning').text('');
 
                 // Append new row
                 $('#bulk-rows').append(newRow);
@@ -463,15 +569,13 @@
                     try {
                         initSelect2(lastRow);
                         initSelect2(newRow);
-
-                        // Trigger job order change to auto-fill project
-                        newRow.find('.job-order-select').trigger('change');
                     } catch (e) {
                         console.log('Select2 init error:', e);
                     }
                 }, 150);
             });
 
+            // Remove row
             $(document).on('click', '.remove-row', function() {
                 if ($('#bulk-rows tr').length > 1) {
                     $(this).closest('tr').remove();
@@ -483,89 +587,138 @@
                 const unit = $(this).find(':selected').data('unit') || 'unit';
                 $(this).closest('tr').find('.unit-label').text(unit);
             });
-
-            // Trigger change event on page load to restore old values
             $('.material-select').trigger('change');
 
-            // Quick Add Project (Bulk)
-            $('#quickAddProjectForm').on('submit', function(e) {
+            // Quick Add Internal Project modal logic
+            $('#btnAddInternalProject').on('click', function() {
+                $('#addInternalProjectModal').modal('show');
+            });
+
+            // Department logic in internal project modal
+            function updateDepartmentField() {
+                const projectType = $('#modal_project_type').val();
+                const isTesting = projectType === 'Testing';
+                const $staticDisplay = $('#dept-static-display');
+                const $dropdownWrapper = $('#dept-dropdown-wrapper');
+                const $finalHidden = $('#final_department_id');
+
+                if (isTesting) {
+                    $staticDisplay.hide();
+                    $dropdownWrapper.show();
+                    const selectedDeptId = $('#dept-dropdown-select').val();
+                    $finalHidden.val(selectedDeptId || '');
+                } else {
+                    $staticDisplay.show();
+                    $dropdownWrapper.hide();
+                    $finalHidden.val('{{ $defaultPtDcmDepartmentId ?? '' }}');
+                    $('#dept-dropdown-select').val('').trigger('change');
+                }
+            }
+
+            $('#modal_project_type').on('change', updateDepartmentField);
+
+            $('#dept-dropdown-select').on('change', function() {
+                if ($('#modal_project_type').val() === 'Testing') {
+                    $('#final_department_id').val($(this).val());
+                }
+            });
+
+            $('#addInternalProjectModal').on('shown.bs.modal', function() {
+                $('#quickAddInternalProjectForm')[0].reset();
+                $('#internal-project-error').addClass('d-none').html('');
+                $('#final_department_id').val('{{ $defaultPtDcmDepartmentId ?? '' }}');
+                $('#modal_project_type').val('').trigger('change');
+
+                // Initialize Select2 for department dropdown inside modal
+                $('#dept-dropdown-select').select2({
+                    theme: 'bootstrap-5',
+                    placeholder: 'Select Department',
+                    allowClear: true,
+                    width: '100%',
+                    dropdownParent: $('#addInternalProjectModal')
+                });
+
+                updateDepartmentField();
+            });
+
+            // Submit quick add internal project
+            $('#quickAddInternalProjectForm').on('submit', function(e) {
                 e.preventDefault();
-                let form = $(this);
+                const form = $(this);
+                const submitBtn = $('#btnSaveInternalProject');
+                const spinner = submitBtn.find('.spinner-border');
+                const errorDiv = $('#internal-project-error');
+
+                if (!$('#final_department_id').val()) {
+                    errorDiv.html('Department is required.').removeClass('d-none');
+                    return;
+                }
+
+                submitBtn.prop('disabled', true);
+                spinner.removeClass('d-none');
+                errorDiv.addClass('d-none').html('');
+
                 $.ajax({
-                    url: form.attr('action'),
+                    url: '{{ route("internal_projects.quick") }}',
                     method: 'POST',
                     data: form.serialize(),
-                    headers: {
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                    },
-                    success: function(res) {
-                        if (res.success && res.project) {
-                            // Tambahkan ke semua select2 project di setiap row
-                            $('.project-select').each(function() {
-                                let exists = $(this).find('option[value="' + res.project
-                                    .id + '"]').length;
-                                if (!exists) {
-                                    let newOption = new Option(res.project.name, res
-                                        .project.id, false, false);
-                                    $(this).append(newOption);
+                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                    success: function(response) {
+                        if (response.success && response.internal_project) {
+                            const ip = response.internal_project;
+                            // Add to internal projects data (if needed, but we already have data)
+                            // Refresh the internal options in all rows
+                            $('.job-order-select').each(function() {
+                                const $select = $(this);
+                                const currentType = $(this).closest('tr').find('.project-type-select').val();
+                                if (currentType === 'internal') {
+                                    // Add new option
+                                    const newOption = new Option(ip.job, ip.id, false, false);
+                                    $(newOption).attr('data-internal-id', ip.id).attr('data-project', ip.project);
+                                    $select.append(newOption);
+                                    // Optionally select it in the last row
+                                    if ($(this).closest('tr').is($('#bulk-rows tr:last'))) {
+                                        $select.val(ip.id).trigger('change');
+                                    }
                                 }
                             });
-                            // Pilih otomatis di row terakhir
-                            $('.project-select').last().val(res.project.id).trigger('change');
-                            $('#quickAddProjectForm').closest('.modal').modal('hide');
+                            $('#addInternalProjectModal').modal('hide');
                             form[0].reset();
-
-                            // Reset select2 untuk departments jika ada
-                            $('#project_departments').val(null).trigger('change');
-
-                            Swal.fire('Success', 'Project added successfully!', 'success');
-                        } else {
-                            Swal.fire('Error', res.message ||
-                                'Failed to add project. Please try again.', 'error');
+                            Swal.fire('Success', response.message, 'success');
                         }
                     },
                     error: function(xhr) {
-                        let msg = xhr.responseJSON?.message ||
-                            'Failed to add project. Please try again.';
-                        if (xhr.responseJSON?.errors) {
-                            // Tampilkan validation errors
-                            let errorList = Object.values(xhr.responseJSON.errors).flat().join(
-                                '<br>');
-                            msg = errorList;
+                        let errors = xhr.responseJSON?.errors;
+                        let message = xhr.responseJSON?.message || 'Failed to add internal project.';
+                        if (errors) {
+                            let errorHtml = '<ul class="mb-0">';
+                            for (let key in errors) {
+                                errorHtml += '<li>' + errors[key][0] + '</li>';
+                            }
+                            errorHtml += '</ul>';
+                            errorDiv.html(errorHtml).removeClass('d-none');
+                        } else {
+                            errorDiv.html(message).removeClass('d-none');
                         }
-                        Swal.fire('Error', msg, 'error');
+                    },
+                    complete: function() {
+                        submitBtn.prop('disabled', false);
+                        spinner.addClass('d-none');
                     }
                 });
             });
 
-            // Inisialisasi Select2 untuk multiple department di modal Quick Add Project
-            $('#project_departments').select2({
-                theme: 'bootstrap-5',
-                width: '100%',
-                placeholder: 'Select Department',
-                allowClear: true,
-                dropdownParent: $('#quickAddProjectModal')
-            }).on('select2:open', function() {
-                setTimeout(function() {
-                    document.querySelector('.select2-container--open .select2-search__field')
-                        .focus();
-                }, 100);
-            });
-
             // Quick Add Material Button with Confirmation
-            $('#btnAddMaterial').off('click').on('click', function(e) {
+            $('#btnAddMaterial').on('click', function(e) {
                 e.preventDefault();
                 $('#confirmAddMaterialModal').modal('show');
             });
 
-            $('#btnConfirmAddMaterial').off('click').on('click', function() {
+            $('#btnConfirmAddMaterial').on('click', function() {
                 $('#confirmAddMaterialModal').modal('hide');
-                setTimeout(function() {
-                    $('#addMaterialModal, #quickAddMaterialModal').modal('show');
-                }, 360);
+                setTimeout(() => $('#addMaterialModal').modal('show'), 360);
             });
 
-            // Initialize Select2 untuk unit di modal
             function initializeUnitSelect2() {
                 $('#unit-select-modal').select2({
                     theme: 'bootstrap-5',
@@ -573,23 +726,19 @@
                     allowClear: true,
                     dropdownParent: $('#addMaterialModal')
                 }).on('select2:open', function() {
-                    setTimeout(function() {
-                        document.querySelector('.select2-container--open .select2-search__field')
-                            ?.focus();
+                    setTimeout(() => {
+                        document.querySelector('.select2-container--open .select2-search__field')?.focus();
                     }, 100);
                 });
             }
 
-            // Re-initialize Select2 saat modal ditampilkan
             $('#addMaterialModal').on('shown.bs.modal', function() {
-                // Destroy existing Select2 instance jika ada
                 if ($('#unit-select-modal').data('select2')) {
                     $('#unit-select-modal').select2('destroy');
                 }
                 initializeUnitSelect2();
             });
 
-            // Quick Add Material (existing code, no changes needed)
             $('#quickAddMaterialForm').on('submit', function(e) {
                 e.preventDefault();
                 let form = $(this);
@@ -597,25 +746,28 @@
                     url: form.attr('action'),
                     method: 'POST',
                     data: form.serialize(),
-                    headers: {
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                    },
+                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
                     success: function(res) {
                         if (res.success && res.material) {
-                            let newOption = new Option(res.material.name, res.material.id, true,
-                                true);
-                            $('select[name="inventory_id"]').append(newOption).val(res.material
-                                .id).trigger('change');
+                            let newOption = new Option(res.material.name, res.material.id, true, true);
+                            $('select[name*="[inventory_id]"]').each(function() {
+                                // Add to all material selects
+                                let exists = $(this).find('option[value="' + res.material.id + '"]').length;
+                                if (!exists) {
+                                    $(this).append(newOption.clone());
+                                }
+                            });
+                            // Optionally select in the last row
+                            $('select[name*="[inventory_id]"]').last().val(res.material.id).trigger('change');
                             $('#addMaterialModal').modal('hide');
                             form[0].reset();
+                            Swal.fire('Success', 'Material added successfully!', 'success');
                         } else {
-                            Swal.fire('Error', 'Failed to add material. Please try again.',
-                                'error');
+                            Swal.fire('Error', 'Failed to add material. Please try again.', 'error');
                         }
                     },
                     error: function(xhr) {
-                        let msg = xhr.responseJSON?.message ||
-                            'Failed to add material. Please try again.';
+                        let msg = xhr.responseJSON?.message || 'Failed to add material. Please try again.';
                         Swal.fire('Error', msg, 'error');
                     }
                 });
@@ -644,49 +796,77 @@
             });
             $('.material-select').trigger('change');
 
-            // Untuk modal Quick Add Material
-            $('#quickAddMaterialForm').closest('.modal').on('shown.bs.modal', function() {
-                const $input = $(this).find('#search-material-autocomplete');
-                const $result = $(this).find('#search-material-result');
-                $input.off('input').on('input', function() {
-                    const keyword = $(this).val().trim();
-                    if (keyword.length < 2) {
-                        $result.html('');
-                        return;
-                    }
-                    $.ajax({
-                        url: "{{ route('inventories.json') }}",
-                        data: {
-                            q: keyword
-                        },
-                        success: function(data) {
-                            const filtered = data.filter(item =>
-                                item.name.toLowerCase().includes(keyword
-                                    .toLowerCase())
-                            );
-                            if (filtered.length > 0) {
-                                $result.html(
-                                    '<b>Similar material(s) found:</b><ul class="mb-0">' +
-                                    filtered.map(item => `<li>${item.name}</li>`)
-                                    .join('') +
-                                    '</ul><span class="text-danger">Please make sure you are not adding a duplicate material!</span>'
-                                );
-                            } else {
-                                $result.html(
-                                    '<span class="text-success">No similar material found. You can proceed to add this material.</span>'
-                                );
-                            }
-                        },
-                        error: function() {
+            // Search material autocomplete
+            $('#search-material-autocomplete').on('input', function() {
+                const keyword = $(this).val().trim();
+                const $result = $('#search-material-result');
+                if (keyword.length < 2) { $result.html(''); return; }
+                $.ajax({
+                    url: "{{ route('inventories.json') }}",
+                    data: { q: keyword },
+                    success: function(data) {
+                        const filtered = data.filter(item =>
+                            item.name.toLowerCase().includes(keyword.toLowerCase())
+                        );
+                        if (filtered.length > 0) {
                             $result.html(
-                                '<span class="text-danger">Failed to search material.</span>'
+                                '<b>Similar material(s) found:</b><ul class="mb-0">' +
+                                filtered.map(item => `<li>${item.name}</li>`).join('') +
+                                '</ul><span class="text-danger">Please make sure you are not adding a duplicate material!</span>'
+                            );
+                        } else {
+                            $result.html(
+                                '<span class="text-success">No similar material found. You can proceed to add this material.</span>'
                             );
                         }
-                    });
+                    },
+                    error: function() {
+                        $result.html('<span class="text-danger">Failed to search material.</span>');
+                    }
                 });
             });
 
-            // Handle form submission for bulk create
+            // Quick Add Project (Client)
+            $('#quickAddProjectForm').on('submit', function(e) {
+                e.preventDefault();
+                let form = $(this);
+                let errorDiv = $('#project-error');
+                errorDiv.hide().text('');
+
+                $.ajax({
+                    url: form.attr('action'),
+                    method: 'POST',
+                    data: form.serialize(),
+                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                    success: function(response) {
+                        if (response.success && response.project) {
+                            // Refresh the page or add to client options
+                            // Simple: reload the page
+                            window.location.reload();
+                        } else {
+                            errorDiv.html(response.message || 'Failed to add project.').show();
+                        }
+                    },
+                    error: function(xhr) {
+                        let msg = xhr.responseJSON?.message || 'Failed to add project. Please try again.';
+                        errorDiv.html(msg).show();
+                    }
+                });
+            });
+
+            $('#quickAddProjectModal').on('shown.bs.modal', function() {
+                if (!$('#project_departments').data('select2')) {
+                    $('#project_departments').select2({
+                        theme: 'bootstrap-5',
+                        placeholder: 'Select departments',
+                        allowClear: true,
+                        closeOnSelect: false,
+                        dropdownParent: $('#quickAddProjectModal')
+                    });
+                }
+            });
+
+            // Handle form submission for bulk create (spinner)
             const form = $('form[action="{{ route('material_requests.bulk_store') }}"]');
             const submitBtn = $('#bulk-submit-btn');
             const spinner = submitBtn.find('.spinner-border');
