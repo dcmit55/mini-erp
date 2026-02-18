@@ -55,7 +55,7 @@
                     </div>
                 @endif
 
-                <!-- Filter form -->
+                <!-- Filter form (dengan tambahan Project Type) -->
                 <div class="mb-3">
                     <form id="filter-form" class="row g-1">
                         <div class="col-md-2">
@@ -63,6 +63,15 @@
                                 <option value="">All Job Orders</option>
                                 @foreach ($jobOrders as $jo)
                                     <option value="{{ $jo->id }}">{{ $jo->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <!-- NEW: Filter Project Type -->
+                        <div class="col-md-2">
+                            <select id="filter-project-type" name="project_type" class="form-select form-select-sm select2">
+                                <option value="">All Project Types</option>
+                                @foreach ($projectTypes as $type)
+                                    <option value="{{ $type }}">{{ $type }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -116,13 +125,14 @@
                     </form>
                 </div>
 
-                <!-- Table -->
+                <!-- Table dengan kolom Project Type baru -->
                 <table class="table table-hover table-sm align-middle" id="datatable" data-material-request-table="1">
                     <thead class="table-light text-nowrap">
                         <tr>
                             <th></th>
                             <th style="display:none">ID</th>
                             <th>Job Order</th>
+                            <th>Project Type</th>   <!-- NEW: Kolom Project Type -->
                             <th>Project</th>
                             <th>Material</th>
                             <th>Requested Qty</th>
@@ -151,7 +161,7 @@
         </div>
     </div>
 
-    <!-- Modal Bulk Goods Out -->
+    <!-- Modal Bulk Goods Out (tidak berubah) -->
     <div class="modal fade" id="bulkGoodsOutModal" tabindex="-1" aria-labelledby="bulkGoodsOutModalLabel"
         aria-hidden="true">
         <div class="modal-dialog modal-lg">
@@ -194,7 +204,7 @@
         </div>
     </div>
 
-    <!-- Material Detail Modal (Updated) -->
+    <!-- Material Detail Modal (tidak berubah) -->
     <div class="modal fade" id="materialDetailModal" tabindex="-1" aria-labelledby="materialDetailModalLabel"
         aria-hidden="true">
         <div class="modal-dialog modal-lg">
@@ -523,8 +533,8 @@
             text-align: center !important;
         }
 
-        #datatable thead th:nth-child(12),
-        #datatable tbody td:nth-child(12) {
+        #datatable thead th:nth-child(13),
+        #datatable tbody td:nth-child(13) {
             text-align: center !important;
         }
 
@@ -581,6 +591,8 @@
                     data: function(d) {
                         d.project = $('#filter-project').val();
                         d.job_order = $('#filter-job-order').val();
+                        // NEW: tambahkan project_type ke parameter
+                        d.project_type = $('#filter-project-type').val();
                         d.material = $('#filter-material').val();
                         d.status = $('#filter-status').val();
                         d.requested_by = $('#filter-requested-by').val();
@@ -613,17 +625,23 @@
                     {
                         data: 'job_order',
                         name: 'jobOrder.name',
-                        width: '14%'
+                        width: '12%' // dikurangi sedikit untuk memberi ruang
+                    },
+                    // NEW: Kolom Project Type
+                    {
+                        data: 'project_type',
+                        name: 'project.type',
+                        width: '8%'
                     },
                     {
                         data: 'project_name',
                         name: 'project.name',
-                        width: '14%'
+                        width: '12%' // dikurangi sedikit
                     },
                     {
                         data: 'material_name',
                         name: 'inventory.name',
-                        width: '14%'
+                        width: '12%' // dikurangi sedikit
                     },
                     {
                         data: 'requested_qty',
@@ -661,7 +679,7 @@
                     {
                         data: 'remark',
                         name: 'remark',
-                        width: '12%'
+                        width: '10%' // dikurangi sedikit
                     },
                     {
                         data: 'actions',
@@ -709,26 +727,27 @@
                 }
             });
 
-            // Debounced Filter Functionality
+            // Debounced Filter Functionality (tambahkan filter-project-type)
             const debouncedFilter = debounce(function() {
                 table.draw();
             }, 300);
 
-            $('#filter-project, #filter-job-order, #filter-material, #filter-status, #filter-requested-by, #filter-requested-at, #custom-search')
+            $('#filter-project, #filter-job-order, #filter-project-type, #filter-material, #filter-status, #filter-requested-by, #filter-requested-at, #custom-search')
                 .on('change input', debouncedFilter);
 
             $('#reset-filters').on('click', function() {
-                $('#filter-project, #filter-job-order, #filter-material, #filter-status, #filter-requested-by, #filter-requested-at, #custom-search')
+                $('#filter-project, #filter-job-order, #filter-project-type, #filter-material, #filter-status, #filter-requested-by, #filter-requested-at, #custom-search')
                     .val('').trigger('change');
                 table.draw();
             });
 
-            // Export button handler with filters
+            // Export button handler with filters (tambahkan project_type)
             $('#export-btn').on('click', function(e) {
                 e.preventDefault();
                 const params = {
                     project: $('#filter-project').val(),
                     job_order: $('#filter-job-order').val(),
+                    project_type: $('#filter-project-type').val(), // baru
                     material: $('#filter-material').val(),
                     status: $('#filter-status').val(),
                     requested_by: $('#filter-requested-by').val(),
@@ -739,7 +758,7 @@
                 window.location.href = '{{ route('material_requests.export') }}' + '?' + query;
             });
 
-            // Initialize Select2
+            // Initialize Select2 (tambahkan untuk filter baru)
             $('.select2').select2({
                 theme: 'bootstrap-5',
                 placeholder: function() {
@@ -749,6 +768,7 @@
             });
 
             $('#filter-project').attr('data-placeholder', 'All Projects');
+            $('#filter-project-type').attr('data-placeholder', 'All Project Types'); // baru
             $('#filter-material').attr('data-placeholder', 'All Materials');
             $('#filter-status').attr('data-placeholder', 'All Status');
             $('#filter-requested-by').attr('data-placeholder', 'All Requesters');
@@ -770,7 +790,7 @@
                 allowInput: true,
             });
 
-            // Bulk Goods Out Button Management
+            // Bulk Goods Out Button Management (tidak berubah)
             function updateBulkGoodsOutButton() {
                 const selectedCount = $('.select-row:checked').length;
                 const bulkBtn = $('#bulk-goods-out-btn');
@@ -806,7 +826,7 @@
                 updateBulkGoodsOutButton();
             });
 
-            // Enhanced Delete Confirmation
+            // Enhanced Delete Confirmation (tidak berubah)
             $(document).on('click', '.btn-delete', function(e) {
                 e.preventDefault();
                 let form = $(this).closest('form');
@@ -829,7 +849,7 @@
                 });
             });
 
-            // Bulk Goods Out Modal Handler
+            // Bulk Goods Out Modal Handler (tidak berubah)
             $('#bulk-goods-out-btn').on('click', function() {
                 const selectedIds = $('.select-row:checked').map(function() {
                     return $(this).val();
@@ -976,7 +996,7 @@
                 btnText[0].textContent = ' Submit All';
             });
 
-            // ----- NEW: Material Detail Modal Handler using button class -----
+            // Material Detail Modal Handler (tidak berubah)
             $(document).on('click', '.material-detail-btn', function(e) {
                 e.preventDefault();
                 const inventoryId = $(this).data('id');
@@ -1034,7 +1054,7 @@
                 });
             });
 
-            // Reminder Button Handler
+            // Reminder Button Handler (tidak berubah)
             $(document).on('click', '.btn-reminder', function() {
                 const id = $(this).data('id');
                 const btn = $(this);
@@ -1057,7 +1077,7 @@
                 });
             });
 
-            // Status Select Enhancement
+            // Status Select Enhancement (tidak berubah)
             function updateStatusTitle($select) {
                 const val = $select.val();
                 let tip = '';
@@ -1076,7 +1096,7 @@
 
             updateBulkGoodsOutButton();
 
-            // Quick Update Status Handler
+            // Quick Update Status Handler (tidak berubah)
             $(document).on('change', '.status-quick-update', function() {
                 const $select = $(this);
                 const id = $select.data('id');
@@ -1163,7 +1183,7 @@
             });
         });
 
-        // Utility Functions
+        // Utility Functions (tidak berubah)
         function debounce(func, wait) {
             let timeout;
             return function executedFunction(...args) {
