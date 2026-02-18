@@ -151,6 +151,18 @@
                                     <i class="bi bi-filetype-xls me-1"></i> Import
                                 </button>
                             @endif
+                            @if (in_array(auth()->user()->role, ['super_admin', 'admin']))
+                                <form action="{{ route('inventory.sync.lark') }}" method="POST" class="d-inline"
+                                    id="syncLarkForm">
+                                    @csrf
+                                    <button type="button" class="btn btn-info btn-sm flex-shrink-0" id="btnSyncLark"
+                                        data-bs-toggle="tooltip" data-bs-placement="bottom"
+                                        title="Sync inventory from Lark Base (Destination: BATAM, Status: Sent Out)">
+                                        <i class="fas fa-sync me-1" id="syncIcon"></i>
+                                        <span id="syncText">Sync from Lark</span>
+                                    </button>
+                                </form>
+                            @endif
                             <button type="button" id="export-btn" class="btn btn-outline-success btn-sm">
                                 <i class="bi bi-file-earmark-excel me-1"></i> Export
                             </button>
@@ -223,6 +235,13 @@
                                 @endforeach
                             </select>
                         </div>
+                        <div class="col-md-2">
+                            <select id="sourceFilter" class="form-select form-select-sm select2">
+                                <option value="">All Sources</option>
+                                <option value="lark">Lark Sync</option>
+                                <option value="manual">Manual</option>
+                            </select>
+                        </div>
                         <div class="col-md-3">
                             <input type="text" id="customSearch" class="form-control form-control-sm"
                                 placeholder="Search inventory...">
@@ -243,6 +262,7 @@
                             <tr>
                                 <th width="50">#</th>
                                 <th>Name</th>
+                                <th>Project List</th>
                                 <th>Category</th>
                                 <th>Quantity</th>
                                 @if (in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance', 'admin', 'admin_procurement']))
@@ -250,6 +270,7 @@
                                 @endif
                                 <th>Supplier</th>
                                 <th>Location</th>
+                                <th>Source</th>
                                 <th>Remark</th>
                                 <th>Updated At</th>
                                 <th width="150">Actions</th>
@@ -262,7 +283,8 @@
                 </div>
 
                 <!-- Modal Show Image -->
-                <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+                <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel"
+                    aria-hidden="true">
                     <div class="modal-dialog modal-dialog-centered">
                         <div class="modal-content">
                             <div class="modal-header">
@@ -347,6 +369,7 @@
                         d.supplier_filter = $('#supplierFilter').val();
                         d.location_filter = $('#locationFilter').val();
                         d.unitFilter = $('#unitFilter').val();
+                        d.sourceFilter = $('#sourceFilter').val();
                         d.custom_search = $('#customSearch').val();
                     }
                 },
@@ -362,6 +385,15 @@
                         data: 'name',
                         name: 'name',
                         width: '26%'
+                    },
+                    {
+                        data: 'project_lark',
+                        name: 'project_lark',
+                        width: '15%',
+                        orderable: false,
+                        render: function(data) {
+                            return data || '<span class="text-muted">-</span>';
+                        }
                     },
                     {
                         data: 'category',
@@ -396,6 +428,13 @@
                         data: 'location',
                         name: 'location.name',
                         width: '12%'
+                    },
+                    {
+                        data: 'source',
+                        name: 'source',
+                        width: '10%',
+                        orderable: false,
+                        searchable: false
                     },
                     {
                         data: 'remark',
@@ -454,7 +493,8 @@
             });
 
             // Filter functionality
-            $('#categoryFilter, #currencyFilter, #supplierFilter, #locationFilter, #unitFilter').on('change',
+            $('#categoryFilter, #currencyFilter, #supplierFilter, #locationFilter, #unitFilter, #sourceFilter').on(
+                'change',
                 function() {
                     table.ajax.reload();
                 });
@@ -465,7 +505,8 @@
 
             // Reset filters
             $('#resetFilters').on('click', function() {
-                $('#categoryFilter, #currencyFilter, #supplierFilter, #locationFilter, #unitFilter').val('')
+                $('#categoryFilter, #currencyFilter, #supplierFilter, #locationFilter, #unitFilter, #sourceFilter')
+                    .val('')
                     .trigger('change');
                 $('#customSearch').val('');
                 table.ajax.reload();
@@ -626,6 +667,45 @@
 
             // Initialize Bootstrap Tooltip
             $('[data-bs-toggle="tooltip"]').tooltip();
+
+            // Sync from Lark button handler
+            $('#btnSyncLark').on('click', function(e) {
+                e.preventDefault();
+
+                Swal.fire({
+                    title: 'Sync from Lark?',
+                    html: 'Sync inventory from Lark Base?<br><br>' +
+                        '<strong>Filter Conditions:</strong><br>' +
+                        '• Destination: BATAM<br>' +
+                        '• Status: Sent Out<br><br>' +
+                        'This will:<br>' +
+                        '- Fetch latest data from Lark Base<br>' +
+                        '- Create/update inventory items<br>' +
+                        '- Currency: RMB (CNY)<br><br>' +
+                        'Continue?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Yes, sync now!',
+                    cancelButtonText: 'Cancel',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Show loading state
+                        const $btn = $('#btnSyncLark');
+                        const $icon = $('#syncIcon');
+                        const $text = $('#syncText');
+
+                        $btn.prop('disabled', true);
+                        $icon.addClass('fa-spin');
+                        $text.text('Syncing...');
+
+                        // Submit form
+                        $('#syncLarkForm').submit();
+                    }
+                });
+            });
         });
 
         document.addEventListener('DOMContentLoaded', function() {

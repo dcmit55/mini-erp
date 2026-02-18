@@ -2,6 +2,7 @@
     <thead>
         <tr>
             <th>Project</th>
+            <th>Job Order</th>
             <th>Material</th>
             <th>Requested Qty</th>
             <th>Unit</th>
@@ -17,6 +18,7 @@
         @foreach ($requests as $req)
             <tr>
                 <td>{{ $req->project->name ?? '(no project)' }}</td>
+                <td>{{ $req->jobOrder->name ?? '-' }}</td>
                 <td>{{ $req->inventory->name ?? '(no material)' }}</td>
                 <td>{{ $req->qty }}</td>
                 <td>{{ $req->inventory->unit ?? '(no unit)' }}</td>

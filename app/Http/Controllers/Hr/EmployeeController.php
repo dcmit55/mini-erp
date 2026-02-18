@@ -33,6 +33,9 @@ class EmployeeController extends Controller
      */
     public function index()
     {
+        // Auto-update expired contracts before displaying
+        Employee::updateExpiredContracts();
+
         $employees = Employee::with(['department', 'documents'])
             ->withCount('documents')
             ->latest()

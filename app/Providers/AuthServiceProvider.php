@@ -25,6 +25,12 @@ class AuthServiceProvider extends ServiceProvider
     {
         $this->registerPolicies();
 
+        // Gate for Log Viewer (opcodesio/log-viewer)
+        // Allow access only for super_admin in production
+        Gate::define('viewLogViewer', function ($user) {
+            return $user->role === 'super_admin';
+        });
+
         //
     }
 }

@@ -49,13 +49,32 @@
                             @enderror
                         </div>
                         <div class="col-lg-12 mb-3">
-                            <label>Project</label>
-                            <select name="project_id" class="form-select select2">
-                                <option value="" class="text-muted">No Project</option>
-                                @foreach ($projects as $project)
-                                    <option value="{{ $project->id }}">{{ $project->name }}</option>
+                            <label>Job Order <span class="text-danger">*</span></label>
+                            <select name="job_order_id" id="job_order_id" class="form-select select2"
+                                data-placeholder="Select Job Order" required>
+                                <option value="">Select Job Order</option>
+                                @foreach ($jobOrders as $jo)
+                                    <option value="{{ $jo->id }}" data-project-id="{{ $jo->project_id }}"
+                                        data-project-name="{{ $jo->project->name ?? '' }}"
+                                        data-department-name="{{ $jo->department->name ?? '' }}"
+                                        {{ old('job_order_id') == $jo->id ? 'selected' : '' }}>
+                                        {{ $jo->name }}
+                                    </option>
                                 @endforeach
                             </select>
+                            @error('job_order_id')
+                                <small class="text-danger">{{ $message }}</small>
+                            @enderror
+
+                            <!-- Hidden Project ID (Auto-filled) -->
+                            <input type="hidden" name="project_id" id="project_id" value="{{ old('project_id') }}"
+                                required>
+
+                            <!-- Project Display (Read-only) -->
+                            <div id="project-display" class="mt-2 {{ old('project_id') ? '' : 'd-none' }}">
+                                <small class="text-muted">Project:</small>
+                                <strong id="project-name-text"></strong>
+                            </div>
                         </div>
                         <div class="col-lg-6 mb-3">
                             <label>Returned/In At <span class="text-danger">*</span></label>
@@ -102,6 +121,33 @@
                         .focus();
                 }, 100);
             });
+
+            // Auto-fill Project when Job Order is selected
+            $('#job_order_id').on('change', function() {
+                const selected = $(this).find(':selected');
+                const projectId = selected.data('project-id');
+                const projectName = selected.data('project-name');
+                const departmentName = selected.data('department-name');
+
+                if (projectId && projectName) {
+                    $('#project_id').val(projectId);
+                    $('#project-name-text').text(projectName);
+                    $('#project-display').removeClass('d-none');
+                } else {
+                    $('#project_id').val('');
+                    $('#project-name-text').text('');
+                    $('#project-display').addClass('d-none');
+                }
+
+                // Show department info if available
+                if (departmentName) {
+                    // You can display department here if needed in the UI
+                    console.log('Department:', departmentName);
+                }
+            });
+
+            // Trigger on page load for old values
+            $('#job_order_id').trigger('change');
 
             // Update unit label dynamically when material is selected
             $('select[name="inventory_id"]').on('change', function() {

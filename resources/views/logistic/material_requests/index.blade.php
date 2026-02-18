@@ -11,7 +11,7 @@
                         <h2 class="mb-0 flex-shrink-0" style="font-size:1.3rem;">Material Requests</h2>
                     </div>
 
-                    <!-- Spacer untuk mendorong tombol ke kanan -->
+                    <!-- Tombol aksi -->
                     <div class="ms-sm-auto d-flex flex-wrap gap-2">
                         <a href="{{ route('material_requests.create') }}" class="btn btn-primary btn-sm flex-shrink-0">
                             <i class="bi bi-plus-circle me-1"></i> Create Request
@@ -55,9 +55,26 @@
                     </div>
                 @endif
 
-                <!-- filter form -->
+                <!-- Filter form (dengan tambahan Project Type) -->
                 <div class="mb-3">
                     <form id="filter-form" class="row g-1">
+                        <div class="col-md-2">
+                            <select id="filter-job-order" name="job_order" class="form-select form-select-sm select2">
+                                <option value="">All Job Orders</option>
+                                @foreach ($jobOrders as $jo)
+                                    <option value="{{ $jo->id }}">{{ $jo->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <!-- NEW: Filter Project Type -->
+                        <div class="col-md-2">
+                            <select id="filter-project-type" name="project_type" class="form-select form-select-sm select2">
+                                <option value="">All Project Types</option>
+                                @foreach ($projectTypes as $type)
+                                    <option value="{{ $type }}">{{ $type }}</option>
+                                @endforeach
+                            </select>
+                        </div>
                         <div class="col-md-2">
                             <select id="filter-project" name="project" class="form-select form-select-sm select2">
                                 <option value="">All Projects</option>
@@ -83,7 +100,7 @@
                                 <option value="canceled">Canceled</option>
                             </select>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-1">
                             <select id="filter-requested-by" name="requested_by" class="form-select form-select-sm select2">
                                 <option value="">All Requester</option>
                                 @foreach ($users as $user)
@@ -108,12 +125,14 @@
                     </form>
                 </div>
 
-                <!-- Table -->
+                <!-- Table dengan kolom Project Type baru -->
                 <table class="table table-hover table-sm align-middle" id="datatable" data-material-request-table="1">
                     <thead class="table-light text-nowrap">
                         <tr>
                             <th></th>
                             <th style="display:none">ID</th>
+                            <th>Job Order</th>
+                            <th>Project Type</th>   <!-- NEW: Kolom Project Type -->
                             <th>Project</th>
                             <th>Material</th>
                             <th>Requested Qty</th>
@@ -142,7 +161,7 @@
         </div>
     </div>
 
-    <!-- Modal Bulk Goods Out -->
+    <!-- Modal Bulk Goods Out (tidak berubah) -->
     <div class="modal fade" id="bulkGoodsOutModal" tabindex="-1" aria-labelledby="bulkGoodsOutModalLabel"
         aria-hidden="true">
         <div class="modal-dialog modal-lg">
@@ -159,6 +178,7 @@
                                 <thead>
                                     <tr>
                                         <th>Material</th>
+                                        <th>Job order</th>
                                         <th>Project</th>
                                         <th>Req / Rem Qty</th>
                                         <th>Qty to Goods Out</th>
@@ -184,27 +204,60 @@
         </div>
     </div>
 
-    <!-- Material Detail Modal -->
+    <!-- Material Detail Modal (tidak berubah) -->
     <div class="modal fade" id="materialDetailModal" tabindex="-1" aria-labelledby="materialDetailModalLabel"
         aria-hidden="true">
-        <div class="modal-dialog modal-xl">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="materialDetailModalLabel">Material Details</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body" id="material-detail-modal-body">
-                    <div class="table-responsive">
-                        <!-- Konten detail akan dimuat via AJAX -->
-                        <div class="text-center py-4">
-                            <div class="spinner-border" role="status"></div>
+                <div class="modal-body">
+                    <div class="row">
+                        <!-- Left column: Image & QR Code -->
+                        <div class="col-md-5">
+                            <div id="material-image-container" class="text-center mb-3 p-2 border rounded bg-light">
+                                <img id="material-image" src="" alt="Material Image" 
+                                     class="img-fluid rounded" style="max-height: 200px; display: none;">
+                                <div id="no-image-placeholder" class="text-muted py-4" style="display: none;">
+                                    <i class="bi bi-image fs-1"></i>
+                                    <p>No image available</p>
+                                </div>
+                            </div>
+                            <div id="material-qr-container" class="text-center p-2 border rounded bg-light">
+                                <img id="material-qr" src="" alt="QR Code" 
+                                     class="img-fluid" style="max-height: 120px; display: none;">
+                                <div id="no-qr-placeholder" class="text-muted py-2" style="display: none;">
+                                    <i class="bi bi-qr-code fs-2"></i>
+                                    <p>No QR Code</p>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Right column: Details Table -->
+                        <div class="col-md-7">
+                            <table class="table table-sm table-borderless">
+                                <tr><th style="width: 35%;">Name:</th><td id="detail-name" class="fw-semibold"></td></tr>
+                                <tr><th>Category:</th><td id="detail-category"></td></tr>
+                                <tr><th>Quantity:</th><td id="detail-quantity"></td></tr>
+                                <tr><th>Unit:</th><td id="detail-unit"></td></tr>
+                                <tr><th>Price:</th><td id="detail-price"></td></tr>
+                                <tr><th>Currency:</th><td id="detail-currency"></td></tr>
+                                <tr><th>Supplier:</th><td id="detail-supplier"></td></tr>
+                                <tr><th>Location:</th><td id="detail-location"></td></tr>
+                                <tr><th>Remark:</th><td id="detail-remark" class="text-wrap"></td></tr>
+                            </table>
                         </div>
                     </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
     </div>
 @endsection
+
 @push('styles')
     <style>
         .gradient-icon {
@@ -228,7 +281,6 @@
         @media (max-width: 768px) {
             .ms-sm-auto.d-flex.flex-wrap {
                 margin-bottom: 0.8rem !important;
-                /* Tambah margin bottom khusus mobile */
             }
         }
 
@@ -244,7 +296,6 @@
             text-align: left !important;
         }
 
-        /* Batasi lebar kolom tertentu jika perlu */
         #datatable th,
         #datatable td {
             max-width: 170px;
@@ -289,7 +340,6 @@
             box-shadow: 0 2px 4px rgba(143, 18, 254, 0.3);
         }
 
-        /* Vertical divider */
         .vr-divider {
             width: 1px;
             height: 24px;
@@ -298,7 +348,6 @@
             vertical-align: middle;
         }
 
-        /* DataTables footer styling */
         .datatables-footer-row {
             border-top: 1px solid #eee;
             padding-top: 0.5rem;
@@ -317,7 +366,6 @@
             align-items: center;
         }
 
-        /* Responsive adjustments */
         @media (max-width: 767.98px) {
             .datatables-footer-row {
                 flex-direction: column !important;
@@ -338,17 +386,13 @@
             }
         }
 
-        .material-detail-link {
-            color: inherit !important;
-            text-decoration: none !important;
-            cursor: pointer;
+        .material-detail-btn {
+            transition: all 0.2s;
+        }
+        .material-detail-btn:hover {
+            transform: scale(1.1);
         }
 
-        .material-detail-link:hover {
-            text-decoration: underline dotted;
-        }
-
-        /* Gradient link styling */
         .gradient-link {
             background: linear-gradient(45deg, #8F12FE, #4A25AA);
             -webkit-background-clip: text;
@@ -359,12 +403,6 @@
             text-decoration: none !important;
         }
 
-        .gradient-link:hover {
-            text-decoration: underline dotted;
-            filter: brightness(1.2);
-        }
-
-        /* Rounded status select - Bootstrap standard colors */
         .status-select-rounded {
             border-radius: 20px !important;
             padding: 0.25rem 0.75rem !important;
@@ -408,13 +446,10 @@
         }
 
         @media (max-width: 768px) {
-
-            /* Force all DataTable cells to center their content */
             .dataTable.dtr-inline.collapsed tbody td:not(.dtr-control) {
                 text-align: center !important;
             }
 
-            /* Specific fixes for status and actions */
             .status-select,
             .status-select-rounded,
             .btn-group,
@@ -423,7 +458,6 @@
                 justify-content: center !important;
             }
 
-            /* Override any left alignment on mobile */
             .dtr-details .dtr-data {
                 text-align: center !important;
             }
@@ -441,23 +475,19 @@
             text-align: left;
         }
 
-        /* Force right placement for table tooltips */
         .table [data-bs-toggle="tooltip"] {
             position: relative;
         }
 
-        /* Ensure table cells have enough space for tooltips */
         #datatable td {
             position: relative;
             overflow: visible !important;
         }
 
-        /* Override DataTables responsive styles that might clip tooltips */
         .dataTables_wrapper {
             overflow: visible !important;
         }
 
-        /* Ensure tooltips work properly in responsive mode */
         @media (max-width: 768px) {
             .tooltip-inner {
                 max-width: 150px;
@@ -476,7 +506,6 @@
             white-space: nowrap;
         }
 
-        /* Bulk goods out button styling */
         #bulk-goods-out-btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
@@ -490,7 +519,6 @@
             text-align: center;
         }
 
-        /* Ensure specific alignment for quantity columns - Headers and Cells */
         #datatable thead th:nth-child(5),
         #datatable thead th:nth-child(6),
         #datatable thead th:nth-child(7),
@@ -500,15 +528,13 @@
             text-align: left !important;
         }
 
-        /* Center align only for checkbox column */
         #datatable thead th:nth-child(1),
         #datatable tbody td:nth-child(1) {
             text-align: center !important;
         }
 
-        /* Ensure Action column is centered */
-        #datatable thead th:nth-child(12),
-        #datatable tbody td:nth-child(12) {
+        #datatable thead th:nth-child(13),
+        #datatable tbody td:nth-child(13) {
             text-align: center !important;
         }
 
@@ -537,22 +563,36 @@
             overflow-x: auto !important;
             max-width: 100vw;
         }
+
+        #material-image-container {
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #no-image-placeholder, #no-qr-placeholder {
+            text-align: center;
+            color: #999;
+        }
     </style>
 @endpush
+
 @push('scripts')
     <script>
         $(document).ready(function() {
             // Initialize DataTable with Server-Side Processing
             const table = $('#datatable').DataTable({
-                processing: false, // Hide processing indicator
-                serverSide: true, // Enable server-side processing
+                processing: false,
+                serverSide: true,
                 searching: false,
                 stateSave: true,
                 ajax: {
                     url: "{{ route('material_requests.index') }}",
                     data: function(d) {
-                        // Add filter parameters
                         d.project = $('#filter-project').val();
+                        d.job_order = $('#filter-job-order').val();
+                        // NEW: tambahkan project_type ke parameter
+                        d.project_type = $('#filter-project-type').val();
                         d.material = $('#filter-material').val();
                         d.status = $('#filter-status').val();
                         d.requested_by = $('#filter-requested-by').val();
@@ -583,14 +623,25 @@
                         visible: false
                     },
                     {
+                        data: 'job_order',
+                        name: 'jobOrder.name',
+                        width: '12%' // dikurangi sedikit untuk memberi ruang
+                    },
+                    // NEW: Kolom Project Type
+                    {
+                        data: 'project_type',
+                        name: 'project.type',
+                        width: '8%'
+                    },
+                    {
                         data: 'project_name',
                         name: 'project.name',
-                        width: '16%'
+                        width: '12%' // dikurangi sedikit
                     },
                     {
                         data: 'material_name',
                         name: 'inventory.name',
-                        width: '16%'
+                        width: '12%' // dikurangi sedikit
                     },
                     {
                         data: 'requested_qty',
@@ -616,7 +667,7 @@
                     },
                     {
                         data: 'requested_at',
-                        name: 'created_at', // For sorting
+                        name: 'created_at',
                         width: '8%'
                     },
                     {
@@ -628,7 +679,7 @@
                     {
                         data: 'remark',
                         name: 'remark',
-                        width: '12%'
+                        width: '10%' // dikurangi sedikit
                     },
                     {
                         data: 'actions',
@@ -676,27 +727,27 @@
                 }
             });
 
-            // Debounced Filter Functionality
+            // Debounced Filter Functionality (tambahkan filter-project-type)
             const debouncedFilter = debounce(function() {
                 table.draw();
             }, 300);
 
-            // Update event listener untuk include custom search
-            $('#filter-project, #filter-material, #filter-status, #filter-requested-by, #filter-requested-at, #custom-search')
+            $('#filter-project, #filter-job-order, #filter-project-type, #filter-material, #filter-status, #filter-requested-by, #filter-requested-at, #custom-search')
                 .on('change input', debouncedFilter);
 
-            // Reset filters juga harus reset search
             $('#reset-filters').on('click', function() {
-                $('#filter-project, #filter-material, #filter-status, #filter-requested-by, #filter-requested-at, #custom-search')
+                $('#filter-project, #filter-job-order, #filter-project-type, #filter-material, #filter-status, #filter-requested-by, #filter-requested-at, #custom-search')
                     .val('').trigger('change');
                 table.draw();
             });
 
-            // Export button handler with filters
+            // Export button handler with filters (tambahkan project_type)
             $('#export-btn').on('click', function(e) {
                 e.preventDefault();
                 const params = {
                     project: $('#filter-project').val(),
+                    job_order: $('#filter-job-order').val(),
+                    project_type: $('#filter-project-type').val(), // baru
                     material: $('#filter-material').val(),
                     status: $('#filter-status').val(),
                     requested_by: $('#filter-requested-by').val(),
@@ -707,7 +758,7 @@
                 window.location.href = '{{ route('material_requests.export') }}' + '?' + query;
             });
 
-            // Initialize Select2
+            // Initialize Select2 (tambahkan untuk filter baru)
             $('.select2').select2({
                 theme: 'bootstrap-5',
                 placeholder: function() {
@@ -716,8 +767,8 @@
                 allowClear: true
             });
 
-            // Set placeholder untuk setiap select
             $('#filter-project').attr('data-placeholder', 'All Projects');
+            $('#filter-project-type').attr('data-placeholder', 'All Project Types'); // baru
             $('#filter-material').attr('data-placeholder', 'All Materials');
             $('#filter-status').attr('data-placeholder', 'All Status');
             $('#filter-requested-by').attr('data-placeholder', 'All Requesters');
@@ -734,13 +785,12 @@
                 if (!dateInput.value) dateInput.type = 'text';
             }
 
-            // Initialize flatpickr for date input
             flatpickr("#filter-requested-at", {
                 dateFormat: "Y-m-d",
                 allowInput: true,
             });
 
-            // Bulk Goods Out Button Management
+            // Bulk Goods Out Button Management (tidak berubah)
             function updateBulkGoodsOutButton() {
                 const selectedCount = $('.select-row:checked').length;
                 const bulkBtn = $('#bulk-goods-out-btn');
@@ -751,14 +801,10 @@
                     if (selectedCount > 0) {
                         bulkBtn.prop('disabled', false);
                         countBadge.removeClass('d-none').text(selectedCount);
-
-                        // Remove tooltip title so it won't show on hover
                         tooltipWrapper.removeAttr('data-bs-original-title');
                     } else {
                         bulkBtn.prop('disabled', true);
                         countBadge.addClass('d-none').text('0');
-
-                        // Set tooltip title, but DO NOT call .tooltip('show')
                         tooltipWrapper.attr(
                             'data-bs-original-title',
                             'To perform Bulk Goods Out, please select material requests with Approved status.'
@@ -767,25 +813,20 @@
                 });
             }
 
-            // Initialize tooltip on page load (trigger: hover only)
-            $(function() {
-                $('#bulk-goods-out-tooltip-wrapper').tooltip({
-                    trigger: 'hover focus',
-                    placement: 'bottom'
-                });
+            $('#bulk-goods-out-tooltip-wrapper').tooltip({
+                trigger: 'hover focus',
+                placement: 'bottom'
             });
 
-            // Handle checkbox changes with debouncing
             const debouncedCheckboxUpdate = debounce(updateBulkGoodsOutButton, 50);
             $(document).on('change', '.select-row', debouncedCheckboxUpdate);
 
-            // Handle select all checkbox
             $('#select-all').on('change', function() {
                 $('.select-row').prop('checked', $(this).prop('checked'));
                 updateBulkGoodsOutButton();
             });
 
-            // Enhanced Delete Confirmation
+            // Enhanced Delete Confirmation (tidak berubah)
             $(document).on('click', '.btn-delete', function(e) {
                 e.preventDefault();
                 let form = $(this).closest('form');
@@ -808,7 +849,7 @@
                 });
             });
 
-            // Bulk Goods Out Modal Handler
+            // Bulk Goods Out Modal Handler (tidak berubah)
             $('#bulk-goods-out-btn').on('click', function() {
                 const selectedIds = $('.select-row:checked').map(function() {
                     return $(this).val();
@@ -819,13 +860,11 @@
                     return;
                 }
 
-                // Show loading in modal
                 $('#bulk-goods-out-table-body').html(
-                    '<tr><td colspan="5" class="text-center py-4"><div class="spinner-border" role="status"></div></td></tr>'
+                    '<tr><td colspan="6" class="text-center py-4"><div class="spinner-border" role="status"></div></td></tr>'
                 );
                 $('#bulkGoodsOutModal').modal('show');
 
-                // Fetch detail data for selected material requests
                 $.ajax({
                     url: "{{ route('material_requests.bulk_details') }}",
                     method: 'GET',
@@ -838,6 +877,7 @@
                             $('#bulk-goods-out-table-body').append(`
                         <tr>
                             <td>${item.material_name}</td>
+                            <td>${item.job_order_name || '-'}</td>
                             <td>
                                 ${item.project_name}
                                 <span data-bs-toggle="tooltip" data-bs-placement="bottom" title="Requested By: ${item.requested_by}">
@@ -858,7 +898,6 @@
                     `);
                         });
 
-                        // Initialize tooltips after content is added
                         setTimeout(() => {
                             initializeTooltipsBatch(document.getElementById(
                                 'bulkGoodsOutModal'));
@@ -866,27 +905,24 @@
                     },
                     error: function(xhr) {
                         $('#bulk-goods-out-table-body').html(
-                            '<tr><td colspan="5" class="text-center text-danger">Failed to load data. Please try again.</td></tr>'
+                            '<tr><td colspan="6" class="text-center text-danger">Failed to load data. Please try again.</td></tr>'
                         );
                         console.error('Bulk details error:', xhr);
                     }
                 });
             });
 
-            // Remove row from bulk goods out modal
             $(document).on('click', '.btn-remove-row', function() {
                 $(this).closest('tr').remove();
             });
 
-            // Enhanced Bulk Goods Out Submission
             $('#submit-bulk-goods-out').on('click', function() {
                 const submitBtn = $(this);
                 const spinner = submitBtn.find('.spinner-border');
                 const btnText = submitBtn.contents().filter(function() {
-                    return this.nodeType === 3; // Text nodes only
+                    return this.nodeType === 3;
                 }).last();
 
-                // Validate quantities
                 let isValid = true;
                 $('#bulk-goods-out-table-body input[type="number"]').each(function() {
                     const max = parseFloat($(this).attr('max'));
@@ -905,19 +941,16 @@
                     return;
                 }
 
-                // Function to reset button state
                 function resetButtonState() {
                     submitBtn.prop('disabled', false);
                     spinner.addClass('d-none');
                     btnText[0].textContent = ' Submit All';
                 }
 
-                // Disable button and show spinner
                 submitBtn.prop('disabled', true);
                 spinner.removeClass('d-none');
                 btnText[0].textContent = ' Processing...';
 
-                // Add selected IDs to form
                 $('#bulk-goods-out-form input[name="selected_ids[]"]').remove();
                 $('#bulk-goods-out-table-body tr').each(function() {
                     const id = $(this).find('input[type="number"]').attr('name').match(/\d+/)[0];
@@ -926,7 +959,6 @@
                     );
                 });
 
-                // Submit form
                 const formData = $('#bulk-goods-out-form').serialize();
                 $.ajax({
                     url: "{{ route('goods_out.bulk') }}",
@@ -937,7 +969,7 @@
                         if (response.success) {
                             $('#bulkGoodsOutModal').modal('hide');
                             Swal.fire('Success', response.message, 'success').then(() => {
-                                table.ajax.reload(null, false); // Reload DataTable
+                                table.ajax.reload(null, false);
                             });
                         } else {
                             Swal.fire('Error', response.message || 'Bulk Goods Out failed.',
@@ -952,7 +984,6 @@
                 });
             });
 
-            // Reset button state when modal is closed
             $('#bulkGoodsOutModal').on('hidden.bs.modal', function() {
                 const submitBtn = $('#submit-bulk-goods-out');
                 const spinner = submitBtn.find('.spinner-border');
@@ -965,41 +996,70 @@
                 btnText[0].textContent = ' Submit All';
             });
 
-            // Material Detail Modal Handler
-            $(document).on('click', '.material-detail-link', function(e) {
+            // Material Detail Modal Handler (tidak berubah)
+            $(document).on('click', '.material-detail-btn', function(e) {
                 e.preventDefault();
                 const inventoryId = $(this).data('id');
                 if (!inventoryId) return;
 
-                $('#material-detail-modal-body').html(
-                    '<div class="text-center py-4"><div class="spinner-border" role="status"></div></div>'
-                );
+                // Reset modal content to loading state
+                $('#material-image').hide();
+                $('#no-image-placeholder').show().find('p').text('Loading...');
+                $('#material-qr').hide();
+                $('#no-qr-placeholder').show().find('p').text('Loading...');
+                $('#detail-name, #detail-category, #detail-quantity, #detail-unit, #detail-price, #detail-currency, #detail-supplier, #detail-location, #detail-remark').text('-');
+
                 $('#materialDetailModal').modal('show');
 
-                $.get('/inventory/detail/' + inventoryId, function(res) {
-                    const html = $('<div>').html(res);
-                    const cardBody = html.find('.card-body').html();
-                    if (cardBody) {
-                        $('#material-detail-modal-body').html(cardBody);
-                    } else {
-                        $('#material-detail-modal-body').html(
-                            '<div class="alert alert-danger">Failed to load material details.</div>'
-                        );
+                // Fetch inventory details
+                $.ajax({
+                    url: '{{ route("material_requests.inventory_detail", "") }}/' + inventoryId,
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(data) {
+                        // Populate text fields
+                        $('#detail-name').text(data.name);
+                        $('#detail-category').text(data.category);
+                        $('#detail-quantity').text(data.quantity);
+                        $('#detail-unit').text(data.unit);
+                        $('#detail-price').text(data.price);
+                        $('#detail-currency').text(data.currency);
+                        $('#detail-supplier').text(data.supplier);
+                        $('#detail-location').text(data.location);
+                        $('#detail-remark').text(data.remark);
+
+                        // Handle image
+                        if (data.img_url) {
+                            $('#material-image').attr('src', data.img_url).show();
+                            $('#no-image-placeholder').hide();
+                        } else {
+                            $('#material-image').hide();
+                            $('#no-image-placeholder').show().find('p').text('No image available');
+                        }
+
+                        // Handle QR code
+                        if (data.qr_code) {
+                            $('#material-qr').attr('src', data.qr_code).show();
+                            $('#no-qr-placeholder').hide();
+                        } else {
+                            $('#material-qr').hide();
+                            $('#no-qr-placeholder').show().find('p').text('No QR Code');
+                        }
+                    },
+                    error: function(xhr) {
+                        $('#no-image-placeholder').show().find('p').text('Failed to load data');
+                        $('#no-qr-placeholder').show().find('p').text('Failed to load data');
+                        console.error('Error loading inventory details:', xhr);
                     }
-                }).fail(function() {
-                    $('#material-detail-modal-body').html(
-                        '<div class="alert alert-danger">Failed to load material details.</div>'
-                    );
                 });
             });
 
-            // Reminder Button Handler
+            // Reminder Button Handler (tidak berubah)
             $(document).on('click', '.btn-reminder', function() {
                 const id = $(this).data('id');
                 const btn = $(this);
                 const originalHtml = btn.html();
 
-                // Show loading state
                 btn.prop('disabled', true).html('<i class="bi bi-hourglass-split"></i>');
 
                 $.post(`/material_requests/${id}/reminder`, {
@@ -1013,12 +1073,11 @@
                 }).fail(function(xhr) {
                     Swal.fire('Error', 'Failed to send reminder. Please try again.', 'error');
                 }).always(function() {
-                    // Reset button state
                     btn.prop('disabled', false).html(originalHtml);
                 });
             });
 
-            // Status Select Enhancement
+            // Status Select Enhancement (tidak berubah)
             function updateStatusTitle($select) {
                 const val = $select.val();
                 let tip = '';
@@ -1035,23 +1094,18 @@
                 });
             }
 
-            // Initial update of bulk goods out button
             updateBulkGoodsOutButton();
 
-            // Quick Update Status Handler
+            // Quick Update Status Handler (tidak berubah)
             $(document).on('change', '.status-quick-update', function() {
                 const $select = $(this);
                 const id = $select.data('id');
                 const newStatus = $select.val();
                 const oldStatus = $select.data('previous-value') || $select.find('option[selected]').val();
 
-                // Store current value as previous
                 $select.data('previous-value', newStatus);
-
-                // Disable select while updating
                 $select.prop('disabled', true);
 
-                // Show loading state
                 const originalWidth = $select.width();
                 $select.css('width', originalWidth + 'px');
 
@@ -1064,16 +1118,13 @@
                     },
                     success: function(response) {
                         if (response.success) {
-                            // Update select color
                             updateSelectColor($select[0]);
 
-                            // Show success feedback (optional)
                             $select.addClass('border-success');
                             setTimeout(() => {
                                 $select.removeClass('border-success');
                             }, 1000);
 
-                            // Update checkbox visibility if status changed to/from approved
                             const $row = $select.closest('tr');
                             const $checkbox = $row.find('.select-row');
 
@@ -1088,7 +1139,6 @@
                                 $row.find('td:first').empty();
                             }
 
-                            // Update bulk goods out button count
                             if (window.updateBulkGoodsOutButton) {
                                 window.updateBulkGoodsOutButton();
                             }
@@ -1097,20 +1147,17 @@
                         }
                     },
                     error: function(xhr) {
-                        // Revert to previous value on error
                         $select.val(oldStatus);
                         $select.data('previous-value', oldStatus);
 
                         const errorMessage = xhr.responseJSON?.message ||
                             'Failed to update status';
 
-                        // Show error feedback
                         $select.addClass('border-danger');
                         setTimeout(() => {
                             $select.removeClass('border-danger');
                         }, 2000);
 
-                        // Show error message
                         Swal.fire({
                             icon: 'error',
                             title: 'Update Failed',
@@ -1122,14 +1169,12 @@
                         console.error('Status update failed:', errorMessage);
                     },
                     complete: function() {
-                        // Re-enable select
                         $select.prop('disabled', false);
                         $select.css('width', '');
                     }
                 });
             });
 
-            // Initialize previous values for status selects
             $(document).on('draw.dt', '#datatable', function() {
                 $('.status-quick-update').each(function() {
                     const $select = $(this);
@@ -1138,7 +1183,7 @@
             });
         });
 
-        // Utility Functions
+        // Utility Functions (tidak berubah)
         function debounce(func, wait) {
             let timeout;
             return function executedFunction(...args) {
@@ -1152,21 +1197,19 @@
         }
 
         function initializeTooltipsBatch(container = document) {
-            // Dispose existing tooltips first
             $(container).find('[data-bs-toggle="tooltip"]').tooltip('dispose');
 
-            // Initialize new tooltips with enhanced configuration
             const tooltipElements = container.querySelectorAll('[data-bs-toggle="tooltip"]');
             tooltipElements.forEach(element => {
                 new bootstrap.Tooltip(element, {
                     trigger: 'hover focus',
-                    placement: 'right', // Force right placement
-                    fallbackPlacements: ['top', 'bottom', 'left'], // Fallback order
-                    boundary: 'viewport', // Use viewport as boundary instead of container
-                    container: 'body', // Append to body instead of parent container
-                    offset: [0, 8], // Add some spacing from element
+                    placement: 'right',
+                    fallbackPlacements: ['top', 'bottom', 'left'],
+                    boundary: 'viewport',
+                    container: 'body',
+                    offset: [0, 8],
                     sanitize: false,
-                    html: true // Allow HTML in tooltips if needed
+                    html: true
                 });
             });
         }
@@ -1176,14 +1219,12 @@
             selects.forEach(select => updateSelectColor(select));
         }
 
-        // Global Variables for Auth User
         window.authUser = {
             username: "{{ auth()->user()->username }}",
             is_logistic_admin: {{ auth()->user()->isLogisticAdmin() ? 'true' : 'false' }},
             is_super_admin: {{ auth()->user()->isSuperAdmin() ? 'true' : 'false' }}
         };
 
-        // Initialize Tooltips on Page Load
         document.addEventListener("DOMContentLoaded", function() {
             initializeTooltipsBatch();
         });

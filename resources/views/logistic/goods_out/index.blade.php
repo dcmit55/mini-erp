@@ -97,6 +97,7 @@
                                         style="font-size: 0.8rem; cursor: pointer;"></i> Remaining Qty to Goods In
                                 </th>
                                 <th>Project</th>
+                                <th>Job Order</th>
                                 <th>Requested By</th>
                                 <th>Proceeded At</th>
                                 <th>Remark</th>
@@ -283,6 +284,10 @@
                     {
                         data: 'project',
                         name: 'project'
+                    },
+                    {
+                        data: 'job_order',
+                        name: 'job_order'
                     },
                     {
                         data: 'requested_by',

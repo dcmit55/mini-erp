@@ -4,8 +4,8 @@
     <div class="container mt-4">
         <div class="card shadow rounded">
             <div class="card-body">
-                <h2 class="mb-0 flex-shrink-0" style="font-size:1.3rem;">Goods Out for {{ $materialRequest->project->name }}
-                    ({{ $materialRequest->inventory->name }})</h2>
+                <h2 class="mb-0 flex-shrink-0" style="font-size:1.3rem;">Goods Out - {{ $materialRequest->inventory->name }}
+                </h2>
                 <hr>
                 @if (session('error'))
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -31,8 +31,16 @@
                             <div id="available-qty" class="form-text d-none"></div>
                         </div>
                         <div class="col-lg-6 mb-3">
+                            <label>Job Order</label>
+                            <input type="text" class="form-control" value="{{ $materialRequest->jobOrder->name ?? '-' }}"
+                                disabled>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-lg-12 mb-3">
                             <label>Project</label>
-                            <input type="text" class="form-control" value="{{ $materialRequest->project->name }}"
+                            <input type="text" class="form-control" value="{{ $materialRequest->project->name ?? '-' }}"
                                 disabled>
                         </div>
                     </div>

@@ -9,6 +9,7 @@ use App\Models\Logistic\Inventory;
 use App\Models\Logistic\MaterialRequest;
 use App\Models\Logistic\GoodsIn;
 use App\Models\Production\Project;
+use App\Models\Production\JobOrder;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use OwenIt\Auditing\Contracts\Auditable;
 
@@ -16,13 +17,13 @@ class GoodsOut extends Model implements Auditable
 {
     use HasFactory, SoftDeletes, \OwenIt\Auditing\Auditable;
 
-    protected $auditInclude = ['inventory_id', 'project_id', 'quantity', 'remark', 'requested_by', 'material_request_id'];
+    protected $auditInclude = ['inventory_id', 'project_id', 'job_order_id', 'quantity', 'remark', 'requested_by', 'material_request_id'];
 
     protected $auditTimestamps = true;
 
     protected $table = 'goods_out'; // Pastikan nama tabel sesuai dengan database
 
-    protected $fillable = ['material_request_id', 'inventory_id', 'project_id', 'requested_by', 'department', 'quantity', 'remark'];
+    protected $fillable = ['material_request_id', 'inventory_id', 'project_id', 'job_order_id', 'requested_by', 'department', 'quantity', 'remark'];
 
     public function materialRequest()
     {
@@ -37,6 +38,11 @@ class GoodsOut extends Model implements Auditable
     public function project()
     {
         return $this->belongsTo(Project::class);
+    }
+
+    public function jobOrder()
+    {
+        return $this->belongsTo(JobOrder::class, 'job_order_id', 'id');
     }
 
     public function user()

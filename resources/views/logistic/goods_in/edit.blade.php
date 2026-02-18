@@ -27,16 +27,18 @@
                     @method('PUT')
                     <div class="row">
                         @if ($goods_in->goods_out_id && $goods_in->goodsOut)
-                            <div class="col-lg-12 mb-3">
+                            {{-- From Goods Out: Show Job Order & Project (readonly) --}}
+                            <div class="col-lg-6 mb-3">
+                                <label>Job Order</label>
+                                <input type="text" class="form-control"
+                                    value="{{ $goods_in->goodsOut->jobOrder->name ?? '-' }}" disabled>
+                                <input type="hidden" name="job_order_id" value="{{ $goods_in->goodsOut->job_order_id }}">
+                            </div>
+                            <div class="col-lg-6 mb-3">
                                 <label>Project</label>
                                 <input type="text" class="form-control"
                                     value="{{ $goods_in->goodsOut->project->name ?? '-' }}" disabled>
                                 <input type="hidden" name="project_id" value="{{ $goods_in->goodsOut->project_id }}">
-                                @if ($goods_in->goodsOut->project && $goods_in->goodsOut->project->department)
-                                    <div class="form-text">
-                                        Department: {{ $goods_in->goodsOut->project->department->name }}
-                                    </div>
-                                @endif
                             </div>
                             <div class="col-lg-6 mb-3">
                                 <label>Material</label>
@@ -45,22 +47,29 @@
                                 <input type="hidden" name="inventory_id" value="{{ $goods_in->goodsOut->inventory_id }}">
                             </div>
                         @else
+                            {{-- Independent Goods In: Select Job Order (auto-fill Project) --}}
                             <div class="col-lg-12 mb-3">
-                                <label>Project</label>
-                                <select name="project_id" class="form-control select2" id="project-select">
-                                    <option value="" {{ empty($goods_in->project_id) ? 'selected' : '' }}>No Project
-                                    </option>
-                                    @foreach ($projects as $project)
-                                        <option value="{{ $project->id }}"
-                                            data-department="{{ $project->departments->pluck('name')->implode(', ') }}"
-                                            {{ $goods_in->project_id == $project->id ? 'selected' : '' }}>
-                                            {{ $project->name }}
+                                <label>Job Order</label>
+                                <select name="job_order_id" id="job_order_id" class="form-control select2">
+                                    <option value="">No Job Order</option>
+                                    @foreach ($jobOrders as $jo)
+                                        <option value="{{ $jo->id }}" data-project-id="{{ $jo->project_id }}"
+                                            data-project-name="{{ $jo->project->name ?? '' }}"
+                                            data-department-name="{{ $jo->department->name ?? '' }}"
+                                            {{ $goods_in->job_order_id == $jo->id ? 'selected' : '' }}>
+                                            {{ $jo->name }}
                                         </option>
                                     @endforeach
                                 </select>
-                                <div class="form-text" id="department-info">
-                                    Department:
-                                    {{ optional($projects->where('id', $goods_in->project_id)->first()->department)->name ?? '-' }}
+
+                                <!-- Hidden Project ID (Auto-filled) -->
+                                <input type="hidden" name="project_id" id="project_id"
+                                    value="{{ $goods_in->project_id }}">
+
+                                <!-- Project Display (Read-only) -->
+                                <div id="project-display" class="mt-2 {{ $goods_in->project_id ? '' : 'd-none' }}">
+                                    <small class="text-muted">Project:</small>
+                                    <strong id="project-name-text">{{ $goods_in->project->name ?? '' }}</strong>
                                 </div>
                             </div>
                             <div class="col-lg-6 mb-3">
@@ -134,14 +143,30 @@
                 }, 100);
             });
 
-            function updateDepartmentInfo() {
-                var selected = $('#project-select option:selected');
-                var dept = selected.data('department') || '-';
-                $('#department-info').text('Department: ' + dept);
-            }
+            @if (!$goods_in->goods_out_id)
+                // Auto-fill Project + Department when Job Order is selected
+                $('#job_order_id').on('change', function() {
+                    const selectedOption = $(this).find(':selected');
+                    const projectId = selectedOption.data('project-id');
+                    const projectName = selectedOption.data('project-name');
+                    const departmentName = selectedOption.data('department-name');
 
-            $('#project-select').on('change', updateDepartmentInfo);
-            updateDepartmentInfo(); // initial load
+                    if (projectId) {
+                        // Auto-fill Project
+                        $('#project_id').val(projectId);
+                        $('#project-name-text').text(projectName);
+                        $('#project-display').removeClass('d-none');
+                    } else {
+                        // Clear Project
+                        $('#project_id').val('');
+                        $('#project-name-text').text('');
+                        $('#project-display').addClass('d-none');
+                    }
+                });
+
+                // Trigger on page load to populate project from existing data
+                $('#job_order_id').trigger('change');
+            @endif
 
             // Update unit label dynamically when material is selected
             $('select[name="inventory_id"]').on('change', function() {

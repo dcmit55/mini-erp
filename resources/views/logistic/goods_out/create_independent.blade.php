@@ -56,18 +56,33 @@
                             @enderror
                         </div>
                         <div class="col-lg-12 mb-3">
-                            <label>Project</label>
-                            <select name="project_id" class="form-select select2">
-                                <option value="" class="text-muted">No Project</option>
-                                @foreach ($projects as $project)
-                                    <option value="{{ $project->id }}"
-                                        data-department="{{ $project->departments->pluck('name')->implode(', ') }}"
-                                        {{ old('project_id') == $project->id ? 'selected' : '' }}>
-                                        {{ $project->name }}
+                            <label>Job Order <span class="text-danger">*</span></label>
+                            <select name="job_order_id" id="job_order_id" class="form-select select2"
+                                data-placeholder="Select Job Order" required>
+                                <option value="">Select Job Order</option>
+                                @foreach ($jobOrders as $jo)
+                                    <option value="{{ $jo->id }}" data-project-id="{{ $jo->project_id }}"
+                                        data-project-name="{{ $jo->project->name ?? '' }}"
+                                        data-department-name="{{ $jo->department->name ?? '' }}"
+                                        {{ old('job_order_id') == $jo->id ? 'selected' : '' }}>
+                                        {{ $jo->name }}
                                     </option>
                                 @endforeach
                             </select>
-                            <div id="department-text" class="form-text d-none">Department</div>
+                            @error('job_order_id')
+                                <small class="text-danger">{{ $message }}</small>
+                            @enderror
+
+                            <!-- Hidden Project ID (Auto-filled from Job Order) -->
+                            <input type="hidden" name="project_id" id="project_id" value="{{ old('project_id') }}"
+                                required>
+
+                            <!-- Project Display (Read-only) -->
+                            <div id="project-display" class="mt-2 {{ old('project_id') ? '' : 'd-none' }}">
+                                <small class="text-muted">Project:</small>
+                                <strong
+                                    id="project-name-text">{{ old('project_id') ? $projects->find(old('project_id'))?->name : '' }}</strong>
+                            </div>
                         </div>
                     </div>
                     <div class="row">
@@ -125,6 +140,36 @@
                 }, 100);
             });
 
+            // Auto-fill Project and Department when Job Order is selected
+            $('#job_order_id').on('change', function() {
+                const selected = $(this).find(':selected');
+                const projectId = selected.data('project-id');
+                const projectName = selected.data('project-name');
+                const departmentName = selected.data('department-name');
+
+                if (projectId && projectName) {
+                    $('#project_id').val(projectId);
+                    $('#project-name-text').text(projectName);
+                    $('#project-display').removeClass('d-none');
+                } else {
+                    $('#project_id').val('');
+                    $('#project-name-text').text('');
+                    $('#project-display').addClass('d-none');
+                }
+
+                // Auto-fill department
+                if (departmentName) {
+                    $('#department').val(departmentName);
+                    $('#department-hidden').val(departmentName);
+                } else {
+                    $('#department').val('');
+                    $('#department-hidden').val('');
+                }
+            });
+
+            // Trigger on page load for old values
+            $('#job_order_id').trigger('change');
+
             // Update unit label dynamically when material is selected
             $('select[name="inventory_id"]').on('change', function() {
                 const selectedUnit = $(this).find(':selected').data('unit');
@@ -142,22 +187,6 @@
             // Trigger change event on page load to restore old values
             $('select[name="inventory_id"]').trigger('change');
             $('select[name="user_id"]').trigger('change');
-
-            // Update department text when project is selected
-            $('select[name="project_id"]').on('change', function() {
-                const selected = $(this).find(':selected');
-                const department = selected.data('department');
-                const $departmentDiv = $('#department-text');
-                $departmentDiv.removeClass('d-none text-danger text-warning');
-
-                if (selected.val() && department) {
-                    $departmentDiv.text(
-                        `Department: ${department.charAt(0).toUpperCase() + department.slice(1)}`);
-                } else {
-                    $departmentDiv.addClass('d-none').text('Department');
-                }
-            });
-            $('select[name="project_id"]').trigger('change');
         });
 
         // Handle form submission with spinner

@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use App\Exports\ProjectExport;
 use Illuminate\Support\Facades\Auth;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Services\Lark\LarkProjectSyncService;
 
 class ProjectController extends Controller
 {
@@ -22,7 +23,7 @@ class ProjectController extends Controller
 
     public function index(Request $request)
     {
-        $query = Project::with('departments', 'status');
+        $query = Project::with('departments', 'department', 'status');
 
         // Apply Filters
         if ($request->has('quantity') && $request->quantity !== null) {
@@ -65,7 +66,7 @@ class ProjectController extends Controller
         $department = $request->department;
 
         // Filter data berdasarkan request
-        $query = Project::with('departments');
+        $query = Project::with('departments', 'department');
 
         if ($quantity) {
             $query->where('qty', $quantity);
@@ -276,5 +277,62 @@ class ProjectController extends Controller
         return redirect()
             ->route('projects.index')
             ->with('success', "Project <b>{$projectName}</b> deleted successfully!");
+    }
+
+    /**
+     * Sync projects from Lark Base
+     * Following iSyment pattern: Controller as trigger, Service handles logic
+     */
+    public function syncFromLark(LarkProjectSyncService $syncService)
+    {
+        try {
+            $stats = $syncService->sync();
+
+            $message = sprintf('Lark sync completed! Fetched: %d | Created: %d | Updated: %d | Deactivated: %d', $stats['fetched'], $stats['created'], $stats['updated'], $stats['deactivated']);
+
+            if ($stats['errors'] > 0) {
+                $message .= sprintf(' | Errors: %d', $stats['errors']);
+                return redirect()->route('projects.index')->with('warning', $message);
+            }
+
+            return redirect()->route('projects.index')->with('success', $message);
+        } catch (\Exception $e) {
+            \Log::error('Lark sync failed', [
+                'error' => $e->getMessage(),
+                'user_id' => auth()->id(),
+            ]);
+
+            return redirect()
+                ->route('projects.index')
+                ->withErrors(['error' => 'Sync failed: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Get raw Lark response for debugging
+     * Only accessible by super admin
+     */
+    public function getLarkRawData(LarkProjectSyncService $syncService)
+    {
+        if (!auth()->user()->isSuperAdmin()) {
+            abort(403, 'Unauthorized');
+        }
+
+        try {
+            $rawData = $syncService->getRawResponse();
+
+            return response()->json([
+                'success' => true,
+                'data' => $rawData,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(
+                [
+                    'success' => false,
+                    'error' => $e->getMessage(),
+                ],
+                500,
+            );
+        }
     }
 }

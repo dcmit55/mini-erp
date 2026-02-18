@@ -15,14 +15,12 @@
         <link rel="dns-prefetch" href="//fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=Nunito" rel="stylesheet">
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"
-            rel="stylesheet">
-        <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
         <!-- DataTables CSS -->
-        {{-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.3/css/bootstrap.min.css"> --}}
         <link rel="stylesheet" href="https://cdn.datatables.net/2.3.1/css/dataTables.bootstrap5.css">
         <link rel="stylesheet" href="https://cdn.datatables.net/fixedheader/3.3.2/css/fixedHeader.dataTables.min.css">
         <link rel="stylesheet" href="https://cdn.datatables.net/select/3.0.1/css/select.bootstrap5.css">
@@ -47,19 +45,23 @@
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 
         <link rel="stylesheet" href="{{ asset('css/custom-app.css') }}">
+
+        <!-- Page Specific Styles -->
+        @yield('styles')
+
         @stack('styles')
     </head>
 
     <body>
         <div id="app">
-            <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm rounded-4 rounded-top-0">
+            <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
                 <div class="container-fluid">
-                    <a class="navbar-brand" style="font-weight: bold;" href="{{ url('/') }}">
+                    <a class="navbar-brand fw-bold" href="{{ url('/') }}">
                         {{ config('app.name', 'DCM-app') }}
                     </a>
                     <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
                         data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="{{ __('Toggle navigation') }}">
+                        aria-expanded="false" aria-label="Toggle navigation">
                         <span class="navbar-toggler-icon"></span>
                     </button>
 
@@ -71,7 +73,7 @@
                                 <li class="nav-item">
                                     <a class="nav-link {{ request()->is('dashboard*') ? 'active' : '' }}"
                                         href="{{ route('dashboard') }}">
-                                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                                        <i></i>Dashboard
                                     </a>
                                 </li>
 
@@ -94,15 +96,54 @@
                                         'goods_out*',
                                         'goods_in*',
                                         'material_usage*',
+                                        'goods-movement*',
                                     ];
+
                                     $procurementPrefixes = [
                                         'suppliers*',
                                         'purchase_requests*',
                                         'pre-shippings*',
                                         'shipping-management*',
                                         'goods-receive*',
+                                        'project-purchases*',
                                     ];
                                 @endphp
+
+                                <!-- Projects Menu -->
+                                @if (in_array(auth()->user()->role, [
+                                        'super_admin',
+                                        'admin_mascot',
+                                        'admin_costume',
+                                        'admin_logistic',
+                                        'admin_finance',
+                                        'admin_procurement',
+                                        'admin_animatronic',
+                                        'admin_hr',
+                                        'admin',
+                                        'general',
+                                    ]))
+                                    <li class="nav-item dropdown">
+                                        <a class="nav-link dropdown-toggle {{ request()->is('projects*') || request()->is('internal-projects*') ? 'active' : '' }}"
+                                            href="#" id="projectsDropdown" role="button"
+                                            data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i></i>Projects
+                                        </a>
+                                        <ul class="dropdown-menu" aria-labelledby="projectsDropdown">
+                                            <li>
+                                                <a class="dropdown-item {{ request()->is('projects*') && !request()->is('internal-projects*') ? 'active' : '' }}"
+                                                    href="{{ route('projects.index') }}">
+                                                    <i class="fas fa-building me-2"></i>Client Projects
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item {{ request()->is('internal-projects*') ? 'active' : '' }}"
+                                                    href="{{ route('internal-projects.index') }}">
+                                                    <i class="fas fa-cogs me-2"></i>Internal Projects
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </li>
+                                @endif
 
                                 <!-- Logistics Dropdown -->
                                 @if (in_array(auth()->user()->role, [
@@ -121,37 +162,46 @@
                                         <a class="nav-link dropdown-toggle {{ isDropdownActive($logisticsPrefixes) ? 'active' : '' }}"
                                             href="#" id="logisticsDropdown" role="button"
                                             data-bs-toggle="dropdown" aria-expanded="false">
-                                            <i class="fas fa-boxes"></i> Logistics
+                                            <i></i>Logistics
                                         </a>
                                         <ul class="dropdown-menu" aria-labelledby="logisticsDropdown">
-                                            <li><a class="dropdown-item {{ request()->is('inventory*') ? 'active' : '' }}"
+                                            <li>
+                                                <a class="dropdown-item {{ request()->is('inventory*') ? 'active' : '' }}"
                                                     href="{{ route('inventory.index') }}">
-                                                    <i class="fas fa-warehouse"></i> Inventory Listing
-                                                </a></li>
-                                            <li><a class="dropdown-item {{ request()->is('suppliers*') ? 'active' : '' }}"
-                                                    href="{{ route('suppliers.index') }}">
-                                                    <i class="fas fa-truck"></i> Suppliers
-                                                </a></li>
-                                            <li><a class="dropdown-item {{ request()->is('material_requests*') ? 'active' : '' }}"
+                                                    <i class="fas fa-boxes me-2"></i>Inventory Listing
+                                                </a>
+                                            </li>
+                                            {{-- Menu Suppliers dihapus dari Logistics --}}
+                                            <li>
+                                                <a class="dropdown-item {{ request()->is('material_requests*') ? 'active' : '' }}"
                                                     href="{{ route('material_requests.index') }}">
-                                                    <i class="fas fa-clipboard-list"></i> Material Request
-                                                </a></li>
-                                            <li><a class="dropdown-item {{ request()->is('goods_out*') ? 'active' : '' }}"
+                                                    <i class="fas fa-clipboard-list me-2"></i>Material Request
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item {{ request()->is('goods_out*') ? 'active' : '' }}"
                                                     href="{{ route('goods_out.index') }}">
-                                                    <i class="fas fa-shipping-fast"></i> Goods Out
-                                                </a></li>
-                                            <li><a class="dropdown-item {{ request()->is('goods_in*') ? 'active' : '' }}"
+                                                    <i class="fas fa-arrow-right me-2"></i>Goods Out
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item {{ request()->is('goods_in*') ? 'active' : '' }}"
                                                     href="{{ route('goods_in.index') }}">
-                                                    <i class="fas fa-dolly"></i> Goods In
-                                                </a></li>
-                                            <li><a class="dropdown-item {{ request()->is('material_usage*') ? 'active' : '' }}"
+                                                    <i class="fas fa-arrow-left me-2"></i>Goods In
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item {{ request()->is('material_usage*') ? 'active' : '' }}"
                                                     href="{{ route('material_usage.index') }}">
-                                                    <i class="fas fa-chart-line"></i> Material Usage
-                                                </a></li>
-                                            <li><a class="dropdown-item {{ request()->is('goods-movement*') ? 'active' : '' }}"
+                                                    <i class="fas fa-balance-scale me-2"></i>Material Usage
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item {{ request()->is('goods-movement*') ? 'active' : '' }}"
                                                     href="{{ route('goods-movement.index') }}">
-                                                    <i class="fas fa-dolly"></i> Goods Movement
-                                                </a></li>
+                                                    <i class="fas fa-exchange-alt me-2"></i>Goods Movement
+                                                </a>
+                                            </li>
                                         </ul>
                                     </li>
                                 @endif
@@ -169,37 +219,43 @@
                                         <a class="nav-link dropdown-toggle {{ isDropdownActive($procurementPrefixes) ? 'active' : '' }}"
                                             href="#" id="procurementDropdown" role="button"
                                             data-bs-toggle="dropdown" aria-expanded="false">
-                                            <i class="fas fa-shopping-cart"></i> Procurement
+                                            <i></i>Procurement
                                         </a>
                                         <ul class="dropdown-menu" aria-labelledby="procurementDropdown">
                                             <li>
+                                                <a class="dropdown-item {{ request()->is('project-purchases*') ? 'active' : '' }}"
+                                                    href="{{ route('project-purchases.index') }}">
+                                                    <i class="fas fa-file-invoice me-2"></i>Indo Purchase
+                                                </a>
+                                            </li>
+                                            <li>
                                                 <a class="dropdown-item {{ request()->is('suppliers*') ? 'active' : '' }}"
                                                     href="{{ route('suppliers.index') }}">
-                                                    <i class="fas fa-truck"></i> Suppliers
+                                                    <i class="fas fa-truck me-2"></i>Suppliers
                                                 </a>
                                             </li>
                                             <li>
                                                 <a class="dropdown-item {{ request()->is('purchase_requests*') ? 'active' : '' }}"
                                                     href="{{ route('purchase_requests.index') }}">
-                                                    <i class="fas fa-external-link-alt"></i> Purchase Request
+                                                    <i class="fas fa-clipboard-check me-2"></i>Purchase Request
                                                 </a>
                                             </li>
                                             <li>
                                                 <a class="dropdown-item {{ request()->is('pre-shippings*') ? 'active' : '' }}"
                                                     href="{{ route('pre-shippings.index') }}">
-                                                    <i class="fas fa-truck"></i> Pre Shippings
+                                                    <i class="fas fa-shipping-fast me-2"></i>Pre Shippings
                                                 </a>
                                             </li>
                                             <li>
                                                 <a class="dropdown-item {{ request()->is('shipping-management*') ? 'active' : '' }}"
                                                     href="{{ route('shipping-management.index') }}">
-                                                    <i class="fas fa-truck"></i> Shipping Management
+                                                    <i class="fas fa-ship me-2"></i>Shipping Management
                                                 </a>
                                             </li>
                                             <li>
                                                 <a class="dropdown-item {{ request()->is('goods-receive*') ? 'active' : '' }}"
                                                     href="{{ route('goods-receive.index') }}">
-                                                    <i class="fas fa-box-open"></i> Goods Receive
+                                                    <i class="fas fa-box-open me-2"></i>Goods Receive
                                                 </a>
                                             </li>
                                         </ul>
@@ -220,67 +276,102 @@
                                         'general',
                                     ]))
                                     <li class="nav-item dropdown">
-                                        <a class="nav-link dropdown-toggle {{ request()->is('projects*') || request()->is('timings*') || request()->is('employees/*/timing*') || request()->is('material-planning*') ? 'active' : '' }}"
+                                        <a class="nav-link dropdown-toggle {{ request()->is('job-orders*') || request()->is('timings*') || request()->is('employees/*/timing*') || request()->is('material-planning*') ? 'active' : '' }}"
                                             href="#" id="productionsDropdown" role="button"
                                             data-bs-toggle="dropdown" aria-expanded="false">
-                                            <i class="fas fa-cogs"></i> Productions
+                                            <i></i>Productions
                                         </a>
                                         <ul class="dropdown-menu" aria-labelledby="productionsDropdown">
-                                            <li><a class="dropdown-item {{ request()->is('projects*') ? 'active' : '' }}"
-                                                    href="{{ route('projects.index') }}">
-                                                    <i class="fas fa-project-diagram"></i> Project
-                                                </a></li>
-                                        <li><a class="dropdown-item {{ request()->is('job-orders*') ? 'active' : '' }}"
-                                            href="{{ route('production.job-orders.index') }}">
-                                            <i class="fas fa-tasks"></i> Job Order
-                                        </a></li>
-                                            <li><a class="dropdown-item {{ request()->is('material_requests*') ? 'active' : '' }}"
+                                            <li>
+                                                <a class="dropdown-item {{ request()->is('job-orders*') ? 'active' : '' }}"
+                                                    href="{{ route('job-orders.index') }}">
+                                                    <i class="fas fa-tasks me-2"></i>Job Order
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item {{ request()->is('material_requests*') ? 'active' : '' }}"
                                                     href="{{ route('material_requests.index') }}">
-                                                    <i class="fas fa-clipboard-list"></i> Material Request
-                                                </a></li>
-                                            <li><a class="dropdown-item {{ request()->is('material-usage*') ? 'active' : '' }}"
+                                                    <i class="fas fa-clipboard-list me-2"></i>Material Request
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item {{ request()->is('material-usage*') ? 'active' : '' }}"
                                                     href="{{ route('material_usage.index') }}">
-                                                    <i class="fas fa-chart-line"></i> Material Usage
-                                                </a></li>
+                                                    <i class="fas fa-balance-scale me-2"></i>Material Usage
+                                                </a>
+                                            </li>
                                             <li>
                                                 <a class="dropdown-item {{ request()->is('material-planning*') ? 'active' : '' }}"
                                                     href="{{ route('material_planning.index') }}">
-                                                    <i class="fas fa-calendar-check"></i> Material Planning
+                                                    <i class="fas fa-calendar-alt me-2"></i>Material Planning
                                                 </a>
                                             </li>
-                                            <li><a class="dropdown-item {{ request()->is('timings*') ? 'active' : '' }}"
+                                            <li>
+                                                <a class="dropdown-item {{ request()->is('timings*') ? 'active' : '' }}"
                                                     href="{{ route('timings.index') }}">
-                                                    <i class="fas fa-clock"></i> Timing
-                                                </a></li>
+                                                    <i class="fas fa-clock me-2"></i>Timing
+                                                </a>
+                                            </li>
                                         </ul>
                                     </li>
                                 @endif
 
                                 <!-- Finances Dropdown -->
-                                @if (in_array(auth()->user()->role, ['super_admin', 'admin_finance', 'admin']))
+                                @if (in_array(auth()->user()->role, ['super_admin', 'admin_finance', 'admin', 'admin_logistic', 'admin_procurement']))
                                     <li class="nav-item dropdown">
-                                        <a class="nav-link dropdown-toggle {{ request()->is('currencies*') || request()->is('costing-report*') || request()->is('final_project_summary*') ? 'active' : '' }}"
+                                        <a class="nav-link dropdown-toggle {{ request()->is('currencies*') ||
+                                        request()->is('costing-report*') ||
+                                        request()->is('final_project_summary*') ||
+                                        request()->is('dcm-costings*') ||
+                                        request()->is('purchase-approvals*') ||
+                                        request()->is('purchase-edited*')
+                                            ? 'active'
+                                            : '' }}"
                                             href="#" id="financesDropdown" role="button"
                                             data-bs-toggle="dropdown" aria-expanded="false">
-                                            <i class="fas fa-calculator"></i> Finances
+                                            <i></i>Finances
                                         </a>
                                         <ul class="dropdown-menu" aria-labelledby="financesDropdown">
-                                            <li><a class="dropdown-item {{ request()->is('currencies*') ? 'active' : '' }}"
+                                            <li>
+                                                <a class="dropdown-item {{ request()->is('currencies*') ? 'active' : '' }}"
                                                     href="{{ route('currencies.index') }}">
-                                                    <i class="fas fa-coins"></i> Currency
-                                                </a></li>
-                                            <li><a class="dropdown-item {{ request()->is('costing-report*') ? 'active' : '' }}"
+                                                    <i class="fas fa-money-bill me-2"></i>Currency
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item {{ request()->is('costing-report*') ? 'active' : '' }}"
                                                     href="{{ route('costing.report') }}">
-                                                    <i class="fas fa-file-invoice-dollar"></i> Costing Report
-                                                </a></li>
-                                            <li><a class="dropdown-item {{ request()->is('final_project_summary*') ? 'active' : '' }}"
+                                                    <i class="fas fa-chart-line me-2"></i>Costing Report
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item {{ request()->is('final_project_summary*') ? 'active' : '' }}"
                                                     href="{{ route('final_project_summary.index') }}">
-                                                    <i class="fas fa-chart-pie"></i> Final Project Summary
-                                                </a></li>
+                                                    <i class="fas fa-file-contract me-2"></i>Final Project Summary
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item {{ request()->is('dcm-costings*') ? 'active' : '' }}"
+                                                    href="{{ route('dcm-costings.index') }}">
+                                                    <i class="fas fa-file-invoice-dollar me-2"></i>DCM Costing
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item {{ request()->is('purchase-approvals*') ? 'active' : '' }}"
+                                                    href="{{ route('purchase-approvals.index') }}">
+                                                    <i class="fas fa-clipboard-check me-2"></i>Purchase Approvals
+                                                </a>
+                                            </li>
+                                            <!-- TAMBAHKAN MENU INI -->
+                                            <li>
+                                                <a class="dropdown-item {{ request()->is('purchase-edited*') ? 'active' : '' }}"
+                                                    href="{{ route('purchase-edited.index') }}">
+                                                    <i class="fas fa-edit me-2"></i>Purchase Edited
+                                                </a>
+                                            </li>
                                         </ul>
                                     </li>
                                 @endif
-
                                 <!-- HR Dropdown -->
                                 @auth
                                     @if (in_array(auth()->user()->role, ['super_admin', 'admin_hr', 'admin']))
@@ -288,34 +379,31 @@
                                             <a class="nav-link dropdown-toggle {{ request()->is('employees*') || request()->routeIs('leave_requests.index') || request()->is('attendance*') ? 'active' : '' }}"
                                                 href="#" id="hrDropdown" role="button" data-bs-toggle="dropdown"
                                                 aria-expanded="false">
-                                                <i class="fas fa-users"></i> HR
+                                                <i></i>HR
                                             </a>
                                             <ul class="dropdown-menu" aria-labelledby="hrDropdown">
                                                 <li>
                                                     <a class="dropdown-item {{ request()->is('employees*') ? 'active' : '' }}"
                                                         href="{{ route('employees.index') }}">
-                                                        <i class="bi bi-person-lines-fill"></i> Employees
+                                                        <i class="fas fa-user-tie me-2"></i>Employees
                                                     </a>
                                                 </li>
                                                 <li>
                                                     <a class="dropdown-item {{ request()->routeIs('leave_requests.index') ? 'active' : '' }}"
                                                         href="{{ route('leave_requests.index') }}">
-                                                        <i class="bi bi-calendar-check"></i> Leave Requests
+                                                        <i class="fas fa-calendar-minus me-2"></i>Leave Requests
                                                     </a>
-                                                </li>
-                                                <li>
-                                                    <hr class="dropdown-divider">
                                                 </li>
                                                 <li>
                                                     <a class="dropdown-item {{ request()->is('attendance*') ? 'active' : '' }}"
                                                         href="{{ route('attendance.index') }}">
-                                                        <i class="bi bi-calendar2-check"></i> Daily Attendance
+                                                        <i class="fas fa-calendar-day me-2"></i>Daily Attendance
                                                     </a>
                                                 </li>
                                                 <li>
                                                     <a class="dropdown-item {{ request()->is('attendance/list*') ? 'active' : '' }}"
                                                         href="{{ route('attendance.list') }}">
-                                                        <i class="bi bi-list-ul"></i> Attendance History
+                                                        <i class="fas fa-history me-2"></i>Attendance History
                                                     </a>
                                                 </li>
                                             </ul>
@@ -328,7 +416,7 @@
                                     <li class="nav-item">
                                         <a class="nav-link {{ request()->routeIs('leave_requests.index') ? 'active' : '' }}"
                                             href="{{ route('leave_requests.index') }}">
-                                            <i class="bi bi-calendar-plus"></i> Leave Request
+                                            <i class="fas fa-calendar-minus me-2"></i>Leave Request
                                         </a>
                                     </li>
                                 @endguest
@@ -336,29 +424,41 @@
                                 <!-- Admin Dropdown -->
                                 @if (in_array(auth()->user()->role, ['super_admin', 'admin']))
                                     <li class="nav-item dropdown">
-                                        <a class="nav-link dropdown-toggle {{ request()->is('users*') || request()->routeIs('trash.index') || request()->is('audit*') ? 'active' : '' }}"
+                                        <a class="nav-link dropdown-toggle {{ request()->is('users*') || request()->is('departments*') || request()->routeIs('trash.index') || request()->is('audit*') ? 'active' : '' }}"
                                             href="#" id="adminDropdown" role="button"
                                             data-bs-toggle="dropdown" aria-expanded="false">
-                                            <i class="fas fa-user-shield"></i> Admin
+                                            <i></i>Admin
                                         </a>
                                         <ul class="dropdown-menu" aria-labelledby="adminDropdown">
-                                            <li><a class="dropdown-item {{ request()->is('users*') ? 'active' : '' }}"
+                                            <li>
+                                                <a class="dropdown-item {{ request()->is('users*') ? 'active' : '' }}"
                                                     href="{{ route('users.index') }}">
-                                                    <i class="fas fa-user"></i> Users
-                                                </a></li>
-                                            <li><a class="dropdown-item {{ request()->routeIs('trash.index') ? 'active' : '' }}"
+                                                    <i class="fas fa-user-cog me-2"></i>Users
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item {{ request()->is('departments*') ? 'active' : '' }}"
+                                                    href="{{ route('departments.index') }}">
+                                                    <i class="fas fa-sitemap me-2"></i>Departments
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item {{ request()->routeIs('trash.index') ? 'active' : '' }}"
                                                     href="{{ route('trash.index') }}">
-                                                    <i class="fas fa-trash"></i> Trash
-                                                </a></li>
+                                                    <i class="fas fa-trash me-2"></i>Trash
+                                                </a>
+                                            </li>
                                             <!-- Audit Log (only for super_admin) -->
                                             @if (Auth::user()->isSuperAdmin())
                                                 <li>
                                                     <hr class="dropdown-divider">
                                                 </li>
-                                                <li><a class="dropdown-item {{ request()->is('audit*') ? 'active' : '' }}"
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('audit*') ? 'active' : '' }}"
                                                         href="{{ route('audit.index') }}">
-                                                        <i class="bi bi-shield-check"></i> Audit Log
-                                                    </a></li>
+                                                        <i class="fas fa-clipboard-list me-2"></i>Audit Log
+                                                    </a>
+                                                </li>
                                             @endif
                                         </ul>
                                     </li>
@@ -370,28 +470,17 @@
                         <ul class="navbar-nav ms-auto">
                             <!-- Authentication Links -->
                             @guest
-                                {{-- @if (Route::has('login'))
-                                    <li class="nav-item">
-                                        <a class="nav-link" href="{{ route('login') }}">{{ __('Login') }}</a>
-                                    </li>
-                                @endif --}}
-
-                                {{-- @if (Route::has('register'))
-                                    <li class="nav-item">
-                                        <a class="nav-link" href="{{ route('register') }}">{{ __('Register') }}</a>
-                                    </li>
-                                @endif --}}
                             @else
                                 <li class="nav-item dropdown">
                                     <a id="navbarDropdown" class="nav-link btn dropdown-toggle" href="#"
                                         role="button" data-bs-toggle="dropdown" aria-haspopup="true"
                                         aria-expanded="false">
-                                        {{ ucfirst(Auth::user()->username) }}
+                                        <i class="fas fa-user me-2"></i>{{ ucfirst(Auth::user()->username) }}
                                     </a>
                                     <div class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
                                         <a class="dropdown-item" href="{{ route('logout') }}"
                                             onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                                            <i class="fas fa-sign-out-alt me-1"></i> {{ __('Logout') }}
+                                            <i class="fas fa-sign-out-alt me-2"></i>Logout
                                         </a>
                                         <form id="logout-form" action="{{ route('logout') }}" method="POST"
                                             class="d-none">
@@ -405,11 +494,9 @@
                 </div>
             </nav>
 
-            <main>
+            <main class="py-4">
                 @yield('content')
             </main>
-        </div>
-
         </div>
 
         <!-- Toast Container -->
@@ -434,7 +521,6 @@
         </div>
 
         <!-- Scripts -->
-
         <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
 
         <!-- Setup CSRF Token for AJAX -->
@@ -456,7 +542,6 @@
         <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
         <!-- DataTables JS -->
-        {{-- <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script> --}}
         <script src="https://cdn.datatables.net/2.3.1/js/dataTables.js"></script>
         <script src="https://cdn.datatables.net/2.3.1/js/dataTables.bootstrap5.js"></script>
         <script src="https://cdn.datatables.net/fixedheader/3.3.2/js/dataTables.fixedHeader.min.js"></script>
@@ -482,13 +567,17 @@
         </script>
 
         <script src="{{ asset('js/custom-app.js') }}"></script>
+
+        <!-- Page Specific Scripts -->
+        @yield('scripts')
+
         @stack('scripts')
 
         <footer class="bg-light text-center text-lg-start mt-5">
             <div class="container-fluid">
                 <div class="row">
                     <!-- About Section -->
-                    <div class="bg-white col-lg-12 col-lg-12 mb-2 mb-lg-0">
+                    <div class="bg-white col-lg-12 mb-2 mb-lg-0">
                         <h5 class="text-uppercase mt-2">About:</h5>
                         <p class="mb-3">
                             This is an inventory management system designed to streamline your operations and improve

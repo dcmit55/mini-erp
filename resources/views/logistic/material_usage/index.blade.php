@@ -14,6 +14,12 @@
 
                     <!-- Spacer untuk mendorong tombol ke kanan -->
                     <div class="ms-sm-auto d-flex flex-wrap gap-2">
+                        @if (auth()->user()->isSuperAdmin() || auth()->user()->isLogisticAdmin())
+                            {{-- <a href="{{ route('material_usage.bulk.create') }}"
+                                class="btn btn-primary btn-sm flex-shrink-0">
+                                <i class="fas fa-plus-circle me-1"></i> Bulk Add
+                            </a> --}}
+                        @endif
                         <a href="#" id="export-btn" class="btn btn-outline-success btn-sm flex-shrink-0">
                             <i class="bi bi-file-earmark-excel me-1"></i> Export
                         </a>
@@ -76,13 +82,13 @@
 
                 {{-- DataTable dengan server-side processing --}}
                 <div class="table-responsive">
-                    <table class="table table-hover table-sm align-middle" id="datatable"
-                        data-material-usage-table="1">
+                    <table class="table table-hover table-sm align-middle" id="datatable" data-material-usage-table="1">
                         <thead class="table-light text-nowrap">
                             <tr>
                                 <th width="50">#</th>
                                 <th>Material</th>
                                 <th>Project</th>
+                                <th>Job Order</th>
                                 <th>Goods Out Qty</th>
                                 <th>Goods In Qty</th>
                                 <th>Used Qty</th>
@@ -223,8 +229,8 @@
         /* Center align checkbox and actions */
         #datatable thead th:nth-child(1),
         #datatable tbody td:nth-child(1),
-        #datatable thead th:nth-child(9),
-        #datatable tbody td:nth-child(9) {
+        #datatable thead th:nth-child(10),
+        #datatable tbody td:nth-child(10) {
             text-align: center !important;
         }
     </style>
@@ -270,6 +276,9 @@
                     },
                     {
                         data: 'project_name'
+                    },
+                    {
+                        data: 'job_order'
                     },
                     {
                         data: 'goods_out_qty',

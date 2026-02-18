@@ -31,6 +31,31 @@
                     </div>
                 @endif
 
+                <!-- Contract Expiry Info -->
+                @php
+                    $expiringCount = $employees
+                        ->filter(function ($emp) {
+                            return $emp->contract_end_date &&
+                                $emp->status === 'active' &&
+                                $emp->contract_end_date->lte(now()->addDays(30)) &&
+                                $emp->contract_end_date->gte(now());
+                        })
+                        ->count();
+                @endphp
+
+                @if ($expiringCount > 0)
+                    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                        <i class="bi bi-exclamation-triangle me-1"></i>
+                        <strong>Contract Expiry Alert:</strong> {{ $expiringCount }} employee(s) have contracts expiring
+                        within 30 days.
+                        <small class="d-block mt-1">
+                            <i class="bi bi-info-circle"></i> Employee status will automatically change to "Inactive" when
+                            contract expires.
+                        </small>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                @endif
+
                 <!-- Filters -->
                 <div class="mb-3">
                     <form id="filter-form" class="row g-1">
@@ -558,22 +583,33 @@
                 const status = $('#statusFilter').val();
                 const position = $('#positionFilter').val();
 
-                // Filter department (column 4)
-                table.column(4).search(dept).draw();
+                // Filter department (column 4 - hidden on small screens)
+                if (dept) {
+                    table.column(4).search(dept, false, false).draw(false);
+                } else {
+                    table.column(4).search('').draw(false);
+                }
 
                 // Filter employment type & status (column 8)
-                let typeStatusFilter = '';
-                if (empType && status) {
-                    typeStatusFilter = empType + '.*' + status;
-                } else if (empType) {
-                    typeStatusFilter = empType;
-                } else if (status) {
-                    typeStatusFilter = status;
+                // Build regex pattern to match both employment type and status
+                let patterns = [];
+                if (empType) patterns.push(empType);
+                if (status) patterns.push(status);
+
+                if (patterns.length > 0) {
+                    // Create regex that requires ALL patterns to match (AND logic)
+                    let regexPattern = patterns.map(p => '(?=.*' + p + ')').join('');
+                    table.column(8).search(regexPattern, true, false).draw(false);
+                } else {
+                    table.column(8).search('').draw(false);
                 }
-                table.column(8).search(typeStatusFilter, true, false).draw();
 
                 // Filter position (column 3)
-                table.column(3).search(position).draw();
+                if (position) {
+                    table.column(3).search('^' + position + '$', true, false).draw();
+                } else {
+                    table.column(3).search('').draw();
+                }
             }
 
             // Reset filters

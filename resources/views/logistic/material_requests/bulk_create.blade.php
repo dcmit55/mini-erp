@@ -14,6 +14,9 @@
                     <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddMaterial">
                         + Quick Add Material
                     </button>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddInternalProject">
+                        + Quick Add Internal Project
+                    </button>
                 </div>
 
                 @if (session('error'))
@@ -35,46 +38,73 @@
                     </div>
                 @endif
 
-                <form method="POST" action="{{ route('material_requests.bulk_store') }}">
+                <form method="POST" action="{{ route('material_requests.bulk_store') }}" id="bulkMaterialRequestForm">
                     @csrf
                     <div class="table-responsive">
                         <table class="table table-hover align-middle table-sm" id="bulk-material-table"
                             style="min-width: 100%;">
                             <thead class="table-light">
                                 <tr>
-                                    <th style="width: 25%;">Project <span class="text-danger">*</span></th>
-                                    <th style="width: 25%;">Material <span class="text-danger">*</span></th>
-                                    <th style="width: 15%;">Quantity <span class="text-danger">*</span></th>
-                                    <th style="width: 25%;">Remark (optional)</th>
+                                    <th style="width: 10%;">Project Type <span class="text-danger">*</span></th>
+                                    <th style="width: 20%;">Job Order <span class="text-danger">*</span></th>
+                                    <th style="width: 15%;">Project <span class="text-muted">(auto)</span></th>
+                                    <th style="width: 20%;">Material <span class="text-danger">*</span></th>
+                                    <th style="width: 10%;">Quantity <span class="text-danger">*</span></th>
+                                    <th style="width: 15%;">Remark</th>
                                     <th style="width: 10%;">Action</th>
                                 </tr>
                             </thead>
                             <tbody id="bulk-rows">
                                 @foreach (old('requests', [0 => []]) as $index => $request)
                                     <tr class="align-top">
-                                        <td data-label="Project">
-                                            <select name="requests[{{ $index }}][project_id]"
-                                                class="form-select select2 project-select" required>
-                                                <option value="">Select Project</option>
-                                                @foreach ($projects as $project)
-                                                    <option value="{{ $project->id }}"
-                                                        data-department="{{ $project->departments->pluck('name')->implode(', ') }}"
-                                                        {{ old("requests.$index.project_id") == $project->id ? 'selected' : '' }}>
-                                                        {{ $project->name }}
-                                                    </option>
-                                                @endforeach
+                                        <!-- Project Type -->
+                                        <td data-label="Project Type">
+                                            <select name="requests[{{ $index }}][project_type]" class="form-select project-type-select" required>
+                                                <option value="">Select Type</option>
+                                                <option value="client" {{ old("requests.$index.project_type") == 'client' ? 'selected' : '' }}>Client Project</option>
+                                                <option value="internal" {{ old("requests.$index.project_type") == 'internal' ? 'selected' : '' }}>Internal Project</option>
                                             </select>
-                                            <div class="department-text form-text d-none">Department</div>
-                                            @error("requests.$index.project_id")
+                                            @error("requests.$index.project_type")
                                                 <span class="text-danger">{{ $message }}</span>
                                             @enderror
                                         </td>
+
+                                        <!-- Job Order -->
+                                        <td data-label="Job Order">
+                                            <select name="requests[{{ $index }}][job_order_id]"
+                                                    class="form-select select2 job-order-select"
+                                                    data-client-options='@json($jobOrders)'
+                                                    data-internal-options='@json($internalProjects)'
+                                                    data-old-value="{{ old("requests.$index.job_order_id") }}"
+                                                    required>
+                                                <option value="">Select Job Order</option>
+                                            </select>
+                                            @error("requests.$index.job_order_id")
+                                                <span class="text-danger">{{ $message }}</span>
+                                            @enderror
+                                        </td>
+
+                                        <!-- Project Info -->
+                                        <td data-label="Project">
+                                            <input type="hidden" name="requests[{{ $index }}][project_id]" class="project-id-input" value="{{ old("requests.$index.project_id") }}">
+                                            <input type="hidden" name="requests[{{ $index }}][internal_project_id]" class="internal-project-id-input" value="{{ old("requests.$index.internal_project_id") }}">
+                                            <input type="text" class="form-control project-name-display" readonly placeholder="Auto fill" value="{{ old("requests.$index.project_display") }}">
+                                            @error("requests.$index.project_id")
+                                                <span class="text-danger">{{ $message }}</span>
+                                            @enderror
+                                            @error("requests.$index.internal_project_id")
+                                                <span class="text-danger">{{ $message }}</span>
+                                            @enderror
+                                        </td>
+
+                                        <!-- Material -->
                                         <td data-label="Material">
                                             <select name="requests[{{ $index }}][inventory_id]"
                                                 class="form-select select2 material-select" required>
                                                 <option value="">Select Material</option>
                                                 @foreach ($inventories as $inventory)
-                                                    <option value="{{ $inventory->id }}" data-unit="{{ $inventory->unit }}"
+                                                    <option value="{{ $inventory->id }}"
+                                                        data-unit="{{ $inventory->unit }}"
                                                         data-stock="{{ $inventory->quantity }}"
                                                         {{ old("requests.$index.inventory_id") == $inventory->id ? 'selected' : '' }}>
                                                         {{ $inventory->name }}
@@ -86,6 +116,8 @@
                                                 <span class="text-danger">{{ $message }}</span>
                                             @enderror
                                         </td>
+
+                                        <!-- Quantity -->
                                         <td data-label="Quantity">
                                             <div class="input-group">
                                                 <input type="number" name="requests[{{ $index }}][qty]"
@@ -97,12 +129,16 @@
                                                 <span class="text-danger">{{ $message }}</span>
                                             @enderror
                                         </td>
+
+                                        <!-- Remark -->
                                         <td data-label="Remark">
                                             <textarea name="requests[{{ $index }}][remark]" class="form-control" rows="1">{{ old("requests.$index.remark") }}</textarea>
                                             @error("requests.$index.remark")
                                                 <span class="text-danger">{{ $message }}</span>
                                             @enderror
                                         </td>
+
+                                        <!-- Action -->
                                         <td data-label="Action">
                                             <button type="button" class="btn btn-danger btn-sm remove-row">Remove</button>
                                         </td>
@@ -140,12 +176,12 @@
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="button" class="btn btn-danger" id="btnConfirmAddMaterial">Yes, I
-                                Understand</button>
+                            <button type="button" class="btn btn-danger" id="btnConfirmAddMaterial">Yes, I Understand</button>
                         </div>
                     </div>
                 </div>
             </div>
+
             <!-- Add Material Modal -->
             <div class="modal fade" id="addMaterialModal" tabindex="-1" aria-labelledby="addMaterialModalLabel"
                 aria-hidden="true">
@@ -176,12 +212,12 @@
                                 <input type="number" step="any" name="quantity" class="form-control" required>
 
                                 <label class="mt-2">Unit <span class="text-danger">*</span></label>
-                                    <select name="unit" id="unit-select-modal" class="form-select select2" required>
-                                        <option value="">Select Unit</option>
-                                        @foreach ($units ?? [] as $unit)
-                                            <option value="{{ $unit->name }}">{{ $unit->name }}</option>
-                                        @endforeach
-                                    </select>
+                                <select name="unit" id="unit-select-modal" class="form-select select2" required>
+                                    <option value="">Select Unit</option>
+                                    @foreach ($units ?? [] as $unit)
+                                        <option value="{{ $unit->name }}">{{ $unit->name }}</option>
+                                    @endforeach
+                                </select>
 
                                 <label class="mt-2">Remark (optional)</label>
                                 <textarea name="remark" class="form-control" rows="2"></textarea>
@@ -194,7 +230,79 @@
                 </div>
             </div>
 
-            <!-- Add Project Modal -->
+            <!-- Add Internal Project Modal -->
+            <div class="modal fade" id="addInternalProjectModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog">
+                    <form id="quickAddInternalProjectForm" method="POST">
+                        @csrf
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Add Internal Project</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div id="internal-project-error" class="alert alert-danger d-none"></div>
+
+                                <!-- Project Type -->
+                                <div class="mb-3">
+                                    <label class="form-label fw-medium">Project Type <span class="text-danger">*</span></label>
+                                    <select name="project" id="modal_project_type" class="form-select" required>
+                                        <option value="">Select Project Type</option>
+                                        <option value="Office">Office</option>
+                                        <option value="Machine">Machine</option>
+                                        <option value="Testing">Testing</option>
+                                        <option value="Facilities">Facilities</option>
+                                    </select>
+                                </div>
+
+                                <!-- Department Section -->
+                                <div class="mb-3">
+                                    <label class="form-label fw-medium">Department <span class="text-danger">*</span></label>
+                                    
+                                    <!-- Tampilan untuk non-Testing: teks readonly PT DCM -->
+                                    <div id="dept-static-display" class="form-control bg-light">
+                                        PT DCM
+                                    </div>
+                                    
+                                    <!-- Tampilan untuk Testing: dropdown select (awalnya hidden) -->
+                                    <div id="dept-dropdown-wrapper" style="display: none;">
+                                        <select id="dept-dropdown-select" class="form-select select2-modal">
+                                            <option value="">Select Department</option>
+                                            @foreach ($departments as $dept)
+                                                <option value="{{ $dept->id }}">{{ $dept->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+
+                                    <!-- Hidden field yang akan dikirim sebagai department_id -->
+                                    <input type="hidden" name="department_id" id="final_department_id" value="{{ $defaultPtDcmDepartmentId ?? '' }}">
+                                </div>
+
+                                <!-- Job -->
+                                <div class="mb-3">
+                                    <label class="form-label fw-medium">Job <span class="text-danger">*</span></label>
+                                    <input type="text" name="job" class="form-control" placeholder="Enter job name" maxlength="200" required>
+                                </div>
+
+                                <!-- Description -->
+                                <div class="mb-3">
+                                    <label class="form-label fw-medium">Description (Optional)</label>
+                                    <textarea name="description" class="form-control" rows="2" placeholder="Enter description"></textarea>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-primary" id="btnSaveInternalProject">
+                                    <span class="spinner-border spinner-border-sm me-1 d-none" role="status"></span>
+                                    Save Project
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Add Project Modal (Client) -->
             <div class="modal fade" id="quickAddProjectModal" tabindex="-1" aria-labelledby="quickAddProjectModalLabel"
                 aria-hidden="true">
                 <div class="modal-dialog">
@@ -338,6 +446,12 @@
 
 @push('scripts')
     <script>
+        // Data dari backend
+        const clientJobOrders = @json($jobOrders);
+        const internalProjects = @json($internalProjects);
+        const defaultPtDcmDepartmentId = '{{ $defaultPtDcmDepartmentId ?? '' }}';
+        const departments = @json($departments);
+
         function initSelect2(row) {
             row.find('.select2').select2({
                 width: '100%',
@@ -356,68 +470,160 @@
             });
         }
 
+        // Fungsi merender opsi job order
+        function renderJobOrderOptions(selectElement, type) {
+            selectElement.empty().append('<option value="">Select Job Order</option>');
+            if (type === 'client') {
+                clientJobOrders.forEach(jo => {
+                    const projectName = jo.project ? jo.project.name : '';
+                    const option = new Option(jo.name, jo.id, false, false);
+                    $(option).attr('data-project-id', jo.project_id).attr('data-project-name', projectName);
+                    selectElement.append(option);
+                });
+            } else if (type === 'internal') {
+                internalProjects.forEach(ip => {
+                    const option = new Option(ip.job, ip.id, false, false);
+                    $(option).attr('data-internal-id', ip.id).attr('data-project', ip.project);
+                    selectElement.append(option);
+                });
+            }
+            selectElement.trigger('change.select2');
+        }
+
         $(document).ready(function() {
             initSelect2($('#bulk-rows tr').first());
 
-            $('#add-row').click(function() {
-                let lastRow = $('#bulk-rows tr').last(); // Ambil baris terakhir
+            // Event: project type berubah
+            $(document).on('change', '.project-type-select', function() {
+                const $row = $(this).closest('tr');
+                const type = $(this).val();
+                const $jobSelect = $row.find('.job-order-select');
+                const $projectIdInput = $row.find('.project-id-input');
+                const $internalProjectIdInput = $row.find('.internal-project-id-input');
+                const $projectDisplay = $row.find('.project-name-display');
 
-                // Check if Select2 is initialized before destroying
-                lastRow.find('.select2').each(function() {
-                    if ($(this).data('select2')) {
-                        $(this).select2('destroy');
+                $projectIdInput.val('');
+                $internalProjectIdInput.val('');
+                $projectDisplay.val('');
+
+                if (type) {
+                    renderJobOrderOptions($jobSelect, type);
+                } else {
+                    $jobSelect.empty().append('<option value="">Select Job Order</option>').trigger('change');
+                }
+            });
+
+            // Event: job order dipilih
+            $(document).on('change', '.job-order-select', function() {
+                const $row = $(this).closest('tr');
+                const type = $row.find('.project-type-select').val();
+                const selected = $(this).find(':selected');
+                const $projectIdInput = $row.find('.project-id-input');
+                const $internalProjectIdInput = $row.find('.internal-project-id-input');
+                const $projectDisplay = $row.find('.project-name-display');
+
+                $projectIdInput.val('');
+                $internalProjectIdInput.val('');
+                $projectDisplay.val('');
+
+                if (!selected.val()) return;
+
+                if (type === 'client') {
+                    const projectId = selected.data('project-id');
+                    const projectName = selected.data('project-name');
+                    if (projectId && projectName) {
+                        $projectIdInput.val(projectId);
+                        $projectDisplay.val(projectName);
                     }
-                });
+                } else if (type === 'internal') {
+                    const internalId = selected.data('internal-id');
+                    const project = selected.data('project');
+                    if (internalId && project) {
+                        $internalProjectIdInput.val(internalId);
+                        $projectDisplay.val(project);
+                    }
+                }
+            });
 
-                // Clone the last row
-                let newRow = lastRow.clone();
+            // Trigger on page load for old values
+            $('.job-order-select').trigger('change');
+
+            $('#add-row').click(function() {
+                let lastRow = $('#bulk-rows tr').last();
                 let rowCount = $('#bulk-rows tr').length;
 
-                // Reset select elements
-                newRow.find('select').each(function() {
-                    let name = $(this).attr('name').replace(/\d+/, rowCount);
-                    $(this).attr('name', name);
-
-                    // If it's the project-select, copy the value from the last row
-                    if ($(this).hasClass('project-select')) {
-                        let previousValue = lastRow.find('.project-select').val();
-                        $(this).val(previousValue).trigger('change');
-                    } else {
-                        // Clear the value for other select elements
-                        $(this).val('').trigger('change');
+                // Destroy Select2 on last row before cloning
+                lastRow.find('.select2').each(function() {
+                    if ($(this).data('select2')) {
+                        try {
+                            $(this).select2('destroy');
+                        } catch (e) {
+                            console.log('Select2 destroy error:', e);
+                        }
                     }
                 });
 
-                // Reset input elements
-                newRow.find('input').each(function() {
-                    let name = $(this).attr('name').replace(/\d+/, rowCount);
-                    $(this).attr('name', name).val('').removeClass('is-invalid');
+                // Clone without events and data
+                let newRow = lastRow.clone(false, false);
+
+                // Remove Select2 artifacts from cloned row
+                newRow.find('.select2-container').remove();
+                newRow.find('select').removeClass('select2-hidden-accessible');
+
+                // Update names and reset values
+                newRow.find('select, input, textarea').each(function() {
+                    let $elem = $(this);
+                    let name = $elem.attr('name');
+
+                    if (name) {
+                        // Update index in name attribute
+                        let newName = name.replace(/\[\d+\]/, '[' + rowCount + ']');
+                        $elem.attr('name', newName);
+                    }
+
+                    // Handle different element types
+                    if ($elem.is('select')) {
+                        if ($elem.hasClass('project-type-select')) {
+                            // Reset project type
+                            $elem.val('');
+                        } else if ($elem.hasClass('job-order-select')) {
+                            // Clear job order select
+                            $elem.empty().append('<option value="">Select Job Order</option>');
+                        } else {
+                            // Clear material select
+                            $elem.val('');
+                        }
+                    } else if ($elem.hasClass('project-id-input') || $elem.hasClass('internal-project-id-input') || $elem.hasClass('project-name-display')) {
+                        // Reset project fields
+                        $elem.val('');
+                    } else if ($elem.is('input[type="number"]') || $elem.is('textarea')) {
+                        // Clear quantity and remark
+                        $elem.val('').removeClass('is-invalid');
+                    }
                 });
 
-                // Reset textarea elements
-                newRow.find('textarea').each(function() {
-                    let name = $(this).attr('name').replace(/\d+/, rowCount);
-                    $(this).attr('name', name).val('');
-                });
-
-                // Hapus error message pada row baru
+                // Remove error messages
                 newRow.find('.text-danger').remove();
 
                 // Reset unit label
                 newRow.find('.unit-label').text('unit');
 
-                // Reset available qty di row baru
+                // Reset available qty display
                 newRow.find('.available-qty-text').addClass('d-none').removeClass(
                     'text-danger text-warning').text('');
 
-                // Append the new row
+                // Append new row
                 $('#bulk-rows').append(newRow);
 
-                // Reinitialize Select2 for the new row
-                initSelect2(newRow);
-
-                // Reinitialize Select2 for the last row
-                initSelect2(lastRow);
+                // Reinitialize Select2 for both rows
+                setTimeout(function() {
+                    try {
+                        initSelect2(lastRow);
+                        initSelect2(newRow);
+                    } catch (e) {
+                        console.log('Select2 init error:', e);
+                    }
+                }, 150);
             });
 
             $(document).on('click', '.remove-row', function() {
@@ -434,155 +640,6 @@
 
             // Trigger change event on page load to restore old values
             $('.material-select').trigger('change');
-
-            // Quick Add Project (Bulk)
-            $('#quickAddProjectForm').on('submit', function(e) {
-                e.preventDefault();
-                let form = $(this);
-                $.ajax({
-                    url: form.attr('action'),
-                    method: 'POST',
-                    data: form.serialize(),
-                    headers: {
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                    },
-                    success: function(res) {
-                        if (res.success && res.project) {
-                            // Tambahkan ke semua select2 project di setiap row
-                            $('.project-select').each(function() {
-                                let exists = $(this).find('option[value="' + res.project
-                                    .id + '"]').length;
-                                if (!exists) {
-                                    let newOption = new Option(res.project.name, res
-                                        .project.id, false, false);
-                                    $(this).append(newOption);
-                                }
-                            });
-                            // Pilih otomatis di row terakhir
-                            $('.project-select').last().val(res.project.id).trigger('change');
-                            $('#quickAddProjectForm').closest('.modal').modal('hide');
-                            form[0].reset();
-
-                            // Reset select2 untuk departments jika ada
-                            $('#project_departments').val(null).trigger('change');
-
-                            Swal.fire('Success', 'Project added successfully!', 'success');
-                        } else {
-                            Swal.fire('Error', res.message ||
-                                'Failed to add project. Please try again.', 'error');
-                        }
-                    },
-                    error: function(xhr) {
-                        let msg = xhr.responseJSON?.message ||
-                            'Failed to add project. Please try again.';
-                        if (xhr.responseJSON?.errors) {
-                            // Tampilkan validation errors
-                            let errorList = Object.values(xhr.responseJSON.errors).flat().join(
-                                '<br>');
-                            msg = errorList;
-                        }
-                        Swal.fire('Error', msg, 'error');
-                    }
-                });
-            });
-
-            // Inisialisasi Select2 untuk multiple department di modal Quick Add Project
-            $('#project_departments').select2({
-                theme: 'bootstrap-5',
-                width: '100%',
-                placeholder: 'Select Department',
-                allowClear: true,
-                dropdownParent: $('#quickAddProjectModal')
-            }).on('select2:open', function() {
-                setTimeout(function() {
-                    document.querySelector('.select2-container--open .select2-search__field')
-                        .focus();
-                }, 100);
-            });
-
-            // Quick Add Material Button with Confirmation
-            $('#btnAddMaterial').off('click').on('click', function(e) {
-                e.preventDefault();
-                $('#confirmAddMaterialModal').modal('show');
-            });
-
-            $('#btnConfirmAddMaterial').off('click').on('click', function() {
-                $('#confirmAddMaterialModal').modal('hide');
-                setTimeout(function() {
-                    $('#addMaterialModal, #quickAddMaterialModal').modal('show');
-                }, 360);
-            });
-
-            // Initialize Select2 untuk unit di modal
-            function initializeUnitSelect2() {
-                $('#unit-select-modal').select2({
-                    theme: 'bootstrap-5',
-                    placeholder: 'Select Unit',
-                    allowClear: true,
-                    dropdownParent: $('#addMaterialModal')
-                }).on('select2:open', function() {
-                    setTimeout(function() {
-                        document.querySelector('.select2-container--open .select2-search__field')
-                            ?.focus();
-                    }, 100);
-                });
-            }
-
-            // Re-initialize Select2 saat modal ditampilkan
-            $('#addMaterialModal').on('shown.bs.modal', function() {
-                // Destroy existing Select2 instance jika ada
-                if ($('#unit-select-modal').data('select2')) {
-                    $('#unit-select-modal').select2('destroy');
-                }
-                initializeUnitSelect2();
-            });
-
-            // Quick Add Material (existing code, no changes needed)
-            $('#quickAddMaterialForm').on('submit', function(e) {
-                e.preventDefault();
-                let form = $(this);
-                $.ajax({
-                    url: form.attr('action'),
-                    method: 'POST',
-                    data: form.serialize(),
-                    headers: {
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                    },
-                    success: function(res) {
-                        if (res.success && res.material) {
-                            let newOption = new Option(res.material.name, res.material.id, true,
-                                true);
-                            $('select[name="inventory_id"]').append(newOption).val(res.material
-                                .id).trigger('change');
-                            $('#addMaterialModal').modal('hide');
-                            form[0].reset();
-                        } else {
-                            Swal.fire('Error', 'Failed to add material. Please try again.',
-                                'error');
-                        }
-                    },
-                    error: function(xhr) {
-                        let msg = xhr.responseJSON?.message ||
-                            'Failed to add material. Please try again.';
-                        Swal.fire('Error', msg, 'error');
-                    }
-                });
-            });
-
-            // Department per-row
-            $(document).on('change', '.project-select', function() {
-                const selected = $(this).find(':selected');
-                const department = selected.data('department');
-                const $deptDiv = $(this).closest('td').find('.department-text');
-                $deptDiv.removeClass('d-none text-danger text-warning');
-                if (selected.val() && department) {
-                    $deptDiv.text(
-                        `Department: ${department.charAt(0).toUpperCase() + department.slice(1)}`);
-                } else {
-                    $deptDiv.addClass('d-none').text('Department');
-                }
-            });
-            $('.project-select').trigger('change');
 
             // Available Qty per-row
             $(document).on('change', '.material-select', function() {
@@ -605,52 +662,9 @@
                     $qtyDiv.addClass('d-none').text('');
                 }
             });
-            $('.material-select').trigger('change');
-
-            // Untuk modal Quick Add Material
-            $('#quickAddMaterialForm').closest('.modal').on('shown.bs.modal', function() {
-                const $input = $(this).find('#search-material-autocomplete');
-                const $result = $(this).find('#search-material-result');
-                $input.off('input').on('input', function() {
-                    const keyword = $(this).val().trim();
-                    if (keyword.length < 2) {
-                        $result.html('');
-                        return;
-                    }
-                    $.ajax({
-                        url: "{{ route('inventories.json') }}",
-                        data: {
-                            q: keyword
-                        },
-                        success: function(data) {
-                            const filtered = data.filter(item =>
-                                item.name.toLowerCase().includes(keyword
-                                    .toLowerCase())
-                            );
-                            if (filtered.length > 0) {
-                                $result.html(
-                                    '<b>Similar material(s) found:</b><ul class="mb-0">' +
-                                    filtered.map(item => `<li>${item.name}</li>`)
-                                    .join('') +
-                                    '</ul><span class="text-danger">Please make sure you are not adding a duplicate material!</span>'
-                                );
-                            } else {
-                                $result.html(
-                                    '<span class="text-success">No similar material found. You can proceed to add this material.</span>'
-                                );
-                            }
-                        },
-                        error: function() {
-                            $result.html(
-                                '<span class="text-danger">Failed to search material.</span>'
-                            );
-                        }
-                    });
-                });
-            });
 
             // Handle form submission for bulk create
-            const form = $('form[action="{{ route('material_requests.bulk_store') }}"]');
+            const form = $('#bulkMaterialRequestForm');
             const submitBtn = $('#bulk-submit-btn');
             const spinner = submitBtn.find('.spinner-border');
 
@@ -660,6 +674,252 @@
                     spinner.removeClass('d-none');
                 });
             }
+
+            // ========== QUICK ADD MATERIAL ==========
+            $('#btnAddMaterial').off('click').on('click', function(e) {
+                e.preventDefault();
+                $('#confirmAddMaterialModal').modal('show');
+            });
+
+            $('#btnConfirmAddMaterial').off('click').on('click', function() {
+                $('#confirmAddMaterialModal').modal('hide');
+                setTimeout(function() {
+                    $('#addMaterialModal').modal('show');
+                }, 360);
+            });
+
+            function initializeUnitSelect2() {
+                $('#unit-select-modal').select2({
+                    theme: 'bootstrap-5',
+                    placeholder: 'Select Unit',
+                    allowClear: true,
+                    dropdownParent: $('#addMaterialModal')
+                }).on('select2:open', function() {
+                    setTimeout(function() {
+                        document.querySelector('.select2-container--open .select2-search__field')
+                            ?.focus();
+                    }, 100);
+                });
+            }
+
+            $('#addMaterialModal').on('shown.bs.modal', function() {
+                if ($('#unit-select-modal').data('select2')) {
+                    $('#unit-select-modal').select2('destroy');
+                }
+                initializeUnitSelect2();
+            });
+
+            $('#quickAddMaterialForm').on('submit', function(e) {
+                e.preventDefault();
+                let form = $(this);
+                $.ajax({
+                    url: form.attr('action'),
+                    method: 'POST',
+                    data: form.serialize(),
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    success: function(res) {
+                        if (res.success && res.material) {
+                            let newOption = new Option(res.material.name, res.material.id, true,
+                                true);
+                            $('.material-select').each(function() {
+                                let exists = $(this).find('option[value="' + res.material.id + '"]').length;
+                                if (!exists) {
+                                    $(this).append(newOption.clone());
+                                }
+                            });
+                            $('#addMaterialModal').modal('hide');
+                            form[0].reset();
+                            Swal.fire('Success', 'Material added successfully!', 'success');
+                        } else {
+                            Swal.fire('Error', 'Failed to add material. Please try again.',
+                                'error');
+                        }
+                    },
+                    error: function(xhr) {
+                        let msg = xhr.responseJSON?.message ||
+                            'Failed to add material. Please try again.';
+                        Swal.fire('Error', msg, 'error');
+                    }
+                });
+            });
+
+            $('#search-material-autocomplete').on('input', function() {
+                const keyword = $(this).val().trim();
+                const $result = $('#search-material-result');
+                if (keyword.length < 2) { $result.html(''); return; }
+                $.ajax({
+                    url: "{{ route('inventories.json') }}",
+                    data: { q: keyword },
+                    success: function(data) {
+                        const filtered = data.filter(item => item.name.toLowerCase().includes(keyword.toLowerCase()));
+                        if (filtered.length > 0) {
+                            $result.html(
+                                '<b>Similar material(s) found:</b><ul class="mb-0">' +
+                                filtered.map(item => `<li>${item.name}</li>`).join('') +
+                                '</ul><span class="text-danger">Please make sure you are not adding a duplicate material!</span>'
+                            );
+                        } else {
+                            $result.html('<span class="text-success">No similar material found. You can proceed to add this material.</span>');
+                        }
+                    },
+                    error: function() { $result.html('<span class="text-danger">Failed to search material.</span>'); }
+                });
+            });
+
+            // ========== QUICK ADD INTERNAL PROJECT ==========
+            $('#btnAddInternalProject').on('click', function() {
+                $('#addInternalProjectModal').modal('show');
+            });
+
+            function updateDepartmentField() {
+                const projectType = $('#modal_project_type').val();
+                const isTesting = projectType === 'Testing';
+                const $staticDisplay = $('#dept-static-display');
+                const $dropdownWrapper = $('#dept-dropdown-wrapper');
+                const $finalHidden = $('#final_department_id');
+
+                if (isTesting) {
+                    $staticDisplay.hide();
+                    $dropdownWrapper.show();
+                    const selectedDeptId = $('#dept-dropdown-select').val();
+                    $finalHidden.val(selectedDeptId || '');
+                } else {
+                    $staticDisplay.show();
+                    $dropdownWrapper.hide();
+                    $finalHidden.val(defaultPtDcmDepartmentId);
+                    $('#dept-dropdown-select').val('').trigger('change');
+                }
+            }
+
+            $('#modal_project_type').on('change', updateDepartmentField);
+
+            $('#dept-dropdown-select').on('change', function() {
+                if ($('#modal_project_type').val() === 'Testing') {
+                    $('#final_department_id').val($(this).val());
+                }
+            });
+
+            $('#addInternalProjectModal').on('shown.bs.modal', function() {
+                $('#quickAddInternalProjectForm')[0].reset();
+                $('#internal-project-error').addClass('d-none').html('');
+                $('#final_department_id').val(defaultPtDcmDepartmentId);
+                $('#modal_project_type').val('').trigger('change');
+
+                $('#dept-dropdown-select').select2({
+                    theme: 'bootstrap-5',
+                    placeholder: 'Select Department',
+                    allowClear: true,
+                    width: '100%',
+                    dropdownParent: $('#addInternalProjectModal')
+                });
+
+                updateDepartmentField();
+            });
+
+            $('#quickAddInternalProjectForm').on('submit', function(e) {
+                e.preventDefault();
+                const form = $(this);
+                const submitBtn = $('#btnSaveInternalProject');
+                const spinner = submitBtn.find('.spinner-border');
+                const errorDiv = $('#internal-project-error');
+
+                if (!$('#final_department_id').val()) {
+                    errorDiv.html('Department is required.').removeClass('d-none');
+                    return;
+                }
+
+                submitBtn.prop('disabled', true);
+                spinner.removeClass('d-none');
+                errorDiv.addClass('d-none').html('');
+
+                $.ajax({
+                    url: '{{ route("internal_projects.quick") }}',
+                    method: 'POST',
+                    data: form.serialize(),
+                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                    success: function(response) {
+                        if (response.success && response.internal_project) {
+                            const ip = response.internal_project;
+                            // Tambahkan ke internalProjects array
+                            internalProjects.push({ id: ip.id, project: ip.project, job: ip.job });
+                            // Update semua dropdown job-order-select untuk internal
+                            $('.job-order-select').each(function() {
+                                const $row = $(this).closest('tr');
+                                const type = $row.find('.project-type-select').val();
+                                if (type === 'internal') {
+                                    const option = new Option(ip.job, ip.id, false, false);
+                                    $(option).attr('data-internal-id', ip.id).attr('data-project', ip.project);
+                                    $(this).append(option);
+                                }
+                            });
+                            $('#addInternalProjectModal').modal('hide');
+                            form[0].reset();
+                            Swal.fire('Success', response.message, 'success');
+                        }
+                    },
+                    error: function(xhr) {
+                        let errors = xhr.responseJSON?.errors;
+                        let message = xhr.responseJSON?.message || 'Failed to add internal project.';
+                        if (errors) {
+                            let errorHtml = '<ul class="mb-0">';
+                            for (let key in errors) { errorHtml += '<li>' + errors[key][0] + '</li>'; }
+                            errorHtml += '</ul>';
+                            errorDiv.html(errorHtml).removeClass('d-none');
+                        } else {
+                            errorDiv.html(message).removeClass('d-none');
+                        }
+                    },
+                    complete: function() {
+                        submitBtn.prop('disabled', false);
+                        spinner.addClass('d-none');
+                    }
+                });
+            });
+
+            // ========== QUICK ADD PROJECT (CLIENT) ==========
+            $('#quickAddProjectForm').on('submit', function(e) {
+                e.preventDefault();
+                let form = $(this);
+                let errorDiv = $('#project-error');
+                errorDiv.hide().text('');
+
+                $.ajax({
+                    url: form.attr('action'),
+                    method: 'POST',
+                    data: form.serialize(),
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    success: function(response) {
+                        if (response.success && response.project) {
+                            // Reload halaman agar data project terbaru muncul
+                            window.location.reload();
+                        } else {
+                            errorDiv.html(response.message || 'Failed to add project.').show();
+                        }
+                    },
+                    error: function(xhr) {
+                        let msg = xhr.responseJSON?.message || 'Failed to add project. Please try again.';
+                        errorDiv.html(msg).show();
+                    }
+                });
+            });
+
+            // Inisialisasi Select2 untuk multiple department di modal Quick Add Project
+            $('#project_departments').select2({
+                theme: 'bootstrap-5',
+                width: '100%',
+                placeholder: 'Select Department',
+                allowClear: true,
+                dropdownParent: $('#quickAddProjectModal')
+            }).on('select2:open', function() {
+                setTimeout(function() {
+                    document.querySelector('.select2-container--open .select2-search__field')
+                        .focus();
+                }, 100);
+            });
         });
     </script>
 @endpush

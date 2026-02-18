@@ -40,6 +40,9 @@ class Employee extends Model implements AuditableContract
                 // Pastikan format DCM- jika user input manual
                 $employee->employee_no = self::formatEmployeeNo($employee->employee_no);
             }
+
+            // Auto-set status to inactive if contract expired
+            $employee->checkAndUpdateContractStatus();
         });
 
         static::updating(function ($employee) {
@@ -47,6 +50,9 @@ class Employee extends Model implements AuditableContract
                 // Pastikan format DCM- jika user update manual
                 $employee->employee_no = self::formatEmployeeNo($employee->employee_no);
             }
+
+            // Auto-set status to inactive if contract expired
+            $employee->checkAndUpdateContractStatus();
         });
     }
 
@@ -303,5 +309,110 @@ class Employee extends Model implements AuditableContract
     {
         $skill = $this->skillsets()->where('name', $skillName)->first();
         return $skill ? $skill->pivot->proficiency_level : null;
+    }
+
+    /**
+     * Check and auto-update employee status based on contract date
+     *
+     * @param bool $autoSave Auto save to database (for retrieved event)
+     * @return bool True if status was changed
+     */
+    public function checkAndUpdateContractStatus($autoSave = false)
+    {
+        if (!$this->contract_end_date) {
+            return false;
+        }
+
+        $today = \Carbon\Carbon::today();
+        $contractValid = $this->contract_end_date->gte($today);
+
+        // CASE 1: Active employee with EXPIRED contract → Auto INACTIVE
+        if ($this->status === 'active' && !$contractValid) {
+            $oldStatus = $this->status;
+            $this->status = 'inactive';
+
+            $expiredDate = $this->contract_end_date->format('Y-m-d');
+            $updateNote = "[Auto-updated] Status changed to 'inactive' - Contract expired on {$expiredDate}";
+
+            if (!str_contains($this->notes ?? '', $updateNote)) {
+                $this->notes = trim(($this->notes ?? '') . "\n" . $updateNote);
+            }
+
+            \Log::info('Employee contract expired - Auto-updated to inactive', [
+                'employee_id' => $this->id ?? 'new',
+                'employee_no' => $this->employee_no,
+                'name' => $this->name,
+                'contract_end_date' => $expiredDate,
+                'old_status' => $oldStatus,
+                'new_status' => 'inactive',
+            ]);
+
+            return true;
+        }
+
+        // CASE 2: Inactive employee with VALID contract (extended) → Auto ACTIVE
+        // Only if inactive was caused by auto-update (not manual termination)
+        if ($this->status === 'inactive' && $contractValid) {
+            // Check if inactive was caused by auto-system (not manual)
+            $wasAutoInactive = str_contains($this->notes ?? '', '[Auto-updated]');
+
+            if ($wasAutoInactive) {
+                $oldStatus = $this->status;
+                $this->status = 'active';
+
+                $newEndDate = $this->contract_end_date->format('Y-m-d');
+                $updateNote = "[Auto-updated] Status changed to 'active' - Contract extended until {$newEndDate}";
+
+                if (!str_contains($this->notes ?? '', $updateNote)) {
+                    $this->notes = trim(($this->notes ?? '') . "\n" . $updateNote);
+                }
+
+                \Log::info('Employee contract extended - Auto-updated to active', [
+                    'employee_id' => $this->id ?? 'new',
+                    'employee_no' => $this->employee_no,
+                    'name' => $this->name,
+                    'contract_end_date' => $newEndDate,
+                    'old_status' => $oldStatus,
+                    'new_status' => 'active',
+                ]);
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Static method to batch check and update all expired contracts
+     * Can be called manually or via tinker
+     *
+     * @return int Number of employees updated
+     */
+    public static function updateExpiredContracts()
+    {
+        $today = \Carbon\Carbon::today();
+
+        $expiredEmployees = self::where('status', 'active')->whereNotNull('contract_end_date')->where('contract_end_date', '<', $today)->get();
+
+        $count = 0;
+        foreach ($expiredEmployees as $employee) {
+            $employee->checkAndUpdateContractStatus();
+
+            // Save the changes
+            if ($employee->isDirty('status')) {
+                $employee->saveQuietly(); // Use saveQuietly to avoid triggering boot events again
+                $count++;
+            }
+        }
+
+        if ($count > 0) {
+            \Log::info('Batch update expired contracts completed', [
+                'total_updated' => $count,
+                'updated_at' => now()->format('Y-m-d H:i:s'),
+            ]);
+        }
+
+        return $count;
     }
 }
