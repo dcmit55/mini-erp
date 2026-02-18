@@ -109,7 +109,7 @@ class MaterialRequestController extends Controller
                     return $req->project_type === 'client' ? 'Client' : 'Internal';
                 })
                 ->addColumn('material_name', function ($req) {
-                    return e($req->inventory->name ?? '(No Material)');
+                    return $req->inventory->name ?? '(No Material)';
                 })
                 ->addColumn('requested_qty', function ($req) {
                     return rtrim(rtrim(number_format($req->qty, 2, '.', ''), '0'), '.') . ' ' . ($req->inventory->unit ?? '');
