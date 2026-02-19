@@ -74,9 +74,21 @@ class Project extends Model implements Auditable
         return $this->hasMany(JobOrder::class, 'project_id');
     }
 
+    // Timings relation (one-to-many) - untuk efficiency dashboard
+    public function timings()
+    {
+        return $this->hasMany(Timing::class, 'project_id');
+    }
+
     public function status()
     {
         return $this->belongsTo(ProjectStatus::class, 'project_status_id');
+    }
+
+    // Alias untuk compatibility dengan nama lain
+    public function projectStatus()
+    {
+        return $this->status();
     }
 
     public function scopeNotArchived($query)

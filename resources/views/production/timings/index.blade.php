@@ -2,6 +2,13 @@
 
 @section('content')
     <div class="container-fluid py-4">
+        <!-- Quick Navigation Bar -->
+        <div class="mb-3">
+            <a href="{{ route('efficiency.index') }}" class="btn btn-outline-primary btn-sm">
+                <i class="fas fa-chart-line me-1"></i> Efficiency Dashboard
+            </a>
+        </div>
+
         <div class="card shadow-sm border-0 mb-4">
             <div class="card-body">
                 <div class="d-flex flex-column flex-lg-row align-items-lg-center gap-2 mb-2">
@@ -74,6 +81,18 @@
                         </select>
                     </div>
                     <div class="col-md-2">
+                        <label class="form-label mb-1">Filter Job Order</label>
+                        <select name="job_order_id" class="form-select select2" data-placeholder="All Job Orders">
+                            <option value="">All Job Orders</option>
+                            @foreach ($jobOrders as $jo)
+                                <option value="{{ $jo->id }}"
+                                    {{ request('job_order_id') == $jo->id ? 'selected' : '' }}>
+                                    {{ $jo->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-2">
                         <label class="form-label mb-1">Department</label>
                         <select name="department" class="form-select select2" data-placeholder="All Departments">
                             <option value="">All Departments</option>
@@ -108,13 +127,16 @@
                         <tr>
                             <th>Date</th>
                             <th>Project</th>
+                            <th>Job Order</th>
                             <th>Department</th>
                             <th>Step</th>
                             <th>Parts</th>
                             <th>Employee</th>
                             <th>Start</th>
                             <th>End</th>
-                            <th>Qty</th>
+                            <th>Duration (hrs)</th>
+                            <th>Value</th>
+                            <th>Type</th>
                             <th>Status</th>
                             <th>Remarks</th>
                             <th>Actions</th>
@@ -143,8 +165,8 @@
                     <div class="modal-body">
                         <div class="mb-3">
                             <label for="xls_file" class="form-label">Choose Excel File</label>
-                            <input type="file" class="form-control" id="xls_file" name="xls_file" accept=".xlsx,.xls"
-                                required>
+                            <input type="file" class="form-control" id="xls_file" name="xls_file"
+                                accept=".xlsx,.xls" required>
                             <div class="form-text">
                                 Only .xlsx and .xls files are allowed. Maximum file size: 2MB
                             </div>

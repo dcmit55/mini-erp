@@ -42,9 +42,8 @@ class AnimatronicsTimingController extends Controller
         // Get active animatronics employees (exclude those with active sessions)
         $employees = Employee::where('status', 'active')->where('department_id', $animatronicsDept->id)->whereNotIn('id', $employeesWithActiveSessions)->with('department')->orderBy('name')->get();
 
-        // Get job orders related to animatronics
+        // Get ALL job orders (tidak filter by department, karena dept lain bisa dikerjakan animatronics)
         $jobOrders = JobOrder::with(['project', 'department'])
-            ->where('department_id', $animatronicsDept->id)
             ->whereNull('deleted_at')
             ->orderBy('created_at', 'desc')
             ->get();
@@ -130,9 +129,15 @@ class AnimatronicsTimingController extends Controller
                 $deptSpecificData['tracking_mode'] = $validated['tracking_mode'];
                 $deptSpecificData['measurement_type'] = $validated['tracking_mode'] === 'progress' ? 'progress' : 'quantity';
 
-                // For progress mode, get previous progress
+                // For progress mode, get previous progress (SHARED per job order, bukan per employee)
                 if ($validated['tracking_mode'] === 'progress') {
-                    $lastTiming = Timing::where('job_order_id', $validated['job_order_id'])->where('employee_id', $employeeId)->whereNotNull('department_specific_data')->latest('tanggal')->latest('end_time')->first();
+                    // Get latest timing for this job order (regardless of employee)
+                    $lastTiming = Timing::where('job_order_id', $validated['job_order_id'])
+                        ->whereNotNull('department_specific_data')
+                        ->whereNotNull('end_time') // Only completed sessions
+                        ->latest('tanggal')
+                        ->latest('end_time')
+                        ->first();
 
                     $previousProgress = 0;
                     if ($lastTiming && isset($lastTiming->department_specific_data['current_progress'])) {
@@ -213,7 +218,9 @@ class AnimatronicsTimingController extends Controller
         $validated = $request->validate([
             'timing_id' => 'required|exists:timings,id', // Single timing ID only
             'output_qty' => 'required|numeric|min:0',
-            'photo' => 'required|image|mimes:jpeg,jpg,png|max:5120', // Required photo upload (max 5MB)
+            'measurement_type' => 'required|string|in:qty,pcs,unit,piece,item,set,meter,cm,kg,gram,percentage', // Add percentage
+            'stage' => 'nullable|integer|min:1|max:10', // Stage for progress mode (1-10)
+            'photo' => 'nullable|image|mimes:jpeg,jpg,png|max:5120', // Photo optional (not required)
             'department_specific_data' => 'nullable|array',
         ]);
 
@@ -242,12 +249,23 @@ class AnimatronicsTimingController extends Controller
                 $deptSpecificData = array_merge($deptSpecificData, $validated['department_specific_data']);
             }
 
-            // For progress mode, calculate current progress
+            // For progress mode, calculate current progress using stage
             if (isset($deptSpecificData['tracking_mode']) && $deptSpecificData['tracking_mode'] === 'progress') {
                 $previousProgress = $deptSpecificData['previous_progress'] ?? 0;
-                $progressAdded = $validated['output_qty'];
+
+                // If stage is provided, use it to calculate progress (each stage = 10%)
+                if (isset($validated['stage'])) {
+                    $stage = $validated['stage'];
+                    $progressAdded = $stage * 10; // Each stage represents 10%
+                    $deptSpecificData['stage'] = $stage;
+                    $deptSpecificData['progress_added'] = $progressAdded;
+                } else {
+                    // Fallback: use output_qty directly as percentage
+                    $progressAdded = $validated['output_qty'];
+                    $deptSpecificData['progress_added'] = $progressAdded;
+                }
+
                 $deptSpecificData['current_progress'] = min(100, $previousProgress + $progressAdded);
-                $deptSpecificData['progress_added'] = $progressAdded;
             }
 
             // Calculate duration in hours
@@ -263,10 +281,11 @@ class AnimatronicsTimingController extends Controller
                 }
             }
 
-            // Determine measurement type
-            $measurementType = ($deptSpecificData['tracking_mode'] ?? 'timer') === 'progress' ? 'percentage' : 'qty';
+            // Determine measurement type (dari form untuk timer mode, atau percentage untuk progress mode)
+            $trackingMode = $deptSpecificData['tracking_mode'] ?? 'timer';
+            $measurementType = $trackingMode === 'progress' ? 'percentage' : $validated['measurement_type'];
 
-            // Handle photo upload
+            // Handle photo upload (OPTIONAL)
             $photoPath = null;
             if ($request->hasFile('photo')) {
                 $photo = $request->file('photo');

@@ -125,7 +125,8 @@ class CostumeTimingController extends Controller
                     'employee_id' => $employeeId,
                     'start_time' => $startTime,
                     'end_time' => null,
-                    'output_qty' => 0,
+                    'measurement_type' => 'pcs', // Default pcs, will be updated on stop
+                    'measurement_value' => 0,
                     'status' => 'on progress',
                     'remarks' => null,
                 ]);
@@ -182,7 +183,8 @@ class CostumeTimingController extends Controller
     {
         $validated = $request->validate([
             'timing_id' => 'required|exists:timings,id', // Single timing ID only
-            'output_qty' => 'required|integer|min:0',
+            'output_qty' => 'required|numeric|min:0',
+            'measurement_type' => 'required|string|in:qty,pcs,unit,piece,item,set,meter,cm,kg,gram', // Measurement type selection
         ]);
 
         try {
@@ -203,9 +205,24 @@ class CostumeTimingController extends Controller
                 );
             }
 
+            // Calculate duration in hours
+            $durationHours = 0;
+            if ($timing->start_time && $endTime) {
+                try {
+                    $today = now()->format('Y-m-d');
+                    $start = \Carbon\Carbon::parse($today . ' ' . $timing->start_time);
+                    $end = \Carbon\Carbon::parse($today . ' ' . $endTime);
+                    $durationHours = round($start->diffInMinutes($end) / 60, 2);
+                } catch (\Exception $e) {
+                    $durationHours = 0;
+                }
+            }
+
             $timing->update([
                 'end_time' => $endTime,
-                'output_qty' => $validated['output_qty'],
+                'measurement_type' => $validated['measurement_type'],
+                'measurement_value' => $validated['output_qty'],
+                'duration_hours' => $durationHours,
                 'status' => 'complete',
             ]);
 
@@ -213,9 +230,10 @@ class CostumeTimingController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Work session completed successfully with output: ' . $validated['output_qty'] . ' pieces',
+                'message' => 'Work session completed successfully with output: ' . $validated['output_qty'] . ' ' . $validated['measurement_type'],
                 'end_time' => $endTime,
                 'timing_id' => $timing->id,
+                'duration_hours' => $durationHours,
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -237,10 +255,29 @@ class CostumeTimingController extends Controller
 
     /**
      * Get active sessions via AJAX (individual sessions, not grouped)
+     * ONLY for COSTUME department
      */
     public function getActiveSessions()
     {
-        $activeSessions = Timing::running()->today()->withRelations()->orderBy('start_time', 'desc')->get();
+        // Get costume department
+        $costumeDept = Department::where('name', 'LIKE', '%costume%')->orWhere('name', 'LIKE', '%sewing%')->first();
+
+        if (!$costumeDept) {
+            return response()->json([
+                'success' => true,
+                'sessions' => [], // No costume dept = no sessions
+            ]);
+        }
+
+        // FILTER by costume department ONLY
+        $activeSessions = Timing::running()
+            ->today()
+            ->withRelations()
+            ->whereHas('employee', function ($query) use ($costumeDept) {
+                $query->where('department_id', $costumeDept->id);
+            })
+            ->orderBy('start_time', 'desc')
+            ->get();
 
         $sessions = $activeSessions->map(function ($timing) {
             return [
@@ -255,7 +292,8 @@ class CostumeTimingController extends Controller
                 'step' => $timing->step,
                 'parts' => $timing->parts,
                 'start_time' => $timing->start_time,
-                'output_qty' => $timing->output_qty,
+                'measurement_type' => $timing->measurement_type ?? 'pcs',
+                'measurement_value' => $timing->measurement_value ?? 0,
                 'duration' => $this->calculateDuration($timing->start_time),
             ];
         });

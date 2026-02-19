@@ -12,7 +12,7 @@ class Timing extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['tanggal', 'job_order_id', 'project_id', 'step', 'parts', 'employee_id', 'start_time', 'end_time', 'output_qty', 'measurement_type', 'measurement_value', 'duration_hours', 'status', 'remarks', 'department_specific_data', 'photo'];
+    protected $fillable = ['tanggal', 'job_order_id', 'project_id', 'step', 'parts', 'employee_id', 'start_time', 'end_time', 'measurement_type', 'measurement_value', 'duration_hours', 'status', 'remarks', 'department_specific_data', 'photo'];
 
     /**
      * Cast department_specific_data as array for easy access
@@ -52,22 +52,38 @@ class Timing extends Model
 
     /**
      * Get duration in hours (decimal format for calculations)
+     * NOTE: Ini baca dari kolom duration_hours di database, bukan calculated
      */
-    public function getDurationHoursAttribute()
+    public function getDurationHoursDecimalAttribute()
     {
-        if (!$this->start_time || !$this->end_time) {
-            return 0;
+        return $this->attributes['duration_hours'] ?? 0;
+    }
+
+    /**
+     * Get duration in human-readable format
+     * Examples: "1 jam 30 menit", "45 menit", "2 jam"
+     */
+    public function getDurationReadableAttribute()
+    {
+        $hours = $this->attributes['duration_hours'] ?? 0;
+
+        if ($hours == 0) {
+            return '0 menit';
         }
 
-        try {
-            $today = now()->format('Y-m-d');
-            $start = \Carbon\Carbon::parse($today . ' ' . $this->start_time);
-            $end = \Carbon\Carbon::parse($today . ' ' . $this->end_time);
+        $totalMinutes = round($hours * 60);
+        $h = floor($totalMinutes / 60);
+        $m = $totalMinutes % 60;
 
-            return round($start->diffInMinutes($end) / 60, 2);
-        } catch (\Exception $e) {
-            return 0;
+        $parts = [];
+        if ($h > 0) {
+            $parts[] = $h . ' jam';
         }
+        if ($m > 0) {
+            $parts[] = $m . ' menit';
+        }
+
+        return implode(' ', $parts);
     }
 
     // ============================================

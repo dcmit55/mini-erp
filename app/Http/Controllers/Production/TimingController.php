@@ -27,20 +27,21 @@ class TimingController extends Controller
 
     public function index(Request $request)
     {
-        $timings = Timing::with(['project.departments', 'employee.department'])
+        $timings = Timing::with(['project.departments', 'employee.department', 'jobOrder'])
             ->latest()
             ->get();
 
         $projects = Project::with('departments')->orderBy('name')->get();
+        $jobOrders = \App\Models\Production\JobOrder::orderBy('name')->get();
         $departments = Department::orderBy('name')->pluck('name', 'id');
         $employees = Employee::orderBy('name')->get();
 
-        return view('production.timings.index', compact('timings', 'projects', 'departments', 'employees'));
+        return view('production.timings.index', compact('timings', 'projects', 'jobOrders', 'departments', 'employees'));
     }
 
     public function ajaxSearch(Request $request)
     {
-        $query = Timing::with(['project.departments', 'employee.department']);
+        $query = Timing::with(['project.departments', 'employee.department', 'jobOrder']);
 
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
@@ -49,6 +50,9 @@ class TimingController extends Controller
         }
         if ($request->filled('project_id')) {
             $query->where('project_id', $request->project_id);
+        }
+        if ($request->filled('job_order_id')) {
+            $query->where('job_order_id', $request->job_order_id);
         }
         if ($request->filled('department')) {
             $query->whereHas('project.departments', function ($q) use ($request) {
@@ -62,16 +66,17 @@ class TimingController extends Controller
         $timings = $query->orderByDesc('tanggal')->get();
 
         try {
-            $html = view('timings.timing_table', compact('timings'))->render();
+            $html = view('production.timings.timing_table', compact('timings'))->render();
             return response()->json([
                 'html' => $html,
                 'count' => $timings->count(),
                 'success' => true,
             ]);
         } catch (\Exception $e) {
+            \Log::error('Timing AJAX Search Error: ' . $e->getMessage());
             return response()->json(
                 [
-                    'html' => '<tr class="no-data-row"><td colspan="11" class="text-center text-muted py-4"><i class="bi bi-exclamation-triangle"></i> Error loading data</td></tr>',
+                    'html' => '<tr class="no-data-row"><td colspan="14" class="text-center text-muted py-4"><i class="bi bi-exclamation-triangle"></i> Error loading data</td></tr>',
                     'count' => 0,
                     'success' => false,
                     'error' => $e->getMessage(),

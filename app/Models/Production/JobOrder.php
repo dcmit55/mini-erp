@@ -73,6 +73,12 @@ class JobOrder extends Model
         return $this->hasMany(\App\Models\Logistic\MaterialRequest::class, 'job_order_id', 'id');
     }
 
+    // Timings relation (one-to-many) - untuk efficiency dashboard
+    public function timings()
+    {
+        return $this->hasMany(Timing::class, 'job_order_id', 'id');
+    }
+
     public function scopeSearch($query, $search)
     {
         if ($search) {

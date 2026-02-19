@@ -196,21 +196,15 @@
                                     <div class="col-md-6">
                                         <label class="form-label small">Step/Process <span
                                                 class="text-danger">*</span></label>
-                                        <select class="form-select" id="step-select" name="step" required>
-                                            <option value="">Select Step...</option>
-                                            @foreach ($config['common_steps'] ?? [] as $step)
-                                                <option value="{{ $step }}">{{ $step }}</option>
-                                            @endforeach
-                                        </select>
+                                        <input type="text" class="form-control" id="step-input" name="step"
+                                            placeholder="e.g., Sculpting, Assembly, Programming" required>
+                                        <small class="text-muted">Enter the current work step/process</small>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label small">Part/Component</label>
-                                        <select class="form-select" id="parts-select" name="parts">
-                                            <option value="">Select Part...</option>
-                                            @foreach ($config['common_parts'] ?? [] as $part)
-                                                <option value="{{ $part }}">{{ $part }}</option>
-                                            @endforeach
-                                        </select>
+                                        <input type="text" class="form-control" id="parts-input" name="parts"
+                                            placeholder="e.g., Head, Arms, Full Figure">
+                                        <small class="text-muted">Enter the part being worked on (optional)</small>
                                     </div>
                                 </div>
                             </div>
@@ -221,49 +215,12 @@
                                     <span class="badge bg-danger me-2">5</span>Animatronics Details (Optional)
                                 </label>
                                 <div class="row g-3">
-                                    <div class="col-md-6">
-                                        <label class="form-label small">Motor Type</label>
-                                        <select class="form-select form-select-sm"
-                                            name="department_specific_data[motor_type]">
-                                            <option value="">Select Motor Type...</option>
-                                            <option value="Servo">Servo</option>
-                                            <option value="Stepper">Stepper</option>
-                                            <option value="DC Motor">DC Motor</option>
-                                            <option value="Linear Actuator">Linear Actuator</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label small">Voltage</label>
-                                        <select class="form-select form-select-sm"
-                                            name="department_specific_data[voltage]">
-                                            <option value="">Select Voltage...</option>
-                                            <option value="5V">5V</option>
-                                            <option value="12V">12V</option>
-                                            <option value="24V">24V</option>
-                                            <option value="48V">48V</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label small">Control System</label>
-                                        <select class="form-select form-select-sm"
-                                            name="department_specific_data[control_system]">
-                                            <option value="">Select Control System...</option>
-                                            <option value="Arduino">Arduino</option>
-                                            <option value="PLC">PLC</option>
-                                            <option value="Custom PCB">Custom PCB</option>
-                                            <option value="Raspberry Pi">Raspberry Pi</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label small">Programming Language</label>
-                                        <select class="form-select form-select-sm"
-                                            name="department_specific_data[programming_language]">
-                                            <option value="">Select Language...</option>
-                                            <option value="C++">C++</option>
-                                            <option value="Python">Python</option>
-                                            <option value="Ladder Logic">Ladder Logic</option>
-                                            <option value="JavaScript">JavaScript</option>
-                                        </select>
+                                    <div class="col-md-12">
+                                        <label class="form-label small">Remark / Additional Notes</label>
+                                        <textarea class="form-control" rows="3" name="department_specific_data[remark]"
+                                            placeholder="Enter any additional notes, specifications, or details about this work session..."></textarea>
+                                        <small class="text-muted">Optional: Add any relevant information (motor types,
+                                            voltage, control systems, materials used, etc.)</small>
                                     </div>
                                 </div>
                             </div>
@@ -310,15 +267,15 @@
                     <div class="modal-body">
                         <div id="stop-session-info" class="alert alert-info mb-3"></div>
 
-                        <!-- Photo Upload (Required) -->
+                        <!-- Photo Upload (OPTIONAL - tidak required) -->
                         <div class="mb-3">
                             <label class="form-label fw-bold">
                                 Upload Result Photo
-                                <span class="text-danger">*</span>
+                                <span class="text-muted">(Optional)</span>
                             </label>
                             <input type="file" class="form-control" id="stop-photo" name="photo"
-                                accept="image/jpeg,image/jpg,image/png" required>
-                            <small class="text-muted">Required: Upload photo of completed work (JPG, PNG, max 5MB)</small>
+                                accept="image/jpeg,image/jpg,image/png">
+                            <small class="text-muted">Optional: Upload photo of completed work (JPG, PNG, max 5MB)</small>
 
                             <!-- Photo Preview -->
                             <div id="photo-preview" class="mt-2 d-none">
@@ -327,8 +284,52 @@
                             </div>
                         </div>
 
-                        <!-- Dynamic label based on tracking mode -->
-                        <div class="mb-3">
+                        <!-- Measurement Type Selection (untuk timer mode ONLY) -->
+                        <div class="mb-3" id="measurement-type-container">
+                            <label class="form-label fw-bold">
+                                Measurement Type
+                                <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select" id="stop-measurement-type" name="measurement_type" required>
+                                <option value="qty">Qty</option>
+                                <option value="pcs" selected>Pcs</option>
+                                <option value="unit">Unit</option>
+                                <option value="piece">Piece</option>
+                                <option value="item">Item</option>
+                                <option value="set">Set</option>
+                                <option value="meter">Meter</option>
+                                <option value="cm">Cm</option>
+                                <option value="kg">Kg</option>
+                                <option value="gram">Gram</option>
+                            </select>
+                            <small class="text-muted">Select measurement unit for output quantity</small>
+                        </div>
+
+                        <!-- Stage Selection (ONLY for progress mode) -->
+                        <div class="mb-3 d-none" id="stage-selection-container">
+                            <label class="form-label fw-bold">
+                                Select Stage Completed
+                                <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select form-select-lg" id="stop-stage" name="stage">
+                                <option value="">Choose stage...</option>
+                                <option value="1">Stage 1 (10% Progress)</option>
+                                <option value="2">Stage 2 (20% Progress)</option>
+                                <option value="3">Stage 3 (30% Progress)</option>
+                                <option value="4">Stage 4 (40% Progress)</option>
+                                <option value="5">Stage 5 (50% Progress)</option>
+                                <option value="6">Stage 6 (60% Progress)</option>
+                                <option value="7">Stage 7 (70% Progress)</option>
+                                <option value="8">Stage 8 (80% Progress)</option>
+                                <option value="9">Stage 9 (90% Progress)</option>
+                                <option value="10">Stage 10 (100% Complete)</option>
+                            </select>
+                            <small class="text-muted">Each stage represents 10% progress increment. Select the stage you've
+                                just completed.</small>
+                        </div>
+
+                        <!-- Output Quantity (for timer mode ONLY) -->
+                        <div class="mb-3" id="output-qty-container">
                             <label class="form-label fw-bold">
                                 <span id="output-label">Output Quantity</span>
                                 <span class="text-danger">*</span>
@@ -341,9 +342,10 @@
 
                         <!-- Progress tracking info (for progress mode) -->
                         <div class="mb-3 d-none" id="progress-info">
-                            <div class="alert alert-info mb-0">
+                            <div class="alert alert-success mb-0">
                                 <strong>Previous Progress:</strong> <span id="previous-progress">0</span>%<br>
-                                <strong>Current Progress:</strong> <span id="current-progress">0</span>%
+                                <strong>Will be updated to:</strong> <span id="current-progress"
+                                    class="text-primary fw-bold">0</span>%
                             </div>
                         </div>
 
@@ -660,15 +662,11 @@
                     employees: selectedEmployees,
                     job_order_id: selectedJobOrder,
                     tracking_mode: trackingMode,
-                    step: $('#step-select').val(),
-                    parts: $('#parts-select').val(),
+                    step: $('#step-input').val(), // Changed from step-select to step-input
+                    parts: $('#parts-input').val(), // Changed from parts-select to parts-input
                     department_specific_data: {
-                        motor_type: $('select[name="department_specific_data[motor_type]"]').val(),
-                        voltage: $('select[name="department_specific_data[voltage]"]').val(),
-                        control_system: $('select[name="department_specific_data[control_system]"]')
-                            .val(),
-                        programming_language: $(
-                            'select[name="department_specific_data[programming_language]"]').val()
+                        remark: $('textarea[name="department_specific_data[remark]"]')
+                        .val() // Changed to remark only
                     }
                 };
 
@@ -697,8 +695,8 @@
                             $('.employee-checkbox').prop('checked', false);
                             $('#project-info').addClass('d-none');
                             $('#job-order-select').val('').trigger('change');
-                            $('#step-select').val('').trigger('change');
-                            $('#parts-select').val('').trigger('change');
+                            $('#step-input').val(''); // Changed from step-select
+                            $('#parts-input').val(''); // Changed from parts-select
                             selectedEmployees = [];
                             selectedJobOrder = null;
                             trackingMode = 'timer';
@@ -824,24 +822,32 @@
 
                 // Update labels based on mode
                 if (mode === 'progress') {
-                    $('#output-label').text('Progress Added (%)');
-                    $('#output-help').text('Enter the progress percentage added (0-100)');
-                    $('#stop-output-qty').attr('max', 100 - previousProgress).attr('step', 0.1);
-                    $('#previous-progress').text(previousProgress);
-                    $('#current-progress').text(previousProgress);
+                    // Progress mode: show stage selection, hide measurement type and output qty
+                    $('#stage-selection-container').removeClass('d-none');
+                    $('#output-qty-container').addClass('d-none');
+                    $('#measurement-type-container').addClass('d-none');
                     $('#progress-info').removeClass('d-none');
 
-                    // Update current progress on input
-                    $('#stop-output-qty').off('input').on('input', function() {
-                        const added = parseFloat($(this).val()) || 0;
-                        const current = Math.min(100, previousProgress + added);
-                        $('#current-progress').text(current.toFixed(1));
+                    $('#previous-progress').text(previousProgress);
+                    $('#current-progress').text(previousProgress);
+
+                    // Update progress preview when stage changes
+                    $('#stop-stage').off('change').on('change', function() {
+                        const stage = parseInt($(this).val()) || 0;
+                        const stageProgress = stage * 10; // Each stage = 10%
+                        const newProgress = Math.min(100, previousProgress + stageProgress);
+                        $('#current-progress').text(newProgress);
                     });
                 } else {
+                    // Timer mode: show output qty and measurement type, hide stage
+                    $('#stage-selection-container').addClass('d-none');
+                    $('#output-qty-container').removeClass('d-none');
+                    $('#measurement-type-container').removeClass('d-none');
+                    $('#progress-info').addClass('d-none');
+
                     $('#output-label').text('Output Quantity');
                     $('#output-help').text('Enter the total quantity produced');
                     $('#stop-output-qty').removeAttr('max').attr('step', 1);
-                    $('#progress-info').addClass('d-none');
                 }
 
                 $('#stopWorkModal').modal('show');
@@ -852,26 +858,38 @@
                 e.preventDefault();
 
                 const timingId = $('#stop-timing-id').val();
-                const outputQty = parseFloat($('#stop-output-qty').val());
                 const trackingMode = $('#stop-tracking-mode').val();
                 const photoFile = $('#stop-photo')[0].files[0];
 
-                if (!outputQty || outputQty < 0) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Invalid Quantity',
-                        text: 'Please enter a valid output quantity'
-                    });
-                    return;
-                }
+                let outputQty;
+                let measurementType;
+                let stage = null;
 
-                if (!photoFile) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Photo Required',
-                        text: 'Please upload a photo of the completed work'
-                    });
-                    return;
+                // Get values based on tracking mode
+                if (trackingMode === 'progress') {
+                    stage = parseInt($('#stop-stage').val());
+                    if (!stage || stage < 1 || stage > 10) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Stage Required',
+                            text: 'Please select a stage (1-10)'
+                        });
+                        return;
+                    }
+                    outputQty = stage * 10; // Convert stage to percentage
+                    measurementType = 'percentage';
+                } else {
+                    outputQty = parseFloat($('#stop-output-qty').val());
+                    measurementType = $('#stop-measurement-type').val();
+
+                    if (!outputQty || outputQty < 0) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Invalid Quantity',
+                            text: 'Please enter a valid output quantity'
+                        });
+                        return;
+                    }
                 }
 
                 // Create FormData for file upload
@@ -879,7 +897,17 @@
                 formData.append('_token', '{{ csrf_token() }}');
                 formData.append('timing_id', timingId);
                 formData.append('output_qty', outputQty);
-                formData.append('photo', photoFile);
+                formData.append('measurement_type', measurementType);
+
+                // Add stage if progress mode
+                if (stage) {
+                    formData.append('stage', stage);
+                }
+
+                // Append photo hanya jika ada
+                if (photoFile) {
+                    formData.append('photo', photoFile);
+                }
 
                 // Disable submit button
                 const submitBtn = $('#stop-submit-btn');
@@ -1018,10 +1046,10 @@
                                             <strong>Part:</strong> ${session.parts || 'N/A'}
                                         </div>
                                         ${trackingMode === 'progress' ? `
-                                                <div class="col-12">
-                                                    <strong>Previous Progress:</strong> ${previousProgress}%
-                                                </div>
-                                                ` : ''}
+                                                    <div class="col-12">
+                                                        <strong>Previous Progress:</strong> ${previousProgress}%
+                                                    </div>
+                                                    ` : ''}
                                         <div class="col-12">
                                             <small class="text-muted">
                                                 <i class="bi bi-clock"></i> Started: ${session.start_time}
@@ -1096,10 +1124,10 @@
                                         <strong>Part:</strong> ${timing.parts || 'N/A'}
                                     </div>
                                     ${trackingMode === 'progress' ? `
-                                            <div class="col-12">
-                                                <strong>Previous Progress:</strong> ${previousProgress}%
-                                            </div>
-                                            ` : ''}
+                                                <div class="col-12">
+                                                    <strong>Previous Progress:</strong> ${previousProgress}%
+                                                </div>
+                                                ` : ''}
                                     <div class="col-12">
                                         <small class="text-muted">
                                             <i class="bi bi-clock"></i> Started: ${timing.start_time}

@@ -218,10 +218,31 @@
                     <div class="modal-body">
                         <div id="stop-session-info" class="alert alert-info mb-3"></div>
 
+                        <!-- Measurement Type Selection -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                Measurement Type
+                                <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select" id="stop-measurement-type" name="measurement_type" required>
+                                <option value="qty">Qty</option>
+                                <option value="pcs" selected>Pcs</option>
+                                <option value="unit">Unit</option>
+                                <option value="piece">Piece</option>
+                                <option value="item">Item</option>
+                                <option value="set">Set</option>
+                                <option value="meter">Meter</option>
+                                <option value="cm">Cm</option>
+                                <option value="kg">Kg</option>
+                                <option value="gram">Gram</option>
+                            </select>
+                            <small class="text-muted">Select measurement unit for output quantity</small>
+                        </div>
+
                         <div class="mb-3">
                             <label class="form-label fw-bold">Output Quantity <span class="text-danger">*</span></label>
                             <input type="number" class="form-control form-control-lg" id="stop-output-qty"
-                                name="output_qty" min="0" value="1" required>
+                                name="output_qty" min="0" step="0.1" value="1" required>
                             <small class="text-muted">Enter the total quantity produced during this session</small>
                         </div>
 
@@ -548,7 +569,8 @@
                 e.preventDefault();
 
                 const timingId = $('#stop-timing-id').val();
-                const outputQty = parseInt($('#stop-output-qty').val());
+                const outputQty = parseFloat($('#stop-output-qty').val());
+                const measurementType = $('#stop-measurement-type').val();
 
                 if (!outputQty || outputQty < 0) {
                     Swal.fire({
@@ -565,7 +587,8 @@
                     data: {
                         _token: '{{ csrf_token() }}',
                         timing_id: timingId,
-                        output_qty: outputQty
+                        output_qty: outputQty,
+                        measurement_type: measurementType
                     },
                     success: function(response) {
                         if (response.success) {

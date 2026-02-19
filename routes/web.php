@@ -531,8 +531,7 @@ Route::middleware(['auth'])->group(function () {
     })->name('finance.costings');
 
     // Material Request Inventory Detail
-    Route::get('/material-requests/inventory/{id}', [App\Http\Controllers\Logistic\MaterialRequestController::class, 'getInventoryDetail'])
-        ->name('material_requests.inventory_detail');
+    Route::get('/material-requests/inventory/{id}', [App\Http\Controllers\Logistic\MaterialRequestController::class, 'getInventoryDetail'])->name('material_requests.inventory_detail');
 
     // Employee Work Policies
     Route::middleware(['auth'])->group(function () {
@@ -542,10 +541,19 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/employee-work-policies/{policy}/edit', [EmployeeWorkPolicyController::class, 'edit'])->name('employee-work-policies.edit');
         Route::put('/employee-work-policies/{policy}', [EmployeeWorkPolicyController::class, 'update'])->name('employee-work-policies.update');
         Route::delete('/employee-work-policies/{policy}', [EmployeeWorkPolicyController::class, 'destroy'])->name('employee-work-policies.destroy');
-    });    
+    });
     // API endpoint untuk mengambil jam kerja karyawan (opsional)
-    Route::get('/employees/{employee}/work-hours', [App\Http\Controllers\Hr\EmployeeWorkPolicyController::class, 'getHours'])
-        ->name('employees.work-hours');
-});
-    
+    Route::get('/employees/{employee}/work-hours', [App\Http\Controllers\Hr\EmployeeWorkPolicyController::class, 'getHours'])->name('employees.work-hours');
 
+    // Efficiency Dashboard Routes
+    Route::prefix('efficiency-dashboard')
+        ->name('efficiency.')
+        ->middleware('auth')
+        ->group(function () {
+            Route::get('/', [App\Http\Controllers\Production\EfficiencyDashboardController::class, 'index'])->name('index');
+            Route::get('/project/{project}', [App\Http\Controllers\Production\EfficiencyDashboardController::class, 'projectDetail'])->name('project.detail');
+            Route::get('/job-order/{jobOrder}', [App\Http\Controllers\Production\EfficiencyDashboardController::class, 'jobOrderDetail'])->name('job-order.detail');
+            Route::get('/project/{project}/export', [App\Http\Controllers\Production\EfficiencyDashboardController::class, 'exportProject'])->name('project.export');
+            Route::get('/job-order/{jobOrder}/export', [App\Http\Controllers\Production\EfficiencyDashboardController::class, 'exportJobOrder'])->name('job-order.export');
+        });
+});
