@@ -11,7 +11,7 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::table('timings', function (Blueprint $table) {
-            $table->string('photo')->nullable()->after('department_specific_data');
+            $table->string('photo')->nullable()->after('end_time'); // Add photo column to store image path, nullable for existing records
         });
     }
 
