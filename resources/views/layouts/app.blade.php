@@ -276,7 +276,7 @@
                                         'general',
                                     ]))
                                     <li class="nav-item dropdown">
-                                        <a class="nav-link dropdown-toggle {{ request()->is('job-orders*') || request()->is('timings*') || request()->is('employees/*/timing*') || request()->is('material-planning*') ? 'active' : '' }}"
+                                        <a class="nav-link dropdown-toggle {{ request()->is('job-orders*') || request()->is('quick-timer*') || request()->is('employees/*/timing*') || request()->is('material-planning*') ? 'active' : '' }}"
                                             href="#" id="productionsDropdown" role="button"
                                             data-bs-toggle="dropdown" aria-expanded="false">
                                             <i></i>Productions
@@ -306,10 +306,55 @@
                                                     <i class="fas fa-calendar-alt me-2"></i>Material Planning
                                                 </a>
                                             </li>
+                                        </ul>
+                                    </li>
+                                @endif
+
+                                <!-- Timing Menu (Dedicated) -->
+                                @if (in_array(auth()->user()->role, [
+                                        'super_admin',
+                                        'admin_mascot',
+                                        'admin_costume',
+                                        'admin_logistic',
+                                        'admin_finance',
+                                        'admin_procurement',
+                                        'admin_animatronic',
+                                        'admin_hr',
+                                        'admin',
+                                        'general',
+                                    ]))
+                                    <li class="nav-item dropdown">
+                                        <a class="nav-link dropdown-toggle {{ request()->is('costume-timing*') || request()->is('animatronics-timing*') || request()->is('timings*') || request()->is('timing-monitor*') ? 'active' : '' }}"
+                                            href="#" id="timingDropdown" role="button"
+                                            data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i></i>Timing
+                                        </a>
+                                        <ul class="dropdown-menu" aria-labelledby="timingDropdown">
+                                            <li>
+                                                <a class="dropdown-item {{ request()->is('costume-timing*') ? 'active' : '' }}"
+                                                    href="{{ route('costume-timing.index') }}">
+                                                    <i class="fas fa-cut me-2"></i>Costume Timing
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item {{ request()->is('animatronics-timing*') ? 'active' : '' }}"
+                                                    href="{{ route('animatronics-timing.index') }}">
+                                                    <i class="fas fa-robot me-2"></i>Animatronics Timing
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <hr class="dropdown-divider">
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item {{ request()->is('timing-monitor*') ? 'active' : '' }}"
+                                                    href="{{ route('timing-monitor.index') }}">
+                                                    <i class="fas fa-tv me-2"></i>Running Monitor
+                                                </a>
+                                            </li>
                                             <li>
                                                 <a class="dropdown-item {{ request()->is('timings*') ? 'active' : '' }}"
                                                     href="{{ route('timings.index') }}">
-                                                    <i class="fas fa-clock me-2"></i>Timing
+                                                    <i class="fas fa-clock me-2"></i>Timing Data
                                                 </a>
                                             </li>
                                         </ul>

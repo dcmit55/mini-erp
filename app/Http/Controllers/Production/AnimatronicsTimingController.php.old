@@ -1,0 +1,337 @@
+<?php
+
+namespace App\Http\Controllers\Production;
+
+use App\Http\Controllers\Controller;
+use App\Models\Production\Timing;
+use App\Models\Production\JobOrder;
+use App\Models\Production\Project;
+use App\Models\Hr\Employee;
+use App\Services\DepartmentTimingService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
+
+class AnimatronicsTimingController extends Controller
+{
+    protected $deptTimingService;
+
+    public function __construct(DepartmentTimingService $service)
+    {
+        $this->middleware('auth');
+        $this->deptTimingService = $service;
+    }
+
+    /**
+     * Display the animatronics quick timer index page
+     */
+    public function index()
+    {
+        // Get animatronics department
+        $animatronicsDept = \App\Models\Admin\Department::where('name', 'LIKE', '%animatronic%')->orWhere('name', 'LIKE', '%animation%')->first();
+
+        if (!$animatronicsDept) {
+            return redirect()->route('costume-timing.index')->with('error', 'Animatronics department not found. Please use costume timing.');
+        }
+
+        // Get employees with running sessions for today
+        $employeesWithActiveSessions = Timing::running()->today()->pluck('employee_id')->toArray();
+
+        // Get active animatronics employees (exclude those with active sessions)
+        $employees = Employee::where('status', 'active')->where('department_id', $animatronicsDept->id)->whereNotIn('id', $employeesWithActiveSessions)->with('department')->orderBy('name')->get();
+
+        // Get job orders related to animatronics
+        $jobOrders = JobOrder::with(['project', 'department'])
+            ->where('department_id', $animatronicsDept->id)
+            ->whereNull('deleted_at')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // Get active timing sessions for animatronics
+        $activeSessions = Timing::running()
+            ->today()
+            ->withRelations()
+            ->whereHas('employee', function ($query) use ($animatronicsDept) {
+                $query->where('department_id', $animatronicsDept->id);
+            })
+            ->orderBy('start_time', 'desc')
+            ->get();
+
+        // Get department config
+        $config = $this->deptTimingService->getDepartmentConfig($animatronicsDept->id);
+
+        // Get positions in animatronics dept
+        $positions = Employee::where('status', 'active')->where('department_id', $animatronicsDept->id)->whereNotNull('position')->distinct()->pluck('position')->sort();
+
+        return view('production.animatronics-timer.index', compact('employees', 'jobOrders', 'activeSessions', 'config', 'positions', 'animatronicsDept', 'employeesWithActiveSessions'));
+    }
+
+    /**
+     * Start work session for animatronics employees
+     */
+    public function start(Request $request)
+    {
+        $validated = $request->validate([
+            'employees' => 'required|array|min:1',
+            'employees.*' => 'exists:employees,id',
+            'job_order_id' => 'required|exists:job_orders,id',
+            'step' => 'required|string|max:255',
+            'parts' => 'nullable|string|max:255',
+            'tracking_mode' => 'required|in:timer,progress',
+            'department_specific_data' => 'nullable|array',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            // Get job order with project
+            $jobOrder = JobOrder::with('project')->findOrFail($validated['job_order_id']);
+
+            if (!$jobOrder->project_id) {
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => 'Selected Job Order does not have a linked Project.',
+                    ],
+                    422,
+                );
+            }
+
+            $startTime = now()->format('H:i:s');
+            $today = today();
+
+            $timingIds = [];
+            $employeeNames = [];
+
+            foreach ($validated['employees'] as $employeeId) {
+                // Check if employee already has active session
+                $activeSession = Timing::where('employee_id', $employeeId)->where('status', 'on progress')->whereNull('end_time')->whereDate('tanggal', $today)->first();
+
+                if ($activeSession) {
+                    $employee = Employee::find($employeeId);
+                    DB::rollBack();
+                    return response()->json(
+                        [
+                            'success' => false,
+                            'message' => "Employee {$employee->name} already has an active work session. Please stop it first.",
+                        ],
+                        422,
+                    );
+                }
+
+                // Get employee department
+                $employee = Employee::with('department')->find($employeeId);
+                $deptConfig = $this->deptTimingService->getDepartmentConfig($employee->department_id);
+
+                // Prepare department-specific data
+                $deptSpecificData = $validated['department_specific_data'] ?? [];
+                $deptSpecificData['tracking_mode'] = $validated['tracking_mode'];
+                $deptSpecificData['measurement_type'] = $validated['tracking_mode'] === 'progress' ? 'progress' : 'quantity';
+
+                // For progress mode, get previous progress
+                if ($validated['tracking_mode'] === 'progress') {
+                    $lastTiming = Timing::where('job_order_id', $validated['job_order_id'])->where('employee_id', $employeeId)->whereNotNull('department_specific_data')->latest('tanggal')->latest('end_time')->first();
+
+                    $previousProgress = 0;
+                    if ($lastTiming && isset($lastTiming->department_specific_data['current_progress'])) {
+                        $previousProgress = $lastTiming->department_specific_data['current_progress'];
+                    }
+
+                    $deptSpecificData['previous_progress'] = $previousProgress;
+                    $deptSpecificData['current_progress'] = $previousProgress; // Will be updated on stop
+                }
+
+                $timing = Timing::create([
+                    'tanggal' => $today,
+                    'job_order_id' => $validated['job_order_id'],
+                    'project_id' => $jobOrder->project_id,
+                    'step' => $validated['step'],
+                    'parts' => $validated['parts'] ?? 'No Part',
+                    'employee_id' => $employeeId,
+                    'start_time' => $startTime,
+                    'end_time' => null,
+                    'output_qty' => 0,
+                    'status' => 'on progress',
+                    'remarks' => null,
+                    'department_specific_data' => $deptSpecificData,
+                ]);
+
+                $timingIds[] = $timing->id;
+                $employeeNames[] = $employee->name;
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Work started for ' . count($timingIds) . ' employee(s): ' . implode(', ', $employeeNames),
+                'timing_ids' => $timingIds,
+                'start_time' => $startTime,
+                'job_order' => $jobOrder->name,
+                'project_name' => $jobOrder->project->name ?? 'N/A',
+                'tracking_mode' => $validated['tracking_mode'],
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Failed to start work: ' . $e->getMessage(),
+                ],
+                500,
+            );
+        }
+    }
+
+    /**
+     * Stop work session for animatronics
+     */
+    public function stop(Request $request)
+    {
+        $validated = $request->validate([
+            'timing_ids' => 'required|array',
+            'timing_ids.*' => 'exists:timings,id',
+            'output_qty' => 'required|numeric|min:0',
+            'department_specific_data' => 'nullable|array',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $endTime = now()->format('H:i:s');
+
+            $timings = Timing::whereIn('id', $validated['timing_ids'])->where('status', 'on progress')->whereNull('end_time')->get();
+
+            if ($timings->isEmpty()) {
+                DB::rollBack();
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => 'No active work sessions found to stop.',
+                    ],
+                    422,
+                );
+            }
+
+            foreach ($timings as $timing) {
+                $deptSpecificData = $timing->department_specific_data ?? [];
+
+                // Merge with new data
+                if (isset($validated['department_specific_data'])) {
+                    $deptSpecificData = array_merge($deptSpecificData, $validated['department_specific_data']);
+                }
+
+                // For progress mode, calculate current progress
+                if (isset($deptSpecificData['tracking_mode']) && $deptSpecificData['tracking_mode'] === 'progress') {
+                    $previousProgress = $deptSpecificData['previous_progress'] ?? 0;
+                    $progressAdded = $validated['output_qty'];
+                    $deptSpecificData['current_progress'] = min(100, $previousProgress + $progressAdded);
+                    $deptSpecificData['progress_added'] = $progressAdded;
+                }
+
+                $timing->update([
+                    'end_time' => $endTime,
+                    'output_qty' => $validated['output_qty'],
+                    'status' => 'complete',
+                    'department_specific_data' => $deptSpecificData,
+                ]);
+            }
+
+            DB::commit();
+
+            $trackingMode = $timings->first()->department_specific_data['tracking_mode'] ?? 'timer';
+            $modeLabel = $trackingMode === 'progress' ? 'progress' : 'output';
+
+            return response()->json([
+                'success' => true,
+                'message' => count($timings) . ' work session(s) completed successfully with ' . $modeLabel . ': ' . $validated['output_qty'],
+                'end_time' => $endTime,
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Failed to stop work: ' . $e->getMessage(),
+                ],
+                500,
+            );
+        }
+    }
+
+    /**
+     * Get active sessions via AJAX
+     */
+    public function getActiveSessions()
+    {
+        // Get animatronics department
+        $animatronicsDept = \App\Models\Admin\Department::where('name', 'LIKE', '%animatronic%')->orWhere('name', 'LIKE', '%animation%')->first();
+
+        if (!$animatronicsDept) {
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Animatronics department not found.',
+                ],
+                404,
+            );
+        }
+
+        $activeSessions = Timing::running()
+            ->today()
+            ->withRelations()
+            ->whereHas('employee', function ($query) use ($animatronicsDept) {
+                $query->where('department_id', $animatronicsDept->id);
+            })
+            ->orderBy('start_time', 'desc')
+            ->get();
+
+        $sessions = $activeSessions->map(function ($timing) {
+            $trackingMode = $timing->department_specific_data['tracking_mode'] ?? 'timer';
+            $previousProgress = $timing->department_specific_data['previous_progress'] ?? 0;
+
+            return [
+                'id' => $timing->id,
+                'employee_name' => $timing->employee->name ?? 'N/A',
+                'employee_photo' => $timing->employee->photo ?? null,
+                'job_order_id' => $timing->job_order_id,
+                'job_order_name' => $timing->jobOrder->name ?? $timing->job_order_id,
+                'project_name' => $timing->project->name ?? 'N/A',
+                'step' => $timing->step,
+                'parts' => $timing->parts,
+                'start_time' => $timing->start_time,
+                'output_qty' => $timing->output_qty,
+                'duration' => $this->calculateDuration($timing->start_time),
+                'tracking_mode' => $trackingMode,
+                'previous_progress' => $previousProgress,
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'sessions' => $sessions,
+        ]);
+    }
+
+    /**
+     * Calculate duration from start time to now
+     */
+    private function calculateDuration($startTime)
+    {
+        try {
+            $start = Carbon::createFromFormat('H:i:s', $startTime);
+            $now = Carbon::now();
+
+            $totalSeconds = $now->diffInSeconds($start);
+
+            $hours = floor($totalSeconds / 3600);
+            $minutes = floor(($totalSeconds % 3600) / 60);
+            $seconds = $totalSeconds % 60;
+
+            return sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds);
+        } catch (\Exception $e) {
+            return '00:00:00';
+        }
+    }
+}

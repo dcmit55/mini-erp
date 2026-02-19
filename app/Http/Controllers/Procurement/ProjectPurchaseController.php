@@ -31,10 +31,10 @@ class ProjectPurchaseController extends Controller
         try {
             // Gunakan service yang sudah diperbaiki
             $purchases = $this->purchaseService->getPurchasesWithFilters($request);
-            
+
             $stats = $this->purchaseService->getPurchaseStats();
-            
-            return view('Procurement.Project-Purchase.index', [
+
+            return view('procurement.Project-Purchase.index', [
                 'purchases' => $purchases,
                 'stats' => $stats,
                 'departments' => Department::select('id', 'name')->get(),
@@ -48,11 +48,11 @@ class ProjectPurchaseController extends Controller
                 'supplierLocations' => \App\Models\Procurement\LocationSupplier::select('id', 'name')->get(),
                 'filters' => $request->all(),
             ]);
-            
+
         } catch (\Exception $e) {
             Log::error('Index error: ' . $e->getMessage());
-            
-            return view('Procurement.Project-Purchase.index', [
+
+            return view('procurement.Project-Purchase.index', [
                 'purchases' => ProjectPurchase::current()->paginate(20),
                 'stats' => [
                     'total' => 0,
@@ -85,7 +85,7 @@ public function create()
     try {
         // Generate PO number dari service
         $poNumber = $this->purchaseService->generatePONumber();
-        
+
         // PERBAIKAN 1: Job Orders dengan data attributes yang benar
         $jobOrders = JobOrder::with(['department:id,name', 'project:id,name'])
             ->select('id', 'name', 'department_id', 'project_id')
@@ -110,7 +110,7 @@ public function create()
         $units = Unit::select('id', 'name')->get();
         $categories = Category::select('id', 'name')->get();
 
-        return view('Procurement.Project-Purchase.create', [
+        return view('procurement.Project-Purchase.create', [
             'poNumber' => $poNumber,
             'materials' => $materials,
             'departments' => Department::select('id', 'name')->get(),
@@ -135,11 +135,11 @@ public function create()
         try {
             // Simpan semua input ke session untuk menjaga data form jika validasi gagal
             $request->flash();
-            
+
             if ($request->project_type === 'internal') {
                 $request->merge(['department_id' => 24]);
             }
-            
+
             $validated = $this->purchaseService->validatePurchaseRequest($request);
             $purchase = $this->purchaseService->createPurchase($validated);
 
@@ -173,19 +173,19 @@ public function create()
                     'checker:id,username', // ✅ GUNAKAN username
                     'receiver:id,username' // ✅ GUNAKAN username
                 ])->find($id);
-            
+
             if (!$purchase) {
                 return redirect()->route('project-purchases.index')
                     ->with('error', 'Data purchase order tidak ditemukan (ID: ' . $id . ').');
             }
-            
+
             // Get revision history untuk PO yang sama
             $revisions = ProjectPurchase::where('po_number', $purchase->po_number)
                 ->orderBy('created_at', 'desc')
                 ->with(['pic:id,username'])
                 ->get();
-            
-            return view('Procurement.Project-Purchase.show', [
+
+            return view('procurement.Project-Purchase.show', [
                 'purchase' => $purchase,
                 'revisions' => $revisions,
                 'revision_info' => [
@@ -194,7 +194,7 @@ public function create()
                     'revision_number' => $revisions->where('created_at', '<=', $purchase->created_at)->count(),
                 ]
             ]);
-            
+
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             Log::error('ModelNotFoundException in show: ' . $e->getMessage());
             return redirect()->route('project-purchases.index')
@@ -233,7 +233,7 @@ public function create()
                 ->orderBy('created_at', 'desc')
                 ->get(['id', 'revision_at', 'status', 'item_status', 'created_at', 'is_current']);
 
-            return view('Procurement.Project-Purchase.edit', [
+            return view('procurement.Project-Purchase.edit', [
                 'purchase' => $purchase,
                 'revisions' => $revisions,
                 'revision_info' => [
@@ -284,7 +284,7 @@ public function create()
             }
 
             $validated = $this->purchaseService->validatePurchaseRequest($request, $purchase->id);
-            
+
             // Update purchase akan membuat REVISION baru
             $updatedPurchase = $this->purchaseService->updatePurchase($purchase, $validated);
 
@@ -345,7 +345,7 @@ public function create()
 
             // ✅ PERBAIKAN: Cari current revision saja
             $purchase = ProjectPurchase::current()->findOrFail($id);
-            
+
             if (!$purchase->canApprove()) {
                 return back()->with('error', 'Tidak dapat menyetujui Purchase Order ini.');
             }
@@ -377,11 +377,11 @@ public function create()
 
             // ✅ PERBAIKAN: Cari current revision saja
             $purchase = ProjectPurchase::current()->findOrFail($id);
-            
+
             if (!$purchase->canReject()) {
                 return back()->with('error', 'Tidak dapat menolak Purchase Order ini.');
             }
-            
+
             $this->purchaseService->rejectPurchase($purchase, $validated);
 
             return back()->with('success', 'Purchase Order berhasil ditolak!');
@@ -405,7 +405,7 @@ public function create()
 
             // ✅ PERBAIKAN: Cari current revision saja
             $purchase = ProjectPurchase::current()->findOrFail($id);
-            
+
             if (!$purchase->canUpdateResi()) {
                 return back()->with('error', 'Tidak dapat mengupdate resi karena PO belum disetujui atau barang sudah dicek.');
             }
@@ -439,7 +439,7 @@ public function create()
 
             // ✅ PERBAIKAN: Cari current revision saja
             $purchase = ProjectPurchase::current()->findOrFail($id);
-            
+
             if (!$purchase->canCheck()) {
                 return back()->with('error', 'Tidak dapat mengecek barang karena PO belum disetujui atau sudah dicek.');
             }
@@ -464,7 +464,7 @@ public function create()
         try {
             // ✅ PERBAIKAN: Cari current revision saja
             $purchase = ProjectPurchase::current()->findOrFail($id);
-            
+
             if (!$purchase->canMarkAsReceived()) {
                 return back()->with('error', 'Tidak dapat menandai sebagai diterima karena PO belum disetujui atau sudah diterima.');
             }
@@ -486,7 +486,7 @@ public function create()
         try {
             // ✅ PERBAIKAN: Cari current revision saja
             $purchase = ProjectPurchase::current()->findOrFail($id);
-            
+
             if (!$purchase->isItemPending()) {
                 return back()->with('error', 'Tidak dapat menandai sebagai tidak sesuai karena barang sudah ditandai.');
             }
@@ -507,7 +507,7 @@ public function create()
     {
         try {
             $material = Inventory::with(['unit:id,name', 'category:id,name'])->find($id);
-            
+
             if (!$material) {
                 return response()->json([
                     'success' => false,
@@ -539,7 +539,7 @@ public function create()
     {
         try {
             $jobOrder = JobOrder::with(['department:id,name', 'project:id,name'])->find($id);
-            
+
             if (!$jobOrder) {
                 return response()->json([
                     'success' => false,
@@ -588,7 +588,7 @@ public function create()
     {
         try {
             $purchases = $this->purchaseService->getPurchasesWithFilters($request, false);
-            
+
             return $this->purchaseService->exportToExcel($purchases);
         } catch (\Exception $e) {
             Log::error('Export error: ' . $e->getMessage());
@@ -614,7 +614,7 @@ public function create()
                     'approver:id,username'
                 ])->findOrFail($id);
 
-            return view('Procurement.Project-Purchase.print', compact('purchase'));
+            return view('procurement.Project-Purchase.Print', compact('purchase'));
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return redirect()->route('project-purchases.index')
                 ->with('error', 'Data purchase order tidak ditemukan.');
@@ -623,7 +623,7 @@ public function create()
             return back()->with('error', 'Gagal mencetak purchase order: ' . $e->getMessage());
         }
     }
-    
+
     /**
      * Get all materials data for dropdown
      */
@@ -633,7 +633,7 @@ public function create()
             $materials = Inventory::with(['unit:id,name', 'category:id,name'])
                 ->select('id', 'name', 'price', 'unit_id', 'category_id')
                 ->get();
-            
+
             return response()->json([
                 'success' => true,
                 'materials' => $materials
