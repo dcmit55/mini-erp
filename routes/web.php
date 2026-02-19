@@ -50,6 +50,7 @@ use App\Http\Controllers\InternalProjectController;
 use App\Http\Controllers\Finance\DcmCostingController;
 use App\Http\Controllers\Finance\PurchaseApprovalController;
 use App\Http\Controllers\Finance\PurchaseEditedController;
+use App\Http\Controllers\Hr\EmployeeWorkPolicyController;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -219,6 +220,7 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/material_requests/{id}', [MaterialRequestController::class, 'update'])->name('material_requests.update');
     Route::delete('/material_requests/{id}', [MaterialRequestController::class, 'destroy'])->name('material_requests.destroy');
     Route::post('/material_requests/{id}/reminder', [MaterialRequestController::class, 'sendReminder'])->name('material_requests.reminder');
+    Route::get('/material_requests/bulk_details', [MaterialRequestController::class, 'bulkDetails'])->name('material_requests.bulk_details');
     Route::post('/material_requests/bulk_details', [MaterialRequestController::class, 'bulkDetails'])->name('material_requests.bulk_details');
     Route::post('/material_requests/{id}/quick-update', [MaterialRequestController::class, 'quickUpdate'])->name('material_requests.quick_update');
 
@@ -527,4 +529,23 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/finance-costings', function () {
         return redirect()->route('dcm-costings.index');
     })->name('finance.costings');
+
+    // Material Request Inventory Detail
+    Route::get('/material-requests/inventory/{id}', [App\Http\Controllers\Logistic\MaterialRequestController::class, 'getInventoryDetail'])
+        ->name('material_requests.inventory_detail');
+
+    // Employee Work Policies
+    Route::middleware(['auth'])->group(function () {
+        Route::get('/employee-work-policies', [EmployeeWorkPolicyController::class, 'index'])->name('employee-work-policies.index');
+        Route::get('/employee-work-policies/create', [EmployeeWorkPolicyController::class, 'create'])->name('employee-work-policies.create');
+        Route::post('/employee-work-policies', [EmployeeWorkPolicyController::class, 'store'])->name('employee-work-policies.store');
+        Route::get('/employee-work-policies/{policy}/edit', [EmployeeWorkPolicyController::class, 'edit'])->name('employee-work-policies.edit');
+        Route::put('/employee-work-policies/{policy}', [EmployeeWorkPolicyController::class, 'update'])->name('employee-work-policies.update');
+        Route::delete('/employee-work-policies/{policy}', [EmployeeWorkPolicyController::class, 'destroy'])->name('employee-work-policies.destroy');
+    });    
+    // API endpoint untuk mengambil jam kerja karyawan (opsional)
+    Route::get('/employees/{employee}/work-hours', [App\Http\Controllers\Hr\EmployeeWorkPolicyController::class, 'getHours'])
+        ->name('employees.work-hours');
 });
+    
+

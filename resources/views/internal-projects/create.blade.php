@@ -59,10 +59,11 @@
                                             name="project"
                                             required>
                                         <option value="">Select Project Type</option>
-                                        <option value="Office" {{ old('project') == 'Office' ? 'selected' : '' }}>Office</option>
-                                        <option value="Machine" {{ old('project') == 'Machine' ? 'selected' : '' }}>Machine</option>
-                                        <option value="Testing" {{ old('project') == 'Testing' ? 'selected' : '' }}>Testing</option>
-                                        <option value="Facilities" {{ old('project') == 'Facilities' ? 'selected' : '' }}>Facilities</option>
+                                        @foreach($projectTypes as $value => $label)
+                                            <option value="{{ $value }}" {{ old('project') == $value ? 'selected' : '' }}>
+                                                {{ $label }}
+                                            </option>
+                                        @endforeach
                                     </select>
                                     @error('project')
                                         <div class="invalid-feedback small">{{ $message }}</div>

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use App\Models\Admin\User;
 use App\Models\Admin\Department;
+use App\Enums\InternalProjectType;
 
 class InternalProject extends Model
 {
@@ -31,6 +32,7 @@ class InternalProject extends Model
 
     protected $casts = [
         'created_at' => 'datetime',
+        'project'    => InternalProjectType::class, // cast ke enum
     ];
 
     protected static function boot()
@@ -114,26 +116,20 @@ class InternalProject extends Model
         }
     }
 
+    /**
+     * Mendapatkan class badge berdasarkan nilai enum.
+     */
     public function getProjectBadgeClassAttribute()
     {
-        return match($this->project) {
-            'Office' => 'bg-primary',
-            'Machine' => 'bg-info',
-            'Testing' => 'bg-warning',
-            'Facilities' => 'bg-success',
-            default => 'bg-secondary'
-        };
+        return $this->project?->badgeClass() ?? 'bg-secondary';
     }
 
+    /**
+     * Mendapatkan icon badge berdasarkan nilai enum.
+     */
     public function getProjectBadgeIconAttribute()
     {
-        return match($this->project) {
-            'Office' => 'fa-building',
-            'Machine' => 'fa-cogs',
-            'Testing' => 'fa-flask',
-            'Facilities' => 'fa-tools',
-            default => 'fa-project-diagram'
-        };
+        return $this->project?->badgeIcon() ?? 'fa-project-diagram';
     }
 
     public function getShortDescriptionAttribute()

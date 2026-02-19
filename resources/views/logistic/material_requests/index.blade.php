@@ -11,7 +11,7 @@
                         <h2 class="mb-0 flex-shrink-0" style="font-size:1.3rem;">Material Requests</h2>
                     </div>
 
-                    <!-- Spacer untuk tombol -->
+                    <!-- Tombol aksi -->
                     <div class="ms-sm-auto d-flex flex-wrap gap-2">
                         <a href="{{ route('material_requests.create') }}" class="btn btn-primary btn-sm flex-shrink-0">
                             <i class="bi bi-plus-circle me-1"></i> Create Request
@@ -55,41 +55,9 @@
                     </div>
                 @endif
 
-                <!-- ========== FILTER FORM ========== -->
+                <!-- Filter form (dengan tambahan Project Type) -->
                 <div class="mb-3">
                     <form id="filter-form" class="row g-1">
-                        <!-- Project Type Filter -->
-                        <div class="col-md-2">
-                            <select id="filter-project-type" name="project_type" class="form-select form-select-sm select2">
-                                <option value="">All Project Types</option>
-                                <option value="client">Client</option>
-                                <option value="internal">Internal</option>
-                            </select>
-                        </div>
-
-                        <!-- Client Project Filter (selalu tampil) -->
-                        <div class="col-md-2">
-                            <select id="filter-project" name="project" class="form-select form-select-sm select2">
-                                <option value="">All Client Projects</option>
-                                @foreach ($projects as $project)
-                                    <option value="{{ $project->id }}">{{ $project->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-
-                        <!-- Internal Project Filter (hidden by default, tampil jika project_type = internal) -->
-                        <div class="col-md-2 d-none" id="filter-internal-project-wrapper">
-                            <select id="filter-internal-project" name="internal_project"
-                                class="form-select form-select-sm select2">
-                                <option value="">All Internal Projects</option>
-                                @foreach ($internalProjects as $internal)
-                                    <option value="{{ $internal->id }}">{{ $internal->project }} - {{ $internal->job }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-
-                        <!-- Job Order Filter -->
                         <div class="col-md-2">
                             <select id="filter-job-order" name="job_order" class="form-select form-select-sm select2">
                                 <option value="">All Job Orders</option>
@@ -98,8 +66,23 @@
                                 @endforeach
                             </select>
                         </div>
-
-                        <!-- Material Filter -->
+                        <!-- NEW: Filter Project Type -->
+                        <div class="col-md-2">
+                            <select id="filter-project-type" name="project_type" class="form-select form-select-sm select2">
+                                <option value="">All Project Types</option>
+                                @foreach ($projectTypes as $type)
+                                    <option value="{{ $type }}">{{ $type }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <select id="filter-project" name="project" class="form-select form-select-sm select2">
+                                <option value="">All Projects</option>
+                                @foreach ($projects as $project)
+                                    <option value="{{ $project->id }}">{{ $project->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
                         <div class="col-md-2">
                             <select id="filter-material" name="material" class="form-select form-select-sm select2">
                                 <option value="">All Materials</option>
@@ -108,19 +91,15 @@
                                 @endforeach
                             </select>
                         </div>
-
-                        <!-- Status Filter -->
                         <div class="col-md-2">
                             <select id="filter-status" name="status" class="form-select form-select-sm select2">
                                 <option value="">All Status</option>
-                                <option value="pending" title="Waiting for approval from admin">Pending</option>
-                                <option value="approved" title="Request approved, ready for goods out">Approved</option>
-                                <option value="delivered" title="Goods have been delivered">Delivered</option>
-                                <option value="canceled" title="Request has been canceled">Canceled</option>
+                                <option value="pending">Pending</option>
+                                <option value="approved">Approved</option>
+                                <option value="delivered">Delivered</option>
+                                <option value="canceled">Canceled</option>
                             </select>
                         </div>
-
-                        <!-- Requested By Filter -->
                         <div class="col-md-1">
                             <select id="filter-requested-by" name="requested_by" class="form-select form-select-sm select2">
                                 <option value="">All Requester</option>
@@ -129,20 +108,14 @@
                                 @endforeach
                             </select>
                         </div>
-
-                        <!-- Requested At Date -->
                         <div class="col-md-2">
                             <input type="text" id="filter-requested-at" name="requested_at"
                                 class="form-control form-control-sm" placeholder="Requested At Date">
                         </div>
-
-                        <!-- Custom Search -->
                         <div class="col-md-1">
                             <input type="text" id="custom-search" name="search" class="form-control form-control-sm"
                                 placeholder="Search...">
                         </div>
-
-                        <!-- Reset Button -->
                         <div class="col-md-1">
                             <button type="button" id="reset-filters" class="btn btn-outline-secondary btn-sm"
                                 title="Reset All Filters">
@@ -152,14 +125,14 @@
                     </form>
                 </div>
 
-                <!-- Table -->
+                <!-- Table dengan kolom Project Type baru -->
                 <table class="table table-hover table-sm align-middle" id="datatable" data-material-request-table="1">
                     <thead class="table-light text-nowrap">
                         <tr>
                             <th></th>
                             <th style="display:none">ID</th>
                             <th>Job Order</th>
-                            <th>Project Type</th> <!-- NEW COLUMN -->
+                            <th>Project Type</th>   <!-- NEW: Kolom Project Type -->
                             <th>Project</th>
                             <th>Material</th>
                             <th>Requested Qty</th>
@@ -189,17 +162,417 @@
     </div>
 
     <!-- Modal Bulk Goods Out (tidak berubah) -->
-    <!-- ... (kode modal tetap sama) ... -->
+    <div class="modal fade" id="bulkGoodsOutModal" tabindex="-1" aria-labelledby="bulkGoodsOutModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="bulkGoodsOutModalLabel">Bulk Goods Out Confirmation</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="bulk-goods-out-form">
+                        @csrf
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-sm align-middle" style="font-size: 0.92rem;">
+                                <thead>
+                                    <tr>
+                                        <th>Material</th>
+                                        <th>Job order</th>
+                                        <th>Project</th>
+                                        <th>Req / Rem Qty</th>
+                                        <th>Qty to Goods Out</th>
+                                        <th> </th>
+                                    </tr>
+                                </thead>
+                                <tbody id="bulk-goods-out-table-body">
+                                    <!-- Rows will be dynamically added here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" id="submit-bulk-goods-out" class="btn btn-success">
+                        <span class="spinner-border spinner-border-sm me-1 d-none" role="status"
+                            aria-hidden="true"></span>
+                        Submit All
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <!-- Modal Material Detail (tidak berubah) -->
-    <!-- ... (kode modal tetap sama) ... -->
+    <!-- Material Detail Modal (tidak berubah) -->
+    <div class="modal fade" id="materialDetailModal" tabindex="-1" aria-labelledby="materialDetailModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="materialDetailModalLabel">Material Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <!-- Left column: Image & QR Code -->
+                        <div class="col-md-5">
+                            <div id="material-image-container" class="text-center mb-3 p-2 border rounded bg-light">
+                                <img id="material-image" src="" alt="Material Image" 
+                                     class="img-fluid rounded" style="max-height: 200px; display: none;">
+                                <div id="no-image-placeholder" class="text-muted py-4" style="display: none;">
+                                    <i class="bi bi-image fs-1"></i>
+                                    <p>No image available</p>
+                                </div>
+                            </div>
+                            <div id="material-qr-container" class="text-center p-2 border rounded bg-light">
+                                <img id="material-qr" src="" alt="QR Code" 
+                                     class="img-fluid" style="max-height: 120px; display: none;">
+                                <div id="no-qr-placeholder" class="text-muted py-2" style="display: none;">
+                                    <i class="bi bi-qr-code fs-2"></i>
+                                    <p>No QR Code</p>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Right column: Details Table -->
+                        <div class="col-md-7">
+                            <table class="table table-sm table-borderless">
+                                <tr><th style="width: 35%;">Name:</th><td id="detail-name" class="fw-semibold"></td></tr>
+                                <tr><th>Category:</th><td id="detail-category"></td></tr>
+                                <tr><th>Quantity:</th><td id="detail-quantity"></td></tr>
+                                <tr><th>Unit:</th><td id="detail-unit"></td></tr>
+                                <tr><th>Price:</th><td id="detail-price"></td></tr>
+                                <tr><th>Currency:</th><td id="detail-currency"></td></tr>
+                                <tr><th>Supplier:</th><td id="detail-supplier"></td></tr>
+                                <tr><th>Location:</th><td id="detail-location"></td></tr>
+                                <tr><th>Remark:</th><td id="detail-remark" class="text-wrap"></td></tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
 @endsection
 
 @push('styles')
     <style>
-        /* ========== STYLE YANG SUDAH ADA, TAMBAHKAN INI ========== */
-        #filter-internal-project-wrapper {
-            transition: all 0.2s ease;
+        .gradient-icon {
+            background: linear-gradient(135deg, #8F12FE 0%, #4A25AA 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        #filter-form {
+            background: #f8f9fa;
+            padding: .75rem;
+            border-radius: 0.5rem;
+            border: 1px solid #dee2e6;
+        }
+
+        .form-control {
+            border: 1px solid #ced4da !important;
+        }
+
+        @media (max-width: 768px) {
+            .ms-sm-auto.d-flex.flex-wrap {
+                margin-bottom: 0.8rem !important;
+            }
+        }
+
+        #datatable th {
+            font-size: 0.90rem;
+            white-space: nowrap;
+            vertical-align: middle;
+            text-align: left !important;
+        }
+
+        #datatable td {
+            vertical-align: middle;
+            text-align: left !important;
+        }
+
+        #datatable th,
+        #datatable td {
+            max-width: 170px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .pagination {
+            --bs-pagination-padding-x: 0.75rem;
+            --bs-pagination-padding-y: 0.375rem;
+            --bs-pagination-color: #6c757d;
+            --bs-pagination-bg: #fff;
+            --bs-pagination-border-width: 1px;
+            --bs-pagination-border-color: #dee2e6;
+            --bs-pagination-border-radius: 0.375rem;
+            --bs-pagination-hover-color: #495057;
+            --bs-pagination-hover-bg: #e9ecef;
+            --bs-pagination-hover-border-color: #dee2e6;
+            --bs-pagination-focus-color: #495057;
+            --bs-pagination-focus-bg: #e9ecef;
+            --bs-pagination-focus-box-shadow: 0 0 0 0.25rem rgba(143, 18, 254, 0.25);
+            --bs-pagination-active-color: #fff;
+            --bs-pagination-active-bg: #8F12FE;
+            --bs-pagination-active-border-color: #4A25AA;
+            --bs-pagination-disabled-color: #6c757d;
+            --bs-pagination-disabled-bg: #fff;
+            --bs-pagination-disabled-border-color: #dee2e6;
+        }
+
+        .page-link {
+            transition: all 0.15s ease-in-out;
+        }
+
+        .page-link:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .page-item.active .page-link {
+            background: linear-gradient(135deg, #8F12FE 0%, #4A25AA 100%);
+            border-color: #8F12FE;
+            box-shadow: 0 2px 4px rgba(143, 18, 254, 0.3);
+        }
+
+        .vr-divider {
+            width: 1px;
+            height: 24px;
+            background: #dee2e6;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        .datatables-footer-row {
+            border-top: 1px solid #eee;
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+        }
+
+        .datatables-left {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .dataTables_paginate {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+        }
+
+        @media (max-width: 767.98px) {
+            .datatables-footer-row {
+                flex-direction: column !important;
+                gap: 0.5rem;
+            }
+
+            .datatables-left {
+                flex-direction: column !important;
+                gap: 0.5rem;
+            }
+
+            .vr-divider {
+                display: none;
+            }
+
+            .dataTables_paginate {
+                justify-content: center !important;
+            }
+        }
+
+        .material-detail-btn {
+            transition: all 0.2s;
+        }
+        .material-detail-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .gradient-link {
+            background: linear-gradient(45deg, #8F12FE, #4A25AA);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            cursor: pointer;
+            font-weight: 500;
+            text-decoration: none !important;
+        }
+
+        .status-select-rounded {
+            border-radius: 20px !important;
+            padding: 0.25rem 0.75rem !important;
+            font-size: 0.85rem !important;
+            font-weight: 400 !important;
+            outline: none !important;
+            box-shadow: none !important;
+            width: 15ch !important;
+            min-width: 0 !important;
+            max-width: 20ch !important;
+        }
+
+        .status-select-rounded:focus {
+            outline: none !important;
+            box-shadow: none !important;
+        }
+
+        select.form-select option:disabled {
+            color: #999;
+            cursor: not-allowed;
+            background-color: #f8f9fa;
+        }
+
+        .status-select:disabled {
+            cursor: not-allowed;
+        }
+
+        .status-quick-update.border-success {
+            border-color: #28a745 !important;
+            box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25) !important;
+        }
+
+        .status-quick-update.border-danger {
+            border-color: #dc3545 !important;
+            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+        }
+
+        .status-quick-update:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 768px) {
+            .dataTable.dtr-inline.collapsed tbody td:not(.dtr-control) {
+                text-align: center !important;
+            }
+
+            .status-select,
+            .status-select-rounded,
+            .btn-group,
+            .d-flex {
+                margin: 0 auto !important;
+                justify-content: center !important;
+            }
+
+            .dtr-details .dtr-data {
+                text-align: center !important;
+            }
+        }
+
+        .tooltip {
+            z-index: 9999 !important;
+        }
+
+        .tooltip-inner {
+            max-width: 200px;
+            padding: 0.3rem 0.6rem;
+            font-size: 0.775rem;
+            line-height: 1.2;
+            text-align: left;
+        }
+
+        .table [data-bs-toggle="tooltip"] {
+            position: relative;
+        }
+
+        #datatable td {
+            position: relative;
+            overflow: visible !important;
+        }
+
+        .dataTables_wrapper {
+            overflow: visible !important;
+        }
+
+        @media (max-width: 768px) {
+            .tooltip-inner {
+                max-width: 150px;
+                font-size: 0.6rem;
+            }
+
+            .table [data-bs-toggle="tooltip"] {
+                --bs-tooltip-placement: top;
+            }
+        }
+
+        #bulkGoodsOutModal .table-sm th,
+        #bulkGoodsOutModal .table-sm td {
+            font-size: 0.92rem;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
+        #bulk-goods-out-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #bulk-goods-out-count {
+            border-radius: 50px;
+            font-size: 0.7rem;
+            padding: 0.2rem 0.4rem;
+            min-width: 20px;
+            text-align: center;
+        }
+
+        #datatable thead th:nth-child(5),
+        #datatable thead th:nth-child(6),
+        #datatable thead th:nth-child(7),
+        #datatable tbody td:nth-child(5),
+        #datatable tbody td:nth-child(6),
+        #datatable tbody td:nth-child(7) {
+            text-align: left !important;
+        }
+
+        #datatable thead th:nth-child(1),
+        #datatable tbody td:nth-child(1) {
+            text-align: center !important;
+        }
+
+        #datatable thead th:nth-child(13),
+        #datatable tbody td:nth-child(13) {
+            text-align: center !important;
+        }
+
+        .badge-custom {
+            padding: 0.25rem 0.5rem;
+            border-radius: 10px;
+            font-weight: 500;
+            font-size: 0.85rem;
+        }
+
+        .quantity-badge {
+            background: linear-gradient(135deg, #8F12FE, #6610f2);
+            color: white;
+        }
+
+        .price-badge {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+        }
+
+        .text-primary {
+            color: #6610f2 !important;
+        }
+
+        #materialDetailModal .modal-body {
+            overflow-x: auto !important;
+            max-width: 100vw;
+        }
+
+        #material-image-container {
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #no-image-placeholder, #no-qr-placeholder {
+            text-align: center;
+            color: #999;
         }
     </style>
 @endpush
@@ -207,7 +580,7 @@
 @push('scripts')
     <script>
         $(document).ready(function() {
-            // ========== INISIALISASI DATATABLE ==========
+            // Initialize DataTable with Server-Side Processing
             const table = $('#datatable').DataTable({
                 processing: false,
                 serverSide: true,
@@ -216,11 +589,10 @@
                 ajax: {
                     url: "{{ route('material_requests.index') }}",
                     data: function(d) {
-                        // Add all filter parameters
-                        d.project_type = $('#filter-project-type').val();
                         d.project = $('#filter-project').val();
-                        d.internal_project = $('#filter-internal-project').val();
                         d.job_order = $('#filter-job-order').val();
+                        // NEW: tambahkan project_type ke parameter
+                        d.project_type = $('#filter-project-type').val();
                         d.material = $('#filter-material').val();
                         d.status = $('#filter-status').val();
                         d.requested_by = $('#filter-requested-by').val();
@@ -229,9 +601,10 @@
                     },
                     error: function(xhr, error, thrown) {
                         console.error('DataTables AJAX Error:', {
-                            xhr,
-                            error,
-                            thrown
+                            xhr: xhr,
+                            error: error,
+                            thrown: thrown,
+                            responseText: xhr.responseText
                         });
                         Swal.fire('Error', 'Failed to load data. Please refresh the page.', 'error');
                     }
@@ -252,49 +625,50 @@
                     {
                         data: 'job_order',
                         name: 'jobOrder.name',
-                        width: '12%'
+                        width: '12%' // dikurangi sedikit untuk memberi ruang
                     },
+                    // NEW: Kolom Project Type
                     {
-                        data: 'project_type_display',
-                        name: 'project_type',
-                        width: '6%'
-                    }, // NEW COLUMN
+                        data: 'project_type',
+                        name: 'project.type',
+                        width: '8%'
+                    },
                     {
                         data: 'project_name',
                         name: 'project.name',
-                        width: '12%'
+                        width: '12%' // dikurangi sedikit
                     },
                     {
                         data: 'material_name',
                         name: 'inventory.name',
-                        width: '12%'
+                        width: '12%' // dikurangi sedikit
                     },
                     {
                         data: 'requested_qty',
                         name: 'qty',
-                        width: '7%'
+                        width: '8%'
                     },
                     {
                         data: 'remaining_qty',
                         name: 'remaining_qty',
                         orderable: false,
-                        width: '7%'
+                        width: '8%'
                     },
                     {
                         data: 'processed_qty',
                         name: 'processed_qty',
                         orderable: false,
-                        width: '7%'
+                        width: '8%'
                     },
                     {
                         data: 'requested_by',
                         name: 'requested_by',
-                        width: '7%'
+                        width: '8%'
                     },
                     {
                         data: 'requested_at',
                         name: 'created_at',
-                        width: '7%'
+                        width: '8%'
                     },
                     {
                         data: 'status',
@@ -305,7 +679,7 @@
                     {
                         data: 'remark',
                         name: 'remark',
-                        width: '10%'
+                        width: '10%' // dikurangi sedikit
                     },
                     {
                         data: 'actions',
@@ -317,7 +691,7 @@
                     }
                 ],
                 order: [
-                    [1, 'desc']
+                    []
                 ],
                 pageLength: 15,
                 lengthMenu: [
@@ -332,13 +706,16 @@
                     lengthMenu: "Show _MENU_ entries per page",
                     info: "Showing _START_ to _END_ of _TOTAL_ entries",
                 },
+
                 dom: 't<' +
                     '"row datatables-footer-row align-items-center"' +
                     '<"col-md-7 d-flex align-items-center gap-2 datatables-left"l<"vr-divider mx-2">i>' +
                     '<"col-md-5 dataTables_paginate justify-content-end"p>' +
                     '>',
+
                 responsive: true,
                 stateSave: true,
+
                 drawCallback: function() {
                     const container = this.api().table().container();
                     setTimeout(() => {
@@ -350,48 +727,27 @@
                 }
             });
 
-            // ========== FILTER HANDLER ==========
+            // Debounced Filter Functionality (tambahkan filter-project-type)
             const debouncedFilter = debounce(function() {
                 table.draw();
             }, 300);
 
-            // Event listener untuk semua filter
-            $('#filter-project-type, #filter-project, #filter-internal-project, #filter-job-order, #filter-material, #filter-status, #filter-requested-by, #filter-requested-at, #custom-search')
+            $('#filter-project, #filter-job-order, #filter-project-type, #filter-material, #filter-status, #filter-requested-by, #filter-requested-at, #custom-search')
                 .on('change input', debouncedFilter);
 
-            // ========== TOGGLE FILTER INTERNAL PROJECT ==========
-            function toggleInternalProjectFilter() {
-                const projectType = $('#filter-project-type').val();
-                if (projectType === 'internal') {
-                    $('#filter-internal-project-wrapper').removeClass('d-none');
-                    // Sembunyikan filter client project
-                    $('#filter-project').closest('.col-md-2').addClass('d-none');
-                } else {
-                    $('#filter-internal-project-wrapper').addClass('d-none');
-                    $('#filter-project').closest('.col-md-2').removeClass('d-none');
-                    // Reset nilai internal project filter
-                    $('#filter-internal-project').val('').trigger('change');
-                }
-            }
-
-            $('#filter-project-type').on('change', toggleInternalProjectFilter);
-            toggleInternalProjectFilter(); // inisialisasi saat halaman dimuat
-
-            // ========== RESET FILTERS ==========
             $('#reset-filters').on('click', function() {
-                $('#filter-project-type, #filter-project, #filter-internal-project, #filter-job-order, #filter-material, #filter-status, #filter-requested-by, #filter-requested-at, #custom-search')
+                $('#filter-project, #filter-job-order, #filter-project-type, #filter-material, #filter-status, #filter-requested-by, #filter-requested-at, #custom-search')
                     .val('').trigger('change');
                 table.draw();
             });
 
-            // ========== EXPORT BUTTON ==========
+            // Export button handler with filters (tambahkan project_type)
             $('#export-btn').on('click', function(e) {
                 e.preventDefault();
                 const params = {
-                    project_type: $('#filter-project-type').val(),
                     project: $('#filter-project').val(),
-                    internal_project: $('#filter-internal-project').val(),
                     job_order: $('#filter-job-order').val(),
+                    project_type: $('#filter-project-type').val(), // baru
                     material: $('#filter-material').val(),
                     status: $('#filter-status').val(),
                     requested_by: $('#filter-requested-by').val(),
@@ -402,7 +758,7 @@
                 window.location.href = '{{ route('material_requests.export') }}' + '?' + query;
             });
 
-            // ========== SELECT2 INIT ==========
+            // Initialize Select2 (tambahkan untuk filter baru)
             $('.select2').select2({
                 theme: 'bootstrap-5',
                 placeholder: function() {
@@ -411,386 +767,466 @@
                 allowClear: true
             });
 
-            // Set placeholder
-            $('#filter-project-type').attr('data-placeholder', 'All Project Types');
-            $('#filter-project').attr('data-placeholder', 'All Client Projects');
-            $('#filter-internal-project').attr('data-placeholder', 'All Internal Projects');
-            $('#filter-job-order').attr('data-placeholder', 'All Job Orders');
+            $('#filter-project').attr('data-placeholder', 'All Projects');
+            $('#filter-project-type').attr('data-placeholder', 'All Project Types'); // baru
             $('#filter-material').attr('data-placeholder', 'All Materials');
             $('#filter-status').attr('data-placeholder', 'All Status');
             $('#filter-requested-by').attr('data-placeholder', 'All Requesters');
 
-            // ========== DATE INPUT ==========
+            // Date Input Enhancement
+            const dateInput = document.getElementById('filter-requested-at');
+            if (dateInput) {
+                dateInput.onfocus = function() {
+                    this.type = 'date';
+                };
+                dateInput.onblur = function() {
+                    if (!this.value) this.type = 'text';
+                };
+                if (!dateInput.value) dateInput.type = 'text';
+            }
+
             flatpickr("#filter-requested-at", {
                 dateFormat: "Y-m-d",
                 allowInput: true,
             });
 
-            // ========== BULK GOODS OUT (sama seperti sebelumnya) ==========
-            // ... (kode bulk goods out tidak diubah) ...
+            // Bulk Goods Out Button Management (tidak berubah)
+            function updateBulkGoodsOutButton() {
+                const selectedCount = $('.select-row:checked').length;
+                const bulkBtn = $('#bulk-goods-out-btn');
+                const countBadge = $('#bulk-goods-out-count');
+                const tooltipWrapper = $('#bulk-goods-out-tooltip-wrapper');
 
-            // ========== DEBOUNCE FUNCTION ==========
-            function debounce(func, wait) {
-                let timeout;
-                return function executedFunction(...args) {
-                    const later = () => {
-                        clearTimeout(timeout);
-                        func(...args);
-                    };
-                    clearTimeout(timeout);
-                    timeout = setTimeout(later, wait);
-                };
-            }
-
-            // ========== TOOLTIPS ==========
-            function initializeTooltipsBatch(container = document) {
-                $(container).find('[data-bs-toggle="tooltip"]').tooltip('dispose');
-                const tooltipElements = container.querySelectorAll('[data-bs-toggle="tooltip"]');
-                tooltipElements.forEach(element => {
-                    new bootstrap.Tooltip(element, {
-                        trigger: 'hover focus',
-                        placement: 'right',
-                        fallbackPlacements: ['top', 'bottom', 'left'],
-                        boundary: 'viewport',
-                        container: 'body',
-                        offset: [0, 8],
-                        sanitize: false,
-                        html: true
-                    });
-                });
-            }
-
-            // Initialize tooltip untuk status select dengan hint text
-            function initializeStatusSelectTooltips(container = document) {
-                $(container).find('.status-quick-update').each(function() {
-                    const $select = $(this);
-                    const currentStatus = $select.val();
-
-                    // Add title attribute based on current status
-                    if (currentStatus === 'pending') {
-                        $select.attr('title', 'Click to approve or process this request');
-                    } else if (currentStatus === 'approved') {
-                        $select.attr('title', 'Ready for goods out');
-                    } else if (currentStatus === 'canceled') {
-                        $select.attr('title', 'This request has been canceled');
-                    }
-
-                    // Initialize bootstrap tooltip
-                    new bootstrap.Tooltip($select[0], {
-                        trigger: 'hover',
-                        placement: 'top',
-                        container: 'body'
-                    });
-                });
-            }
-
-            // Inisialisasi tooltip saat halaman dimuat
-            document.addEventListener("DOMContentLoaded", function() {
-                initializeTooltipsBatch();
-            });
-
-            // ========== STATUS SELECT COLORS ==========
-            function updateAllSelectColors(container) {
-                const selects = container.querySelectorAll('.status-select');
-                selects.forEach(select => updateSelectColor(select));
-            }
-
-            // ========== STATUS QUICK UPDATE (REAL-TIME) - NO SWEETALERT ==========
-            $(document).on('change', '.status-quick-update', function() {
-                const $select = $(this);
-                const requestId = $select.data('id');
-                const newStatus = $select.val();
-                const previousStatus = $select.data('previous-value') || $select.find('option:selected')
-                    .data('original-value');
-
-                // Lock UI: disable select + change cursor to wait only
-                $select.prop('disabled', true).css('cursor', 'wait');
-                $select.closest('tr').css('cursor', 'wait');
-
-                $.ajax({
-                    url: `/material_requests/${requestId}/quick-update`,
-                    method: 'POST',
-                    data: {
-                        _token: '{{ csrf_token() }}',
-                        status: newStatus
-                    },
-                    success: function(response) {
-                        if (response.success) {
-                            // Update previous value
-                            $select.data('previous-value', newStatus);
-
-                            // Reset cursor
-                            $select.css('cursor', 'pointer');
-                            $select.closest('tr').css('cursor', 'default');
-
-                            // NO SWEETALERT - Just reload table silently
-                            table.ajax.reload(null, false);
-
-                            // Restore cursor
-                            $select.prop('disabled', false).css('cursor', 'pointer');
-                        } else {
-                            throw new Error(response.message || 'Update failed');
-                        }
-                    },
-                    error: function(xhr) {
-                        // Restore select with previous value
-                        $select.val(previousStatus).prop('disabled', false).css('cursor',
-                            'pointer');
-                        $select.closest('tr').css('cursor', 'default');
-
-                        const errorMsg = xhr.responseJSON?.message ||
-                            'Failed to update status. Please try again.';
-                        // Only show SweetAlert on ERROR
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Update Failed',
-                            text: errorMsg,
-                            confirmButtonText: 'OK'
-                        });
+                requestAnimationFrame(() => {
+                    if (selectedCount > 0) {
+                        bulkBtn.prop('disabled', false);
+                        countBadge.removeClass('d-none').text(selectedCount);
+                        tooltipWrapper.removeAttr('data-bs-original-title');
+                    } else {
+                        bulkBtn.prop('disabled', true);
+                        countBadge.addClass('d-none').text('0');
+                        tooltipWrapper.attr(
+                            'data-bs-original-title',
+                            'To perform Bulk Goods Out, please select material requests with Approved status.'
+                        );
                     }
                 });
+            }
+
+            $('#bulk-goods-out-tooltip-wrapper').tooltip({
+                trigger: 'hover focus',
+                placement: 'bottom'
             });
 
-            // Initialize previous values on page load
-            $(document).on('draw.dt', '#datatable', function() {
-                $('.status-quick-update').each(function() {
-                    if (!$(this).data('previous-value')) {
-                        $(this).data('previous-value', $(this).val());
-                    }
-                });
+            const debouncedCheckboxUpdate = debounce(updateBulkGoodsOutButton, 50);
+            $(document).on('change', '.select-row', debouncedCheckboxUpdate);
+
+            $('#select-all').on('change', function() {
+                $('.select-row').prop('checked', $(this).prop('checked'));
+                updateBulkGoodsOutButton();
             });
 
-            // ========== DELETE MATERIAL REQUEST ==========
+            // Enhanced Delete Confirmation (tidak berubah)
             $(document).on('click', '.btn-delete', function(e) {
                 e.preventDefault();
-                const $form = $(this).closest('form');
+                let form = $(this).closest('form');
+                const title = $(this).attr('title') || 'Delete';
 
                 Swal.fire({
                     title: 'Are you sure?',
-                    text: "This material request will be deleted permanently!",
+                    text: `${title} - This action cannot be undone!`,
                     icon: 'warning',
                     showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#3085d6',
+                    confirmButtonColor: '#dc3545',
+                    cancelButtonColor: '#6c757d',
                     confirmButtonText: 'Yes, delete it!',
-                    cancelButtonText: 'Cancel'
+                    cancelButtonText: 'Cancel',
+                    reverseButtons: true
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        $form.submit();
+                        form.submit();
                     }
                 });
             });
 
-            // ========== REMIND LOGISTIC ==========
-            $(document).on('click', '.btn-reminder', function(e) {
-                e.preventDefault();
-                const requestId = $(this).data('id');
-                const $btn = $(this);
-                const originalHtml = $btn.html();
-
-                $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
-
-                $.ajax({
-                    url: `/material_requests/${requestId}/reminder`,
-                    method: 'POST',
-                    data: {
-                        _token: '{{ csrf_token() }}'
-                    },
-                    success: function(response) {
-                        $btn.prop('disabled', false).html(originalHtml);
-
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Reminder Sent!',
-                            text: response.message || 'Logistic has been notified.',
-                            timer: 3000,
-                            showConfirmButton: false
-                        });
-                    },
-                    error: function(xhr) {
-                        $btn.prop('disabled', false).html(originalHtml);
-
-                        const errorMsg = xhr.responseJSON?.message ||
-                            'Failed to send reminder.';
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Failed',
-                            text: errorMsg,
-                            confirmButtonText: 'OK'
-                        });
-                    }
-                });
-            });
-
-            // ========== BULK GOODS OUT BUTTON ==========
-            function updateBulkGoodsOutButton() {
-                const selectedCount = $('.select-row:checked').length;
-                const $btn = $('#bulk-goods-out-btn');
-                const $count = $('#bulk-goods-out-count');
-
-                if (selectedCount > 0) {
-                    $btn.prop('disabled', false);
-                    $count.text(selectedCount).removeClass('d-none');
-                } else {
-                    $btn.prop('disabled', true);
-                    $count.addClass('d-none');
-                }
-            }
-
-            // Update button on checkbox change
-            $(document).on('change', '.select-row', updateBulkGoodsOutButton);
-
-            // Bulk Goods Out action - FIXED: Use correct route
+            // Bulk Goods Out Modal Handler (tidak berubah)
             $('#bulk-goods-out-btn').on('click', function() {
                 const selectedIds = $('.select-row:checked').map(function() {
                     return $(this).val();
                 }).get();
 
                 if (selectedIds.length === 0) {
-                    Swal.fire('Warning', 'Please select at least one approved request.', 'warning');
+                    Swal.fire('Error', 'Please select at least one material request.', 'error');
                     return;
                 }
 
-                // Fetch material details first and show confirmation
+                $('#bulk-goods-out-table-body').html(
+                    '<tr><td colspan="6" class="text-center py-4"><div class="spinner-border" role="status"></div></td></tr>'
+                );
+                $('#bulkGoodsOutModal').modal('show');
+
                 $.ajax({
-                    url: '{{ route('material_requests.bulk_details') }}',
-                    method: 'POST',
+                    url: "{{ route('material_requests.bulk_details') }}",
+                    method: 'GET',
                     data: {
-                        _token: '{{ csrf_token() }}',
                         selected_ids: selectedIds
                     },
                     success: function(response) {
-                        // Build confirmation table
-                        let confirmHtml =
-                            '<div class="table-responsive"><table class="table table-sm table-bordered">';
-                        confirmHtml +=
-                            '<thead class="table-light"><tr><th>Material</th><th>Job Order</th><th>Remaining Qty</th></tr></thead><tbody>';
-
-                        response.forEach(item => {
-                            confirmHtml += `<tr>
-                                <td>${item.material_name}</td>
-                                <td>${item.job_order_name}</td>
-                                <td><strong>${item.remaining_qty} ${item.unit}</strong></td>
-                            </tr>`;
+                        $('#bulk-goods-out-table-body').empty();
+                        response.forEach(function(item) {
+                            $('#bulk-goods-out-table-body').append(`
+                        <tr>
+                            <td>${item.material_name}</td>
+                            <td>${item.job_order_name || '-'}</td>
+                            <td>
+                                ${item.project_name}
+                                <span data-bs-toggle="tooltip" data-bs-placement="bottom" title="Requested By: ${item.requested_by}">
+                                    <i class="bi bi-person-circle"></i>
+                                </span>
+                            </td>
+                            <td>${item.requested_qty} / ${item.remaining_qty} <span class="text-muted">${item.unit}</span></td>
+                            <td>
+                                <input type="number" name="goods_out_qty[${item.id}]" class="form-control form-control-sm"
+                                    value="${item.remaining_qty}" min="0.001" max="${item.remaining_qty}" step="any" required>
+                            </td>
+                            <td class="text-center align-middle">
+                                <button type="button" class="btn btn-sm btn-danger btn-remove-row" title="Remove Row">
+                                    <i class="bi bi-x-circle"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `);
                         });
 
-                        confirmHtml += '</tbody></table></div>';
-
-                        // Show confirmation dialog first
-                        Swal.fire({
-                            title: 'Confirm Bulk Goods Out',
-                            html: `<p class="mb-3">You are about to process <strong>${selectedIds.length}</strong> material request(s) for Goods Out:</p>` +
-                                confirmHtml,
-                            icon: 'question',
-                            width: '700px',
-                            showCancelButton: true,
-                            confirmButtonText: 'Continue to Goods Out Form',
-                            cancelButtonText: 'Cancel'
-                        }).then((result) => {
-                            if (result.isConfirmed) {
-                                // Build goods out form dynamically
-                                let formHtml = '<form id="bulk-goods-out-form">';
-                                formHtml +=
-                                    '<table class="table table-sm"><thead><tr><th>Material</th><th>Job Order</th><th>Remaining Qty</th><th>Goods Out Qty</th></tr></thead><tbody>';
-
-                                response.forEach(item => {
-                                    formHtml += `<tr>
-                                <td>${item.material_name}</td>
-                                <td>${item.job_order_name}</td>
-                                <td>${item.remaining_qty} ${item.unit}</td>
-                                <td><input type="number" class="form-control form-control-sm" name="goods_out_qty[${item.id}]"
-                                    value="${item.remaining_qty}" min="0.001" max="${item.remaining_qty}" step="0.001" required></td>
-                            </tr>`;
-                                });
-
-                                formHtml += '</tbody></table></form>';
-
-                                Swal.fire({
-                                    title: 'Enter Goods Out Quantities',
-                                    html: formHtml,
-                                    width: '800px',
-                                    showCancelButton: true,
-                                    confirmButtonText: 'Process Goods Out',
-                                    cancelButtonText: 'Cancel',
-                                    preConfirm: () => {
-                                        const formData = {};
-                                        formData.selected_ids = selectedIds;
-                                        formData.goods_out_qty = {};
-
-                                        $('input[name^="goods_out_qty"]')
-                                            .each(function() {
-                                                const match = $(this)
-                                                    .attr('name').match(
-                                                        /\[(\d+)\]/);
-                                                if (match) {
-                                                    formData
-                                                        .goods_out_qty[
-                                                            match[1]] =
-                                                        parseFloat($(
-                                                                this)
-                                                            .val());
-                                                }
-                                            });
-
-                                        return formData;
-                                    }
-                                }).then((result) => {
-                                    if (result.isConfirmed) {
-                                        // Submit to correct POST route
-                                        $.ajax({
-                                            url: '{{ route('goods_out.bulk') }}',
-                                            method: 'POST',
-                                            data: {
-                                                _token: '{{ csrf_token() }}',
-                                                selected_ids: result
-                                                    .value.selected_ids,
-                                                goods_out_qty: result
-                                                    .value.goods_out_qty
-                                            },
-                                            success: function(
-                                                response) {
-                                                if (response
-                                                    .success) {
-                                                    Swal.fire(
-                                                        'Success',
-                                                        response
-                                                        .message,
-                                                        'success'
-                                                    ).then(
-                                                        () => {
-                                                            table
-                                                                .ajax
-                                                                .reload();
-                                                        });
-                                                } else {
-                                                    Swal.fire(
-                                                        'Error',
-                                                        response
-                                                        .message,
-                                                        'error');
-                                                }
-                                            },
-                                            error: function(xhr) {
-                                                const errorMsg = xhr
-                                                    .responseJSON
-                                                    ?.message ||
-                                                    'Failed to process bulk goods out';
-                                                Swal.fire('Error',
-                                                    errorMsg,
-                                                    'error');
-                                            }
-                                        });
-                                    }
-                                });
-                            }
-                        });
+                        setTimeout(() => {
+                            initializeTooltipsBatch(document.getElementById(
+                                'bulkGoodsOutModal'));
+                        }, 100);
                     },
                     error: function(xhr) {
-                        Swal.fire('Error', 'Failed to fetch material details',
-                            'error');
+                        $('#bulk-goods-out-table-body').html(
+                            '<tr><td colspan="6" class="text-center text-danger">Failed to load data. Please try again.</td></tr>'
+                        );
+                        console.error('Bulk details error:', xhr);
                     }
                 });
             });
+
+            $(document).on('click', '.btn-remove-row', function() {
+                $(this).closest('tr').remove();
+            });
+
+            $('#submit-bulk-goods-out').on('click', function() {
+                const submitBtn = $(this);
+                const spinner = submitBtn.find('.spinner-border');
+                const btnText = submitBtn.contents().filter(function() {
+                    return this.nodeType === 3;
+                }).last();
+
+                let isValid = true;
+                $('#bulk-goods-out-table-body input[type="number"]').each(function() {
+                    const max = parseFloat($(this).attr('max'));
+                    const val = parseFloat($(this).val());
+                    if (isNaN(val) || val < 0.001 || val > max) {
+                        isValid = false;
+                        $(this).addClass('is-invalid');
+                    } else {
+                        $(this).removeClass('is-invalid');
+                    }
+                });
+
+                if (!isValid) {
+                    Swal.fire('Error', 'Qty to Goods Out must be between 0.001 and Remaining Qty.',
+                        'error');
+                    return;
+                }
+
+                function resetButtonState() {
+                    submitBtn.prop('disabled', false);
+                    spinner.addClass('d-none');
+                    btnText[0].textContent = ' Submit All';
+                }
+
+                submitBtn.prop('disabled', true);
+                spinner.removeClass('d-none');
+                btnText[0].textContent = ' Processing...';
+
+                $('#bulk-goods-out-form input[name="selected_ids[]"]').remove();
+                $('#bulk-goods-out-table-body tr').each(function() {
+                    const id = $(this).find('input[type="number"]').attr('name').match(/\d+/)[0];
+                    $('#bulk-goods-out-form').append(
+                        `<input type="hidden" name="selected_ids[]" value="${id}">`
+                    );
+                });
+
+                const formData = $('#bulk-goods-out-form').serialize();
+                $.ajax({
+                    url: "{{ route('goods_out.bulk') }}",
+                    method: 'POST',
+                    data: formData,
+                    success: function(response) {
+                        resetButtonState();
+                        if (response.success) {
+                            $('#bulkGoodsOutModal').modal('hide');
+                            Swal.fire('Success', response.message, 'success').then(() => {
+                                table.ajax.reload(null, false);
+                            });
+                        } else {
+                            Swal.fire('Error', response.message || 'Bulk Goods Out failed.',
+                                'error');
+                        }
+                    },
+                    error: function(xhr) {
+                        resetButtonState();
+                        let msg = xhr.responseJSON?.message || 'Bulk Goods Out failed.';
+                        Swal.fire('Error', msg, 'error');
+                    }
+                });
+            });
+
+            $('#bulkGoodsOutModal').on('hidden.bs.modal', function() {
+                const submitBtn = $('#submit-bulk-goods-out');
+                const spinner = submitBtn.find('.spinner-border');
+                const btnText = submitBtn.contents().filter(function() {
+                    return this.nodeType === 3;
+                }).last();
+
+                submitBtn.prop('disabled', false);
+                spinner.addClass('d-none');
+                btnText[0].textContent = ' Submit All';
+            });
+
+            // Material Detail Modal Handler (tidak berubah)
+            $(document).on('click', '.material-detail-btn', function(e) {
+                e.preventDefault();
+                const inventoryId = $(this).data('id');
+                if (!inventoryId) return;
+
+                // Reset modal content to loading state
+                $('#material-image').hide();
+                $('#no-image-placeholder').show().find('p').text('Loading...');
+                $('#material-qr').hide();
+                $('#no-qr-placeholder').show().find('p').text('Loading...');
+                $('#detail-name, #detail-category, #detail-quantity, #detail-unit, #detail-price, #detail-currency, #detail-supplier, #detail-location, #detail-remark').text('-');
+
+                $('#materialDetailModal').modal('show');
+
+                // Fetch inventory details
+                $.ajax({
+                    url: '{{ route("material_requests.inventory_detail", "") }}/' + inventoryId,
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(data) {
+                        // Populate text fields
+                        $('#detail-name').text(data.name);
+                        $('#detail-category').text(data.category);
+                        $('#detail-quantity').text(data.quantity);
+                        $('#detail-unit').text(data.unit);
+                        $('#detail-price').text(data.price);
+                        $('#detail-currency').text(data.currency);
+                        $('#detail-supplier').text(data.supplier);
+                        $('#detail-location').text(data.location);
+                        $('#detail-remark').text(data.remark);
+
+                        // Handle image
+                        if (data.img_url) {
+                            $('#material-image').attr('src', data.img_url).show();
+                            $('#no-image-placeholder').hide();
+                        } else {
+                            $('#material-image').hide();
+                            $('#no-image-placeholder').show().find('p').text('No image available');
+                        }
+
+                        // Handle QR code
+                        if (data.qr_code) {
+                            $('#material-qr').attr('src', data.qr_code).show();
+                            $('#no-qr-placeholder').hide();
+                        } else {
+                            $('#material-qr').hide();
+                            $('#no-qr-placeholder').show().find('p').text('No QR Code');
+                        }
+                    },
+                    error: function(xhr) {
+                        $('#no-image-placeholder').show().find('p').text('Failed to load data');
+                        $('#no-qr-placeholder').show().find('p').text('Failed to load data');
+                        console.error('Error loading inventory details:', xhr);
+                    }
+                });
+            });
+
+            // Reminder Button Handler (tidak berubah)
+            $(document).on('click', '.btn-reminder', function() {
+                const id = $(this).data('id');
+                const btn = $(this);
+                const originalHtml = btn.html();
+
+                btn.prop('disabled', true).html('<i class="bi bi-hourglass-split"></i>');
+
+                $.post(`/material_requests/${id}/reminder`, {
+                    _token: $('meta[name="csrf-token"]').attr('content')
+                }, function(res) {
+                    if (res.success) {
+                        Swal.fire('Reminder sent!', 'Logistic will be notified.', 'success');
+                    } else {
+                        Swal.fire('Error', res.message || 'Failed to send reminder.', 'error');
+                    }
+                }).fail(function(xhr) {
+                    Swal.fire('Error', 'Failed to send reminder. Please try again.', 'error');
+                }).always(function() {
+                    btn.prop('disabled', false).html(originalHtml);
+                });
+            });
+
+            // Status Select Enhancement (tidak berubah)
+            function updateStatusTitle($select) {
+                const val = $select.val();
+                let tip = '';
+                if (val === 'pending') tip = 'Waiting for approval';
+                else if (val === 'approved') tip = 'Ready for goods out';
+                else if (val === 'delivered') tip = 'Already delivered';
+                else if (val === 'canceled') tip = 'Request canceled';
+                $select.attr('title', tip);
+            }
+
+            function initializeStatusSelectTooltips(container = document) {
+                $(container).find('.status-select').each(function() {
+                    updateStatusTitle($(this));
+                });
+            }
+
+            updateBulkGoodsOutButton();
+
+            // Quick Update Status Handler (tidak berubah)
+            $(document).on('change', '.status-quick-update', function() {
+                const $select = $(this);
+                const id = $select.data('id');
+                const newStatus = $select.val();
+                const oldStatus = $select.data('previous-value') || $select.find('option[selected]').val();
+
+                $select.data('previous-value', newStatus);
+                $select.prop('disabled', true);
+
+                const originalWidth = $select.width();
+                $select.css('width', originalWidth + 'px');
+
+                $.ajax({
+                    url: `/material_requests/${id}/quick-update`,
+                    method: 'POST',
+                    data: {
+                        status: newStatus,
+                        _token: $('meta[name="csrf-token"]').attr('content')
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            updateSelectColor($select[0]);
+
+                            $select.addClass('border-success');
+                            setTimeout(() => {
+                                $select.removeClass('border-success');
+                            }, 1000);
+
+                            const $row = $select.closest('tr');
+                            const $checkbox = $row.find('.select-row');
+
+                            if (newStatus === 'approved') {
+                                if ($checkbox.length === 0) {
+                                    $row.find('td:first').html(
+                                        '<input type="checkbox" class="select-row" value="' +
+                                        id + '">');
+                                }
+                            } else {
+                                $checkbox.remove();
+                                $row.find('td:first').empty();
+                            }
+
+                            if (window.updateBulkGoodsOutButton) {
+                                window.updateBulkGoodsOutButton();
+                            }
+                        } else {
+                            throw new Error(response.message || 'Update failed');
+                        }
+                    },
+                    error: function(xhr) {
+                        $select.val(oldStatus);
+                        $select.data('previous-value', oldStatus);
+
+                        const errorMessage = xhr.responseJSON?.message ||
+                            'Failed to update status';
+
+                        $select.addClass('border-danger');
+                        setTimeout(() => {
+                            $select.removeClass('border-danger');
+                        }, 2000);
+
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Update Failed',
+                            text: errorMessage,
+                            timer: 3000,
+                            showConfirmButton: false
+                        });
+
+                        console.error('Status update failed:', errorMessage);
+                    },
+                    complete: function() {
+                        $select.prop('disabled', false);
+                        $select.css('width', '');
+                    }
+                });
+            });
+
+            $(document).on('draw.dt', '#datatable', function() {
+                $('.status-quick-update').each(function() {
+                    const $select = $(this);
+                    $select.data('previous-value', $select.val());
+                });
+            });
+        });
+
+        // Utility Functions (tidak berubah)
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        function initializeTooltipsBatch(container = document) {
+            $(container).find('[data-bs-toggle="tooltip"]').tooltip('dispose');
+
+            const tooltipElements = container.querySelectorAll('[data-bs-toggle="tooltip"]');
+            tooltipElements.forEach(element => {
+                new bootstrap.Tooltip(element, {
+                    trigger: 'hover focus',
+                    placement: 'right',
+                    fallbackPlacements: ['top', 'bottom', 'left'],
+                    boundary: 'viewport',
+                    container: 'body',
+                    offset: [0, 8],
+                    sanitize: false,
+                    html: true
+                });
+            });
+        }
+
+        function updateAllSelectColors(container) {
+            const selects = container.querySelectorAll('.status-select');
+            selects.forEach(select => updateSelectColor(select));
+        }
+
+        window.authUser = {
+            username: "{{ auth()->user()->username }}",
+            is_logistic_admin: {{ auth()->user()->isLogisticAdmin() ? 'true' : 'false' }},
+            is_super_admin: {{ auth()->user()->isSuperAdmin() ? 'true' : 'false' }}
+        };
+
+        document.addEventListener("DOMContentLoaded", function() {
+            initializeTooltipsBatch();
         });
     </script>
 @endpush

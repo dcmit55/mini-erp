@@ -417,11 +417,12 @@
                                         </ul>
                                     </li>
                                 @endif
-                                <!-- HR Dropdown -->
+
+                                <!-- HR Dropdown (DIPERBARUI) -->
                                 @auth
                                     @if (in_array(auth()->user()->role, ['super_admin', 'admin_hr', 'admin']))
                                         <li class="nav-item dropdown">
-                                            <a class="nav-link dropdown-toggle {{ request()->is('employees*') || request()->routeIs('leave_requests.index') || request()->is('attendance*') ? 'active' : '' }}"
+                                            <a class="nav-link dropdown-toggle {{ request()->is('employees*') || request()->routeIs('leave_requests.index') || request()->is('attendance*') || request()->routeIs('employee-work-policies.*') ? 'active' : '' }}"
                                                 href="#" id="hrDropdown" role="button" data-bs-toggle="dropdown"
                                                 aria-expanded="false">
                                                 <i></i>HR
@@ -449,6 +450,13 @@
                                                     <a class="dropdown-item {{ request()->is('attendance/list*') ? 'active' : '' }}"
                                                         href="{{ route('attendance.list') }}">
                                                         <i class="fas fa-history me-2"></i>Attendance History
+                                                    </a>
+                                                </li>
+                                                <!-- Work Policies (BARU) -->
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->routeIs('employee-work-policies.*') ? 'active' : '' }}"
+                                                        href="{{ route('employee-work-policies.index') }}">
+                                                        <i class="fas fa-clock me-2"></i>Work Policies
                                                     </a>
                                                 </li>
                                             </ul>

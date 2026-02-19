@@ -112,7 +112,8 @@ class MaterialRequest extends Model implements Auditable
         }
 
         if ($this->project_type === self::PROJECT_TYPE_INTERNAL && $this->internalProject) {
-            return $this->internalProject->project; // hanya nama project, tanpa job
+            // Perbaikan: ambil nilai string dari enum, bukan objek enum langsung
+            return $this->internalProject->project->value ?? (string) $this->internalProject->project;
         }
 
         return '(No Project)';

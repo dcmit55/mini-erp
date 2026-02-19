@@ -23,7 +23,7 @@
                         </ul>
                     </div>
                 @endif
-                <form action="{{ route('material_requests.update', $request->id) }}" method="POST">
+                <form action="{{ route('material_requests.update', $materialRequest->id) }}" method="POST">
                     @csrf
                     @method('PUT')
                     <input type="hidden" name="filter_project" value="{{ request('project') }}">
@@ -33,8 +33,8 @@
                     <input type="hidden" name="filter_requested_at" value="{{ request('requested_at') }}">
 
                     <!-- Hidden fields for validation -->
-                    <input type="hidden" name="project_type" value="{{ $request->project_type ?? 'client' }}">
-                    <input type="hidden" name="internal_project_id" value="{{ $request->internal_project_id ?? '' }}">
+                    <input type="hidden" name="project_type" value="{{ $materialRequest->project_type ?? 'client' }}">
+                    <input type="hidden" name="internal_project_id" value="{{ $materialRequest->internal_project_id ?? '' }}">
 
                     <div class="row">
                         <div class="col-lg-6 mb-3">
@@ -47,7 +47,7 @@
                                 @foreach ($jobOrders as $jo)
                                     <option value="{{ $jo->id }}" data-project-id="{{ $jo->project_id }}"
                                         data-project-name="{{ $jo->project->name ?? '' }}"
-                                        {{ old('job_order_id', $request->job_order_id) == $jo->id ? 'selected' : '' }}>
+                                        {{ old('job_order_id', $materialRequest->job_order_id) == $jo->id ? 'selected' : '' }}>
                                         {{ $jo->name }}
                                     </option>
                                 @endforeach
@@ -58,12 +58,12 @@
 
                             <!-- Hidden Project ID (Auto-filled) -->
                             <input type="hidden" name="project_id" id="project_id"
-                                value="{{ old('project_id', $request->project_id) }}">
+                                value="{{ old('project_id', $materialRequest->project_id) }}">
 
                             <!-- Project Display (Read-only) -->
-                            <div id="project-display" class="mt-2 {{ $request->project_id ? '' : 'd-none' }}">
+                            <div id="project-display" class="mt-2 {{ $materialRequest->project_id ? '' : 'd-none' }}">
                                 <small class="text-muted">Project:</small>
-                                <strong id="project-name-text">{{ $request->project->name ?? '' }}</strong>
+                                <strong id="project-name-text">{{ $materialRequest->project->name ?? '' }}</strong>
                             </div>
                         </div>
 
@@ -79,7 +79,7 @@
                                 @foreach ($inventories as $inv)
                                     <option value="{{ $inv->id }}" data-unit="{{ $inv->unit }}"
                                         data-stock="{{ $inv->quantity }}"
-                                        {{ old('inventory_id', $request->inventory_id) == $inv->id ? 'selected' : '' }}>
+                                        {{ old('inventory_id', $materialRequest->inventory_id) == $inv->id ? 'selected' : '' }}>
                                         {{ $inv->name }}
                                     </option>
                                 @endforeach
@@ -95,10 +95,10 @@
                         <div class="col-lg-6 mb-3">
                             <label>Requested Quantity <span class="text-danger">*</span></label>
                             <div class="input-group">
-                                <input type="number" name="qty" class="form-control" value="{{ $request->qty }}"
+                                <input type="number" name="qty" class="form-control" value="{{ $materialRequest->qty }}"
                                     step="any" required>
                                 <span class="input-group-text unit-label">
-                                    {{ $request->invr ? $request->inv->unit : 'unit' }}
+                                    {{ $materialRequest->invr ? $materialRequest->inv->unit : 'unit' }}
                                 </span>
                             </div>
                             @error('qty')
@@ -108,7 +108,7 @@
 
                         <div class="col-lg-6 mb-3">
                             <label>Remark</label>
-                            <textarea name="remark" class="form-control" rows="1">{{ $request->remark }}</textarea>
+                            <textarea name="remark" class="form-control" rows="1">{{ $materialRequest->remark }}</textarea>
                             @error('remark')
                                 <small class="text-danger">{{ $message }}</small>
                             @enderror
@@ -118,14 +118,14 @@
                     <div class="row">
                         <div class="col-lg-6 mb-3">
                             <label>Requested By</label>
-                            <input type="text" class="form-control" value="{{ ucfirst($request->requested_by) }}"
+                            <input type="text" class="form-control" value="{{ ucfirst($materialRequest->requested_by) }}"
                                 disabled>
                         </div>
 
                         <div class="col-lg-6 mb-3">
                             <label>Department</label>
                             <input type="text" class="form-control"
-                                value="{{ $request->user && $request->user->department ? ucfirst($request->user->department->name) : '-' }}"
+                                value="{{ $materialRequest->user && $materialRequest->user->department ? ucfirst($materialRequest->user->department->name) : '-' }}"
                                 disabled>
                         </div>
                     </div>
@@ -135,15 +135,15 @@
                             <label>Status</label>
                             <select name="status" class="form-select"
                                 {{ !in_array(auth()->user()->role, ['admin_logistic', 'super_admin']) ? 'disabled' : '' }}>
-                                <option value="pending" {{ $request->status === 'pending' ? 'selected' : '' }}>Pending
+                                <option value="pending" {{ $materialRequest->status === 'pending' ? 'selected' : '' }}>Pending
                                 </option>
-                                <option value="approved" {{ $request->status === 'approved' ? 'selected' : '' }}>Approved
+                                <option value="approved" {{ $materialRequest->status === 'approved' ? 'selected' : '' }}>Approved
                                 </option>
-                                <option value="canceled" {{ $request->status === 'canceled' ? 'selected' : '' }}>Canceled
+                                <option value="canceled" {{ $materialRequest->status === 'canceled' ? 'selected' : '' }}>Canceled
                                 </option>
                             </select>
                             @if (!in_array(auth()->user()->role, ['admin_logistic', 'super_admin']))
-                                <input type="hidden" name="status" value="{{ $request->status }}">
+                                <input type="hidden" name="status" value="{{ $materialRequest->status }}">
                             @endif
                         </div>
                     </div>
@@ -607,7 +607,7 @@
 
         document.addEventListener('DOMContentLoaded', function() {
             const form = document.querySelector(
-                'form[action="{{ route('material_requests.update', $request->id) }}"]');
+                'form[action="{{ route('material_requests.update', $materialRequest->id) }}"]');
             const submitBtn = document.getElementById('update-request-btn');
             const spinner = submitBtn ? submitBtn.querySelector('.spinner-border') : null;
 

@@ -7,7 +7,7 @@
             <h2 class="mb-0" style="font-size:1.3rem;">Create Material Request</h2>
             <hr>
 
-            <!-- ========== ALERT MESSAGES (LANGSUNG) ========== -->
+            <!-- ========== ALERT MESSAGES ========== -->
             @if (session('success'))
                 <div class="alert alert-success alert-dismissible fade show" role="alert">
                     {!! session('success') !!}
@@ -145,10 +145,72 @@
 </div>
 
 <!-- ========== MODAL QUICK ADD MATERIAL ========== -->
-<div class="modal fade" id="confirmAddMaterialModal" tabindex="-1" aria-hidden="true">...</div>
-<div class="modal fade" id="addMaterialModal" tabindex="-1" aria-hidden="true">...</div>
+<div class="modal fade" id="confirmAddMaterialModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Add Material!</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <b>Please make sure this material does not already exist in the inventory table.</b><br>
+                <span class="text-danger">Use this feature only if the material is truly not available and is urgently needed.<br>
+                Adding duplicate materials will cause data inconsistency!</span>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="btnConfirmAddMaterial">Yes, I Understand</button>
+            </div>
+        </div>
+    </div>
+</div>
 
-<!-- ========== MODAL QUICK ADD INTERNAL PROJECT (FINAL, CLEAN) ========== -->
+<div class="modal fade" id="addMaterialModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <form id="quickAddMaterialForm" method="POST" action="{{ route('inventories.store.quick') }}">
+            @csrf
+            <div class="modal-content">
+                <div class="modal-header flex-column align-items-start pb-1 pt-3">
+                    <h5 class="modal-title w-100 mb-2">Quick Add Material</h5>
+                    <div class="w-100 mb-2">
+                        <small class="text-muted d-block" style="font-size: 0.92em;">
+                            <i class="bi bi-search"></i>
+                            Search Material Before Adding <span class="fst-italic">(optional)</span>
+                        </small>
+                        <input type="text" id="search-material-autocomplete" class="form-control form-control-sm mt-1"
+                               placeholder="Type material name to search...">
+                        <div id="search-material-result" class="form-text mt-1 mb-0"></div>
+                    </div>
+                    <button type="button" class="btn-close position-absolute end-0 top-0 m-3"
+                            data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body pt-2">
+                    <label>Material Name <span class="text-danger">*</span></label>
+                    <input type="text" name="name" class="form-control" required>
+
+                    <label class="mt-2">Quantity <span class="text-danger">*</span></label>
+                    <input type="number" step="any" name="quantity" class="form-control" required>
+
+                    <label class="mt-2">Unit <span class="text-danger">*</span></label>
+                    <select name="unit" id="unit-select-modal" class="form-select select2" required>
+                        <option value="">Select Unit</option>
+                        @foreach ($units ?? [] as $unit)
+                            <option value="{{ $unit->name }}">{{ $unit->name }}</option>
+                        @endforeach
+                    </select>
+
+                    <label class="mt-2">Remark (optional)</label>
+                    <textarea name="remark" class="form-control" rows="2"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary w-100">Add Material</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ========== MODAL QUICK ADD INTERNAL PROJECT ========== -->
 <div class="modal fade" id="addInternalProjectModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <form id="quickAddInternalProjectForm" method="POST">
@@ -221,15 +283,118 @@
 </div>
 
 <!-- MODAL QUICK ADD PROJECT (CLIENT) -->
-<div class="modal fade" id="addProjectModal" tabindex="-1" aria-hidden="true">...</div>
-
+<div class="modal fade" id="addProjectModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <form id="quickAddProjectForm" method="POST" action="{{ route('projects.store.quick') }}">
+            @csrf
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Quick Add Project</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="project-error" class="alert alert-danger d-none"></div>
+                    <div class="mb-3">
+                        <label for="project_name" class="form-label">Project Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="project_name" name="name" required
+                               placeholder="Enter project name">
+                    </div>
+                    <div class="mb-3">
+                        <label for="project_qty" class="form-label">Quantity <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="project_qty" name="qty" required
+                               min="1" placeholder="Enter quantity">
+                    </div>
+                    <div class="mb-3">
+                        <label for="project_departments" class="form-label">Department <span class="text-danger">*</span></label>
+                        <select name="department_ids[]" id="project_departments" class="form-select" multiple required>
+                            @foreach ($departments as $dept)
+                                <option value="{{ $dept->id }}">{{ $dept->name }}</option>
+                            @endforeach
+                        </select>
+                        <small class="text-muted">You can select multiple departments</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Project</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
 @endsection
 
 @push('styles')
 <style>
-    /* ... styles yang sama ... */
-    .select2-container .select2-selection--single { height: calc(2.375rem + 2px); }
-    /* ... */
+    .select2-container .select2-selection--single {
+        height: calc(2.375rem + 2px);
+        padding: 0.375rem 0.75rem;
+    }
+    .select2-selection__rendered {
+        line-height: 1.5;
+    }
+    .unit-label {
+        min-width: 50px;
+    }
+    @media (max-width: 576px) {
+        #addMaterialModal .modal-dialog {
+            max-width: 98vw;
+            margin: 0.5rem auto;
+        }
+        #addMaterialModal .modal-content {
+            padding: 0.5rem;
+        }
+        #addMaterialModal .modal-header,
+        #addMaterialModal .modal-body,
+        #addMaterialModal .modal-footer {
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+        }
+    }
+    @media (max-width: 992px) {
+        .table-responsive table,
+        .table-responsive thead,
+        .table-responsive tbody,
+        .table-responsive tr,
+        .table-responsive th,
+        .table-responsive td {
+            display: block !important;
+            width: 100% !important;
+        }
+        .table-responsive thead {
+            display: none !important;
+        }
+        .table-responsive tr {
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid #dee2e6;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+        }
+        .table-responsive td {
+            position: relative;
+            padding-left: 120px;
+            min-height: 40px;
+            border: none;
+            border-bottom: 1px solid #dee2e6;
+            box-sizing: border-box;
+            word-break: break-word;
+        }
+        .table-responsive td:before {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 100px;
+            white-space: normal;
+            font-weight: 600;
+            color: #888;
+            content: attr(data-label);
+            box-sizing: border-box;
+            text-align: left;
+        }
+        .table-responsive td:last-child {
+            border-bottom: 2px solid #dee2e6;
+        }
+    }
 </style>
 @endpush
 
@@ -273,7 +438,8 @@ $(document).ready(function() {
     function renderInternalOptions() {
         let html = '<option value="">Select Job Order</option>';
         internalProjects.forEach(ip => {
-            html += `<option value="${ip.job}" data-internal-id="${ip.id}" data-project="${ip.project}">${ip.job}</option>`;
+            // PERBAIKAN: gunakan ip.id sebagai value, bukan ip.job
+            html += `<option value="${ip.id}" data-internal-id="${ip.id}" data-project="${ip.project}">${ip.job}</option>`;
         });
         $('#jobOrderSelect').html(html);
         $('#jobOrderLabel').text('Job Order (Internal)');
@@ -341,7 +507,7 @@ $(document).ready(function() {
         $('#addInternalProjectModal').modal('show');
     });
 
-    // ========== LOGIKA DEPARTMENT DI MODAL (FIX, TIDAK ADA DROPDOWN UNTUK NON-TESTING) ==========
+    // ========== LOGIKA DEPARTMENT DI MODAL ==========
     function updateDepartmentField() {
         const projectType = $('#modal_project_type').val();
         const isTesting = projectType === 'Testing';
@@ -412,9 +578,10 @@ $(document).ready(function() {
             success: function(response) {
                 if (response.success && response.internal_project) {
                     const ip = response.internal_project;
-                    const newOption = new Option(ip.job, ip.job, true, true);
+                    // PERBAIKAN: value = ip.id, bukan ip.job
+                    const newOption = new Option(ip.job, ip.id, true, true);
                     $(newOption).attr('data-internal-id', ip.id).attr('data-project', ip.project);
-                    $('#jobOrderSelect').append(newOption).val(ip.job).trigger('change');
+                    $('#jobOrderSelect').append(newOption).val(ip.id).trigger('change');
                     internalProjects.push({ id: ip.id, project: ip.project, job: ip.job });
                     $('#addInternalProjectModal').modal('hide');
                     form[0].reset();
