@@ -4,7 +4,7 @@
     <div class="container-fluid py-4">
         <div class="card shadow-sm border-0 mb-4">
             <div class="card-body">
-                <!-- Header -->
+                <!-- Header - TANPA TOMBOL TEMPLATE -->
                 <div class="d-flex flex-column flex-lg-row align-items-lg-center gap-3 mb-3">
                     <div class="d-flex align-items-center">
                         <i class="fas fa-users gradient-icon me-2" style="font-size: 1.5rem;"></i>
@@ -14,6 +14,13 @@
                     <div class="ms-lg-auto">
                         <div class="d-flex flex-wrap gap-2 align-items-center justify-content-lg-end">
                             @if (auth()->user()->canModifyData())
+                                <!-- Tombol Import -->
+                                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#importEmployeeModal">
+                                    <i class="bi bi-upload me-1"></i>
+                                    <span class="d-none d-sm-inline">Import Excel</span>
+                                </button>
+                                
+                                <!-- Tombol Add Employee -->
                                 <a href="{{ route('employees.create') }}" class="btn btn-primary btn-sm">
                                     <i class="bi bi-plus-circle me-1"></i>
                                     <span class="d-none d-sm-inline">Add Employee</span>
@@ -27,6 +34,13 @@
                 @if (session('success'))
                     <div class="alert alert-success alert-dismissible fade show" role="alert">
                         <i class="bi bi-check-circle me-1"></i>{{ session('success') }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                @endif
+
+                @if (session('import_results'))
+                    <div class="alert alert-info alert-dismissible fade show" role="alert">
+                        <i class="bi bi-info-circle me-1"></i>{{ session('import_results') }}
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
                 @endif
@@ -118,7 +132,6 @@
                                 <th class="d-none d-lg-table-cell">Contact</th>
                                 <th class="d-none d-xl-table-cell">Hire Date</th>
                                 <th class="d-none d-xl-table-cell">Contract End</th>
-                                {{-- <th class="text-center">Documents</th> --}}
                                 <th class="d-none d-sm-table-cell">Type & Status</th>
                                 <th width="140" class="text-center">Actions</th>
                             </tr>
@@ -206,20 +219,6 @@
                                             <span class="text-muted">-</span>
                                         @endif
                                     </td>
-                                    {{-- <td class="text-center">
-                                        @if ($employee->documents->count() > 0)
-                                            <button type="button"
-                                                class="btn btn-sm btn-outline-success view-documents-btn"
-                                                data-employee-id="{{ $employee->id }}"
-                                                data-employee-name="{{ $employee->name }}" title="View Documents">
-                                                <i class="bi bi-file-earmark-text"></i>
-                                                <span
-                                                    class="badge bg-success ms-1">{{ $employee->documents->count() }}</span>
-                                            </button>
-                                        @else
-                                            <span class="badge bg-secondary small">No docs</span>
-                                        @endif
-                                    </td> --}}
                                     <td>
                                         <span class="badge bg-{{ $employee->employment_type_badge['color'] }} mb-1">
                                             {{ $employee->employment_type }}
@@ -281,26 +280,85 @@
         </div>
     </div>
 
-    <!-- Documents Modal -->
-    {{-- <div class="modal fade" id="documentsModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
+    <!-- Modal Import Employee - TANPA LINK TEMPLATE -->
+    <div class="modal fade" id="importEmployeeModal" tabindex="-1" aria-labelledby="importEmployeeModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">
-                        <i class="bi bi-file-earmark-text"></i>
-                        Documents for <span id="modalEmployeeName"></span>
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <div class="modal-header py-2">
+                    <h6 class="modal-title" id="importEmployeeModalLabel">
+                        <i class="bi bi-upload me-1"></i>
+                        Import Employees from Excel
+                    </h6>
+                    <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
-                    <div id="documentsContent"></div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                </div>
+                <form id="importEmployeeForm" enctype="multipart/form-data">
+                    @csrf
+                    <div class="modal-body py-3">
+                        <!-- Info Alert - TANPA REFERENSI TEMPLATE -->
+                        <div class="alert alert-info py-2 small mb-3">
+                            <i class="bi bi-info-circle me-1"></i>
+                            <strong>Informasi Import:</strong> 
+                            <ul class="mb-0 mt-1 ps-3">
+                                <li>Upload file Excel dengan format yang sesuai</li>
+                                <li>Kolom wajib: <strong>employee_no, name, position, status</strong></li>
+                                <li>Format tanggal: <strong>YYYY-MM-DD</strong> (contoh: 2024-01-01)</li>
+                                <li>Data dengan employee_no yang sama akan diupdate otomatis</li>
+                                <li>Maksimal file: 10MB (format: .xlsx, .xls, .csv)</li>
+                                <li>Pastikan kolom tanggal tidak mengandung waktu (00:00:00)</li>
+                            </ul>
+                        </div>
+
+                        <!-- File Input -->
+                        <div class="mb-3">
+                            <label for="import_file" class="form-label small fw-bold">File Excel</label>
+                            <input type="file" name="file" id="import_file" class="form-control form-control-sm" 
+                                   required accept=".xlsx,.xls,.csv">
+                            <div class="form-text small">
+                                Supported formats: .xlsx, .xls, .csv
+                            </div>
+                        </div>
+
+                        <!-- Progress Bar -->
+                        <div id="importProgress" class="progress d-none mb-2" style="height: 20px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" 
+                                 style="width: 100%">Processing...</div>
+                        </div>
+
+                        <!-- Result Message -->
+                        <div id="importResult" class="mt-2 small"></div>
+
+                        <!-- Failed Rows Container -->
+                        <div id="failedRowsContainer" class="mt-3 d-none">
+                            <h6 class="small fw-bold text-danger">
+                                <i class="bi bi-exclamation-triangle me-1"></i>
+                                Baris yang Gagal:
+                            </h6>
+                            <div class="table-responsive" style="max-height: 300px;">
+                                <table class="table table-sm table-bordered small">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Baris</th>
+                                            <th>Nama</th>
+                                            <th>Error</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="failedRowsBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer py-2">
+                        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">
+                            <i class="bi bi-x me-1"></i>Cancel
+                        </button>
+                        <button type="submit" class="btn btn-sm btn-primary" id="importBtn">
+                            <i class="bi bi-upload me-1"></i>Import
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
-    </div> --}}
+    </div>
 @endsection
 
 @push('styles')
@@ -319,7 +377,7 @@
             border: 1px solid #dee2e6;
         }
 
-        /* Pagination styling - sama seperti Goods Out */
+        /* Pagination styling */
         .pagination {
             --bs-pagination-padding-x: 0.75rem;
             --bs-pagination-padding-y: 0.375rem;
@@ -428,27 +486,24 @@
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
 
-        .view-documents-btn {
-            transition: all 0.2s ease;
+        /* Modal styling */
+        .modal-lg {
+            max-width: 800px;
         }
-
-        .view-documents-btn:hover {
-            transform: scale(1.05);
+        
+        .progress {
+            border-radius: 4px;
         }
-
-        .document-item {
-            border: 1px solid #e9ecef;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 10px;
-            transition: all 0.2s ease;
+        
+        #failedRowsContainer .table {
+            font-size: 0.75rem;
         }
-
-        .document-item:hover {
-            background-color: #f8f9fa;
-            border-color: #dee2e6;
-            transform: translateY(-1px);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        
+        #failedRowsContainer .table th {
+            position: sticky;
+            top: 0;
+            background: #f8f9fa;
+            z-index: 1;
         }
 
         /* Responsive adjustments */
@@ -511,7 +566,7 @@
 @push('scripts')
     <script>
         $(document).ready(function() {
-            // Initialize DataTable dengan konfigurasi sama seperti Goods Out
+            // Initialize DataTable
             const table = $('#employees-table').DataTable({
                 processing: false,
                 searching: true,
@@ -540,18 +595,13 @@
                     '<"col-md-5 dataTables_paginate justify-content-end"p>' +
                     '>',
                 columnDefs: [{
-                        targets: [0], // Photo
+                        targets: [0],
                         orderable: false,
                         searchable: false,
                         className: "text-center"
                     },
-                    // {
-                    //     targets: [7], // Documents
-                    //     orderable: false,
-                    //     className: "text-center"
-                    // },
                     {
-                        targets: [9], // Actions
+                        targets: [9],
                         orderable: false,
                         searchable: false,
                         className: "text-center"
@@ -559,7 +609,7 @@
                 ],
                 order: [
                     []
-                ], // Sort by name
+                ],
                 responsive: true,
                 stateSave: false,
                 drawCallback: function() {
@@ -583,28 +633,23 @@
                 const status = $('#statusFilter').val();
                 const position = $('#positionFilter').val();
 
-                // Filter department (column 4 - hidden on small screens)
                 if (dept) {
                     table.column(4).search(dept, false, false).draw(false);
                 } else {
                     table.column(4).search('').draw(false);
                 }
 
-                // Filter employment type & status (column 8)
-                // Build regex pattern to match both employment type and status
                 let patterns = [];
                 if (empType) patterns.push(empType);
                 if (status) patterns.push(status);
 
                 if (patterns.length > 0) {
-                    // Create regex that requires ALL patterns to match (AND logic)
                     let regexPattern = patterns.map(p => '(?=.*' + p + ')').join('');
                     table.column(8).search(regexPattern, true, false).draw(false);
                 } else {
                     table.column(8).search('').draw(false);
                 }
 
-                // Filter position (column 3)
                 if (position) {
                     table.column(3).search('^' + position + '$', true, false).draw();
                 } else {
@@ -615,10 +660,86 @@
             // Reset filters
             $('#reset-filters').on('click', function() {
                 $('#departmentFilter, #employmentTypeFilter, #statusFilter, #positionFilter').val('')
-                    .trigger(
-                        'change');
+                    .trigger('change');
                 $('#custom-search').val('');
                 table.search('').columns().search('').draw();
+            });
+
+            // Handle Import Form Submit
+            $('#importEmployeeForm').on('submit', function(e) {
+                e.preventDefault();
+
+                var formData = new FormData(this);
+                var $btn = $('#importBtn');
+                var $progress = $('#importProgress');
+                var $result = $('#importResult');
+                var $failedContainer = $('#failedRowsContainer');
+                var $failedBody = $('#failedRowsBody');
+
+                $btn.prop('disabled', true);
+                $progress.removeClass('d-none');
+                $result.html('');
+                $failedContainer.addClass('d-none');
+                $failedBody.empty();
+
+                $.ajax({
+                    url: "{{ route('employees.import') }}",
+                    type: "POST",
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    success: function(response) {
+                        $progress.addClass('d-none');
+                        $result.html('<div class="alert alert-success py-1 px-2 mb-0">' + 
+                            response.message + '</div>');
+                        
+                        setTimeout(function() {
+                            $('#importEmployeeModal').modal('hide');
+                            location.reload();
+                        }, 2000);
+                    },
+                    error: function(xhr) {
+                        $progress.addClass('d-none');
+                        
+                        if (xhr.responseJSON) {
+                            if (xhr.responseJSON.failed_rows && xhr.responseJSON.failed_rows.length > 0) {
+                                var failedRows = xhr.responseJSON.failed_rows;
+                                $.each(failedRows, function(index, item) {
+                                    $failedBody.append('<tr>' +
+                                        '<td>' + (item.row || '-') + '</td>' +
+                                        '<td>' + (item.name || '-') + '</td>' +
+                                        '<td class="text-danger">' + (item.error || '-') + '</td>' +
+                                        '</tr>');
+                                });
+                                $failedContainer.removeClass('d-none');
+                                
+                                $result.html('<div class="alert alert-warning py-1 px-2 mb-0">' + 
+                                    (xhr.responseJSON.message || 'Import completed with errors.') + '</div>');
+                            } else {
+                                $result.html('<div class="alert alert-danger py-1 px-2 mb-0">' + 
+                                    (xhr.responseJSON.message || 'Import failed.') + '</div>');
+                            }
+                        } else {
+                            $result.html('<div class="alert alert-danger py-1 px-2 mb-0">' + 
+                                'Terjadi kesalahan saat mengupload file.</div>');
+                        }
+                        
+                        $btn.prop('disabled', false);
+                    }
+                });
+            });
+
+            // Reset modal ketika ditutup
+            $('#importEmployeeModal').on('hidden.bs.modal', function() {
+                $('#importEmployeeForm')[0].reset();
+                $('#importResult').empty();
+                $('#importProgress').addClass('d-none');
+                $('#failedRowsContainer').addClass('d-none');
+                $('#failedRowsBody').empty();
+                $('#importBtn').prop('disabled', false);
             });
 
             // Handle name click
@@ -631,88 +752,6 @@
                     window.location.href = `/employees/${employeeId}`;
                 }
             });
-
-            // Handle view documents
-            $(document).on('click', '.view-documents-btn', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-
-                const employeeId = $(this).data('employee-id');
-                const employeeName = $(this).data('employee-name');
-                const originalHtml = $(this).html();
-                $(this).prop('disabled', true).html('<i class="spinner-border spinner-border-sm"></i>');
-
-                loadEmployeeDocuments(employeeId, employeeName, $(this), originalHtml);
-            });
-
-            function loadEmployeeDocuments(employeeId, employeeName, button, originalHtml) {
-                $.ajax({
-                    url: `/employees/${employeeId}/documents`,
-                    method: 'GET',
-                    success: function(response) {
-                        $('#modalEmployeeName').text(employeeName);
-                        let documentsHtml = '';
-
-                        if (response.documents && response.documents.length > 0) {
-                            response.documents.forEach(function(doc) {
-                                const fileSize = formatFileSize(doc.file_size);
-                                const uploadDate = new Date(doc.created_at).toLocaleDateString(
-                                    'id-ID', {
-                                        year: 'numeric',
-                                        month: 'short',
-                                        day: 'numeric'
-                                    });
-
-                                documentsHtml += `
-                                    <div class="document-item">
-                                        <div class="row align-items-center">
-                                            <div class="col-md-8">
-                                                <div class="d-flex align-items-center">
-                                                    <i class="bi bi-file-earmark-${getFileIcon(doc.mime_type)} text-primary me-3 fs-4"></i>
-                                                    <div>
-                                                        <h6 class="mb-1">${doc.document_name}</h6>
-                                                        <div class="small text-muted">
-                                                            <span class="badge bg-info me-2">${doc.document_type_label}</span>
-                                                            <span>${fileSize}</span>
-                                                            <span class="mx-1">•</span>
-                                                            <span>Uploaded ${uploadDate}</span>
-                                                        </div>
-                                                        ${doc.description ? `<p class="mb-0 mt-1 small text-secondary">${doc.description}</p>` : ''}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-4 text-end">
-                                                <a href="${doc.file_url}" target="_blank" class="btn btn-outline-primary btn-sm">
-                                                    <i class="bi bi-eye"></i> View
-                                                </a>
-                                                <a href="/employee-documents/${doc.id}/download" class="btn btn-outline-success btn-sm">
-                                                    <i class="bi bi-download"></i> Download
-                                                </a>
-                                            </div>
-                                        </div>
-                                    </div>
-                                `;
-                            });
-                        } else {
-                            documentsHtml = `
-                                <div class="text-center py-4">
-                                    <i class="bi bi-file-earmark-x text-muted" style="font-size: 3rem;"></i>
-                                    <div class="mt-3 text-muted">No documents found</div>
-                                </div>
-                            `;
-                        }
-
-                        $('#documentsContent').html(documentsHtml);
-                        $('#documentsModal').modal('show');
-                    },
-                    error: function() {
-                        Swal.fire('Error!', 'Failed to load documents.', 'error');
-                    },
-                    complete: function() {
-                        button.prop('disabled', false).html(originalHtml);
-                    }
-                });
-            }
 
             // Delete employee
             $(document).on('click', '.delete-employee-btn', function(e) {
@@ -760,21 +799,6 @@
             });
 
             // Helper functions
-            function formatFileSize(bytes) {
-                if (bytes === 0) return '0 Bytes';
-                const k = 1024;
-                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-                const i = Math.floor(Math.log(bytes) / Math.log(k));
-                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-            }
-
-            function getFileIcon(mimeType) {
-                if (mimeType.includes('pdf')) return 'pdf';
-                if (mimeType.includes('word') || mimeType.includes('document')) return 'word';
-                if (mimeType.includes('image')) return 'image';
-                return 'text';
-            }
-
             function debounce(func, wait) {
                 let timeout;
                 return function() {

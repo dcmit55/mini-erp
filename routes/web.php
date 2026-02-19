@@ -46,6 +46,9 @@ use App\Http\Controllers\Finance\DcmCostingController;
 use App\Http\Controllers\Finance\PurchaseApprovalController;
 use App\Http\Controllers\Finance\PurchaseEditedController;
 use App\Http\Controllers\Hr\EmployeeWorkPolicyController;
+use App\Http\Controllers\Hr\AttendanceLogController;
+use App\Http\Controllers\Hr\EmployeeImportController;
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -216,8 +219,7 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/material_requests/{id}', [MaterialRequestController::class, 'destroy'])->name('material_requests.destroy');
     Route::post('/material_requests/{id}/reminder', [MaterialRequestController::class, 'sendReminder'])->name('material_requests.reminder');
     Route::get('/material_requests/bulk_details', [MaterialRequestController::class, 'bulkDetails'])->name('material_requests.bulk_details');
-    Route::post('/material_requests/bulk_details', [MaterialRequestController::class, 'bulkDetails'])->name('material_requests.bulk_details');
-    Route::post('/material_requests/{id}/quick-update', [MaterialRequestController::class, 'quickUpdate'])->name('material_requests.quick_update');
+    Route::post('/material_requests/bulk_details', [MaterialRequestController::class, 'bulkDetails'])->name('material_requests.bulk_details.post');    Route::post('/material_requests/{id}/quick-update', [MaterialRequestController::class, 'quickUpdate'])->name('material_requests.quick_update');
 
     // Material Planning
     Route::middleware(['auth'])->group(function () {
@@ -306,6 +308,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/employee-documents/{document}/download', [EmployeeController::class, 'downloadDocument'])->name('employee-documents.download');
     Route::get('/employees/{employee}/documents', [EmployeeController::class, 'getDocuments'])->name('employees.documents');
 
+    // Employee Import Routes - TARUH DI SINI (HANYA SEKALI)
+    Route::post('employees/import', [EmployeeImportController::class, 'import'])->name('employees.import');    
     // Skillsets
     Route::post('/skillsets/store', [App\Http\Controllers\Hr\SkillsetController::class, 'store'])->name('skillsets.store');
     Route::get('/skillsets/json', [App\Http\Controllers\Hr\SkillsetController::class, 'json'])->name('skillsets.json');
@@ -506,6 +510,21 @@ Route::middleware(['auth'])->group(function () {
     // API endpoint untuk mengambil jam kerja karyawan (opsional)
     Route::get('/employees/{employee}/work-hours', [App\Http\Controllers\Hr\EmployeeWorkPolicyController::class, 'getHours'])
         ->name('employees.work-hours');
+
+    // Attendance Logss 
+    Route::get('/attendance-logs', [AttendanceLogController::class, 'index'])->name('attendance-logs.index');
+    Route::post('/attendance-logs/import', [AttendanceLogController::class, 'storeImport'])->name('attendance-logs.import.store');
+    Route::get('/attendance-logs/import', function() {
+    return redirect()->route('attendance-logs.index')
+            ->with('info', 'Halaman import telah dipindahkan. Gunakan tombol "Import Excel" di halaman ini.');
+            })->name('attendance-logs.import.redirect');
+    Route::get('/attendance-logs/export', [AttendanceLogController::class, 'export'])->name('attendance-logs.export');
+    Route::get('/attendance-logs', [AttendanceLogController::class, 'index'])->name('attendance-logs.index');
+    Route::post('/attendance-logs/import', [AttendanceLogController::class, 'storeImport'])->name('attendance-logs.import.store');
+    Route::get('/attendance-logs/export', [AttendanceLogController::class, 'export'])->name('attendance-logs.export');
+
 });
+
+
     
 
