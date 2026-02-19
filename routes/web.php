@@ -23,6 +23,11 @@ use App\Http\Controllers\Finance\ProjectCostingController;
 use App\Http\Controllers\Logistic\MaterialRequestController;
 use App\Http\Controllers\Hr\EmployeeController;
 use App\Http\Controllers\Production\TimingController;
+use App\Http\Controllers\Timing\Costume\CostumeTimingController;
+use App\Http\Controllers\Timing\Costume\CostumeMonitorController;
+use App\Http\Controllers\Timing\Animatronics\AnimatronicsTimingController;
+use App\Http\Controllers\Timing\Animatronics\AnimatronicsMonitorController;
+use App\Http\Controllers\Timing\TimingMonitorController;
 use App\Http\Controllers\Finance\FinalProjectSummaryController;
 use App\Http\Controllers\Admin\DepartmentController;
 use App\Http\Controllers\Procurement\SupplierController;
@@ -326,6 +331,41 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/timings-export', [TimingController::class, 'export'])->name('timings.export');
     Route::post('/timings-import', [TimingController::class, 'import'])->name('timings.import');
     Route::get('/timings-template', [TimingController::class, 'downloadTemplate'])->name('timings.template');
+
+    // Costume Timing - Costume Department Production Timer
+    Route::prefix('costume-timing')
+        ->name('costume-timing.')
+        ->group(function () {
+            Route::get('/', [CostumeTimingController::class, 'index'])->name('index');
+            Route::post('/start', [CostumeTimingController::class, 'start'])->name('start');
+            Route::post('/stop', [CostumeTimingController::class, 'stop'])->name('stop');
+            Route::get('/active-sessions', [CostumeTimingController::class, 'getActiveSessions'])->name('active-sessions');
+            Route::get('/job-order/{jobOrderId}', [CostumeTimingController::class, 'getJobOrderInfo'])->name('job-order-info');
+            // Costume Monitor
+            Route::get('/monitor', [CostumeMonitorController::class, 'index'])->name('monitor');
+            Route::get('/monitor/running', [CostumeMonitorController::class, 'getRunning'])->name('monitor.running');
+        });
+
+    // Animatronics Timing - Animatronics Department Production Timer
+    Route::prefix('animatronics-timing')
+        ->name('animatronics-timing.')
+        ->group(function () {
+            Route::get('/', [AnimatronicsTimingController::class, 'index'])->name('index');
+            Route::post('/start', [AnimatronicsTimingController::class, 'start'])->name('start');
+            Route::post('/stop', [AnimatronicsTimingController::class, 'stop'])->name('stop');
+            Route::get('/active-sessions', [AnimatronicsTimingController::class, 'getActiveSessions'])->name('active-sessions');
+            // Animatronics Monitor
+            Route::get('/monitor', [AnimatronicsMonitorController::class, 'index'])->name('monitor');
+            Route::get('/monitor/running', [AnimatronicsMonitorController::class, 'getRunning'])->name('monitor.running');
+        });
+
+    // Timing Monitor - Real-time Running Sessions Dashboard (All Departments)
+    Route::prefix('timing-monitor')
+        ->name('timing-monitor.')
+        ->group(function () {
+            Route::get('/', [TimingMonitorController::class, 'index'])->name('index');
+            Route::get('/running', [TimingMonitorController::class, 'getRunning'])->name('running');
+        });
 
     //Final Project Summary
     Route::get('final_project_summary', [FinalProjectSummaryController::class, 'index'])->name('final_project_summary.index');
