@@ -314,7 +314,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/employees/{employee}/documents', [EmployeeController::class, 'getDocuments'])->name('employees.documents');
 
     // Employee Import Routes - TARUH DI SINI (HANYA SEKALI)
-    Route::post('employees/import', [EmployeeImportController::class, 'import'])->name('employees.import');    
+    Route::post('employees/import', [EmployeeImportController::class, 'import'])->name('employees.import');
     // Skillsets
     Route::post('/skillsets/store', [App\Http\Controllers\Hr\SkillsetController::class, 'store'])->name('skillsets.store');
     Route::get('/skillsets/json', [App\Http\Controllers\Hr\SkillsetController::class, 'json'])->name('skillsets.json');
@@ -546,7 +546,7 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/employee-work-policies/{policy}', [EmployeeWorkPolicyController::class, 'update'])->name('employee-work-policies.update');
         Route::delete('/employee-work-policies/{policy}', [EmployeeWorkPolicyController::class, 'destroy'])->name('employee-work-policies.destroy');
     });
-    
+
     // API endpoint untuk mengambil jam kerja karyawan (opsional)
     Route::get('/employees/{employee}/work-hours', [App\Http\Controllers\Hr\EmployeeWorkPolicyController::class, 'getHours'])
         ->name('employees.work-hours');
