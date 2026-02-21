@@ -12,7 +12,7 @@ class JobOrder extends Model
     protected $keyType = 'string';
     protected $primaryKey = 'id';
 
-    protected $fillable = ['id', 'project_id', 'department_id', 'name', 'description', 'start_date', 'end_date', 'source_by', 'notes', 'actual_start_date', 'actual_end_date', 'project_lark', 'department_lark', 'lark_record_id', 'last_sync_at'];
+    protected $fillable = ['id', 'project_id', 'department_id', 'name', 'description', 'start_date', 'end_date', 'source_by', 'notes', 'actual_start_date', 'actual_end_date', 'project_lark', 'department_lark', 'lark_record_id', 'last_sync_at', 'total_standard_minutes', 'standard_time_per_unit'];
 
     protected $dates = ['start_date', 'end_date', 'actual_start_date', 'actual_end_date', 'last_sync_at'];
 
@@ -21,6 +21,8 @@ class JobOrder extends Model
         'end_date' => 'date',
         'actual_start_date' => 'date',
         'actual_end_date' => 'date',
+        'total_standard_minutes' => 'integer',
+        'standard_time_per_unit' => 'decimal:2',
     ];
 
     protected static function boot()

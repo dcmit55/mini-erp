@@ -27,7 +27,7 @@ class TimingController extends Controller
 
     public function index(Request $request)
     {
-        $timings = Timing::with(['project.departments', 'employee.department', 'jobOrder'])
+        $timings = Timing::with(['project', 'employee.department', 'jobOrder'])
             ->latest()
             ->get();
 
@@ -41,7 +41,7 @@ class TimingController extends Controller
 
     public function ajaxSearch(Request $request)
     {
-        $query = Timing::with(['project.departments', 'employee.department', 'jobOrder']);
+        $query = Timing::with(['project', 'employee.department', 'jobOrder']);
 
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
@@ -118,7 +118,9 @@ class TimingController extends Controller
             $attributes["timings.$i.employee_id"] = "Employee (row $row)";
             $attributes["timings.$i.start_time"] = "Start Time (row $row)";
             $attributes["timings.$i.end_time"] = "End Time (row $row)";
-            $attributes["timings.$i.output_qty"] = "Output Qty (row $row)";
+            $attributes["timings.$i.duration_minutes"] = "Duration Minutes (row $row)";
+            $attributes["timings.$i.measurement_type"] = "Measurement Type (row $row)";
+            $attributes["timings.$i.measurement_value"] = "Measurement Value (row $row)";
             $attributes["timings.$i.status"] = "Status (row $row)";
             $attributes["timings.$i.remarks"] = "Remarks (row $row)";
         }
@@ -134,7 +136,9 @@ class TimingController extends Controller
                 'timings.*.employee_id' => 'required|exists:employees,id',
                 'timings.*.start_time' => 'required',
                 'timings.*.end_time' => 'required',
-                'timings.*.output_qty' => 'required|numeric|min:0',
+                'timings.*.duration_minutes' => 'required|integer|min:0',
+                'timings.*.measurement_type' => 'required|in:progress,qty,pcs,unit',
+                'timings.*.measurement_value' => 'required|numeric|min:0',
                 'timings.*.status' => 'required|in:complete,on progress,pending',
                 'timings.*.remarks' => 'nullable',
             ],
@@ -192,7 +196,7 @@ class TimingController extends Controller
     public function export(Request $request)
     {
         // Apply same filters as index with eager loading for employee.department
-        $query = Timing::with(['project.departments', 'employee.department']);
+        $query = Timing::with(['project', 'employee.department', 'jobOrder']);
 
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
@@ -568,7 +572,7 @@ class TimingController extends Controller
 
     public function edit(Timing $timing)
     {
-        $projects = Project::with(['parts', 'department'])->get();
+        $projects = Project::with(['parts', 'departments'])->get();
         $employees = Employee::where('status', 'active')->orderBy('name')->get();
         $departments = Department::orderBy('name')->pluck('name', 'id');
 
@@ -589,7 +593,9 @@ class TimingController extends Controller
             'employee_id' => 'Employee',
             'start_time' => 'Start Time',
             'end_time' => 'End Time',
-            'output_qty' => 'Output Qty',
+            'duration_minutes' => 'Duration Minutes',
+            'measurement_type' => 'Measurement Type',
+            'measurement_value' => 'Measurement Value',
             'status' => 'Status',
             'remarks' => 'Remarks',
         ];
@@ -604,7 +610,9 @@ class TimingController extends Controller
                 'employee_id' => 'required|exists:employees,id',
                 'start_time' => 'required',
                 'end_time' => 'required',
-                'output_qty' => 'required|numeric|min:0',
+                'duration_minutes' => 'required|integer|min:0',
+                'measurement_type' => 'required|in:progress,qty,pcs,unit',
+                'measurement_value' => 'required|numeric|min:0',
                 'status' => 'required|in:complete,on progress,pending',
                 'remarks' => 'nullable',
             ],

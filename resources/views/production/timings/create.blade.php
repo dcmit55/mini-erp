@@ -28,16 +28,18 @@
                         <table class="table table-sm table-hover align-middle mb-0" style="min-width:100%;">
                             <thead class="table-light">
                                 <tr>
-                                    <th style="width:9%;">Date</th>
-                                    <th style="width:13%;">Project</th>
-                                    <th style="width:13%;">Step</th>
-                                    <th style="width:12%;">Part</th>
-                                    <th style="width:13%;">Employee</th>
+                                    <th style="width:8%;">Date</th>
+                                    <th style="width:11%;">Project</th>
+                                    <th style="width:11%;">Step</th>
+                                    <th style="width:10%;">Part</th>
+                                    <th style="width:11%;">Employee</th>
                                     <th style="width:5%;">Start</th>
                                     <th style="width:5%;">End</th>
-                                    <th style="width:5%;">Qty</th>
-                                    <th style="width:9%;">Status</th>
-                                    <th style="width:13%;">Remarks</th>
+                                    <th style="width:5%;">Duration (min)</th>
+                                    <th style="width:6%;">Measurement</th>
+                                    <th style="width:5%;">Value</th>
+                                    <th style="width:8%;">Status</th>
+                                    <th style="width:12%;">Remarks</th>
                                     <th style="width:3%;"></th>
                                 </tr>
                             </thead>
@@ -131,11 +133,40 @@
                                                 <div class="invalid-feedback"></div>
                                             @enderror
                                         </td>
-                                        <td data-label="Output Qty">
-                                            <input type="number" name="timings[{{ $i }}][output_qty]"
-                                                class="form-control form-control-sm @error("timings.$i.output_qty") is-invalid @enderror"
-                                                placeholder="Qty" required value="{{ old("timings.$i.output_qty") }}">
-                                            @error("timings.$i.output_qty")
+                                        <td data-label="Duration (min)">
+                                            <input type="number" name="timings[{{ $i }}][duration_minutes]"
+                                                class="form-control form-control-sm @error("timings.$i.duration_minutes") is-invalid @enderror"
+                                                placeholder="Minutes" required
+                                                value="{{ old("timings.$i.duration_minutes") }}">
+                                            @error("timings.$i.duration_minutes")
+                                                <div class="invalid-feedback"></div>
+                                            @enderror
+                                        </td>
+                                        <td data-label="Measurement">
+                                            <select name="timings[{{ $i }}][measurement_type]"
+                                                class="form-select form-select-sm" required>
+                                                <option value="">Select Type</option>
+                                                <option value="progress"
+                                                    {{ old("timings.$i.measurement_type") == 'progress' ? 'selected' : '' }}>
+                                                    Progress (%)</option>
+                                                <option value="qty"
+                                                    {{ old("timings.$i.measurement_type") == 'qty' ? 'selected' : '' }}>Qty
+                                                </option>
+                                                <option value="pcs"
+                                                    {{ old("timings.$i.measurement_type") == 'pcs' ? 'selected' : '' }}>Pcs
+                                                </option>
+                                                <option value="unit"
+                                                    {{ old("timings.$i.measurement_type") == 'unit' ? 'selected' : '' }}>
+                                                    Unit</option>
+                                            </select>
+                                        </td>
+                                        <td data-label="Value">
+                                            <input type="number" step="0.01"
+                                                name="timings[{{ $i }}][measurement_value]"
+                                                class="form-control form-control-sm @error("timings.$i.measurement_value") is-invalid @enderror"
+                                                placeholder="Value" required
+                                                value="{{ old("timings.$i.measurement_value") }}">
+                                            @error("timings.$i.measurement_value")
                                                 <div class="invalid-feedback"></div>
                                             @enderror
                                         </td>
@@ -309,6 +340,12 @@
                         $(this).val(prevStart);
                     } else if ($(this).is('[name$="[end_time]"]')) {
                         $(this).val(prevEnd);
+                    } else if ($(this).is('[name$="[duration_minutes]"]')) {
+                        $(this).val('');
+                    } else if ($(this).is('[name$="[measurement_type]"]')) {
+                        $(this).val('');
+                    } else if ($(this).is('[name$="[measurement_value]"]')) {
+                        $(this).val('');
                     } else if ($(this).hasClass('department-input')) {
                         $(this).val('');
                     } else if ($(this).hasClass('part-select')) {

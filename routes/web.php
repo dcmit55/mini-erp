@@ -224,7 +224,8 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/material_requests/{id}', [MaterialRequestController::class, 'destroy'])->name('material_requests.destroy');
     Route::post('/material_requests/{id}/reminder', [MaterialRequestController::class, 'sendReminder'])->name('material_requests.reminder');
     Route::get('/material_requests/bulk_details', [MaterialRequestController::class, 'bulkDetails'])->name('material_requests.bulk_details');
-    Route::post('/material_requests/bulk_details', [MaterialRequestController::class, 'bulkDetails'])->name('material_requests.bulk_details.post');    Route::post('/material_requests/{id}/quick-update', [MaterialRequestController::class, 'quickUpdate'])->name('material_requests.quick_update');
+    Route::post('/material_requests/bulk_details', [MaterialRequestController::class, 'bulkDetails'])->name('material_requests.bulk_details.post');
+    Route::post('/material_requests/{id}/quick-update', [MaterialRequestController::class, 'quickUpdate'])->name('material_requests.quick_update');
 
     // Material Planning
     Route::middleware(['auth'])->group(function () {
@@ -548,15 +549,13 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // API endpoint untuk mengambil jam kerja karyawan (opsional)
-    Route::get('/employees/{employee}/work-hours', [App\Http\Controllers\Hr\EmployeeWorkPolicyController::class, 'getHours'])
-        ->name('employees.work-hours');
+    Route::get('/employees/{employee}/work-hours', [App\Http\Controllers\Hr\EmployeeWorkPolicyController::class, 'getHours'])->name('employees.work-hours');
 
     // Attendance Logs
     Route::get('/attendance-logs', [AttendanceLogController::class, 'index'])->name('attendance-logs.index');
     Route::post('/attendance-logs/import', [AttendanceLogController::class, 'storeImport'])->name('attendance-logs.import.store');
-    Route::get('/attendance-logs/import', function() {
-        return redirect()->route('attendance-logs.index')
-            ->with('info', 'Halaman import telah dipindahkan. Gunakan tombol "Import Excel" di halaman ini.');
+    Route::get('/attendance-logs/import', function () {
+        return redirect()->route('attendance-logs.index')->with('info', 'Halaman import telah dipindahkan. Gunakan tombol "Import Excel" di halaman ini.');
     })->name('attendance-logs.import.redirect');
     Route::get('/attendance-logs/export', [AttendanceLogController::class, 'export'])->name('attendance-logs.export');
 
@@ -570,5 +569,22 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/job-order/{jobOrder}', [App\Http\Controllers\Production\EfficiencyDashboardController::class, 'jobOrderDetail'])->name('job-order.detail');
             Route::get('/project/{project}/export', [App\Http\Controllers\Production\EfficiencyDashboardController::class, 'exportProject'])->name('project.export');
             Route::get('/job-order/{jobOrder}/export', [App\Http\Controllers\Production\EfficiencyDashboardController::class, 'exportJobOrder'])->name('job-order.export');
+        });
+
+    // Employee Performance & Ranking Routes
+    Route::prefix('performanceEmployee')
+        ->name('performanceEmployee.')
+        ->middleware('auth')
+        ->group(function () {
+            Route::get('/', [App\Http\Controllers\Production\EmployeePerformanceController::class, 'index'])->name('index');
+            Route::get('/{employee}', [App\Http\Controllers\Production\EmployeePerformanceController::class, 'show'])->name('show');
+            Route::get('/export/rankings', [App\Http\Controllers\Production\EmployeePerformanceController::class, 'export'])->name('export');
+        });
+
+    // API Routes for Employee Performance
+    Route::prefix('api/performanceEmployee')
+        ->middleware('auth')
+        ->group(function () {
+            Route::get('/{employee}/score', [App\Http\Controllers\Production\EmployeePerformanceController::class, 'getPerformanceScore']);
         });
 });

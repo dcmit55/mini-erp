@@ -268,16 +268,16 @@ class AnimatronicsTimingController extends Controller
                 $deptSpecificData['current_progress'] = min(100, $previousProgress + $progressAdded);
             }
 
-            // Calculate duration in hours
-            $durationHours = 0;
+            // Calculate duration in minutes (standardized storage)
+            $durationMinutes = 0;
             if ($timing->start_time && $endTime) {
                 try {
                     $today = now()->format('Y-m-d');
                     $start = \Carbon\Carbon::parse($today . ' ' . $timing->start_time);
                     $end = \Carbon\Carbon::parse($today . ' ' . $endTime);
-                    $durationHours = round($start->diffInMinutes($end) / 60, 2);
+                    $durationMinutes = $start->diffInMinutes($end);
                 } catch (\Exception $e) {
-                    $durationHours = 0;
+                    $durationMinutes = 0;
                 }
             }
 
@@ -298,7 +298,8 @@ class AnimatronicsTimingController extends Controller
                 'output_qty' => $validated['output_qty'], // Keep for backward compatibility
                 'measurement_type' => $measurementType,
                 'measurement_value' => $validated['output_qty'],
-                'duration_hours' => $durationHours,
+                'duration_minutes' => $durationMinutes, // Standardized duration storage
+                'duration_hours' => round($durationMinutes / 60, 2), // Derived for backward compatibility
                 'status' => 'complete',
                 'department_specific_data' => $deptSpecificData,
                 'photo' => $photoPath,

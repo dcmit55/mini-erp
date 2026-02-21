@@ -205,16 +205,16 @@ class CostumeTimingController extends Controller
                 );
             }
 
-            // Calculate duration in hours
-            $durationHours = 0;
+            // Calculate duration in minutes (standardized storage)
+            $durationMinutes = 0;
             if ($timing->start_time && $endTime) {
                 try {
                     $today = now()->format('Y-m-d');
                     $start = \Carbon\Carbon::parse($today . ' ' . $timing->start_time);
                     $end = \Carbon\Carbon::parse($today . ' ' . $endTime);
-                    $durationHours = round($start->diffInMinutes($end) / 60, 2);
+                    $durationMinutes = $start->diffInMinutes($end);
                 } catch (\Exception $e) {
-                    $durationHours = 0;
+                    $durationMinutes = 0;
                 }
             }
 
@@ -222,7 +222,8 @@ class CostumeTimingController extends Controller
                 'end_time' => $endTime,
                 'measurement_type' => $validated['measurement_type'],
                 'measurement_value' => $validated['output_qty'],
-                'duration_hours' => $durationHours,
+                'duration_minutes' => $durationMinutes, // Standardized duration storage
+                'duration_hours' => round($durationMinutes / 60, 2), // Derived for backward compatibility
                 'status' => 'complete',
             ]);
 
@@ -233,7 +234,8 @@ class CostumeTimingController extends Controller
                 'message' => 'Work session completed successfully with output: ' . $validated['output_qty'] . ' ' . $validated['measurement_type'],
                 'end_time' => $endTime,
                 'timing_id' => $timing->id,
-                'duration_hours' => $durationHours,
+                'duration_minutes' => $durationMinutes,
+                'duration_hours' => round($durationMinutes / 60, 2),
             ]);
         } catch (\Exception $e) {
             DB::rollBack();

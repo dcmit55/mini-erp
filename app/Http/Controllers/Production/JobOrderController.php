@@ -136,6 +136,8 @@ class JobOrderController extends Controller
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'notes' => 'nullable|string',
+            'total_standard_minutes' => 'nullable|integer|min:0',
+            'standard_time_per_unit' => 'nullable|numeric|min:0',
         ]);
 
         // ID sudah otomatis digenerate oleh model
@@ -179,6 +181,8 @@ class JobOrderController extends Controller
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'notes' => 'nullable|string',
+            'total_standard_minutes' => 'nullable|integer|min:0',
+            'standard_time_per_unit' => 'nullable|numeric|min:0',
         ]);
 
         $jobOrder->update($validated);

@@ -87,9 +87,32 @@
                                 value="{{ old('end_time', $timing->end_time) }}">
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">Output Qty</label>
-                            <input type="number" name="output_qty" class="form-control" required
-                                value="{{ old('output_qty', $timing->output_qty) }}">
+                            <label class="form-label">Duration (min)</label>
+                            <input type="number" name="duration_minutes" class="form-control" required
+                                value="{{ old('duration_minutes', $timing->duration_minutes) }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Measurement Type</label>
+                            <select name="measurement_type" class="form-select" required>
+                                <option value="">Select Type</option>
+                                <option value="progress"
+                                    {{ old('measurement_type', $timing->measurement_type) == 'progress' ? 'selected' : '' }}>
+                                    Progress (%)</option>
+                                <option value="qty"
+                                    {{ old('measurement_type', $timing->measurement_type) == 'qty' ? 'selected' : '' }}>Qty
+                                </option>
+                                <option value="pcs"
+                                    {{ old('measurement_type', $timing->measurement_type) == 'pcs' ? 'selected' : '' }}>Pcs
+                                </option>
+                                <option value="unit"
+                                    {{ old('measurement_type', $timing->measurement_type) == 'unit' ? 'selected' : '' }}>
+                                    Unit</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Measurement Value</label>
+                            <input type="number" step="0.01" name="measurement_value" class="form-control" required
+                                value="{{ old('measurement_value', $timing->measurement_value) }}">
                         </div>
                         <div class="col-md-2">
                             <label class="form-label">Status</label>

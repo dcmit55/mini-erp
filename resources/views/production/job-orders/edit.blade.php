@@ -170,6 +170,45 @@
                                 </div>
                             </div>
 
+                            <!-- Productivity Configuration -->
+                            <div class="mb-4">
+                                <h6 class="fw-medium text-dark mb-2">
+                                    <i class="fas fa-chart-line me-2 text-success"></i>Productivity Standard Times
+                                </h6>
+
+                                <div class="row g-2">
+                                    <div class="col-md-6 mb-2">
+                                        <label for="total_standard_minutes" class="form-label small text-dark">Total
+                                            Standard Minutes</label>
+                                        <input type="number"
+                                            class="form-control border-1 rounded-2 py-2 px-3 @error('total_standard_minutes') is-invalid @enderror"
+                                            id="total_standard_minutes" name="total_standard_minutes"
+                                            value="{{ old('total_standard_minutes', $jobOrder->total_standard_minutes) }}"
+                                            min="0" placeholder="e.g., 2400">
+                                        <small class="text-muted d-block mt-1">For progress-based tracking (e.g., 2400 = 5
+                                            days × 8 hrs × 60 min)</small>
+                                        @error('total_standard_minutes')
+                                            <div class="invalid-feedback small">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+
+                                    <div class="col-md-6 mb-2">
+                                        <label for="standard_time_per_unit" class="form-label small text-dark">Standard
+                                            Time Per Unit (minutes)</label>
+                                        <input type="number" step="0.01"
+                                            class="form-control border-1 rounded-2 py-2 px-3 @error('standard_time_per_unit') is-invalid @enderror"
+                                            id="standard_time_per_unit" name="standard_time_per_unit"
+                                            value="{{ old('standard_time_per_unit', $jobOrder->standard_time_per_unit) }}"
+                                            min="0" placeholder="e.g., 30.00">
+                                        <small class="text-muted d-block mt-1">For quantity-based tracking (e.g., 30.00 =
+                                            30 minutes per piece)</small>
+                                        @error('standard_time_per_unit')
+                                            <div class="invalid-feedback small">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- Action Buttons -->
                             <div class="d-flex gap-2 pt-3 border-top">
                                 <a href="{{ route('job-orders.index') }}"

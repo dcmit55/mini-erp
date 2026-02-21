@@ -12,7 +12,7 @@ class Timing extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['tanggal', 'job_order_id', 'project_id', 'step', 'parts', 'employee_id', 'start_time', 'end_time', 'measurement_type', 'measurement_value', 'duration_hours', 'status', 'remarks', 'department_specific_data', 'photo'];
+    protected $fillable = ['tanggal', 'job_order_id', 'project_id', 'step', 'parts', 'employee_id', 'start_time', 'end_time', 'duration_minutes', 'measurement_type', 'measurement_value', 'duration_hours', 'status', 'remarks', 'department_specific_data', 'photo'];
 
     /**
      * Cast department_specific_data as array for easy access
@@ -22,11 +22,39 @@ class Timing extends Model
         'tanggal' => 'date',
         'measurement_value' => 'decimal:2',
         'duration_hours' => 'decimal:2',
+        'duration_minutes' => 'integer',
     ];
 
     // ============================================
-    // ACCESSORS
+    // ACCESSORS - PART 2: Standardized Duration Accessors
     // ============================================
+
+    /**
+     * Get duration_hours derived from duration_minutes
+     * This maintains backward compatibility while using minutes as source of truth
+     *
+     * @return float
+     */
+    public function getDurationHoursAttribute()
+    {
+        $minutes = $this->attributes['duration_minutes'] ?? 0;
+        return round($minutes / 60, 2);
+    }
+
+    /**
+     * Get duration in HH:mm format
+     * Examples: "01:30", "00:45", "12:15"
+     *
+     * @return string
+     */
+    public function getDurationFormattedAttribute()
+    {
+        $minutes = $this->attributes['duration_minutes'] ?? 0;
+        $hours = floor($minutes / 60);
+        $mins = $minutes % 60;
+
+        return sprintf('%02d:%02d', $hours, $mins);
+    }
 
     /**
      * Get duration between start_time and end_time (or now if still running)
@@ -62,16 +90,16 @@ class Timing extends Model
     /**
      * Get duration in human-readable format
      * Examples: "1 jam 30 menit", "45 menit", "2 jam"
+     * Now uses duration_minutes as source
      */
     public function getDurationReadableAttribute()
     {
-        $hours = $this->attributes['duration_hours'] ?? 0;
+        $totalMinutes = $this->attributes['duration_minutes'] ?? 0;
 
-        if ($hours == 0) {
+        if ($totalMinutes == 0) {
             return '0 menit';
         }
 
-        $totalMinutes = round($hours * 60);
         $h = floor($totalMinutes / 60);
         $m = $totalMinutes % 60;
 
