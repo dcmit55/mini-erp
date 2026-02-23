@@ -6,6 +6,8 @@ use App\Models\Procurement\ProjectPurchase;
 use App\Models\InternalProject;
 use App\Models\Logistic\Inventory;
 use App\Models\Admin\Department;
+use App\Models\Production\Project;
+use App\Models\Production\JobOrder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -24,7 +26,7 @@ class ProjectPurchaseService
             'pic:id,username',
             'project:id,name',
             'internalProject:id,project,job,department',
-            'jobOrder:id,name,project_id,department_id'
+            'jobOrder:id,name'
         ]);
         
         if ($request->filled('status')) {
@@ -209,59 +211,81 @@ class ProjectPurchaseService
         return "PO/{$year}/{$month}/{$newNumber}";
     }
     
+    /**
+     * VALIDASI PURCHASE REQUEST - VERSI FIX UNTUK INTERNAL PROJECT
+     */
     public function validatePurchaseRequest(Request $request, $purchaseId = null)
     {
         Log::info('Validating purchase request:', $request->all());
         
-        $rules = [];
-        
-        $rules = array_merge($rules, [
-            'po_number' => 'required|string|max:50',
+        $rules = [
             'date' => 'required|date',
             'purchase_type' => 'required|in:restock,new_item',
             'quantity' => 'required|integer|min:1',
             'unit_price' => 'required|numeric|min:0',
-            'unit_id' => 'required|exists:units,id',
-            'category_id' => 'required|exists:categories,id',
             'department_id' => 'required|exists:departments,id',
             'supplier_id' => 'required|exists:suppliers,id',
-            'is_offline_order' => 'required|in:0,1',
+            'is_offline_order' => 'sometimes|boolean',
             'freight' => 'nullable|numeric|min:0',
-            'resi_number' => 'nullable|string|max:255',
             'note' => 'nullable|string',
-        ]);
+            'project_type' => 'required|in:client,internal',
+        ];
 
-        if ($request->has('project_type')) {
-            $rules['project_type'] = 'required|in:client,internal';
-            
-            if ($request->project_type === 'client') {
-                $rules['job_order_id'] = 'nullable|exists:job_orders,id';
-                $rules['project_id'] = 'nullable|exists:projects,id';
-            } else {
-                $rules['internal_project_id'] = 'nullable|exists:internal_projects,id';
+        // Validasi berdasarkan purchase_type
+        if ($request->purchase_type === 'restock') {
+            $rules['material_id'] = 'required|exists:inventories,id';
+        } else { // new_item
+            $rules['new_item_name'] = 'required|string|max:255';
+            $rules['category_id'] = 'required|exists:categories,id';
+            $rules['unit_id'] = 'required|exists:units,id';
+        }
+
+        // VALIDASI BERDASARKAN PROJECT TYPE - INI YANG KRUSIAL
+        if ($request->project_type === 'client') {
+            // CLIENT PROJECT: memerlukan project_id dan job_order_id
+            $rules['project_id'] = 'required|exists:projects,id';
+            $rules['job_order_id'] = 'required|string|exists:job_orders,id';
+        } else {
+            // INTERNAL PROJECT: hanya memerlukan internal_project_id
+            $rules['internal_project_id'] = 'required|exists:internal_projects,id';
+            // Pastikan job_order_id TIDAK divalidasi untuk internal project
+            if (isset($rules['job_order_id'])) {
+                unset($rules['job_order_id']);
             }
         }
 
-        if ($request->purchase_type === 'restock') {
-            $rules['material_id'] = 'required|exists:inventories,id';
-            $rules['new_item_name'] = 'nullable|string|max:255';
-        } else {
-            $rules['new_item_name'] = 'required|string|max:255';
-            $rules['material_id'] = 'nullable';
-        }
+        $messages = [
+            'date.required' => 'Tanggal harus diisi',
+            'purchase_type.required' => 'Tipe pembelian harus dipilih',
+            'quantity.required' => 'Jumlah harus diisi',
+            'quantity.min' => 'Jumlah minimal 1',
+            'unit_price.required' => 'Harga satuan harus diisi',
+            'unit_price.min' => 'Harga satuan tidak boleh negatif',
+            'department_id.required' => 'Department harus dipilih',
+            'department_id.exists' => 'Department tidak valid',
+            'supplier_id.required' => 'Supplier harus dipilih',
+            'supplier_id.exists' => 'Supplier tidak valid',
+            'material_id.required' => 'Material harus dipilih untuk restock',
+            'material_id.exists' => 'Material tidak valid',
+            'new_item_name.required' => 'Nama item baru harus diisi',
+            'category_id.required' => 'Kategori harus dipilih untuk item baru',
+            'category_id.exists' => 'Kategori tidak valid',
+            'unit_id.required' => 'Satuan harus dipilih untuk item baru',
+            'unit_id.exists' => 'Satuan tidak valid',
+            'project_type.required' => 'Tipe project harus dipilih',
+            'project_id.required' => 'Project harus dipilih untuk client project',
+            'project_id.exists' => 'Project tidak valid',
+            'job_order_id.required' => 'Job Order harus dipilih untuk client project',
+            'job_order_id.exists' => 'Job Order tidak valid',
+            'internal_project_id.required' => 'Internal project harus dipilih',
+            'internal_project_id.exists' => 'Internal project tidak valid',
+        ];
+
+        $validated = $request->validate($rules, $messages);
         
-        $validated = $request->validate($rules);
-        
-        if ($request->purchase_type === 'new_item' && isset($validated['material_id']) && $validated['material_id'] === null) {
-            unset($validated['material_id']);
-        }
-        
-        if ($request->purchase_type === 'new_item' && !isset($validated['new_item_name'])) {
-            $validated['new_item_name'] = $request->new_item_name ?? '';
-        }
-        
-        if (!isset($validated['project_type']) && $request->has('project_type')) {
-            $validated['project_type'] = $request->project_type;
+        // Hapus job_order_id dari validated data jika project_type = internal
+        if ($validated['project_type'] === 'internal' && isset($validated['job_order_id'])) {
+            unset($validated['job_order_id']);
         }
         
         Log::info('Validation completed successfully', ['validated_data' => $validated]);
@@ -269,89 +293,80 @@ class ProjectPurchaseService
         return $validated;
     }
     
-    // ============================================
-    // PERBAIKAN UTAMA: VALIDASI EMPLOYEE ID
-    // ============================================
-    
-    /**
-     * Validasi apakah ID ada di tabel employees
-     */
-    private function validateEmployeeId($id)
+    private function validateForeignKeys(array $data)
     {
-        if (!$id) {
-            return null;
+        $errors = [];
+        
+        if (isset($data['department_id']) && !DB::table('departments')->where('id', $data['department_id'])->exists()) {
+            $errors[] = "Department ID {$data['department_id']} tidak valid";
         }
         
-        try {
-            $exists = DB::table('employees')->where('id', $id)->exists();
-            return $exists ? $id : null;
-        } catch (\Exception $e) {
-            Log::warning('Error validating employee ID: ' . $e->getMessage());
-            return null;
+        if (isset($data['supplier_id']) && !DB::table('suppliers')->where('id', $data['supplier_id'])->exists()) {
+            $errors[] = "Supplier ID {$data['supplier_id']} tidak valid";
+        }
+        
+        if (isset($data['purchase_type']) && $data['purchase_type'] === 'restock' && isset($data['material_id'])) {
+            if (!DB::table('inventories')->where('id', $data['material_id'])->exists()) {
+                $errors[] = "Material ID {$data['material_id']} tidak valid";
+            }
+        }
+        
+        if (isset($data['project_type']) && $data['project_type'] === 'client') {
+            if (isset($data['project_id']) && !DB::table('projects')->where('id', $data['project_id'])->exists()) {
+                $errors[] = "Project ID {$data['project_id']} tidak valid";
+            }
+            if (isset($data['job_order_id']) && !DB::table('job_orders')->where('id', $data['job_order_id'])->exists()) {
+                $errors[] = "Job Order ID {$data['job_order_id']} tidak valid";
+            }
+        }
+        
+        if (isset($data['project_type']) && $data['project_type'] === 'internal' && isset($data['internal_project_id'])) {
+            if (!DB::table('internal_projects')->where('id', $data['internal_project_id'])->exists()) {
+                $errors[] = "Internal Project ID {$data['internal_project_id']} tidak valid";
+            }
+        }
+        
+        if (isset($data['purchase_type']) && $data['purchase_type'] === 'new_item') {
+            if (isset($data['category_id']) && !DB::table('categories')->where('id', $data['category_id'])->exists()) {
+                $errors[] = "Category ID {$data['category_id']} tidak valid";
+            }
+            if (isset($data['unit_id']) && !DB::table('units')->where('id', $data['unit_id'])->exists()) {
+                $errors[] = "Unit ID {$data['unit_id']} tidak valid";
+            }
+        }
+        
+        if (!empty($errors)) {
+            throw new \Exception(implode(', ', $errors));
         }
     }
     
-    /**
-     * Dapatkan PIC ID yang valid dari employees table
-     */
-    private function getValidPicIdFromDatabase()
+    private function getValidPicId()
     {
-        try {
-            // 1. Cek apakah user saat ini ada di employees
-            if (auth()->check()) {
-                $userId = auth()->id();
-                $validatedId = $this->validateEmployeeId($userId);
-                if ($validatedId) {
-                    return $validatedId;
-                }
+        if (auth()->check()) {
+            $userId = auth()->id();
+            
+            $exists = DB::table('employees')->where('id', $userId)->exists();
+            if ($exists) {
+                return $userId;
             }
             
-            // 2. Cari employee pertama yang ada
-            $firstEmployee = DB::table('employees')->orderBy('id')->first();
-            if ($firstEmployee) {
-                return $firstEmployee->id;
+            $userExists = DB::table('users')->where('id', $userId)->exists();
+            if ($userExists) {
+                return $userId;
             }
-            
-            // 3. Jika tidak ada employee sama sekali, buat emergency record
-            Log::emergency('Tabel employees kosong! Membuat emergency employee record.');
-            
-            try {
-                $emergencyId = DB::table('employees')->insertGetId([
-                    'name' => 'System Admin',
-                    'username' => 'system_admin',
-                    'email' => 'admin@system.local',
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ]);
-                Log::warning('Emergency employee created with ID: ' . $emergencyId);
-                return $emergencyId;
-            } catch (\Exception $e) {
-                // Jika gagal membuat emergency record, throw error
-                throw new \Exception('Tabel employees kosong dan tidak dapat membuat data emergency. Silakan tambahkan data employee terlebih dahulu.');
-            }
-            
-        } catch (\Exception $e) {
-            Log::error('Error mendapatkan PIC ID: ' . $e->getMessage());
-            throw $e; // Re-throw agar error jelas
         }
-    }
-    
-    /**
-     * Validasi semua user-related fields sebelum insert/update
-     */
-    private function validateUserFields(array &$data)
-    {
-        $userFields = ['pic_id', 'checked_by', 'approved_by', 'received_by'];
         
-        foreach ($userFields as $field) {
-            if (isset($data[$field]) && $data[$field]) {
-                $validatedId = $this->validateEmployeeId($data[$field]);
-                if (!$validatedId) {
-                    Log::warning("{$field} ID tidak valid: {$data[$field]}, setting to null");
-                    $data[$field] = null;
-                }
-            }
+        $firstEmployee = DB::table('employees')->orderBy('id')->first();
+        if ($firstEmployee) {
+            return $firstEmployee->id;
         }
+        
+        $firstUser = DB::table('users')->orderBy('id')->first();
+        if ($firstUser) {
+            return $firstUser->id;
+        }
+        
+        throw new \Exception('Tidak ada PIC yang valid. Silakan tambahkan data employee/user terlebih dahulu.');
     }
     
     public function createPurchase(array $data)
@@ -361,83 +376,49 @@ class ProjectPurchaseService
         try {
             Log::info('Creating purchase with data:', $data);
             
-            if (isset($data['purchase_type']) && $data['purchase_type'] === 'new_item' && 
-                isset($data['material_id'])) {
-                unset($data['material_id']);
+            $this->validateForeignKeys($data);
+            
+            $purchaseData = $this->preparePurchaseData($data);
+            $purchaseData['pic_id'] = $this->getValidPicId();
+            $purchaseData['status'] = 'pending';
+            $purchaseData['item_status'] = 'pending_check';
+            $purchaseData['is_current'] = true;
+            
+            if (empty($purchaseData['po_number'])) {
+                $purchaseData['po_number'] = $this->generatePONumber();
             }
             
-            if (isset($data['purchase_type']) && $data['purchase_type'] === 'restock' && 
-                empty($data['material_id'])) {
-                throw new \Exception('Material harus dipilih untuk purchase type restock');
-            }
+            Log::info('Final data for purchase creation:', $purchaseData);
             
-            if (!isset($data['freight'])) {
-                $data['freight'] = 0;
-            }
-            
-            if (!isset($data['is_offline_order'])) {
-                $data['is_offline_order'] = 0;
-            }
-            
-            if (isset($data['project_type']) && $data['project_type'] === 'internal' && isset($data['internal_project_id'])) {
-                $internalProject = InternalProject::find($data['internal_project_id']);
-                if ($internalProject) {
-                    $data['job_order_id'] = $internalProject->job;
-                    if (empty($data['department_id'])) {
-                        $department = Department::where('name', $internalProject->department)->first();
-                        if ($department) {
-                            $data['department_id'] = $department->id;
-                        }
-                    }
-                }
-            }
-            
-            $data['total_price'] = $data['quantity'] * $data['unit_price'];
-            $data['invoice_total'] = $data['total_price'] + ($data['freight'] ?? 0);
-            
-            $data['status'] = 'pending';
-            $data['item_status'] = 'pending_check';
-            
-            $data['is_current'] = true;
-            $data['revision_at'] = null;
-            
-            // ✅ PERBAIKAN: Dapatkan PIC ID yang valid
-            $picId = auth()->id() ?? $this->getValidPicIdFromDatabase();
-            $data['pic_id'] = $this->validateEmployeeId($picId);
-            
-            // Jika masih null setelah validasi, dapatkan yang valid
-            if (!$data['pic_id']) {
-                $data['pic_id'] = $this->getValidPicIdFromDatabase();
-            }
-            
-            // ✅ Validasi semua user fields
-            $this->validateUserFields($data);
-            
-            if (isset($data['project_type']) && $data['project_type'] === 'client' && empty($data['job_order_id'])) {
-                $data['job_order_id'] = null;
-            }
-            
-            if (isset($data['project_type']) && $data['project_type'] === 'internal') {
-                $data['project_id'] = null;
-            }
-            
-            if (isset($data['project_type']) && $data['project_type'] === 'client') {
-                $data['internal_project_id'] = null;
-            }
-            
-            Log::info('Final data for purchase creation:', $data);
-            
-            $purchase = ProjectPurchase::create($data);
+            $purchase = ProjectPurchase::create($purchaseData);
             
             Log::info('Purchase created successfully:', [
                 'id' => $purchase->id,
                 'po_number' => $purchase->po_number,
-                'is_current' => $purchase->is_current,
                 'pic_id' => $purchase->pic_id
             ]);
             
             DB::commit();
             return $purchase;
+            
+        } catch (\Illuminate\Database\QueryException $e) {
+            DB::rollBack();
+            Log::error('Database error in createPurchase: ' . $e->getMessage());
+            
+            if (str_contains($e->getMessage(), 'foreign key constraint')) {
+                if (str_contains($e->getMessage(), 'department_id')) {
+                    throw new \Exception('Department yang dipilih tidak valid. Silakan pilih department lain.');
+                }
+                if (str_contains($e->getMessage(), 'supplier_id')) {
+                    throw new \Exception('Supplier yang dipilih tidak valid. Silakan pilih supplier lain.');
+                }
+                if (str_contains($e->getMessage(), 'pic_id')) {
+                    throw new \Exception('PIC tidak valid. Silakan login ulang atau hubungi administrator.');
+                }
+                throw new \Exception('Terjadi kesalahan foreign key constraint. Periksa kembali data Anda.');
+            }
+            
+            throw $e;
             
         } catch (\Exception $e) {
             DB::rollBack();
@@ -446,21 +427,65 @@ class ProjectPurchaseService
         }
     }
     
+    private function preparePurchaseData(array $data)
+    {
+        $purchaseData = [
+            'date' => $data['date'],
+            'purchase_type' => $data['purchase_type'],
+            'quantity' => $data['quantity'],
+            'unit_price' => $data['unit_price'],
+            'department_id' => $data['department_id'],
+            'supplier_id' => $data['supplier_id'],
+            'is_offline_order' => $data['is_offline_order'] ?? false,
+            'freight' => $data['freight'] ?? 0,
+            'note' => $data['note'] ?? null,
+            'project_type' => $data['project_type'],
+        ];
+
+        if ($data['purchase_type'] === 'restock') {
+            $purchaseData['material_id'] = $data['material_id'];
+            $purchaseData['new_item_name'] = null;
+            $purchaseData['category_id'] = null;
+            $purchaseData['unit_id'] = null;
+        } else {
+            $purchaseData['material_id'] = null;
+            $purchaseData['new_item_name'] = $data['new_item_name'];
+            $purchaseData['category_id'] = $data['category_id'];
+            $purchaseData['unit_id'] = $data['unit_id'];
+        }
+
+        // PERBAIKAN: Set data berdasarkan project type dengan benar
+        if ($data['project_type'] === 'client') {
+            $purchaseData['project_id'] = $data['project_id'];
+            $purchaseData['job_order_id'] = $data['job_order_id'];
+            $purchaseData['internal_project_id'] = null;
+        } else {
+            $purchaseData['internal_project_id'] = $data['internal_project_id'];
+            $purchaseData['project_id'] = null;
+            $purchaseData['job_order_id'] = null; // PASTIKAN job_order_id = null untuk internal project
+        }
+
+        $purchaseData['total_price'] = $data['quantity'] * $data['unit_price'];
+        $purchaseData['invoice_total'] = $purchaseData['total_price'] + ($purchaseData['freight'] ?? 0);
+
+        return $purchaseData;
+    }
+    
     public function updatePurchase(ProjectPurchase $purchase, array $data)
     {
         DB::beginTransaction();
         
         try {
-            Log::info('🔄 UPDATE PURCHASE - Pure Revision System', [
+            Log::info('🔄 UPDATE PURCHASE', [
                 'old_record_id' => $purchase->id,
-                'po_number' => $purchase->po_number,
-                'old_is_current' => $purchase->is_current,
-                'update_data' => $data
+                'po_number' => $purchase->po_number
             ]);
 
             if (!$purchase->is_current) {
-                throw new \Exception('Hanya current revision yang bisa diupdate. Gunakan restore untuk mengaktifkan revisi lain.');
+                throw new \Exception('Hanya current revision yang bisa diupdate.');
             }
+
+            $this->validateForeignKeys($data);
 
             $quantity = $data['quantity'] ?? $purchase->quantity;
             $unitPrice = $data['unit_price'] ?? $purchase->unit_price;
@@ -469,17 +494,7 @@ class ProjectPurchaseService
             $totalPrice = $quantity * $unitPrice;
             $invoiceTotal = $totalPrice + $freight;
             
-            // ✅ PERBAIKAN: Validasi PIC ID
-            $picId = auth()->id() ?? $purchase->pic_id;
-            $validatedPicId = $this->validateEmployeeId($picId);
-            
-            if (!$validatedPicId && $purchase->pic_id) {
-                $validatedPicId = $this->validateEmployeeId($purchase->pic_id);
-            }
-            
-            if (!$validatedPicId) {
-                $validatedPicId = $this->getValidPicIdFromDatabase();
-            }
+            $picId = $this->getValidPicId();
             
             $newData = [
                 'po_number' => $purchase->po_number,
@@ -499,7 +514,7 @@ class ProjectPurchaseService
                 'unit_id' => $data['unit_id'] ?? $purchase->unit_id,
                 'supplier_id' => $data['supplier_id'] ?? $purchase->supplier_id,
                 'is_offline_order' => $data['is_offline_order'] ?? $purchase->is_offline_order,
-                'pic_id' => $validatedPicId, // ✅ Gunakan PIC ID yang sudah divalidasi
+                'pic_id' => $picId,
                 'resi_number' => $data['resi_number'] ?? $purchase->resi_number,
                 'total_price' => $totalPrice,
                 'freight' => $freight,
@@ -514,7 +529,6 @@ class ProjectPurchaseService
                 'approved_by' => $data['approved_by'] ?? $purchase->approved_by,
                 'received_at' => $data['received_at'] ?? $purchase->received_at,
                 'received_by' => $data['received_by'] ?? $purchase->received_by,
-                
                 'is_current' => true,
                 'revision_at' => now(),
             ];
@@ -528,17 +542,9 @@ class ProjectPurchaseService
                 $newData['received_by'] = null;
             }
             
-            // ✅ Validasi semua user fields di data baru
-            $this->validateUserFields($newData);
-            
             $purchase->update([
                 'is_current' => false,
                 'updated_at' => now()
-            ]);
-            
-            Log::info('📝 Old record marked as not current', [
-                'old_id' => $purchase->id,
-                'set_is_current' => false
             ]);
             
             $newRevision = ProjectPurchase::create($newData);
@@ -546,23 +552,7 @@ class ProjectPurchaseService
             Log::info('✅ NEW REVISION CREATED', [
                 'old_record_id' => $purchase->id,
                 'new_record_id' => $newRevision->id,
-                'po_number' => $newRevision->po_number,
-                'is_current' => $newRevision->is_current,
-                'revision_at' => $newRevision->revision_at,
-                'pic_id' => $newRevision->pic_id,
-                'total_records_for_po' => ProjectPurchase::where('po_number', $newRevision->po_number)->count()
-            ]);
-            
-            $newRevision->load([
-                'material:id,name',
-                'department:id,name',
-                'category:id,name',
-                'unit:id,name',
-                'supplier:id,name',
-                'pic:id,username',
-                'project:id,name',
-                'internalProject:id,project,job,department',
-                'jobOrder:id,name,project_id,department_id'
+                'po_number' => $newRevision->po_number
             ]);
             
             DB::commit();
@@ -572,9 +562,7 @@ class ProjectPurchaseService
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('❌ Update purchase error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'old_purchase_id' => $purchase->id ?? null
+                'message' => $e->getMessage()
             ]);
             throw $e;
         }
@@ -617,11 +605,9 @@ class ProjectPurchaseService
     {
         $projectType = $data['project_type'] ?? $purchase->project_type;
         
-        if ($projectType === 'internal' && isset($data['internal_project_id'])) {
-            $internalProject = InternalProject::find($data['internal_project_id']);
-            if ($internalProject) {
-                return $internalProject->job;
-            }
+        // PERBAIKAN: Untuk internal project, job_order_id harus null
+        if ($projectType === 'internal') {
+            return null;
         }
         
         return $data['job_order_id'] ?? $purchase->job_order_id;
@@ -652,22 +638,13 @@ class ProjectPurchaseService
                 throw new \Exception('Hanya current revision yang bisa diapprove.');
             }
             
-            // ✅ Validasi approved_by
-            $approvedById = auth()->id();
-            $validatedApprovedById = $this->validateEmployeeId($approvedById);
-            
-            $updateData = [
+            $purchase->update([
                 'status' => 'approved',
                 'approved_at' => now(),
-                'approved_by' => $validatedApprovedById,
+                'approved_by' => auth()->id(),
                 'finance_notes' => $data['finance_notes'] ?? null,
-            ];
-            
-            if (isset($data['resi_number']) && !empty($data['resi_number'])) {
-                $updateData['resi_number'] = $data['resi_number'];
-            }
-            
-            $purchase->update($updateData);
+                'resi_number' => $data['resi_number'] ?? $purchase->resi_number,
+            ]);
             
             DB::commit();
             
@@ -686,14 +663,10 @@ class ProjectPurchaseService
                 throw new \Exception('Hanya current revision yang bisa direject.');
             }
             
-            // ✅ Validasi approved_by
-            $approvedById = auth()->id();
-            $validatedApprovedById = $this->validateEmployeeId($approvedById);
-            
             $purchase->update([
                 'status' => 'rejected',
                 'approved_at' => now(),
-                'approved_by' => $validatedApprovedById,
+                'approved_by' => auth()->id(),
                 'finance_notes' => $data['finance_notes'],
             ]);
             
@@ -731,14 +704,10 @@ class ProjectPurchaseService
                 throw new \Exception('Hanya current revision yang bisa di-mark as checked.');
             }
             
-            // ✅ Validasi checked_by
-            $checkedById = auth()->id();
-            $validatedCheckedById = $this->validateEmployeeId($checkedById);
-            
             $updateData = [
                 'item_status' => $data['item_status'],
                 'checked_at' => now(),
-                'checked_by' => $validatedCheckedById,
+                'checked_by' => auth()->id(),
             ];
             
             if (isset($data['actual_quantity'])) {
@@ -768,26 +737,81 @@ class ProjectPurchaseService
         DB::beginTransaction();
         
         try {
+            Log::info('Starting markAsReceived process', [
+                'purchase_id' => $purchase->id,
+                'po_number' => $purchase->po_number,
+                'status' => $purchase->status,
+                'item_status' => $purchase->item_status
+            ]);
+
             if (!$purchase->is_current) {
                 throw new \Exception('Hanya current revision yang bisa di-mark as received.');
             }
-            
-            // ✅ Validasi received_by
-            $receivedById = auth()->id();
-            $validatedReceivedById = $this->validateEmployeeId($receivedById);
-            
+
+            if ($purchase->status !== 'approved') {
+                throw new \Exception('PO harus disetujui terlebih dahulu. Status saat ini: ' . $purchase->status);
+            }
+
+            if (!in_array($purchase->item_status, ['pending_check', 'pending'])) {
+                throw new \Exception('Barang sudah ditandai: ' . $purchase->item_status);
+            }
+
             $purchase->update([
                 'item_status' => 'matched',
                 'received_at' => now(),
-                'received_by' => $validatedReceivedById,
+                'received_by' => auth()->id(),
             ]);
-            
+
+            Log::info('Purchase updated successfully', [
+                'new_item_status' => $purchase->item_status,
+                'received_at' => $purchase->received_at
+            ]);
+
             $this->insertToInventory($purchase);
-            
+
             DB::commit();
+            
+            Log::info('markAsReceived completed successfully');
             
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('markAsReceived error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
+        }
+    }
+    
+    private function insertToInventory(ProjectPurchase $purchase)
+    {
+        try {
+            $unitName = $purchase->unit ? $purchase->unit->name : 'pcs';
+            
+            $inventoryData = [
+                'name' => $purchase->purchase_type === 'restock' ? $purchase->material->name : $purchase->new_item_name,
+                'quantity' => $purchase->quantity,
+                'unit_id' => $purchase->unit_id,
+                'unit' => $unitName,
+                'price' => $purchase->unit_price,
+                'supplier_id' => $purchase->supplier_id,
+                'category_id' => $purchase->category_id,
+                'remark' => $purchase->note,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+            
+            if ($purchase->purchase_type === 'restock' && $purchase->material_id) {
+                $inventory = Inventory::find($purchase->material_id);
+                if ($inventory) {
+                    $inventory->quantity += $purchase->quantity;
+                    $inventory->updated_at = now();
+                    $inventory->save();
+                }
+            } else {
+                Inventory::create($inventoryData);
+            }
+        } catch (\Exception $e) {
+            Log::error('Error inserting to inventory: ' . $e->getMessage());
             throw $e;
         }
     }
@@ -798,44 +822,11 @@ class ProjectPurchaseService
             throw new \Exception('Hanya current revision yang bisa di-mark as not matched.');
         }
         
-        // ✅ Validasi checked_by
-        $checkedById = auth()->id();
-        $validatedCheckedById = $this->validateEmployeeId($checkedById);
-        
         $purchase->update([
             'item_status' => 'not_matched',
             'checked_at' => now(),
-            'checked_by' => $validatedCheckedById,
+            'checked_by' => auth()->id(),
         ]);
-    }
-    
-    private function insertToInventory(ProjectPurchase $purchase)
-    {
-        $unitName = $purchase->unit ? $purchase->unit->name : 'pcs';
-        
-        $inventoryData = [
-            'name' => $purchase->purchase_type === 'restock' ? $purchase->material->name : $purchase->new_item_name,
-            'quantity' => $purchase->quantity,
-            'unit_id' => $purchase->unit_id,
-            'unit' => $unitName,
-            'price' => $purchase->unit_price,
-            'supplier_id' => $purchase->supplier_id,
-            'category_id' => $purchase->category_id,
-            'remark' => $purchase->note,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ];
-        
-        if ($purchase->purchase_type === 'restock' && $purchase->material_id) {
-            $inventory = Inventory::find($purchase->material_id);
-            if ($inventory) {
-                $inventory->quantity += $purchase->quantity;
-                $inventory->updated_at = now();
-                $inventory->save();
-            }
-        } else {
-            Inventory::create($inventoryData);
-        }
     }
     
     public function exportToExcel($purchases)

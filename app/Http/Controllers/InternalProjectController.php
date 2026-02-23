@@ -50,12 +50,8 @@ class InternalProjectController extends Controller
 
         $departments = Department::orderBy('name')->get();
 
-        // Cari department PT DCM untuk default value
-        $ptDcmDepartment = Department::where('name', 'PT DCM')->first();
-        if (!$ptDcmDepartment) {
-            $ptDcmDepartment = Department::orderBy('id')->first();
-        }
-        $defaultPtDcmDepartmentId = $ptDcmDepartment ? $ptDcmDepartment->id : null;
+        // Default department di-set ke ID 19 (PT DCM) – pastikan ID tersebut ada di tabel departments
+        $defaultPtDcmDepartmentId = 19;
 
         return view('internal-projects.create', compact('projectTypes', 'departments', 'defaultPtDcmDepartmentId'));
     }
@@ -197,11 +193,8 @@ class InternalProjectController extends Controller
 
             $departments = Department::orderBy('name')->get();
 
-            $ptDcmDepartment = Department::where('name', 'PT DCM')->first();
-            if (!$ptDcmDepartment) {
-                $ptDcmDepartment = Department::orderBy('id')->first();
-            }
-            $defaultPtDcmDepartmentId = $ptDcmDepartment ? $ptDcmDepartment->id : null;
+            // Default department di-set ke ID 19 (PT DCM) – pastikan ID tersebut ada di tabel departments
+            $defaultPtDcmDepartmentId = 19;
 
             return view('internal-projects.edit', compact('internalProject', 'projectTypes', 'departments', 'defaultPtDcmDepartmentId'));
         } catch (\Exception $e) {
