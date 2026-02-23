@@ -99,6 +99,7 @@ class ProjectPurchase extends Model
     // ============================================
     // RELATIONSHIPS
     // ============================================
+    
     public function material()
     {
         return $this->belongsTo(\App\Models\Logistic\Inventory::class, 'material_id');
@@ -121,7 +122,7 @@ class ProjectPurchase extends Model
 
     public function jobOrder()
     {
-        return $this->belongsTo(\App\Models\Production\JobOrder::class, 'job_order_id');
+        return $this->belongsTo(\App\Models\Production\JobOrder::class, 'job_order_id', 'id');
     }
 
     public function category()
@@ -162,6 +163,7 @@ class ProjectPurchase extends Model
     // ============================================
     // SCOPES
     // ============================================
+    
     public function scopeCurrent($query)
     {
         return $query->where('is_current', true);
@@ -264,8 +266,57 @@ class ProjectPurchase extends Model
     }
 
     // ============================================
-    // ACCESSORS
+    // ACCESSORS - DENGAN PENANGANAN ENUM
     // ============================================
+    
+    /**
+     * Helper function untuk mengkonversi nilai ke string dengan aman
+     */
+    private function safeToString($value, $default = 'N/A')
+    {
+        if (is_null($value)) {
+            return $default;
+        }
+        
+        if (is_string($value) || is_numeric($value)) {
+            return (string) $value;
+        }
+        
+        if (is_object($value)) {
+            // Cek apakah object memiliki method __toString
+            if (method_exists($value, '__toString')) {
+                return $value->__toString();
+            }
+            
+            // Cek apakah object adalah Enum (memiliki method value atau name)
+            if (method_exists($value, 'value')) {
+                return (string) $value->value();
+            }
+            
+            if (method_exists($value, 'name')) {
+                return $value->name();
+            }
+            
+            // Fallback: coba dapatkan property yang umum
+            if (property_exists($value, 'value')) {
+                return (string) $value->value;
+            }
+            
+            if (property_exists($value, 'name')) {
+                return (string) $value->name;
+            }
+            
+            // Last resort: konversi paksa ke string
+            try {
+                return (string) $value;
+            } catch (\Exception $e) {
+                return $default;
+            }
+        }
+        
+        return $default;
+    }
+
     public function getFormattedInvoiceTotalAttribute()
     {
         return 'Rp ' . number_format($this->invoice_total, 0, ',', '.');
@@ -321,23 +372,47 @@ class ProjectPurchase extends Model
         return $types[$this->project_type] ?? 'Unknown';
     }
 
+    /**
+     * PERBAIKAN UTAMA: Project Name dengan penanganan Enum
+     */
     public function getProjectNameAttribute()
     {
-        if ($this->project_type === 'client' && $this->project) {
-            return $this->project->name;
-        } elseif ($this->project_type === 'internal' && $this->internalProject) {
-            return $this->internalProject->project . ' - ' . $this->internalProject->department;
+        if ($this->project_type === 'client') {
+            if ($this->project && is_object($this->project)) {
+                return $this->safeToString($this->project->name, 'N/A');
+            }
+            return $this->project_id ? "Project ID: {$this->project_id}" : 'N/A';
+            
+        } elseif ($this->project_type === 'internal') {
+            if ($this->internalProject && is_object($this->internalProject)) {
+                // Konversi project dan department dengan aman
+                $project = $this->safeToString($this->internalProject->project, 'N/A');
+                $department = $this->safeToString($this->internalProject->department, 'N/A');
+                
+                return $project . ' - ' . $department;
+            }
+            return $this->internal_project_id ? "Internal Project ID: {$this->internal_project_id}" : 'N/A';
         }
         
         return 'N/A';
     }
 
+    /**
+     * PERBAIKAN: Job Name dengan penanganan Enum
+     */
     public function getJobNameAttribute()
     {
-        if ($this->project_type === 'client' && $this->jobOrder) {
-            return $this->jobOrder->name;
-        } elseif ($this->project_type === 'internal' && $this->internalProject) {
-            return $this->internalProject->job;
+        if ($this->project_type === 'client') {
+            if ($this->jobOrder && is_object($this->jobOrder)) {
+                return $this->safeToString($this->jobOrder->name, 'N/A');
+            }
+            return $this->job_order_id ? "Job Order: {$this->job_order_id}" : 'N/A';
+            
+        } elseif ($this->project_type === 'internal') {
+            if ($this->internalProject && is_object($this->internalProject)) {
+                return $this->safeToString($this->internalProject->job, 'N/A');
+            }
+            return 'N/A';
         }
         
         return 'N/A';
@@ -400,30 +475,36 @@ class ProjectPurchase extends Model
 
     public function getPicUsernameAttribute()
     {
-        return $this->pic ? $this->pic->username : 'N/A';
+        return $this->pic && is_object($this->pic) ? $this->safeToString($this->pic->username, 'N/A') : 'N/A';
     }
 
     public function getCheckerUsernameAttribute()
     {
-        return $this->checker ? $this->checker->username : 'N/A';
+        return $this->checker && is_object($this->checker) ? $this->safeToString($this->checker->username, 'N/A') : 'N/A';
     }
 
     public function getApproverUsernameAttribute()
     {
-        return $this->approver ? $this->approver->username : 'N/A';
+        return $this->approver && is_object($this->approver) ? $this->safeToString($this->approver->username, 'N/A') : 'N/A';
     }
 
     public function getReceiverUsernameAttribute()
     {
-        return $this->receiver ? $this->receiver->username : 'N/A';
+        return $this->receiver && is_object($this->receiver) ? $this->safeToString($this->receiver->username, 'N/A') : 'N/A';
     }
 
+    /**
+     * PERBAIKAN: Material Name dengan penanganan Enum
+     */
     public function getMaterialNameAttribute()
     {
-        if ($this->isRestock() && $this->material) {
-            return $this->material->name;
+        if ($this->isRestock()) {
+            if ($this->material && is_object($this->material)) {
+                return $this->safeToString($this->material->name, 'Unknown');
+            }
+            return $this->material_id ? "Material ID: {$this->material_id}" : 'Unknown Material';
         } elseif ($this->isNewItem()) {
-            return $this->new_item_name;
+            return $this->new_item_name ?? 'Unknown New Item';
         }
         
         return 'Unknown Material';
@@ -488,6 +569,7 @@ class ProjectPurchase extends Model
     // ============================================
     // BUSINESS LOGIC METHODS
     // ============================================
+    
     public function canEdit()
     {
         return $this->is_current && ($this->status === 'pending' || $this->status === 'approved');
@@ -500,27 +582,43 @@ class ProjectPurchase extends Model
 
     public function canCheck()
     {
-        return $this->status === 'approved' && is_null($this->checked_at);
+        return $this->is_current && $this->status === 'approved' && is_null($this->checked_at) && $this->item_status === 'pending_check';
     }
 
     public function canApprove()
     {
-        return $this->status === 'pending';
+        return $this->is_current && $this->status === 'pending';
     }
 
     public function canReject()
     {
-        return $this->status === 'pending';
+        return $this->is_current && $this->status === 'pending';
     }
 
     public function canMarkAsReceived()
     {
-        return $this->status === 'approved' && in_array($this->item_status, ['pending_check', 'pending']);
+        if (!$this->is_current) {
+            return false;
+        }
+        
+        if ($this->status !== 'approved') {
+            return false;
+        }
+        
+        if (!in_array($this->item_status, ['pending_check', 'pending'])) {
+            return false;
+        }
+        
+        if (!is_null($this->received_at)) {
+            return false;
+        }
+        
+        return true;
     }
 
     public function canUpdateResi()
     {
-        return $this->status === 'approved' && in_array($this->item_status, ['pending_check', 'pending']);
+        return $this->is_current && $this->status === 'approved' && in_array($this->item_status, ['pending_check', 'pending']);
     }
 
     public function isApproved()
@@ -564,7 +662,7 @@ class ProjectPurchase extends Model
             return $this->is_offline_order;
         }
         
-        return $this->supplier && strtolower($this->supplier->name) === 'offline order';
+        return $this->supplier && is_object($this->supplier) && strtolower($this->supplier->name) === 'offline order';
     }
 
     public function isRestock()
@@ -595,6 +693,7 @@ class ProjectPurchase extends Model
     // ============================================
     // REVISION METHODS
     // ============================================
+    
     public function getPreviousRevision()
     {
         return self::where('po_number', $this->po_number)
@@ -635,6 +734,7 @@ class ProjectPurchase extends Model
     // ============================================
     // HELPER METHODS
     // ============================================
+    
     public function markAsChecked($userId, $status = 'matched')
     {
         $this->checked_at = now();
@@ -690,6 +790,7 @@ class ProjectPurchase extends Model
     // ============================================
     // BOOT METHOD
     // ============================================
+    
     protected static function boot()
     {
         parent::boot();
