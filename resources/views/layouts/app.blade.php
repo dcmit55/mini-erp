@@ -346,7 +346,7 @@
                                             <li>
                                                 <a class="dropdown-item {{ request()->is('mascot-timing*') ? 'active' : '' }}"
                                                     href="{{ route('mascot-timing.index') }}">
-                                                    <i class="fas fa-user-astronaut me-2"></i>Mascot Timing
+                                                    <i class="fas fa-masks-theater me-2"></i>Mascot Timing
                                                 </a>
                                             </li>
                                             <li>
