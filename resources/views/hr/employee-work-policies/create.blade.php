@@ -1,4 +1,3 @@
-{{-- resources/views/hr/employee-work-policies/create.blade.php --}}
 @extends('layouts.app')
 
 @section('title', 'Create Work Policy')
@@ -20,13 +19,6 @@
 
             <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
                 <div class="card-body p-3">
-                    @if(session('success'))
-                        <div class="alert alert-success border-0 d-flex align-items-center mb-3 p-2">
-                            <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
-                            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
-                        </div>
-                    @endif
-
                     @if($errors->any())
                         <div class="alert alert-danger border-0 mb-3 p-2">
                             <div class="d-flex align-items-center">
@@ -82,48 +74,43 @@
                             </div>
                         </div>
 
-                        <!-- Working Hours -->
+                        <!-- Working Hours - Weekday -->
                         <div class="mb-4">
                             <h6 class="fw-medium text-dark mb-2">
-                                <i class="fas fa-clock me-2 text-primary"></i>Working Hours
+                                <i class="fas fa-calendar-week me-2 text-primary"></i>Weekday (Mon-Fri)
                             </h6>
-                            
                             <div class="row g-2">
-                                <!-- Weekday Hours -->
                                 <div class="col-md-6 mb-2">
-                                    <label for="weekday_hours" class="form-label small text-dark">Weekday Hours (Mon-Fri) <span class="text-danger">*</span></label>
-                                    <input type="number" 
-                                           step="0.01" 
-                                           min="0" 
-                                           max="24" 
-                                           class="form-control border-1 rounded-2 py-2 px-3 @error('weekday_hours') is-invalid @enderror" 
-                                           id="weekday_hours" 
-                                           name="weekday_hours" 
-                                           value="{{ old('weekday_hours', 8.00) }}"
-                                           required>
-                                    <small class="text-muted">Default: 8 hours per day</small>
-                                    @error('weekday_hours')
+                                    <label for="weekday_start" class="form-label small text-dark">Start Time</label>
+                                    <input type="time" 
+                                           class="form-control border-1 rounded-2 py-2 px-3 @error('weekday_start') is-invalid @enderror" 
+                                           id="weekday_start" 
+                                           name="weekday_start" 
+                                           value="{{ old('weekday_start', '08:00') }}">
+                                    @error('weekday_start')
                                         <div class="invalid-feedback small">{{ $message }}</div>
                                     @enderror
                                 </div>
-                                
-                                <!-- Saturday Hours -->
                                 <div class="col-md-6 mb-2">
-                                    <label for="saturday_hours" class="form-label small text-dark">Saturday Hours <span class="text-danger">*</span></label>
-                                    <input type="number" 
-                                           step="0.01" 
-                                           min="0" 
-                                           max="24" 
-                                           class="form-control border-1 rounded-2 py-2 px-3 @error('saturday_hours') is-invalid @enderror" 
-                                           id="saturday_hours" 
-                                           name="saturday_hours" 
-                                           value="{{ old('saturday_hours', 5.00) }}"
-                                           required>
-                                    <small class="text-muted">Default: 5 hours on Saturday</small>
-                                    @error('saturday_hours')
+                                    <label for="weekday_end" class="form-label small text-dark">End Time</label>
+                                    <input type="time" 
+                                           class="form-control border-1 rounded-2 py-2 px-3 @error('weekday_end') is-invalid @enderror" 
+                                           id="weekday_end" 
+                                           name="weekday_end" 
+                                           value="{{ old('weekday_end', '17:00') }}">
+                                    @error('weekday_end')
                                         <div class="invalid-feedback small">{{ $message }}</div>
                                     @enderror
                                 </div>
+                            </div>
+                            <small class="text-muted">* 1 hour break will be automatically deducted.</small>
+                        </div>
+
+                        <!-- Default info for Saturday & Sunday -->
+                        <div class="mb-4">
+                            <div class="alert alert-info py-2 small">
+                                <i class="fas fa-info-circle me-1"></i> 
+                                <strong>Default hours:</strong> Saturday will be set to 08:00 – 13:00 (5 hours), Sunday off (0 hours). You can change these later in the edit page.
                             </div>
                         </div>
 
@@ -169,8 +156,6 @@
 
     .bg-light {
         background-color: #f8fafc !important;
-        color: #374151;
-        font-weight: 500;
     }
 
     .btn {
@@ -240,10 +225,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Initial fill if there's old value
     updateEmployeeNo();
-
-    // On change
     employeeSelect.addEventListener('change', updateEmployeeNo);
 
     // Auto-hide alerts after 5 seconds

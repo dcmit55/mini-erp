@@ -53,16 +53,14 @@ use App\Http\Controllers\Finance\PurchaseEditedController;
 use App\Http\Controllers\Hr\EmployeeWorkPolicyController;
 use App\Http\Controllers\Hr\AttendanceLogController;
 use App\Http\Controllers\Hr\EmployeeImportController;
+use App\Http\Controllers\Hr\OvertimeRequestController;
+use App\Http\Controllers\Hr\OvertimePayController;
+use App\Http\Controllers\Hr\EmployeeWorkPolicyImportController;
 
 /*
 |--------------------------------------------------------------------------
 | Web Routes
 |--------------------------------------------------------------------------
-|
-| Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider within a group which
-| contains the "web" middleware group. Now create something great!
-|
 */
 
 // Leave Requests - Public access ONLY for create & store
@@ -540,15 +538,16 @@ Route::middleware(['auth'])->group(function () {
 
     // Employee Work Policies
     Route::middleware(['auth'])->group(function () {
-        Route::get('/employee-work-policies', [EmployeeWorkPolicyController::class, 'index'])->name('employee-work-policies.index');
-        Route::get('/employee-work-policies/create', [EmployeeWorkPolicyController::class, 'create'])->name('employee-work-policies.create');
-        Route::post('/employee-work-policies', [EmployeeWorkPolicyController::class, 'store'])->name('employee-work-policies.store');
-        Route::get('/employee-work-policies/{policy}/edit', [EmployeeWorkPolicyController::class, 'edit'])->name('employee-work-policies.edit');
-        Route::put('/employee-work-policies/{policy}', [EmployeeWorkPolicyController::class, 'update'])->name('employee-work-policies.update');
-        Route::delete('/employee-work-policies/{policy}', [EmployeeWorkPolicyController::class, 'destroy'])->name('employee-work-policies.destroy');
-    });
-
-    // API endpoint untuk mengambil jam kerja karyawan (opsional)
+    Route::get('/employee-work-policies', [EmployeeWorkPolicyController::class, 'index'])->name('employee-work-policies.index');
+    Route::get('/employee-work-policies/create', [EmployeeWorkPolicyController::class, 'create'])->name('employee-work-policies.create');
+    Route::post('/employee-work-policies', [EmployeeWorkPolicyController::class, 'store'])->name('employee-work-policies.store');
+    Route::get('/employee-work-policies/{policy}/edit', [EmployeeWorkPolicyController::class, 'edit'])->name('employee-work-policies.edit');
+    Route::put('/employee-work-policies/{policy}', [EmployeeWorkPolicyController::class, 'update'])->name('employee-work-policies.update');
+    Route::delete('/employee-work-policies/{policy}', [EmployeeWorkPolicyController::class, 'destroy'])->name('employee-work-policies.destroy');
+    
+    // Route untuk import (tambahkan ini)
+    Route::post('/employee-work-policies/import', [EmployeeWorkPolicyController::class, 'storeImport'])->name('employee-work-policies.import');
+    });    // API endpoint untuk mengambil jam kerja karyawan (opsional)
     Route::get('/employees/{employee}/work-hours', [App\Http\Controllers\Hr\EmployeeWorkPolicyController::class, 'getHours'])->name('employees.work-hours');
 
     // Attendance Logs
@@ -558,6 +557,36 @@ Route::middleware(['auth'])->group(function () {
         return redirect()->route('attendance-logs.index')->with('info', 'Halaman import telah dipindahkan. Gunakan tombol "Import Excel" di halaman ini.');
     })->name('attendance-logs.import.redirect');
     Route::get('/attendance-logs/export', [AttendanceLogController::class, 'export'])->name('attendance-logs.export');
+
+    // ===== ROUTES OVERTIME REQUESTS =====
+    // Route spesifik harus sebelum resource
+    Route::get('overtime-requests/attendance-comparison', [OvertimeRequestController::class, 'attendanceComparison'])
+        ->name('overtime-requests.attendance-comparison');
+    Route::get('overtime-requests/hr/approvals', [OvertimeRequestController::class, 'hrApprovals'])
+        ->name('overtime-requests.hr-approvals');
+    Route::get('overtime-requests/director/approvals', [OvertimeRequestController::class, 'directorApprovals'])
+        ->name('overtime-requests.director-approvals');
+
+    Route::post('overtime-requests/{overtime_request}/submit', [OvertimeRequestController::class, 'submit'])
+        ->name('overtime-requests.submit');
+    Route::post('overtime-requests/{overtime_request}/approve-hr', [OvertimeRequestController::class, 'approveHr'])
+        ->name('overtime-requests.approve-hr');
+    Route::post('overtime-requests/{overtime_request}/approve-director', [OvertimeRequestController::class, 'approveDirector'])
+        ->name('overtime-requests.approve-director');
+    Route::post('overtime-requests/{overtime_request}/toggle-pass', [OvertimeRequestController::class, 'togglePass'])
+        ->name('overtime-requests.toggle-pass');
+    Route::get('overtime-requests/{overtime_request}/calculate-pay', [OvertimeRequestController::class, 'calculatePay'])
+        ->name('overtime-requests.calculate-pay');
+
+    // Resource route
+    Route::resource('overtime-requests', OvertimeRequestController::class);
+
+    // ===== ROUTES OVERTIME PAY =====
+    Route::prefix('overtime-pays')->name('overtime-pays.')->group(function () {
+        Route::get('/', [OvertimePayController::class, 'index'])->name('index');
+        Route::get('/{id}', [OvertimePayController::class, 'show'])->name('show');
+        Route::delete('/{id}', [OvertimePayController::class, 'destroy'])->name('destroy');
+    });
 
     // Efficiency Dashboard Routes
     Route::prefix('efficiency-dashboard')

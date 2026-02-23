@@ -1,4 +1,3 @@
-{{-- resources/views/hr/employee-work-policies/index.blade.php --}}
 @extends('layouts.app')
 
 @section('title', 'Employee Work Policies')
@@ -13,10 +12,14 @@
                     <h4 class="mb-0">Employee Work Policies</h4>
                     <p class="text-muted mb-0">Manage standard working hours per employee</p>
                 </div>
-                <a href="{{ route('employee-work-policies.create') }}" 
-                   class="btn btn-primary rounded-3 px-4">
-                    <i class="fas fa-plus me-2"></i>New Policy
-                </a>
+                <div>
+                    <button type="button" class="btn btn-sm btn-primary me-1" data-bs-toggle="modal" data-bs-target="#importModal">
+                        <i class="fas fa-upload me-1"></i> Import
+                    </button>
+                    <a href="{{ route('employee-work-policies.create') }}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-plus me-1"></i> New Policy
+                    </a>
+                </div>
             </div>
 
             <!-- Simple Filter -->
@@ -78,8 +81,10 @@
                                     <th class="border-0 ps-4" style="width: 70px;">No</th>
                                     <th class="border-0">Employee No</th>
                                     <th class="border-0">Employee Name</th>
-                                    <th class="border-0">Weekday Hours (Mon-Fri)</th>
-                                    <th class="border-0">Saturday Hours</th>
+                                    <th class="border-0">Weekday Time</th>
+                                    <th class="border-0">Weekday Total</th>
+                                    <th class="border-0">Saturday Time</th>
+                                    <th class="border-0">Saturday Total</th>
                                     <th class="border-0 text-center" style="width: 200px;">Actions</th>
                                 </tr>
                             </thead>
@@ -100,13 +105,33 @@
                                             </a>
                                         </td>
                                         <td style="vertical-align: middle;">
-                                            <span class="badge bg-light text-dark border px-3 py-1">
-                                                {{ number_format($policy->weekday_hours, 2) }} hours
-                                            </span>
+                                            @if($policy->weekday_start && $policy->weekday_end)
+                                                <span class="badge bg-light text-dark border px-3 py-1">
+                                                    {{ \Carbon\Carbon::parse($policy->weekday_start)->format('H:i') }} - 
+                                                    {{ \Carbon\Carbon::parse($policy->weekday_end)->format('H:i') }}
+                                                </span>
+                                            @else
+                                                <span class="text-muted">-</span>
+                                            @endif
                                         </td>
                                         <td style="vertical-align: middle;">
                                             <span class="badge bg-light text-dark border px-3 py-1">
-                                                {{ number_format($policy->saturday_hours, 2) }} hours
+                                                {{ number_format($policy->weekday_hours, 2) }} hrs
+                                            </span>
+                                        </td>
+                                        <td style="vertical-align: middle;">
+                                            @if($policy->saturday_start && $policy->saturday_end)
+                                                <span class="badge bg-light text-dark border px-3 py-1">
+                                                    {{ \Carbon\Carbon::parse($policy->saturday_start)->format('H:i') }} - 
+                                                    {{ \Carbon\Carbon::parse($policy->saturday_end)->format('H:i') }}
+                                                </span>
+                                            @else
+                                                <span class="text-muted">-</span>
+                                            @endif
+                                        </td>
+                                        <td style="vertical-align: middle;">
+                                            <span class="badge bg-light text-dark border px-3 py-1">
+                                                {{ number_format($policy->saturday_hours, 2) }} hrs
                                             </span>
                                         </td>
                                         <td class="text-center" style="vertical-align: middle;">
@@ -133,7 +158,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="6" class="text-center py-5">
+                                        <td colspan="8" class="text-center py-5">
                                             <div class="text-muted">
                                                 <i class="fas fa-clock fa-3x mb-3"></i>
                                                 <h5>No Work Policies Found</h5>
@@ -174,6 +199,9 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Import (tetap menggunakan include, tidak diembed) -->
+@include('hr.employee-work-policies.import-modal')
 
 <style>
     .table-number {
@@ -365,6 +393,73 @@ document.addEventListener('DOMContentLoaded', function() {
             if (closeBtn) closeBtn.click();
         });
     }, 5000);
+});
+
+// AJAX Import (tetap ada di sini)
+$(document).ready(function() {
+    $('#importForm').on('submit', function(e) {
+        e.preventDefault();
+
+        var formData = new FormData(this);
+        var $btn = $('#importBtn');
+        var $progress = $('#importProgress');
+        var $result = $('#importResult');
+        var $failedContainer = $('#failedRowsContainer');
+        var $failedBody = $('#failedRowsBody');
+
+        $btn.prop('disabled', true);
+        $progress.removeClass('d-none');
+        $result.html('');
+        $failedContainer.addClass('d-none');
+        $failedBody.empty();
+
+        $.ajax({
+            url: "{{ route('employee-work-policies.import') }}",
+            type: "POST",
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                $progress.addClass('d-none');
+                $result.html('<div class="alert alert-success py-1 px-2 mb-0">' + response.message + '</div>');
+                setTimeout(function() {
+                    $('#importModal').modal('hide');
+                    location.reload();
+                }, 1500);
+            },
+            error: function(xhr) {
+                $progress.addClass('d-none');
+                if (xhr.responseJSON && xhr.responseJSON.failed_rows) {
+                    var failedRows = xhr.responseJSON.failed_rows;
+                    $.each(failedRows, function(index, item) {
+                        var row = item.row;
+                        var errorMsg = item.error;
+                        $failedBody.append('<tr>' +
+                            '<td>' + (row.employee_no || '-') + '</td>' +
+                            '<td>' + (row.name || '-') + '</td>' +
+                            '<td class="text-danger">' + errorMsg + '</td>' +
+                            '</tr>');
+                    });
+                    $failedContainer.removeClass('d-none');
+                    var message = xhr.responseJSON.message || 'Import completed with errors.';
+                    $result.html('<div class="alert alert-warning py-1 px-2 mb-0">' + message + '</div>');
+                } else {
+                    var errorMsg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Upload failed.';
+                    $result.html('<div class="alert alert-danger py-1 px-2 mb-0">' + errorMsg + '</div>');
+                }
+                $btn.prop('disabled', false);
+            }
+        });
+    });
+
+    $('#importModal').on('hidden.bs.modal', function () {
+        $('#importForm')[0].reset();
+        $('#importResult').empty();
+        $('#importProgress').addClass('d-none');
+        $('#failedRowsContainer').addClass('d-none');
+        $('#failedRowsBody').empty();
+        $('#importBtn').prop('disabled', false);
+    });
 });
 </script>
 @endsection

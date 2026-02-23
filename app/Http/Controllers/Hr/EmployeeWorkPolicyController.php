@@ -1,25 +1,24 @@
 <?php
+// app/Http/Controllers/Hr/EmployeeWorkPolicyController.php
 
 namespace App\Http\Controllers\Hr;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Http\Request;
-use App\Models\Hr\Employee;
 use App\Models\Hr\EmployeeWorkPolicy;
-use Illuminate\Validation\Rule;
-use Illuminate\Support\Str;
+use App\Models\Hr\Employee;
+use App\Models\Admin\Department;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Imports\WorkPoliciesImport;
 
 class EmployeeWorkPolicyController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('auth');
-
-        // Admin HR, Super Admin, dan Admin (read-only) bisa akses
         $this->middleware(function ($request, $next) {
-            $rolesAllowed = ['super_admin', 'admin_hr', 'admin'];
-            if (!in_array(Auth::user()->role, $rolesAllowed)) {
+            if (Auth::user()->isReadOnlyAdmin()) {
                 abort(403, 'Unauthorized access to HR module.');
             }
             return $next($request);
@@ -31,14 +30,12 @@ class EmployeeWorkPolicyController extends Controller
      */
     public function index(Request $request)
     {
-        // Hanya super_admin dan admin_hr yang bisa melihat daftar semua policy
         if (Auth::user()->isReadOnlyAdmin()) {
             abort(403, 'You do not have permission to view all work policies.');
         }
 
         $query = EmployeeWorkPolicy::with('employee');
 
-        // Filter by employee name or number
         if ($request->filled('search')) {
             $search = $request->search;
             $query->whereHas('employee', function ($q) use ($search) {
@@ -47,9 +44,16 @@ class EmployeeWorkPolicyController extends Controller
             });
         }
 
-        $policies = $query->orderBy('created_at', 'desc')->paginate(20);
+        if ($request->filled('department_id')) {
+            $query->whereHas('employee', function ($q) use ($request) {
+                $q->where('department_id', $request->department_id);
+            });
+        }
 
-        return view('hr.employee-work-policies.index', compact('policies'));
+        $policies = $query->latest()->paginate(15);
+        $departments = Department::orderBy('name')->get(['id', 'name']);
+
+        return view('hr.employee-work-policies.index', compact('policies', 'departments'));
     }
 
     /**
@@ -57,16 +61,14 @@ class EmployeeWorkPolicyController extends Controller
      */
     public function create()
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            abort(403, 'You do not have permission to create work policies.');
-        }
-
-        // Ambil daftar employee yang belum memiliki policy
-        $employees = Employee::whereDoesntHave('workPolicy')
+        $employees = Employee::where('status', 'active')
+            ->whereDoesntHave('workPolicy')
             ->orderBy('name')
             ->get(['id', 'employee_no', 'name']);
 
-        return view('hr.employee-work-policies.create', compact('employees'));
+        $departments = Department::orderBy('name')->get(['id', 'name']);
+
+        return view('hr.employee-work-policies.create', compact('employees', 'departments'));
     }
 
     /**
@@ -74,33 +76,39 @@ class EmployeeWorkPolicyController extends Controller
      */
     public function store(Request $request)
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            abort(403, 'You do not have permission to create work policies.');
-        }
-
         $validated = $request->validate([
-            'employee_id' => [
-                'required',
-                'exists:employees,id',
-                Rule::unique('employee_work_policies')->whereNull('deleted_at')
-            ],
-            'weekday_hours' => 'required|numeric|min:0|max:24',
-            'saturday_hours' => 'required|numeric|min:0|max:24',
+            'employee_id' => 'required|exists:employees,id',
+            'weekday_start' => 'nullable|date_format:H:i',
+            'weekday_end' => 'nullable|date_format:H:i|after:weekday_start',
+            'saturday_start' => 'nullable|date_format:H:i',
+            'saturday_end' => 'nullable|date_format:H:i|after:saturday_start',
+            'sunday_start' => 'nullable|date_format:H:i',
+            'sunday_end' => 'nullable|date_format:H:i|after:sunday_start',
         ]);
 
-        // Ambil data employee untuk mendapatkan employee_no
         $employee = Employee::findOrFail($validated['employee_id']);
 
-        $policy = EmployeeWorkPolicy::create([
-            'uid' => Str::uuid(),
-            'employee_id' => $validated['employee_id'],
-            'employee_no' => $employee->employee_no,
-            'weekday_hours' => $validated['weekday_hours'],
-            'saturday_hours' => $validated['saturday_hours'],
-        ]);
+        DB::beginTransaction();
+        try {
+            $policy = EmployeeWorkPolicy::create([
+                'uid' => \Str::uuid(),
+                'employee_id' => $employee->id,
+                'employee_no' => $employee->employee_no,
+                'weekday_start' => $validated['weekday_start'] ?? '08:00',
+                'weekday_end' => $validated['weekday_end'] ?? '17:00',
+                'saturday_start' => $validated['saturday_start'] ?? '08:00',
+                'saturday_end' => $validated['saturday_end'] ?? '13:00',
+                'sunday_start' => $validated['sunday_start'] ?? null,
+                'sunday_end' => $validated['sunday_end'] ?? null,
+            ]);
 
-        return redirect()->route('employee-work-policies.index')
-            ->with('success', 'Work policy created successfully for ' . $employee->name);
+            DB::commit();
+            return redirect()->route('employee-work-policies.index')
+                ->with('success', "Work policy for {$employee->name} created successfully.");
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withInput()->with('error', 'Failed to create work policy: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -108,13 +116,13 @@ class EmployeeWorkPolicyController extends Controller
      */
     public function edit(EmployeeWorkPolicy $policy)
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            abort(403, 'You do not have permission to edit work policies.');
-        }
+        $employees = Employee::where('status', 'active')
+            ->orderBy('name')
+            ->get(['id', 'employee_no', 'name']);
+            
+        $departments = Department::orderBy('name')->get(['id', 'name']);
 
-        $policy->load('employee');
-
-        return view('hr.employee-work-policies.edit', compact('policy'));
+        return view('hr.employee-work-policies.edit', compact('policy', 'employees', 'departments'));
     }
 
     /**
@@ -122,64 +130,111 @@ class EmployeeWorkPolicyController extends Controller
      */
     public function update(Request $request, EmployeeWorkPolicy $policy)
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            abort(403, 'You do not have permission to update work policies.');
-        }
-
         $validated = $request->validate([
-            'weekday_hours' => 'required|numeric|min:0|max:24',
-            'saturday_hours' => 'required|numeric|min:0|max:24',
+            'weekday_start' => 'nullable|date_format:H:i',
+            'weekday_end' => 'nullable|date_format:H:i|after:weekday_start',
+            'saturday_start' => 'nullable|date_format:H:i',
+            'saturday_end' => 'nullable|date_format:H:i|after:saturday_start',
+            'sunday_start' => 'nullable|date_format:H:i',
+            'sunday_end' => 'nullable|date_format:H:i|after:sunday_start',
         ]);
 
-        $policy->update($validated);
+        DB::beginTransaction();
+        try {
+            $policy->update([
+                'weekday_start' => $validated['weekday_start'] ?? $policy->weekday_start,
+                'weekday_end' => $validated['weekday_end'] ?? $policy->weekday_end,
+                'saturday_start' => $validated['saturday_start'] ?? $policy->saturday_start,
+                'saturday_end' => $validated['saturday_end'] ?? $policy->saturday_end,
+                'sunday_start' => $validated['sunday_start'] ?? $policy->sunday_start,
+                'sunday_end' => $validated['sunday_end'] ?? $policy->sunday_end,
+            ]);
 
-        return redirect()->route('employees.show', $policy->employee_id)
-            ->with('success', 'Work policy updated successfully.');
+            DB::commit();
+            return redirect()->route('employee-work-policies.index')
+                ->with('success', "Work policy updated successfully.");
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withInput()->with('error', 'Failed to update work policy: ' . $e->getMessage());
+        }
     }
 
     /**
-     * Remove the specified work policy (soft delete).
+     * Remove the specified work policy.
      */
     public function destroy(EmployeeWorkPolicy $policy)
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            abort(403, 'You do not have permission to delete work policies.');
-        }
-
-        $employeeId = $policy->employee_id;
+        $employeeName = $policy->employee->name ?? 'Unknown';
         $policy->delete();
-
-        return redirect()->route('employees.show', $employeeId)
-            ->with('success', 'Work policy deleted successfully.');
+        return redirect()->route('employee-work-policies.index')
+            ->with('success', "Work policy for {$employeeName} deleted successfully.");
     }
 
     /**
-     * API endpoint untuk mendapatkan jam kerja karyawan berdasarkan hari (opsional)
+     * Import work policies from Excel file.
+     */
+    public function storeImport(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:xlsx,xls,csv'
+        ]);
+
+        try {
+            $import = new WorkPoliciesImport();
+            Excel::import($import, $request->file('file'));
+
+            $result = $import->getResults();
+            
+            $message = "Import selesai: {$result['success']} baru, {$result['updated']} diperbarui, {$result['failed']} gagal.";
+            
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $message,
+                    'results' => $result
+                ]);
+            }
+
+            return redirect()->route('employee-work-policies.index')
+                ->with('success', $message);
+                
+        } catch (\Exception $e) {
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Import failed: ' . $e->getMessage()
+                ], 500);
+            }
+            return redirect()->route('employee-work-policies.index')
+                ->with('error', 'Import failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * API endpoint untuk mendapatkan jam kerja karyawan.
      */
     public function getHours(Employee $employee)
     {
-        try {
-            $policy = $employee->workPolicy;
-            if (!$policy) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No work policy found for this employee.',
-                ], 404);
-            }
-
+        $policy = $employee->workPolicy;
+        
+        if (!$policy) {
             return response()->json([
-                'success' => true,
-                'data' => [
-                    'weekday_hours' => $policy->weekday_hours,
-                    'saturday_hours' => $policy->saturday_hours,
-                    'weekly_hours' => $policy->weekly_hours,
-                ],
+                'exists' => false,
+                'message' => 'No work policy found for this employee.'
             ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve work hours.',
-            ], 500);
         }
+
+        return response()->json([
+            'exists' => true,
+            'weekday_hours' => $policy->weekday_hours,
+            'saturday_hours' => $policy->saturday_hours,
+            'sunday_hours' => $policy->sunday_hours,
+            'weekday_start' => $policy->weekday_start?->format('H:i'),
+            'weekday_end' => $policy->weekday_end?->format('H:i'),
+            'saturday_start' => $policy->saturday_start?->format('H:i'),
+            'saturday_end' => $policy->saturday_end?->format('H:i'),
+            'sunday_start' => $policy->sunday_start?->format('H:i'),
+            'sunday_end' => $policy->sunday_end?->format('H:i'),
+        ]);
     }
 }

@@ -1,4 +1,3 @@
-{{-- resources/views/hr/employee-work-policies/edit.blade.php --}}
 @extends('layouts.app')
 
 @section('title', 'Edit Work Policy')
@@ -6,7 +5,7 @@
 @section('content')
 <div class="container-fluid py-3">
     <div class="row justify-content-center">
-        <div class="col-12 col-xl-8">
+        <div class="col-12 col-xl-10">
             <!-- Header -->
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <div>
@@ -56,49 +55,99 @@
                             </div>
                         </div>
 
-                        <!-- Working Hours -->
+                        <!-- Working Hours - Weekday -->
                         <div class="mb-4">
                             <h6 class="fw-medium text-dark mb-2">
-                                <i class="fas fa-clock me-2 text-primary"></i>Working Hours
+                                <i class="fas fa-calendar-week me-2 text-primary"></i>Weekday (Mon-Fri)
                             </h6>
-                            
                             <div class="row g-2">
-                                <!-- Weekday Hours -->
                                 <div class="col-md-6 mb-2">
-                                    <label for="weekday_hours" class="form-label small text-dark">Weekday Hours (Mon-Fri) <span class="text-danger">*</span></label>
-                                    <input type="number" 
-                                           step="0.01" 
-                                           min="0" 
-                                           max="24" 
-                                           class="form-control border-1 rounded-2 py-2 px-3 @error('weekday_hours') is-invalid @enderror" 
-                                           id="weekday_hours" 
-                                           name="weekday_hours" 
-                                           value="{{ old('weekday_hours', $policy->weekday_hours) }}"
-                                           required>
-                                    <small class="text-muted">Hours per day (Monday to Friday)</small>
-                                    @error('weekday_hours')
+                                    <label for="weekday_start" class="form-label small text-dark">Start Time</label>
+                                    <input type="time" 
+                                           class="form-control border-1 rounded-2 py-2 px-3 @error('weekday_start') is-invalid @enderror" 
+                                           id="weekday_start" 
+                                           name="weekday_start" 
+                                           value="{{ old('weekday_start', optional($policy->weekday_start)->format('H:i')) }}">
+                                    @error('weekday_start')
                                         <div class="invalid-feedback small">{{ $message }}</div>
                                     @enderror
                                 </div>
-                                
-                                <!-- Saturday Hours -->
                                 <div class="col-md-6 mb-2">
-                                    <label for="saturday_hours" class="form-label small text-dark">Saturday Hours <span class="text-danger">*</span></label>
-                                    <input type="number" 
-                                           step="0.01" 
-                                           min="0" 
-                                           max="24" 
-                                           class="form-control border-1 rounded-2 py-2 px-3 @error('saturday_hours') is-invalid @enderror" 
-                                           id="saturday_hours" 
-                                           name="saturday_hours" 
-                                           value="{{ old('saturday_hours', $policy->saturday_hours) }}"
-                                           required>
-                                    <small class="text-muted">Hours on Saturday</small>
-                                    @error('saturday_hours')
+                                    <label for="weekday_end" class="form-label small text-dark">End Time</label>
+                                    <input type="time" 
+                                           class="form-control border-1 rounded-2 py-2 px-3 @error('weekday_end') is-invalid @enderror" 
+                                           id="weekday_end" 
+                                           name="weekday_end" 
+                                           value="{{ old('weekday_end', optional($policy->weekday_end)->format('H:i')) }}">
+                                    @error('weekday_end')
                                         <div class="invalid-feedback small">{{ $message }}</div>
                                     @enderror
                                 </div>
                             </div>
+                            <small class="text-muted">* 1 hour break will be automatically deducted.</small>
+                        </div>
+
+                        <!-- Saturday -->
+                        <div class="mb-4">
+                            <h6 class="fw-medium text-dark mb-2">
+                                <i class="fas fa-calendar-day me-2 text-primary"></i>Saturday
+                            </h6>
+                            <div class="row g-2">
+                                <div class="col-md-6 mb-2">
+                                    <label for="saturday_start" class="form-label small text-dark">Start Time</label>
+                                    <input type="time" 
+                                           class="form-control border-1 rounded-2 py-2 px-3 @error('saturday_start') is-invalid @enderror" 
+                                           id="saturday_start" 
+                                           name="saturday_start" 
+                                           value="{{ old('saturday_start', optional($policy->saturday_start)->format('H:i')) }}">
+                                    @error('saturday_start')
+                                        <div class="invalid-feedback small">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <label for="saturday_end" class="form-label small text-dark">End Time</label>
+                                    <input type="time" 
+                                           class="form-control border-1 rounded-2 py-2 px-3 @error('saturday_end') is-invalid @enderror" 
+                                           id="saturday_end" 
+                                           name="saturday_end" 
+                                           value="{{ old('saturday_end', optional($policy->saturday_end)->format('H:i')) }}">
+                                    @error('saturday_end')
+                                        <div class="invalid-feedback small">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sunday (optional) -->
+                        <div class="mb-4">
+                            <h6 class="fw-medium text-dark mb-2">
+                                <i class="fas fa-calendar-day me-2 text-primary"></i>Sunday (optional)
+                            </h6>
+                            <div class="row g-2">
+                                <div class="col-md-6 mb-2">
+                                    <label for="sunday_start" class="form-label small text-dark">Start Time</label>
+                                    <input type="time" 
+                                           class="form-control border-1 rounded-2 py-2 px-3 @error('sunday_start') is-invalid @enderror" 
+                                           id="sunday_start" 
+                                           name="sunday_start" 
+                                           value="{{ old('sunday_start', optional($policy->sunday_start)->format('H:i')) }}">
+                                    @error('sunday_start')
+                                        <div class="invalid-feedback small">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <label for="sunday_end" class="form-label small text-dark">End Time</label>
+                                    <input type="time" 
+                                           class="form-control border-1 rounded-2 py-2 px-3 @error('sunday_end') is-invalid @enderror" 
+                                           id="sunday_end" 
+                                           name="sunday_end" 
+                                           value="{{ old('sunday_end', optional($policy->sunday_end)->format('H:i')) }}">
+                                    @error('sunday_end')
+                                        <div class="invalid-feedback small">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div>
+                            <small class="text-muted">Leave blank if not working on Sunday</small>
                         </div>
 
                         <!-- Action Buttons -->
