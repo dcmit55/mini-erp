@@ -57,8 +57,17 @@ class CostumeTimingController extends Controller
         // Get unique positions from active employees
         $positions = Employee::where('status', 'active')->whereNotNull('position')->distinct()->pluck('position')->sort();
 
-        // Get active timing sessions (individual cards, not grouped)
-        $activeSessions = Timing::running()->today()->withRelations()->orderBy('start_time', 'desc')->get();
+        // Get active timing sessions (ONLY from costume department, not all)
+        $activeSessions = Timing::running()
+            ->today()
+            ->withRelations()
+            ->whereHas('employee', function ($query) use ($costumeDept) {
+                if ($costumeDept) {
+                    $query->where('department_id', $costumeDept->id);
+                }
+            })
+            ->orderBy('start_time', 'desc')
+            ->get();
 
         return view('timing.costume.index', compact('employees', 'jobOrders', 'activeSessions', 'departments', 'positions', 'employeesWithActiveSessions'));
     }

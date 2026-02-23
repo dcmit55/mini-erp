@@ -439,7 +439,7 @@
 
             // AJAX search & filter dengan debounce dan update URL
             let debounceTimer;
-            $('input[name="search"], select[name="project_id"], select[name="department"], select[name="employee_id"]')
+            $('input[name="search"], select[name="project_id"], select[name="job_order_id"], select[name="department"], select[name="employee_id"]')
                 .on('input change', function() {
                     updateQueryString(); // update URL setiap filter berubah
                     clearTimeout(debounceTimer);
@@ -448,6 +448,7 @@
 
                         let search = $('input[name="search"]').val();
                         let project_id = $('select[name="project_id"]').val();
+                        let job_order_id = $('select[name="job_order_id"]').val();
                         let department = $('select[name="department"]').val();
                         let employee_id = $('select[name="employee_id"]').val();
 
@@ -457,6 +458,7 @@
                             data: {
                                 search: search,
                                 project_id: project_id,
+                                job_order_id: job_order_id,
                                 department: department,
                                 employee_id: employee_id,
                             },
@@ -498,11 +500,13 @@
                 const params = new URLSearchParams();
                 const search = $('input[name="search"]').val();
                 const project_id = $('select[name="project_id"]').val();
+                const job_order_id = $('select[name="job_order_id"]').val();
                 const department = $('select[name="department"]').val();
                 const employee_id = $('select[name="employee_id"]').val();
 
                 if (search) params.set('search', search);
                 if (project_id) params.set('project_id', project_id);
+                if (job_order_id) params.set('job_order_id', job_order_id);
                 if (department) params.set('department', department);
                 if (employee_id) params.set('employee_id', employee_id);
 

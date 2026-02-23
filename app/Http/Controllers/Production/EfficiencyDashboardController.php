@@ -31,15 +31,30 @@ class EfficiencyDashboardController extends Controller
             $query->whereBetween('tanggal', [$startDate, $endDate]);
         })->count();
 
-        $totalHours = Timing::whereBetween('tanggal', [$startDate, $endDate])
-            ->whereNotNull('duration_hours')
-            ->sum('duration_hours');
+        // STANDARDIZED: All calculations use MINUTES as primary unit
+        $totalMinutes = Timing::whereBetween('tanggal', [$startDate, $endDate])
+            ->whereNotNull('duration_minutes')
+            ->sum('duration_minutes');
+
+        // Convert to hours for display (derived value)
+        $totalHours = round($totalMinutes / 60, 2);
 
         $totalOutput = Timing::whereBetween('tanggal', [$startDate, $endDate])
             ->whereNotNull('measurement_value')
             ->sum('measurement_value');
 
-        // Projects with metrics
+        // Total unique employees across all projects
+        $totalEmployees = Timing::whereBetween('tanggal', [$startDate, $endDate])
+            ->distinct('employee_id')
+            ->count('employee_id');
+
+        // Average efficiency as percentage: (Total Output / Total Minutes) * 60
+        // This represents output per hour (normalized to 60 minutes)
+        // Cap at 100% maximum for realistic productivity tracking
+        $rawEfficiency = $totalMinutes > 0 ? round(($totalOutput / $totalMinutes) * 60, 2) : 0;
+        $averageEfficiency = min($rawEfficiency, 100);
+
+        // Projects with metrics - STANDARDIZED: Use minutes as primary unit
         $projects = Project::select('projects.*')
             ->with(['department', 'projectStatus'])
             ->withCount([
@@ -48,10 +63,10 @@ class EfficiencyDashboardController extends Controller
                 },
             ])
             ->addSelect([
-                'total_hours' => Timing::selectRaw('COALESCE(SUM(duration_hours), 0)')
+                'total_minutes' => Timing::selectRaw('COALESCE(SUM(duration_minutes), 0)')
                     ->whereColumn('project_id', 'projects.id')
                     ->whereBetween('tanggal', [$startDate, $endDate])
-                    ->whereNotNull('duration_hours'),
+                    ->whereNotNull('duration_minutes'),
                 'total_output' => Timing::selectRaw('COALESCE(SUM(measurement_value), 0)')
                     ->whereColumn('project_id', 'projects.id')
                     ->whereBetween('tanggal', [$startDate, $endDate])
@@ -61,15 +76,59 @@ class EfficiencyDashboardController extends Controller
                     ->whereBetween('tanggal', [$startDate, $endDate]),
             ])
             ->having('sessions_count', '>', 0)
-            ->orderByDesc('total_hours')
+            ->orderByDesc('total_minutes')
             ->get();
 
-        // Calculate efficiency (total_output / total_hours)
+        // Calculate efficiency and hours (derived) - STANDARDIZED
         $projects->each(function ($project) {
-            $project->efficiency = $project->total_hours > 0 ? round($project->total_output / $project->total_hours, 2) : 0;
+            // Derive hours from minutes for display
+            $project->total_hours = round($project->total_minutes / 60, 2);
+            // Efficiency: output per hour = (output / minutes) * 60
+            $project->efficiency = $project->total_minutes > 0 ? round(($project->total_output / $project->total_minutes) * 60, 2) : 0;
         });
 
-        return view('efficiency.index', compact('projects', 'totalProjects', 'totalHours', 'totalOutput', 'startDate', 'endDate'));
+        // Eager load job orders for all projects at once to avoid N+1 queries
+        $projectIds = $projects->pluck('id')->toArray();
+
+        $jobOrdersGrouped = JobOrder::whereIn('project_id', $projectIds)
+            ->with(['department']) // Eager load department relationship
+            ->withCount([
+                'timings as sessions_count' => function ($query) use ($startDate, $endDate) {
+                    $query->whereBetween('tanggal', [$startDate, $endDate]);
+                },
+            ])
+            ->addSelect([
+                'total_minutes' => Timing::selectRaw('COALESCE(SUM(duration_minutes), 0)')
+                    ->whereColumn('job_order_id', 'job_orders.id')
+                    ->whereBetween('tanggal', [$startDate, $endDate])
+                    ->whereNotNull('duration_minutes'),
+                'total_output' => Timing::selectRaw('COALESCE(SUM(measurement_value), 0)')
+                    ->whereColumn('job_order_id', 'job_orders.id')
+                    ->whereBetween('tanggal', [$startDate, $endDate])
+                    ->whereNotNull('measurement_value'),
+                'employee_count' => Timing::selectRaw('COUNT(DISTINCT employee_id)')
+                    ->whereColumn('job_order_id', 'job_orders.id')
+                    ->whereBetween('tanggal', [$startDate, $endDate]),
+            ])
+            ->having('sessions_count', '>', 0)
+            ->orderByDesc('total_minutes')
+            ->get()
+            ->groupBy('project_id');
+
+        // Attach job orders to their respective projects and calculate efficiency - STANDARDIZED
+        $projects->each(function ($project) use ($jobOrdersGrouped) {
+            $project->jobOrders = $jobOrdersGrouped->get($project->id, collect());
+
+            // Calculate efficiency and hours for each job order
+            $project->jobOrders->each(function ($jobOrder) {
+                // Derive hours from minutes
+                $jobOrder->total_hours = round($jobOrder->total_minutes / 60, 2);
+                // Efficiency: output per hour = (output / minutes) * 60
+                $jobOrder->efficiency = $jobOrder->total_minutes > 0 ? round(($jobOrder->total_output / $jobOrder->total_minutes) * 60, 2) : 0;
+            });
+        });
+
+        return view('efficiency.index', compact('projects', 'totalProjects', 'totalHours', 'totalOutput', 'totalEmployees', 'averageEfficiency', 'startDate', 'endDate'));
     }
 
     /**
@@ -82,12 +141,12 @@ class EfficiencyDashboardController extends Controller
 
         $project = Project::with(['department', 'projectStatus'])->findOrFail($projectId);
 
-        // Project summary
+        // Project summary - STANDARDIZED: Use minutes
         $projectSummary = Timing::where('project_id', $projectId)
             ->whereBetween('tanggal', [$startDate, $endDate])
             ->selectRaw(
                 '
-                COALESCE(SUM(duration_hours), 0) as total_hours,
+                COALESCE(SUM(duration_minutes), 0) as total_minutes,
                 COALESCE(SUM(measurement_value), 0) as total_output,
                 COUNT(*) as total_sessions,
                 COUNT(DISTINCT employee_id) as total_employees
@@ -95,7 +154,10 @@ class EfficiencyDashboardController extends Controller
             )
             ->first();
 
-        // Job orders in this project
+        // Derive hours for display
+        $projectSummary->total_hours = round($projectSummary->total_minutes / 60, 2);
+
+        // Job orders in this project - STANDARDIZED: Use minutes
         $jobOrders = JobOrder::where('project_id', $projectId)
             ->with(['department'])
             ->withCount([
@@ -104,10 +166,10 @@ class EfficiencyDashboardController extends Controller
                 },
             ])
             ->addSelect([
-                'total_hours' => Timing::selectRaw('COALESCE(SUM(duration_hours), 0)')
+                'total_minutes' => Timing::selectRaw('COALESCE(SUM(duration_minutes), 0)')
                     ->whereColumn('job_order_id', 'job_orders.id')
                     ->whereBetween('tanggal', [$startDate, $endDate])
-                    ->whereNotNull('duration_hours'),
+                    ->whereNotNull('duration_minutes'),
                 'total_output' => Timing::selectRaw('COALESCE(SUM(measurement_value), 0)')
                     ->whereColumn('job_order_id', 'job_orders.id')
                     ->whereBetween('tanggal', [$startDate, $endDate])
@@ -117,27 +179,33 @@ class EfficiencyDashboardController extends Controller
                     ->whereBetween('tanggal', [$startDate, $endDate]),
             ])
             ->having('sessions_count', '>', 0)
-            ->orderByDesc('total_hours')
+            ->orderByDesc('total_minutes')
             ->get();
 
-        // Calculate efficiency per job order
+        // Calculate efficiency and hours per job order - STANDARDIZED
         $jobOrders->each(function ($jobOrder) {
-            $jobOrder->efficiency = $jobOrder->total_hours > 0 ? round($jobOrder->total_output / $jobOrder->total_hours, 2) : 0;
+            $jobOrder->total_hours = round($jobOrder->total_minutes / 60, 2);
+            $jobOrder->efficiency = $jobOrder->total_minutes > 0 ? round(($jobOrder->total_output / $jobOrder->total_minutes) * 60, 2) : 0;
         });
 
-        // Timeline data for chart (hours vs output per day)
+        // Timeline data for chart - STANDARDIZED: Use minutes
         $timeline = Timing::where('project_id', $projectId)
             ->whereBetween('tanggal', [$startDate, $endDate])
             ->selectRaw(
                 '
                 DATE(tanggal) as date,
-                COALESCE(SUM(duration_hours), 0) as hours,
+                COALESCE(SUM(duration_minutes), 0) as minutes,
                 COALESCE(SUM(measurement_value), 0) as output
             ',
             )
             ->groupBy('date')
             ->orderBy('date')
             ->get();
+
+        // Derive hours for display
+        $timeline->each(function ($day) {
+            $day->hours = round($day->minutes / 60, 2);
+        });
 
         return view('efficiency.project-detail', compact('project', 'projectSummary', 'jobOrders', 'timeline', 'startDate', 'endDate'));
     }
@@ -152,12 +220,12 @@ class EfficiencyDashboardController extends Controller
 
         $jobOrder = JobOrder::with(['project', 'department'])->findOrFail($jobOrderId);
 
-        // Job order summary
+        // Job order summary - STANDARDIZED: Use minutes
         $jobOrderSummary = Timing::where('job_order_id', $jobOrderId)
             ->whereBetween('tanggal', [$startDate, $endDate])
             ->selectRaw(
                 '
-                COALESCE(SUM(duration_hours), 0) as total_hours,
+                COALESCE(SUM(duration_minutes), 0) as total_minutes,
                 COALESCE(SUM(measurement_value), 0) as total_output,
                 COUNT(*) as total_sessions,
                 COUNT(DISTINCT employee_id) as total_employees
@@ -165,14 +233,17 @@ class EfficiencyDashboardController extends Controller
             )
             ->first();
 
-        // Employee contributions
+        // Derive hours for display
+        $jobOrderSummary->total_hours = round($jobOrderSummary->total_minutes / 60, 2);
+
+        // Employee contributions - STANDARDIZED: Use minutes
         $employeeContributions = Timing::where('job_order_id', $jobOrderId)
             ->whereBetween('tanggal', [$startDate, $endDate])
             ->with(['employee.department'])
             ->selectRaw(
                 '
                 employee_id,
-                COALESCE(SUM(duration_hours), 0) as total_hours,
+                COALESCE(SUM(duration_minutes), 0) as total_minutes,
                 COALESCE(SUM(measurement_value), 0) as total_output,
                 COUNT(*) as sessions_count,
                 MIN(tanggal) as first_work_date,
@@ -180,24 +251,25 @@ class EfficiencyDashboardController extends Controller
             ',
             )
             ->groupBy('employee_id')
-            ->orderByDesc('total_hours')
+            ->orderByDesc('total_minutes')
             ->get();
 
-        // Calculate efficiency per employee
+        // Calculate efficiency and hours per employee - STANDARDIZED
         $employeeContributions->each(function ($contribution) {
-            $contribution->efficiency = $contribution->total_hours > 0 ? round($contribution->total_output / $contribution->total_hours, 2) : 0;
+            $contribution->total_hours = round($contribution->total_minutes / 60, 2);
+            $contribution->efficiency = $contribution->total_minutes > 0 ? round(($contribution->total_output / $contribution->total_minutes) * 60, 2) : 0;
             $contribution->hours_percentage = 0;
         });
 
-        // Calculate percentage contribution
-        $totalHours = $employeeContributions->sum('total_hours');
-        if ($totalHours > 0) {
-            $employeeContributions->each(function ($contribution) use ($totalHours) {
-                $contribution->hours_percentage = round(($contribution->total_hours / $totalHours) * 100, 1);
+        // Calculate percentage contribution based on minutes
+        $totalMinutes = $employeeContributions->sum('total_minutes');
+        if ($totalMinutes > 0) {
+            $employeeContributions->each(function ($contribution) use ($totalMinutes) {
+                $contribution->hours_percentage = round(($contribution->total_minutes / $totalMinutes) * 100, 1);
             });
         }
 
-        // Timeline by employee (for stacked chart)
+        // Timeline by employee (for stacked chart) - STANDARDIZED: Use minutes
         $employeeTimeline = Timing::where('job_order_id', $jobOrderId)
             ->whereBetween('tanggal', [$startDate, $endDate])
             ->with('employee:id,name')
@@ -205,13 +277,17 @@ class EfficiencyDashboardController extends Controller
                 '
                 DATE(tanggal) as date,
                 employee_id,
-                COALESCE(SUM(duration_hours), 0) as hours,
+                COALESCE(SUM(duration_minutes), 0) as minutes,
                 COALESCE(SUM(measurement_value), 0) as output
             ',
             )
             ->groupBy('date', 'employee_id')
             ->orderBy('date')
             ->get()
+            ->map(function ($item) {
+                $item->hours = round($item->minutes / 60, 2);
+                return $item;
+            })
             ->groupBy('date');
 
         // Progress trend (for progress mode)

@@ -92,21 +92,6 @@ class EmployeePerformanceController extends Controller
      * @param int $employeeId
      * @return \Illuminate\View\View
      */
-    public function show(Request $request, int $employeeId)
-    {
-        $employee = Employee::with('department')->findOrFail($employeeId);
-
-        // Parse date filters
-        $startDate = $request->filled('start_date') ? Carbon::parse($request->start_date) : Carbon::now()->startOfMonth();
-
-        $endDate = $request->filled('end_date') ? Carbon::parse($request->end_date) : Carbon::now()->endOfMonth();
-
-        // Get detailed report
-        $report = $this->performanceService->getEmployeeProductivityReport($employeeId, $startDate, $endDate);
-
-        return view('production.performance.show', compact('employee', 'report', 'startDate', 'endDate'));
-    }
-
     /**
      * Export performance ranking to Excel
      *

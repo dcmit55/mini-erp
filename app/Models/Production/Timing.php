@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use App\Models\Production\Project;
 use App\Models\Production\JobOrder;
 use App\Models\Hr\Employee;
+use App\Helpers\TimeHelper;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Timing extends Model
@@ -26,7 +27,7 @@ class Timing extends Model
     ];
 
     // ============================================
-    // ACCESSORS - PART 2: Standardized Duration Accessors
+    // ACCESSORS - STANDARDIZED: All based on MINUTES
     // ============================================
 
     /**
@@ -38,7 +39,7 @@ class Timing extends Model
     public function getDurationHoursAttribute()
     {
         $minutes = $this->attributes['duration_minutes'] ?? 0;
-        return round($minutes / 60, 2);
+        return TimeHelper::minutesToHours($minutes, 2);
     }
 
     /**
@@ -50,10 +51,7 @@ class Timing extends Model
     public function getDurationFormattedAttribute()
     {
         $minutes = $this->attributes['duration_minutes'] ?? 0;
-        $hours = floor($minutes / 60);
-        $mins = $minutes % 60;
-
-        return sprintf('%02d:%02d', $hours, $mins);
+        return TimeHelper::minutesToHHMM($minutes);
     }
 
     /**
@@ -89,29 +87,27 @@ class Timing extends Model
 
     /**
      * Get duration in human-readable format
-     * Examples: "1 jam 30 menit", "45 menit", "2 jam"
-     * Now uses duration_minutes as source
+     * Examples: "1 hour 30 minutes", "45 minutes", "2 hours"
+     * STANDARDIZED: Uses TimeHelper
      */
     public function getDurationReadableAttribute()
     {
         $totalMinutes = $this->attributes['duration_minutes'] ?? 0;
+        return TimeHelper::minutesToReadable($totalMinutes);
+    }
 
-        if ($totalMinutes == 0) {
-            return '0 menit';
-        }
+    /**
+     * Calculate efficiency: output per hour
+     * STANDARDIZED: Uses minutes as base, normalized to hourly rate
+     *
+     * @return float
+     */
+    public function getEfficiencyAttribute()
+    {
+        $minutes = $this->attributes['duration_minutes'] ?? 0;
+        $output = $this->measurement_value ?? 0;
 
-        $h = floor($totalMinutes / 60);
-        $m = $totalMinutes % 60;
-
-        $parts = [];
-        if ($h > 0) {
-            $parts[] = $h . ' jam';
-        }
-        if ($m > 0) {
-            $parts[] = $m . ' menit';
-        }
-
-        return implode(' ', $parts);
+        return TimeHelper::calculateEfficiency($output, $minutes);
     }
 
     // ============================================

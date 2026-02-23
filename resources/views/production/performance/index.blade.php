@@ -33,63 +33,75 @@
                 @endif
 
                 <!-- Filters -->
-                <form id="filter-form" method="GET" action="{{ route('performanceEmployee.index') }}" class="mb-4">
-                    <div class="row g-3">
-                        <div class="col-md-3">
-                            <label for="start_date" class="form-label fw-bold">Start Date</label>
-                            <input type="date" name="start_date" id="start_date" class="form-control"
-                                value="{{ $startDate->format('Y-m-d') }}">
-                        </div>
-                        <div class="col-md-3">
-                            <label for="end_date" class="form-label fw-bold">End Date</label>
-                            <input type="date" name="end_date" id="end_date" class="form-control"
-                                value="{{ $endDate->format('Y-m-d') }}">
-                        </div>
-                        <div class="col-md-3">
-                            <label for="department_id" class="form-label fw-bold">Department</label>
-                            <select name="department_id" id="department_id" class="form-select">
-                                <option value="">All Departments</option>
-                                @foreach ($departments as $dept)
-                                    <option value="{{ $dept->id }}" {{ $departmentId == $dept->id ? 'selected' : '' }}>
-                                        {{ $dept->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label for="job_order_id" class="form-label fw-bold">Job Order</label>
-                            <select name="job_order_id" id="job_order_id" class="form-select">
-                                <option value="">All Job Orders</option>
-                                @foreach ($jobOrders as $jo)
-                                    <option value="{{ $jo->id }}" {{ $jobOrderId == $jo->id ? 'selected' : '' }}>
-                                        {{ $jo->id }} - {{ $jo->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label for="employee_id" class="form-label fw-bold">Employee</label>
-                            <select name="employee_id" id="employee_id" class="form-select">
-                                <option value="">All Employees</option>
-                                @foreach ($employees as $emp)
-                                    <option value="{{ $emp->id }}" {{ $employeeId == $emp->id ? 'selected' : '' }}>
-                                        {{ $emp->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-md-3 d-flex align-items-end">
-                            <button type="submit" class="btn btn-primary w-100">
-                                <i class="fas fa-filter me-1"></i> Filter
-                            </button>
-                        </div>
-                        <div class="col-md-3 d-flex align-items-end">
-                            <a href="{{ route('performanceEmployee.index') }}" class="btn btn-outline-secondary w-100">
-                                <i class="fas fa-redo me-1"></i> Reset
-                            </a>
-                        </div>
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-body">
+                        <form id="filter-form" class="row g-3">
+                            <!-- Date Range Filters -->
+                            <div class="col-md-2">
+                                <label for="start_date" class="form-label fw-bold small">Start Date</label>
+                                <input type="date" name="start_date" id="start_date" class="form-control form-control-sm"
+                                    value="{{ $startDate->format('Y-m-d') }}">
+                            </div>
+                            <div class="col-md-2">
+                                <label for="end_date" class="form-label fw-bold small">End Date</label>
+                                <input type="date" name="end_date" id="end_date" class="form-control form-control-sm"
+                                    value="{{ $endDate->format('Y-m-d') }}">
+                            </div>
+
+                            <!-- Department Filter with Select2 -->
+                            <div class="col-md-2">
+                                <label for="department_id" class="form-label fw-bold small">Department</label>
+                                <select name="department_id" id="department_id"
+                                    class="form-select form-select-sm select2-filter">
+                                    <option value="">All Departments</option>
+                                    @foreach ($departments as $dept)
+                                        <option value="{{ $dept->id }}"
+                                            {{ $departmentId == $dept->id ? 'selected' : '' }}>
+                                            {{ $dept->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <!-- Job Order Filter with Select2 -->
+                            <div class="col-md-2">
+                                <label for="job_order_id" class="form-label fw-bold small">Job Order</label>
+                                <select name="job_order_id" id="job_order_id"
+                                    class="form-select form-select-sm select2-filter">
+                                    <option value="">All Job Orders</option>
+                                    @foreach ($jobOrders as $jo)
+                                        <option value="{{ $jo->id }}" {{ $jobOrderId == $jo->id ? 'selected' : '' }}>
+                                            {{ $jo->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <!-- Employee Filter with Select2 -->
+                            <div class="col-md-2">
+                                <label for="employee_id" class="form-label fw-bold small">Employee</label>
+                                <select name="employee_id" id="employee_id"
+                                    class="form-select form-select-sm select2-filter">
+                                    <option value="">All Employees</option>
+                                    @foreach ($employees as $emp)
+                                        <option value="{{ $emp->id }}"
+                                            {{ $employeeId == $emp->id ? 'selected' : '' }}>
+                                            {{ $emp->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <!-- Reset Button -->
+                            <div class="col-md-2 d-flex align-items-end">
+                                <a href="{{ route('performanceEmployee.index') }}"
+                                    class="btn btn-outline-secondary btn-sm w-100">
+                                    <i class="fas fa-redo me-1"></i> Reset
+                                </a>
+                            </div>
+                        </form>
                     </div>
-                </form>
+                </div>
 
                 <!-- Period Info -->
                 <div class="alert alert-info mb-4">
@@ -122,7 +134,6 @@
                                 <th class="text-center" style="width: 150px;">Standard Minutes</th>
                                 <th class="text-center" style="width: 120px;">Productivity</th>
                                 <th class="text-center" style="width: 100px;">Level</th>
-                                <th class="text-center" style="width: 100px;">Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -155,37 +166,24 @@
                                     </td>
                                     <td class="text-center">
                                         <span
-                                            class="badge
-                                            @if ($ranking->productivity_score >= 100) bg-success
-                                            @elseif($ranking->productivity_score >= 85) bg-primary
-                                            @elseif($ranking->productivity_score >= 70) bg-warning
-                                            @else bg-danger @endif
-                                        "
+                                            class="badge bg-{{ $ranking->productivity_score >= 80 ? 'success' : ($ranking->productivity_score >= 60 ? 'warning' : 'danger') }}"
                                             style="font-size: 1rem;">
                                             {{ number_format($ranking->productivity_score, 2) }}%
                                         </span>
                                     </td>
                                     <td class="text-center">
-                                        @if ($ranking->productivity_score >= 100)
+                                        @if ($ranking->productivity_score >= 80)
                                             <span class="badge bg-success">Excellent</span>
-                                        @elseif ($ranking->productivity_score >= 85)
-                                            <span class="badge bg-primary">Good</span>
-                                        @elseif ($ranking->productivity_score >= 70)
-                                            <span class="badge bg-warning">Average</span>
+                                        @elseif ($ranking->productivity_score >= 60)
+                                            <span class="badge bg-warning">Good</span>
                                         @else
                                             <span class="badge bg-danger">Poor</span>
                                         @endif
                                     </td>
-                                    <td class="text-center">
-                                        <a href="{{ route('performanceEmployee.show', ['employee' => $ranking->employee_id, 'start_date' => $startDate->format('Y-m-d'), 'end_date' => $endDate->format('Y-m-d')]) }}"
-                                            class="btn btn-sm btn-outline-primary">
-                                            <i class="fas fa-eye"></i> Detail
-                                        </a>
-                                    </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="8" class="text-center text-muted py-4">
+                                    <td colspan="7" class="text-center text-muted py-4">
                                         <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
                                         No productivity data found for the selected period.
                                     </td>
@@ -242,6 +240,117 @@
 @push('scripts')
     <script>
         $(document).ready(function() {
+            // Initialize Select2 for filter dropdowns
+            $('.select2-filter').select2({
+                theme: 'bootstrap-5',
+                allowClear: true,
+                placeholder: 'Select...',
+                width: '100%'
+            });
+
+            // Auto-filter when any filter changes (without button click)
+            $('#start_date, #end_date, #department_id, #job_order_id, #employee_id').on('change', function() {
+                applyFilters();
+            });
+
+            // Function to apply filters via AJAX
+            function applyFilters() {
+                const params = new URLSearchParams({
+                    start_date: $('#start_date').val(),
+                    end_date: $('#end_date').val(),
+                    department_id: $('#department_id').val() || '',
+                    job_order_id: $('#job_order_id').val() || '',
+                    employee_id: $('#employee_id').val() || '',
+                    format: 'json'
+                });
+
+                // Show loading state
+                const tableBody = $('table tbody');
+                tableBody.html(
+                    '<tr><td colspan="7" class="text-center py-4"><div class="spinner-border spinner-border-sm" role="status"><span class="visually-hidden">Loading...</span></div> Loading...</td></tr>'
+                );
+
+                $.ajax({
+                    url: `{{ route('performanceEmployee.index') }}?${params.toString()}`,
+                    method: 'GET',
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            updateTable(response.data.rankings);
+                            updateStatistics(response.data.rankings);
+                        }
+                    },
+                    error: function() {
+                        tableBody.html(
+                            '<tr><td colspan="7" class="text-center text-danger py-4">Error loading data</td></tr>'
+                        );
+                    }
+                });
+            }
+
+            // Function to update table with rankings
+            function updateTable(rankings) {
+                const tableBody = $('table tbody');
+
+                if (rankings.length === 0) {
+                    tableBody.html(
+                        '<tr><td colspan="7" class="text-center text-muted py-4">No data available</td></tr>');
+                    return;
+                }
+
+                let html = '';
+                rankings.forEach((rank, index) => {
+                    const scoreColor = rank.productivity_score >= 80 ? 'success' :
+                        rank.productivity_score >= 60 ? 'warning' : 'danger';
+                    const scoreLabel = rank.productivity_score >= 80 ? 'Excellent' :
+                        rank.productivity_score >= 60 ? 'Good' : 'Poor';
+
+                    html += `
+                        <tr>
+                            <td>${index + 1}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    ${rank.employee_photo ? `<img src="/storage/${rank.employee_photo}" class="rounded-circle me-2" width="35" height="35" style="object-fit: cover;">` : '<div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center me-2" style="width: 35px; height: 35px;"><i class="bi bi-person text-white"></i></div>'}
+                                    <div>
+                                        <h6 class="mb-0">${rank.employee_name}</h6>
+                                        <small class="text-muted">${rank.position || 'N/A'}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>${rank.department || 'N/A'}</td>
+                            <td>${rank.total_sessions || 0}</td>
+                            <td class="text-nowrap">${(rank.total_working_minutes / 60).toFixed(2)}h</td>
+                            <td><span class="badge bg-${scoreColor}">${rank.productivity_score.toFixed(2)}%</span></td>
+                            <td class="text-center">
+                                <span class="badge bg-${scoreColor}">${scoreLabel}</span>
+                            </td>
+                            <td class="text-center">
+                                <a href="/performanceEmployee/${rank.employee_id}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i> View
+                                </a>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                tableBody.html(html);
+            }
+
+            // Function to update statistics
+            function updateStatistics(rankings) {
+                if (rankings.length > 0) {
+                    const avgScore = rankings.reduce((sum, r) => sum + r.productivity_score, 0) / rankings.length;
+                    const maxScore = Math.max(...rankings.map(r => r.productivity_score));
+                    const minScore = Math.min(...rankings.map(r => r.productivity_score));
+                    const totalHours = rankings.reduce((sum, r) => sum + r.total_working_minutes, 0) / 60;
+
+                    // Update statistics cards (if they exist)
+                    // This would require updating the HTML structure or using callbacks
+                } else {
+                    // Hide statistics if no data
+                }
+            }
+
             // Export button handler
             $('#export-btn').on('click', function() {
                 const params = new URLSearchParams({

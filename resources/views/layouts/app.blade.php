@@ -320,7 +320,7 @@
                                         'admin',
                                     ]))
                                     <li class="nav-item dropdown">
-                                        <a class="nav-link dropdown-toggle {{ request()->is('costume-timing*') || request()->is('animatronics-timing*') || request()->is('timing-monitor*') ? 'active' : '' }}"
+                                        <a class="nav-link dropdown-toggle {{ request()->is('costume-timing*') || request()->is('animatronics-timing*') || request()->is('mascot-timing*') || request()->is('timing-monitor*') ? 'active' : '' }}"
                                             href="#" id="timingDropdown" role="button"
                                             data-bs-toggle="dropdown" aria-expanded="false">
                                             <i></i>Timing
@@ -336,6 +336,12 @@
                                                 <a class="dropdown-item {{ request()->is('animatronics-timing*') ? 'active' : '' }}"
                                                     href="{{ route('animatronics-timing.index') }}">
                                                     <i class="fas fa-robot me-2"></i>Animatronics Timing
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item {{ request()->is('mascot-timing*') ? 'active' : '' }}"
+                                                    href="{{ route('mascot-timing.index') }}">
+                                                    <i class="fas fa-mask me-2"></i>Mascot Timing
                                                 </a>
                                             </li>
                                             <li>
@@ -432,17 +438,17 @@
                                                     </a>
                                                 </li>
                                                 <!-- <li>
-                                                                                        <a class="dropdown-item {{ request()->is('attendance*') ? 'active' : '' }}"
-                                                                                            href="{{ route('attendance.index') }}">
-                                                                                            <i class="fas fa-calendar-day me-2"></i>Daily Attendance
-                                                                                        </a>
-                                                                                    </li>
-                                                                                    <li>
-                                                                                        <a class="dropdown-item {{ request()->is('attendance/list*') ? 'active' : '' }}"
-                                                                                            href="{{ route('attendance.list') }}">
-                                                                                            <i class="fas fa-history me-2"></i>Attendance History
-                                                                                        </a>
-                                                                                    </li> -->
+                                                                                                    <a class="dropdown-item {{ request()->is('attendance*') ? 'active' : '' }}"
+                                                                                                        href="{{ route('attendance.index') }}">
+                                                                                                        <i class="fas fa-calendar-day me-2"></i>Daily Attendance
+                                                                                                    </a>
+                                                                                                </li>
+                                                                                                <li>
+                                                                                                    <a class="dropdown-item {{ request()->is('attendance/list*') ? 'active' : '' }}"
+                                                                                                        href="{{ route('attendance.list') }}">
+                                                                                                        <i class="fas fa-history me-2"></i>Attendance History
+                                                                                                    </a>
+                                                                                                </li> -->
                                                 <!-- Work Policies -->
                                                 <li>
                                                     <a class="dropdown-item {{ request()->routeIs('employee-work-policies.*') ? 'active' : '' }}"

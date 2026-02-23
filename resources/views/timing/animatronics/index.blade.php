@@ -13,7 +13,10 @@
                     <i class="fas fa-tv me-1"></i> Animatronics Monitor
                 </a>
                 <a href="{{ route('costume-timing.index') }}" class="btn btn-outline-secondary btn-sm">
-                    <i class="bi bi-cut me-1"></i> Costume Timing
+                    <i class="fas fa-cut me-1"></i> Costume Timing
+                </a>
+                <a href="{{ route('mascot-timing.index') }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-mask me-1"></i> Mascot Timing
                 </a>
                 <a href="{{ route('timings.index') }}" class="btn btn-outline-primary btn-sm">
                     <i class="bi bi-table me-1"></i> View All Timings
@@ -666,7 +669,7 @@
                     parts: $('#parts-input').val(), // Changed from parts-select to parts-input
                     department_specific_data: {
                         remark: $('textarea[name="department_specific_data[remark]"]')
-                        .val() // Changed to remark only
+                            .val() // Changed to remark only
                     }
                 };
 
@@ -1046,10 +1049,10 @@
                                             <strong>Part:</strong> ${session.parts || 'N/A'}
                                         </div>
                                         ${trackingMode === 'progress' ? `
-                                                    <div class="col-12">
-                                                        <strong>Previous Progress:</strong> ${previousProgress}%
-                                                    </div>
-                                                    ` : ''}
+                                                        <div class="col-12">
+                                                            <strong>Previous Progress:</strong> ${previousProgress}%
+                                                        </div>
+                                                        ` : ''}
                                         <div class="col-12">
                                             <small class="text-muted">
                                                 <i class="bi bi-clock"></i> Started: ${session.start_time}
@@ -1124,10 +1127,10 @@
                                         <strong>Part:</strong> ${timing.parts || 'N/A'}
                                     </div>
                                     ${trackingMode === 'progress' ? `
-                                                <div class="col-12">
-                                                    <strong>Previous Progress:</strong> ${previousProgress}%
-                                                </div>
-                                                ` : ''}
+                                                    <div class="col-12">
+                                                        <strong>Previous Progress:</strong> ${previousProgress}%
+                                                    </div>
+                                                    ` : ''}
                                     <div class="col-12">
                                         <small class="text-muted">
                                             <i class="bi bi-clock"></i> Started: ${timing.start_time}

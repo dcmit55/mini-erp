@@ -27,6 +27,7 @@ use App\Http\Controllers\Timing\Costume\CostumeTimingController;
 use App\Http\Controllers\Timing\Costume\CostumeMonitorController;
 use App\Http\Controllers\Timing\Animatronics\AnimatronicsTimingController;
 use App\Http\Controllers\Timing\Animatronics\AnimatronicsMonitorController;
+use App\Http\Controllers\Timing\Mascot\MascotTimingController;
 use App\Http\Controllers\Timing\TimingMonitorController;
 use App\Http\Controllers\Finance\FinalProjectSummaryController;
 use App\Http\Controllers\Admin\DepartmentController;
@@ -366,12 +367,25 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/monitor/running', [AnimatronicsMonitorController::class, 'getRunning'])->name('monitor.running');
         });
 
+    // Mascot Timing - Mascot Department Production Timer with Stage Progress
+    Route::prefix('mascot-timing')
+        ->name('mascot-timing.')
+        ->group(function () {
+            Route::get('/', [MascotTimingController::class, 'index'])->name('index');
+            Route::post('/start', [MascotTimingController::class, 'start'])->name('start');
+            Route::post('/stop', [MascotTimingController::class, 'stop'])->name('stop');
+            Route::get('/active-sessions', [MascotTimingController::class, 'getActiveSessions'])->name('active-sessions');
+            Route::get('/job-order/{jobOrderId}', [MascotTimingController::class, 'getJobOrderInfo'])->name('job-order-info');
+        });
+
     // Timing Monitor - Real-time Running Sessions Dashboard (All Departments)
     Route::prefix('timing-monitor')
         ->name('timing-monitor.')
         ->group(function () {
             Route::get('/', [TimingMonitorController::class, 'index'])->name('index');
             Route::get('/running', [TimingMonitorController::class, 'getRunning'])->name('running');
+            Route::get('/available-employees', [TimingMonitorController::class, 'getAvailableEmployees'])->name('available-employees');
+            Route::post('/stop', [TimingMonitorController::class, 'stopSession'])->name('stop');
         });
 
     //Final Project Summary
@@ -577,7 +591,6 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('auth')
         ->group(function () {
             Route::get('/', [App\Http\Controllers\Production\EmployeePerformanceController::class, 'index'])->name('index');
-            Route::get('/{employee}', [App\Http\Controllers\Production\EmployeePerformanceController::class, 'show'])->name('show');
             Route::get('/export/rankings', [App\Http\Controllers\Production\EmployeePerformanceController::class, 'export'])->name('export');
         });
 

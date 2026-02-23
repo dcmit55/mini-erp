@@ -236,6 +236,14 @@
                             </select>
                         </div>
                         <div class="col-md-2">
+                            <select id="projectFilter" class="form-select form-select-sm select2">
+                                <option value="">All Projects</option>
+                                @foreach ($projects as $project)
+                                    <option value="{{ $project }}">{{ $project }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-2">
                             <select id="sourceFilter" class="form-select form-select-sm select2">
                                 <option value="">All Sources</option>
                                 <option value="lark">Lark Sync</option>
@@ -369,6 +377,7 @@
                         d.supplier_filter = $('#supplierFilter').val();
                         d.location_filter = $('#locationFilter').val();
                         d.unitFilter = $('#unitFilter').val();
+                        d.project_filter = $('#projectFilter').val();
                         d.sourceFilter = $('#sourceFilter').val();
                         d.custom_search = $('#customSearch').val();
                     }
@@ -493,11 +502,12 @@
             });
 
             // Filter functionality
-            $('#categoryFilter, #currencyFilter, #supplierFilter, #locationFilter, #unitFilter, #sourceFilter').on(
-                'change',
-                function() {
-                    table.ajax.reload();
-                });
+            $('#categoryFilter, #currencyFilter, #supplierFilter, #locationFilter, #unitFilter, #projectFilter, #sourceFilter')
+                .on(
+                    'change',
+                    function() {
+                        table.ajax.reload();
+                    });
 
             $('#customSearch').on('input', debounce(function() {
                 table.ajax.reload();
@@ -505,7 +515,7 @@
 
             // Reset filters
             $('#resetFilters').on('click', function() {
-                $('#categoryFilter, #currencyFilter, #supplierFilter, #locationFilter, #unitFilter, #sourceFilter')
+                $('#categoryFilter, #currencyFilter, #supplierFilter, #locationFilter, #unitFilter, #projectFilter, #sourceFilter')
                     .val('')
                     .trigger('change');
                 $('#customSearch').val('');
@@ -528,6 +538,7 @@
                     currency_filter: $('#currencyFilter').val(),
                     supplier_filter: $('#supplierFilter').val(),
                     location_filter: $('#locationFilter').val(),
+                    project_filter: $('#projectFilter').val(),
                     custom_search: $('#customSearch').val()
                 };
 

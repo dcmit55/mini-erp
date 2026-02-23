@@ -86,7 +86,10 @@ class InventoryController extends Controller
         $suppliers = Supplier::nonBlacklisted()->orderBy('name')->get();
         $locations = Location::orderBy('name')->get();
 
-        return view('logistic.inventory.index', compact('categories', 'currencies', 'suppliers', 'locations'));
+        // Get unique project_lark values from inventory
+        $projects = Inventory::whereNotNull('project_lark')->distinct()->pluck('project_lark')->sort()->values();
+
+        return view('logistic.inventory.index', compact('categories', 'currencies', 'suppliers', 'locations', 'projects'));
     }
 
     public function getDataTablesData(Request $request)
@@ -123,6 +126,9 @@ class InventoryController extends Controller
             } elseif ($request->sourceFilter === 'manual') {
                 $query->whereNull('lark_record_id');
             }
+        }
+        if ($request->filled('project_filter')) {
+            $query->where('project_lark', $request->project_filter);
         }
 
         if ($request->filled('custom_search')) {
@@ -345,6 +351,9 @@ class InventoryController extends Controller
         }
         if ($request->filled('unitFilter')) {
             $query->where('unit', $request->unitFilter);
+        }
+        if ($request->filled('project_filter')) {
+            $query->where('project_lark', $request->project_filter);
         }
         if ($request->filled('custom_search')) {
             $searchValue = $request->input('custom_search');

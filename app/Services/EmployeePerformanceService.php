@@ -172,14 +172,25 @@ class EmployeePerformanceService
     /**
      * PART 1 & 4: Calculate productivity score for a single employee
      *
-     * Formula: productivity_score = SUM(standard_minutes_earned) / SUM(duration_minutes) * 100
+     * Formula: productivity_score = MIN(100, SUM(standard_minutes_earned) / SUM(duration_minutes) * 100)
+     *
+     * Explanation:
+     * - Standard minutes earned = Quantity × Standard Time Per Unit (or Progress % × Total Standard Minutes)
+     * - Productivity = (Standard minutes / Actual minutes) × 100%
+     * - Capped at 100% maximum (excellent performance cannot exceed 100%)
+     *
+     * Example:
+     * - Standard time per unit: 10 minutes
+     * - Worker completes 4 units in 2 minutes: (4 × 10) / 2 = 200% → Capped to 100%
+     * - Worker completes 3 units in 5 minutes: (3 × 10) / 5 = 60%
+     * - Worker completes 1 unit in 5 minutes: (1 × 10) / 5 = 20%
      *
      * @param int $employeeId
      * @param Carbon|null $startDate
      * @param Carbon|null $endDate
      * @param int|null $departmentId
      * @param int|string|null $jobOrderId Filter by specific job order
-     * @return float Productivity as percentage (0-200+)
+     * @return float Productivity as percentage (0-100%)
      */
     public function calculateEmployeeProductivityScore(int $employeeId, ?Carbon $startDate = null, ?Carbon $endDate = null, ?int $departmentId = null, $jobOrderId = null): float
     {
@@ -224,8 +235,9 @@ class EmployeePerformanceService
             return 0.0;
         }
 
-        // PART 3: Return as percentage with 2 decimal places (no cap at 100%)
-        return round(($totalStandardMinutes / $totalActualMinutes) * 100, 2);
+        // PART 3: Calculate productivity as percentage and cap at 100%
+        $rawScore = ($totalStandardMinutes / $totalActualMinutes) * 100;
+        return round(min($rawScore, 100.0), 2);
     }
 
     /**
@@ -312,15 +324,17 @@ class EmployeePerformanceService
             }
 
             // Calculate productivity score
-            // Formula: (standard_minutes / actual_minutes) × 100
-            // Normal range: 70% - 130%
-            // If > 500%, likely misconfigured - cap at 500%
+            // Formula: (standard_minutes / actual_minutes) × 100%, capped at 100%
+            // Excellent performance: 80-100%
+            // Good performance: 60-80%
+            // Normal performance: 40-60%
+            // Poor performance: Below 40%
             $productivityScore = 0.0;
             if ($totalActualMinutes > 0) {
                 $rawScore = ($totalStandardMinutes / $totalActualMinutes) * 100;
 
-                // Cap at 500% to prevent unrealistic values from misconfiguration
-                $productivityScore = min($rawScore, 500.0);
+                // Cap at 100% to ensure maximum productivity is 100%
+                $productivityScore = min($rawScore, 100.0);
                 $productivityScore = round($productivityScore, 2);
             }
 

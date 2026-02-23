@@ -249,23 +249,25 @@ class AnimatronicsTimingController extends Controller
                 $deptSpecificData = array_merge($deptSpecificData, $validated['department_specific_data']);
             }
 
-            // For progress mode, calculate current progress using stage
+            // For progress mode, calculate current progress using stage (ABSOLUTE, not additive)
             if (isset($deptSpecificData['tracking_mode']) && $deptSpecificData['tracking_mode'] === 'progress') {
                 $previousProgress = $deptSpecificData['previous_progress'] ?? 0;
 
-                // If stage is provided, use it to calculate progress (each stage = 10%)
+                // If stage is provided, use it to set ABSOLUTE progress (stage 1 = 10%, stage 2 = 20%, etc)
                 if (isset($validated['stage'])) {
                     $stage = $validated['stage'];
-                    $progressAdded = $stage * 10; // Each stage represents 10%
+                    $currentProgress = $stage * 10; // Absolute positioning: stage represents current position
+                    $progressAdded = $currentProgress - $previousProgress; // Calculate increment for display
                     $deptSpecificData['stage'] = $stage;
                     $deptSpecificData['progress_added'] = $progressAdded;
+                    $deptSpecificData['current_progress'] = min(100, $currentProgress); // Absolute value, not cumulative
                 } else {
-                    // Fallback: use output_qty directly as percentage
-                    $progressAdded = $validated['output_qty'];
+                    // Fallback: use output_qty directly as absolute percentage
+                    $currentProgress = $validated['output_qty'];
+                    $progressAdded = $currentProgress - $previousProgress;
                     $deptSpecificData['progress_added'] = $progressAdded;
+                    $deptSpecificData['current_progress'] = min(100, $currentProgress);
                 }
-
-                $deptSpecificData['current_progress'] = min(100, $previousProgress + $progressAdded);
             }
 
             // Calculate duration in minutes (standardized storage)

@@ -12,6 +12,12 @@
                 <a href="{{ route('costume-timing.monitor') }}" class="btn btn-primary btn-sm">
                     <i class="fas fa-tv me-1"></i> Costume Monitor
                 </a>
+                <a href="{{ route('animatronics-timing.index') }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-robot me-1"></i> Animatronics
+                </a>
+                <a href="{{ route('mascot-timing.index') }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-mask me-1"></i> Mascot Timing
+                </a>
                 <a href="{{ route('timings.index') }}" class="btn btn-outline-primary btn-sm">
                     <i class="bi bi-table me-1"></i> View All Timings
                 </a>
