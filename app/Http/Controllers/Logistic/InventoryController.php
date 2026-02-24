@@ -193,12 +193,28 @@ class InventoryController extends Controller
         foreach ($inventories as $inventory) {
             $qrCodePath = 'storage/qrcodes/' . $inventory->id . '.svg';
             $qrCodeFullPath = public_path($qrCodePath);
-            if (!file_exists($qrCodeFullPath)) {
-                QrCode::format('svg')
-                    ->size(200)
-                    ->generate(url('/inventory/detail/' . $inventory->id), $qrCodeFullPath);
+            
+            try {
+                if (!file_exists($qrCodeFullPath)) {
+                    // Ensure directory exists
+                    $qrCodeDir = dirname($qrCodeFullPath);
+                    if (!is_dir($qrCodeDir)) {
+                        mkdir($qrCodeDir, 0755, true);
+                    }
+                    
+                    QrCode::format('svg')
+                        ->size(200)
+                        ->generate(url('/inventory/detail/' . $inventory->id), $qrCodeFullPath);
+                }
+                $inventory->qr_code = asset($qrCodePath);
+            } catch (\Exception $e) {
+                \Log::warning('Failed to generate QR code for inventory', [
+                    'inventory_id' => $inventory->id,
+                    'error' => $e->getMessage()
+                ]);
+                // Fallback: use placeholder or empty
+                $inventory->qr_code = null;
             }
-            $inventory->qr_code = asset($qrCodePath);
         }
 
         // Format data untuk DataTables
