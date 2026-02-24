@@ -81,7 +81,8 @@ class ProjectPurchaseController extends Controller
     public function create()
     {
         try {
-            $poNumber = $this->purchaseService->generatePONumber();
+            // HAPUS BARIS INI - TIDAK PERLU GENERATE PO NUMBER
+            // $poNumber = $this->purchaseService->generatePONumber();
 
             $jobOrders = JobOrder::with(['department:id,name', 'project:id,name'])
                 ->select('id', 'name', 'department_id', 'project_id')
@@ -105,7 +106,8 @@ class ProjectPurchaseController extends Controller
             $categories = Category::select('id', 'name')->get();
 
             return view('procurement.Project-Purchase.create', [
-                'poNumber' => $poNumber,
+                // HAPUS VARIABLE poNumber DARI SINI
+                // 'poNumber' => $poNumber,
                 'materials' => $materials,
                 'departments' => Department::select('id', 'name')->get(),
                 'projects' => Project::select('id', 'name')->get(),
@@ -126,7 +128,7 @@ class ProjectPurchaseController extends Controller
     }
 
     /**
-     * PERBAIKAN UTAMA: STORE METHOD DENGAN DEPARTMENT ID YANG BENAR
+     * STORE METHOD DENGAN VALIDASI PO NUMBER DARI USER
      */
     public function store(Request $request)
     {
@@ -141,17 +143,13 @@ class ProjectPurchaseController extends Controller
                 $internalProject = InternalProject::find($request->internal_project_id);
                 
                 if ($internalProject) {
-                    // Cek apakah internal project memiliki department_id
                     if ($internalProject->department_id) {
-                        // Gunakan department_id dari internal project
                         $request->merge(['department_id' => $internalProject->department_id]);
                         Log::info('Set department_id from internal project department_id:', [
                             'internal_project_id' => $request->internal_project_id,
                             'department_id' => $internalProject->department_id
                         ]);
-                    } 
-                    // Jika tidak ada department_id, coba cari berdasarkan nama department
-                    elseif ($internalProject->department) {
+                    } elseif ($internalProject->department) {
                         $department = Department::where('name', $internalProject->department)->first();
                         if ($department) {
                             $request->merge(['department_id' => $department->id]);
@@ -160,24 +158,21 @@ class ProjectPurchaseController extends Controller
                                 'department_id' => $department->id
                             ]);
                         } else {
-                            // Jika tidak ditemukan, gunakan department_id default 19
                             $request->merge(['department_id' => 19]);
                             Log::info('Set department_id to default 19');
                         }
                     } else {
-                        // Default ke 19 jika tidak ada informasi department
                         $request->merge(['department_id' => 19]);
                         Log::info('Set department_id to default 19 (no department info)');
                     }
                 } else {
-                    // Internal project tidak ditemukan
                     return back()
                         ->withInput($request->all())
                         ->with('error', 'Internal project tidak ditemukan.');
                 }
             }
 
-            // Validasi data
+            // Validasi data (termasuk po_number dari user)
             $validated = $this->purchaseService->validatePurchaseRequest($request);
             
             Log::info('Validated data:', $validated);

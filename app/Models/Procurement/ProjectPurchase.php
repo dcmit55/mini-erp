@@ -266,12 +266,9 @@ class ProjectPurchase extends Model
     }
 
     // ============================================
-    // ACCESSORS - DENGAN PENANGANAN ENUM
+    // ACCESSORS
     // ============================================
     
-    /**
-     * Helper function untuk mengkonversi nilai ke string dengan aman
-     */
     private function safeToString($value, $default = 'N/A')
     {
         if (is_null($value)) {
@@ -283,12 +280,10 @@ class ProjectPurchase extends Model
         }
         
         if (is_object($value)) {
-            // Cek apakah object memiliki method __toString
             if (method_exists($value, '__toString')) {
                 return $value->__toString();
             }
             
-            // Cek apakah object adalah Enum (memiliki method value atau name)
             if (method_exists($value, 'value')) {
                 return (string) $value->value();
             }
@@ -297,7 +292,6 @@ class ProjectPurchase extends Model
                 return $value->name();
             }
             
-            // Fallback: coba dapatkan property yang umum
             if (property_exists($value, 'value')) {
                 return (string) $value->value;
             }
@@ -306,7 +300,6 @@ class ProjectPurchase extends Model
                 return (string) $value->name;
             }
             
-            // Last resort: konversi paksa ke string
             try {
                 return (string) $value;
             } catch (\Exception $e) {
@@ -372,9 +365,6 @@ class ProjectPurchase extends Model
         return $types[$this->project_type] ?? 'Unknown';
     }
 
-    /**
-     * PERBAIKAN UTAMA: Project Name dengan penanganan Enum
-     */
     public function getProjectNameAttribute()
     {
         if ($this->project_type === 'client') {
@@ -385,7 +375,6 @@ class ProjectPurchase extends Model
             
         } elseif ($this->project_type === 'internal') {
             if ($this->internalProject && is_object($this->internalProject)) {
-                // Konversi project dan department dengan aman
                 $project = $this->safeToString($this->internalProject->project, 'N/A');
                 $department = $this->safeToString($this->internalProject->department, 'N/A');
                 
@@ -397,9 +386,6 @@ class ProjectPurchase extends Model
         return 'N/A';
     }
 
-    /**
-     * PERBAIKAN: Job Name dengan penanganan Enum
-     */
     public function getJobNameAttribute()
     {
         if ($this->project_type === 'client') {
@@ -493,9 +479,6 @@ class ProjectPurchase extends Model
         return $this->receiver && is_object($this->receiver) ? $this->safeToString($this->receiver->username, 'N/A') : 'N/A';
     }
 
-    /**
-     * PERBAIKAN: Material Name dengan penanganan Enum
-     */
     public function getMaterialNameAttribute()
     {
         if ($this->isRestock()) {
@@ -796,9 +779,10 @@ class ProjectPurchase extends Model
         parent::boot();
 
         static::creating(function ($purchase) {
-            if (empty($purchase->po_number)) {
-                $purchase->po_number = app(\App\Services\ProjectPurchaseService::class)->generatePONumber();
-            }
+            // HAPUS atau KOMENTARI baris ini karena Anda tidak pakai generate otomatis
+            // if (empty($purchase->po_number)) {
+            //     $purchase->po_number = app(\App\Services\ProjectPurchaseService::class)->generatePONumber();
+            // }
 
             $purchase->is_current = true;
             

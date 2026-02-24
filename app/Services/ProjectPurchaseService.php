@@ -192,33 +192,37 @@ class ProjectPurchaseService
         }
     }
     
-    public function generatePONumber()
-    {
-        $year = date('Y');
-        $month = date('m');
-        
-        $lastPO = ProjectPurchase::where('po_number', 'like', "PO/{$year}/{$month}/%")
-            ->orderBy('po_number', 'desc')
-            ->first();
-        
-        if ($lastPO) {
-            $lastNumber = (int) substr($lastPO->po_number, -4);
-            $newNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
-        } else {
-            $newNumber = '0001';
-        }
-        
-        return "PO/{$year}/{$month}/{$newNumber}";
-    }
+    /**
+     * METHOD INI DIHAPUS/DICOMMENT KARENA TIDAK DIGUNAKAN
+     */
+    // public function generatePONumber()
+    // {
+    //     $year = date('Y');
+    //     $month = date('m');
+    //     
+    //     $lastPO = ProjectPurchase::where('po_number', 'like', "PO/{$year}/{$month}/%")
+    //         ->orderBy('po_number', 'desc')
+    //         ->first();
+    //     
+    //     if ($lastPO) {
+    //         $lastNumber = (int) substr($lastPO->po_number, -4);
+    //         $newNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
+    //     } else {
+    //         $newNumber = '0001';
+    //     }
+    //     
+    //     return "PO/{$year}/{$month}/{$newNumber}";
+    // }
     
     /**
-     * VALIDASI PURCHASE REQUEST - VERSI FIX UNTUK INTERNAL PROJECT
+     * VALIDASI PURCHASE REQUEST - VERSI FIX DENGAN NAMA TABEL YANG BENAR
      */
     public function validatePurchaseRequest(Request $request, $purchaseId = null)
     {
         Log::info('Validating purchase request:', $request->all());
         
         $rules = [
+            'po_number' => 'required|string|max:50',
             'date' => 'required|date',
             'purchase_type' => 'required|in:restock,new_item',
             'quantity' => 'required|integer|min:1',
@@ -231,6 +235,16 @@ class ProjectPurchaseService
             'project_type' => 'required|in:client,internal',
         ];
 
+        // PERBAIKAN: Gunakan nama tabel yang benar 'indo_purchases'
+        // HAPUS kondisi where is_current
+        if ($purchaseId) {
+            // Untuk update: exclude ID saat ini
+            $rules['po_number'] .= '|unique:indo_purchases,po_number,' . $purchaseId;
+        } else {
+            // Untuk create: unique biasa di tabel indo_purchases
+            $rules['po_number'] .= '|unique:indo_purchases,po_number';
+        }
+
         // Validasi berdasarkan purchase_type
         if ($request->purchase_type === 'restock') {
             $rules['material_id'] = 'required|exists:inventories,id';
@@ -240,21 +254,17 @@ class ProjectPurchaseService
             $rules['unit_id'] = 'required|exists:units,id';
         }
 
-        // VALIDASI BERDASARKAN PROJECT TYPE - INI YANG KRUSIAL
+        // VALIDASI BERDASARKAN PROJECT TYPE
         if ($request->project_type === 'client') {
-            // CLIENT PROJECT: memerlukan project_id dan job_order_id
             $rules['project_id'] = 'required|exists:projects,id';
-            $rules['job_order_id'] = 'required|string|exists:job_orders,id';
+            $rules['job_order_id'] = 'required|exists:job_orders,id';
         } else {
-            // INTERNAL PROJECT: hanya memerlukan internal_project_id
             $rules['internal_project_id'] = 'required|exists:internal_projects,id';
-            // Pastikan job_order_id TIDAK divalidasi untuk internal project
-            if (isset($rules['job_order_id'])) {
-                unset($rules['job_order_id']);
-            }
         }
 
         $messages = [
+            'po_number.required' => 'Nomor PO harus diisi',
+            'po_number.unique' => 'Nomor PO sudah digunakan',
             'date.required' => 'Tanggal harus diisi',
             'purchase_type.required' => 'Tipe pembelian harus dipilih',
             'quantity.required' => 'Jumlah harus diisi',
@@ -384,10 +394,6 @@ class ProjectPurchaseService
             $purchaseData['item_status'] = 'pending_check';
             $purchaseData['is_current'] = true;
             
-            if (empty($purchaseData['po_number'])) {
-                $purchaseData['po_number'] = $this->generatePONumber();
-            }
-            
             Log::info('Final data for purchase creation:', $purchaseData);
             
             $purchase = ProjectPurchase::create($purchaseData);
@@ -418,6 +424,10 @@ class ProjectPurchaseService
                 throw new \Exception('Terjadi kesalahan foreign key constraint. Periksa kembali data Anda.');
             }
             
+            if (str_contains($e->getMessage(), 'Duplicate entry') && str_contains($e->getMessage(), 'po_number')) {
+                throw new \Exception('Nomor PO sudah digunakan. Silakan gunakan nomor PO lain.');
+            }
+            
             throw $e;
             
         } catch (\Exception $e) {
@@ -430,6 +440,7 @@ class ProjectPurchaseService
     private function preparePurchaseData(array $data)
     {
         $purchaseData = [
+            'po_number' => $data['po_number'],
             'date' => $data['date'],
             'purchase_type' => $data['purchase_type'],
             'quantity' => $data['quantity'],
@@ -454,7 +465,6 @@ class ProjectPurchaseService
             $purchaseData['unit_id'] = $data['unit_id'];
         }
 
-        // PERBAIKAN: Set data berdasarkan project type dengan benar
         if ($data['project_type'] === 'client') {
             $purchaseData['project_id'] = $data['project_id'];
             $purchaseData['job_order_id'] = $data['job_order_id'];
@@ -462,7 +472,7 @@ class ProjectPurchaseService
         } else {
             $purchaseData['internal_project_id'] = $data['internal_project_id'];
             $purchaseData['project_id'] = null;
-            $purchaseData['job_order_id'] = null; // PASTIKAN job_order_id = null untuk internal project
+            $purchaseData['job_order_id'] = null;
         }
 
         $purchaseData['total_price'] = $data['quantity'] * $data['unit_price'];
@@ -497,7 +507,7 @@ class ProjectPurchaseService
             $picId = $this->getValidPicId();
             
             $newData = [
-                'po_number' => $purchase->po_number,
+                'po_number' => $data['po_number'] ?? $purchase->po_number,
                 'date' => $data['date'] ?? $purchase->date,
                 'purchase_type' => $data['purchase_type'] ?? $purchase->purchase_type,
                 'material_id' => $this->handleMaterialId($purchase, $data),
@@ -605,7 +615,6 @@ class ProjectPurchaseService
     {
         $projectType = $data['project_type'] ?? $purchase->project_type;
         
-        // PERBAIKAN: Untuk internal project, job_order_id harus null
         if ($projectType === 'internal') {
             return null;
         }

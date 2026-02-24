@@ -571,6 +571,7 @@ Route::middleware(['auth'])->group(function () {
         return redirect()->route('attendance-logs.index')->with('info', 'Halaman import telah dipindahkan. Gunakan tombol "Import Excel" di halaman ini.');
     })->name('attendance-logs.import.redirect');
     Route::get('/attendance-logs/export', [AttendanceLogController::class, 'export'])->name('attendance-logs.export');
+    Route::put('/{employeeId}/{date}', [AttendanceLogController::class, 'update'])->name('attendance-logs.update');
 
     // ===== ROUTES OVERTIME REQUESTS =====
     // Route spesifik harus sebelum resource
