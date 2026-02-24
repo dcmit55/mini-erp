@@ -20,6 +20,7 @@ class LarkInventoryDTO extends BaseLarkDTO
     public readonly ?string $supplierLarkRaw;
     public readonly ?string $destinationRaw;
     public readonly ?string $statusRaw;
+    public readonly ?string $deptImportedRaw;
     public readonly ?array $itemPhotoRaw;
 
     /**
@@ -53,6 +54,7 @@ class LarkInventoryDTO extends BaseLarkDTO
         'inventories.supplier_lark' => 'Supplier Name',
         'inventories.destination' => 'Destination',
         'inventories.status' => 'Status',
+        'inventories.dept_imported' => 'DEPT (IMPORTED)',
         'inventories.img' => 'Item Photo',
     ];
 
@@ -77,6 +79,7 @@ class LarkInventoryDTO extends BaseLarkDTO
         $this->supplierLarkRaw = $this->extractField($fields, 'inventories.supplier_lark');
         $this->destinationRaw = $this->extractField($fields, 'inventories.destination');
         $this->statusRaw = $this->extractField($fields, 'inventories.status');
+        $this->deptImportedRaw = $this->extractField($fields, 'inventories.dept_imported');
 
         // Extract Item Photo - Lark returns as attachment array
         $itemPhotoFieldName = self::FIELD_MAPPING['inventories.img'] ?? null;
@@ -89,6 +92,7 @@ class LarkInventoryDTO extends BaseLarkDTO
      * Kondisi filter:
      * 1. Destination harus mengandung "BATAM" (case-insensitive)
      * 2. Status harus "Sent Out" (case-insensitive)
+     * 3. DEPT (IMPORTED) TIDAK BOLEH "Stock" (case-insensitive) - data Stock tidak masuk ke database
      *
      * @return bool
      */
@@ -100,7 +104,10 @@ class LarkInventoryDTO extends BaseLarkDTO
         // Check status adalah "Sent Out"
         $statusValid = !empty($this->statusRaw) && strcasecmp(trim($this->statusRaw), 'Sent Out') === 0;
 
-        return $destinationValid && $statusValid;
+        // Check DEPT (IMPORTED) bukan "Stock" - Skip data Stock department
+        $deptNotStock = empty($this->deptImportedRaw) || strcasecmp(trim($this->deptImportedRaw), 'Stock') !== 0;
+
+        return $destinationValid && $statusValid && $deptNotStock;
     }
 
     /**
@@ -118,6 +125,7 @@ class LarkInventoryDTO extends BaseLarkDTO
             'supplier_lark_raw' => $this->supplierLarkRaw,
             'destination_raw' => $this->destinationRaw,
             'status_raw' => $this->statusRaw,
+            'dept_imported_raw' => $this->deptImportedRaw,
             'passes_filter' => $this->passesFilter(),
         ];
     }

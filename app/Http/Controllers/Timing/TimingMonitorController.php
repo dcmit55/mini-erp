@@ -54,7 +54,7 @@ class TimingMonitorController extends Controller
         $mascotRunning = Timing::running()
             ->today()
             ->whereHas('employee.department', function ($query) {
-                $query->where('name', 'LIKE', '%DCM Mascot%')->orWhere('name', 'LIKE', 'DCM MASCOT');
+                $query->where('name', 'LIKE', '%Mascot%');
             })
             ->count();
 
@@ -108,7 +108,7 @@ class TimingMonitorController extends Controller
                 'mascot_running' => Timing::running()
                     ->today()
                     ->whereHas('employee.department', function ($query) {
-                        $query->where('name', 'LIKE', '%DCM Mascot%')->orWhere('name', 'LIKE', 'DCM MASCOT');
+                        $query->where('name', 'LIKE', '%Mascot%');
                     })
                     ->count(),
             ],

@@ -15,11 +15,11 @@ use Illuminate\Support\Facades\Log;
  * Following iSyment pattern (sama seperti ProjectSyncService):
  * - Database transactions
  * - Error handling & logging
- * - Filter berdasarkan Destination dan Status
+ * - Filter berdasarkan Destination, Status, dan DEPT (IMPORTED)
  *
  * FLOW:
  * 1. Fetch data dari Lark API (view_id: vewEW56Qcr)
- * 2. Filter: Destination = "BATAM" AND Status = "Sent Out"
+ * 2. Filter: Destination = "BATAM" AND Status = "Sent Out" AND DEPT (IMPORTED) != "Stock"
  * 3. Convert ke DTO
  * 4. Transform ke database format
  * 5. Upsert ke database
@@ -70,7 +70,7 @@ class LarkInventorySyncService
             // 1. Fetch raw data dari Lark dengan view filter
             Log::info('Starting Lark inventory sync', [
                 'view_id' => $this->viewId,
-                'filter' => 'Destination = BATAM AND Status = Sent Out',
+                'filter' => 'Destination = BATAM AND Status = Sent Out AND DEPT (IMPORTED) != Stock',
             ]);
 
             $rawRecords = $this->apiClient->fetchRecords($this->appToken, $this->tableId, $this->viewId);
@@ -85,13 +85,14 @@ class LarkInventorySyncService
                     // Convert to DTO
                     $dto = new LarkInventoryDTO($rawRecord);
 
-                    // Filter: Destination = "BATAM" AND Status = "Sent Out"
+                    // Filter: Destination = "BATAM" AND Status = "Sent Out" AND DEPT (IMPORTED) != "Stock"
                     if (!$dto->passesFilter()) {
                         $stats['skipped']++;
                         Log::debug('Record skipped (filter not passed)', [
                             'record_id' => $dto->recordId,
                             'destination' => $dto->destinationRaw,
                             'status' => $dto->statusRaw,
+                            'dept_imported' => $dto->deptImportedRaw,
                         ]);
                         continue;
                     }

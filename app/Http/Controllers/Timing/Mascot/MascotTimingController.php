@@ -23,11 +23,11 @@ class MascotTimingController extends Controller
      */
     public function index()
     {
-        // Get DCM Mascot department
-        $mascotDept = Department::where('name', 'LIKE', '%DCM Mascot%')->orWhere('name', 'LIKE', 'DCM MASCOT')->first();
+        // Get Mascot department
+        $mascotDept = Department::where('name', 'LIKE', '%Mascot%')->first();
 
         if (!$mascotDept) {
-            return redirect()->route('dashboard')->with('error', 'DCM Mascot department not found. Please contact administrator.');
+            return redirect()->route('dashboard')->with('error', 'Mascot department not found. Please contact administrator.');
         }
 
         // Get employees with running sessions for today
@@ -297,13 +297,13 @@ class MascotTimingController extends Controller
      */
     public function getActiveSessions()
     {
-        $mascotDept = Department::where('name', 'LIKE', '%DCM Mascot%')->orWhere('name', 'LIKE', 'DCM MASCOT')->first();
+        $mascotDept = Department::where('name', 'LIKE', '%Mascot%')->first();
 
         if (!$mascotDept) {
             return response()->json(
                 [
                     'success' => false,
-                    'message' => 'DCM Mascot department not found.',
+                    'message' => 'Mascot department not found.',
                 ],
                 404,
             );

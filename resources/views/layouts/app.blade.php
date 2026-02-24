@@ -325,7 +325,7 @@
                                         'admin',
                                     ]))
                                     <li class="nav-item dropdown">
-                                        <a class="nav-link dropdown-toggle {{ request()->is('costume-timing*') || request()->is('animatronics-timing*') || request()->is('timing-monitor*') ? 'active' : '' }}"
+                                        <a class="nav-link dropdown-toggle {{ request()->is('costume-timing*') || request()->is('animatronics-timing*') || request()->is('mascot-timing*') || request()->is('timing-monitor*') ? 'active' : '' }}"
                                             href="#" id="timingDropdown" role="button"
                                             data-bs-toggle="dropdown" aria-expanded="false">
                                             <i></i>Timing

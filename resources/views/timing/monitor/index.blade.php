@@ -22,7 +22,7 @@
                     <i class="fas fa-robot me-1"></i> Animatronics
                 </a>
                 <a href="{{ route('mascot-timing.index') }}" class="btn btn-outline-secondary btn-sm">
-                    <i class="fas fa-mask me-1"></i> Mascot Timing
+                    <i class="fas fa-masks-theater me-2"></i> Mascot Timing
                 </a>
             </div>
         </div>
@@ -83,7 +83,7 @@
                         <div class="text-center">
                             <small class="d-block">Mascot</small>
                             <h3 class="mb-0" id="mascot-running">{{ $mascotRunning }}</h3>
-                            <i class="fas fa-mask fa-2x opacity-50"></i>
+                            <i class="fas fa-masks-theater fa-2x opacity-50"></i>
                         </div>
                     </div>
                 </div>
