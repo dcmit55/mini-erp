@@ -193,7 +193,7 @@ class InventoryController extends Controller
         foreach ($inventories as $inventory) {
             $qrCodePath = 'storage/qrcodes/' . $inventory->id . '.svg';
             $qrCodeFullPath = public_path($qrCodePath);
-            
+
             try {
                 if (!file_exists($qrCodeFullPath)) {
                     // Ensure directory exists
@@ -201,7 +201,7 @@ class InventoryController extends Controller
                     if (!is_dir($qrCodeDir)) {
                         mkdir($qrCodeDir, 0755, true);
                     }
-                    
+
                     QrCode::format('svg')
                         ->size(200)
                         ->generate(url('/inventory/detail/' . $inventory->id), $qrCodeFullPath);
@@ -210,7 +210,7 @@ class InventoryController extends Controller
             } catch (\Exception $e) {
                 \Log::warning('Failed to generate QR code for inventory', [
                     'inventory_id' => $inventory->id,
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ]);
                 // Fallback: use placeholder or empty
                 $inventory->qr_code = null;
