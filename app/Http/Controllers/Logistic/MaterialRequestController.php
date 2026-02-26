@@ -98,9 +98,9 @@ class MaterialRequestController extends Controller
                 })
                 ->addColumn('job_order', function ($req) {
                     if ($req->project_type === MaterialRequest::PROJECT_TYPE_CLIENT && $req->jobOrder) {
-                        return '[Client] ' . $req->jobOrder->name;
+                        return $req->jobOrder->name;
                     } elseif ($req->project_type === MaterialRequest::PROJECT_TYPE_INTERNAL && $req->internalProject) {
-                        return '[Internal] ' . $req->internalProject->job;
+                        return $req->internalProject->job ?? '-';
                     }
                     return '-';
                 })
@@ -501,54 +501,61 @@ class MaterialRequestController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(Request $request, $id)
-    {
-        $materialRequest = MaterialRequest::with('inventory', 'project', 'internalProject')->findOrFail($id);
-        $departments = Department::orderBy('name')->get();
-        $units = Unit::orderBy('name')->get();
+        public function edit(Request $request, $id)
+        {
+            $materialRequest = MaterialRequest::with('inventory', 'project', 'internalProject')->findOrFail($id);
+            $departments = Department::orderBy('name')->get();
+            $units = Unit::orderBy('name')->get();
 
-        $inventories = Inventory::orderBy('name')->get()->map(function ($inventory) {
-            $inventory->available_quantity = $inventory->quantity;
-            return $inventory;
-        });
+            $inventories = Inventory::orderBy('name')->get()->map(function ($inventory) {
+                $inventory->available_quantity = $inventory->quantity;
+                return $inventory;
+            });
 
-        $jobOrders = \App\Models\Production\JobOrder::with('project:id,name')
-            ->orderBy('id', 'desc')
-            ->get(['id', 'name', 'project_id']);
+            $jobOrders = \App\Models\Production\JobOrder::with('project:id,name')
+                ->orderBy('id', 'desc')
+                ->get(['id', 'name', 'project_id']);
 
-        $internalProjects = InternalProject::select('id', 'job', 'project', 'department_id')
-            ->with('department')
-            ->orderBy('created_at', 'desc')
-            ->get();
+            $internalProjects = InternalProject::select('id', 'job', 'project', 'department_id')
+                ->with('department')
+                ->orderBy('created_at', 'desc')
+                ->get();
 
-        $filters = [
-            'project'       => $request->input('filter_project'),
-            'material'      => $request->input('filter_material'),
-            'status'        => $request->input('filter_status'),
-            'requested_by'  => $request->input('filter_requested_by'),
-            'requested_at'  => $request->input('filter_requested_at'),
-        ];
-        $filters = array_filter($filters, fn($v) => !is_null($v) && $v !== '');
+            // TAMBAHKAN: Ambil default department untuk PT DCM
+            $ptDcmDepartment = Department::where('name', 'PT DCM')->first();
+            if (!$ptDcmDepartment) {
+                $ptDcmDepartment = Department::orderBy('id')->first();
+            }
+            $defaultPtDcmDepartmentId = $ptDcmDepartment ? $ptDcmDepartment->id : null;
 
-        if ($materialRequest->status !== 'pending') {
-            return redirect()->route('material_requests.index')->with('error', 'Only pending requests can be edited.');
+            $filters = [
+                'project'       => $request->input('filter_project'),
+                'material'      => $request->input('filter_material'),
+                'status'        => $request->input('filter_status'),
+                'requested_by'  => $request->input('filter_requested_by'),
+                'requested_at'  => $request->input('filter_requested_at'),
+            ];
+            $filters = array_filter($filters, fn($v) => !is_null($v) && $v !== '');
+
+            if ($materialRequest->status !== 'pending') {
+                return redirect()->route('material_requests.index')->with('error', 'Only pending requests can be edited.');
+            }
+
+            if (auth()->user()->username !== $materialRequest->requested_by && !auth()->user()->isLogisticAdmin() && !auth()->user()->isReadOnlyAdmin()) {
+                return redirect()->route('material_requests.index', $filters)->with('error', 'You do not have permission to edit this request.');
+            }
+
+            return view('logistic.material_requests.edit', compact(
+                'materialRequest',
+                'inventories',
+                'jobOrders',
+                'internalProjects',
+                'departments',
+                'units',
+                'filters',
+                'defaultPtDcmDepartmentId'  // Tambahkan ini
+            ));
         }
-
-        if (auth()->user()->username !== $materialRequest->requested_by && !auth()->user()->isLogisticAdmin() && !auth()->user()->isReadOnlyAdmin()) {
-            return redirect()->route('material_requests.index', $filters)->with('error', 'You do not have permission to edit this request.');
-        }
-
-        return view('logistic.material_requests.edit', compact(
-            'materialRequest',
-            'inventories',
-            'jobOrders',
-            'internalProjects',
-            'departments',
-            'units',
-            'filters'
-        ));
-    }
-
     /**
      * Update the specified resource in storage.
      */

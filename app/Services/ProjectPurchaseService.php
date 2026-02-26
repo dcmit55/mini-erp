@@ -18,7 +18,6 @@ class ProjectPurchaseService
 {
     /**
      * GET PURCHASES WITH FILTERS - GROUPED BY PO NUMBER
-     * MODIFIED: Returns one record per PO number with group info
      */
     public function getPurchasesWithFilters(Request $request, $paginate = true)
     {
@@ -185,7 +184,6 @@ class ProjectPurchaseService
     
     /**
      * GET GROUP INFORMATION FOR PO NUMBER
-     * ENHANCED: Better error handling and data formatting
      */
     public function getGroupInfo($poNumber)
     {
@@ -251,7 +249,6 @@ class ProjectPurchaseService
     
     /**
      * GET PURCHASE STATISTICS - GROUPED BY PO NUMBER
-     * ENHANCED: More accurate statistics per PO
      */
     public function getPurchaseStats()
     {
@@ -386,7 +383,7 @@ class ProjectPurchaseService
     }
     
     /**
-     * VALIDATE PURCHASE REQUEST
+     * VALIDATE PURCHASE REQUEST - DEPARTMENT TIDAK REQUIRE
      */
     public function validatePurchaseRequest(Request $request, $purchaseId = null)
     {
@@ -395,7 +392,8 @@ class ProjectPurchaseService
         $rules = [
             'po_number' => 'required|string|max:50',
             'date' => 'required|date',
-            'department_id' => 'required|exists:departments,id',
+            // DEPARTMENT TIDAK REQUIRE - HAPUS VALIDASI
+            // 'department_id' => 'required|exists:departments,id',
             'supplier_id' => 'required|exists:suppliers,id',
             'is_offline_order' => 'sometimes|boolean',
             'freight' => 'nullable|numeric|min:0',
@@ -427,7 +425,8 @@ class ProjectPurchaseService
         $messages = [
             'po_number.required' => 'Nomor PO harus diisi',
             'date.required' => 'Tanggal harus diisi',
-            'department_id.required' => 'Department harus dipilih',
+            // HAPUS MESSAGE DEPARTMENT
+            // 'department_id.required' => 'Department harus dipilih',
             'supplier_id.required' => 'Supplier harus dipilih',
             'project_type.required' => 'Tipe project harus dipilih',
             'purchase_type.required' => 'Tipe pembelian harus dipilih',
@@ -469,14 +468,17 @@ class ProjectPurchaseService
     }
     
     /**
-     * VALIDATE FOREIGN KEYS
+     * VALIDATE FOREIGN KEYS - Department tidak wajib
      */
     private function validateForeignKeys(array $data)
     {
         $errors = [];
         
-        if (isset($data['department_id']) && !DB::table('departments')->where('id', $data['department_id'])->exists()) {
-            $errors[] = "Department ID {$data['department_id']} tidak valid";
+        // Department ID tidak wajib, hanya validasi jika ada
+        if (isset($data['department_id']) && !empty($data['department_id'])) {
+            if (!DB::table('departments')->where('id', $data['department_id'])->exists()) {
+                $errors[] = "Department ID {$data['department_id']} tidak valid";
+            }
         }
         
         if (isset($data['supplier_id']) && !DB::table('suppliers')->where('id', $data['supplier_id'])->exists()) {
@@ -622,7 +624,7 @@ class ProjectPurchaseService
             'purchase_type' => $data['purchase_type'],
             'quantity' => $data['quantity'],
             'unit_price' => $data['unit_price'],
-            'department_id' => $data['department_id'],
+            'department_id' => $data['department_id'] ?? null, // Bisa null
             'supplier_id' => $data['supplier_id'],
             'is_offline_order' => $data['is_offline_order'] ?? false,
             'freight' => $data['freight'] ?? 0,

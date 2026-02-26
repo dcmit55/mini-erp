@@ -7,10 +7,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\Production\Timing;
 use App\Models\Hr\EmployeeDocument;
 use App\Models\Hr\Skillset;
-use App\Models\Hr\EmployeeWorkPolicy; // <-- TAMBAHKAN INI
+use App\Models\Hr\EmployeeWorkPolicy;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+use Illuminate\Support\Str; // <-- TAMBAHKAN untuk generate UUID
 
 class Employee extends Model implements AuditableContract
 {
@@ -20,7 +21,8 @@ class Employee extends Model implements AuditableContract
         'employee_no', 'name', 'employment_type', 'photo', 'position', 
         'department_id', 'email', 'phone', 'address', 'gender', 'ktp_id', 
         'place_of_birth', 'date_of_birth', 'rekening', 'hire_date', 
-        'contract_end_date', 'salary', 'saldo_cuti', 'status', 'notes'
+        'contract_end_date', 'salary', 'saldo_cuti', 'status', 'notes',
+        'username', 'uid' // <-- TAMBAHKAN kolom baru
     ];
 
     protected $casts = [
@@ -36,6 +38,7 @@ class Employee extends Model implements AuditableContract
         'email', 'phone', 'address', 'gender', 'ktp_id', 'place_of_birth', 
         'date_of_birth', 'rekening', 'hire_date', 'contract_end_date', 
         'salary', 'saldo_cuti', 'status'
+        // username dan uid tidak ditambahkan secara default, bisa ditambahkan jika perlu
     ];
 
     protected $auditTimestamps = true;
@@ -48,11 +51,17 @@ class Employee extends Model implements AuditableContract
         parent::boot();
 
         static::creating(function ($employee) {
+            // Existing: set employee_no jika kosong
             if (empty($employee->employee_no)) {
                 $employee->employee_no = self::generateEmployeeNo();
             } else {
                 // Pastikan format DCM- jika user input manual
                 $employee->employee_no = self::formatEmployeeNo($employee->employee_no);
+            }
+
+            // TAMBAHKAN: set UID otomatis jika belum diisi
+            if (empty($employee->uid)) {
+                $employee->uid = (string) Str::uuid();
             }
 
             // Auto-set status to inactive if contract expired
@@ -82,7 +91,7 @@ class Employee extends Model implements AuditableContract
         static::created(function ($employee) {
             // Buat work policy default (weekday 8 jam, sabtu 5 jam)
             $employee->workPolicy()->create([
-                'uid' => \Str::uuid(),
+                'uid' => \Str::uuid(), // atau bisa gunakan uid yang sudah ada? Terserah
                 'employee_no' => $employee->employee_no,
                 'weekday_hours' => 8.00,
                 'saturday_hours' => 5.00,
@@ -414,10 +423,7 @@ class Employee extends Model implements AuditableContract
     }
 
     /**
-     * Generate employee number (jika belum ada method ini, tambahkan)
-     * Catatan: Pastikan method generateEmployeeNo() ada, jika tidak ada bisa ditambahkan sendiri.
-     * Di sini saya asumsikan sudah ada di tempat lain, jika tidak, kita perlu menambahkannya.
-     * Karena di kode asli Anda memanggil self::generateEmployeeNo() di creating.
+     * Generate employee number
      */
     public static function generateEmployeeNo()
     {

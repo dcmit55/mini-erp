@@ -407,21 +407,6 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-xl-2 col-md-4 mb-4">
-                    <div class="card border-0 shadow-sm h-100">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div class="flex-grow-1">
-                                    <h6 class="text-uppercase text-muted mb-2">Not Matched</h6>
-                                    <h3 class="mb-0">{{ $stats['not_matched'] ?? 0 }}</h3>
-                                </div>
-                                <div class="icon-shape bg-danger bg-opacity-10 text-danger rounded-3">
-                                    <i class="fas fa-exclamation-triangle"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
 
             <!-- Filters -->
