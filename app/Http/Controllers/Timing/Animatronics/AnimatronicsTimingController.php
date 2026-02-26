@@ -172,6 +172,7 @@ class AnimatronicsTimingController extends Controller
                     'employee_position' => $employee->position,
                     'job_order_id' => $timing->job_order_id,
                     'job_order_name' => $jobOrder->name,
+                    'job_order_deadline' => $jobOrder->deadline ? \Carbon\Carbon::parse($jobOrder->deadline)->format('d M Y') : null,
                     'project_name' => $jobOrder->project->name ?? 'N/A',
                     'step' => $timing->step,
                     'parts' => $timing->parts,
@@ -303,6 +304,7 @@ class AnimatronicsTimingController extends Controller
                 'duration_minutes' => $durationMinutes, // Standardized duration storage
                 'duration_hours' => round($durationMinutes / 60, 2), // Derived for backward compatibility
                 'status' => 'complete',
+                'approval_status' => 'pending', // Default to pending approval
                 'department_specific_data' => $deptSpecificData,
                 'photo' => $photoPath,
             ]);

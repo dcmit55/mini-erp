@@ -32,7 +32,8 @@ class ProjectCostingController extends Controller
 
     public function index(Request $request)
     {
-        $query = Project::query();
+        // ❗ HANYA ambil project yang sudah closed
+        $query = Project::where('stage', 'closed');
 
         // Search filter
         if ($request->has('search') && $request->search !== null) {
@@ -84,13 +85,44 @@ class ProjectCostingController extends Controller
 
     public function viewCosting($project_id)
     {
-        $project = Project::findOrFail($project_id);
+        // ❗ Validasi: hanya project closed yang bisa di-view costing
+        $project = Project::where('id', $project_id)->where('stage', 'closed')->firstOrFail();
 
         // Ambil semua material usage untuk project dengan eager load jobOrder
         $usages = MaterialUsage::where('project_id', $project_id)
             ->with(['inventory.currency', 'jobOrder'])
             ->orderBy('job_order_id')
             ->get();
+
+        // ===== LABOR COST FROM APPROVED TIMINGS =====
+        $approvedTimings = \App\Models\Production\Timing::where('project_id', $project_id)
+            ->where('approval_status', 'approved') // ❗ ONLY APPROVED
+            ->with(['jobOrder', 'employee'])
+            ->get();
+
+        $totalLaborMinutes = $approvedTimings->sum('duration_minutes') ?? 0;
+        $totalLaborHours = round($totalLaborMinutes / 60, 2);
+        $approvedTimingsCount = $approvedTimings->count();
+
+        // Group timings by job order for detailed breakdown
+        $timingsByJobOrder = $approvedTimings
+            ->groupBy('job_order_id')
+            ->map(function ($timings, $jobOrderId) {
+                $jobOrder = $timings->first()->jobOrder;
+                $totalMinutes = $timings->sum('duration_minutes');
+                $totalHours = round($totalMinutes / 60, 2);
+
+                return [
+                    'job_order_id' => $jobOrderId,
+                    'job_order_name' => $jobOrder ? $jobOrder->name : 'No Job Order',
+                    'total_hours' => $totalHours,
+                    'total_minutes' => $totalMinutes,
+                    'sessions_count' => $timings->count(), // Match frontend variable name
+                    'unique_employees' => $timings->pluck('employee.name')->unique()->count(), // Count employees
+                    'employee_names' => $timings->pluck('employee.name')->unique()->values()->toArray(), // List for tooltip
+                ];
+            })
+            ->values();
 
         // Hitung total biaya per material dengan rumus baru dan konversi ke IDR
         $materials = $usages->map(function ($usage) {
@@ -142,18 +174,110 @@ class ProjectCostingController extends Controller
         });
 
         // Hitung grand total dalam IDR
-        $grand_total_idr = $materials->sum('total_cost');
+        $grand_total_material_idr = $materials->sum('total_cost');
+
+        // ===== MATERIAL INVENTORY ITEMS (from GoodsOut) =====
+        $goodsOut = \App\Models\Logistic\GoodsOut::where('project_id', $project_id)
+            ->with(['inventory.currency', 'jobOrder'])
+            ->get();
+        
+        // Group by inventory item
+        $inventoryItems = $goodsOut->groupBy('inventory_id')->map(function ($items, $inventoryId) {
+            $firstItem = $items->first();
+            $inventory = $firstItem->inventory;
+            $totalQty = $items->sum('quantity');
+            
+            // Calculate unit cost in SGD
+            $currency = $inventory->currency ?? (object)['name' => 'N/A', 'exchange_rate' => 1];
+            $unitPrice = $inventory->price ?? 0;
+            $domesticFreight = $inventory->unit_domestic_freight_cost ?? 0;
+            $internationalFreight = $inventory->unit_international_freight_cost ?? 0;
+            $totalUnitCost = $unitPrice + $domesticFreight + $internationalFreight;
+            
+            return [
+                'inventory_id' => $inventoryId,
+                'inventory_name' => $inventory->name ?? 'N/A',
+                'unit' => $inventory->unit ?? 'N/A',
+                'total_quantity' => $totalQty,
+                'unit_cost' => $totalUnitCost,
+                'currency' => $currency->name ?? 'SGD',
+                'total_cost' => $totalQty * $totalUnitCost,
+                'transactions_count' => $items->count(),
+                'job_orders' => $items->pluck('jobOrder.name')->filter()->unique()->values()->toArray(),
+            ];
+        })->values();
+
+        // ===== LARK GOODS MOVEMENT ITEMS (Logistics Cost) =====
+        // Check if Lark fields exist in database (migration might not be run yet)
+        $larkItemsGrouped = collect([]);
+        try {
+            $larkItems = \App\Models\Logistic\GoodsMovementItem::where('project_id', $project_id)
+                ->whereNotNull('lark_item_name')
+                ->with(['goodsMovement'])
+                ->get();
+            
+            // Group by item name untuk costing
+            $larkItemsGrouped = $larkItems->groupBy('lark_item_name')->map(function ($items, $itemName) {
+                $totalQty = $items->sum('quantity');
+                $avgUnitCost = $items->avg('lark_unit_cost');
+                $totalCost = $items->sum('lark_total_cost');
+                $currency = $items->first()->lark_currency ?? 'SGD';
+                
+                return [
+                    'item_name' => $itemName,
+                    'total_quantity' => $totalQty,
+                    'unit' => $items->first()->unit ?? 'pcs',
+                    'avg_unit_cost' => round($avgUnitCost, 4),
+                    'total_cost' => round($totalCost, 2),
+                    'currency' => $currency,
+                    'transactions_count' => $items->count(),
+                    'shipment_directions' => $items->pluck('goodsMovement.shipment_direction')->filter()->unique()->values()->toArray(),
+                ];
+            })->values();
+        } catch (\Exception $e) {
+            // Lark fields not available yet (migration not run)
+            \Log::info('Lark fields not available in goods_movement_items table');
+        }
 
         return response()->json([
             'project' => $project->name,
             'materials' => $materials,
-            'grand_total_idr' => $grand_total_idr,
+            'grand_total_material_idr' => $grand_total_material_idr,
+            // ===== LABOR COST DATA =====
+            'labor' => [
+                'total_hours' => $totalLaborHours,
+                'total_minutes' => $totalLaborMinutes,
+                'approved_sessions_count' => $approvedTimingsCount,
+                'by_job_order' => $timingsByJobOrder,
+            ],
+            // ===== INVENTORY ITEMS BREAKDOWN =====
+            'inventory_items' => [
+                'total_items' => $inventoryItems->count(),
+                'total_transactions' => $goodsOut->count(),
+                'items' => $inventoryItems,
+            ],
+            // ===== LARK LOGISTICS ITEMS =====
+            'lark_logistics' => [
+                'total_items' => $larkItemsGrouped->count(),
+                'total_cost' => $larkItemsGrouped->sum('total_cost'),
+                'total_transactions' => $larkItems->count(),
+                'items' => $larkItemsGrouped,
+            ],
+            // ===== COMBINED TOTALS =====
+            'summary' => [
+                'total_material_cost_idr' => $grand_total_material_idr,
+                'total_labor_hours' => $totalLaborHours,
+                'total_lark_logistics_cost' => $larkItemsGrouped->sum('total_cost'),
+                'job_order_count' => $usages->pluck('job_order_id')->unique()->count(),
+                'approved_timing_count' => $approvedTimingsCount,
+            ],
         ]);
     }
 
     public function exportCosting($project_id)
     {
-        $project = Project::findOrFail($project_id);
+        // ❗ Validasi: hanya project closed yang bisa di-export
+        $project = Project::where('id', $project_id)->where('stage', 'closed')->firstOrFail();
 
         $usages = MaterialUsage::where('project_id', $project_id)
             ->with(['inventory.currency', 'jobOrder'])
@@ -197,7 +321,8 @@ class ProjectCostingController extends Controller
     public function exportAllProjects(Request $request)
     {
         try {
-            $query = Project::query();
+            // ❗ Hanya export project yang sudah closed
+            $query = Project::where('stage', 'closed');
 
             if ($request->has('department') && $request->department !== null) {
                 $query->whereHas('departments', function ($q) use ($request) {

@@ -817,7 +817,7 @@ class InventoryController extends Controller
         try {
             $stats = $syncService->sync();
 
-            $message = sprintf('Lark sync completed! Fetched: %d | Filtered: %d | Created: %d | Updated: %d | Skipped: %d', $stats['fetched'], $stats['filtered'], $stats['created'], $stats['updated'], $stats['skipped']);
+            $message = sprintf('Lark sync completed! Fetched: %d | Filtered: %d | Aggregated: %d materials | Created: %d | Updated: %d | Skipped: %d', $stats['fetched'], $stats['filtered'], $stats['aggregated_groups'] ?? 0, $stats['created'], $stats['updated'], $stats['skipped']);
 
             if (isset($stats['deactivated']) && $stats['deactivated'] > 0) {
                 $message .= sprintf(' | Deactivated: %d', $stats['deactivated']);

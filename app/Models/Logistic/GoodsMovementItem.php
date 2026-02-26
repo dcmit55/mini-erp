@@ -28,10 +28,24 @@ class GoodsMovementItem extends Model
         'transferred_to_inventory',
         'transferred_at',
         'transferred_by',
+        // Production Lark integration fields
+        'item_name_sg_bt',
+        'item_name_bt_sg',
+        'project_lark',
+        'status',
+        'sgd_cost',
+        'lark_item_record_id',
+        'lark_sync_source',
+        'lark_synced_at',
+        'lark_raw_data',
     ];
+    
     protected $casts = [
         'transferred_to_inventory' => 'boolean',
         'transferred_at' => 'datetime',
+        'sgd_cost' => 'decimal:2',
+        'lark_synced_at' => 'datetime',
+        'lark_raw_data' => 'array',
     ];
 
     public function goodsMovement()

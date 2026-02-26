@@ -28,11 +28,12 @@ class EfficiencyDashboardController extends Controller
 
         // Summary cards
         $totalProjects = Project::whereHas('timings', function ($query) use ($startDate, $endDate) {
-            $query->whereBetween('tanggal', [$startDate, $endDate]);
+            $query->whereBetween('tanggal', [$startDate, $endDate])->where('approval_status', 'approved');
         })->count();
 
         // STANDARDIZED: All calculations use MINUTES as primary unit
         $totalMinutes = Timing::whereBetween('tanggal', [$startDate, $endDate])
+            ->where('approval_status', 'approved')
             ->whereNotNull('duration_minutes')
             ->sum('duration_minutes');
 
@@ -40,11 +41,13 @@ class EfficiencyDashboardController extends Controller
         $totalHours = round($totalMinutes / 60, 2);
 
         $totalOutput = Timing::whereBetween('tanggal', [$startDate, $endDate])
+            ->where('approval_status', 'approved')
             ->whereNotNull('measurement_value')
             ->sum('measurement_value');
 
         // Total unique employees across all projects
         $totalEmployees = Timing::whereBetween('tanggal', [$startDate, $endDate])
+            ->where('approval_status', 'approved')
             ->distinct('employee_id')
             ->count('employee_id');
 
@@ -66,14 +69,17 @@ class EfficiencyDashboardController extends Controller
                 'total_minutes' => Timing::selectRaw('COALESCE(SUM(duration_minutes), 0)')
                     ->whereColumn('project_id', 'projects.id')
                     ->whereBetween('tanggal', [$startDate, $endDate])
+                    ->where('approval_status', 'approved')
                     ->whereNotNull('duration_minutes'),
                 'total_output' => Timing::selectRaw('COALESCE(SUM(measurement_value), 0)')
                     ->whereColumn('project_id', 'projects.id')
                     ->whereBetween('tanggal', [$startDate, $endDate])
+                    ->where('approval_status', 'approved')
                     ->whereNotNull('measurement_value'),
                 'employee_count' => Timing::selectRaw('COUNT(DISTINCT employee_id)')
                     ->whereColumn('project_id', 'projects.id')
-                    ->whereBetween('tanggal', [$startDate, $endDate]),
+                    ->whereBetween('tanggal', [$startDate, $endDate])
+                    ->where('approval_status', 'approved'),
             ])
             ->having('sessions_count', '>', 0)
             ->orderByDesc('total_minutes')
@@ -94,21 +100,24 @@ class EfficiencyDashboardController extends Controller
             ->with(['department']) // Eager load department relationship
             ->withCount([
                 'timings as sessions_count' => function ($query) use ($startDate, $endDate) {
-                    $query->whereBetween('tanggal', [$startDate, $endDate]);
+                    $query->whereBetween('tanggal', [$startDate, $endDate])->where('approval_status', 'approved');
                 },
             ])
             ->addSelect([
                 'total_minutes' => Timing::selectRaw('COALESCE(SUM(duration_minutes), 0)')
                     ->whereColumn('job_order_id', 'job_orders.id')
                     ->whereBetween('tanggal', [$startDate, $endDate])
+                    ->where('approval_status', 'approved')
                     ->whereNotNull('duration_minutes'),
                 'total_output' => Timing::selectRaw('COALESCE(SUM(measurement_value), 0)')
                     ->whereColumn('job_order_id', 'job_orders.id')
                     ->whereBetween('tanggal', [$startDate, $endDate])
+                    ->where('approval_status', 'approved')
                     ->whereNotNull('measurement_value'),
                 'employee_count' => Timing::selectRaw('COUNT(DISTINCT employee_id)')
                     ->whereColumn('job_order_id', 'job_orders.id')
-                    ->whereBetween('tanggal', [$startDate, $endDate]),
+                    ->whereBetween('tanggal', [$startDate, $endDate])
+                    ->where('approval_status', 'approved'),
             ])
             ->having('sessions_count', '>', 0)
             ->orderByDesc('total_minutes')
@@ -143,6 +152,7 @@ class EfficiencyDashboardController extends Controller
 
         // Project summary - STANDARDIZED: Use minutes
         $projectSummary = Timing::where('project_id', $projectId)
+            ->where('approval_status', 'approved')
             ->whereBetween('tanggal', [$startDate, $endDate])
             ->selectRaw(
                 '
@@ -162,21 +172,24 @@ class EfficiencyDashboardController extends Controller
             ->with(['department'])
             ->withCount([
                 'timings as sessions_count' => function ($query) use ($startDate, $endDate) {
-                    $query->whereBetween('tanggal', [$startDate, $endDate]);
+                    $query->whereBetween('tanggal', [$startDate, $endDate])->where('approval_status', 'approved');
                 },
             ])
             ->addSelect([
                 'total_minutes' => Timing::selectRaw('COALESCE(SUM(duration_minutes), 0)')
                     ->whereColumn('job_order_id', 'job_orders.id')
                     ->whereBetween('tanggal', [$startDate, $endDate])
+                    ->where('approval_status', 'approved')
                     ->whereNotNull('duration_minutes'),
                 'total_output' => Timing::selectRaw('COALESCE(SUM(measurement_value), 0)')
                     ->whereColumn('job_order_id', 'job_orders.id')
                     ->whereBetween('tanggal', [$startDate, $endDate])
+                    ->where('approval_status', 'approved')
                     ->whereNotNull('measurement_value'),
                 'employee_count' => Timing::selectRaw('COUNT(DISTINCT employee_id)')
                     ->whereColumn('job_order_id', 'job_orders.id')
-                    ->whereBetween('tanggal', [$startDate, $endDate]),
+                    ->whereBetween('tanggal', [$startDate, $endDate])
+                    ->where('approval_status', 'approved'),
             ])
             ->having('sessions_count', '>', 0)
             ->orderByDesc('total_minutes')
@@ -190,6 +203,7 @@ class EfficiencyDashboardController extends Controller
 
         // Timeline data for chart - STANDARDIZED: Use minutes
         $timeline = Timing::where('project_id', $projectId)
+            ->where('approval_status', 'approved')
             ->whereBetween('tanggal', [$startDate, $endDate])
             ->selectRaw(
                 '
@@ -222,6 +236,7 @@ class EfficiencyDashboardController extends Controller
 
         // Job order summary - STANDARDIZED: Use minutes
         $jobOrderSummary = Timing::where('job_order_id', $jobOrderId)
+            ->where('approval_status', 'approved')
             ->whereBetween('tanggal', [$startDate, $endDate])
             ->selectRaw(
                 '
@@ -238,6 +253,7 @@ class EfficiencyDashboardController extends Controller
 
         // Employee contributions - STANDARDIZED: Use minutes
         $employeeContributions = Timing::where('job_order_id', $jobOrderId)
+            ->where('approval_status', 'approved')
             ->whereBetween('tanggal', [$startDate, $endDate])
             ->with(['employee.department'])
             ->selectRaw(
@@ -271,6 +287,7 @@ class EfficiencyDashboardController extends Controller
 
         // Timeline by employee (for stacked chart) - STANDARDIZED: Use minutes
         $employeeTimeline = Timing::where('job_order_id', $jobOrderId)
+            ->where('approval_status', 'approved')
             ->whereBetween('tanggal', [$startDate, $endDate])
             ->with('employee:id,name')
             ->selectRaw(
@@ -292,6 +309,7 @@ class EfficiencyDashboardController extends Controller
 
         // Progress trend (for progress mode)
         $progressTrend = Timing::where('job_order_id', $jobOrderId)
+            ->where('approval_status', 'approved')
             ->whereBetween('tanggal', [$startDate, $endDate])
             ->whereNotNull('department_specific_data')
             ->get()

@@ -149,6 +149,7 @@ class CostumeTimingController extends Controller
                     'employee_position' => $employee->position,
                     'job_order_id' => $timing->job_order_id,
                     'job_order_name' => $jobOrder->name,
+                    'job_order_deadline' => $jobOrder->deadline ? Carbon::parse($jobOrder->deadline)->format('d M Y') : null,
                     'project_name' => $jobOrder->project->name ?? 'N/A',
                     'step' => $timing->step,
                     'parts' => $timing->parts,
@@ -234,6 +235,7 @@ class CostumeTimingController extends Controller
                 'duration_minutes' => $durationMinutes, // Standardized duration storage
                 'duration_hours' => round($durationMinutes / 60, 2), // Derived for backward compatibility
                 'status' => 'complete',
+                'approval_status' => 'pending', // Default to pending approval
             ]);
 
             DB::commit();
@@ -306,6 +308,43 @@ class CostumeTimingController extends Controller
                 'measurement_type' => $timing->measurement_type ?? 'pcs',
                 'measurement_value' => $timing->measurement_value ?? 0,
                 'duration' => $this->calculateDuration($timing->start_time),
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'sessions' => $sessions,
+        ]);
+    }
+
+    /**
+     * Get session information for multiple timing IDs
+     * Used for grouped stop modal to show employee details
+     */
+    public function getSessionsInfo(Request $request)
+    {
+        $request->validate([
+            'timing_ids' => 'required|array',
+            'timing_ids.*' => 'exists:timings,id',
+        ]);
+
+        $timings = Timing::with(['employee', 'jobOrder', 'project'])
+            ->whereIn('id', $request->timing_ids)
+            ->whereNull('end_time')
+            ->get();
+
+        $sessions = $timings->map(function ($timing) {
+            return [
+                'id' => $timing->id,
+                'employee_name' => $timing->employee->name ?? 'N/A',
+                'employee_position' => $timing->employee->position ?? 'N/A',
+                'employee_photo' => $timing->employee->photo ?? null,
+                'job_order_id' => $timing->job_order_id,
+                'job_order_name' => $timing->jobOrder->name ?? $timing->job_order_id,
+                'project_name' => $timing->project->name ?? 'N/A',
+                'step' => $timing->step,
+                'parts' => $timing->parts,
+                'start_time' => $timing->start_time,
             ];
         });
 

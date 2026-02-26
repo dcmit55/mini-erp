@@ -161,6 +161,7 @@ class TimingMonitorController extends Controller
                 'duration_minutes' => $durationMinutes,
                 'duration_hours' => round($durationMinutes / 60, 2),
                 'status' => 'complete',
+                'approval_status' => 'pending', // Default to pending approval
                 'measurement_value' => $timing->measurement_value ?? 0,
             ]);
 

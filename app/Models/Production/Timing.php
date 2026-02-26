@@ -13,7 +13,7 @@ class Timing extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['tanggal', 'job_order_id', 'project_id', 'step', 'parts', 'employee_id', 'start_time', 'end_time', 'duration_minutes', 'measurement_type', 'measurement_value', 'duration_hours', 'status', 'remarks', 'department_specific_data', 'photo'];
+    protected $fillable = ['tanggal', 'job_order_id', 'project_id', 'step', 'parts', 'employee_id', 'start_time', 'end_time', 'duration_minutes', 'measurement_type', 'measurement_value', 'duration_hours', 'status', 'approval_status', 'approved_by', 'approved_at', 'rejection_reason', 'remarks', 'department_specific_data', 'photo'];
 
     /**
      * Cast department_specific_data as array for easy access
@@ -195,5 +195,108 @@ class Timing extends Model
     public function scopeWithRelations($query)
     {
         return $query->with(['employee.department', 'project', 'jobOrder.department']);
+    }
+
+    // ============================================
+    // APPROVAL SCOPES
+    // ============================================
+
+    /**
+     * Scope: Only pending approval timings
+     */
+    public function scopePending($query)
+    {
+        return $query->where('approval_status', 'pending');
+    }
+
+    /**
+     * Scope: Only approved timings
+     */
+    public function scopeApproved($query)
+    {
+        return $query->where('approval_status', 'approved');
+    }
+
+    /**
+     * Scope: Only rejected timings
+     */
+    public function scopeRejected($query)
+    {
+        return $query->where('approval_status', 'rejected');
+    }
+
+    // ============================================
+    // APPROVAL METHODS
+    // ============================================
+
+    /**
+     * Approve this timing session
+     *
+     * @param int $userId User ID who approved
+     * @return bool
+     */
+    public function approve($userId)
+    {
+        $this->approval_status = 'approved';
+        $this->approved_by = $userId;
+        $this->approved_at = now();
+        $this->rejection_reason = null;
+
+        return $this->save();
+    }
+
+    /**
+     * Reject this timing session
+     *
+     * @param int $userId User ID who rejected
+     * @param string|null $reason Reason for rejection
+     * @return bool
+     */
+    public function reject($userId, $reason = null)
+    {
+        $this->approval_status = 'rejected';
+        $this->approved_by = $userId;
+        $this->approved_at = now();
+        $this->rejection_reason = $reason;
+
+        return $this->save();
+    }
+
+    /**
+     * Check if timing is pending approval
+     *
+     * @return bool
+     */
+    public function isPending()
+    {
+        return $this->approval_status === 'pending';
+    }
+
+    /**
+     * Check if timing is approved
+     *
+     * @return bool
+     */
+    public function isApproved()
+    {
+        return $this->approval_status === 'approved';
+    }
+
+    /**
+     * Check if timing is rejected
+     *
+     * @return bool
+     */
+    public function isRejected()
+    {
+        return $this->approval_status === 'rejected';
+    }
+
+    /**
+     * Relationship: User who approved/rejected
+     */
+    public function approver()
+    {
+        return $this->belongsTo(\App\Models\Admin\User::class, 'approved_by');
     }
 }

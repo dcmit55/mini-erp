@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Http\Controllers\Timing\Costume;
+namespace App\Http\Controllers\Timing\Mascot;
 
 use App\Http\Controllers\Controller;
 use App\Models\Production\Timing;
 use App\Models\Admin\Department;
 use Illuminate\Http\Request;
 
-class CostumeMonitorController extends Controller
+class MascotMonitorController extends Controller
 {
     public function __construct()
     {
@@ -15,22 +15,22 @@ class CostumeMonitorController extends Controller
     }
 
     /**
-     * Display running costume timing sessions (real-time monitor)
+     * Display running mascot timing sessions (real-time monitor)
      */
     public function index()
     {
-        // Get costume department
-        $costumeDept = Department::where('name', 'LIKE', '%costume%')->orWhere('name', 'LIKE', '%sewing%')->first();
+        // Get mascot department
+        $mascotDept = Department::where('name', 'LIKE', '%mascot%')->first();
 
-        if (!$costumeDept) {
-            return redirect()->route('costume-timing.index')->with('error', 'Costume department not found.');
+        if (!$mascotDept) {
+            return redirect()->route('mascot-timing.index')->with('error', 'Mascot department not found.');
         }
 
-        // Get all running sessions for costume department
+        // Get all running sessions for mascot department
         $runningSessions = Timing::running()
             ->today()
-            ->whereHas('employee', function ($query) use ($costumeDept) {
-                $query->where('department_id', $costumeDept->id);
+            ->whereHas('employee', function ($query) use ($mascotDept) {
+                $query->where('department_id', $mascotDept->id);
             })
             ->with(['employee.department', 'project', 'jobOrder.project'])
             ->orderBy('start_time', 'desc')
@@ -45,7 +45,7 @@ class CostumeMonitorController extends Controller
             return $timing->project->name ?? 'Unknown Project';
         });
 
-        return view('timing.costume.monitor', compact('runningSessions', 'groupedSessions', 'totalRunning', 'totalEmployees', 'costumeDept'));
+        return view('timing.mascot.monitor', compact('runningSessions', 'groupedSessions', 'totalRunning', 'totalEmployees', 'mascotDept'));
     }
 
     /**
@@ -53,14 +53,14 @@ class CostumeMonitorController extends Controller
      */
     public function getRunning()
     {
-        // Get costume department
-        $costumeDept = Department::where('name', 'LIKE', '%costume%')->orWhere('name', 'LIKE', '%sewing%')->first();
+        // Get mascot department
+        $mascotDept = Department::where('name', 'LIKE', '%mascot%')->first();
 
-        if (!$costumeDept) {
+        if (!$mascotDept) {
             return response()->json(
                 [
                     'success' => false,
-                    'message' => 'Costume department not found',
+                    'message' => 'Mascot department not found',
                 ],
                 404,
             );
@@ -68,16 +68,20 @@ class CostumeMonitorController extends Controller
 
         $runningSessions = Timing::running()
             ->today()
-            ->whereHas('employee', function ($query) use ($costumeDept) {
-                $query->where('department_id', $costumeDept->id);
+            ->whereHas('employee', function ($query) use ($mascotDept) {
+                $query->where('department_id', $mascotDept->id);
             })
-            ->with(['employee.department', 'jobOrder.project'])
+            ->with(['employee.department', 'project', 'jobOrder.project'])
             ->orderBy('start_time', 'desc')
             ->get();
 
         return response()->json([
             'success' => true,
             'sessions' => $runningSessions->map(function ($timing) {
+                // Get department specific data
+                $deptData = $timing->department_specific_data ?? [];
+                $trackingMode = $deptData['tracking_mode'] ?? 'progress';
+
                 return [
                     'id' => $timing->id,
                     'employee_name' => $timing->employee->name ?? 'Unknown',
@@ -85,11 +89,14 @@ class CostumeMonitorController extends Controller
                     'employee_position' => $timing->employee->position ?? 'N/A',
                     'department' => $timing->employee->department->name ?? 'Unknown',
                     'job_order_name' => $timing->jobOrder->name ?? 'N/A',
-                    'project_name' => $timing->jobOrder->project->name ?? 'N/A',
+                    'project_name' => $timing->project->name ?? 'N/A',
                     'step' => $timing->step,
                     'parts' => $timing->parts,
                     'start_time' => $timing->start_time,
                     'duration' => $timing->getDurationAttribute(),
+                    'tracking_mode' => $trackingMode,
+                    'current_progress' => $deptData['current_progress'] ?? 0,
+                    'stage' => $deptData['stage'] ?? 0,
                 ];
             }),
             'statistics' => [

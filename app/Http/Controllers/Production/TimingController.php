@@ -28,7 +28,8 @@ class TimingController extends Controller
     public function index(Request $request)
     {
         $timings = Timing::with(['project', 'employee.department', 'jobOrder'])
-            ->latest()
+            ->orderByDesc('created_at')
+            ->orderByDesc('start_time')
             ->get();
 
         $projects = Project::with('departments')->orderBy('name')->get();
@@ -63,10 +64,101 @@ class TimingController extends Controller
             $query->where('employee_id', $request->employee_id);
         }
 
-        $timings = $query->orderByDesc('tanggal')->get();
+        // Sort by newest first: created_at DESC, then start_time DESC for same-day entries
+        $timings = $query->orderByDesc('created_at')->orderByDesc('start_time')->get();
 
         try {
-            $html = view('production.timings.timing_table', compact('timings'))->render();
+            // Generate table rows HTML inline
+            $html = '';
+
+            if ($timings->isEmpty()) {
+                $html = '<tr class="no-data-row">
+                    <td colspan="16" class="text-center py-4">
+                        <i class="bi bi-inbox" style="font-size: 3rem; opacity: 0.3;"></i>
+                        <p class="mt-2 text-muted">No timing data found</p>
+                    </td>
+                </tr>';
+            } else {
+                foreach ($timings as $timing) {
+                    // Calculate duration in minutes
+                    $minutes = 0;
+                    if ($timing->duration_minutes && $timing->duration_minutes > 0) {
+                        $minutes = $timing->duration_minutes;
+                    } elseif ($timing->start_time && $timing->end_time) {
+                        $start = \Carbon\Carbon::parse($timing->start_time);
+                        $end = \Carbon\Carbon::parse($timing->end_time);
+                        $minutes = $start->diffInMinutes($end);
+                    }
+
+                    $html .= '<tr>';
+                    $html .= '<td class="date-col">' . ($timing->tanggal ? \Carbon\Carbon::parse($timing->tanggal)->format('d M Y') : '-') . '</td>';
+                    $html .= '<td>' . ($timing->project ? $timing->project->name : '-') . '</td>';
+                    $html .= '<td>' . ($timing->jobOrder ? $timing->jobOrder->name : '-') . '</td>';
+                    $html .= '<td>' . ($timing->employee && $timing->employee->department ? $timing->employee->department->name : '-') . '</td>';
+                    $html .= '<td>' . ($timing->step ?? '-') . '</td>';
+                    $html .= '<td>' . ($timing->parts ?? '-') . '</td>';
+                    $html .= '<td>' . ($timing->employee ? $timing->employee->name : '-') . '</td>';
+                    $html .= '<td>' . ($timing->start_time ? \Carbon\Carbon::parse($timing->start_time)->format('H:i') : '-') . '</td>';
+                    $html .= '<td>' . ($timing->end_time ? \Carbon\Carbon::parse($timing->end_time)->format('H:i') : '<span class="badge bg-warning">Running</span>') . '</td>';
+                    $html .= '<td>' . ($minutes > 0 ? $minutes . ' min' : '-') . '</td>';
+                    $html .= '<td>' . ($timing->measurement_value ?? '-') . '</td>';
+
+                    // Type from measurement_type
+                    $typeText = '-';
+                    if ($timing->measurement_type == 'qty') {
+                        $typeText = 'Qty';
+                    } elseif ($timing->measurement_type == 'progress') {
+                        $typeText = 'Progress';
+                    } elseif ($timing->measurement_type) {
+                        $typeText = $timing->measurement_type;
+                    }
+                    $html .= '<td>' . $typeText . '</td>';
+
+                    // Status badge
+                    $statusBadge = '<span class="badge bg-light text-dark">' . ucfirst($timing->status ?? '-') . '</span>';
+                    if ($timing->status == 'complete') {
+                        $statusBadge = '<span class="badge bg-success">Complete</span>';
+                    } elseif ($timing->status == 'on progress') {
+                        $statusBadge = '<span class="badge bg-warning">On Progress</span>';
+                    } elseif ($timing->status == 'pending') {
+                        $statusBadge = '<span class="badge bg-secondary">Pending</span>';
+                    }
+                    $html .= '<td>' . $statusBadge . '</td>';
+
+                    // Approval badge
+                    $approvalBadge = '<span class="badge bg-warning"><i class="fas fa-clock"></i> Pending</span>';
+                    if ($timing->approval_status == 'approved') {
+                        $approvalBadge = '<span class="badge bg-success"><i class="fas fa-check-circle"></i> Approved</span>';
+                    } elseif ($timing->approval_status == 'rejected') {
+                        $approvalBadge = '<span class="badge bg-danger"><i class="fas fa-times-circle"></i> Rejected</span>';
+                    }
+                    $html .= '<td>' . $approvalBadge . '</td>';
+
+                    $html .= '<td>' . ($timing->remarks ?? '-') . '</td>';
+                    
+                    // Actions column
+                    $authUser = auth()->user();
+                    $canEdit = $authUser->isSuperAdmin() || $authUser->isLogisticAdmin() || $authUser->id == $timing->employee_id;
+                    
+                    if ($canEdit) {
+                        $editUrl = route('timings.edit', $timing->id);
+                        $deleteUrl = route('timings.destroy', $timing->id);
+                        $html .= '<td class="text-nowrap">';
+                        $html .= '<a href="' . $editUrl . '" class="btn btn-sm btn-warning" title="Edit"><i class="bi bi-pencil-fill"></i></a> ';
+                        $html .= '<form action="' . $deleteUrl . '" method="POST" class="d-inline" onsubmit="return confirm(\'Are you sure you want to delete this timing record?\')">';
+                        $html .= csrf_field();
+                        $html .= method_field('DELETE');
+                        $html .= '<button type="submit" class="btn btn-sm btn-danger" title="Delete"><i class="bi bi-trash-fill"></i></button>';
+                        $html .= '</form>';
+                        $html .= '</td>';
+                    } else {
+                        $html .= '<td class="text-nowrap"><span class="text-muted">-</span></td>';
+                    }
+                    
+                    $html .= '</tr>';
+                }
+            }
+
             return response()->json([
                 'html' => $html,
                 'count' => $timings->count(),

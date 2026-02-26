@@ -32,7 +32,7 @@ class AnimatronicsMonitorController extends Controller
             ->whereHas('employee', function ($query) use ($animatronicsDept) {
                 $query->where('department_id', $animatronicsDept->id);
             })
-            ->with(['employee.department', 'jobOrder.project'])
+            ->with(['employee.department', 'project', 'jobOrder.project'])
             ->orderBy('start_time', 'desc')
             ->get();
 
@@ -51,9 +51,9 @@ class AnimatronicsMonitorController extends Controller
             return is_array($data) && isset($data['tracking_mode']) && $data['tracking_mode'] === 'progress';
         });
 
-        // Group by job order
+        // Group by project
         $groupedSessions = $runningSessions->groupBy(function ($timing) {
-            return $timing->jobOrder->name ?? 'Unknown Job Order';
+            return $timing->project->name ?? 'Unknown Project';
         });
 
         return view('timing.animatronics.monitor', compact('runningSessions', 'groupedSessions', 'totalRunning', 'totalEmployees', 'timerModeSessions', 'progressModeSessions', 'animatronicsDept'));
