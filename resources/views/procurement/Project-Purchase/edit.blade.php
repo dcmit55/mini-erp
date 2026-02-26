@@ -6,7 +6,7 @@
 @section('styles')
 <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
 <style>
-    /* Form Styling */
+    /* Form Styling - SAME AS CREATE */
     .form-control,
     .form-select {
         border-color: #e2e8f0;
@@ -26,12 +26,45 @@
         border-color: #dc2626;
     }
 
+    .form-control:read-only,
+    .form-select:disabled {
+        background-color: #f1f5f9;
+        cursor: not-allowed;
+    }
+
     /* Labels */
     .form-label {
         font-size: 0.85rem;
         margin-bottom: 0.25rem;
         color: #334155;
         font-weight: 500;
+    }
+
+    .label-with-addon {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        margin-bottom: 0.25rem;
+    }
+
+    .add-button {
+        font-size: 0.75rem;
+        color: #4f46e5;
+        text-decoration: none;
+        cursor: pointer;
+        font-weight: 400;
+        padding: 0.125rem 0.5rem;
+        border-radius: 4px;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .add-button:hover {
+        background-color: #f1f5f9;
+        color: #4338ca;
     }
 
     /* Card Styling */
@@ -50,6 +83,9 @@
         margin-bottom: 1.5rem;
         font-size: 1rem;
         font-weight: 600;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
     }
 
     .section-header i {
@@ -148,44 +184,125 @@
         border-color: #4338ca;
     }
 
+    .btn-outline-danger:hover {
+        background-color: #dc2626;
+        color: white;
+    }
+
     /* Required star */
     .text-danger {
         color: #dc2626 !important;
     }
 
     /* Spacing */
-    .mb-2 {
-        margin-bottom: 0.5rem !important;
-    }
-
-    .mb-3 {
-        margin-bottom: 1rem !important;
-    }
-
-    .mb-4 {
-        margin-bottom: 1.5rem !important;
-    }
-
-    .py-3 {
-        padding-top: 1rem !important;
-        padding-bottom: 1rem !important;
-    }
+    .mb-2 { margin-bottom: 0.5rem !important; }
+    .mb-3 { margin-bottom: 1rem !important; }
+    .mb-4 { margin-bottom: 1.5rem !important; }
+    .py-3 { padding-top: 1rem !important; padding-bottom: 1rem !important; }
 
     /* Border radius */
-    .rounded-2 {
-        border-radius: 8px !important;
-    }
+    .rounded-2 { border-radius: 8px !important; }
 
     /* Fast hide class */
-    .fast-hide {
-        display: none !important;
-    }
+    .fast-hide { display: none !important; }
 
     /* Info note styling */
     .info-note {
         font-size: 0.8rem;
         color: #64748b;
         margin-top: 0.25rem;
+    }
+    
+    /* Item row styling */
+    .item-row {
+        background-color: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        padding: 1rem;
+        position: relative;
+    }
+    
+    .item-row:hover {
+        border-color: #4f46e5;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    
+    .item-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px dashed #e2e8f0;
+    }
+    
+    .item-title {
+        font-weight: 600;
+        color: #334155;
+        font-size: 0.9rem;
+    }
+    
+    .item-title i {
+        color: #4f46e5;
+        margin-right: 0.5rem;
+    }
+    
+    .remove-item {
+        opacity: 0.6;
+        transition: all 0.2s;
+    }
+    
+    .remove-item:hover {
+        opacity: 1;
+        background-color: #fee2e2;
+        border-color: #ef4444;
+        color: #ef4444;
+    }
+    
+    /* Warning for read-only items */
+    .readonly-item {
+        opacity: 0.9;
+        border-left: 4px solid #f59e0b;
+        background-color: #fffbeb;
+    }
+    
+    .readonly-badge {
+        background-color: #f59e0b;
+        color: white;
+        font-size: 0.7rem;
+        padding: 0.15rem 0.5rem;
+        border-radius: 12px;
+        margin-left: 0.5rem;
+    }
+
+    /* Badge styling */
+    .badge.bg-warning { background-color: #f59e0b !important; color: white !important; }
+    .badge.bg-success { background-color: #10b981 !important; color: white !important; }
+    .badge.bg-danger { background-color: #ef4444 !important; color: white !important; }
+    .badge.bg-secondary { background-color: #9ca3af !important; color: white !important; }
+    .badge.bg-info { background-color: #3b82f6 !important; color: white !important; }
+
+    /* Alert styling */
+    .alert {
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+    }
+
+    /* Select2 customization */
+    .select2-container--default .select2-selection--single {
+        height: 42px;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 40px;
+        padding-left: 12px;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 40px;
     }
 </style>
 @endsection
@@ -201,12 +318,20 @@
                         <i class="fas fa-arrow-left me-1"></i>Back
                     </a>
                     <h5 class="text-dark mb-1 mt-2">Edit Purchase Order</h5>
-                    <p class="text-muted small mb-0">Edit PO: {{ $purchase->po_number }}</p>
+                    <p class="text-muted small mb-0">
+                        <span class="fw-medium">{{ $purchase->po_number }}</span> | 
+                        {{ $poItems->count() }} item(s) | 
+                        Status: <span class="badge {{ $purchase->status_badge_class }} px-2 py-1">{{ $purchase->status_text }}</span>
+                    </p>
                 </div>
                 <div>
                     <a href="{{ route('project-purchases.show', $purchase->id) }}" 
                        class="btn btn-outline-secondary btn-sm rounded-2 px-3">
                         <i class="fas fa-eye me-1"></i>View
+                    </a>
+                    <a href="{{ route('project-purchases.print', $purchase->id) }}" 
+                       class="btn btn-outline-primary btn-sm rounded-2 px-3" target="_blank">
+                        <i class="fas fa-print me-1"></i>Print
                     </a>
                 </div>
             </div>
@@ -240,7 +365,7 @@
                         @csrf
                         @method('PUT')
                         
-                        <!-- Basic Information -->
+                        <!-- Basic Information - HEADER -->
                         <div class="mb-4">
                             <h6 class="section-header">
                                 <i class="fas fa-info-circle me-2"></i>Basic Information
@@ -252,11 +377,12 @@
                                            class="form-control border-1 rounded-2 py-2 px-3 @error('po_number') is-invalid @enderror" 
                                            name="po_number" 
                                            value="{{ old('po_number', $purchase->po_number) }}" 
-                                           required>
+                                           readonly
+                                           style="background-color: #f1f5f9;">
                                     @error('po_number')
                                         <div class="invalid-feedback small">{{ $message }}</div>
                                     @enderror
-                                    <div class="form-text text-muted small mt-1">Masukkan nomor PO yang unik</div>
+                                    <div class="form-text text-muted small mt-1">PO Number cannot be changed</div>
                                 </div>
                                 <div class="col-md-6 mb-2">
                                     <label class="form-label">Date <span class="text-danger">*</span></label>
@@ -272,7 +398,7 @@
                             </div>
                         </div>
 
-                        <!-- Project Information -->
+                        <!-- Project Information - HEADER -->
                         <div class="mb-4">
                             <h6 class="section-header">
                                 <i class="fas fa-project-diagram me-2"></i>Project Information
@@ -284,16 +410,12 @@
                                     <div class="form-check">
                                         <input class="form-check-input" type="radio" name="project_type" 
                                                id="clientProjectType" value="client" {{ old('project_type', $purchase->project_type) == 'client' ? 'checked' : '' }}>
-                                        <label class="form-check-label" for="clientProjectType">
-                                            Client Project
-                                        </label>
+                                        <label class="form-check-label" for="clientProjectType">Client Project</label>
                                     </div>
                                     <div class="form-check">
                                         <input class="form-check-input" type="radio" name="project_type" 
                                                id="internalProjectType" value="internal" {{ old('project_type', $purchase->project_type) == 'internal' ? 'checked' : '' }}>
-                                        <label class="form-check-label" for="internalProjectType">
-                                            Internal Project
-                                        </label>
+                                        <label class="form-check-label" for="internalProjectType">Internal Project</label>
                                     </div>
                                 </div>
                             </div>
@@ -303,7 +425,7 @@
                                 <div class="row g-2">
                                     <div class="col-md-6 mb-2">
                                         <label class="form-label">Job Order <span class="text-danger">*</span></label>
-                                        <select class="form-select select2 border-1 rounded-2 py-2 px-3 @error('job_order_id') is-invalid @enderror" name="job_order_id" id="jobOrderSelect" {{ old('project_type', $purchase->project_type) != 'internal' ? 'required' : '' }}>
+                                        <select class="form-select select2 border-1 rounded-2 py-2 px-3 @error('job_order_id') is-invalid @enderror" name="job_order_id" id="jobOrderSelect">
                                             <option value="">Select Job Order</option>
                                             @foreach($jobOrders as $jobOrder)
                                                 <option value="{{ $jobOrder['id'] }}" 
@@ -339,7 +461,7 @@
                                 <div class="row g-2">
                                     <div class="col-md-6 mb-2">
                                         <label class="form-label">Internal Project <span class="text-danger">*</span></label>
-                                        <select class="form-select select2 border-1 rounded-2 py-2 px-3 @error('internal_project_id') is-invalid @enderror" name="internal_project_id" id="internalProjectSelect" {{ old('project_type', $purchase->project_type) == 'internal' ? 'required' : '' }}>
+                                        <select class="form-select select2 border-1 rounded-2 py-2 px-3 @error('internal_project_id') is-invalid @enderror" name="internal_project_id" id="internalProjectSelect">
                                             <option value="">Select Internal Project</option>
                                             @foreach($internal_projects as $internalProject)
                                                 <option value="{{ $internalProject->id }}" 
@@ -376,108 +498,251 @@
                             <input type="hidden" name="project_id" id="projectId" value="{{ old('project_id', $purchase->project_id) }}">
                         </div>
 
-                        <!-- Item Information -->
+                        <!-- ===== MULTIPLE ITEMS SECTION ===== -->
                         <div class="mb-4">
-                            <h6 class="section-header">
-                                <i class="fas fa-box me-2"></i>Item Information
-                            </h6>
+                            <div class="section-header">
+                                <div>
+                                    <i class="fas fa-box me-2"></i>Items Information
+                                    <span class="badge bg-primary ms-2">{{ $poItems->count() }}</span>
+                                </div>
+                                @if($purchase->status == 'pending')
+                                <button type="button" class="btn btn-primary btn-sm" id="addItemBtn">
+                                    <i class="fas fa-plus me-1"></i>Add Item
+                                </button>
+                                @endif
+                            </div>
                             
-                            <div class="mb-3">
-                                <label class="form-label mb-2">Purchase Type <span class="text-danger">*</span></label>
-                                <div class="d-flex radio-group">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="purchase_type" 
-                                               id="restockType" value="restock" {{ old('purchase_type', $purchase->purchase_type) == 'restock' ? 'checked' : '' }}>
-                                        <label class="form-check-label" for="restockType">
-                                            Restock
-                                        </label>
+                            <div id="itemsContainer">
+                                @foreach($poItems as $itemIndex => $item)
+                                    @php
+                                        $itemIsEditable = $item->status == 'pending' && $item->is_current;
+                                    @endphp
+                                    <div class="item-row {{ !$itemIsEditable ? 'readonly-item' : '' }}" data-id="{{ $item->id }}" data-index="{{ $itemIndex }}">
+                                        <div class="item-header">
+                                            <div class="item-title">
+                                                <i class="fas fa-cube"></i>
+                                                Item #{{ $itemIndex + 1 }}
+                                                @if(!$itemIsEditable)
+                                                    <span class="readonly-badge">{{ $item->status }}</span>
+                                                @endif
+                                            </div>
+                                            @if($itemIsEditable && $poItems->count() > 1)
+                                                <button type="button" class="btn btn-sm btn-outline-danger remove-item" data-item-id="{{ $item->id }}">
+                                                    <i class="fas fa-trash me-1"></i>Delete
+                                                </button>
+                                            @endif
+                                        </div>
+                                        
+                                        <input type="hidden" name="items[{{ $itemIndex }}][id]" value="{{ $item->id }}">
+                                        
+                                        <div class="row">
+                                            <div class="col-md-3 mb-2">
+                                                <label class="form-label">Type <span class="text-danger">*</span></label>
+                                                <select name="items[{{ $itemIndex }}][purchase_type]" class="form-select purchase-type" {{ !$itemIsEditable ? 'disabled' : '' }}>
+                                                    <option value="restock" {{ $item->purchase_type == 'restock' ? 'selected' : '' }}>Restock</option>
+                                                    <option value="new_item" {{ $item->purchase_type == 'new_item' ? 'selected' : '' }}>New Item</option>
+                                                </select>
+                                                @if(!$itemIsEditable)
+                                                    <input type="hidden" name="items[{{ $itemIndex }}][purchase_type]" value="{{ $item->purchase_type }}">
+                                                @endif
+                                            </div>
+                                        </div>
+
+                                        <!-- Restock Section -->
+                                        <div class="restock-section" style="{{ $item->purchase_type == 'new_item' ? 'display: none;' : '' }}">
+                                            <div class="row">
+                                                <div class="col-md-12 mb-2">
+                                                    <label class="form-label">Material <span class="text-danger">*</span></label>
+                                                    <select name="items[{{ $itemIndex }}][material_id]" class="form-select material-select" {{ !$itemIsEditable ? 'disabled' : '' }}>
+                                                        <option value="">Select Material</option>
+                                                        @foreach($materials as $material)
+                                                            <option value="{{ $material->id }}" 
+                                                                    data-price="{{ $material->price ?? 0 }}"
+                                                                    data-unit-id="{{ $material->unit_id }}"
+                                                                    data-category-id="{{ $material->category_id }}"
+                                                                    {{ $item->material_id == $material->id ? 'selected' : '' }}>
+                                                                {{ $material->name }}
+                                                            </option>
+                                                        @endforeach
+                                                    </select>
+                                                    @if(!$itemIsEditable)
+                                                        <input type="hidden" name="items[{{ $itemIndex }}][material_id]" value="{{ $item->material_id }}">
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- New Item Section -->
+                                        <div class="newitem-section" style="{{ $item->purchase_type == 'restock' ? 'display: none;' : '' }}">
+                                            <div class="row">
+                                                <div class="col-md-12 mb-2">
+                                                    <label class="form-label">New Item Name <span class="text-danger">*</span></label>
+                                                    <input type="text" name="items[{{ $itemIndex }}][new_item_name]" class="form-control" value="{{ $item->new_item_name }}" {{ !$itemIsEditable ? 'readonly' : '' }}>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Category & Unit - FOR ALL ITEMS -->
+                                        <div class="row">
+                                            <div class="col-md-6 mb-2">
+                                                <label class="form-label">Category <span class="text-danger">*</span></label>
+                                                <select name="items[{{ $itemIndex }}][category_id]" class="form-select category-select" {{ !$itemIsEditable ? 'disabled' : '' }}>
+                                                    <option value="">Select Category</option>
+                                                    @foreach($categories as $category)
+                                                        <option value="{{ $category->id }}" {{ $item->category_id == $category->id ? 'selected' : '' }}>
+                                                            {{ $category->name }}
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                                @if(!$itemIsEditable)
+                                                    <input type="hidden" name="items[{{ $itemIndex }}][category_id]" value="{{ $item->category_id }}">
+                                                @endif
+                                            </div>
+                                            <div class="col-md-6 mb-2">
+                                                <label class="form-label">Unit <span class="text-danger">*</span></label>
+                                                <select name="items[{{ $itemIndex }}][unit_id]" class="form-select unit-select" {{ !$itemIsEditable ? 'disabled' : '' }}>
+                                                    <option value="">Select Unit</option>
+                                                    @foreach($units as $unit)
+                                                        <option value="{{ $unit->id }}" {{ $item->unit_id == $unit->id ? 'selected' : '' }}>
+                                                            {{ $unit->name }}
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                                @if(!$itemIsEditable)
+                                                    <input type="hidden" name="items[{{ $itemIndex }}][unit_id]" value="{{ $item->unit_id }}">
+                                                @endif
+                                            </div>
+                                        </div>
+
+                                        <!-- Quantity and Price -->
+                                        <div class="row">
+                                            <div class="col-md-4 mb-2">
+                                                <label class="form-label">Quantity <span class="text-danger">*</span></label>
+                                                <input type="number" name="items[{{ $itemIndex }}][quantity]" class="form-control quantity" min="1" value="{{ $item->quantity }}" {{ !$itemIsEditable ? 'readonly' : '' }}>
+                                            </div>
+                                            <div class="col-md-4 mb-2">
+                                                <label class="form-label">Unit Price <span class="text-danger">*</span></label>
+                                                <input type="number" name="items[{{ $itemIndex }}][unit_price]" class="form-control unit-price" min="0" step="100" value="{{ $item->unit_price }}" {{ !$itemIsEditable ? 'readonly' : '' }}>
+                                            </div>
+                                            <div class="col-md-4 mb-2">
+                                                <label class="form-label">Subtotal</label>
+                                                <input type="text" class="form-control item-subtotal" readonly value="Rp {{ number_format($item->total_price, 0) }}">
+                                            </div>
+                                        </div>
+                                        
+                                        @if($item->note)
+                                        <div class="row mt-2">
+                                            <div class="col-md-12">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-sticky-note me-1"></i>{{ $item->note }}
+                                                </small>
+                                            </div>
+                                        </div>
+                                        @endif
                                     </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="purchase_type" 
-                                               id="newItemType" value="new_item" {{ old('purchase_type', $purchase->purchase_type) == 'new_item' ? 'checked' : '' }}>
-                                        <label class="form-check-label" for="newItemType">
-                                            New Item
-                                        </label>
-                                    </div>
-                                </div>
+                                @endforeach
                             </div>
 
-                            <!-- Material (Restock) -->
-                            <div id="restockSection" class="mb-3 {{ old('purchase_type', $purchase->purchase_type) == 'new_item' ? 'fast-hide' : '' }}">
-                                <div class="row g-2">
-                                    <div class="col-md-6 mb-2">
-                                        <label class="form-label">Material <span class="text-danger">*</span></label>
-                                        <select class="form-select select2 border-1 rounded-2 py-2 px-3 @error('material_id') is-invalid @enderror" name="material_id" id="materialSelect" {{ old('purchase_type', $purchase->purchase_type) != 'new_item' ? 'required' : '' }}>
-                                            <option value="">Select Material</option>
-                                            @foreach($materials as $material)
-                                                <option value="{{ $material->id }}" 
-                                                        data-price="{{ $material->price ?? 0 }}"
-                                                        data-unit-id="{{ $material->unit_id }}"
-                                                        data-category-id="{{ $material->category_id }}"
-                                                        {{ old('material_id', $purchase->material_id) == $material->id ? 'selected' : '' }}>
-                                                    {{ $material->name }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                        @error('material_id')
-                                            <div class="invalid-feedback small">{{ $message }}</div>
-                                        @enderror
+                            <!-- NEW ITEM ROW TEMPLATE - SAME AS CREATE -->
+                            <template id="itemRowTemplate">
+                                <div class="item-row" data-index="__INDEX__">
+                                    <div class="item-header">
+                                        <div class="item-title">
+                                            <i class="fas fa-cube"></i>
+                                            Item #__INDEX_PLUS_ONE__ (New)
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-outline-danger remove-item">
+                                            <i class="fas fa-trash me-1"></i>Delete
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-3 mb-2">
+                                            <label class="form-label">Type <span class="text-danger">*</span></label>
+                                            <select name="new_items[__INDEX__][purchase_type]" class="form-select purchase-type">
+                                                <option value="restock" selected>Restock</option>
+                                                <option value="new_item">New Item</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <!-- Restock Section -->
+                                    <div class="restock-section">
+                                        <div class="row">
+                                            <div class="col-md-12 mb-2">
+                                                <label class="form-label">Material <span class="text-danger">*</span></label>
+                                                <select name="new_items[__INDEX__][material_id]" class="form-select material-select">
+                                                    <option value="">Select Material</option>
+                                                    @foreach($materials as $material)
+                                                        <option value="{{ $material->id }}" 
+                                                                data-price="{{ $material->price ?? 0 }}"
+                                                                data-unit-id="{{ $material->unit_id }}"
+                                                                data-category-id="{{ $material->category_id }}">
+                                                            {{ $material->name }}
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- New Item Section -->
+                                    <div class="newitem-section" style="display: none;">
+                                        <div class="row">
+                                            <div class="col-md-12 mb-2">
+                                                <label class="form-label">New Item Name <span class="text-danger">*</span></label>
+                                                <input type="text" name="new_items[__INDEX__][new_item_name]" class="form-control">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Category & Unit - FOR ALL ITEMS -->
+                                    <div class="row">
+                                        <div class="col-md-6 mb-2">
+                                            <label class="form-label">Category <span class="text-danger">*</span></label>
+                                            <select name="new_items[__INDEX__][category_id]" class="form-select category-select">
+                                                <option value="">Select Category</option>
+                                                @foreach($categories as $category)
+                                                    <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6 mb-2">
+                                            <label class="form-label">Unit <span class="text-danger">*</span></label>
+                                            <select name="new_items[__INDEX__][unit_id]" class="form-select unit-select">
+                                                <option value="">Select Unit</option>
+                                                @foreach($units as $unit)
+                                                    <option value="{{ $unit->id }}">{{ $unit->name }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <!-- Quantity and Price -->
+                                    <div class="row">
+                                        <div class="col-md-4 mb-2">
+                                            <label class="form-label">Quantity <span class="text-danger">*</span></label>
+                                            <input type="number" name="new_items[__INDEX__][quantity]" class="form-control quantity" min="1" value="1">
+                                        </div>
+                                        <div class="col-md-4 mb-2">
+                                            <label class="form-label">Unit Price <span class="text-danger">*</span></label>
+                                            <input type="number" name="new_items[__INDEX__][unit_price]" class="form-control unit-price" min="0" step="100">
+                                        </div>
+                                        <div class="col-md-4 mb-2">
+                                            <label class="form-label">Subtotal</label>
+                                            <input type="text" class="form-control item-subtotal" readonly value="Rp 0">
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            </template>
 
-                            <!-- New Item -->
-                            <div id="newItemSection" class="mb-3 {{ old('purchase_type', $purchase->purchase_type) == 'new_item' ? '' : 'fast-hide' }}">
-                                <div class="row g-2">
-                                    <div class="col-md-6 mb-2">
-                                        <label class="form-label">Item Name <span class="text-danger">*</span></label>
-                                        <input type="text" class="form-control border-1 rounded-2 py-2 px-3 @error('new_item_name') is-invalid @enderror" name="new_item_name" id="newItemName" value="{{ old('new_item_name', $purchase->new_item_name) }}" {{ old('purchase_type', $purchase->purchase_type) == 'new_item' ? 'required' : '' }}>
-                                        @error('new_item_name')
-                                            <div class="invalid-feedback small">{{ $message }}</div>
-                                        @enderror
+                            <!-- Grand Total -->
+                            <div class="row mt-3">
+                                <div class="col-md-12">
+                                    <div class="total-box invoice-total-box">
+                                        <div class="total-label">Grand Total All Items</div>
+                                        <div class="total-amount" id="grandTotal">Rp {{ number_format($poItems->sum('invoice_total'), 0) }}</div>
                                     </div>
-                                </div>
-                            </div>
-
-                            <!-- Item Details -->
-                            <div class="row g-2">
-                                <div class="col-md-3 mb-2">
-                                    <label class="form-label">Quantity <span class="text-danger">*</span></label>
-                                    <input type="number" class="form-control border-1 rounded-2 py-2 px-3 @error('quantity') is-invalid @enderror" name="quantity" id="quantity" value="{{ old('quantity', $purchase->quantity) }}" min="1" required>
-                                    @error('quantity')
-                                        <div class="invalid-feedback small">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                                <div class="col-md-3 mb-2">
-                                    <label class="form-label">Unit <span class="text-danger">*</span></label>
-                                    <select class="form-select border-1 rounded-2 py-2 px-3 @error('unit_id') is-invalid @enderror" name="unit_id" id="unitSelect" required>
-                                        <option value="">Select Unit</option>
-                                        @foreach($units as $unit)
-                                            <option value="{{ $unit->id }}" {{ old('unit_id', $purchase->unit_id) == $unit->id ? 'selected' : '' }}>{{ $unit->name }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error('unit_id')
-                                        <div class="invalid-feedback small">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                                <div class="col-md-3 mb-2">
-                                    <label class="form-label">Unit Price <span class="text-danger">*</span></label>
-                                    <input type="number" class="form-control border-1 rounded-2 py-2 px-3 @error('unit_price') is-invalid @enderror" name="unit_price" id="unitPrice" step="100" min="0" value="{{ old('unit_price', $purchase->unit_price) }}" required>
-                                    @error('unit_price')
-                                        <div class="invalid-feedback small">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                                <div class="col-md-3 mb-2">
-                                    <label class="form-label">Category <span class="text-danger">*</span></label>
-                                    <select class="form-select border-1 rounded-2 py-2 px-3 @error('category_id') is-invalid @enderror" name="category_id" id="categorySelect" required>
-                                        <option value="">Select Category</option>
-                                        @foreach($categories as $category)
-                                            <option value="{{ $category->id }}" {{ old('category_id', $purchase->category_id) == $category->id ? 'selected' : '' }}>{{ $category->name }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error('category_id')
-                                        <div class="invalid-feedback small">{{ $message }}</div>
-                                    @enderror
                                 </div>
                             </div>
                         </div>
@@ -490,7 +755,12 @@
                             
                             <div class="row g-2">
                                 <div class="col-md-6 mb-2">
-                                    <label class="form-label">Supplier <span class="text-danger">*</span></label>
+                                    <div class="label-with-addon">
+                                        <span>Supplier <span class="text-danger">*</span></span>
+                                        <a href="#" class="add-button" data-bs-toggle="modal" data-bs-target="#addSupplierModal">
+                                            <i class="fas fa-plus"></i> Add Supplier
+                                        </a>
+                                    </div>
                                     <select class="form-select select2 border-1 rounded-2 py-2 px-3 @error('supplier_id') is-invalid @enderror" name="supplier_id" id="supplierSelect" required>
                                         <option value="">Select Supplier</option>
                                         @foreach($suppliers as $supplier)
@@ -507,19 +777,14 @@
                                         <div class="form-check">
                                             <input class="form-check-input" type="radio" name="is_offline_order" 
                                                    id="onlineOrder" value="0" {{ old('is_offline_order', $purchase->is_offline_order) == 0 ? 'checked' : '' }}>
-                                            <label class="form-check-label" for="onlineOrder">
-                                                Online
-                                            </label>
+                                            <label class="form-check-label" for="onlineOrder">Online</label>
                                         </div>
                                         <div class="form-check">
                                             <input class="form-check-input" type="radio" name="is_offline_order" 
                                                    id="offlineOrder" value="1" {{ old('is_offline_order', $purchase->is_offline_order) == 1 ? 'checked' : '' }}>
-                                            <label class="form-check-label" for="offlineOrder">
-                                                Offline
-                                            </label>
+                                            <label class="form-check-label" for="offlineOrder">Offline</label>
                                         </div>
                                     </div>
-                                    <small class="info-note">Other costs remain visible for both online and offline orders</small>
                                 </div>
                             </div>
                         </div>
@@ -529,64 +794,14 @@
                             <h6 class="section-header">
                                 <i class="fas fa-shipping-fast me-2"></i>Shipping
                             </h6>
-                            
                             <div class="row g-2">
                                 <div class="col-md-6 mb-2">
                                     <label class="form-label">Resi Number</label>
-                                    <input type="text" class="form-control border-1 rounded-2 py-2 px-3" name="resi_number" id="resiNumber" value="{{ old('resi_number', $purchase->resi_number) }}">
+                                    <input type="text" class="form-control" name="resi_number" id="resiNumber" value="{{ old('resi_number', $purchase->resi_number) }}">
                                 </div>
                                 <div class="col-md-6 mb-2">
                                     <label class="form-label">Freight Cost</label>
-                                    <input type="number" class="form-control border-1 rounded-2 py-2 px-3" name="freight" id="freight" value="{{ old('freight', $purchase->freight ?? 0) }}" step="100" min="0">
-                                    <small class="info-note">Shipping costs for online orders only</small>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Other Costs Section (ALWAYS VISIBLE) -->
-                        <div class="mb-4">
-                            <h6 class="section-header">
-                                <i class="fas fa-money-bill-wave me-2"></i>Additional Costs
-                            </h6>
-                            
-                            <div class="row g-2">
-                                <div class="col-md-6 mb-2">
-                                    <label class="form-label">Other Costs</label>
-                                    <input type="number" class="form-control border-1 rounded-2 py-2 px-3" name="other_costs" id="otherCosts" value="{{ old('other_costs', 0) }}" step="100" min="0">
-                                </div>
-                                <div class="col-md-6 mb-2">
-                                    <label class="form-label">&nbsp;</label>
-                                    <small class="info-note d-block">Additional costs will be included in invoice total for both online and offline orders</small>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Totals -->
-                        <div class="mb-4">
-                            <h6 class="section-header">
-                                <i class="fas fa-calculator me-2"></i>Totals
-                            </h6>
-                            
-                            <div class="row g-2">
-                                <div class="col-md-4 mb-2">
-                                    <div class="total-box">
-                                        <div class="total-label">Total Price</div>
-                                        <div class="total-amount" id="displayTotalPrice">Rp {{ number_format($purchase->total_price, 0) }}</div>
-                                        <input type="hidden" name="total_price" id="totalPrice" value="{{ $purchase->total_price }}">
-                                    </div>
-                                </div>
-                                <div class="col-md-4 mb-2">
-                                    <div class="total-box">
-                                        <div class="total-label">Additional Costs</div>
-                                        <div class="total-amount" id="displayAdditionalCosts">Rp {{ number_format(($purchase->freight ?? 0) + 0, 0) }}</div>
-                                    </div>
-                                </div>
-                                <div class="col-md-4 mb-2">
-                                    <div class="total-box invoice-total-box">
-                                        <div class="total-label">Invoice Total</div>
-                                        <div class="total-amount" id="displayInvoiceTotal">Rp {{ number_format($purchase->invoice_total, 0) }}</div>
-                                        <input type="hidden" name="invoice_total" id="invoiceTotal" value="{{ $purchase->invoice_total }}">
-                                    </div>
+                                    <input type="number" class="form-control" name="freight" id="freight" value="{{ old('freight', $purchase->freight ?? 0) }}" step="100" min="0">
                                 </div>
                             </div>
                         </div>
@@ -596,19 +811,19 @@
                             <h6 class="section-header">
                                 <i class="fas fa-sticky-note me-2"></i>Notes
                             </h6>
-                            
-                            <div class="mb-2">
-                                <textarea class="form-control border-1 rounded-2 py-2 px-3" name="note" rows="2" placeholder="Add notes">{{ old('note', $purchase->note) }}</textarea>
-                            </div>
+                            <textarea class="form-control" name="note" rows="2" placeholder="Add notes">{{ old('note', $purchase->note) }}</textarea>
                         </div>
 
                         <!-- Revision Info -->
-                        @if($purchase->revision_at)
+                        @if(isset($revision_info) && $revision_info['total_revisions'] > 1)
                         <div class="mb-4">
                             <div class="alert alert-info d-flex align-items-center mb-0">
                                 <i class="fas fa-history me-2"></i>
                                 <div>
-                                    <strong>Last Revision:</strong> {{ $purchase->revision_at->format('d/m/Y H:i:s') }}
+                                    <strong>Revision #{{ $revision_info['revision_number'] }} of {{ $revision_info['total_revisions'] }}</strong>
+                                    @if($revision_info['total_revisions'] > 1)
+                                        <br><small>Last revision: {{ $purchase->revision_at?->format('d/m/Y H:i:s') }}</small>
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -629,6 +844,49 @@
         </div>
     </div>
 </div>
+
+<!-- Add Supplier Modal -->
+<div class="modal fade" id="addSupplierModal">
+    <div class="modal-dialog modal-sm">
+        <form id="supplierForm" method="POST" action="{{ route('suppliers.quick_store') }}">
+            @csrf
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Supplier</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Name</label>
+                        <input type="text" name="name" class="form-control border-1 rounded-2 py-2 px-3" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Address</label>
+                        <textarea name="address" class="form-control border-1 rounded-2 py-2 px-3" rows="2" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Contact Person</label>
+                        <input type="text" name="contact_person" class="form-control border-1 rounded-2 py-2 px-3">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Phone</label>
+                        <input type="text" name="phone" class="form-control border-1 rounded-2 py-2 px-3">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary rounded-2 px-3" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary rounded-2 px-3">Save</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Item Form (hidden) -->
+<form id="deleteItemForm" method="POST" style="display: none;">
+    @csrf
+    @method('DELETE')
+</form>
 @endsection
 
 @section('scripts')
@@ -636,276 +894,346 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
 <script>
 $(document).ready(function() {
-    console.log('Document ready - Initializing Edit Purchase Order Form');
+    // Initialize Select2
+    $('.select2').select2({ width: '100%' });
     
-    // **INISIALISASI CACHE ELEMENTS UNTUK PERFORMANCE**
+    let newItemIndex = {{ $poItems->count() }};
     const elements = {
         clientProjectSection: $('#clientProjectSection'),
         internalProjectSection: $('#internalProjectSection'),
         jobOrderSelect: $('#jobOrderSelect'),
         internalProjectSelect: $('#internalProjectSelect'),
-        restockSection: $('#restockSection'),
-        newItemSection: $('#newItemSection'),
         shippingSection: $('.shipping-section'),
-        resiNumber: $('#resiNumber'),
-        freight: $('#freight'),
-        otherCosts: $('#otherCosts'),
-        quantity: $('#quantity'),
-        unitPrice: $('#unitPrice'),
-        displayTotalPrice: $('#displayTotalPrice'),
-        displayAdditionalCosts: $('#displayAdditionalCosts'),
-        displayInvoiceTotal: $('#displayInvoiceTotal'),
-        totalPrice: $('#totalPrice'),
-        invoiceTotal: $('#invoiceTotal'),
         departmentId: $('#departmentId'),
         projectId: $('#projectId'),
         clientProjectDetails: $('#clientProjectDetails'),
-        internalProjectDetails: $('#internalProjectDetails')
+        internalProjectDetails: $('#internalProjectDetails'),
+        freight: $('#freight')
     };
 
-    // Initialize Select2
-    $('.select2').select2({
-        width: '100%'
-    });
-
-    // **TOGGLE PROJECT TYPE**
+    // Toggle Project Type
     $('input[name="project_type"]').change(function() {
-        const isClientProject = $(this).val() === 'client';
-        
-        if (isClientProject) {
-            elements.clientProjectSection.removeClass('fast-hide');
-            elements.internalProjectSection.addClass('fast-hide');
-            elements.jobOrderSelect.prop('required', true);
-            elements.internalProjectSelect.prop('required', false).val('').trigger('change');
-            elements.internalProjectDetails.html('<small class="text-muted">Select an internal project to view details</small>');
-        } else {
-            elements.clientProjectSection.addClass('fast-hide');
-            elements.internalProjectSection.removeClass('fast-hide');
-            elements.jobOrderSelect.prop('required', false).val('').trigger('change');
-            elements.internalProjectSelect.prop('required', true);
-            elements.clientProjectDetails.html('<small class="text-muted">Select a job order to view details</small>');
-        }
+        const isClient = $(this).val() === 'client';
+        elements.clientProjectSection.toggleClass('fast-hide', !isClient);
+        elements.internalProjectSection.toggleClass('fast-hide', isClient);
     });
 
-    // **TOGGLE ORDER TYPE (ONLINE/OFFLINE)**
+    // Toggle Order Type
     $('input[name="is_offline_order"]').change(function() {
-        const isOfflineOrder = $(this).val() === '1';
-        
-        if (isOfflineOrder) {
-            elements.shippingSection.addClass('fast-hide');
-            elements.resiNumber.val('');
-            elements.freight.val(0);
-        } else {
-            elements.shippingSection.removeClass('fast-hide');
-        }
-        calculateTotals();
+        elements.shippingSection.toggleClass('fast-hide', $(this).val() === '1');
     });
 
-    // **TOGGLE PURCHASE TYPE**
-    $('input[name="purchase_type"]').change(function() {
-        const isRestock = $(this).val() === 'restock';
-        
-        if (isRestock) {
-            elements.restockSection.removeClass('fast-hide');
-            elements.newItemSection.addClass('fast-hide');
-            $('#materialSelect').prop('required', true);
-            $('#newItemName').prop('required', false);
-        } else {
-            elements.restockSection.addClass('fast-hide');
-            elements.newItemSection.removeClass('fast-hide');
-            $('#materialSelect').prop('required', false).val('').trigger('change');
-            $('#newItemName').prop('required', true);
-            
-            // Reset values for new item
-            elements.unitPrice.val('');
-            $('#unitSelect').val('').trigger('change');
-            $('#categorySelect').val('').trigger('change');
-        }
-    });
-
-    // **JOB ORDER DETAILS**
+    // Job Order Details
     elements.jobOrderSelect.on('change', function() {
-        const selected = elements.jobOrderSelect.find('option:selected');
-        const deptId = selected.data('deptid');
-        const deptName = selected.data('deptname');
-        const projId = selected.data('projid');
-        const projName = selected.data('projname');
+        const selected = $(this).find('option:selected');
+        elements.departmentId.val(selected.data('deptid') || '');
+        elements.projectId.val(selected.data('projid') || '');
         
-        elements.departmentId.val(deptId || '');
-        elements.projectId.val(projId || '');
+        const deptName = selected.data('deptname');
+        const projName = selected.data('projname');
         
         if (selected.val() && deptName && projName) {
             elements.clientProjectDetails.html(`
                 <div><strong>Project:</strong> ${projName}</div>
                 <div><strong>Department:</strong> ${deptName}</div>
             `);
-        } else if (selected.val()) {
-            elements.clientProjectDetails.html(`
-                <div><strong>Job Order:</strong> ${selected.text()}</div>
-                <div class="text-warning small">Details not available</div>
-            `);
         } else {
             elements.clientProjectDetails.html('<small class="text-muted">Select a job order to view details</small>');
         }
     });
 
-    // **INTERNAL PROJECT DETAILS**
+    // Internal Project Details
     elements.internalProjectSelect.on('change', function() {
-        const selected = elements.internalProjectSelect.find('option:selected');
+        const selected = $(this).find('option:selected');
+        elements.departmentId.val(selected.data('department-id') || '');
+        
         const project = selected.data('project');
-        const department = selected.data('department');
+        const dept = selected.data('department');
         const job = selected.data('job');
-        const deptId = selected.data('department-id');
         
-        elements.departmentId.val(deptId || '');
-        elements.projectId.val('');
-        
-        if (selected.val() && project && department && job) {
+        if (selected.val() && project && dept && job) {
             elements.internalProjectDetails.html(`
                 <div><strong>Project:</strong> ${project}</div>
                 <div><strong>Job:</strong> ${job}</div>
-                <div><strong>Department:</strong> ${department}</div>
-            `);
-        } else if (selected.val()) {
-            elements.internalProjectDetails.html(`
-                <div><strong>Internal Project:</strong> ${selected.text()}</div>
-                <div class="text-warning small">Details not available</div>
+                <div><strong>Department:</strong> ${dept}</div>
             `);
         } else {
             elements.internalProjectDetails.html('<small class="text-muted">Select an internal project to view details</small>');
         }
     });
 
-    // **MATERIAL AUTO-FILL**
-    $('#materialSelect').on('change', function() {
-        const selected = $(this).find('option:selected');
-        const price = selected.data('price') || 0;
-        const unitId = selected.data('unit-id');
-        const categoryId = selected.data('category-id');
+    // Material Auto-fill for existing items
+    $('.material-select').each(function() {
+        const select = $(this);
+        const row = select.closest('.item-row');
         
-        if (price > 0) {
-            elements.unitPrice.val(price);
-        }
-        
-        if (unitId) {
-            $('#unitSelect').val(unitId).trigger('change');
-        }
-        
-        if (categoryId) {
-            $('#categorySelect').val(categoryId).trigger('change');
-        }
-        
-        calculateTotals();
+        select.on('change', function() {
+            const selected = $(this).find('option:selected');
+            const price = selected.data('price') || 0;
+            const unitId = selected.data('unit-id');
+            const categoryId = selected.data('category-id');
+            
+            row.find('.unit-price').val(price);
+            
+            if (unitId) {
+                row.find('.unit-select').val(unitId);
+            }
+            if (categoryId) {
+                row.find('.category-select').val(categoryId);
+            }
+            
+            calculateRowSubtotal(row);
+            calculateGrandTotal();
+        });
     });
 
-    // **CALCULATE TOTALS - DEBOUNCED**
-    let calculateTimeout;
-    elements.quantity.add(elements.unitPrice).add(elements.freight).add(elements.otherCosts).on('input', function() {
-        clearTimeout(calculateTimeout);
-        calculateTimeout = setTimeout(calculateTotals, 50);
+    // Quantity/Price change for existing items
+    $('.quantity, .unit-price').on('input', function() {
+        const row = $(this).closest('.item-row');
+        calculateRowSubtotal(row);
+        calculateGrandTotal();
     });
-    
-    function calculateTotals() {
-        const quantity = parseFloat(elements.quantity.val()) || 0;
-        const unitPrice = parseFloat(elements.unitPrice.val()) || 0;
-        const freight = parseFloat(elements.freight.val()) || 0;
-        const otherCosts = parseFloat(elements.otherCosts.val()) || 0;
-        
-        const totalPrice = quantity * unitPrice;
-        const additionalCosts = freight + otherCosts;
-        const invoiceTotal = totalPrice + additionalCosts;
-        
-        elements.displayTotalPrice.text('Rp ' + formatCurrency(totalPrice));
-        elements.displayAdditionalCosts.text('Rp ' + formatCurrency(additionalCosts));
-        elements.displayInvoiceTotal.text('Rp ' + formatCurrency(invoiceTotal));
-        elements.totalPrice.val(totalPrice);
-        elements.invoiceTotal.val(invoiceTotal);
+
+    // Function to calculate row subtotal
+    function calculateRowSubtotal(row) {
+        const qty = parseFloat(row.find('.quantity').val()) || 0;
+        const price = parseFloat(row.find('.unit-price').val()) || 0;
+        const subtotal = qty * price;
+        row.find('.item-subtotal').val('Rp ' + formatNumber(subtotal));
+        return subtotal;
     }
-    
-    function formatCurrency(amount) {
-        return amount.toLocaleString('id-ID', {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0
+
+    // Function to calculate grand total
+    function calculateGrandTotal() {
+        let total = 0;
+        $('.item-row').each(function() {
+            const row = $(this);
+            total += calculateRowSubtotal(row);
+        });
+        
+        total += (parseFloat(elements.freight.val()) || 0);
+        
+        $('#grandTotal').text('Rp ' + formatNumber(total));
+    }
+
+    // Format number
+    function formatNumber(num) {
+        return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    }
+
+    // Freight change
+    elements.freight.on('input', calculateGrandTotal);
+
+    // Delete existing item
+    $('.remove-item[data-item-id]').click(function() {
+        const itemId = $(this).data('item-id');
+        if (itemId && confirm('Delete this item? Item will be permanently deleted.')) {
+            const form = $('#deleteItemForm');
+            form.attr('action', '/project-purchases/' + itemId);
+            form.submit();
+        }
+    });
+
+    // Delete new item (not saved yet)
+    $(document).on('click', '.item-row .remove-item:not([data-item-id])', function() {
+        $(this).closest('.item-row').remove();
+        calculateGrandTotal();
+    });
+
+    // Add New Item
+    $('#addItemBtn').click(function() {
+        const template = document.getElementById('itemRowTemplate').innerHTML;
+        const newRow = template.replace(/__INDEX__/g, newItemIndex)
+                               .replace(/__INDEX_PLUS_ONE__/g, newItemIndex + 1);
+        $('#itemsContainer').append(newRow);
+        initializeNewRow(newItemIndex);
+        newItemIndex++;
+    });
+
+    // Initialize new row
+    function initializeNewRow(index) {
+        const row = $(`.item-row[data-index="${index}"]`);
+        
+        // Toggle purchase type
+        row.find('.purchase-type').change(function() {
+            const isRestock = $(this).val() === 'restock';
+            row.find('.restock-section').toggle(isRestock);
+            row.find('.newitem-section').toggle(!isRestock);
+            
+            // Reset values
+            if (isRestock) {
+                row.find('input[name*="new_item_name"]').val('');
+            } else {
+                row.find('.material-select').val('');
+                row.find('.unit-price').val('');
+            }
+        });
+        
+        // Material select
+        row.find('.material-select').change(function() {
+            const selected = $(this).find('option:selected');
+            const price = selected.data('price') || 0;
+            const unitId = selected.data('unit-id');
+            const categoryId = selected.data('category-id');
+            
+            row.find('.unit-price').val(price);
+            
+            if (unitId) {
+                row.find('.unit-select').val(unitId);
+            }
+            if (categoryId) {
+                row.find('.category-select').val(categoryId);
+            }
+            
+            calculateRowSubtotal(row);
+            calculateGrandTotal();
+        });
+        
+        // Quantity/Price change
+        row.find('.quantity, .unit-price').on('input', function() {
+            calculateRowSubtotal(row);
+            calculateGrandTotal();
         });
     }
 
-    // **FORM VALIDATION**
+    // Form validation before submit
     $('#purchaseForm').submit(function(e) {
+        const itemRows = $('.item-row').length;
+        
+        if (itemRows === 0) {
+            e.preventDefault();
+            alert('At least 1 item must be filled');
+            return false;
+        }
+        
+        // Validate each item
+        let valid = true;
+        $('.item-row').each(function(index) {
+            const isReadOnly = $(this).hasClass('readonly-item');
+            
+            // Skip validation for read-only items
+            if (isReadOnly) return true;
+            
+            const type = $(this).find('.purchase-type').val();
+            
+            // Validate purchase type
+            if (!type) {
+                alert(`Item ${index + 1}: Purchase type must be selected`);
+                valid = false;
+                return false;
+            }
+            
+            // Validation for RESTOCK
+            if (type === 'restock') {
+                if (!$(this).find('.material-select').val()) {
+                    alert(`Item ${index + 1}: Material must be selected`);
+                    valid = false;
+                    return false;
+                }
+            } 
+            // Validation for NEW ITEM
+            else if (type === 'new_item') {
+                if (!$(this).find('input[name*="new_item_name"]').val().trim()) {
+                    alert(`Item ${index + 1}: New item name is required`);
+                    valid = false;
+                    return false;
+                }
+            }
+            
+            // Validation for Category (FOR ALL ITEMS)
+            if (!$(this).find('.category-select').val()) {
+                alert(`Item ${index + 1}: Category must be selected`);
+                valid = false;
+                return false;
+            }
+            
+            // Validation for Unit (FOR ALL ITEMS)
+            if (!$(this).find('.unit-select').val()) {
+                alert(`Item ${index + 1}: Unit must be selected`);
+                valid = false;
+                return false;
+            }
+            
+            // Validate quantity
+            const qty = $(this).find('.quantity').val();
+            if (!qty || qty <= 0) {
+                alert(`Item ${index + 1}: Quantity is required (minimum 1)`);
+                valid = false;
+                return false;
+            }
+            
+            // Validate price
+            const price = $(this).find('.unit-price').val();
+            if (!price || price <= 0) {
+                alert(`Item ${index + 1}: Price is required (minimum 1)`);
+                valid = false;
+                return false;
+            }
+        });
+        
+        if (!valid) {
+            e.preventDefault();
+            return false;
+        }
+        
+        // Validate project
         const projectType = $('input[name="project_type"]:checked').val();
-        const purchaseType = $('input[name="purchase_type"]:checked').val();
-        const poNumber = $('input[name="po_number"]').val().trim();
-        
-        // Validate PO Number
-        if (!poNumber) {
+        if (projectType === 'client' && !elements.jobOrderSelect.val()) {
             e.preventDefault();
-            alert('Please enter PO Number');
-            $('input[name="po_number"]').focus();
+            alert('Job Order must be selected for Client Project');
+            return false;
+        }
+        if (projectType === 'internal' && !elements.internalProjectSelect.val()) {
+            e.preventDefault();
+            alert('Internal Project must be selected');
             return false;
         }
         
-        // Validate project type specific fields
-        if (projectType === 'client') {
-            if (!elements.jobOrderSelect.val()) {
-                e.preventDefault();
-                alert('Please select a Job Order for client project');
-                elements.jobOrderSelect.focus();
-                return false;
-            }
-        } else if (projectType === 'internal') {
-            if (!elements.internalProjectSelect.val()) {
-                e.preventDefault();
-                alert('Please select an Internal Project');
-                elements.internalProjectSelect.focus();
-                return false;
-            }
-        }
-        
-        // Validate purchase type specific fields
-        if (purchaseType === 'restock') {
-            if (!$('#materialSelect').val()) {
-                e.preventDefault();
-                alert('Please select a material for restock purchase');
-                $('#materialSelect').focus();
-                return false;
-            }
-        } else if (purchaseType === 'new_item') {
-            if (!$('#newItemName').val().trim()) {
-                e.preventDefault();
-                alert('Please enter new item name');
-                $('#newItemName').focus();
-                return false;
-            }
-        }
-        
-        // Validate unit price and quantity
-        const unitPrice = parseFloat(elements.unitPrice.val()) || 0;
-        const quantity = parseFloat(elements.quantity.val()) || 0;
-        
-        if (unitPrice <= 0) {
+        // Validate supplier
+        if (!$('#supplierSelect').val()) {
             e.preventDefault();
-            alert('Unit price must be greater than 0');
-            elements.unitPrice.focus();
+            alert('Supplier must be selected');
             return false;
         }
         
-        if (quantity <= 0) {
-            e.preventDefault();
-            alert('Quantity must be greater than 0');
-            elements.quantity.focus();
-            return false;
-        }
-        
-        // Show loading state
-        const submitBtn = $(this).find('button[type="submit"]');
-        submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Updating...');
-        
-        return true;
+        // Show loading
+        $(this).find('button[type="submit"]').prop('disabled', true)
+               .html('<span class="spinner-border spinner-border-sm me-1"></span> Updating...');
     });
 
-    // Initialize calculations
-    calculateTotals();
-    
-    console.log('Edit Purchase Order Form initialized successfully');
+    // Add Supplier
+    $('#supplierForm').submit(function(e) {
+        e.preventDefault();
+        const form = $(this);
+        const submitBtn = form.find('button[type="submit"]');
+        
+        submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Saving...');
+        
+        $.ajax({
+            url: form.attr('action'),
+            method: 'POST',
+            data: form.serialize(),
+            success: function(response) {
+                if (response.success) {
+                    const newOption = new Option(response.supplier.name, response.supplier.id, true, true);
+                    $('#supplierSelect').append(newOption).trigger('change');
+                    $('#addSupplierModal').modal('hide');
+                    form[0].reset();
+                    alert('Supplier added successfully');
+                }
+            },
+            error: function(xhr) {
+                const msg = xhr.responseJSON?.message || 'Failed to add supplier';
+                alert(msg);
+            },
+            complete: function() {
+                submitBtn.prop('disabled', false).html('Save');
+            }
+        });
+    });
+
+    // Initial calculations
+    calculateGrandTotal();
 });
 </script>
 @endsection

@@ -1,3 +1,4 @@
+{{-- resources/views/procurement/Project-Purchase/create.blade.php --}}
 @extends('layouts.app')
 
 @section('title', 'Create Purchase Order')
@@ -20,12 +21,6 @@
         box-shadow: 0 0 0 0.2rem rgba(79, 70, 229, 0.1);
     }
 
-    .form-control.is-invalid,
-    .form-select.is-invalid {
-        border-color: #dc2626;
-    }
-
-    /* Labels */
     .form-label {
         font-size: 0.85rem;
         margin-bottom: 0.25rem;
@@ -60,7 +55,6 @@
         color: #4338ca;
     }
 
-    /* Card Styling */
     .card {
         background: #ffffff;
         border: none;
@@ -68,7 +62,6 @@
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     }
 
-    /* Section Headers */
     .section-header {
         color: #334155;
         padding-bottom: 8px;
@@ -76,6 +69,9 @@
         margin-bottom: 1.5rem;
         font-size: 1rem;
         font-weight: 600;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
     }
 
     .section-header i {
@@ -83,7 +79,6 @@
         font-size: 0.9rem;
     }
 
-    /* Project Details Box */
     .project-details-box {
         background-color: #f8fafc;
         border: 1px solid #e2e8f0;
@@ -96,15 +91,6 @@
         justify-content: center;
     }
 
-    .project-details-box small {
-        color: #64748b;
-    }
-
-    .project-details-box div {
-        margin-bottom: 0.25rem;
-    }
-
-    /* Totals Display */
     .total-box {
         border: 1px solid #e2e8f0;
         border-radius: 8px;
@@ -129,11 +115,6 @@
         border-color: #bae6fd;
     }
 
-    .invoice-total-box .total-amount {
-        color: #0369a1;
-    }
-
-    /* Radio buttons group spacing */
     .radio-group {
         gap: 1.5rem;
         display: flex;
@@ -148,12 +129,6 @@
         border-color: #4f46e5;
     }
 
-    .form-check-input:focus {
-        border-color: #4f46e5;
-        box-shadow: 0 0 0 0.2rem rgba(79, 70, 229, 0.25);
-    }
-
-    /* Buttons */
     .btn {
         font-size: 0.9rem;
         border-radius: 8px;
@@ -169,49 +144,70 @@
         border-color: #4f46e5;
     }
 
-    .btn-primary:hover {
-        background-color: #4338ca;
-        border-color: #4338ca;
-    }
-
-    /* Required star */
     .text-danger {
         color: #dc2626 !important;
     }
 
-    /* Spacing */
-    .mb-2 {
-        margin-bottom: 0.5rem !important;
+    .mb-2 { margin-bottom: 0.5rem !important; }
+    .mb-3 { margin-bottom: 1rem !important; }
+    .mb-4 { margin-bottom: 1.5rem !important; }
+    .py-3 { padding-top: 1rem !important; padding-bottom: 1rem !important; }
+    .rounded-2 { border-radius: 8px !important; }
+    .fast-hide { display: none !important; }
+    .info-note { font-size: 0.8rem; color: #64748b; margin-top: 0.25rem; }
+    
+    /* Item row styling */
+    .item-row {
+        background-color: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        padding: 1rem;
+        position: relative;
     }
-
-    .mb-3 {
-        margin-bottom: 1rem !important;
+    
+    .item-row:hover {
+        border-color: #4f46e5;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
-
-    .mb-4 {
-        margin-bottom: 1.5rem !important;
+    
+    .item-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px dashed #e2e8f0;
     }
-
-    .py-3 {
-        padding-top: 1rem !important;
-        padding-bottom: 1rem !important;
+    
+    .item-title {
+        font-weight: 600;
+        color: #334155;
+        font-size: 0.9rem;
     }
-
-    /* Border radius */
-    .rounded-2 {
-        border-radius: 8px !important;
+    
+    .item-title i {
+        color: #4f46e5;
+        margin-right: 0.5rem;
     }
-
-    /* Fast hide class */
-    .fast-hide {
-        display: none !important;
+    
+    .remove-item {
+        opacity: 0.6;
+        transition: all 0.2s;
     }
-
-    /* Info note styling */
-    .info-note {
-        font-size: 0.8rem;
-        color: #64748b;
-        margin-top: 0.25rem;
+    
+    .remove-item:hover {
+        opacity: 1;
+        background-color: #fee2e2;
+        border-color: #ef4444;
+        color: #ef4444;
+    }
+    
+    /* Disabled field styling */
+    select:disabled, input:disabled {
+        background-color: #e9ecef;
+        opacity: 0.7;
+        cursor: not-allowed;
     }
 </style>
 @endsection
@@ -275,7 +271,7 @@
                                     @error('po_number')
                                         <div class="invalid-feedback small">{{ $message }}</div>
                                     @enderror
-                                    <div class="form-text text-muted small mt-1">Isi dengan nomor PO sesuai format Anda (harus unik)</div>
+                                    <div class="form-text text-muted small mt-1">Enter PO number according to your format</div>
                                 </div>
                                 <div class="col-md-6 mb-2">
                                     <label class="form-label">Date <span class="text-danger">*</span></label>
@@ -303,16 +299,12 @@
                                     <div class="form-check">
                                         <input class="form-check-input" type="radio" name="project_type" 
                                                id="clientProjectType" value="client" {{ old('project_type') == 'client' ? 'checked' : 'checked' }}>
-                                        <label class="form-check-label" for="clientProjectType">
-                                            Client Project
-                                        </label>
+                                        <label class="form-check-label" for="clientProjectType">Client Project</label>
                                     </div>
                                     <div class="form-check">
                                         <input class="form-check-input" type="radio" name="project_type" 
                                                id="internalProjectType" value="internal" {{ old('project_type') == 'internal' ? 'checked' : '' }}>
-                                        <label class="form-check-label" for="internalProjectType">
-                                            Internal Project
-                                        </label>
+                                        <label class="form-check-label" for="internalProjectType">Internal Project</label>
                                     </div>
                                 </div>
                             </div>
@@ -322,7 +314,7 @@
                                 <div class="row g-2">
                                     <div class="col-md-6 mb-2">
                                         <label class="form-label">Job Order <span class="text-danger">*</span></label>
-                                        <select class="form-select select2 border-1 rounded-2 py-2 px-3 @error('job_order_id') is-invalid @enderror" name="job_order_id" id="jobOrderSelect" {{ old('project_type') != 'internal' ? 'required' : '' }}>
+                                        <select class="form-select select2 border-1 rounded-2 py-2 px-3 @error('job_order_id') is-invalid @enderror" name="job_order_id" id="jobOrderSelect">
                                             <option value="">Select Job Order</option>
                                             @foreach($jobOrders as $jobOrder)
                                                 <option value="{{ $jobOrder['id'] }}" 
@@ -353,7 +345,7 @@
                                 <div class="row g-2">
                                     <div class="col-md-6 mb-2">
                                         <label class="form-label">Internal Project <span class="text-danger">*</span></label>
-                                        <select class="form-select select2 border-1 rounded-2 py-2 px-3 @error('internal_project_id') is-invalid @enderror" name="internal_project_id" id="internalProjectSelect" {{ old('project_type') == 'internal' ? 'required' : '' }}>
+                                        <select class="form-select select2 border-1 rounded-2 py-2 px-3 @error('internal_project_id') is-invalid @enderror" name="internal_project_id" id="internalProjectSelect">
                                             <option value="">Select Internal Project</option>
                                             @foreach($internal_projects as $internalProject)
                                                 <option value="{{ $internalProject->id }}" 
@@ -384,111 +376,124 @@
                         <input type="hidden" name="department_id" id="departmentId" value="{{ old('department_id') }}">
                         <input type="hidden" name="project_id" id="projectId" value="{{ old('project_id') }}">
 
-                        <!-- Item Information -->
+                        <!-- ===== MULTIPLE ITEMS SECTION ===== -->
                         <div class="mb-4">
-                            <h6 class="section-header">
-                                <i class="fas fa-box me-2"></i>Item Information
-                            </h6>
+                            <div class="section-header">
+                                <div>
+                                    <i class="fas fa-box me-2"></i>Items Information
+                                </div>
+                                <button type="button" class="btn btn-primary btn-sm" id="addItemBtn">
+                                    <i class="fas fa-plus me-1"></i>Add Item
+                                </button>
+                            </div>
                             
-                            <div class="mb-3">
-                                <label class="form-label mb-2">Purchase Type <span class="text-danger">*</span></label>
-                                <div class="d-flex radio-group">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="purchase_type" 
-                                               id="restockType" value="restock" {{ old('purchase_type') == 'new_item' ? '' : 'checked' }}>
-                                        <label class="form-check-label" for="restockType">
-                                            Restock
-                                        </label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="purchase_type" 
-                                               id="newItemType" value="new_item" {{ old('purchase_type') == 'new_item' ? 'checked' : '' }}>
-                                        <label class="form-check-label" for="newItemType">
-                                            New Item
-                                        </label>
-                                    </div>
-                                </div>
+                            <div id="itemsContainer">
+                                <!-- Items will be added via JavaScript -->
                             </div>
 
-                            <!-- Material (Restock) -->
-                            <div id="restockSection" class="mb-3 {{ old('purchase_type') == 'new_item' ? 'fast-hide' : '' }}">
-                                <div class="row g-2">
-                                    <div class="col-md-6 mb-2">
-                                        <label class="form-label">Material <span class="text-danger">*</span></label>
-                                        <select class="form-select select2 border-1 rounded-2 py-2 px-3 @error('material_id') is-invalid @enderror" name="material_id" id="materialSelect" {{ old('purchase_type') != 'new_item' ? 'required' : '' }}>
-                                            <option value="">Select Material</option>
-                                            @foreach($materials as $material)
-                                                <option value="{{ $material->id }}" 
-                                                        data-price="{{ $material->price ?? 0 }}"
-                                                        data-unit-id="{{ $material->unit_id }}"
-                                                        data-category-id="{{ $material->category_id }}"
-                                                        {{ old('material_id') == $material->id ? 'selected' : '' }}>
-                                                    {{ $material->name }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                        @error('material_id')
-                                            <div class="invalid-feedback small">{{ $message }}</div>
-                                        @enderror
+                            <!-- Grand Total -->
+                            <div class="row mt-3">
+                                <div class="col-md-12">
+                                    <div class="total-box invoice-total-box">
+                                        <div class="total-label">Grand Total All Items</div>
+                                        <div class="total-amount" id="grandTotal">Rp 0</div>
                                     </div>
-                                </div>
-                            </div>
-
-                            <!-- New Item -->
-                            <div id="newItemSection" class="mb-3 {{ old('purchase_type') == 'new_item' ? '' : 'fast-hide' }}">
-                                <div class="row g-2">
-                                    <div class="col-md-6 mb-2">
-                                        <label class="form-label">Item Name <span class="text-danger">*</span></label>
-                                        <input type="text" class="form-control border-1 rounded-2 py-2 px-3 @error('new_item_name') is-invalid @enderror" name="new_item_name" id="newItemName" value="{{ old('new_item_name') }}" {{ old('purchase_type') == 'new_item' ? 'required' : '' }}>
-                                        @error('new_item_name')
-                                            <div class="invalid-feedback small">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Item Details -->
-                            <div class="row g-2">
-                                <div class="col-md-3 mb-2">
-                                    <label class="form-label">Quantity <span class="text-danger">*</span></label>
-                                    <input type="number" class="form-control border-1 rounded-2 py-2 px-3 @error('quantity') is-invalid @enderror" name="quantity" id="quantity" value="{{ old('quantity', 1) }}" min="1" required>
-                                    @error('quantity')
-                                        <div class="invalid-feedback small">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                                <div class="col-md-3 mb-2">
-                                    <label class="form-label">Unit <span class="text-danger">*</span></label>
-                                    <select class="form-select border-1 rounded-2 py-2 px-3 @error('unit_id') is-invalid @enderror" name="unit_id" id="unitSelect" required>
-                                        <option value="">Select Unit</option>
-                                        @foreach($units as $unit)
-                                            <option value="{{ $unit->id }}" {{ old('unit_id') == $unit->id ? 'selected' : '' }}>{{ $unit->name }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error('unit_id')
-                                        <div class="invalid-feedback small">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                                <div class="col-md-3 mb-2">
-                                    <label class="form-label">Unit Price <span class="text-danger">*</span></label>
-                                    <input type="number" class="form-control border-1 rounded-2 py-2 px-3 @error('unit_price') is-invalid @enderror" name="unit_price" id="unitPrice" step="100" min="0" value="{{ old('unit_price') }}" required>
-                                    @error('unit_price')
-                                        <div class="invalid-feedback small">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                                <div class="col-md-3 mb-2">
-                                    <label class="form-label">Category <span class="text-danger">*</span></label>
-                                    <select class="form-select border-1 rounded-2 py-2 px-3 @error('category_id') is-invalid @enderror" name="category_id" id="categorySelect" required>
-                                        <option value="">Select Category</option>
-                                        @foreach($categories as $category)
-                                            <option value="{{ $category->id }}" {{ old('category_id') == $category->id ? 'selected' : '' }}>{{ $category->name }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error('category_id')
-                                        <div class="invalid-feedback small">{{ $message }}</div>
-                                    @enderror
                                 </div>
                             </div>
                         </div>
+
+                        <!-- TEMPLATE ITEM ROW -->
+                        <template id="itemRowTemplate">
+                            <div class="item-row" data-index="__INDEX__">
+                                <div class="item-header">
+                                    <div class="item-title">
+                                        <i class="fas fa-cube"></i>
+                                        Item #__INDEX_PLUS_ONE__
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-outline-danger remove-item">
+                                        <i class="fas fa-trash me-1"></i>Delete
+                                    </button>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-3 mb-2">
+                                        <label class="form-label">Type <span class="text-danger">*</span></label>
+                                        <select class="form-select purchase-type" data-index="__INDEX__">
+                                            <option value="restock">Restock</option>
+                                            <option value="new_item">New Item</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Restock Section -->
+                                <div class="restock-section">
+                                    <div class="row">
+                                        <div class="col-md-12 mb-2">
+                                            <label class="form-label">Material <span class="text-danger">*</span></label>
+                                            <select class="form-select material-select" data-index="__INDEX__">
+                                                <option value="">Select Material</option>
+                                                @foreach($materials as $material)
+                                                    <option value="{{ $material->id }}" 
+                                                            data-price="{{ $material->price ?? 0 }}"
+                                                            data-unit-id="{{ $material->unit_id }}"
+                                                            data-category-id="{{ $material->category_id }}">
+                                                        {{ $material->name }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- New Item Section -->
+                                <div class="newitem-section" style="display: none;">
+                                    <div class="row">
+                                        <div class="col-md-12 mb-2">
+                                            <label class="form-label">New Item Name <span class="text-danger">*</span></label>
+                                            <input type="text" class="form-control new-item-name" data-index="__INDEX__" value="">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Category & Unit - FOR ALL ITEMS -->
+                                <div class="row">
+                                    <div class="col-md-6 mb-2">
+                                        <label class="form-label">Category <span class="text-danger">*</span></label>
+                                        <select class="form-select category-select" data-index="__INDEX__">
+                                            <option value="">Select Category</option>
+                                            @foreach($categories as $category)
+                                                <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-2">
+                                        <label class="form-label">Unit <span class="text-danger">*</span></label>
+                                        <select class="form-select unit-select" data-index="__INDEX__">
+                                            <option value="">Select Unit</option>
+                                            @foreach($units as $unit)
+                                                <option value="{{ $unit->id }}">{{ $unit->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Quantity and Price -->
+                                <div class="row">
+                                    <div class="col-md-4 mb-2">
+                                        <label class="form-label">Quantity <span class="text-danger">*</span></label>
+                                        <input type="number" class="form-control quantity" data-index="__INDEX__" min="1" value="1">
+                                    </div>
+                                    <div class="col-md-4 mb-2">
+                                        <label class="form-label">Unit Price <span class="text-danger">*</span></label>
+                                        <input type="number" class="form-control unit-price" data-index="__INDEX__" min="0" step="100">
+                                    </div>
+                                    <div class="col-md-4 mb-2">
+                                        <label class="form-label">Subtotal</label>
+                                        <input type="text" class="form-control item-subtotal" readonly value="Rp 0">
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
 
                         <!-- Supplier Information -->
                         <div class="mb-4">
@@ -520,19 +525,14 @@
                                         <div class="form-check">
                                             <input class="form-check-input" type="radio" name="is_offline_order" 
                                                    id="onlineOrder" value="0" {{ old('is_offline_order') == '1' ? '' : 'checked' }}>
-                                            <label class="form-check-label" for="onlineOrder">
-                                                Online
-                                            </label>
+                                            <label class="form-check-label" for="onlineOrder">Online</label>
                                         </div>
                                         <div class="form-check">
                                             <input class="form-check-input" type="radio" name="is_offline_order" 
                                                    id="offlineOrder" value="1" {{ old('is_offline_order') == '1' ? 'checked' : '' }}>
-                                            <label class="form-check-label" for="offlineOrder">
-                                                Offline
-                                            </label>
+                                            <label class="form-check-label" for="offlineOrder">Offline</label>
                                         </div>
                                     </div>
-                                    <small class="info-note">Other costs remain visible for both online and offline orders</small>
                                 </div>
                             </div>
                         </div>
@@ -542,64 +542,27 @@
                             <h6 class="section-header">
                                 <i class="fas fa-shipping-fast me-2"></i>Shipping
                             </h6>
-                            
                             <div class="row g-2">
                                 <div class="col-md-6 mb-2">
                                     <label class="form-label">Resi Number</label>
-                                    <input type="text" class="form-control border-1 rounded-2 py-2 px-3" name="resi_number" id="resiNumber" value="{{ old('resi_number') }}">
+                                    <input type="text" class="form-control" name="resi_number" id="resiNumber" value="{{ old('resi_number') }}">
                                 </div>
                                 <div class="col-md-6 mb-2">
                                     <label class="form-label">Freight Cost</label>
-                                    <input type="number" class="form-control border-1 rounded-2 py-2 px-3" name="freight" id="freight" value="{{ old('freight', 0) }}" step="100" min="0">
-                                    <small class="info-note">Shipping costs for online orders only</small>
+                                    <input type="number" class="form-control" name="freight" id="freight" value="{{ old('freight', 0) }}" step="100" min="0">
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Other Costs Section (ALWAYS VISIBLE) -->
+                        <!-- Other Costs -->
                         <div class="mb-4">
                             <h6 class="section-header">
                                 <i class="fas fa-money-bill-wave me-2"></i>Additional Costs
                             </h6>
-                            
                             <div class="row g-2">
                                 <div class="col-md-6 mb-2">
                                     <label class="form-label">Other Costs</label>
-                                    <input type="number" class="form-control border-1 rounded-2 py-2 px-3" name="other_costs" id="otherCosts" value="{{ old('other_costs', 0) }}" step="100" min="0">
-                                </div>
-                                <div class="col-md-6 mb-2">
-                                    <label class="form-label">&nbsp;</label>
-                                    <small class="info-note d-block">Additional costs will be included in invoice total for both online and offline orders</small>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Totals -->
-                        <div class="mb-4">
-                            <h6 class="section-header">
-                                <i class="fas fa-calculator me-2"></i>Totals
-                            </h6>
-                            
-                            <div class="row g-2">
-                                <div class="col-md-4 mb-2">
-                                    <div class="total-box">
-                                        <div class="total-label">Total Price</div>
-                                        <div class="total-amount" id="displayTotalPrice">Rp 0</div>
-                                        <input type="hidden" name="total_price" id="totalPrice" value="0">
-                                    </div>
-                                </div>
-                                <div class="col-md-4 mb-2">
-                                    <div class="total-box">
-                                        <div class="total-label">Additional Costs</div>
-                                        <div class="total-amount" id="displayAdditionalCosts">Rp 0</div>
-                                    </div>
-                                </div>
-                                <div class="col-md-4 mb-2">
-                                    <div class="total-box invoice-total-box">
-                                        <div class="total-label">Invoice Total</div>
-                                        <div class="total-amount" id="displayInvoiceTotal">Rp 0</div>
-                                        <input type="hidden" name="invoice_total" id="invoiceTotal" value="0">
-                                    </div>
+                                    <input type="number" class="form-control" name="other_costs" id="otherCosts" value="{{ old('other_costs', 0) }}" step="100" min="0">
                                 </div>
                             </div>
                         </div>
@@ -609,10 +572,7 @@
                             <h6 class="section-header">
                                 <i class="fas fa-sticky-note me-2"></i>Notes
                             </h6>
-                            
-                            <div class="mb-2">
-                                <textarea class="form-control border-1 rounded-2 py-2 px-3" name="note" rows="2" placeholder="Add notes">{{ old('note') }}</textarea>
-                            </div>
+                            <textarea class="form-control" name="note" rows="2" placeholder="Add notes">{{ old('note') }}</textarea>
                         </div>
 
                         <!-- Action Buttons -->
@@ -675,200 +635,311 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
 <script>
 $(document).ready(function() {
-    console.log('Document ready - Initializing Purchase Order Form');
+    // Initialize Select2
+    $('.select2').select2({ width: '100%' });
     
-    // **INISIALISASI CACHE ELEMENTS UNTUK PERFORMANCE**
+    let itemIndex = 0;
     const elements = {
         clientProjectSection: $('#clientProjectSection'),
         internalProjectSection: $('#internalProjectSection'),
         jobOrderSelect: $('#jobOrderSelect'),
         internalProjectSelect: $('#internalProjectSelect'),
-        restockSection: $('#restockSection'),
-        newItemSection: $('#newItemSection'),
         shippingSection: $('.shipping-section'),
-        resiNumber: $('#resiNumber'),
-        freight: $('#freight'),
-        otherCosts: $('#otherCosts'),
-        quantity: $('#quantity'),
-        unitPrice: $('#unitPrice'),
-        displayTotalPrice: $('#displayTotalPrice'),
-        displayAdditionalCosts: $('#displayAdditionalCosts'),
-        displayInvoiceTotal: $('#displayInvoiceTotal'),
-        totalPrice: $('#totalPrice'),
-        invoiceTotal: $('#invoiceTotal'),
         departmentId: $('#departmentId'),
         projectId: $('#projectId'),
         clientProjectDetails: $('#clientProjectDetails'),
-        internalProjectDetails: $('#internalProjectDetails')
+        internalProjectDetails: $('#internalProjectDetails'),
+        freight: $('#freight'),
+        otherCosts: $('#otherCosts')
     };
 
-    // Initialize Select2
-    $('.select2').select2({
-        width: '100%'
-    });
-
-    // **TOGGLE PROJECT TYPE**
+    // Toggle Project Type
     $('input[name="project_type"]').change(function() {
-        const isClientProject = $(this).val() === 'client';
-        
-        if (isClientProject) {
-            elements.clientProjectSection.removeClass('fast-hide');
-            elements.internalProjectSection.addClass('fast-hide');
-            elements.jobOrderSelect.prop('required', true);
-            elements.internalProjectSelect.prop('required', false).val('').trigger('change');
-            elements.internalProjectDetails.html('<small class="text-muted">Select an internal project to view details</small>');
-        } else {
-            elements.clientProjectSection.addClass('fast-hide');
-            elements.internalProjectSection.removeClass('fast-hide');
-            elements.jobOrderSelect.prop('required', false).val('').trigger('change');
-            elements.internalProjectSelect.prop('required', true);
-            elements.clientProjectDetails.html('<small class="text-muted">Select a job order to view details</small>');
-        }
+        const isClient = $(this).val() === 'client';
+        elements.clientProjectSection.toggleClass('fast-hide', !isClient);
+        elements.internalProjectSection.toggleClass('fast-hide', isClient);
     });
 
-    // **TOGGLE ORDER TYPE (ONLINE/OFFLINE)**
+    // Toggle Order Type
     $('input[name="is_offline_order"]').change(function() {
-        const isOfflineOrder = $(this).val() === '1';
-        
-        if (isOfflineOrder) {
-            elements.shippingSection.addClass('fast-hide');
-            elements.resiNumber.val('');
-            elements.freight.val(0);
-        } else {
-            elements.shippingSection.removeClass('fast-hide');
-        }
-        calculateTotals();
+        elements.shippingSection.toggleClass('fast-hide', $(this).val() === '1');
     });
 
-    // **TOGGLE PURCHASE TYPE**
-    $('input[name="purchase_type"]').change(function() {
-        const isRestock = $(this).val() === 'restock';
-        
-        if (isRestock) {
-            elements.restockSection.removeClass('fast-hide');
-            elements.newItemSection.addClass('fast-hide');
-            $('#materialSelect').prop('required', true);
-            $('#newItemName').prop('required', false);
-        } else {
-            elements.restockSection.addClass('fast-hide');
-            elements.newItemSection.removeClass('fast-hide');
-            $('#materialSelect').prop('required', false).val('').trigger('change');
-            $('#newItemName').prop('required', true);
-            
-            // Reset values for new item
-            elements.unitPrice.val('');
-            $('#unitSelect').val('').trigger('change');
-            $('#categorySelect').val('').trigger('change');
-        }
-    });
-
-    // **JOB ORDER DETAILS**
+    // Job Order Details
     elements.jobOrderSelect.on('change', function() {
-        const selected = elements.jobOrderSelect.find('option:selected');
-        const deptId = selected.data('deptid');
-        const deptName = selected.data('deptname');
-        const projId = selected.data('projid');
-        const projName = selected.data('projname');
+        const selected = $(this).find('option:selected');
+        elements.departmentId.val(selected.data('deptid') || '');
+        elements.projectId.val(selected.data('projid') || '');
         
-        elements.departmentId.val(deptId || '');
-        elements.projectId.val(projId || '');
+        const deptName = selected.data('deptname');
+        const projName = selected.data('projname');
         
         if (selected.val() && deptName && projName) {
             elements.clientProjectDetails.html(`
                 <div><strong>Project:</strong> ${projName}</div>
                 <div><strong>Department:</strong> ${deptName}</div>
             `);
-        } else if (selected.val()) {
-            elements.clientProjectDetails.html(`
-                <div><strong>Job Order:</strong> ${selected.text()}</div>
-                <div class="text-warning small">Details not available</div>
-            `);
         } else {
             elements.clientProjectDetails.html('<small class="text-muted">Select a job order to view details</small>');
         }
     });
 
-    // **INTERNAL PROJECT DETAILS**
+    // Internal Project Details
     elements.internalProjectSelect.on('change', function() {
-        const selected = elements.internalProjectSelect.find('option:selected');
+        const selected = $(this).find('option:selected');
+        elements.departmentId.val(selected.data('department-id') || '');
+        
         const project = selected.data('project');
-        const department = selected.data('department');
+        const dept = selected.data('department');
         const job = selected.data('job');
-        const deptId = selected.data('department-id');
         
-        elements.departmentId.val(deptId || '');
-        elements.projectId.val('');
-        
-        if (selected.val() && project && department && job) {
+        if (selected.val() && project && dept && job) {
             elements.internalProjectDetails.html(`
                 <div><strong>Project:</strong> ${project}</div>
                 <div><strong>Job:</strong> ${job}</div>
-                <div><strong>Department:</strong> ${department}</div>
-            `);
-        } else if (selected.val()) {
-            elements.internalProjectDetails.html(`
-                <div><strong>Internal Project:</strong> ${selected.text()}</div>
-                <div class="text-warning small">Details not available</div>
+                <div><strong>Department:</strong> ${dept}</div>
             `);
         } else {
             elements.internalProjectDetails.html('<small class="text-muted">Select an internal project to view details</small>');
         }
     });
 
-    // **MATERIAL AUTO-FILL**
-    $('#materialSelect').on('change', function() {
-        const selected = $(this).find('option:selected');
-        const price = selected.data('price') || 0;
-        const unitId = selected.data('unit-id');
-        const categoryId = selected.data('category-id');
-        
-        if (price > 0) {
-            elements.unitPrice.val(price);
-        }
-        
-        if (unitId) {
-            $('#unitSelect').val(unitId).trigger('change');
-        }
-        
-        if (categoryId) {
-            $('#categorySelect').val(categoryId).trigger('change');
-        }
-        
-        calculateTotals();
-    });
-
-    // **CALCULATE TOTALS - DEBOUNCED**
-    let calculateTimeout;
-    elements.quantity.add(elements.unitPrice).add(elements.freight).add(elements.otherCosts).on('input', function() {
-        clearTimeout(calculateTimeout);
-        calculateTimeout = setTimeout(calculateTotals, 50);
-    });
-    
-    function calculateTotals() {
-        const quantity = parseFloat(elements.quantity.val()) || 0;
-        const unitPrice = parseFloat(elements.unitPrice.val()) || 0;
-        const freight = parseFloat(elements.freight.val()) || 0;
-        const otherCosts = parseFloat(elements.otherCosts.val()) || 0;
-        
-        const totalPrice = quantity * unitPrice;
-        const additionalCosts = freight + otherCosts;
-        const invoiceTotal = totalPrice + additionalCosts;
-        
-        elements.displayTotalPrice.text('Rp ' + formatCurrency(totalPrice));
-        elements.displayAdditionalCosts.text('Rp ' + formatCurrency(additionalCosts));
-        elements.displayInvoiceTotal.text('Rp ' + formatCurrency(invoiceTotal));
-        elements.totalPrice.val(totalPrice);
-        elements.invoiceTotal.val(invoiceTotal);
+    // Function to add item
+    function addItemRow() {
+        const template = document.getElementById('itemRowTemplate').innerHTML;
+        const newRow = template.replace(/__INDEX__/g, itemIndex)
+                               .replace(/__INDEX_PLUS_ONE__/g, itemIndex + 1);
+        $('#itemsContainer').append(newRow);
+        initializeRow(itemIndex);
+        itemIndex++;
     }
-    
-    function formatCurrency(amount) {
-        return amount.toLocaleString('id-ID', {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0
+
+    // Initialize new row
+    function initializeRow(index) {
+        const row = $(`.item-row[data-index="${index}"]`);
+        
+        // Set name attributes based on purchase type
+        function setFieldNames() {
+            const isRestock = row.find('.purchase-type').val() === 'restock';
+            
+            // Remove all name attributes first
+            row.find('[data-index]').each(function() {
+                $(this).removeAttr('name');
+            });
+            
+            // Set name for always present fields
+            row.find('.category-select').attr('name', `items[${index}][category_id]`);
+            row.find('.unit-select').attr('name', `items[${index}][unit_id]`);
+            row.find('.quantity').attr('name', `items[${index}][quantity]`);
+            row.find('.unit-price').attr('name', `items[${index}][unit_price]`);
+            row.find('.purchase-type').attr('name', `items[${index}][purchase_type]`);
+            
+            // Set name based on type
+            if (isRestock) {
+                row.find('.material-select').attr('name', `items[${index}][material_id]`);
+                // new_item_name doesn't need name attribute
+            } else {
+                row.find('.new-item-name').attr('name', `items[${index}][new_item_name]`);
+                // material_id doesn't need name attribute
+            }
+        }
+        
+        // Toggle purchase type
+        row.find('.purchase-type').change(function() {
+            const isRestock = $(this).val() === 'restock';
+            row.find('.restock-section').toggle(isRestock);
+            row.find('.newitem-section').toggle(!isRestock);
+            
+            // Reset values
+            if (isRestock) {
+                row.find('.new-item-name').val('');
+            } else {
+                row.find('.material-select').val('');
+                row.find('.unit-price').val('');
+            }
+            
+            setFieldNames();
         });
+        
+        // Material select
+        row.find('.material-select').change(function() {
+            const selected = $(this).find('option:selected');
+            const price = selected.data('price') || 0;
+            const unitId = selected.data('unit-id');
+            const categoryId = selected.data('category-id');
+            
+            row.find('.unit-price').val(price);
+            
+            if (unitId) {
+                row.find('.unit-select').val(unitId);
+            }
+            if (categoryId) {
+                row.find('.category-select').val(categoryId);
+            }
+            
+            calculateRowSubtotal(row);
+            calculateGrandTotal();
+        });
+        
+        // Quantity/Price change
+        row.find('.quantity, .unit-price').on('input', function() {
+            calculateRowSubtotal(row);
+            calculateGrandTotal();
+        });
+        
+        // Remove button
+        row.find('.remove-item').click(function() {
+            if (confirm('Delete this item?')) {
+                row.remove();
+                calculateGrandTotal();
+            }
+        });
+        
+        // Set initial field names
+        setFieldNames();
+        
+        // Trigger initial state
+        row.find('.purchase-type').trigger('change');
     }
 
-    // **ADD SUPPLIER**
+    // Calculate row subtotal
+    function calculateRowSubtotal(row) {
+        const qty = parseFloat(row.find('.quantity').val()) || 0;
+        const price = parseFloat(row.find('.unit-price').val()) || 0;
+        const subtotal = qty * price;
+        row.find('.item-subtotal').val('Rp ' + formatNumber(subtotal));
+        return subtotal;
+    }
+
+    // Calculate grand total
+    function calculateGrandTotal() {
+        let total = 0;
+        $('.item-row').each(function() {
+            const row = $(this);
+            total += calculateRowSubtotal(row);
+        });
+        
+        // Add freight and other costs
+        total += (parseFloat(elements.freight.val()) || 0);
+        total += (parseFloat(elements.otherCosts.val()) || 0);
+        
+        $('#grandTotal').text('Rp ' + formatNumber(total));
+    }
+
+    // Format number
+    function formatNumber(num) {
+        return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    }
+
+    // Event listeners
+    $('#addItemBtn').click(addItemRow);
+    elements.freight.add(elements.otherCosts).on('input', calculateGrandTotal);
+
+    // Add first item
+    addItemRow();
+
+    // Form validation before submit
+    $('#purchaseForm').submit(function(e) {
+        const itemRows = $('.item-row').length;
+        
+        if (itemRows === 0) {
+            e.preventDefault();
+            alert('At least 1 item must be filled');
+            return false;
+        }
+        
+        // Validate PO Number
+        if (!$('input[name="po_number"]').val().trim()) {
+            e.preventDefault();
+            alert('PO Number is required');
+            $('input[name="po_number"]').focus();
+            return false;
+        }
+        
+        // Validate each item
+        let valid = true;
+        $('.item-row').each(function(index) {
+            const type = $(this).find('.purchase-type').val();
+            
+            // Validation for RESTOCK
+            if (type === 'restock') {
+                if (!$(this).find('.material-select').val()) {
+                    alert(`Item ${index + 1}: Material must be selected`);
+                    valid = false;
+                    return false;
+                }
+            } 
+            // Validation for NEW ITEM
+            else {
+                if (!$(this).find('.new-item-name').val().trim()) {
+                    alert(`Item ${index + 1}: New item name is required`);
+                    valid = false;
+                    return false;
+                }
+            }
+            
+            // Validation for Category (FOR ALL ITEMS)
+            if (!$(this).find('.category-select').val()) {
+                alert(`Item ${index + 1}: Category must be selected`);
+                valid = false;
+                return false;
+            }
+            
+            // Validation for Unit (FOR ALL ITEMS)
+            if (!$(this).find('.unit-select').val()) {
+                alert(`Item ${index + 1}: Unit must be selected`);
+                valid = false;
+                return false;
+            }
+            
+            // Validate quantity
+            const qty = $(this).find('.quantity').val();
+            if (!qty || qty <= 0) {
+                alert(`Item ${index + 1}: Quantity is required (minimum 1)`);
+                valid = false;
+                return false;
+            }
+            
+            // Validate price
+            const price = $(this).find('.unit-price').val();
+            if (!price || price <= 0) {
+                alert(`Item ${index + 1}: Price is required (minimum 1)`);
+                valid = false;
+                return false;
+            }
+        });
+        
+        if (!valid) {
+            e.preventDefault();
+            return false;
+        }
+        
+        // Validate project
+        const projectType = $('input[name="project_type"]:checked').val();
+        if (projectType === 'client' && !elements.jobOrderSelect.val()) {
+            e.preventDefault();
+            alert('Job Order must be selected for Client Project');
+            return false;
+        }
+        if (projectType === 'internal' && !elements.internalProjectSelect.val()) {
+            e.preventDefault();
+            alert('Internal Project must be selected');
+            return false;
+        }
+        
+        // Validate supplier
+        if (!$('#supplierSelect').val()) {
+            e.preventDefault();
+            alert('Supplier must be selected');
+            return false;
+        }
+        
+        // Show loading
+        $(this).find('button[type="submit"]').prop('disabled', true)
+               .html('<span class="spinner-border spinner-border-sm me-1"></span> Creating...');
+    });
+
+    // Add Supplier
     $('#supplierForm').submit(function(e) {
         e.preventDefault();
         const form = $(this);
@@ -886,8 +957,6 @@ $(document).ready(function() {
                     $('#supplierSelect').append(newOption).trigger('change');
                     $('#addSupplierModal').modal('hide');
                     form[0].reset();
-                    
-                    // Show success message
                     alert('Supplier added successfully');
                 }
             },
@@ -900,93 +969,6 @@ $(document).ready(function() {
             }
         });
     });
-
-    // **FORM VALIDATION**
-    $('#purchaseForm').submit(function(e) {
-        const projectType = $('input[name="project_type"]:checked').val();
-        const purchaseType = $('input[name="purchase_type"]:checked').val();
-        const poNumber = $('input[name="po_number"]').val().trim();
-        
-        // Validate PO Number
-        if (!poNumber) {
-            e.preventDefault();
-            alert('Please enter PO Number');
-            $('input[name="po_number"]').focus();
-            return false;
-        }
-        
-        // Validate project type specific fields
-        if (projectType === 'client') {
-            if (!elements.jobOrderSelect.val()) {
-                e.preventDefault();
-                alert('Please select a Job Order for client project');
-                elements.jobOrderSelect.focus();
-                return false;
-            }
-        } else if (projectType === 'internal') {
-            if (!elements.internalProjectSelect.val()) {
-                e.preventDefault();
-                alert('Please select an Internal Project');
-                elements.internalProjectSelect.focus();
-                return false;
-            }
-        }
-        
-        // Validate purchase type specific fields
-        if (purchaseType === 'restock') {
-            if (!$('#materialSelect').val()) {
-                e.preventDefault();
-                alert('Please select a material for restock purchase');
-                $('#materialSelect').focus();
-                return false;
-            }
-        } else if (purchaseType === 'new_item') {
-            if (!$('#newItemName').val().trim()) {
-                e.preventDefault();
-                alert('Please enter new item name');
-                $('#newItemName').focus();
-                return false;
-            }
-        }
-        
-        // Validate unit price and quantity
-        const unitPrice = parseFloat(elements.unitPrice.val()) || 0;
-        const quantity = parseFloat(elements.quantity.val()) || 0;
-        
-        if (unitPrice <= 0) {
-            e.preventDefault();
-            alert('Unit price must be greater than 0');
-            elements.unitPrice.focus();
-            return false;
-        }
-        
-        if (quantity <= 0) {
-            e.preventDefault();
-            alert('Quantity must be greater than 0');
-            elements.quantity.focus();
-            return false;
-        }
-        
-        // Validate online order tracking
-        if ($('input[name="is_offline_order"]:checked').val() === '0') {
-            const resiNumber = elements.resiNumber.val().trim();
-            const freight = parseFloat(elements.freight.val()) || 0;
-            
-            // Optional: Add validation for online orders if needed
-            // For example, require resi number or freight cost
-        }
-        
-        // Show loading state
-        const submitBtn = $(this).find('button[type="submit"]');
-        submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Creating...');
-        
-        return true;
-    });
-
-    // Initialize calculations
-    calculateTotals();
-    
-    console.log('Purchase Order Form initialized successfully');
 });
 </script>
 @endsection

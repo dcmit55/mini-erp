@@ -486,10 +486,19 @@ Route::middleware(['auth'])->group(function () {
         // Item Receipt Routes
         Route::post('/{id}/mark-as-received', [ProjectPurchaseController::class, 'markAsReceived'])->name('project-purchases.mark-as-received');
 
-        Route::post('/{id}/mark-as-not-received', [ProjectPurchaseController::class, 'markAsNotReceived'])->name('project-purchases.mark-as-not-received');
+        Route::post('/{id}/mark-as-not-matched', [ProjectPurchaseController::class, 'markAsNotMatched'])->name('project-purchases.mark-as-not-matched');
+
+        // Print & Export
+        Route::get('/{id}/print', [ProjectPurchaseController::class, 'print'])->name('project-purchases.print');
+        
+        Route::get('/export', [ProjectPurchaseController::class, 'export'])->name('project-purchases.export');
 
         // AJAX Routes
         Route::get('/material/{id}/price', [ProjectPurchaseController::class, 'getMaterialPrice'])->name('project-purchases.get-material-price');
+
+        Route::get('/material/all', [ProjectPurchaseController::class, 'getMaterials'])->name('project-purchases.get-materials');
+
+        Route::get('/po-items/{poNumber}', [ProjectPurchaseController::class, 'getPOItems'])->name('project-purchases.get-po-items');
 
         Route::get('/job-order/{id}/details', [ProjectPurchaseController::class, 'getJobOrderDetails'])->name('project-purchases.get-job-order-details');
     });
