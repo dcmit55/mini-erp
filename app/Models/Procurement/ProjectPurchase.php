@@ -832,12 +832,9 @@ class ProjectPurchase extends Model
             }
         });
         
-        static::created(function ($purchase) {
-            if ($purchase->is_current) {
-                self::where('po_number', $purchase->po_number)
-                    ->where('id', '!=', $purchase->id)
-                    ->update(['is_current' => 0]);
-            }
-        });
+        // Revision logic (mark old record as not current) is handled
+        // in ProjectPurchaseService::updatePurchase(), NOT here.
+        // Previously this event set all other items with same PO to is_current=0,
+        // which broke multi-item POs (one PO with multiple materials).
     }
 }
