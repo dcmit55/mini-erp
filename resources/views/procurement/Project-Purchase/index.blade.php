@@ -616,8 +616,8 @@
                                                     <i class="fas fa-eye"></i>
                                                 </a>
                                                 
-                                                <!-- Edit Button -->
-                                                @if($purchase->status == 'pending')
+                                                <!-- EDIT BUTTON - Bisa diedit jika pending ATAU approved -->
+                                                @if(in_array($purchase->status, ['pending', 'approved']))
                                                 <a href="{{ route('project-purchases.edit', $purchase->id) }}" 
                                                    class="btn btn-sm btn-outline-primary border-0 px-2 action-btn"
                                                    data-bs-toggle="tooltip" title="Edit">
@@ -625,7 +625,7 @@
                                                 </a>
                                                 @endif
 
-                                                <!-- Delete Button -->
+                                                <!-- DELETE BUTTON - HANYA jika status pending -->
                                                 @if($purchase->status == 'pending')
                                                 <form action="{{ route('project-purchases.destroy', $purchase->id) }}" 
                                                       method="POST" class="d-inline" 
@@ -640,7 +640,7 @@
                                                 </form>
                                                 @endif
                                                 
-                                                <!-- Approve Button -->
+                                                <!-- APPROVE BUTTON - UNTUK FINANCE (hanya jika pending) -->
                                                 @if($purchase->status == 'pending' && auth()->user() && auth()->user()->role == 'finance')
                                                 <button type="button" 
                                                         class="btn btn-sm btn-outline-success border-0 px-2 action-btn"
@@ -651,7 +651,7 @@
                                                 </button>
                                                 @endif
                                                 
-                                                <!-- Reject Button -->
+                                                <!-- REJECT BUTTON - UNTUK FINANCE (hanya jika pending) -->
                                                 @if($purchase->status == 'pending' && auth()->user() && auth()->user()->role == 'finance')
                                                 <button type="button" 
                                                         class="btn btn-sm btn-outline-danger border-0 px-2 action-btn"
@@ -662,7 +662,21 @@
                                                 </button>
                                                 @endif
                                                 
-                                                <!-- Print Button -->
+                                                <!-- RECEIVED BUTTON - Tampil jika status approved dan item belum diterima -->
+                                                @if($purchase->status == 'approved' && in_array($purchase->item_status, ['pending_check', 'pending']) && auth()->user() && in_array(auth()->user()->role, ['super_admin', 'admin', 'inventory', 'admin_logistic', 'procurement']))
+                                                <form action="{{ route('project-purchases.mark-as-received', $purchase->id) }}" 
+                                                      method="POST" class="d-inline"
+                                                      onsubmit="return confirm('Mark this item as received and add to inventory?')">
+                                                    @csrf
+                                                    <button type="submit" 
+                                                            class="btn btn-sm btn-outline-success border-0 px-2 action-btn"
+                                                            data-bs-toggle="tooltip" title="Mark as Received">
+                                                        <i class="fas fa-box-open"></i>
+                                                    </button>
+                                                </form>
+                                                @endif
+                                                
+                                                <!-- PRINT BUTTON -->
                                                 <a href="{{ route('project-purchases.print', $purchase->id) }}" 
                                                    class="btn btn-sm btn-outline-secondary border-0 px-2 action-btn"
                                                    data-bs-toggle="tooltip" title="Print" target="_blank">

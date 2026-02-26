@@ -484,8 +484,9 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{id}/update-tracking', [ProjectPurchaseController::class, 'updateTracking'])->name('project-purchases.update-tracking');
 
         // Item Receipt Routes
-        Route::post('/{id}/mark-as-received', [ProjectPurchaseController::class, 'markAsReceived'])->name('project-purchases.mark-as-received');
-
+        Route::post('/project-purchases/{id}/mark-as-received', 
+            [ProjectPurchaseController::class, 'markAsReceived'])
+            ->name('project-purchases.mark-as-received');
         Route::post('/{id}/mark-as-not-matched', [ProjectPurchaseController::class, 'markAsNotMatched'])->name('project-purchases.mark-as-not-matched');
 
         // Print & Export
@@ -542,10 +543,10 @@ Route::middleware(['auth'])->group(function () {
         ->name('purchase-edited.')
         ->group(function () {
             Route::get('/', [PurchaseEditedController::class, 'index'])->name('index');
-            Route::get('/compare/{poNumber}', [PurchaseEditedController::class, 'compare'])->name('compare');
-            Route::post('/verify/{poNumber}', [PurchaseEditedController::class, 'verify'])->name('verify');
+            Route::get('/compare/{poNumber}', [PurchaseEditedController::class, 'compare'])->name('compare')->where('poNumber', '.*');
+            Route::post('/verify/{poNumber}', [PurchaseEditedController::class, 'verify'])->name('verify')->where('poNumber', '.*');
             Route::post('/bulk-verify', [PurchaseEditedController::class, 'bulkVerify'])->name('bulk-verify');
-            Route::get('/check/{poNumber}', [PurchaseEditedController::class, 'check'])->name('check');
+            Route::get('/check/{poNumber}', [PurchaseEditedController::class, 'check'])->name('check')->where('poNumber', '.*');
             Route::get('/count', [PurchaseEditedController::class, 'getCount'])->name('count');
         });
     Route::get('/finance-dashboard', function () {

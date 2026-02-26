@@ -213,10 +213,10 @@
                                         </td>
                                         @if($purchase->status == 'approved')
                                         <td class="text-center">
-                                            @if($item->item_status == 'pending' && auth()->user() && auth()->user()->role == 'inventory')
+                                            @if(in_array($item->item_status, ['pending', 'pending_check']) && auth()->user() && in_array(auth()->user()->role, ['super_admin', 'admin', 'inventory', 'admin_logistic', 'procurement']))
                                                 <form action="{{ route('project-purchases.mark-as-received', $item->id) }}" 
                                                       method="POST" class="d-inline"
-                                                      onsubmit="return confirm('Mark this item as received?')">
+                                                      onsubmit="return confirm('Mark this item as received and add to inventory?')">
                                                     @csrf
                                                     <button type="submit" class="btn btn-sm btn-success">
                                                         <i class="fas fa-box-open me-1"></i>Receive
