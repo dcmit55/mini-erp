@@ -74,6 +74,11 @@ class Employee extends Model implements AuditableContract
                 $employee->employee_no = self::formatEmployeeNo($employee->employee_no);
             }
 
+            // Set UID otomatis jika belum ada (data lama sebelum migration)
+            if (empty($employee->uid)) {
+                $employee->uid = (string) Str::uuid();
+            }
+
             // Auto-set status to inactive if contract expired
             $employee->checkAndUpdateContractStatus();
         });

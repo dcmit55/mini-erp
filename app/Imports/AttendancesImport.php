@@ -30,9 +30,9 @@ class AttendancesImport implements ToModel, WithHeadingRow, WithValidation, Skip
         // Log untuk debugging (bisa dihapus setelah produksi)
         Log::info('Processing row:', $row);
 
-        // Cari employee berdasarkan nama (case insensitive, trim spasi)
-        $name = trim($row['name'] ?? '');
-        if (empty($name)) {
+        // Cari employee berdasarkan username (nama di mesin fingerprint)
+        $username = trim($row['name'] ?? '');
+        if (empty($username)) {
             $this->failedRows[] = [
                 'row'   => $row,
                 'error' => 'Nama karyawan kosong'
@@ -40,13 +40,18 @@ class AttendancesImport implements ToModel, WithHeadingRow, WithValidation, Skip
             return null;
         }
 
-        // Cari karyawan berdasarkan nama (persis, case insensitive)
-        $employee = Employee::whereRaw('LOWER(TRIM(name)) = ?', [strtolower($name)])->first();
+        // Cari karyawan berdasarkan username (persis, case insensitive)
+        $employee = Employee::whereRaw('LOWER(TRIM(username)) = ?', [strtolower($username)])->first();
+
+        if (!$employee) {
+            // Fallback: cari berdasarkan nama lengkap jika username tidak ditemukan
+            $employee = Employee::whereRaw('LOWER(TRIM(name)) = ?', [strtolower($username)])->first();
+        }
 
         if (!$employee) {
             $this->failedRows[] = [
                 'row'   => $row,
-                'error' => "Employee with name '{$name}' not found in database"
+                'error' => "Employee with username/name '{$username}' not found in database"
             ];
             return null;
         }

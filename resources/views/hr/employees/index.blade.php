@@ -150,6 +150,11 @@
                                     </td>
                                     <td class="clickable-name" style="cursor: pointer;" title="Click to view details">
                                         <div class="fw-medium">{{ $employee->name }}</div>
+                                        @if ($employee->username)
+                                            <small class="text-muted">
+                                                <i class="bi bi-person-badge"></i> {{ $employee->username }}
+                                            </small>
+                                        @endif
                                         @if ($employee->email)
                                             <small class="text-muted d-md-none">
                                                 <i class="bi bi-envelope"></i> {{ Str::limit($employee->email, 15) }}
@@ -301,6 +306,7 @@
                             <ul class="mb-0 mt-1 ps-3">
                                 <li>Upload file Excel dengan format yang sesuai</li>
                                 <li>Kolom wajib: <strong>employee_no, name, position, status</strong></li>
+                                <li>Kolom opsional baru: <strong>username</strong> (nama di mesin attendance)</li>
                                 <li>Format tanggal: <strong>YYYY-MM-DD</strong> (contoh: 2024-01-01)</li>
                                 <li>Data dengan employee_no yang sama akan diupdate otomatis</li>
                                 <li>Maksimal file: 10MB (format: .xlsx, .xls, .csv)</li>

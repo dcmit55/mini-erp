@@ -12,6 +12,7 @@ use Maatwebsite\Excel\Concerns\SkipsErrors;
 use Maatwebsite\Excel\Concerns\Importable;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Carbon\Carbon;
 
 class EmployeesImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnError, WithChunkReading
@@ -122,6 +123,8 @@ class EmployeesImport implements ToModel, WithHeadingRow, WithValidation, SkipsO
         $data = [
             'employee_no' => $formattedEmployeeNo,
             'name' => $row['name'],
+            'username' => $row['username'] ?? null,
+            'uid' => $employee?->uid ?? Str::uuid()->toString(),
             'employment_type' => $employmentType,
             'photo' => $row['photo'] ?? null,
             'position' => $row['position'],
@@ -178,6 +181,7 @@ class EmployeesImport implements ToModel, WithHeadingRow, WithValidation, SkipsO
             '*.employee_no' => 'required|max:255',
             '*.name' => 'required|max:255',
             '*.position' => 'required|max:255',
+            '*.username' => 'nullable|max:255',
             '*.email' => 'nullable|email|max:255',
             '*.ktp_id' => 'nullable|max:20', // 'string' dihapus
             '*.phone' => 'nullable|max:20',  // 'string' dihapus

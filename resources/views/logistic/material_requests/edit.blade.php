@@ -14,19 +14,26 @@
                 </div>
             @endif
             
+            @if (session('success'))
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    {!! session('success') !!}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            @endif
+            
             @if ($errors->any())
                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
                     <strong>Whoops!</strong> There were some problems with your input.
-                    <ul class="mb-0">
+                    <ul class="mb-0 mt-2">
                         @foreach ($errors->all() as $error)
-                            <li>{!! $error !!}</li>
+                            <li>{{ $error }}</li>
                         @endforeach
                     </ul>
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             @endif
 
-            <form action="{{ route('material_requests.update', $materialRequest->id) }}" method="POST">
+            <form action="{{ route('material_requests.update', $materialRequest->id) }}" method="POST" id="editMaterialRequestForm">
                 @csrf
                 @method('PUT')
                 
@@ -119,7 +126,7 @@
                         <label>Requested Quantity <span class="text-danger">*</span></label>
                         <div class="input-group">
                             <input type="number" name="qty" class="form-control @error('qty') is-invalid @enderror"
-                                   step="any" required value="{{ old('qty', $materialRequest->qty) }}">
+                                   step="any" required value="{{ old('qty', $materialRequest->qty) }}" id="qty">
                             <span class="input-group-text unit-label">
                                 {{ $materialRequest->inventory->unit ?? 'unit' }}
                             </span>
@@ -168,11 +175,15 @@
                     </div>
                 </div>
 
-                <a href="{{ route('material_requests.index') }}" class="btn btn-secondary">Cancel</a>
-                <button type="submit" class="btn btn-primary" id="update-request-btn">
-                    <span class="spinner-border spinner-border-sm me-1 d-none" role="status"></span>
-                    Update Request
-                </button>
+                <div class="d-flex justify-content-between">
+                    <a href="{{ route('material_requests.index', array_filter(request()->only(['project', 'material', 'status', 'requested_by', 'requested_at']))) }}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary" id="update-request-btn">
+                        <span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>
+                        <span class="btn-text">Update Request</span>
+                    </button>
+                </div>
             </form>
         </div>
     </div>
@@ -384,6 +395,12 @@
             padding-right: 0.5rem;
         }
     }
+    
+    /* Style untuk loading button */
+    .btn-primary:disabled {
+        cursor: not-allowed;
+        opacity: 0.65;
+    }
 </style>
 @endpush
 
@@ -517,12 +534,15 @@ $(document).ready(function() {
         }
     }).trigger('change');
 
-    // ========== SUBMIT BUTTON SPINNER ==========
-    $('#update-request-btn').on('click', function(e) {
-        const btn = $(this);
+    // ========== HANDLE FORM SUBMIT DENGAN LOADING ==========
+    $('#editMaterialRequestForm').on('submit', function() {
+        const btn = $('#update-request-btn');
         btn.prop('disabled', true);
         btn.find('.spinner-border').removeClass('d-none');
-        btn.contents().filter(function() { return this.nodeType === 3; }).last().replaceWith(' Updating...');
+        btn.find('.btn-text').text(' Updating...');
+        
+        // Form akan submit secara normal ke controller
+        return true;
     });
 
     // ========== QUICK ADD MATERIAL ==========
@@ -559,6 +579,12 @@ $(document).ready(function() {
     $('#quickAddMaterialForm').on('submit', function(e) {
         e.preventDefault();
         let form = $(this);
+        
+        // Tampilkan loading
+        let submitBtn = form.find('button[type="submit"]');
+        submitBtn.prop('disabled', true);
+        submitBtn.html('<span class="spinner-border spinner-border-sm me-1" role="status"></span> Adding...');
+        
         $.ajax({
             url: form.attr('action'),
             method: 'POST',
@@ -578,6 +604,11 @@ $(document).ready(function() {
             error: function(xhr) {
                 let msg = xhr.responseJSON?.message || 'Failed to add material. Please try again.';
                 Swal.fire('Error', msg, 'error');
+            },
+            complete: function() {
+                // Kembalikan tombol ke keadaan semula
+                submitBtn.prop('disabled', false);
+                submitBtn.html('Add Material');
             }
         });
     });

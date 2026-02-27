@@ -104,6 +104,20 @@
                                     @enderror
                                 </div>
 
+                                <!-- Username (Attendance) -->
+                                <div class="col-md-4 mb-3">
+                                    <label for="username" class="form-label">Username</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-person-badge"></i></span>
+                                        <input type="text" class="form-control" id="username" name="username"
+                                            value="{{ old('username') }}"
+                                            placeholder="Nama di mesin attendance">
+                                    </div>
+                                    @error('username')
+                                        <small class="text-danger d-block">{{ $message }}</small>
+                                    @enderror
+                                </div>
+
                                 <div class="col-md-4 mb-3">
                                     <label for="employment_type" class="form-label">
                                         Employment Type <span class="text-danger">*</span>
