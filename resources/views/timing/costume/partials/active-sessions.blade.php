@@ -13,25 +13,25 @@
             $standardTimePerUnit = $session->jobOrder->standard_time_per_unit ?? 0;
             $deadlineTime = null;
             $deadlineWarning = null;
-            
+
             // Priority 1: Use total_standard_minutes if available (for progress-based jobs)
             // Priority 2: Skip deadline for qty-based (Costume) since it's dynamic based on actual qty
-            if ($totalMinutes > 0 && $session->start_time) {
-                try {
-                    $startDateTime = \Carbon\Carbon::parse(date('Y-m-d') . ' ' . $session->start_time);
-                    $deadlineTime = $startDateTime->addMinutes($totalMinutes)->format('H:i');
-                    
-                    // Calculate time remaining
-                    $now = \Carbon\Carbon::now();
-                    $deadline = \Carbon\Carbon::parse(date('Y-m-d') . ' ' . $deadlineTime);
-                    $minutesRemaining = $now->diffInMinutes($deadline, false);
-                    
-                    if ($minutesRemaining < 0) {
-                        $deadlineWarning = 'exceeded';
-                    } elseif ($minutesRemaining <= 15) {
-                        $deadlineWarning = 'critical';
-                    } elseif ($minutesRemaining <= 30) {
-                        $deadlineWarning = 'warning';
+if ($totalMinutes > 0 && $session->start_time) {
+    try {
+        $startDateTime = \Carbon\Carbon::parse(date('Y-m-d') . ' ' . $session->start_time);
+        $deadlineTime = $startDateTime->addMinutes($totalMinutes)->format('H:i');
+
+        // Calculate time remaining
+        $now = \Carbon\Carbon::now();
+        $deadline = \Carbon\Carbon::parse(date('Y-m-d') . ' ' . $deadlineTime);
+        $minutesRemaining = $now->diffInMinutes($deadline, false);
+
+        if ($minutesRemaining < 0) {
+            $deadlineWarning = 'exceeded';
+        } elseif ($minutesRemaining <= 15) {
+            $deadlineWarning = 'critical';
+        } elseif ($minutesRemaining <= 30) {
+            $deadlineWarning = 'warning';
                     }
                 } catch (\Exception $e) {
                     $deadlineTime = null;

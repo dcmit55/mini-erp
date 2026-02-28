@@ -11,7 +11,7 @@
             $departmentData = $session->department_specific_data ?? [];
             $previousProgress = $departmentData['previous_progress'] ?? 0;
             $currentProgress = $departmentData['current_progress'] ?? 0;
-            
+
             // Calculate deadline based on total_standard_minutes
             $totalMinutes = $session->jobOrder->total_standard_minutes ?? 0;
             $deadlineTime = null;
@@ -20,12 +20,12 @@
                 try {
                     $startDateTime = \Carbon\Carbon::parse(date('Y-m-d') . ' ' . $session->start_time);
                     $deadlineTime = $startDateTime->addMinutes($totalMinutes)->format('H:i');
-                    
+
                     // Calculate time remaining
                     $now = \Carbon\Carbon::now();
                     $deadline = \Carbon\Carbon::parse(date('Y-m-d') . ' ' . $deadlineTime);
                     $minutesRemaining = $now->diffInMinutes($deadline, false);
-                    
+
                     if ($minutesRemaining < 0) {
                         $deadlineWarning = 'exceeded';
                     } elseif ($minutesRemaining <= 15) {
@@ -86,15 +86,19 @@
                         @if ($deadlineTime)
                             <div class="col-12">
                                 <small class="text-muted">
-                                    <i class="bi bi-calendar-x"></i> Target Deadline: 
-                                    <strong class="{{ $deadlineWarning === 'exceeded' ? 'text-danger' : ($deadlineWarning === 'critical' ? 'text-warning' : '') }}">{{ $deadlineTime }}</strong>
+                                    <i class="bi bi-calendar-x"></i> Target Deadline:
+                                    <strong
+                                        class="{{ $deadlineWarning === 'exceeded' ? 'text-danger' : ($deadlineWarning === 'critical' ? 'text-warning' : '') }}">{{ $deadlineTime }}</strong>
                                     <span class="badge badge-sm bg-info ms-1">{{ $totalMinutes }} min</span>
                                     @if ($deadlineWarning === 'exceeded')
-                                        <span class="badge bg-danger ms-1"><i class="bi bi-exclamation-triangle"></i> OVERDUE</span>
+                                        <span class="badge bg-danger ms-1"><i class="bi bi-exclamation-triangle"></i>
+                                            OVERDUE</span>
                                     @elseif ($deadlineWarning === 'critical')
-                                        <span class="badge bg-warning text-dark ms-1"><i class="bi bi-clock-history"></i> &lt;15 min</span>
+                                        <span class="badge bg-warning text-dark ms-1"><i
+                                                class="bi bi-clock-history"></i> &lt;15 min</span>
                                     @elseif ($deadlineWarning === 'warning')
-                                        <span class="badge bg-warning text-dark ms-1"><i class="bi bi-hourglass-split"></i> &lt;30 min</span>
+                                        <span class="badge bg-warning text-dark ms-1"><i
+                                                class="bi bi-hourglass-split"></i> &lt;30 min</span>
                                     @endif
                                 </small>
                             </div>

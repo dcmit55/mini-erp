@@ -11,7 +11,7 @@
             $departmentData = $session->department_specific_data ?? [];
             $trackingMode = $departmentData['tracking_mode'] ?? 'timer';
             $previousProgress = $departmentData['previous_progress'] ?? 0;
-            
+
             // Calculate deadline based on total_standard_minutes
             $totalMinutes = $session->jobOrder->total_standard_minutes ?? 0;
             $deadlineTime = null;
@@ -20,12 +20,12 @@
                 try {
                     $startDateTime = \Carbon\Carbon::parse(date('Y-m-d') . ' ' . $session->start_time);
                     $deadlineTime = $startDateTime->addMinutes($totalMinutes)->format('H:i');
-                    
+
                     // Calculate time remaining
                     $now = \Carbon\Carbon::now();
                     $deadline = \Carbon\Carbon::parse(date('Y-m-d') . ' ' . $deadlineTime);
                     $minutesRemaining = $now->diffInMinutes($deadline, false);
-                    
+
                     if ($minutesRemaining < 0) {
                         $deadlineWarning = 'exceeded';
                     } elseif ($minutesRemaining <= 15) {

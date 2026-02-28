@@ -120,19 +120,29 @@
                                                             {{ $session->start_time }}
                                                         </div>
                                                         @php
-                                                            $totalMinutes = $session->jobOrder->total_standard_minutes ?? 0;
+                                                            $totalMinutes =
+                                                                $session->jobOrder->total_standard_minutes ?? 0;
                                                             $deadlineTime = null;
                                                             $deadlineWarning = null;
                                                             if ($totalMinutes > 0 && $session->start_time) {
                                                                 try {
-                                                                    $startDateTime = \Carbon\Carbon::parse(date('Y-m-d') . ' ' . $session->start_time);
-                                                                    $deadlineTime = $startDateTime->addMinutes($totalMinutes)->format('H:i');
-                                                                    
+                                                                    $startDateTime = \Carbon\Carbon::parse(
+                                                                        date('Y-m-d') . ' ' . $session->start_time,
+                                                                    );
+                                                                    $deadlineTime = $startDateTime
+                                                                        ->addMinutes($totalMinutes)
+                                                                        ->format('H:i');
+
                                                                     // Calculate time remaining
                                                                     $now = \Carbon\Carbon::now();
-                                                                    $deadline = \Carbon\Carbon::parse(date('Y-m-d') . ' ' . $deadlineTime);
-                                                                    $minutesRemaining = $now->diffInMinutes($deadline, false);
-                                                                    
+                                                                    $deadline = \Carbon\Carbon::parse(
+                                                                        date('Y-m-d') . ' ' . $deadlineTime,
+                                                                    );
+                                                                    $minutesRemaining = $now->diffInMinutes(
+                                                                        $deadline,
+                                                                        false,
+                                                                    );
+
                                                                     if ($minutesRemaining < 0) {
                                                                         $deadlineWarning = 'exceeded';
                                                                     } elseif ($minutesRemaining <= 15) {
@@ -148,12 +158,18 @@
                                                         @if ($deadlineTime)
                                                             <div class="col-12">
                                                                 <i class="bi bi-calendar-x"></i> Deadline:
-                                                                <strong class="{{ $deadlineWarning === 'exceeded' ? 'text-danger' : ($deadlineWarning === 'critical' ? 'text-warning' : 'text-danger') }}">{{ $deadlineTime }}</strong>
-                                                                <span class="badge bg-info badge-sm ms-1">{{ $totalMinutes }} min</span>
+                                                                <strong
+                                                                    class="{{ $deadlineWarning === 'exceeded' ? 'text-danger' : ($deadlineWarning === 'critical' ? 'text-warning' : 'text-danger') }}">{{ $deadlineTime }}</strong>
+                                                                <span
+                                                                    class="badge bg-info badge-sm ms-1">{{ $totalMinutes }}
+                                                                    min</span>
                                                                 @if ($deadlineWarning === 'exceeded')
-                                                                    <span class="badge bg-danger ms-1"><i class="bi bi-exclamation-triangle"></i> OVERDUE</span>
+                                                                    <span class="badge bg-danger ms-1"><i
+                                                                            class="bi bi-exclamation-triangle"></i>
+                                                                        OVERDUE</span>
                                                                 @elseif ($deadlineWarning === 'critical')
-                                                                    <span class="badge bg-warning text-dark ms-1"><i class="bi bi-clock-history"></i> URGENT</span>
+                                                                    <span class="badge bg-warning text-dark ms-1"><i
+                                                                            class="bi bi-clock-history"></i> URGENT</span>
                                                                 @endif
                                                             </div>
                                                         @endif
