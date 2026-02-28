@@ -152,8 +152,7 @@
                         class="card-header bg-gradient-mascot text-white d-flex justify-content-between align-items-center">
                         <h5 class="mb-0">
                             <i class="bi bi-clock-history me-2"></i>Active Sessions
-                            <span class="badge bg-danger ms-2"><i class="bi bi-calendar-x"></i> Deadline: 30 Mar
-                                2026</span>
+
                         </h5>
                         <button class="btn btn-sm btn-light" id="refresh-sessions-btn">
                             <i class="bi bi-arrow-clockwise"></i>
