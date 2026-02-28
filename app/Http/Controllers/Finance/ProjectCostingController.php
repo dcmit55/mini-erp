@@ -9,6 +9,8 @@ use App\Models\Logistic\MaterialUsage;
 use App\Models\Logistic\GoodsIn;
 use App\Models\Logistic\GoodsOut;
 use App\Models\Admin\Department;
+use App\Models\Lark\LarkBtSgItemTracking;
+use App\Models\Lark\LarkSgBtItemTracking;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\ProjectCostingExport;
 use App\Exports\AllProjectsCostingExport;
@@ -85,7 +87,7 @@ class ProjectCostingController extends Controller
 
     public function viewCosting($project_id)
     {
-        // ❗ Validasi: hanya project closed yang bisa di-view costing
+        // ❗ Validasi: hanya project closed bisa di-view costing
         $project = Project::where('id', $project_id)->where('stage', 'closed')->firstOrFail();
 
         // Ambil semua material usage untuk project dengan eager load jobOrder
@@ -119,7 +121,8 @@ class ProjectCostingController extends Controller
                     'total_minutes' => $totalMinutes,
                     'sessions_count' => $timings->count(), // Match frontend variable name
                     'unique_employees' => $timings->pluck('employee.name')->unique()->count(), // Count employees
-                    'employee_names' => $timings->pluck('employee.name')->unique()->values()->toArray(), // List for tooltip
+                    'employ    ee
+            _names' => $timings->pluck('employee.name')->unique()->values()->toArray(), // List for tooltip
                 ];
             })
             ->values();
@@ -176,68 +179,8 @@ class ProjectCostingController extends Controller
         // Hitung grand total dalam IDR
         $grand_total_material_idr = $materials->sum('total_cost');
 
-        // ===== MATERIAL INVENTORY ITEMS (from GoodsOut) =====
-        $goodsOut = \App\Models\Logistic\GoodsOut::where('project_id', $project_id)
-            ->with(['inventory.currency', 'jobOrder'])
-            ->get();
-        
-        // Group by inventory item
-        $inventoryItems = $goodsOut->groupBy('inventory_id')->map(function ($items, $inventoryId) {
-            $firstItem = $items->first();
-            $inventory = $firstItem->inventory;
-            $totalQty = $items->sum('quantity');
-            
-            // Calculate unit cost in SGD
-            $currency = $inventory->currency ?? (object)['name' => 'N/A', 'exchange_rate' => 1];
-            $unitPrice = $inventory->price ?? 0;
-            $domesticFreight = $inventory->unit_domestic_freight_cost ?? 0;
-            $internationalFreight = $inventory->unit_international_freight_cost ?? 0;
-            $totalUnitCost = $unitPrice + $domesticFreight + $internationalFreight;
-            
-            return [
-                'inventory_id' => $inventoryId,
-                'inventory_name' => $inventory->name ?? 'N/A',
-                'unit' => $inventory->unit ?? 'N/A',
-                'total_quantity' => $totalQty,
-                'unit_cost' => $totalUnitCost,
-                'currency' => $currency->name ?? 'SGD',
-                'total_cost' => $totalQty * $totalUnitCost,
-                'transactions_count' => $items->count(),
-                'job_orders' => $items->pluck('jobOrder.name')->filter()->unique()->values()->toArray(),
-            ];
-        })->values();
-
-        // ===== LARK GOODS MOVEMENT ITEMS (Logistics Cost) =====
-        // Check if Lark fields exist in database (migration might not be run yet)
-        $larkItemsGrouped = collect([]);
-        try {
-            $larkItems = \App\Models\Logistic\GoodsMovementItem::where('project_id', $project_id)
-                ->whereNotNull('lark_item_name')
-                ->with(['goodsMovement'])
-                ->get();
-            
-            // Group by item name untuk costing
-            $larkItemsGrouped = $larkItems->groupBy('lark_item_name')->map(function ($items, $itemName) {
-                $totalQty = $items->sum('quantity');
-                $avgUnitCost = $items->avg('lark_unit_cost');
-                $totalCost = $items->sum('lark_total_cost');
-                $currency = $items->first()->lark_currency ?? 'SGD';
-                
-                return [
-                    'item_name' => $itemName,
-                    'total_quantity' => $totalQty,
-                    'unit' => $items->first()->unit ?? 'pcs',
-                    'avg_unit_cost' => round($avgUnitCost, 4),
-                    'total_cost' => round($totalCost, 2),
-                    'currency' => $currency,
-                    'transactions_count' => $items->count(),
-                    'shipment_directions' => $items->pluck('goodsMovement.shipment_direction')->filter()->unique()->values()->toArray(),
-                ];
-            })->values();
-        } catch (\Exception $e) {
-            // Lark fields not available yet (migration not run)
-            \Log::info('Lark fields not available in goods_movement_items table');
-        }
+        // ===== GET COURIER COSTS =====
+        $courierCosts = $this->getCourierCosts($project_id);
 
         return response()->json([
             'project' => $project->name,
@@ -250,24 +193,13 @@ class ProjectCostingController extends Controller
                 'approved_sessions_count' => $approvedTimingsCount,
                 'by_job_order' => $timingsByJobOrder,
             ],
-            // ===== INVENTORY ITEMS BREAKDOWN =====
-            'inventory_items' => [
-                'total_items' => $inventoryItems->count(),
-                'total_transactions' => $goodsOut->count(),
-                'items' => $inventoryItems,
-            ],
-            // ===== LARK LOGISTICS ITEMS =====
-            'lark_logistics' => [
-                'total_items' => $larkItemsGrouped->count(),
-                'total_cost' => $larkItemsGrouped->sum('total_cost'),
-                'total_transactions' => $larkItems->count(),
-                'items' => $larkItemsGrouped,
-            ],
+            // ===== COURIER COSTS DATA =====
+            'courier' => $courierCosts,
             // ===== COMBINED TOTALS =====
             'summary' => [
                 'total_material_cost_idr' => $grand_total_material_idr,
                 'total_labor_hours' => $totalLaborHours,
-                'total_lark_logistics_cost' => $larkItemsGrouped->sum('total_cost'),
+                'total_courier_cost_sgd' => $courierCosts['total_sgd'],
                 'job_order_count' => $usages->pluck('job_order_id')->unique()->count(),
                 'approved_timing_count' => $approvedTimingsCount,
             ],
@@ -494,6 +426,72 @@ class ProjectCostingController extends Controller
                 500,
             );
         }
+    }
+
+    /**
+     * Get courier costs for a specific project
+     * Aggregates both BT-SG and SG-BT courier costs
+     */
+    private function getCourierCosts($projectId)
+    {
+        // Get BT-SG items with courier
+        $btSgItems = LarkBtSgItemTracking::with('courier')->where('project_id', $projectId)->whereNotNull('courier_id')->get();
+
+        // Get SG-BT items with courier
+        $sgBtItems = LarkSgBtItemTracking::with('courier')->where('project_id', $projectId)->whereNotNull('courier_id')->get();
+
+        // Group BT-SG by courier
+        $btSgCouriers = $btSgItems->groupBy('courier_id')->map(function ($items, $courierId) {
+            $courier = $items->first()->courier;
+            return [
+                'courier_id' => $courierId,
+                'courier_name' => $courier->name ?? 'Unknown',
+                'direction' => 'BT → SG',
+                'date' => $courier->date ? $courier->date->format('d M Y') : '-',
+                'items_count' => $items->count(),
+                'items' => $items->pluck('item_name')->toArray(),
+                'transport_cost' => $courier->transport_cost ?? 0,
+                'baggage_cost' => $courier->baggage_cost ?? 0,
+                'gst_cost' => $courier->gst_cost ?? 0,
+                'total_idr' => $courier->total_cost ?? 0,
+                'total_sgd' => $courier->total_cost_sgd ?? 0,
+            ];
+        });
+
+        // Group SG-BT by courier
+        $sgBtCouriers = $sgBtItems->groupBy('courier_id')->map(function ($items, $courierId) {
+            $courier = $items->first()->courier;
+            return [
+                'courier_id' => $courierId,
+                'courier_name' => $courier->name ?? 'Unknown',
+                'direction' => 'SG → BT',
+                'date' => $courier->date ? $courier->date->format('d M Y') : '-',
+                'items_count' => $items->count(),
+                'items' => $items->pluck('item_name')->toArray(),
+                'transport_cost' => $courier->transport_cost ?? 0,
+                'baggage_cost' => $courier->baggage_cost ?? 0,
+                'gst_cost' => $courier->gst_cost ?? 0,
+                'total_idr' => $courier->total_cost ?? 0,
+                'total_sgd' => $courier->total_cost_sgd ?? 0,
+            ];
+        });
+
+        // Combine both directions
+        $allCouriers = $btSgCouriers->merge($sgBtCouriers)->values();
+
+        // Calculate totals
+        $totalSgd = $allCouriers->sum('total_sgd');
+        $totalIdr = $allCouriers->sum('total_idr');
+
+        return [
+            'bt_sg_count' => $btSgCouriers->count(),
+            'sg_bt_count' => $sgBtCouriers->count(),
+            'total_couriers' => $allCouriers->count(),
+            'total_items' => $btSgItems->count() + $sgBtItems->count(),
+            'total_sgd' => round($totalSgd, 2),
+            'total_idr' => round($totalIdr, 0),
+            'couriers' => $allCouriers,
+        ];
     }
 }
 

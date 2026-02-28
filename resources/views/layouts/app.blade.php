@@ -96,6 +96,7 @@
                                         'goods_in*',
                                         'material_usage*',
                                         'goods-movement*',
+                                        'lark/staging*',
                                     ];
 
                                     $procurementPrefixes = [
@@ -198,6 +199,34 @@
                                                 <a class="dropdown-item {{ request()->is('goods-movement*') ? 'active' : '' }}"
                                                     href="{{ route('goods-movement.index') }}">
                                                     <i class="fas fa-exchange-alt me-2"></i>Goods Movement
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <hr class="dropdown-divider">
+                                            </li>
+                                            <li class="dropdown-header">Lark Staging Data</li>
+                                            <li>
+                                                <a class="dropdown-item {{ request()->is('lark/staging/bt-sg-courier*') ? 'active' : '' }}"
+                                                    href="{{ route('lark.staging.bt-sg-courier') }}">
+                                                    <i class="fas fa-truck me-2"></i>BT-SG Courier
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item {{ request()->is('lark/staging/sg-bt-courier*') ? 'active' : '' }}"
+                                                    href="{{ route('lark.staging.sg-bt-courier') }}">
+                                                    <i class="fas fa-truck-loading me-2"></i>SG-BT Courier
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item {{ request()->is('lark/staging/bt-sg-items*') ? 'active' : '' }}"
+                                                    href="{{ route('lark.staging.bt-sg-items') }}">
+                                                    <i class="fas fa-box me-2"></i>BT-SG Item Tracking
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item {{ request()->is('lark/staging/sg-bt-items*') ? 'active' : '' }}"
+                                                    href="{{ route('lark.staging.sg-bt-items') }}">
+                                                    <i class="fas fa-boxes me-2"></i>SG-BT Item Tracking
                                                 </a>
                                             </li>
                                         </ul>
@@ -356,6 +385,12 @@
                                                 <a class="dropdown-item {{ request()->is('timing-monitor*') ? 'active' : '' }}"
                                                     href="{{ route('timing-monitor.index') }}">
                                                     <i class="fas fa-tv me-2"></i>Running Monitor
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item {{ request()->is('timing-approval*') ? 'active' : '' }}"
+                                                    href="{{ route('timing-approval.index') }}">
+                                                    <i class="fas fa-check me-2"></i>Timing Approval
                                                 </a>
                                             </li>
                                         </ul>

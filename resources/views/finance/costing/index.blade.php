@@ -280,6 +280,8 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
+                    <!-- Material Costs -->
+                    <h6 class="mb-3"><i class="fas fa-box me-2 text-primary"></i>Material Costs</h6>
                     <table class="table table-sm align-middle table-hover">
                         <thead class="table-light text-nowrap">
                             <tr>
@@ -295,7 +297,110 @@
                             <!-- Data akan dimuat melalui AJAX -->
                         </tbody>
                     </table>
-                    <h5 class="text-end" id="grandTotal">Grand Total: Rp 0</h5>
+                    <div class="text-end mb-4">
+                        <h6 id="materialTotal">Material Total: <span class="text-primary fw-bold">Rp 0</span></h6>
+                    </div>
+
+                    <!-- Labor Costs -->
+                    <h6 class="mb-3"><i class="fas fa-users me-2 text-success"></i>Timings Approval</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <small class="text-muted">Total Hours</small>
+                                    <h5 id="laborHours" class="mb-0 text-success">0 hrs</h5>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <small class="text-muted">Approved Sessions</small>
+                                    <h5 id="laborSessions" class="mb-0 text-success">0</h5>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <small class="text-muted">Job Orders</small>
+                                    <h5 id="laborJobOrders" class="mb-0 text-success">0</h5>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="laborByJobOrder" class="mb-4">
+                        <!-- Labor breakdown by job order -->
+                    </div>
+
+                    <!-- Courier Costs -->
+                    <h6 class="mb-3"><i class="fas fa-shipping-fast me-2 text-warning"></i>Courier Costs</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <small class="text-muted">BT → SG Couriers</small>
+                                    <h5 id="courierBtSgCount" class="mb-0 text-warning">0</h5>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <small class="text-muted">SG → BT Couriers</small>
+                                    <h5 id="courierSgBtCount" class="mb-0 text-warning">0</h5>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <small class="text-muted">Total Items</small>
+                                    <h5 id="courierItemsCount" class="mb-0 text-warning">0</h5>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <small class="text-muted">Total Cost</small>
+                                    <h5 id="courierTotalCost" class="mb-0 text-warning">SGD 0</h5>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="courierDetails" class="mb-4">
+                        <!-- Courier details will be loaded here -->
+                    </div>
+
+                    {{-- <!-- Inventory Items Breakdown -->
+                    <h6 class="mb-3"><i class="fas fa-boxes me-2 text-info"></i>Goods Movement</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <small class="text-muted">Unique Items</small>
+                                    <h5 id="inventoryItemsCount" class="mb-0 text-info">0 items</h5>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <small class="text-muted">Total Transactions</small>
+                                    <h5 id="inventoryTransactionsCount" class="mb-0 text-info">0</h5>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="inventoryItemsDetails" class="mb-4">
+                        <!-- Inventory items details -->
+                    </div> --}}
+
+                    <!-- Grand Total -->
+                    <hr>
+                    <h5 class="text-end" id="grandTotal">Material Total: <span class="text-success fw-bold">Rp 0</span>
+                    </h5>
                 </div>
             </div>
         </div>
@@ -465,8 +570,171 @@
                         tableBody.innerHTML += row;
                     });
 
+                    // Update Material Total
+                    document.getElementById('materialTotal').innerHTML =
+                        `Material Total: <span class="text-primary fw-bold">${formatCurrency(data.grand_total_material_idr)} IDR</span>`;
+
+                    // ===== POPULATE LABOR DATA =====
+                    const labor = data.labor || {};
+                    const totalHours = labor.total_hours || 0;
+                    const approvedSessions = labor.approved_sessions_count || 0;
+                    const laborByJobOrder = labor.by_job_order || [];
+
+                    document.getElementById('laborHours').innerText = totalHours.toFixed(2) + ' hrs';
+                    document.getElementById('laborSessions').innerText = approvedSessions;
+                    document.getElementById('laborJobOrders').innerText = laborByJobOrder.length;
+
+                    // Labor breakdown by job order
+                    const laborContainer = document.getElementById('laborByJobOrder');
+                    laborContainer.innerHTML = '';
+
+                    if (laborByJobOrder.length > 0) {
+                        let laborHtml = '<div class="table-responsive"><table class="table table-sm table-bordered">';
+                        laborHtml += '<thead class="table-light"><tr>';
+                        laborHtml +=
+                            '<th>Job Order</th><th>Hours</th><th>Minutes</th><th>Sessions</th><th>Employees</th>';
+                        laborHtml += '</tr></thead><tbody>';
+
+                        laborByJobOrder.forEach(jo => {
+                            const jobOrderName = jo.job_order_name || 'No Job Order';
+                            const hours = jo.total_hours || 0;
+                            const minutes = jo.total_minutes || 0;
+                            const sessions = jo.sessions_count || 0;
+                            const employees = jo.unique_employees || 0;
+                            const employeeNames = (jo.employee_names || []).join(', ');
+
+                            laborHtml += '<tr>';
+                            laborHtml += `<td><span class="badge bg-success">${jobOrderName}</span></td>`;
+                            laborHtml += `<td class="fw-bold">${hours.toFixed(2)}</td>`;
+                            laborHtml += `<td>${minutes}</td>`;
+                            laborHtml += `<td>${sessions}</td>`;
+                            laborHtml +=
+                                `<td><span class="badge bg-info" title="${employeeNames}">${employees}</span></td>`;
+                            laborHtml += '</tr>';
+                        });
+
+                        laborHtml += '</tbody></table></div>';
+                        laborContainer.innerHTML = laborHtml;
+                    } else {
+                        laborContainer.innerHTML =
+                            '<div class="alert alert-info"><i class="fas fa-info-circle me-1"></i>No approved labor timing data for this project</div>';
+                    }
+
+                    // ===== POPULATE COURIER DATA =====
+                    const courier = data.courier || {};
+                    const btSgCount = courier.bt_sg_count || 0;
+                    const sgBtCount = courier.sg_bt_count || 0;
+                    const courierItems = courier.total_items || 0;
+                    const courierTotalSgd = courier.total_sgd || 0;
+                    const couriers = courier.couriers || [];
+
+                    document.getElementById('courierBtSgCount').innerText = btSgCount;
+                    document.getElementById('courierSgBtCount').innerText = sgBtCount;
+                    document.getElementById('courierItemsCount').innerText = courierItems;
+                    document.getElementById('courierTotalCost').innerText = 'SGD ' + formatCurrency(courierTotalSgd);
+
+                    // Courier details
+                    const courierContainer = document.getElementById('courierDetails');
+                    courierContainer.innerHTML = '';
+
+                    if (couriers.length > 0) {
+                        let courierHtml =
+                            '<div class="table-responsive"><table class="table table-sm table-bordered table-hover">';
+                        courierHtml += '<thead class="table-light"><tr>';
+                        courierHtml +=
+                            '<th>Courier ID</th><th>Direction</th><th>Date</th><th>Items</th><th>Transport (IDR)</th><th>Baggage (IDR)</th><th>GST (IDR)</th><th>Total SGD</th>';
+                        courierHtml += '</tr></thead><tbody>';
+
+                        couriers.forEach(c => {
+                            const courierName = c.courier_name || 'Unknown';
+                            const direction = c.direction || '-';
+                            const date = c.date || '-';
+                            const itemsCount = c.items_count || 0;
+                            const itemsList = (c.items || []).slice(0, 3).join(', ');
+                            const moreItems = c.items_count > 3 ? ` (+${c.items_count - 3} more)` : '';
+                            const transport = c.transport_cost || 0;
+                            const baggage = c.baggage_cost || 0;
+                            const gst = c.gst_cost || 0;
+                            const totalSgd = c.total_sgd || 0;
+
+                            courierHtml += '<tr>';
+                            courierHtml += `<td><small>${courierName}</small></td>`;
+                            courierHtml +=
+                                `<td><span class="badge ${direction.includes('BT →') ? 'bg-primary' : 'bg-info'}">${direction}</span></td>`;
+                            courierHtml += `<td>${date}</td>`;
+                            courierHtml +=
+                                `<td><small title="${c.items ? c.items.join(', ') : ''}">${itemsCount} items: ${itemsList}${moreItems}</small></td>`;
+                            courierHtml += `<td>Rp ${formatCurrency(transport)}</td>`;
+                            courierHtml += `<td>Rp ${formatCurrency(baggage)}</td>`;
+                            courierHtml += `<td>Rp ${formatCurrency(gst)}</td>`;
+                            courierHtml +=
+                                `<td class="fw-bold text-warning">SGD ${formatCurrency(totalSgd)}</td>`;
+                            courierHtml += '</tr>';
+                        });
+
+                        courierHtml += '</tbody></table></div>';
+                        courierContainer.innerHTML = courierHtml;
+                    } else {
+                        courierContainer.innerHTML =
+                            '<div class="alert alert-info"><i class="fas fa-info-circle me-1"></i>No courier data for this project</div>';
+                    }
+
+                    // // ===== POPULATE INVENTORY ITEMS DATA =====
+                    // const inventoryItems = data.inventory_items || {};
+                    // const totalItems = inventoryItems.total_items || 0;
+                    // const totalTransactions = inventoryItems.total_transactions || 0;
+                    // const items = inventoryItems.items || [];
+
+                    // document.getElementById('inventoryItemsCount').innerText = totalItems + ' items';
+                    // document.getElementById('inventoryTransactionsCount').innerText = totalTransactions;
+
+                    // // Inventory items details
+                    // const inventoryContainer = document.getElementById('inventoryItemsDetails');
+                    // inventoryContainer.innerHTML = '';
+
+                    // if (items.length > 0) {
+                    //     let inventoryHtml =
+                    //         '<div class="table-responsive"><table class="table table-sm table-bordered table-hover">';
+                    //     inventoryHtml += '<thead class="table-light"><tr>';
+                    //     inventoryHtml +=
+                    //         '<th>Material Name</th><th>Total Qty</th><th>Unit</th><th>Unit Cost</th><th>Currency</th><th>Total Cost</th><th>Txn</th><th>Job Orders</th>';
+                    //     inventoryHtml += '</tr></thead><tbody>';
+
+                    //     items.forEach(item => {
+                    //         const name = item.inventory_name || 'N/A';
+                    //         const totalQty = item.total_quantity || 0;
+                    //         const unit = item.unit || '';
+                    //         const unitCost = item.unit_cost || 0;
+                    //         const currency = item.currency || 'SGD';
+                    //         const totalCost = item.total_cost || 0;
+                    //         const txnCount = item.transactions_count || 0;
+                    //         const jobOrders = (item.job_orders || []).join(', ') || '-';
+
+                    //         inventoryHtml += '<tr>';
+                    //         inventoryHtml += `<td class="fw-bold">${name}</td>`;
+                    //         inventoryHtml += `<td class="text-end">${totalQty}</td>`;
+                    //         inventoryHtml += `<td>${unit}</td>`;
+                    //         inventoryHtml +=
+                    //             `<td class="text-end text-primary">${formatCurrency(unitCost)}</td>`;
+                    //         inventoryHtml += `<td><span class="badge bg-secondary">${currency}</span></td>`;
+                    //         inventoryHtml +=
+                    //             `<td class="text-end fw-bold text-success">${formatCurrency(totalCost)}</td>`;
+                    //         inventoryHtml +=
+                    //             `<td class="text-center"><span class="badge bg-info">${txnCount}</span></td>`;
+                    //         inventoryHtml += `<td class="small">${jobOrders}</td>`;
+                    //         inventoryHtml += '</tr>';
+                    //     });
+
+                    //     inventoryHtml += '</tbody></table></div>';
+                    //     inventoryContainer.innerHTML = inventoryHtml;
+                    // } else {
+                    //     inventoryContainer.innerHTML =
+                    //         '<div class="alert alert-info"><i class="fas fa-info-circle me-1"></i>No inventory items data for this project</div>';
+                    // }
+
+                    // Update Grand Total (Material Only for now)
                     document.getElementById('grandTotal').innerHTML =
-                        `Grand Total: <span class="text-success fw-bold">${formatCurrency(data.grand_total_idr)} IDR</span>`;
+                        `Grand Total: <span class="text-success fw-bold">${formatCurrency(data.grand_total_material_idr)} IDR</span>`;
 
                     const modal = new bootstrap.Modal(document.getElementById('costingModal'));
                     modal.show();

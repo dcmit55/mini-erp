@@ -23,11 +23,13 @@ use App\Http\Controllers\Finance\ProjectCostingController;
 use App\Http\Controllers\Logistic\MaterialRequestController;
 use App\Http\Controllers\Hr\EmployeeController;
 use App\Http\Controllers\Production\TimingController;
+use App\Http\Controllers\Production\TimingApprovalController;
 use App\Http\Controllers\Timing\Costume\CostumeTimingController;
 use App\Http\Controllers\Timing\Costume\CostumeMonitorController;
 use App\Http\Controllers\Timing\Animatronics\AnimatronicsTimingController;
 use App\Http\Controllers\Timing\Animatronics\AnimatronicsMonitorController;
 use App\Http\Controllers\Timing\Mascot\MascotTimingController;
+use App\Http\Controllers\Timing\Mascot\MascotMonitorController;
 use App\Http\Controllers\Timing\TimingMonitorController;
 use App\Http\Controllers\Finance\FinalProjectSummaryController;
 use App\Http\Controllers\Admin\DepartmentController;
@@ -182,6 +184,23 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/projects/quick-add', [ProjectController::class, 'storeQuick'])->name('projects.store.quick');
     Route::get('/projects/json', [ProjectController::class, 'json'])->name('projects.json');
     Route::post('/project-statuses', [ProjectStatusController::class, 'store'])->name('project-statuses.store');
+
+    // Lark Staging Tables - View raw data from Lark before mapping to ERP
+    Route::prefix('lark/staging')
+        ->name('lark.staging.')
+        ->group(function () {
+            // BT-SG (Batam to Singapore)
+            Route::get('/bt-sg-courier', [App\Http\Controllers\Lark\LarkStagingController::class, 'btSgCourierIndex'])->name('bt-sg-courier');
+            Route::get('/bt-sg-items', [App\Http\Controllers\Lark\LarkStagingController::class, 'btSgItemIndex'])->name('bt-sg-items');
+            Route::post('/sync-bt-sg-courier', [App\Http\Controllers\Lark\LarkStagingController::class, 'syncBtSgCourier'])->name('sync-bt-sg-courier');
+            Route::post('/sync-bt-sg-items', [App\Http\Controllers\Lark\LarkStagingController::class, 'syncBtSgItems'])->name('sync-bt-sg-items');
+
+            // SG-BT (Singapore to Batam)
+            Route::get('/sg-bt-courier', [App\Http\Controllers\Lark\LarkStagingController::class, 'sgBtCourierIndex'])->name('sg-bt-courier');
+            Route::get('/sg-bt-items', [App\Http\Controllers\Lark\LarkStagingController::class, 'sgBtItemIndex'])->name('sg-bt-items');
+            Route::post('/sync-sg-bt-courier', [App\Http\Controllers\Lark\LarkStagingController::class, 'syncSgBtCourier'])->name('sync-sg-bt-courier');
+            Route::post('/sync-sg-bt-items', [App\Http\Controllers\Lark\LarkStagingController::class, 'syncSgBtItems'])->name('sync-sg-bt-items');
+        });
 
     // Job Orders
     Route::prefix('job-orders')
@@ -338,6 +357,20 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/timings-import', [TimingController::class, 'import'])->name('timings.import');
     Route::get('/timings-template', [TimingController::class, 'downloadTemplate'])->name('timings.template');
 
+    // Timing Approval - Approve/Reject Timing Sessions
+    Route::prefix('timing-approval')
+        ->name('timing-approval.')
+        ->group(function () {
+            Route::get('/', [TimingApprovalController::class, 'index'])->name('index');
+            Route::get('/debug', function () {
+                return view('production.timing-approval.debug');
+            })->name('debug');
+            Route::post('/{id}/approve', [TimingApprovalController::class, 'approve'])->name('approve');
+            Route::post('/{id}/reject', [TimingApprovalController::class, 'reject'])->name('reject');
+            Route::post('/bulk-approve', [TimingApprovalController::class, 'bulkApprove'])->name('bulk-approve');
+            Route::post('/bulk-reject', [TimingApprovalController::class, 'bulkReject'])->name('bulk-reject');
+        });
+
     // Costume Timing - Costume Department Production Timer
     Route::prefix('costume-timing')
         ->name('costume-timing.')
@@ -346,6 +379,7 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/start', [CostumeTimingController::class, 'start'])->name('start');
             Route::post('/stop', [CostumeTimingController::class, 'stop'])->name('stop');
             Route::get('/active-sessions', [CostumeTimingController::class, 'getActiveSessions'])->name('active-sessions');
+            Route::post('/get-sessions-info', [CostumeTimingController::class, 'getSessionsInfo'])->name('get-sessions-info');
             Route::get('/job-order/{jobOrderId}', [CostumeTimingController::class, 'getJobOrderInfo'])->name('job-order-info');
             // Costume Monitor
             Route::get('/monitor', [CostumeMonitorController::class, 'index'])->name('monitor');
@@ -374,6 +408,9 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/stop', [MascotTimingController::class, 'stop'])->name('stop');
             Route::get('/active-sessions', [MascotTimingController::class, 'getActiveSessions'])->name('active-sessions');
             Route::get('/job-order/{jobOrderId}', [MascotTimingController::class, 'getJobOrderInfo'])->name('job-order-info');
+            // Mascot Monitor
+            Route::get('/monitor', [MascotMonitorController::class, 'index'])->name('monitor');
+            Route::get('/monitor/running', [MascotMonitorController::class, 'getRunning'])->name('monitor.running');
         });
 
     // Timing Monitor - Real-time Running Sessions Dashboard (All Departments)
@@ -552,16 +589,16 @@ Route::middleware(['auth'])->group(function () {
 
     // Employee Work Policies
     Route::middleware(['auth'])->group(function () {
-    Route::get('/employee-work-policies', [EmployeeWorkPolicyController::class, 'index'])->name('employee-work-policies.index');
-    Route::get('/employee-work-policies/create', [EmployeeWorkPolicyController::class, 'create'])->name('employee-work-policies.create');
-    Route::post('/employee-work-policies', [EmployeeWorkPolicyController::class, 'store'])->name('employee-work-policies.store');
-    Route::get('/employee-work-policies/{policy}/edit', [EmployeeWorkPolicyController::class, 'edit'])->name('employee-work-policies.edit');
-    Route::put('/employee-work-policies/{policy}', [EmployeeWorkPolicyController::class, 'update'])->name('employee-work-policies.update');
-    Route::delete('/employee-work-policies/{policy}', [EmployeeWorkPolicyController::class, 'destroy'])->name('employee-work-policies.destroy');
-    
-    // Route untuk import (tambahkan ini)
-    Route::post('/employee-work-policies/import', [EmployeeWorkPolicyController::class, 'storeImport'])->name('employee-work-policies.import');
-    });    // API endpoint untuk mengambil jam kerja karyawan (opsional)
+        Route::get('/employee-work-policies', [EmployeeWorkPolicyController::class, 'index'])->name('employee-work-policies.index');
+        Route::get('/employee-work-policies/create', [EmployeeWorkPolicyController::class, 'create'])->name('employee-work-policies.create');
+        Route::post('/employee-work-policies', [EmployeeWorkPolicyController::class, 'store'])->name('employee-work-policies.store');
+        Route::get('/employee-work-policies/{policy}/edit', [EmployeeWorkPolicyController::class, 'edit'])->name('employee-work-policies.edit');
+        Route::put('/employee-work-policies/{policy}', [EmployeeWorkPolicyController::class, 'update'])->name('employee-work-policies.update');
+        Route::delete('/employee-work-policies/{policy}', [EmployeeWorkPolicyController::class, 'destroy'])->name('employee-work-policies.destroy');
+
+        // Route untuk import (tambahkan ini)
+        Route::post('/employee-work-policies/import', [EmployeeWorkPolicyController::class, 'storeImport'])->name('employee-work-policies.import');
+    }); // API endpoint untuk mengambil jam kerja karyawan (opsional)
     Route::get('/employees/{employee}/work-hours', [App\Http\Controllers\Hr\EmployeeWorkPolicyController::class, 'getHours'])->name('employees.work-hours');
 
     // Attendance Logs
@@ -574,33 +611,27 @@ Route::middleware(['auth'])->group(function () {
 
     // ===== ROUTES OVERTIME REQUESTS =====
     // Route spesifik harus sebelum resource
-    Route::get('overtime-requests/attendance-comparison', [OvertimeRequestController::class, 'attendanceComparison'])
-        ->name('overtime-requests.attendance-comparison');
-    Route::get('overtime-requests/hr/approvals', [OvertimeRequestController::class, 'hrApprovals'])
-        ->name('overtime-requests.hr-approvals');
-    Route::get('overtime-requests/director/approvals', [OvertimeRequestController::class, 'directorApprovals'])
-        ->name('overtime-requests.director-approvals');
+    Route::get('overtime-requests/attendance-comparison', [OvertimeRequestController::class, 'attendanceComparison'])->name('overtime-requests.attendance-comparison');
+    Route::get('overtime-requests/hr/approvals', [OvertimeRequestController::class, 'hrApprovals'])->name('overtime-requests.hr-approvals');
+    Route::get('overtime-requests/director/approvals', [OvertimeRequestController::class, 'directorApprovals'])->name('overtime-requests.director-approvals');
 
-    Route::post('overtime-requests/{overtime_request}/submit', [OvertimeRequestController::class, 'submit'])
-        ->name('overtime-requests.submit');
-    Route::post('overtime-requests/{overtime_request}/approve-hr', [OvertimeRequestController::class, 'approveHr'])
-        ->name('overtime-requests.approve-hr');
-    Route::post('overtime-requests/{overtime_request}/approve-director', [OvertimeRequestController::class, 'approveDirector'])
-        ->name('overtime-requests.approve-director');
-    Route::post('overtime-requests/{overtime_request}/toggle-pass', [OvertimeRequestController::class, 'togglePass'])
-        ->name('overtime-requests.toggle-pass');
-    Route::get('overtime-requests/{overtime_request}/calculate-pay', [OvertimeRequestController::class, 'calculatePay'])
-        ->name('overtime-requests.calculate-pay');
+    Route::post('overtime-requests/{overtime_request}/submit', [OvertimeRequestController::class, 'submit'])->name('overtime-requests.submit');
+    Route::post('overtime-requests/{overtime_request}/approve-hr', [OvertimeRequestController::class, 'approveHr'])->name('overtime-requests.approve-hr');
+    Route::post('overtime-requests/{overtime_request}/approve-director', [OvertimeRequestController::class, 'approveDirector'])->name('overtime-requests.approve-director');
+    Route::post('overtime-requests/{overtime_request}/toggle-pass', [OvertimeRequestController::class, 'togglePass'])->name('overtime-requests.toggle-pass');
+    Route::get('overtime-requests/{overtime_request}/calculate-pay', [OvertimeRequestController::class, 'calculatePay'])->name('overtime-requests.calculate-pay');
 
     // Resource route
     Route::resource('overtime-requests', OvertimeRequestController::class);
 
     // ===== ROUTES OVERTIME PAY =====
-    Route::prefix('overtime-pays')->name('overtime-pays.')->group(function () {
-        Route::get('/', [OvertimePayController::class, 'index'])->name('index');
-        Route::get('/{id}', [OvertimePayController::class, 'show'])->name('show');
-        Route::delete('/{id}', [OvertimePayController::class, 'destroy'])->name('destroy');
-    });
+    Route::prefix('overtime-pays')
+        ->name('overtime-pays.')
+        ->group(function () {
+            Route::get('/', [OvertimePayController::class, 'index'])->name('index');
+            Route::get('/{id}', [OvertimePayController::class, 'show'])->name('show');
+            Route::delete('/{id}', [OvertimePayController::class, 'destroy'])->name('destroy');
+        });
 
     // Efficiency Dashboard Routes
     Route::prefix('efficiency-dashboard')

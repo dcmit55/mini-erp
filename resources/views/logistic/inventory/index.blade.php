@@ -157,7 +157,7 @@
                                     @csrf
                                     <button type="button" class="btn btn-info btn-sm flex-shrink-0" id="btnSyncLark"
                                         data-bs-toggle="tooltip" data-bs-placement="bottom"
-                                        title="Sync inventory from Lark Base (Destination: BATAM, Status: Sent Out)">
+                                        title="Sync and aggregate real-time inventory stock from Lark Base (Destination: BATAM, Status: Sent Out). Same materials will be totaled.">
                                         <i class="fas fa-sync me-1" id="syncIcon"></i>
                                         <span id="syncText">Sync from Lark</span>
                                     </button>
@@ -685,14 +685,23 @@
 
                 Swal.fire({
                     title: 'Sync from Lark?',
-                    html: 'Sync inventory from Lark Base?<br><br>' +
+                    html: 'Sync and aggregate real-time inventory from Lark Base?<br><br>' +
                         '<strong>Filter Conditions:</strong><br>' +
                         '• Destination: BATAM<br>' +
-                        '• Status: Sent Out<br><br>' +
+                        '• Status: Sent Out<br>' +
+                        '• DEPT: Not Stock<br><br>' +
+                        '<strong>Aggregation Logic:</strong><br>' +
+                        '• Same material name = <strong>Quantities TOTALED</strong><br>' +
+                        '• Example: Cable USB (300) + Cable USB (50) = Cable USB (350)<br>' +
+                        '• Projects merged into comma-separated list<br>' +
+                        '• Latest price used<br><br>' +
                         'This will:<br>' +
-                        '- Fetch latest data from Lark Base<br>' +
-                        '- Create/update inventory items<br>' +
+                        '- Fetch all matching records from Lark<br>' +
+                        '- Group and sum quantities by material name<br>' +
+                        '- Create/update aggregated inventory<br>' +
+                        '- Remove items no longer in Lark<br>' +
                         '- Currency: RMB (CNY)<br><br>' +
+                        '<strong>Result: Real-time total stock per material!</strong><br><br>' +
                         'Continue?',
                     icon: 'question',
                     showCancelButton: true,

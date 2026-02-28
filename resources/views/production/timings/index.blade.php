@@ -20,6 +20,9 @@
 
                     <!-- Spacer untuk mendorong tombol ke kanan -->
                     <div class="ms-lg-auto d-flex flex-wrap gap-2">
+                        <a href="{{ route('costume-timing.index') }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-cut me-1"></i> Costume Timing
+                        </a>
                         <a href="{{ route('timings.create') }}" class="btn btn-primary btn-sm flex-shrink-0">
                             <i class="bi bi-plus-circle me-1"></i> Input Timing
                         </a>
@@ -125,7 +128,7 @@
                 <table class="table table-sm table-hover align-middle rounded" id="timing-table">
                     <thead class="table-light">
                         <tr>
-                            <th>Date</th>
+                            <th class="date-col">Date</th>
                             <th>Project</th>
                             <th>Job Order</th>
                             <th>Department</th>
@@ -134,16 +137,152 @@
                             <th>Employee</th>
                             <th>Start</th>
                             <th>End</th>
-                            <th>Duration (hrs)</th>
+                            <th>Duration (min)</th>
                             <th>Value</th>
                             <th>Type</th>
                             <th>Status</th>
+                            <th>Approval</th>
                             <th>Remarks</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody id="timing-rows">
-                        @include('production.timings.timing_table', ['timings' => $timings])
+                        @forelse($timings as $timing)
+                            <tr>
+                                {{-- Date --}}
+                                <td class="date-col">
+                                    {{ $timing->tanggal ? \Carbon\Carbon::parse($timing->tanggal)->format('d M Y') : '-' }}
+                                </td>
+
+                                {{-- Project (no badge) --}}
+                                <td>{{ $timing->project ? $timing->project->name : '-' }}</td>
+
+                                {{-- Job Order (no badge) --}}
+                                <td>{{ $timing->jobOrder ? $timing->jobOrder->name : '-' }}</td>
+
+                                {{-- Department --}}
+                                <td>
+                                    @if ($timing->employee && $timing->employee->department)
+                                        {{ $timing->employee->department->name }}
+                                    @else
+                                        -
+                                    @endif
+                                </td>
+
+                                {{-- Step --}}
+                                <td>{{ $timing->step ?? '-' }}</td>
+
+                                {{-- Parts --}}
+                                <td>{{ $timing->parts ?? '-' }}</td>
+
+                                {{-- Employee --}}
+                                <td>{{ $timing->employee ? $timing->employee->name : '-' }}</td>
+
+                                {{-- Start Time --}}
+                                <td>{{ $timing->start_time ? \Carbon\Carbon::parse($timing->start_time)->format('H:i') : '-' }}
+                                </td>
+
+                                {{-- End Time --}}
+                                <td>
+                                    @if ($timing->end_time)
+                                        {{ \Carbon\Carbon::parse($timing->end_time)->format('H:i') }}
+                                    @else
+                                        <span class="badge bg-warning">Running</span>
+                                    @endif
+                                </td>
+
+                                {{-- Duration in Minutes --}}
+                                <td>
+                                    @php
+                                        $minutes = 0;
+                                        if ($timing->duration_minutes && $timing->duration_minutes > 0) {
+                                            $minutes = $timing->duration_minutes;
+                                        } elseif ($timing->start_time && $timing->end_time) {
+                                            $start = \Carbon\Carbon::parse($timing->start_time);
+                                            $end = \Carbon\Carbon::parse($timing->end_time);
+                                            $minutes = $start->diffInMinutes($end);
+                                        }
+                                    @endphp
+                                    {{ $minutes > 0 ? $minutes . ' min' : '-' }}
+                                </td>
+
+                                {{-- Value from measurement_value --}}
+                                <td>{{ $timing->measurement_value ?? '-' }}</td>
+
+                                {{-- Type from measurement_type --}}
+                                <td>
+                                    @if ($timing->measurement_type == 'qty')
+                                        Qty
+                                    @elseif($timing->measurement_type == 'progress')
+                                        Progress
+                                    @else
+                                        {{ $timing->measurement_type ?? '-' }}
+                                    @endif
+                                </td>
+
+                                {{-- Status --}}
+                                <td>
+                                    @if ($timing->status == 'complete')
+                                        <span class="badge bg-success">Complete</span>
+                                    @elseif($timing->status == 'on progress')
+                                        <span class="badge bg-warning">On Progress</span>
+                                    @elseif($timing->status == 'pending')
+                                        <span class="badge bg-secondary">Pending</span>
+                                    @else
+                                        <span class="badge bg-light text-dark">{{ ucfirst($timing->status ?? '-') }}</span>
+                                    @endif
+                                </td>
+
+                                {{-- Approval Status --}}
+                                <td>
+                                    @if ($timing->approval_status == 'approved')
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check-circle"></i> Approved
+                                        </span>
+                                    @elseif($timing->approval_status == 'rejected')
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-times-circle"></i> Rejected
+                                        </span>
+                                    @else
+                                        <span class="badge bg-warning">
+                                            <i class="fas fa-clock"></i> Pending
+                                        </span>
+                                    @endif
+                                </td>
+
+                                {{-- Remarks --}}
+                                <td>{{ $timing->remarks ?? '-' }}</td>
+
+                                {{-- Actions --}}
+                                <td class="text-nowrap">
+                                    @if (auth()->user()->isSuperAdmin() || auth()->user()->isLogisticAdmin() || auth()->user()->id == $timing->employee_id)
+                                        <a href="{{ route('timings.edit', $timing->id) }}" class="btn btn-sm btn-primary"
+                                            title="Edit">
+                                            <i class="bi bi-pencil-fill"></i>
+                                        </a>
+
+                                        <form action="{{ route('timings.destroy', $timing->id) }}" method="POST"
+                                            class="d-inline"
+                                            onsubmit="return confirm('Are you sure you want to delete this timing record?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-danger" title="Delete">
+                                                <i class="bi bi-trash-fill"></i>
+                                            </button>
+                                        </form>
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @empty
+                            <tr class="no-data-row">
+                                <td colspan="16" class="text-center py-4">
+                                    <i class="bi bi-inbox" style="font-size: 3rem; opacity: 0.3;"></i>
+                                    <p class="mt-2 text-muted">No timing data found</p>
+                                </td>
+                            </tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>
@@ -160,7 +299,8 @@
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form action="{{ route('timings.import') }}" method="POST" enctype="multipart/form-data" id="import-form">
+                <form action="{{ route('timings.import') }}" method="POST" enctype="multipart/form-data"
+                    id="import-form">
                     @csrf
                     <div class="modal-body">
                         <div class="mb-3">
@@ -207,6 +347,12 @@
 
 @push('styles')
     <style>
+        /* Date Column Width */
+        .date-col {
+            min-width: 180px;
+            white-space: nowrap;
+        }
+
         /* Select2 Styling */
         .select2-container .select2-selection--single {
             height: 2.375rem;
@@ -376,6 +522,9 @@
             paging: true,
             info: true,
             ordering: true,
+            order: [
+                [0, 'desc']
+            ], // Sort by Date column (index 0) descending - NEWEST FIRST
             lengthChange: true,
             pageLength: 25,
             language: {
@@ -434,6 +583,15 @@
             }
             setFiltersFromUrl();
 
+            // Clear old sorting state untuk enforce newest first
+            if (localStorage.getItem('DataTables_timing-table_/production/timings')) {
+                let savedState = JSON.parse(localStorage.getItem('DataTables_timing-table_/production/timings'));
+                savedState.order = [
+                    [0, 'desc']
+                ]; // Force newest first
+                localStorage.setItem('DataTables_timing-table_/production/timings', JSON.stringify(savedState));
+            }
+
             // Inisialisasi DataTables
             dt = $('#timing-table').DataTable(dtConfig);
 
@@ -469,13 +627,22 @@
                                         dt.destroy();
                                     }
                                     $('#timing-rows').html(res.html);
+
+                                    // Force newest first sorting before re-init
+                                    dtConfig.order = [
+                                        [0, 'desc']
+                                    ];
                                     dt = $('#timing-table').DataTable(dtConfig);
 
-                                    if (state) {
-                                        if (state.start) dt.page(state.start / dt.page
-                                            .len()).draw('page');
-                                        if (state.order) dt.order(state.order).draw();
+                                    // Restore page position only, NOT sorting
+                                    if (state && state.start) {
+                                        dt.page(state.start / dt.page.len()).draw('page');
                                     }
+
+                                    // Ensure sorting is DESC after draw
+                                    dt.order([
+                                        [0, 'desc']
+                                    ]).draw();
                                 } catch (error) {
                                     location.reload();
                                 }

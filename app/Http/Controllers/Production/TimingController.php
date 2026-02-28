@@ -135,11 +135,11 @@ class TimingController extends Controller
                     $html .= '<td>' . $approvalBadge . '</td>';
 
                     $html .= '<td>' . ($timing->remarks ?? '-') . '</td>';
-                    
+
                     // Actions column
                     $authUser = auth()->user();
                     $canEdit = $authUser->isSuperAdmin() || $authUser->isLogisticAdmin() || $authUser->id == $timing->employee_id;
-                    
+
                     if ($canEdit) {
                         $editUrl = route('timings.edit', $timing->id);
                         $deleteUrl = route('timings.destroy', $timing->id);
@@ -154,7 +154,7 @@ class TimingController extends Controller
                     } else {
                         $html .= '<td class="text-nowrap"><span class="text-muted">-</span></td>';
                     }
-                    
+
                     $html .= '</tr>';
                 }
             }

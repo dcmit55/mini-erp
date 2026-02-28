@@ -12,12 +12,12 @@
                 <a href="{{ route('costume-timing.monitor') }}" class="btn btn-primary btn-sm">
                     <i class="fas fa-tv me-1"></i> Costume Monitor
                 </a>
-                <a href="{{ route('animatronics-timing.index') }}" class="btn btn-outline-secondary btn-sm">
+                {{-- <a href="{{ route('animatronics-timing.index') }}" class="btn btn-outline-secondary btn-sm">
                     <i class="fas fa-robot me-1"></i> Animatronics
                 </a>
                 <a href="{{ route('mascot-timing.index') }}" class="btn btn-outline-secondary btn-sm">
                     <i class="fas fa-mask me-1"></i> Mascot Timing
-                </a>
+                </a> --}}
                 <a href="{{ route('timings.index') }}" class="btn btn-outline-primary btn-sm">
                     <i class="bi bi-table me-1"></i> View All Timings
                 </a>
@@ -55,33 +55,7 @@
                                     <span class="badge bg-primary me-2">1</span>Select Employees (Multiple)
                                 </label>
 
-                                <!-- Filter Controls -->
-                                <div class="row g-2 mb-3">
-                                    <div class="col-md-5">
-                                        <select class="form-select form-select-sm" id="filter-department"
-                                            data-placeholder="All Departments">
-                                            <option value="">All Departments</option>
-                                            @foreach ($departments as $dept)
-                                                <option value="{{ $dept->id }}">{{ $dept->name }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                    <div class="col-md-5">
-                                        <select class="form-select form-select-sm" id="filter-position"
-                                            data-placeholder="All Positions">
-                                            <option value="">All Positions</option>
-                                            @foreach ($positions as $pos)
-                                                <option value="{{ $pos }}">{{ $pos }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                    <div class="col-md-2">
-                                        <button type="button" class="btn btn-sm btn-outline-secondary w-100"
-                                            id="reset-filters">
-                                            <i class="bi bi-arrow-clockwise"></i> Reset
-                                        </button>
-                                    </div>
-                                </div>
+
 
                                 <div class="row g-3" id="employee-cards">
                                     @forelse($employees as $employee)
@@ -554,20 +528,37 @@
 
             // Stop work handler (delegated event) - INDIVIDUAL STOP
             $(document).on('click', '.stop-work-btn', function() {
+                // Check if this is a grouped session (multiple employees)
+                const timingIds = $(this).data('timing-ids');
                 const timingId = $(this).data('timing-id');
-                const employeeName = $(this).data('employee-name');
-                const jobOrder = $(this).data('job-order');
 
-                $('#stop-timing-id').val(timingId);
-                $('#stop-session-info').html(`
-                    <div class="alert alert-info mb-0">
-                        <strong>Employee:</strong> ${employeeName}<br>
-                        <strong>Job Order:</strong> ${jobOrder}
-                    </div>
-                `);
-                $('#stop-output-qty').val(1).focus();
+                // GROUPED SESSION: Show employee selection modal
+                if (timingIds && Array.isArray(timingIds)) {
+                    showGroupedStopModal(timingIds);
+                    return;
+                }
 
-                $('#stopWorkModal').modal('show');
+                // INDIVIDUAL SESSION: Show simple stop modal
+                if (timingId) {
+                    const employeeName = $(this).data('employee-name');
+                    const jobOrder = $(this).data('job-order');
+
+                    $('#stop-timing-id').val(timingId);
+                    $('#stop-session-info').html(`
+                        <div class="alert alert-info mb-0">
+                            <strong>Employee:</strong> ${employeeName}<br>
+                            <strong>Job Order:</strong> ${jobOrder}
+                        </div>
+                    `);
+                    $('#stop-output-qty').val(1).focus();
+                    $('#stopWorkModal').modal('show');
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Cannot identify timing session. Please refresh the page.'
+                    });
+                }
             });
 
             // Stop work form submission - INDIVIDUAL
@@ -656,6 +647,212 @@
                 });
             }
 
+            // Show modal for grouped session with employee selection
+            function showGroupedStopModal(timingIds) {
+                // Fetch session details for all timing IDs
+                $.ajax({
+                    url: '{{ route('costume-timing.get-sessions-info') }}',
+                    method: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        timing_ids: timingIds
+                    },
+                    success: function(response) {
+                        if (response.success && response.sessions) {
+                            buildGroupedStopModal(response.sessions);
+                        }
+                    },
+                    error: function() {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Failed to load employee session details.'
+                        });
+                    }
+                });
+            }
+
+            // Build and show grouped stop modal with employee checkboxes
+            function buildGroupedStopModal(sessions) {
+                const firstSession = sessions[0];
+                let employeeListHtml = '';
+
+                sessions.forEach(session => {
+                    employeeListHtml += `
+                        <div class="form-check mb-3 p-3 border rounded">
+                            <input class="form-check-input grouped-employee-check"
+                                   type="checkbox"
+                                   value="${session.id}"
+                                   id="employee-${session.id}"
+                                   checked>
+                            <label class="form-check-label w-100" for="employee-${session.id}">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>${session.employee_name}</strong>
+                                        <br><small class="text-muted">${session.employee_position || 'N/A'}</small>
+                                    </div>
+                                    <div class="text-end">
+                                        <input type="number"
+                                               class="form-control form-control-sm qty-input-${session.id}"
+                                               placeholder="Qty"
+                                               value="1"
+                                               min="0"
+                                               step="0.01"
+                                               style="width: 100px;"
+                                               data-timing-id="${session.id}">
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                    `;
+                });
+
+                const modalHtml = `
+                    <div class="modal fade" id="groupedStopModal" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Stop Work - Select Employees</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="alert alert-info mb-3">
+                                        <strong>Job Order:</strong> ${firstSession.job_order_name || 'N/A'}<br>
+                                        <strong>Project:</strong> ${firstSession.project_name || 'N/A'}
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Measurement Type</label>
+                                        <select class="form-select" id="grouped-measurement-type">
+                                            <option value="qty">Quantity (Qty)</option>
+                                            <option value="pcs">Pieces (Pcs)</option>
+                                            <option value="set">Set</option>
+                                            <option value="unit">Unit</option>
+                                            <option value="dozen">Dozen</option>
+                                        </select>
+                                    </div>
+
+                                    <p class="mb-2"><strong>Select employees to stop and enter their output quantity:</strong></p>
+                                    ${employeeListHtml}
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="button" class="btn btn-danger" id="confirm-grouped-stop">
+                                        <i class="bi bi-stop-circle me-1"></i>Stop Selected Sessions
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Remove existing modal if present
+                $('#groupedStopModal').remove();
+
+                // Append and show new modal
+                $('body').append(modalHtml);
+                const modal = new bootstrap.Modal(document.getElementById('groupedStopModal'));
+                modal.show();
+
+                // Handle grouped stop confirmation
+                $('#confirm-grouped-stop').off('click').on('click', function() {
+                    const selectedSessions = [];
+                    const measurementType = $('#grouped-measurement-type').val();
+
+                    $('.grouped-employee-check:checked').each(function() {
+                        const timingId = $(this).val();
+                        const qty = parseFloat($(`.qty-input-${timingId}`).val()) || 0;
+
+                        if (qty > 0) {
+                            selectedSessions.push({
+                                timing_id: timingId,
+                                output_qty: qty,
+                                measurement_type: measurementType
+                            });
+                        }
+                    });
+
+                    if (selectedSessions.length === 0) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'No Selection',
+                            text: 'Please select at least one employee with valid quantity.'
+                        });
+                        return;
+                    }
+
+                    // Submit multiple stop requests
+                    stopMultipleSessions(selectedSessions, modal);
+                });
+            }
+
+            // Stop multiple sessions individually
+            function stopMultipleSessions(sessions, modal) {
+                const totalSessions = sessions.length;
+                let completedCount = 0;
+                let failedCount = 0;
+
+                Swal.fire({
+                    title: 'Processing...',
+                    text: `Stopping ${totalSessions} session(s)...`,
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                // Process each session stop request
+                const promises = sessions.map(session => {
+                    return $.ajax({
+                        url: '{{ route('costume-timing.stop') }}',
+                        method: 'POST',
+                        data: {
+                            _token: '{{ csrf_token() }}',
+                            timing_id: session.timing_id,
+                            output_qty: session.output_qty,
+                            measurement_type: session.measurement_type
+                        }
+                    }).then(
+                        response => {
+                            completedCount++;
+                            return {
+                                success: true,
+                                timing_id: session.timing_id
+                            };
+                        },
+                        xhr => {
+                            failedCount++;
+                            return {
+                                success: false,
+                                timing_id: session.timing_id
+                            };
+                        }
+                    );
+                });
+
+                // Wait for all requests to complete
+                Promise.all(promises).then(results => {
+                    modal.hide();
+                    $('#groupedStopModal').remove();
+
+                    Swal.fire({
+                        icon: completedCount > 0 ? 'success' : 'error',
+                        title: 'Batch Stop Complete',
+                        html: `
+                            <p>Completed: <strong class="text-success">${completedCount}</strong></p>
+                            ${failedCount > 0 ? `<p>Failed: <strong class="text-danger">${failedCount}</strong></p>` : ''}
+                        `,
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+
+                    // Reload page after delay
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2000);
+                });
+            }
+
             // Update active sessions display
             function updateActiveSessionsDisplay(sessions) {
                 const container = $('#active-sessions-container');
@@ -671,62 +868,128 @@
                     return;
                 }
 
-                // Group sessions by job_order_id
+                // Group sessions by job_order_id AND start_time (same batch = same start time)
+                // This ensures only sessions started together in ONE batch are grouped
                 const grouped = sessions.reduce((acc, session) => {
-                    if (!acc[session.job_order_id]) {
-                        acc[session.job_order_id] = [];
+                    const groupKey = `${session.job_order_id}_${session.start_time}`; // BATCH KEY
+                    if (!acc[groupKey]) {
+                        acc[groupKey] = [];
                     }
-                    acc[session.job_order_id].push(session);
+                    acc[groupKey].push(session);
                     return acc;
                 }, {});
 
                 let html = '';
-                for (const [jobOrderId, sessionsGroup] of Object.entries(grouped)) {
-                    const firstSession = sessionsGroup[0];
-                    const timingIds = sessionsGroup.map(s => s.id);
-                    const employeeNames = sessionsGroup.map(s => s.employee_name).join(', ');
-                    const jobOrderName = firstSession.job_order_name || jobOrderId;
-                    const projectName = firstSession.project_name || 'N/A';
+                for (const [groupKey, sessionsGroup] of Object.entries(grouped)) {
+                    // If only 1 employee in group, show INDIVIDUAL card
+                    if (sessionsGroup.length === 1) {
+                        const timing = sessionsGroup[0];
+                        const photoHtml = timing.employee_photo ?
+                            `<img src="/storage/${timing.employee_photo}" class="rounded-circle me-2" width="40" height="40" style="object-fit: cover;">` :
+                            `<div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
+                                 <i class="bi bi-person text-white"></i>
+                               </div>`;
 
-                    html += `
-                <div class="card session-card mb-3">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <div>
-                                <h6 class="mb-1">
-                                    <span class="badge bg-success">RUNNING</span>
-                                    ${jobOrderName}
-                                </h6>
-                                <small class="text-muted">${projectName}</small>
+                        html += `
+                            <div class="card session-card mb-3" id="session-card-${timing.id}" data-session-id="${timing.id}">
+                                <div class="card-body p-3">
+                                    <div class="d-flex align-items-center mb-2">
+                                        ${photoHtml}
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-0">
+                                                <span class="badge bg-success me-1">RUNNING</span>
+                                                ${timing.employee_name}
+                                            </h6>
+                                            <small class="text-muted">${timing.employee_position || 'N/A'}</small>
+                                        </div>
+                                        <span class="duration-display fs-5 fw-bold text-success"
+                                              data-start-time="${timing.start_time}"
+                                              data-session-id="${timing.id}">
+                                            ${timing.duration || '00:00:00'}
+                                        </span>
+                                    </div>
+                                    <div class="border-top pt-2 mb-2">
+                                        <div class="row g-2 small">
+                                            <div class="col-12">
+                                                <strong>Job Order:</strong> ${timing.job_order_name}<br>
+                                                <strong>Project:</strong> ${timing.project_name}
+                                            </div>
+                                            <div class="col-6">
+                                                <strong>Step:</strong> ${timing.step}
+                                            </div>
+                                            <div class="col-6">
+                                                <strong>Part:</strong> ${timing.parts}
+                                            </div>
+                                            <div class="col-12">
+                                                <small class="text-muted d-flex justify-content-between">
+                                                    <span><i class="bi bi-clock"></i> Started: ${timing.start_time}</span>
+                                                    <span><i class="bi bi-calendar-x"></i> Deadline: ${timing.job_order_deadline || '—'}</span>
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="d-grid">
+                                        <button class="btn btn-danger btn-sm stop-work-btn"
+                                                data-timing-id="${timing.id}"
+                                                data-employee-name="${timing.employee_name}"
+                                                data-job-order="${timing.job_order_name}">
+                                            <i class="bi bi-stop-circle me-1"></i>STOP WORK & ENTER QTY
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
-                            <span class="duration-display" data-start-time="${firstSession.start_time}">
-                                ${firstSession.duration}
-                            </span>
-                        </div>
-                        <div class="mb-2">
-                            <small class="text-muted d-block">Employees (${sessionsGroup.length}):</small>
-                            <strong class="small">${employeeNames}</strong>
-                        </div>
-                        <div class="row mb-2">
-                            <div class="col-6">
-                                <small class="text-muted d-block">Step:</small>
-                                <strong class="small">${firstSession.step}</strong>
+                        `;
+                    } else {
+                        // Multiple employees in SAME BATCH - show GROUPED card
+                        const firstSession = sessionsGroup[0];
+                        const timingIds = sessionsGroup.map(s => s.id);
+                        const employeeNames = sessionsGroup.map(s => s.employee_name).join(', ');
+                        const jobOrderName = firstSession.job_order_name || firstSession.job_order_id;
+                        const projectName = firstSession.project_name || 'N/A';
+
+                        html += `
+                    <div class="card session-card mb-3">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <h6 class="mb-1">
+                                        <span class="badge bg-success">RUNNING (BATCH)</span>
+                                        ${jobOrderName}
+                                    </h6>
+                                    <small class="text-muted">${projectName}</small>
+                                    <div class="mt-1">
+                                        <span class="badge bg-danger"><i class="bi bi-calendar-x"></i> Deadline: 30 Mar 2026</span>
+                                    </div>
+                                </div>
+                                <span class="duration-display" data-start-time="${firstSession.start_time}">
+                                    ${firstSession.duration}
+                                </span>
                             </div>
-                            <div class="col-6">
-                                <small class="text-muted d-block">Part:</small>
-                                <strong class="small">${firstSession.parts}</strong>
+                            <div class="mb-2">
+                                <small class="text-muted d-block">Employees (${sessionsGroup.length}):</small>
+                                <strong class="small">${employeeNames}</strong>
                             </div>
-                        </div>
-                        <div class="d-grid">
-                            <button class="btn btn-danger btn-sm stop-work-btn"
-                                    data-timing-ids='${JSON.stringify(timingIds)}'
-                                    data-session-info="<strong>Job Order:</strong> ${jobOrderName}<br><strong>Project:</strong> ${projectName}<br><strong>Employees:</strong> ${employeeNames}">
-                                <i class="bi bi-stop-circle me-1"></i>STOP WORK
-                            </button>
+                            <div class="row mb-2">
+                                <div class="col-6">
+                                    <small class="text-muted d-block">Step:</small>
+                                    <strong class="small">${firstSession.step}</strong>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted d-block">Part:</small>
+                                    <strong class="small">${firstSession.parts}</strong>
+                                </div>
+                            </div>
+                            <div class="d-grid">
+                                <button class="btn btn-danger btn-sm stop-work-btn"
+                                        data-timing-ids='${JSON.stringify(timingIds)}'
+                                        data-session-info="<strong>Job Order:</strong> ${jobOrderName}<br><strong>Project:</strong> ${projectName}<br><strong>Employees:</strong> ${employeeNames}">
+                                    <i class="bi bi-stop-circle me-1"></i>STOP WORK (${sessionsGroup.length} employees)
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            `;
+                `;
+                    }
                 }
 
                 container.html(html);
@@ -772,8 +1035,9 @@
                                         <strong>Part:</strong> ${timing.parts}
                                     </div>
                                     <div class="col-12">
-                                        <small class="text-muted">
-                                            <i class="bi bi-clock"></i> Started: ${timing.start_time}
+                                        <small class="text-muted d-flex justify-content-between">
+                                            <span><i class="bi bi-clock"></i> Started: ${timing.start_time}</span>
+                                            <span><i class="bi bi-calendar-x"></i> Deadline: ${timing.job_order_deadline || '—'}</span>
                                         </small>
                                     </div>
                                 </div>

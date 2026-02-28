@@ -60,6 +60,44 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Staging Tables Configuration (Courier & Item Tracking)
+    |--------------------------------------------------------------------------
+    |
+    | Separate staging tables for raw Lark data before mapping to ERP
+    |
+    */
+
+    'staging' => [
+        // BT-SG (Batam to Singapore) - Courier
+        'bt_sg_courier' => [
+            'table_id' => env('LARK_BT_SG_COURIER_TABLE_ID', 'tblnwbXvyEnz6G60'),
+            'view_id' => env('LARK_BT_SG_COURIER_VIEW_ID', 'vew11b8N8m'),
+        ],
+
+        // BT-SG (Batam to Singapore) - Items
+        'bt_sg_items' => [
+            'table_id' => env('LARK_BT_SG_ITEMS_TABLE_ID', 'tbl0Z7U3UpjDm8S0'),
+            'view_id' => env('LARK_BT_SG_ITEMS_VIEW_ID', 'vewrGHKZN5'),
+        ],
+
+        // SG-BT (Singapore to Batam) - Courier
+        // CATATAN: Table ID ini SALAH! Saat ini menggunakan table Items (tbl0Z7U3UpjDm8S0)
+        // Seharusnya ada table terpisah untuk SG-BT Courier IDs
+        // TODO: Minta user untuk provide table_id yang benar untuk SG-BT Courier
+        'sg_bt_courier' => [
+            'table_id' => env('LARK_SG_BT_COURIER_TABLE_ID', 'tblt8ioLwKa1ZjVe'), // WRONG! This is items table
+            'view_id' => env('LARK_SG_BT_COURIER_VIEW_ID', 'vew11b8N8m'),
+        ],
+
+        // SG-BT (Singapore to Batam) - Items
+        'sg_bt_items' => [
+            'table_id' => env('LARK_SG_BT_ITEMS_TABLE_ID', 'tbl43ITOZDDkUJ2Z'),
+            'view_id' => env('LARK_SG_BT_ITEMS_VIEW_ID', 'vewrGHKZN5'),
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Sync Configuration
     |--------------------------------------------------------------------------
     */

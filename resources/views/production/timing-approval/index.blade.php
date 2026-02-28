@@ -1,0 +1,556 @@
+@extends('layouts.app')
+
+@section('title', 'Timing Approval')
+
+@section('content')
+    <div class="container-fluid">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3 mb-0 text-gray-800">
+                <i class="bi bi-check-circle"></i> Timing Approval
+            </h1>
+        </div>
+
+        {{-- Statistics Cards --}}
+        <div class="row mb-4">
+            <div class="col-xl-4 col-md-6 mb-3">
+                <div class="card border-left-warning shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Pending Approval
+                                </div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $stats['pending'] }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="bi bi-clock-history fa-2x text-warning"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-4 col-md-6 mb-3">
+                <div class="card border-left-success shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Approved Today</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $stats['approved_today'] }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="bi bi-check-circle fa-2x text-success"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-4 col-md-6 mb-3">
+                <div class="card border-left-danger shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Rejected Today</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $stats['rejected_today'] }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="bi bi-x-circle fa-2x text-danger"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Filters --}}
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Filters</h6>
+            </div>
+            <div class="card-body">
+                <form id="filterForm">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label for="approval_status">Approval Status</label>
+                            <select name="approval_status" id="approval_status" class="form-control">
+                                <option value="">All Status</option>
+                                <option value="pending" selected>Pending</option>
+                                <option value="approved">Approved</option>
+                                <option value="rejected">Rejected</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="project_id">Project</label>
+                            <select name="project_id" id="project_id" class="form-control select2">
+                                <option value="">All Projects</option>
+                                @foreach ($projects as $project)
+                                    <option value="{{ $project->id }}">{{ $project->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="department_id">Department</label>
+                            <select name="department_id" id="department_id" class="form-control select2">
+                                <option value="">All Departments</option>
+                                @foreach ($departments as $dept)
+                                    <option value="{{ $dept->id }}">{{ $dept->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="date_from">Date From</label>
+                            <input type="date" name="date_from" id="date_from" class="form-control">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="date_to">Date To</label>
+                            <input type="date" name="date_to" id="date_to" class="form-control">
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-12 text-right">
+                            <button type="button" id="btnFilter" class="btn btn-primary">
+                                <i class="bi bi-funnel"></i> Apply Filters
+                            </button>
+                            <button type="button" id="btnReset" class="btn btn-secondary">
+                                <i class="bi bi-arrow-counterclockwise"></i> Reset
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {{-- Data Table --}}
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">Timing Sessions</h6>
+                    <div>
+                        <button type="button" id="btnBulkApprove" class="btn btn-success btn-sm" disabled>
+                            <i class="bi bi-check-circle"></i> Bulk Approve
+                        </button>
+                        <button type="button" id="btnBulkReject" class="btn btn-danger btn-sm" disabled>
+                            <i class="bi bi-x-circle"></i> Bulk Reject
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover" id="timingApprovalTable" width="100%"
+                        cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th width="3%"><input type="checkbox" id="selectAll"></th>
+                                <th width="10%">Date</th>
+                                <th width="15%">Employee</th>
+                                <th width="15%">Project / Job Order</th>
+                                <th width="10%">Work Details</th>
+                                <th width="10%">Duration</th>
+                                <th width="10%">Output</th>
+                                <th width="10%">Status</th>
+                                <th width="12%">Approved By</th>
+                                <th width="5%">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- DataTables will populate this -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Rejection Modal --}}
+    <div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="rejectModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="rejectModalLabel">Reject Timing Session</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <form id="rejectForm">
+                    <div class="modal-body">
+                        <input type="hidden" id="reject_timing_id" name="timing_id">
+                        <div class="mb-3">
+                            <label for="rejection_reason" class="form-label">Rejection Reason <span
+                                    class="text-danger">*</span></label>
+                            <textarea name="reason" id="rejection_reason" class="form-control" rows="4" required
+                                placeholder="Please provide a clear reason for rejection..."></textarea>
+                            <div class="form-text">Max 500 characters</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-x-circle"></i> Reject
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {{-- Bulk Rejection Modal --}}
+    <div class="modal fade" id="bulkRejectModal" tabindex="-1" aria-labelledby="bulkRejectModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="bulkRejectModalLabel">Bulk Reject Timing Sessions</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <form id="bulkRejectForm">
+                    <div class="modal-body">
+                        <p>You are about to reject <strong id="bulkRejectCount"></strong> timing session(s).</p>
+                        <div class="mb-3">
+                            <label for="bulk_rejection_reason" class="form-label">Rejection Reason <span
+                                    class="text-danger">*</span></label>
+                            <textarea name="reason" id="bulk_rejection_reason" class="form-control" rows="4" required
+                                placeholder="Please provide a clear reason for rejection..."></textarea>
+                            <div class="form-text">Max 500 characters</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-x-circle"></i> Reject All Selected
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {{-- View Reason Modal --}}
+    <div class="modal fade" id="viewReasonModal" tabindex="-1" aria-labelledby="viewReasonModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="viewReasonModalLabel">Rejection Reason</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="viewReasonText"></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+@endsection
+
+@push('styles')
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css"
+        rel="stylesheet" />
+    <style>
+        /* Fix Select2 with Bootstrap 5 */
+        .select2-container .select2-selection--single {
+            height: 38px;
+            padding: 6px 12px;
+        }
+
+        .select2-container--bootstrap-5 .select2-selection {
+            border: 1px solid #dee2e6;
+        }
+    </style>
+@endpush
+
+@push('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            // Initialize Select2
+            $('.select2').select2({
+                theme: 'bootstrap-5',
+                allowClear: true,
+                placeholder: 'Select an option'
+            });
+
+            // Initialize DataTable
+            var table = $('#timingApprovalTable').DataTable({
+                processing: true,
+                serverSide: true,
+                ajax: {
+                    url: "{{ route('timing-approval.index') }}",
+                    type: 'GET',
+                    data: function(d) {
+                        d.approval_status = $('#approval_status').val();
+                        d.project_id = $('#project_id').val();
+                        d.department_id = $('#department_id').val();
+                        d.date_from = $('#date_from').val();
+                        d.date_to = $('#date_to').val();
+                    },
+                    dataSrc: function(json) {
+                        console.log('DataTable Response:', json);
+                        return json.data;
+                    },
+                    error: function(xhr, error, thrown) {
+                        console.error('AJAX Error:', error);
+                        console.error('Status:', xhr.status);
+                        console.error('Response:', xhr.responseText);
+                        alert('Error loading data: ' + error);
+                    }
+                },
+                columns: [{
+                        data: 'checkbox',
+                        orderable: false,
+                        searchable: false
+                    },
+                    {
+                        data: 'tanggal'
+                    },
+                    {
+                        data: 'employee_info',
+                        orderable: false
+                    },
+                    {
+                        data: 'project_info',
+                        orderable: false
+                    },
+                    {
+                        data: 'work_details',
+                        orderable: false
+                    },
+                    {
+                        data: 'duration_info',
+                        orderable: false
+                    },
+                    {
+                        data: 'output_info',
+                        orderable: false
+                    },
+                    {
+                        data: 'approval_status_badge'
+                    },
+                    {
+                        data: 'approver_info',
+                        orderable: false
+                    },
+                    {
+                        data: 'actions',
+                        orderable: false,
+                        searchable: false
+                    }
+                ],
+                order: [
+                    [1, 'desc']
+                ],
+                pageLength: 25,
+                lengthMenu: [
+                    [10, 25, 50, 100, -1],
+                    [10, 25, 50, 100, "All"]
+                ],
+                drawCallback: function() {
+                    updateBulkButtons();
+                }
+            });
+
+            // Filter button
+            $('#btnFilter').on('click', function() {
+                table.ajax.reload();
+            });
+
+            // Reset button
+            $('#btnReset').on('click', function() {
+                $('#filterForm')[0].reset();
+                $('.select2').val(null).trigger('change');
+                table.ajax.reload();
+            });
+
+            // Select all checkbox
+            $('#selectAll').on('change', function() {
+                $('.timing-checkbox').prop('checked', this.checked);
+                updateBulkButtons();
+            });
+
+            // Individual checkbox
+            $(document).on('change', '.timing-checkbox', function() {
+                updateBulkButtons();
+                var totalCheckboxes = $('.timing-checkbox').length;
+                var checkedCheckboxes = $('.timing-checkbox:checked').length;
+                $('#selectAll').prop('checked', totalCheckboxes === checkedCheckboxes);
+            });
+
+            // Update bulk button states
+            function updateBulkButtons() {
+                var checkedCount = $('.timing-checkbox:checked').length;
+                $('#btnBulkApprove, #btnBulkReject').prop('disabled', checkedCount === 0);
+            }
+
+            // Approve single
+            $(document).on('click', '.btn-approve', function() {
+                var id = $(this).data('id');
+                if (confirm('Are you sure you want to approve this timing session?')) {
+                    $.ajax({
+                        url: "/timing-approval/" + id + "/approve",
+                        type: 'POST',
+                        data: {
+                            _token: "{{ csrf_token() }}"
+                        },
+                        success: function(response) {
+                            showAlert('success', response.message);
+                            table.ajax.reload();
+                        },
+                        error: function(xhr) {
+                            var errorMsg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr
+                                .responseJSON.message : 'Error approving timing';
+                            showAlert('error', errorMsg);
+                        }
+                    });
+                }
+            });
+
+            // Reject single
+            $(document).on('click', '.btn-reject', function() {
+                var id = $(this).data('id');
+                $('#reject_timing_id').val(id);
+                $('#rejection_reason').val('');
+                var rejectModal = new bootstrap.Modal(document.getElementById('rejectModal'));
+                rejectModal.show();
+            });
+
+            // Reject form submit
+            $('#rejectForm').on('submit', function(e) {
+                e.preventDefault();
+                var id = $('#reject_timing_id').val();
+                var reason = $('#rejection_reason').val();
+
+                $.ajax({
+                    url: "/timing-approval/" + id + "/reject",
+                    type: 'POST',
+                    data: {
+                        _token: "{{ csrf_token() }}",
+                        reason: reason
+                    },
+                    success: function(response) {
+                        bootstrap.Modal.getInstance(document.getElementById('rejectModal'))
+                            .hide();
+                        showAlert('success', response.message);
+                        table.ajax.reload();
+                    },
+                    error: function(xhr) {
+                        var errorMsg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr
+                            .responseJSON.message : 'Error rejecting timing';
+                        showAlert('error', errorMsg);
+                    }
+                });
+            });
+
+            // Bulk approve
+            $('#btnBulkApprove').on('click', function() {
+                var ids = getSelectedIds();
+                if (ids.length === 0) {
+                    showAlert('warning', 'Please select at least one timing session');
+                    return;
+                }
+
+                if (confirm('Are you sure you want to approve ' + ids.length + ' timing session(s)?')) {
+                    $.ajax({
+                        url: "{{ route('timing-approval.bulk-approve') }}",
+                        type: 'POST',
+                        data: {
+                            _token: "{{ csrf_token() }}",
+                            timing_ids: ids
+                        },
+                        success: function(response) {
+                            showAlert('success', response.message);
+                            table.ajax.reload();
+                            $('#selectAll').prop('checked', false);
+                        },
+                        error: function(xhr) {
+                            var errorMsg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr
+                                .responseJSON.message : 'Error in bulk approval';
+                            showAlert('error', errorMsg);
+                        }
+                    });
+                }
+            });
+
+            // Bulk reject
+            $('#btnBulkReject').on('click', function() {
+                var ids = getSelectedIds();
+                if (ids.length === 0) {
+                    showAlert('warning', 'Please select at least one timing session');
+                    return;
+                }
+
+                $('#bulkRejectCount').text(ids.length);
+                $('#bulk_rejection_reason').val('');
+                $('#bulkRejectModal').modal('show');
+            });
+
+            // Bulk reject form submit
+            $('#bulkRejectForm').on('submit', function(e) {
+                e.preventDefault();
+                var ids = getSelectedIds();
+                var reason = $('#bulk_rejection_reason').val();
+
+                $.ajax({
+                    url: "{{ route('timing-approval.bulk-reject') }}",
+                    type: 'POST',
+                    data: {
+                        _token: "{{ csrf_token() }}",
+                        timing_ids: ids,
+                        reason: reason
+                    },
+                    success: function(response) {
+                        bootstrap.Modal.getInstance(document.getElementById('bulkRejectModal'))
+                            .hide();
+                        showAlert('success', response.message);
+                        table.ajax.reload();
+                        $('#selectAll').prop('checked', false);
+                    },
+                    error: function(xhr) {
+                        var errorMsg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr
+                            .responseJSON.message : 'Error in bulk rejection';
+                        showAlert('error', errorMsg);
+                    }
+                });
+            });
+
+            // View reason
+            $(document).on('click', '.btn-view-reason', function() {
+                var reason = $(this).data('reason');
+                $('#viewReasonText').text(reason || 'No reason provided');
+                var viewReasonModal = new bootstrap.Modal(document.getElementById('viewReasonModal'));
+                viewReasonModal.show();
+            });
+
+            // Helper: Get selected IDs
+            function getSelectedIds() {
+                var ids = [];
+                $('.timing-checkbox:checked').each(function() {
+                    ids.push($(this).val());
+                });
+                return ids;
+            }
+
+            // Helper: Show alert
+            function showAlert(type, message) {
+                var alertClass = type === 'success' ? 'alert-success' : type === 'warning' ? 'alert-warning' :
+                    'alert-danger';
+                var alertHtml = '<div class="alert ' + alertClass +
+                    ' alert-dismissible fade show" role="alert">' +
+                    message +
+                    '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+                    '</div>';
+
+                $('.container-fluid').prepend(alertHtml);
+
+                setTimeout(function() {
+                    $('.alert').fadeOut('slow', function() {
+                        $(this).remove();
+                    });
+                }, 5000);
+            }
+        });
+    </script>
+@endpush

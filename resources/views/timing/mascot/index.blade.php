@@ -9,11 +9,8 @@
                 <h2 class="mb-0" style="font-size:1.5rem;">🎭 Mascot Timing - Stage Progress Tracking</h2>
             </div>
             <div class="ms-lg-auto d-flex gap-2">
-                <a href="{{ route('costume-timing.index') }}" class="btn btn-outline-secondary btn-sm">
-                    <i class="fas fa-cut me-1"></i> Costume Timing
-                </a>
-                <a href="{{ route('animatronics-timing.index') }}" class="btn btn-outline-secondary btn-sm">
-                    <i class="fas fa-robot me-1"></i> Animatronics
+                <a href="{{ route('mascot-timing.monitor') }}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-tv me-1"></i> Mascot Monitor
                 </a>
                 <a href="{{ route('timings.index') }}" class="btn btn-outline-primary btn-sm">
                     <i class="bi bi-table me-1"></i> View All Timings
@@ -153,7 +150,11 @@
                 <div class="card shadow-sm border-0">
                     <div
                         class="card-header bg-gradient-mascot text-white d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Active Sessions</h5>
+                        <h5 class="mb-0">
+                            <i class="bi bi-clock-history me-2"></i>Active Sessions
+                            <span class="badge bg-danger ms-2"><i class="bi bi-calendar-x"></i> Deadline: 30 Mar
+                                2026</span>
+                        </h5>
                         <button class="btn btn-sm btn-light" id="refresh-sessions-btn">
                             <i class="bi bi-arrow-clockwise"></i>
                         </button>

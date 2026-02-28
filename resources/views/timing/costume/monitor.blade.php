@@ -103,8 +103,8 @@
                                             <div class="border-top pt-2">
                                                 <div class="small">
                                                     <div class="mb-1">
-                                                        <strong>Project:</strong><br>
-                                                        {{ $session->jobOrder->project->name ?? 'N/A' }}
+                                                        <strong>Job Order:</strong><br>
+                                                        {{ $session->jobOrder->name ?? 'N/A' }}
                                                     </div>
                                                     <div class="row g-1">
                                                         <div class="col-6">

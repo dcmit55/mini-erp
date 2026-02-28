@@ -12,12 +12,12 @@
                 <a href="{{ route('animatronics-timing.monitor') }}" class="btn btn-primary btn-sm">
                     <i class="fas fa-tv me-1"></i> Animatronics Monitor
                 </a>
-                <a href="{{ route('costume-timing.index') }}" class="btn btn-outline-secondary btn-sm">
+                {{-- <a href="{{ route('costume-timing.index') }}" class="btn btn-outline-secondary btn-sm">
                     <i class="fas fa-cut me-1"></i> Costume Timing
                 </a>
                 <a href="{{ route('mascot-timing.index') }}" class="btn btn-outline-secondary btn-sm">
                     <i class="fas fa-mask me-1"></i> Mascot Timing
-                </a>
+                </a> --}}
                 <a href="{{ route('timings.index') }}" class="btn btn-outline-primary btn-sm">
                     <i class="bi bi-table me-1"></i> View All Timings
                 </a>
@@ -133,8 +133,8 @@
                                                     </div>
                                                     @if ($employee->photo)
                                                         <img src="{{ asset('storage/' . $employee->photo) }}"
-                                                            class="rounded-circle mb-2 border" width="50"
-                                                            height="50" style="object-fit: cover;">
+                                                            class="rounded-circle mb-2 border" width="50" height="50"
+                                                            style="object-fit: cover;">
                                                     @else
                                                         <div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center mb-2"
                                                             style="width: 50px; height: 50px;">
@@ -1029,6 +1029,9 @@
                                             ${modeBadge}
                                         </h6>
                                         <small class="text-muted">${session.employee_position || 'N/A'}</small>
+                                        <div class="mt-1">
+                                            <span class="badge bg-danger"><i class="bi bi-calendar-x"></i> Deadline: 30 Mar 2026</span>
+                                        </div>
                                     </div>
                                     <span class="duration-display fs-5 fw-bold text-success"
                                           data-start-time="${session.start_time}"
@@ -1049,10 +1052,10 @@
                                             <strong>Part:</strong> ${session.parts || 'N/A'}
                                         </div>
                                         ${trackingMode === 'progress' ? `
-                                                        <div class="col-12">
-                                                            <strong>Previous Progress:</strong> ${previousProgress}%
-                                                        </div>
-                                                        ` : ''}
+                                                                <div class="col-12">
+                                                                    <strong>Previous Progress:</strong> ${previousProgress}%
+                                                                </div>
+                                                                ` : ''}
                                         <div class="col-12">
                                             <small class="text-muted">
                                                 <i class="bi bi-clock"></i> Started: ${session.start_time}
@@ -1127,13 +1130,14 @@
                                         <strong>Part:</strong> ${timing.parts || 'N/A'}
                                     </div>
                                     ${trackingMode === 'progress' ? `
-                                                    <div class="col-12">
-                                                        <strong>Previous Progress:</strong> ${previousProgress}%
-                                                    </div>
-                                                    ` : ''}
+                                                            <div class="col-12">
+                                                                <strong>Previous Progress:</strong> ${previousProgress}%
+                                                            </div>
+                                                            ` : ''}
                                     <div class="col-12">
-                                        <small class="text-muted">
-                                            <i class="bi bi-clock"></i> Started: ${timing.start_time}
+                                        <small class="text-muted d-flex justify-content-between">
+                                            <span><i class="bi bi-clock"></i> Started: ${timing.start_time}</span>
+                                            <span><i class="bi bi-calendar-x"></i> Deadline: ${timing.job_order_deadline || '—'}</span>
                                         </small>
                                     </div>
                                 </div>
