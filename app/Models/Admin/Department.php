@@ -19,4 +19,14 @@ class Department extends Model
     {
         return $this->belongsToMany(Project::class, 'department_project')->withTimestamps();
     }
+
+    public function jobOrderTypeGradings()
+    {
+        return $this->belongsToMany(
+            \App\Models\Production\JobOrderTypeGrading::class,
+            'department_job_order_type_grading',
+            'department_id',
+            'job_order_type_grading_id'
+        )->withTimestamps();
+    }
 }

@@ -193,14 +193,12 @@
                                 <tr>
                                     <th class="border-0 ps-4 text-center" width="50">No</th>
                                     <th class="border-0">Employee</th>
-                                    <th class="border-0">Department</th>
-                                    <th class="border-0">Project</th>
-                                    <th class="border-0">OT Code</th>
-                                    <th class="border-0">Start</th>
-                                    <th class="border-0">End</th>
-                                    <th class="border-0 text-end">Net Hours</th>
-                                    <th class="border-0">HR Status</th>
-                                    <th class="border-0">Director Status</th>
+                                    <th class="border-0 d-none d-xl-table-cell">Department</th>
+                                    <th class="border-0 d-none d-xl-table-cell">Project</th>
+                                    <th class="border-0">OT</th>
+                                    <th class="border-0">Time</th>
+                                    <th class="border-0 text-end">Net</th>
+                                    <th class="border-0">Approval</th>
                                     <th class="border-0">Overall</th>
                                     <th class="border-0 text-center">Actions</th>
                                 </tr>
@@ -216,43 +214,56 @@
                                         </td>
                                         <td>
                                             <span class="fw-medium">{{ $req->employee->name ?? '-' }}</span>
+                                            <br><small class="text-muted d-xl-none">{{ $req->department->name ?? '' }} {{ $req->jobOrder->name ? ' - '.$req->jobOrder->name : '' }}</small>
                                         </td>
-                                        <td>
+                                        <td class="d-none d-xl-table-cell">
                                             <span class="text-muted">{{ $req->department->name ?? '-' }}</span>
                                         </td>
-                                        <td>
+                                        <td class="d-none d-xl-table-cell">
                                             <span class="fw-medium">{{ $req->jobOrder->name ?? '-' }}</span>
                                         </td>
                                         <td>
-                                            <span class="badge bg-light text-dark px-3 py-1 rounded-pill">
-                                                {{ $req->ot_code }}
+                                            <span class="badge bg-light text-dark px-2 py-1 rounded-pill">
+                                                @if($req->ot_code == 'Normal Day')
+                                                    ND
+                                                @elseif($req->ot_code == 'Sunday')
+                                                    SUN
+                                                @elseif($req->ot_code == 'Public Holiday')
+                                                    PH
+                                                @else
+                                                    {{ $req->ot_code }}
+                                                @endif
                                             </span>
                                         </td>
                                         <td>
-                                            <span class="text-muted">{{ $req->start_time->format('d/m H:i') }}</span>
-                                        </td>
-                                        <td>
-                                            <span class="text-muted">{{ $req->end_time->format('d/m H:i') }}</span>
+                                            <span class="text-muted">{{ $req->start_time->format('d/m H:i') }} - {{ $req->end_time->format('H:i') }}</span>
                                         </td>
                                         <td class="text-end">
                                             <span class="fw-medium">{{ $req->net_hours_formatted }}</span>
                                         </td>
                                         <td>
                                             @php
-                                                $hrStatus = $req->hr_approval_status;
-                                                $hrBadgeClass = $hrStatus == 'approved' ? 'bg-success' : ($hrStatus == 'rejected' ? 'bg-danger' : 'bg-secondary');
+                                                $hr = $req->hr_approval_status;
+                                                $dir = $req->director_approval_status;
+                                                $icon = '';
+                                                $statusText = '';
+                                                if ($hr == 'approved' && $dir == 'approved') {
+                                                    $icon = '<i class="fas fa-check-circle text-success"></i>';
+                                                    $statusText = 'Approved';
+                                                } elseif ($hr == 'rejected' || $dir == 'rejected') {
+                                                    $icon = '<i class="fas fa-times-circle text-danger"></i>';
+                                                    $statusText = 'Rejected';
+                                                } else {
+                                                    $icon = '<i class="fas fa-clock text-warning"></i>';
+                                                    $statusText = 'Pending';
+                                                }
                                             @endphp
-                                            <span class="badge {{ $hrBadgeClass }} px-3 py-1 rounded-pill">
-                                                {{ ucfirst($hrStatus) }}
+                                            <span class="d-inline-flex align-items-center gap-1">
+                                                {!! $icon !!}
+                                                <span class="small d-none d-md-inline">{{ $statusText }}</span>
                                             </span>
-                                        </td>
-                                        <td>
-                                            @php
-                                                $dirStatus = $req->director_approval_status;
-                                                $dirBadgeClass = $dirStatus == 'approved' ? 'bg-success' : ($dirStatus == 'rejected' ? 'bg-danger' : 'bg-secondary');
-                                            @endphp
-                                            <span class="badge {{ $dirBadgeClass }} px-3 py-1 rounded-pill">
-                                                {{ ucfirst($dirStatus) }}
+                                            <span class="d-block d-md-none small">
+                                                HR: {{ ucfirst($hr) }}, Dir: {{ ucfirst($dir) }}
                                             </span>
                                         </td>
                                         <td>
@@ -314,7 +325,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="12" class="text-center py-5">
+                                        <td colspan="10" class="text-center py-5">
                                             <div class="text-muted">
                                                 <i class="fas fa-clock fa-3x mb-3"></i>
                                                 <h5>No Overtime Requests Found</h5>

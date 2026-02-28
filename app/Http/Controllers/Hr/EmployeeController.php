@@ -93,6 +93,7 @@ class EmployeeController extends Controller
             'salary' => 'nullable|numeric|min:0',
             'saldo_cuti' => 'nullable|numeric|min:0|max:999.99',
             'status' => 'required|in:active,inactive,terminated',
+            'username' => 'nullable|string|max:255|unique:employees,username',
             'notes' => 'nullable|string',
             'photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
             'documents.*' => 'nullable|file|max:5120',
@@ -107,7 +108,7 @@ class EmployeeController extends Controller
             'skillset_acquired_date.*' => 'nullable|date',
         ]);
 
-        $employeeData = $request->only(['employee_no', 'name', 'employment_type', 'position', 'department_id', 'email', 'phone', 'address', 'gender', 'ktp_id', 'place_of_birth', 'date_of_birth', 'rekening', 'hire_date', 'contract_end_date', 'salary', 'saldo_cuti', 'status', 'notes']);
+        $employeeData = $request->only(['employee_no', 'name', 'username', 'employment_type', 'position', 'department_id', 'email', 'phone', 'address', 'gender', 'ktp_id', 'place_of_birth', 'date_of_birth', 'rekening', 'hire_date', 'contract_end_date', 'salary', 'saldo_cuti', 'status', 'notes']);
 
         // Handle photo upload
         if ($request->hasFile('photo')) {
@@ -293,6 +294,7 @@ class EmployeeController extends Controller
             'salary' => 'nullable|numeric|min:0',
             'saldo_cuti' => 'nullable|numeric|min:0|max:999.99',
             'status' => 'required|in:active,inactive,terminated',
+            'username' => ['nullable', 'string', 'max:255', Rule::unique('employees')->ignore($employee->id)],
             'notes' => 'nullable|string',
             'photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
             'documents.*' => 'nullable|file|max:5120',
@@ -307,7 +309,7 @@ class EmployeeController extends Controller
             'skillset_acquired_date.*' => 'nullable|date',
         ]);
 
-        $employeeData = $request->only(['employee_no', 'name', 'employment_type', 'position', 'department_id', 'email', 'phone', 'address', 'gender', 'ktp_id', 'place_of_birth', 'date_of_birth', 'rekening', 'hire_date', 'contract_end_date', 'salary', 'saldo_cuti', 'status', 'notes']);
+        $employeeData = $request->only(['employee_no', 'name', 'username', 'employment_type', 'position', 'department_id', 'email', 'phone', 'address', 'gender', 'ktp_id', 'place_of_birth', 'date_of_birth', 'rekening', 'hire_date', 'contract_end_date', 'salary', 'saldo_cuti', 'status', 'notes']);
 
         // Handle photo upload
         if ($request->hasFile('photo')) {

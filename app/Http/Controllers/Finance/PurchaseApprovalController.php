@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Log;
 
 class PurchaseApprovalController extends Controller
 {
@@ -22,36 +23,110 @@ class PurchaseApprovalController extends Controller
         $endDate = $request->get('end_date');
         $department = $request->get('department');
         $purchaseType = $request->get('purchase_type');
+        $projectType = $request->get('project_type');
         
-        $query = ProjectPurchase::with(['department', 'supplier', 'pic', 'material', 'jobOrder'])
+        // Ambil semua item pending, tapi nanti akan dikelompokkan per PO
+        $items = ProjectPurchase::with([
+                'department', 
+                'supplier', 
+                'pic', 
+                'material', 
+                'jobOrder',
+                'project',
+                'internalProject'
+            ])
             ->where('status', 'pending')
             ->where('is_current', 1)
             ->orderBy('created_at', 'desc');
         
         if ($search) {
-            $query->where(function($q) use ($search) {
+            $items->where(function($q) use ($search) {
                 $q->where('po_number', 'like', "%{$search}%")
                   ->orWhere('job_order_id', 'like', "%{$search}%")
                   ->orWhere('new_item_name', 'like', "%{$search}%")
                   ->orWhereHas('material', function ($q2) use ($search) {
                       $q2->where('name', 'like', "%{$search}%");
+                  })
+                  ->orWhereHas('project', function ($q2) use ($search) {
+                      $q2->where('name', 'like', "%{$search}%");
+                  })
+                  ->orWhereHas('internalProject', function ($q2) use ($search) {
+                      $q2->where('project', 'like', "%{$search}%");
                   });
             });
         }
         
         if ($startDate && $endDate) {
-            $query->whereBetween('date', [$startDate, $endDate]);
+            $items->whereBetween('date', [$startDate, $endDate]);
         }
         
         if ($department) {
-            $query->where('department_id', $department);
+            $items->where('department_id', $department);
         }
         
         if ($purchaseType) {
-            $query->where('purchase_type', $purchaseType);
+            $items->where('purchase_type', $purchaseType);
         }
         
-        $purchases = $query->paginate(20);
+        if ($projectType) {
+            $items->where('project_type', $projectType);
+        }
+        
+        $items = $items->get();
+        
+        // Kelompokkan items berdasarkan PO number
+        $groupedPurchases = [];
+        foreach ($items as $item) {
+            $poNumber = $item->po_number;
+            
+            if (!isset($groupedPurchases[$poNumber])) {
+                // Inisialisasi grup PO
+                $groupedPurchases[$poNumber] = [
+                    'po_number' => $poNumber,
+                    'date' => $item->date,
+                    'department' => $item->department,
+                    'supplier' => $item->supplier,
+                    'project_type' => $item->project_type,
+                    'project' => $item->project,
+                    'internalProject' => $item->internalProject,
+                    'jobOrder' => $item->jobOrder,
+                    'items' => [],
+                    'total_items' => 0,
+                    'total_quantity' => 0,
+                    'total_amount' => 0,
+                    'created_at' => $item->created_at,
+                    'first_item_id' => $item->id, // Untuk link ke detail
+                ];
+            }
+            
+            // Tambahkan item ke grup
+            $groupedPurchases[$poNumber]['items'][] = $item;
+            $groupedPurchases[$poNumber]['total_items']++;
+            $groupedPurchases[$poNumber]['total_quantity'] += $item->quantity;
+            $groupedPurchases[$poNumber]['total_amount'] += $item->invoice_total;
+        }
+        
+        // Ubah menjadi collection untuk pagination manual
+        $purchasesCollection = collect(array_values($groupedPurchases));
+        
+        // Sort by created_at desc
+        $purchasesCollection = $purchasesCollection->sortByDesc(function($item) {
+            return $item['created_at'];
+        })->values();
+        
+        // Pagination manual
+        $perPage = 20;
+        $currentPage = $request->input('page', 1);
+        $pagedData = $purchasesCollection->slice(($currentPage - 1) * $perPage, $perPage)->values();
+        
+        $purchases = new \Illuminate\Pagination\LengthAwarePaginator(
+            $pagedData,
+            $purchasesCollection->count(),
+            $perPage,
+            $currentPage,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+        
         $departments = \App\Models\Admin\Department::orderBy('name')->get();
         
         return view('finance.purchase-approvals.index', compact(
@@ -73,53 +148,52 @@ class PurchaseApprovalController extends Controller
                 'resi_number' => 'nullable|string|max:255',
             ]);
             
+            // Cari item yang diklik
             $purchase = ProjectPurchase::where('is_current', 1)
                 ->with(['department', 'supplier', 'pic', 'material', 'jobOrder'])
                 ->findOrFail($id);
             
             DB::beginTransaction();
             
-            $updateData = [
-                'status' => 'approved',
-                'finance_notes' => $request->input('finance_notes', $purchase->finance_notes),
-                'resi_number' => $request->input('resi_number', $purchase->resi_number),
-            ];
+            // Approve SEMUA item dengan PO number yang sama
+            $poItems = ProjectPurchase::where('po_number', $purchase->po_number)
+                ->where('is_current', 1)
+                ->where('status', 'pending')
+                ->get();
             
-            if (Schema::hasColumn('indo_purchases', 'approved_at')) {
-                $updateData['approved_at'] = now();
+            $approvedCount = 0;
+            foreach ($poItems as $item) {
+                $updateData = [
+                    'status' => 'approved',
+                    'finance_notes' => $request->input('finance_notes', $item->finance_notes),
+                    'resi_number' => $request->input('resi_number', $item->resi_number),
+                ];
+                
+                if (Schema::hasColumn('indo_purchases', 'approved_at')) {
+                    $updateData['approved_at'] = now();
+                }
+                
+                if (Schema::hasColumn('indo_purchases', 'approved_by')) {
+                    $updateData['approved_by'] = Auth::id();
+                }
+                
+                $item->update($updateData);
+                
+                // Create DCM costing untuk setiap item
+                $this->createDcmCosting($item, 'approved', $request);
+                $approvedCount++;
             }
-            
-            if (Schema::hasColumn('indo_purchases', 'approved_by')) {
-                $updateData['approved_by'] = Auth::id();
-            }
-            
-            $purchase->update($updateData);
-            
-            // Create DCM costing
-            $this->createDcmCosting($purchase, 'approved', $request);
             
             DB::commit();
             
-            if ($request->ajax() || $request->wantsJson()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Purchase ' . $purchase->po_number . ' approved successfully.'
-                ]);
-            }
+            $message = $approvedCount . ' item(s) dalam PO ' . $purchase->po_number . ' berhasil di-approve.';
             
             return redirect()->route('purchase-approvals.index')
-                ->with('success', 'Purchase ' . $purchase->po_number . ' berhasil di-approve.');
+                ->with('success', $message);
                 
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('Approval error: ' . $e->getMessage());
-            
-            if ($request->ajax() || $request->wantsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Error: ' . $e->getMessage()
-                ], 500);
-            }
             
             return redirect()->route('purchase-approvals.index')
                 ->with('error', 'Error: ' . $e->getMessage());
@@ -138,27 +212,39 @@ class PurchaseApprovalController extends Controller
                 'finance_notes' => 'required|string|min:5|max:1000',
             ]);
             
+            // Cari item yang diklik
             $purchase = ProjectPurchase::where('is_current', 1)
                 ->with(['department', 'supplier', 'pic', 'material', 'jobOrder'])
                 ->findOrFail($id);
             
             DB::beginTransaction();
             
-            $updateData = [
-                'status' => 'rejected',
-                'finance_notes' => $request->finance_notes,
-            ];
+            // Reject SEMUA item dengan PO number yang sama
+            $poItems = ProjectPurchase::where('po_number', $purchase->po_number)
+                ->where('is_current', 1)
+                ->where('status', 'pending')
+                ->get();
             
-            $purchase->update($updateData);
-            
-            $this->createDcmCosting($purchase, 'rejected', $request);
+            $rejectedCount = 0;
+            foreach ($poItems as $item) {
+                $updateData = [
+                    'status' => 'rejected',
+                    'finance_notes' => $request->finance_notes,
+                ];
+                
+                $item->update($updateData);
+                
+                // Create DCM costing untuk setiap item
+                $this->createDcmCosting($item, 'rejected', $request);
+                $rejectedCount++;
+            }
             
             DB::commit();
             
-            \Log::info("=== REJECT SUCCESS ===");
+            $message = $rejectedCount . ' item(s) dalam PO ' . $purchase->po_number . ' berhasil di-reject.';
             
             return redirect()->route('purchase-approvals.index')
-                ->with('success', 'Purchase ' . $purchase->po_number . ' berhasil di-reject.');
+                ->with('success', $message);
                 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -182,33 +268,48 @@ class PurchaseApprovalController extends Controller
         
         $approvedCount = 0;
         $failed = [];
+        $processedPOs = [];
         
         foreach ($request->purchase_ids as $purchaseId) {
             try {
-                DB::transaction(function () use ($purchaseId, $request) {
+                DB::transaction(function () use ($purchaseId, $request, &$approvedCount, &$processedPOs) {
                     $purchase = ProjectPurchase::where('is_current', 1)
                         ->with(['department', 'supplier', 'pic', 'material', 'jobOrder'])
                         ->findOrFail($purchaseId);
                     
-                    $updateData = [
-                        'status' => 'approved',
-                        'finance_notes' => $request->finance_notes,
-                    ];
-                    
-                    if (Schema::hasColumn('indo_purchases', 'approved_at')) {
-                        $updateData['approved_at'] = now();
+                    // Cek apakah PO ini sudah diproses
+                    if (in_array($purchase->po_number, $processedPOs)) {
+                        return; // Skip, sudah diproses
                     }
                     
-                    if (Schema::hasColumn('indo_purchases', 'approved_by')) {
-                        $updateData['approved_by'] = Auth::id();
+                    // Approve SEMUA item dengan PO number yang sama
+                    $poItems = ProjectPurchase::where('po_number', $purchase->po_number)
+                        ->where('is_current', 1)
+                        ->where('status', 'pending')
+                        ->get();
+                    
+                    foreach ($poItems as $item) {
+                        $updateData = [
+                            'status' => 'approved',
+                            'finance_notes' => $request->finance_notes,
+                        ];
+                        
+                        if (Schema::hasColumn('indo_purchases', 'approved_at')) {
+                            $updateData['approved_at'] = now();
+                        }
+                        
+                        if (Schema::hasColumn('indo_purchases', 'approved_by')) {
+                            $updateData['approved_by'] = Auth::id();
+                        }
+                        
+                        $item->update($updateData);
+                        
+                        $this->createDcmCosting($item, 'approved', $request);
                     }
                     
-                    $purchase->update($updateData);
-                    
-                    $this->createDcmCosting($purchase, 'approved', $request);
+                    $processedPOs[] = $purchase->po_number;
+                    $approvedCount += $poItems->count();
                 });
-                
-                $approvedCount++;
                 
             } catch (\Exception $e) {
                 $failed[] = $purchaseId;
@@ -216,7 +317,7 @@ class PurchaseApprovalController extends Controller
             }
         }
         
-        $message = "Berhasil approve {$approvedCount} purchase(s).";
+        $message = "Berhasil approve {$approvedCount} item(s) dalam " . count($processedPOs) . " PO(s).";
         if (count($failed) > 0) {
             $message .= " Gagal: " . implode(', ', $failed);
         }
@@ -230,14 +331,19 @@ class PurchaseApprovalController extends Controller
      */
     public function statistics()
     {
-        $totalPending = ProjectPurchase::where('status', 'pending')
+        // Hitung jumlah PO unik yang pending
+        $uniquePOs = ProjectPurchase::where('status', 'pending')
             ->where('is_current', 1)
+            ->select('po_number')
+            ->distinct()
             ->count();
             
-        $thisMonth = ProjectPurchase::where('status', 'pending')
+        $thisMonthPOs = ProjectPurchase::where('status', 'pending')
             ->where('is_current', 1)
             ->whereMonth('created_at', now()->month)
             ->whereYear('created_at', now()->year)
+            ->select('po_number')
+            ->distinct()
             ->count();
             
         $totalAmount = ProjectPurchase::where('status', 'pending')
@@ -249,8 +355,8 @@ class PurchaseApprovalController extends Controller
             ->avg(DB::raw('DATEDIFF(NOW(), created_at)'));
         
         return response()->json([
-            'total_pending' => $totalPending,
-            'this_month' => $thisMonth,
+            'total_pending' => $uniquePOs,
+            'this_month' => $thisMonthPOs,
             'total_amount' => $totalAmount,
             'avg_processing_days' => round($avgProcessingDays ?? 0, 1)
         ]);
@@ -269,7 +375,13 @@ class PurchaseApprovalController extends Controller
             ])
             ->findOrFail($id);
         
-        return view('finance.purchase-approvals.details', compact('purchase'));
+        // Ambil semua item dalam PO yang sama
+        $poItems = ProjectPurchase::where('po_number', $purchase->po_number)
+            ->where('is_current', 1)
+            ->with(['material', 'category', 'unit'])
+            ->get();
+        
+        return view('finance.purchase-approvals.details', compact('purchase', 'poItems'));
     }
     
     /**
@@ -290,7 +402,7 @@ class PurchaseApprovalController extends Controller
             'invoice_total' => $purchase->invoice_total ?? 0,
             'department' => $purchase->department ? $purchase->department->name : 'N/A',
             'project_type' => $purchase->project_type ?? 'client',
-            'project_name' => $purchase->project_name ?? '',
+            'project_name' => $purchase->project ? $purchase->project->name : ($purchase->internalProject ? $purchase->internalProject->project : ''),
             'job_order' => $purchase->jobOrder ? $purchase->jobOrder->name : '',
             'supplier' => $purchase->supplier ? $purchase->supplier->name : 'N/A',
             'status' => $status,

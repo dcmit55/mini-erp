@@ -93,12 +93,21 @@ class OvertimeRequestController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'employee_id' => 'required|exists:employees,id',
-            'job_order_id' => 'required|exists:job_orders,id',
-            'reason' => 'required|string',
-            'ot_code' => 'required|in:Normal Day,Sunday,Public Holiday',
-            'start_time' => 'required|date',
-            'end_time' => 'required|date|after:start_time',
+            'employee_id'   => 'required|exists:employees,id',
+            'job_order_id'  => [
+                'required',
+                'exists:job_orders,id',
+                function ($attribute, $value, $fail) {
+                    $jobOrder = JobOrder::find($value);
+                    if (!$jobOrder || is_null($jobOrder->department_id)) {
+                        $fail('Job order yang dipilih tidak memiliki departemen.');
+                    }
+                },
+            ],
+            'reason'        => 'required|string',
+            'ot_code'       => 'required|in:Normal Day,Sunday,Public Holiday',
+            'start_time'    => 'required|date',
+            'end_time'      => 'required|date|after:start_time',
         ]);
 
         $start = Carbon::parse($validated['start_time']);
@@ -112,22 +121,22 @@ class OvertimeRequestController extends Controller
         $netHours = $totalHours - $breakDeduction;
 
         $jobOrder = JobOrder::find($validated['job_order_id']);
-        $departmentId = $jobOrder->department_id;
+        $departmentId = $jobOrder->department_id; // sudah dipastikan tidak null oleh validasi
 
         $overtimeRequest = OvertimeRequest::create([
-            'uid' => (string) Str::uuid(),
-            'employee_id' => $validated['employee_id'],
-            'department_id' => $departmentId,
-            'job_order_id' => $validated['job_order_id'],
-            'reason' => $validated['reason'],
-            'ot_code' => $validated['ot_code'],
-            'start_time' => $validated['start_time'],
-            'end_time' => $validated['end_time'],
-            'total_hours' => $totalHours,
+            'uid'             => (string) Str::uuid(),
+            'employee_id'     => $validated['employee_id'],
+            'department_id'   => $departmentId,
+            'job_order_id'    => $validated['job_order_id'],
+            'reason'          => $validated['reason'],
+            'ot_code'         => $validated['ot_code'],
+            'start_time'      => $validated['start_time'],
+            'end_time'        => $validated['end_time'],
+            'total_hours'     => $totalHours,
             'break_deduction' => $breakDeduction,
-            'net_hours' => $netHours,
-            'status' => 'draft',
-            'is_passed' => false,
+            'net_hours'       => $netHours,
+            'status'          => 'draft',
+            'is_passed'       => false,
         ]);
 
         return redirect()->route('overtime-requests.show', $overtimeRequest)
@@ -169,12 +178,21 @@ class OvertimeRequestController extends Controller
         }
 
         $validated = $request->validate([
-            'employee_id' => 'required|exists:employees,id',
-            'job_order_id' => 'required|exists:job_orders,id',
-            'reason' => 'required|string',
-            'ot_code' => 'required|in:Normal Day,Sunday,Public Holiday',
-            'start_time' => 'required|date',
-            'end_time' => 'required|date|after:start_time',
+            'employee_id'   => 'required|exists:employees,id',
+            'job_order_id'  => [
+                'required',
+                'exists:job_orders,id',
+                function ($attribute, $value, $fail) {
+                    $jobOrder = JobOrder::find($value);
+                    if (!$jobOrder || is_null($jobOrder->department_id)) {
+                        $fail('Job order yang dipilih tidak memiliki departemen.');
+                    }
+                },
+            ],
+            'reason'        => 'required|string',
+            'ot_code'       => 'required|in:Normal Day,Sunday,Public Holiday',
+            'start_time'    => 'required|date',
+            'end_time'      => 'required|date|after:start_time',
         ]);
 
         $start = Carbon::parse($validated['start_time']);
@@ -188,19 +206,19 @@ class OvertimeRequestController extends Controller
         $netHours = $totalHours - $breakDeduction;
 
         $jobOrder = JobOrder::find($validated['job_order_id']);
-        $departmentId = $jobOrder->department_id;
+        $departmentId = $jobOrder->department_id; // sudah dipastikan tidak null
 
         $overtimeRequest->update([
-            'employee_id' => $validated['employee_id'],
-            'department_id' => $departmentId,
-            'job_order_id' => $validated['job_order_id'],
-            'reason' => $validated['reason'],
-            'ot_code' => $validated['ot_code'],
-            'start_time' => $validated['start_time'],
-            'end_time' => $validated['end_time'],
-            'total_hours' => $totalHours,
+            'employee_id'     => $validated['employee_id'],
+            'department_id'   => $departmentId,
+            'job_order_id'    => $validated['job_order_id'],
+            'reason'          => $validated['reason'],
+            'ot_code'         => $validated['ot_code'],
+            'start_time'      => $validated['start_time'],
+            'end_time'        => $validated['end_time'],
+            'total_hours'     => $totalHours,
             'break_deduction' => $breakDeduction,
-            'net_hours' => $netHours,
+            'net_hours'       => $netHours,
         ]);
 
         return redirect()->route('overtime-requests.show', $overtimeRequest)

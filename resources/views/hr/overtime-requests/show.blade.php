@@ -129,15 +129,6 @@
                     @endif
                 </div>
             </div>
-
-            <!-- Perhitungan Gaji (opsional) -->
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white py-2">Pay Calculation</div>
-                <div class="card-body">
-                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="calculatePay()">Calculate Pay</button>
-                    <div id="payResult" class="mt-2 small"></div>
-                </div>
-            </div>
         </div>
     </div>
 </div>

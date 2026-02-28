@@ -85,7 +85,7 @@
                             <thead class="table-light">
                                 <tr>
                                     <th class="border-0 ps-4" style="width: 70px;">No</th>
-                                    <th class="border-0">Project Type</th>
+                                    <th class="border-0">Project</th>
                                     <th class="border-0">Job</th>
                                     <th class="border-0">Description</th>
                                     <th class="border-0">Department</th>

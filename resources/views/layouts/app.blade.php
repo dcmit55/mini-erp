@@ -695,20 +695,7 @@
         <footer class="bg-light text-center text-lg-start mt-5">
             <div class="container-fluid">
                 <div class="row">
-                    <!-- About Section -->
-                    <div class="bg-white col-lg-12 mb-2 mb-lg-0">
-                        <h5 class="text-uppercase mt-2">About:</h5>
-                        <p class="mb-3">
-                            This is an inventory management system designed to streamline your operations and improve
-                            efficiency.
-                        </p>
-                    </div>
                 </div>
-            </div>
-
-            <div class="text-center p-1 bg-dark text-secondary">
-                © {{ date('Y') }} {{ config('app.name', 'DCM-app') }}. Created with <i
-                    class="fas fa-heart text-danger"></i> by IT Team (Gen 1)
             </div>
         </footer>
     </body>

@@ -521,12 +521,22 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{id}/update-tracking', [ProjectPurchaseController::class, 'updateTracking'])->name('project-purchases.update-tracking');
 
         // Item Receipt Routes
-        Route::post('/{id}/mark-as-received', [ProjectPurchaseController::class, 'markAsReceived'])->name('project-purchases.mark-as-received');
+        Route::post('/project-purchases/{id}/mark-as-received', 
+            [ProjectPurchaseController::class, 'markAsReceived'])
+            ->name('project-purchases.mark-as-received');
+        Route::post('/{id}/mark-as-not-matched', [ProjectPurchaseController::class, 'markAsNotMatched'])->name('project-purchases.mark-as-not-matched');
 
-        Route::post('/{id}/mark-as-not-received', [ProjectPurchaseController::class, 'markAsNotReceived'])->name('project-purchases.mark-as-not-received');
+        // Print & Export
+        Route::get('/{id}/print', [ProjectPurchaseController::class, 'print'])->name('project-purchases.print');
+        
+        Route::get('/export', [ProjectPurchaseController::class, 'export'])->name('project-purchases.export');
 
         // AJAX Routes
         Route::get('/material/{id}/price', [ProjectPurchaseController::class, 'getMaterialPrice'])->name('project-purchases.get-material-price');
+
+        Route::get('/material/all', [ProjectPurchaseController::class, 'getMaterials'])->name('project-purchases.get-materials');
+
+        Route::get('/po-items/{poNumber}', [ProjectPurchaseController::class, 'getPOItems'])->name('project-purchases.get-po-items');
 
         Route::get('/job-order/{id}/details', [ProjectPurchaseController::class, 'getJobOrderDetails'])->name('project-purchases.get-job-order-details');
     });
@@ -570,10 +580,10 @@ Route::middleware(['auth'])->group(function () {
         ->name('purchase-edited.')
         ->group(function () {
             Route::get('/', [PurchaseEditedController::class, 'index'])->name('index');
-            Route::get('/compare/{poNumber}', [PurchaseEditedController::class, 'compare'])->name('compare');
-            Route::post('/verify/{poNumber}', [PurchaseEditedController::class, 'verify'])->name('verify');
+            Route::get('/compare/{poNumber}', [PurchaseEditedController::class, 'compare'])->name('compare')->where('poNumber', '.*');
+            Route::post('/verify/{poNumber}', [PurchaseEditedController::class, 'verify'])->name('verify')->where('poNumber', '.*');
             Route::post('/bulk-verify', [PurchaseEditedController::class, 'bulkVerify'])->name('bulk-verify');
-            Route::get('/check/{poNumber}', [PurchaseEditedController::class, 'check'])->name('check');
+            Route::get('/check/{poNumber}', [PurchaseEditedController::class, 'check'])->name('check')->where('poNumber', '.*');
             Route::get('/count', [PurchaseEditedController::class, 'getCount'])->name('count');
         });
     Route::get('/finance-dashboard', function () {
@@ -608,6 +618,7 @@ Route::middleware(['auth'])->group(function () {
         return redirect()->route('attendance-logs.index')->with('info', 'Halaman import telah dipindahkan. Gunakan tombol "Import Excel" di halaman ini.');
     })->name('attendance-logs.import.redirect');
     Route::get('/attendance-logs/export', [AttendanceLogController::class, 'export'])->name('attendance-logs.export');
+    Route::put('/{employeeId}/{date}', [AttendanceLogController::class, 'update'])->name('attendance-logs.update');
 
     // ===== ROUTES OVERTIME REQUESTS =====
     // Route spesifik harus sebelum resource

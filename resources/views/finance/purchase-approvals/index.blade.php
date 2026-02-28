@@ -1,3 +1,4 @@
+{{-- resources/views/finance/purchase-approvals/index.blade.php --}}
 @extends('layouts.app')
 
 @section('title', 'Purchase Approvals - Finance')
@@ -110,6 +111,15 @@
                         </div>
                         
                         <div class="col-md-2">
+                            <label class="form-label small text-dark">Project Type</label>
+                            <select class="form-select border-1 rounded-2 py-2 px-3" name="project_type">
+                                <option value="">All Projects</option>
+                                <option value="client" {{ request('project_type') == 'client' ? 'selected' : '' }}>Client Project</option>
+                                <option value="internal" {{ request('project_type') == 'internal' ? 'selected' : '' }}>Internal Project</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-2">
                             <label class="form-label small text-dark">Purchase Type</label>
                             <select class="form-select border-1 rounded-2 py-2 px-3" name="purchase_type">
                                 <option value="">All Types</option>
@@ -169,7 +179,8 @@
                                         <th class="border-0 small text-dark fw-medium px-3 py-2">PO Number</th>
                                         <th class="border-0 small text-dark fw-medium px-3 py-2">Date</th>
                                         <th class="border-0 small text-dark fw-medium px-3 py-2">Department</th>
-                                        <th class="border-0 small text-dark fw-medium px-3 py-2">Item</th>
+                                        <th class="border-0 small text-dark fw-medium px-3 py-2">Project</th>
+                                        <th class="border-0 small text-dark fw-medium px-3 py-2">Items</th>
                                         <th class="border-0 small text-dark fw-medium px-3 py-2">Supplier</th>
                                         <th class="border-0 small text-dark fw-medium px-3 py-2 text-end">Amount</th>
                                         <th class="border-0 small text-dark fw-medium px-3 py-2">Days</th>
@@ -186,29 +197,44 @@
                                             {{ $startNumber + $loop->index }}
                                         </td>
                                         <td class="px-3 py-2">
-                                            <div class="fw-medium text-dark">{{ $purchase->po_number }}</div>
+                                            <div class="fw-medium text-dark">{{ $purchase['po_number'] }}</div>
                                         </td>
                                         <td class="px-3 py-2">
-                                            {{ $purchase->date->format('d/m/Y') }}
-                                            <br>
+                                            {{ $purchase['date']->format('d/m/Y') }}
                                         </td>
                                         <td class="px-3 py-2">
                                             <span class="badge bg-secondary bg-opacity-10 text-dark border border-secondary border-opacity-25 rounded-2 px-2 py-1">
-                                                {{ $purchase->department->name ?? 'N/A' }}
+                                                {{ $purchase['department']->name ?? 'N/A' }}
                                             </span>
                                         </td>
                                         <td class="px-3 py-2">
-                                            <div class="fw-medium">{{ $purchase->material_name ?? 'N/A' }}</div>
+                                            @if($purchase['project_type'] == 'client')
+                                                <div>
+                                                    <span class="fw-medium">{{ $purchase['project']->name ?? 'N/A' }}</span>
+                                                    <br>
+                                                </div>
+                                            @else
+                                                <div>
+                                                    <span class="fw-medium">{{ $purchase['internalProject']->project ?? 'N/A' }}</span>
+                                                    <br>
+                                                    <small class="text-muted">{{ $purchase['internalProject']->job ?? '' }}</small>
+                                                </div>
+                                            @endif
                                         </td>
-                                        <td class="px-3 py-2">{{ $purchase->supplier->name ?? 'N/A' }}</td>
+                                        <td class="px-3 py-2">
+                                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-2 px-2 py-1">
+                                                {{ $purchase['total_items'] }} item(s)
+                                            </span>
+                                        </td>
+                                        <td class="px-3 py-2">{{ $purchase['supplier']->name ?? 'N/A' }}</td>
                                         <td class="px-3 py-2 text-end">
                                             <div class="fw-medium text-primary">
-                                                Rp {{ number_format($purchase->invoice_total, 0, ',', '.') }}
+                                                Rp {{ number_format($purchase['total_amount'], 0, ',', '.') }}
                                             </div>
                                         </td>
                                         <td class="px-3 py-2">
                                             @php
-                                                $daysPending = $purchase->created_at->diffInDays(now());
+                                                $daysPending = $purchase['created_at']->diffInDays(now());
                                             @endphp
                                             <span class="badge bg-{{ $daysPending > 7 ? 'danger' : ($daysPending > 3 ? 'warning' : 'success') }} bg-opacity-10 text-{{ $daysPending > 7 ? 'danger' : ($daysPending > 3 ? 'warning' : 'success') }} border border-{{ $daysPending > 7 ? 'danger' : ($daysPending > 3 ? 'warning' : 'success') }} border-opacity-25 rounded-2 px-2 py-1">
                                                 {{ $daysPending }} days
@@ -216,24 +242,23 @@
                                         </td>
                                         <td class="px-3 py-2 text-end">
                                             <div class="d-flex gap-1 justify-content-end">
-                                                <!-- VIEW BUTTON -->
-                                                <a href="{{ route('project-purchases.show', $purchase->id) }}" 
-                                                   target="_blank"
+                                                <!-- VIEW DETAILS BUTTON - TANPA TARGET_BLANK -->
+                                                <a href="{{ route('purchase-approvals.view-details', $purchase['first_item_id']) }}" 
                                                    class="btn btn-outline-info btn-sm rounded-2 px-2 py-1"
                                                    title="View Details">
                                                     <i class="fas fa-eye"></i>
                                                 </a>
                                                 
-                                                <!-- QUICK APPROVE FORM (SIMPLE) -->
-                                                <form action="{{ route('purchase-approvals.approve', $purchase->id) }}" 
+                                                <!-- QUICK APPROVE FORM -->
+                                                <form action="{{ route('purchase-approvals.approve', $purchase['first_item_id']) }}" 
                                                       method="POST" 
                                                       class="d-inline quick-approve-form"
-                                                      onsubmit="return confirm('Approve purchase {{ $purchase->po_number }}?')">
+                                                      onsubmit="return confirm('Approve PO {{ $purchase['po_number'] }} with {{ $purchase['total_items'] }} items?')">
                                                     @csrf
                                                     <input type="hidden" name="finance_notes" value="">
                                                     <button type="submit" 
                                                             class="btn btn-outline-success btn-sm rounded-2 px-2 py-1"
-                                                            title="Quick Approve">
+                                                            title="Quick Approve All Items">
                                                         <i class="fas fa-check"></i>
                                                     </button>
                                                 </form>
@@ -241,8 +266,10 @@
                                                 <!-- APPROVE WITH NOTES BUTTON -->
                                                 <button type="button" 
                                                         class="btn btn-outline-primary btn-sm rounded-2 px-2 py-1 approve-with-notes"
-                                                        data-purchase-id="{{ $purchase->id }}"
-                                                        data-po-number="{{ $purchase->po_number }}"
+                                                        data-purchase-id="{{ $purchase['first_item_id'] }}"
+                                                        data-po-number="{{ $purchase['po_number'] }}"
+                                                        data-total-items="{{ $purchase['total_items'] }}"
+                                                        data-total-amount="{{ $purchase['total_amount'] }}"
                                                         title="Approve with Notes">
                                                     <i class="fas fa-file-signature"></i>
                                                 </button>
@@ -250,8 +277,9 @@
                                                 <!-- REJECT BUTTON -->
                                                 <button type="button" 
                                                         class="btn btn-outline-danger btn-sm rounded-2 px-2 py-1 reject-purchase"
-                                                        data-purchase-id="{{ $purchase->id }}"
-                                                        data-po-number="{{ $purchase->po_number }}"
+                                                        data-purchase-id="{{ $purchase['first_item_id'] }}"
+                                                        data-po-number="{{ $purchase['po_number'] }}"
+                                                        data-total-items="{{ $purchase['total_items'] }}"
                                                         title="Reject">
                                                     <i class="fas fa-times"></i>
                                                 </button>
@@ -271,72 +299,7 @@
                                     Showing {{ $purchases->firstItem() }} to {{ $purchases->lastItem() }} of {{ $purchases->total() }} entries
                                 </div>
                                 <div>
-                                    <nav aria-label="Page navigation">
-                                        <ul class="pagination pagination-sm mb-0">
-                                            <!-- Previous Page Link -->
-                                            @if($purchases->onFirstPage())
-                                                <li class="page-item disabled">
-                                                    <span class="page-link py-1 px-3 rounded-2 me-1" aria-label="Previous">
-                                                        <i class="fas fa-chevron-left"></i>
-                                                    </span>
-                                                </li>
-                                            @else
-                                                <li class="page-item">
-                                                    <a class="page-link py-1 px-3 rounded-2 me-1" 
-                                                       href="{{ $purchases->previousPageUrl() }}"
-                                                       aria-label="Previous">
-                                                        <i class="fas fa-chevron-left"></i>
-                                                    </a>
-                                                </li>
-                                            @endif
-
-                                            <!-- Page Numbers -->
-                                            @php
-                                                $current = $purchases->currentPage();
-                                                $last = $purchases->lastPage();
-                                                $start = max($current - 2, 1);
-                                                $end = min($current + 2, $last);
-                                                
-                                                if ($start > 1) {
-                                                    echo '<li class="page-item"><span class="page-link py-1 px-3 rounded-2 me-1">...</span></li>';
-                                                }
-                                            @endphp
-                                            
-                                            @for ($i = $start; $i <= $end; $i++)
-                                                @if ($i == $current)
-                                                    <li class="page-item active">
-                                                        <span class="page-link py-1 px-3 rounded-2 me-1">{{ $i }}</span>
-                                                    </li>
-                                                @else
-                                                    <li class="page-item">
-                                                        <a class="page-link py-1 px-3 rounded-2 me-1" 
-                                                           href="{{ $purchases->url($i) }}">{{ $i }}</a>
-                                                    </li>
-                                                @endif
-                                            @endfor
-                                            
-                                            @if ($end < $last)
-                                                <li class="page-item"><span class="page-link py-1 px-3 rounded-2 me-1">...</span></li>
-                                            @endif
-
-                                            <!-- Next Page Link -->
-                                            @if($purchases->hasMorePages())
-                                                <li class="page-item">
-                                                    <a class="page-link py-1 px-3 rounded-2" 
-                                                       href="{{ $purchases->nextPageUrl() }}"
-                                                       aria-label="Next">
-                                                        <i class="fas fa-chevron-right"></i>
-                                                    </a>
-                                                </li>
-                                            @else
-                                                <li class="page-item disabled">
-                                                    <span class="page-link py-1 px-3 rounded-2" aria-label="Next">
-                                                        <i class="fas fa-chevron-right"></i>
-                                                    </span>
-                                                </li>
-                                            @endif
-                                        </ul>
-                                    </nav>
+                                    {{ $purchases->links() }}
                                 </div>
                             </div>
                         </div>
@@ -353,7 +316,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Approve Purchase</h5>
+                <h5 class="modal-title">Approve Purchase Order</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form id="approveForm" method="POST">
@@ -363,6 +326,14 @@
                     <div class="mb-3">
                         <label class="form-label">PO Number</label>
                         <input type="text" id="approvePoNumber" class="form-control" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Total Items</label>
+                        <input type="text" id="approveTotalItems" class="form-control" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Total Amount</label>
+                        <input type="text" id="approveTotalAmount" class="form-control" readonly>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Finance Notes (Optional)</label>
@@ -384,7 +355,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Reject Purchase</h5>
+                <h5 class="modal-title">Reject Purchase Order</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form id="rejectForm" method="POST">
@@ -394,6 +365,10 @@
                     <div class="mb-3">
                         <label class="form-label">PO Number</label>
                         <input type="text" id="rejectPoNumber" class="form-control" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Total Items</label>
+                        <input type="text" id="rejectTotalItems" class="form-control" readonly>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Reason for Rejection <span class="text-danger">*</span></label>
@@ -438,6 +413,56 @@
         border-color: #4338ca;
     }
 
+    .btn-outline-primary {
+        color: #4f46e5;
+        border-color: #4f46e5;
+    }
+
+    .btn-outline-primary:hover {
+        background-color: #4f46e5;
+        color: white;
+    }
+
+    .btn-outline-success {
+        color: #10b981;
+        border-color: #10b981;
+    }
+
+    .btn-outline-success:hover {
+        background-color: #10b981;
+        color: white;
+    }
+
+    .btn-outline-danger {
+        color: #ef4444;
+        border-color: #ef4444;
+    }
+
+    .btn-outline-danger:hover {
+        background-color: #ef4444;
+        color: white;
+    }
+
+    .btn-outline-info {
+        color: #0ea5e9;
+        border-color: #0ea5e9;
+    }
+
+    .btn-outline-info:hover {
+        background-color: #0ea5e9;
+        color: white;
+    }
+
+    .btn-outline-secondary {
+        color: #64748b;
+        border-color: #e2e8f0;
+    }
+
+    .btn-outline-secondary:hover {
+        background-color: #f1f5f9;
+        color: #334155;
+    }
+
     .table-hover tbody tr:hover {
         background-color: rgba(79, 70, 229, 0.04);
     }
@@ -445,6 +470,26 @@
     .badge {
         font-size: 0.75rem;
         font-weight: 500;
+    }
+
+    .badge.bg-secondary.bg-opacity-10 {
+        background-color: rgba(108, 117, 125, 0.1) !important;
+    }
+
+    .badge.bg-primary.bg-opacity-10 {
+        background-color: rgba(79, 70, 229, 0.1) !important;
+    }
+
+    .badge.bg-success.bg-opacity-10 {
+        background-color: rgba(16, 185, 129, 0.1) !important;
+    }
+
+    .badge.bg-warning.bg-opacity-10 {
+        background-color: rgba(245, 158, 11, 0.1) !important;
+    }
+
+    .badge.bg-danger.bg-opacity-10 {
+        background-color: rgba(239, 68, 68, 0.1) !important;
     }
 
     .card {
@@ -485,12 +530,19 @@
         font-size: 0.8rem;
     }
 
+    /* Pagination styling */
+    .pagination {
+        margin-bottom: 0;
+    }
+
     .page-link {
         color: #4f46e5;
         border: 1px solid #e2e8f0;
         background-color: #ffffff;
         min-width: 36px;
         text-align: center;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8rem;
     }
 
     .page-link:hover {
@@ -548,10 +600,14 @@ function setupEventListeners() {
         button.addEventListener('click', function() {
             const purchaseId = this.dataset.purchaseId;
             const poNumber = this.dataset.poNumber;
+            const totalItems = this.dataset.totalItems;
+            const totalAmount = this.dataset.totalAmount;
             
             document.getElementById('approvePurchaseId').value = purchaseId;
             document.getElementById('approvePoNumber').value = poNumber;
-            document.getElementById('approveForm').action = `/purchase-approvals/${purchaseId}/approve`;
+            document.getElementById('approveTotalItems').value = totalItems + ' item(s)';
+            document.getElementById('approveTotalAmount').value = 'Rp ' + formatNumber(totalAmount);
+            document.getElementById('approveForm').action = '/purchase-approvals/' + purchaseId + '/approve';
             
             // Clear previous values
             document.querySelector('#approveForm textarea').value = '';
@@ -567,10 +623,12 @@ function setupEventListeners() {
         button.addEventListener('click', function() {
             const purchaseId = this.dataset.purchaseId;
             const poNumber = this.dataset.poNumber;
+            const totalItems = this.dataset.totalItems;
             
             document.getElementById('rejectPurchaseId').value = purchaseId;
             document.getElementById('rejectPoNumber').value = poNumber;
-            document.getElementById('rejectForm').action = `/purchase-approvals/${purchaseId}/reject`;
+            document.getElementById('rejectTotalItems').value = totalItems + ' item(s)';
+            document.getElementById('rejectForm').action = '/purchase-approvals/' + purchaseId + '/reject';
             
             // Clear previous value
             document.querySelector('#rejectForm textarea').value = '';
@@ -580,32 +638,10 @@ function setupEventListeners() {
             modal.show();
         });
     });
-    
-    // Quick approve form
-    document.querySelectorAll('.quick-approve-form').forEach(form => {
-        // CSRF token sudah ada di form
-        console.log('Quick approve form found');
-    });
 }
 
-// Handle form submissions dengan AJAX untuk feedback lebih baik
-document.addEventListener('submit', function(e) {
-    // Untuk form approve dan reject, kita biarkan submit normal
-    // Tapi tambahkan loading state
-    if (e.target.matches('#approveForm, #rejectForm, .quick-approve-form')) {
-        const submitButton = e.target.querySelector('button[type="submit"]');
-        const originalText = submitButton.innerHTML;
-        
-        // Show loading
-        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-        submitButton.disabled = true;
-        
-        // Re-enable setelah 5 detik (jika ada masalah)
-        setTimeout(() => {
-            submitButton.innerHTML = originalText;
-            submitButton.disabled = false;
-        }, 5000);
-    }
-});
+function formatNumber(num) {
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
 </script>
 @endsection

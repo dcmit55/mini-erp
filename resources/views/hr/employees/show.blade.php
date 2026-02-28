@@ -54,6 +54,9 @@
                             </span>
                         </div>
                         <h4 class="card-title mb-1">{{ $employee->name }}</h4>
+                        @if($employee->username)
+                            <small class="text-muted d-block mb-1">{{ $employee->username }}</small>
+                        @endif
                         <p class="text-muted mb-2">{{ $employee->position }}</p>
                         <small class="badge bg-light text-dark">{{ $employee->employee_no }}</small>
 
@@ -142,9 +145,13 @@
                     </div>
                     <div class="card-body">
                         <div class="row">
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
                                 <label class="fw-semibold text-muted small">Employee Number</label>
                                 <div class="fw-medium">{{ $employee->employee_no }}</div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="fw-semibold text-muted small">Username</label>
+                                <div class="fw-medium">{{ $employee->username ?? '-' }}</div>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="fw-semibold text-muted small">Department</label>
