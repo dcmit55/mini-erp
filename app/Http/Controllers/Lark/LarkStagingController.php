@@ -152,19 +152,9 @@ class LarkStagingController extends Controller
         ];
 
         // Get unique projects and statuses for filters
-        $projects = LarkBtSgItemTracking::whereNotNull('project_lark')
-            ->distinct()
-            ->pluck('project_lark')
-            ->filter()
-            ->sort()
-            ->values();
+        $projects = LarkBtSgItemTracking::whereNotNull('project_lark')->distinct()->pluck('project_lark')->filter()->sort()->values();
 
-        $statuses = LarkBtSgItemTracking::whereNotNull('status')
-            ->distinct()
-            ->pluck('status')
-            ->filter()
-            ->sort()
-            ->values();
+        $statuses = LarkBtSgItemTracking::whereNotNull('status')->distinct()->pluck('status')->filter()->sort()->values();
 
         return view('lark.staging.bt_sg_items', compact('stats', 'projects', 'statuses'));
     }
@@ -288,19 +278,9 @@ class LarkStagingController extends Controller
         ];
 
         // Get unique projects and statuses for filters
-        $projects = LarkSgBtItemTracking::whereNotNull('project_lark')
-            ->distinct()
-            ->pluck('project_lark')
-            ->filter()
-            ->sort()
-            ->values();
+        $projects = LarkSgBtItemTracking::whereNotNull('project_lark')->distinct()->pluck('project_lark')->filter()->sort()->values();
 
-        $statuses = LarkSgBtItemTracking::whereNotNull('status')
-            ->distinct()
-            ->pluck('status')
-            ->filter()
-            ->sort()
-            ->values();
+        $statuses = LarkSgBtItemTracking::whereNotNull('status')->distinct()->pluck('status')->filter()->sort()->values();
 
         return view('lark.staging.sg_bt_items', compact('stats', 'projects', 'statuses'));
     }

@@ -40,35 +40,19 @@ class ProjectPurchaseController extends Controller
                 'stats' => $stats,
                 'departments' => Department::select('id', 'name')->get(),
                 'projects' => Project::select('id', 'name')->get(),
-                'internal_projects' => InternalProject::select('id', 'project', 'job', 'department', 'department_id', 'description')
-                    ->orderBy('project')
-                    ->get(),
+                'internal_projects' => InternalProject::select('id', 'project', 'job', 'department', 'department_id', 'description')->orderBy('project')->get(),
                 'categories' => Category::select('id', 'name')->get(),
                 'units' => Unit::select('id', 'name')->get(),
                 'suppliers' => Supplier::select('id', 'name')->get(),
                 'supplierLocations' => \App\Models\Procurement\LocationSupplier::select('id', 'name')->get(),
                 'filters' => $request->all(),
             ]);
-
         } catch (\Exception $e) {
             Log::error('Index error: ' . $e->getMessage());
 
             return view('procurement.Project-Purchase.index', [
                 'purchases' => ProjectPurchase::current()
-                    ->with([
-                        'material:id,name',
-                        'department:id,name',
-                        'category:id,name',
-                        'unit:id,name',
-                        'supplier:id,name',
-                        'pic:id,username',
-                        'checker:id,username',
-                        'approver:id,username',
-                        'receiver:id,username',
-                        'project:id,name',
-                        'internalProject:id,project,job,department,department_id',
-                        'jobOrder:id,name',
-                    ])
+                    ->with(['material:id,name', 'department:id,name', 'category:id,name', 'unit:id,name', 'supplier:id,name', 'pic:id,username', 'checker:id,username', 'approver:id,username', 'receiver:id,username', 'project:id,name', 'internalProject:id,project,job,department,department_id', 'jobOrder:id,name'])
                     ->paginate(20),
                 'stats' => [
                     'total' => 0,
@@ -85,9 +69,7 @@ class ProjectPurchaseController extends Controller
                 ],
                 'departments' => Department::select('id', 'name')->get(),
                 'projects' => Project::select('id', 'name')->get(),
-                'internal_projects' => InternalProject::select('id', 'project', 'job', 'department', 'department_id', 'description')
-                    ->orderBy('project')
-                    ->get(),
+                'internal_projects' => InternalProject::select('id', 'project', 'job', 'department', 'department_id', 'description')->orderBy('project')->get(),
                 'categories' => Category::select('id', 'name')->get(),
                 'units' => Unit::select('id', 'name')->get(),
                 'suppliers' => Supplier::select('id', 'name')->get(),
@@ -105,7 +87,7 @@ class ProjectPurchaseController extends Controller
             $jobOrders = JobOrder::with(['department:id,name', 'project:id,name'])
                 ->select('id', 'name', 'department_id', 'project_id')
                 ->get()
-                ->map(function($jobOrder) {
+                ->map(function ($jobOrder) {
                     return [
                         'id' => $jobOrder->id,
                         'name' => $jobOrder->name,
@@ -127,9 +109,7 @@ class ProjectPurchaseController extends Controller
                 'materials' => $materials,
                 'departments' => Department::select('id', 'name')->get(),
                 'projects' => Project::select('id', 'name')->get(),
-                'internal_projects' => InternalProject::select('id', 'project', 'job', 'department', 'department_id', 'description')
-                    ->orderBy('project')
-                    ->get(),
+                'internal_projects' => InternalProject::select('id', 'project', 'job', 'department', 'department_id', 'description')->orderBy('project')->get(),
                 'categories' => $categories,
                 'units' => $units,
                 'jobOrders' => $jobOrders,
@@ -138,7 +118,8 @@ class ProjectPurchaseController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error('Create view error: ' . $e->getMessage());
-            return redirect()->route('project-purchases.index')
+            return redirect()
+                ->route('project-purchases.index')
                 ->with('error', 'Gagal memuat halaman pembelian: ' . $e->getMessage());
         }
     }
@@ -157,13 +138,13 @@ class ProjectPurchaseController extends Controller
             // Untuk internal project, ambil department_id dari internal project
             if ($request->project_type === 'internal' && $request->filled('internal_project_id')) {
                 $internalProject = InternalProject::find($request->internal_project_id);
-                
+
                 if ($internalProject) {
                     if ($internalProject->department_id) {
                         $request->merge(['department_id' => $internalProject->department_id]);
                         Log::info('Set department_id from internal project department_id:', [
                             'internal_project_id' => $request->internal_project_id,
-                            'department_id' => $internalProject->department_id
+                            'department_id' => $internalProject->department_id,
                         ]);
                     } elseif ($internalProject->department) {
                         $department = Department::where('name', $internalProject->department)->first();
@@ -171,7 +152,7 @@ class ProjectPurchaseController extends Controller
                             $request->merge(['department_id' => $department->id]);
                             Log::info('Set department_id from department name:', [
                                 'department_name' => $internalProject->department,
-                                'department_id' => $department->id
+                                'department_id' => $department->id,
                             ]);
                         } else {
                             $request->merge(['department_id' => 19]);
@@ -182,9 +163,7 @@ class ProjectPurchaseController extends Controller
                         Log::info('Set department_id to default 19 (no department info)');
                     }
                 } else {
-                    return back()
-                        ->withInput($request->all())
-                        ->with('error', 'Internal project tidak ditemukan.');
+                    return back()->withInput($request->all())->with('error', 'Internal project tidak ditemukan.');
                 }
             }
 
@@ -201,45 +180,38 @@ class ProjectPurchaseController extends Controller
             ]);
 
             DB::beginTransaction();
-            
+
             $createdItems = [];
-            
+
             // Loop untuk setiap item
             foreach ($request->items as $itemData) {
                 // Merge data header dengan item
-                $purchaseData = array_merge(
-                    $request->except(['items', '_token']), 
-                    $itemData
-                );
-                
+                $purchaseData = array_merge($request->except(['items', '_token']), $itemData);
+
                 // Validasi data
                 $validated = $this->purchaseService->validatePurchaseRequest(new Request($purchaseData));
-                
+
                 Log::info('Validated data:', $validated);
 
                 // Buat purchase order per item
                 $purchase = $this->purchaseService->createPurchase($validated);
                 $createdItems[] = $purchase;
             }
-            
+
             DB::commit();
 
-            return redirect()->route('project-purchases.index')
+            return redirect()
+                ->route('project-purchases.index')
                 ->with('success', 'Purchase Order berhasil dibuat dengan nomor: ' . $request->po_number . ' (' . count($createdItems) . ' item)');
-                
         } catch (\Illuminate\Validation\ValidationException $e) {
             DB::rollBack();
             Log::error('Validation errors:', $e->errors());
-            
-            return back()
-                ->withErrors($e->errors())
-                ->withInput($request->all())
-                ->with('error', 'Validasi gagal. Periksa kembali form Anda.');
-                
+
+            return back()->withErrors($e->errors())->withInput($request->all())->with('error', 'Validasi gagal. Periksa kembali form Anda.');
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Purchase Order creation error: ' . $e->getMessage());
-            
+
             return back()
                 ->withInput($request->all())
                 ->with('error', 'Gagal membuat Purchase Order: ' . $e->getMessage());
@@ -249,90 +221,75 @@ class ProjectPurchaseController extends Controller
     /**
      * SHOW - Menampilkan detail PO dengan semua item
      */
-public function show($id)
-{
-    try {
-        // Ambil 1 item sebagai representasi (first item)
-        $purchase = ProjectPurchase::current()
-            ->with([
-                'material:id,name,price',
-                'department:id,name',
-                'project:id,name',
-                'internalProject:id,project,job,department,department_id,description',
-                'jobOrder:id,name',
-                'category:id,name',
-                'unit:id,name',
-                'supplier:id,name',
-                'pic:id,username',
-                'approver:id,username',
-                'checker:id,username',
-                'receiver:id,username'
-            ])->find($id);
+    public function show($id)
+    {
+        try {
+            // Ambil 1 item sebagai representasi (first item)
+            $purchase = ProjectPurchase::current()
+                ->with(['material:id,name,price', 'department:id,name', 'project:id,name', 'internalProject:id,project,job,department,department_id,description', 'jobOrder:id,name', 'category:id,name', 'unit:id,name', 'supplier:id,name', 'pic:id,username', 'approver:id,username', 'checker:id,username', 'receiver:id,username'])
+                ->find($id);
 
-        if (!$purchase) {
-            return redirect()->route('project-purchases.index')
-                ->with('error', 'Data purchase order tidak ditemukan (ID: ' . $id . ').');
+            if (!$purchase) {
+                return redirect()
+                    ->route('project-purchases.index')
+                    ->with('error', 'Data purchase order tidak ditemukan (ID: ' . $id . ').');
+            }
+
+            // ===== DEBUGGING =====
+            Log::info('=== SHOW METHOD DEBUG ===');
+            Log::info('Purchase ID: ' . $id);
+            Log::info('PO Number: ' . $purchase->po_number);
+
+            // AMBIL SEMUA ITEM dengan PO number yang SAMA
+            $poItems = ProjectPurchase::where('po_number', $purchase->po_number)
+                ->where('is_current', true)
+                ->with(['material:id,name,price', 'category:id,name', 'unit:id,name'])
+                ->orderBy('id')
+                ->get();
+
+            // ===== DEBUG JUMLAH ITEM =====
+            Log::info('Jumlah item ditemukan: ' . $poItems->count());
+
+            foreach ($poItems as $index => $item) {
+                Log::info('Item ' . ($index + 1) . ': ID=' . $item->id . ', Material=' . ($item->material->name ?? 'N/A'));
+            }
+
+            Log::info('=== END DEBUG ===');
+
+            // Hitung total PO
+            $poTotal = $poItems->sum('invoice_total');
+
+            // Hitung status items
+            $receivedCount = $poItems->where('item_status', 'matched')->count();
+            $pendingCount = $poItems->whereIn('item_status', ['pending', 'pending_check'])->count();
+
+            // Revisions
+            $revisions = ProjectPurchase::where('po_number', $purchase->po_number)
+                ->orderBy('created_at', 'desc')
+                ->with(['pic:id,username'])
+                ->get();
+
+            return view('procurement.Project-Purchase.show', [
+                'purchase' => $purchase,
+                'poItems' => $poItems,
+                'totalItems' => $poItems->count(),
+                'poTotal' => $poTotal,
+                'receivedCount' => $receivedCount,
+                'pendingCount' => $pendingCount,
+                'revisions' => $revisions,
+                'revision_info' => [
+                    'total_revisions' => $revisions->count(),
+                    'current_revision_id' => $purchase->id,
+                    'revision_number' => $revisions->where('created_at', '<=', $purchase->created_at)->count(),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Show error: ' . $e->getMessage());
+            return redirect()
+                ->route('project-purchases.index')
+                ->with('error', 'Terjadi kesalahan saat memuat data: ' . $e->getMessage());
         }
-
-        // ===== DEBUGGING =====
-        Log::info('=== SHOW METHOD DEBUG ===');
-        Log::info('Purchase ID: ' . $id);
-        Log::info('PO Number: ' . $purchase->po_number);
-        
-        // AMBIL SEMUA ITEM dengan PO number yang SAMA
-        $poItems = ProjectPurchase::where('po_number', $purchase->po_number)
-            ->where('is_current', true)
-            ->with([
-                'material:id,name,price',
-                'category:id,name',
-                'unit:id,name',
-            ])
-            ->orderBy('id')
-            ->get();
-        
-        // ===== DEBUG JUMLAH ITEM =====
-        Log::info('Jumlah item ditemukan: ' . $poItems->count());
-        
-        foreach ($poItems as $index => $item) {
-            Log::info('Item ' . ($index + 1) . ': ID=' . $item->id . ', Material=' . ($item->material->name ?? 'N/A'));
-        }
-        
-        Log::info('=== END DEBUG ===');
-
-        // Hitung total PO
-        $poTotal = $poItems->sum('invoice_total');
-        
-        // Hitung status items
-        $receivedCount = $poItems->where('item_status', 'matched')->count();
-        $pendingCount = $poItems->whereIn('item_status', ['pending', 'pending_check'])->count();
-
-        // Revisions
-        $revisions = ProjectPurchase::where('po_number', $purchase->po_number)
-            ->orderBy('created_at', 'desc')
-            ->with(['pic:id,username'])
-            ->get();
-
-        return view('procurement.Project-Purchase.show', [
-            'purchase' => $purchase,
-            'poItems' => $poItems,
-            'totalItems' => $poItems->count(),
-            'poTotal' => $poTotal,
-            'receivedCount' => $receivedCount,
-            'pendingCount' => $pendingCount,
-            'revisions' => $revisions,
-            'revision_info' => [
-                'total_revisions' => $revisions->count(),
-                'current_revision_id' => $purchase->id,
-                'revision_number' => $revisions->where('created_at', '<=', $purchase->created_at)->count(),
-            ]
-        ]);
-
-    } catch (\Exception $e) {
-        Log::error('Show error: ' . $e->getMessage());
-        return redirect()->route('project-purchases.index')
-            ->with('error', 'Terjadi kesalahan saat memuat data: ' . $e->getMessage());
     }
-}
     /**
      * APPROVE - Approve semua item dalam PO
      */
@@ -355,22 +312,19 @@ public function show($id)
             }
 
             DB::beginTransaction();
-            
+
             // Approve semua item dengan PO number yang sama
-            $poItems = ProjectPurchase::where('po_number', $purchase->po_number)
-                ->where('is_current', true)
-                ->get();
-            
+            $poItems = ProjectPurchase::where('po_number', $purchase->po_number)->where('is_current', true)->get();
+
             foreach ($poItems as $item) {
                 if ($item->canApprove()) {
                     $this->purchaseService->approvePurchase($item, $validated);
                 }
             }
-            
+
             DB::commit();
 
             return back()->with('success', 'Purchase Order berhasil disetujui!');
-            
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Purchase Order approval error: ' . $e->getMessage());
@@ -395,22 +349,19 @@ public function show($id)
             }
 
             DB::beginTransaction();
-            
+
             // Reject semua item dengan PO number yang sama
-            $poItems = ProjectPurchase::where('po_number', $purchase->po_number)
-                ->where('is_current', true)
-                ->get();
-            
+            $poItems = ProjectPurchase::where('po_number', $purchase->po_number)->where('is_current', true)->get();
+
             foreach ($poItems as $item) {
                 if ($item->canReject()) {
                     $this->purchaseService->rejectPurchase($item, $validated);
                 }
             }
-            
+
             DB::commit();
 
             return back()->with('success', 'Purchase Order berhasil ditolak!');
-            
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Purchase Order rejection error: ' . $e->getMessage());
@@ -439,20 +390,17 @@ public function show($id)
             }
 
             DB::beginTransaction();
-            
+
             // Update resi untuk semua item dengan PO number yang sama
-            $poItems = ProjectPurchase::where('po_number', $purchase->po_number)
-                ->where('is_current', true)
-                ->get();
-            
+            $poItems = ProjectPurchase::where('po_number', $purchase->po_number)->where('is_current', true)->get();
+
             foreach ($poItems as $item) {
                 $this->purchaseService->updateResiNumber($item, $validated);
             }
-            
+
             DB::commit();
 
             return back()->with('success', 'Nomor resi berhasil diperbarui!');
-            
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Resi update error: ' . $e->getMessage());
@@ -469,33 +417,32 @@ public function show($id)
             $purchase = ProjectPurchase::current()->findOrFail($id);
 
             if (!$purchase->canDelete()) {
-                return redirect()->route('project-purchases.show', $purchase->id)
-                    ->with('error', 'Purchase Order tidak dapat dihapus.');
+                return redirect()->route('project-purchases.show', $purchase->id)->with('error', 'Purchase Order tidak dapat dihapus.');
             }
 
             DB::beginTransaction();
-            
+
             // Cek apakah ini satu-satunya item dalam PO
-            $otherItems = ProjectPurchase::where('po_number', $purchase->po_number)
-                ->where('is_current', true)
-                ->where('id', '!=', $id)
-                ->count();
-            
+            $otherItems = ProjectPurchase::where('po_number', $purchase->po_number)->where('is_current', true)->where('id', '!=', $id)->count();
+
             $purchase->delete();
-            
+
             DB::commit();
 
             if ($otherItems == 0) {
-                return redirect()->route('project-purchases.index')
+                return redirect()
+                    ->route('project-purchases.index')
                     ->with('success', 'Item terakhir dalam PO berhasil dihapus. PO ' . $purchase->po_number . ' telah kosong.');
             } else {
-                return redirect()->route('project-purchases.show', $purchase->id)
+                return redirect()
+                    ->route('project-purchases.show', $purchase->id)
                     ->with('success', 'Item Purchase Order berhasil dihapus! PO masih memiliki ' . $otherItems . ' item lain.');
             }
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Purchase Order deletion error: ' . $e->getMessage());
-            return redirect()->route('project-purchases.index')
+            return redirect()
+                ->route('project-purchases.index')
                 ->with('error', 'Gagal menghapus Purchase Order: ' . $e->getMessage());
         }
     }
@@ -521,22 +468,19 @@ public function show($id)
             $this->purchaseService->markAsChecked($purchase, $validated);
 
             $statusText = $validated['item_status'] === 'matched' ? 'sesuai' : 'tidak sesuai';
-            
+
             // Cek apakah semua item sudah di-check
-            $poItems = ProjectPurchase::where('po_number', $purchase->po_number)
-                ->where('is_current', true)
-                ->get();
-            
+            $poItems = ProjectPurchase::where('po_number', $purchase->po_number)->where('is_current', true)->get();
+
             $checkedCount = $poItems->whereIn('item_status', ['matched', 'not_matched'])->count();
             $allChecked = $checkedCount === $poItems->count();
-            
+
             $message = 'Barang berhasil ditandai sebagai ' . $statusText . '!';
             if ($allChecked) {
                 $message .= ' Semua item dalam PO sudah dicek.';
             }
-            
+
             return back()->with('success', $message);
-            
         } catch (\Exception $e) {
             Log::error('Mark as checked error: ' . $e->getMessage());
             return back()->with('error', 'Gagal menandai barang: ' . $e->getMessage());
@@ -550,11 +494,7 @@ public function show($id)
     {
         try {
             $purchase = ProjectPurchase::current()
-                ->with([
-                    'project:id,name',
-                    'internalProject:id,project,job,department',
-                    'jobOrder:id,name'
-                ])
+                ->with(['project:id,name', 'internalProject:id,project,job,department', 'jobOrder:id,name'])
                 ->findOrFail($id);
 
             Log::info('Attempting to mark as received', [
@@ -562,56 +502,52 @@ public function show($id)
                 'status' => $purchase->status,
                 'item_status' => $purchase->item_status,
                 'is_current' => $purchase->is_current,
-                'project_type' => $purchase->project_type
+                'project_type' => $purchase->project_type,
             ]);
 
             if (!$purchase->canMarkAsReceived()) {
                 $errorMessage = 'Tidak dapat menandai sebagai diterima. ';
-                
+
                 if ($purchase->status !== 'approved') {
                     $errorMessage .= 'Status PO: ' . $purchase->status . '. ';
                 }
-                
+
                 if (!in_array($purchase->item_status, ['pending_check', 'pending'])) {
                     $errorMessage .= 'Status barang: ' . $purchase->item_status . '. ';
                 }
-                
+
                 if (!$purchase->is_current) {
                     $errorMessage .= 'Ini bukan revision terbaru. ';
                 }
-                
+
                 Log::warning('Cannot mark as received', [
                     'reason' => $errorMessage,
-                    'purchase' => $purchase->toArray()
+                    'purchase' => $purchase->toArray(),
                 ]);
-                
+
                 return back()->with('error', $errorMessage);
             }
 
             $this->purchaseService->markAsReceived($purchase);
-            
+
             // Cek apakah semua item sudah diterima
-            $poItems = ProjectPurchase::where('po_number', $purchase->po_number)
-                ->where('is_current', true)
-                ->get();
-            
+            $poItems = ProjectPurchase::where('po_number', $purchase->po_number)->where('is_current', true)->get();
+
             $receivedCount = $poItems->where('item_status', 'matched')->count();
             $allReceived = $receivedCount === $poItems->count();
-            
+
             $message = 'Barang berhasil ditandai sebagai diterima dan ditambahkan ke inventory!';
             if ($allReceived) {
                 $message .= ' Semua item dalam PO sudah diterima.';
             }
 
             return back()->with('success', $message);
-            
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             Log::error('Purchase not found for markAsReceived: ' . $e->getMessage());
-            return redirect()->route('project-purchases.index')
-                ->with('error', 'Data purchase order tidak ditemukan.');
+            return redirect()->route('project-purchases.index')->with('error', 'Data purchase order tidak ditemukan.');
         } catch (\Exception $e) {
             Log::error('Mark as received error: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
             return back()->with('error', 'Gagal menandai barang sebagai diterima: ' . $e->getMessage());
         }
@@ -645,28 +581,15 @@ public function show($id)
     {
         try {
             $purchase = ProjectPurchase::current()
-                ->with([
-                    'material:id,name,price',
-                    'department:id,name',
-                    'project:id,name',
-                    'internalProject:id,project,job,department,department_id,description',
-                    'jobOrder:id,name',
-                    'category:id,name',
-                    'unit:id,name',
-                    'supplier:id,name',
-                    'pic:id,username'
-                ])->findOrFail($id);
+                ->with(['material:id,name,price', 'department:id,name', 'project:id,name', 'internalProject:id,project,job,department,department_id,description', 'jobOrder:id,name', 'category:id,name', 'unit:id,name', 'supplier:id,name', 'pic:id,username'])
+                ->findOrFail($id);
 
             if (!$purchase->canEdit()) {
-                return redirect()->route('project-purchases.show', $purchase->id)
-                    ->with('error', 'Purchase Order tidak dapat diedit.');
+                return redirect()->route('project-purchases.show', $purchase->id)->with('error', 'Purchase Order tidak dapat diedit.');
             }
 
             // Ambil semua item dengan PO number yang sama
-            $poItems = ProjectPurchase::where('po_number', $purchase->po_number)
-                ->where('is_current', true)
-                ->orderBy('id')
-                ->get();
+            $poItems = ProjectPurchase::where('po_number', $purchase->po_number)->where('is_current', true)->orderBy('id')->get();
 
             $revisions = ProjectPurchase::where('po_number', $purchase->po_number)
                 ->orderBy('created_at', 'desc')
@@ -684,29 +607,16 @@ public function show($id)
                 'materials' => Inventory::select('id', 'name', 'price', 'unit_id', 'category_id')->get(),
                 'departments' => Department::select('id', 'name')->get(),
                 'projects' => Project::select('id', 'name')->get(),
-                'internal_projects' => InternalProject::select('id', 'project', 'job', 'department', 'department_id', 'description')
-                    ->orderBy('project')
-                    ->get(),
+                'internal_projects' => InternalProject::select('id', 'project', 'job', 'department', 'department_id', 'description')->orderBy('project')->get(),
                 'categories' => Category::select('id', 'name')->get(),
                 'units' => Unit::select('id', 'name')->get(),
-                'jobOrders' => JobOrder::leftJoin('departments', 'job_orders.department_id', '=', 'departments.id')
-                    ->leftJoin('projects', 'job_orders.project_id', '=', 'projects.id')
-                    ->select(
-                        'job_orders.id',
-                        'job_orders.name',
-                        'job_orders.project_id',
-                        'job_orders.department_id',
-                        'departments.name as department_name',
-                        'projects.name as project_name'
-                    )
-                    ->get(),
+                'jobOrders' => JobOrder::leftJoin('departments', 'job_orders.department_id', '=', 'departments.id')->leftJoin('projects', 'job_orders.project_id', '=', 'projects.id')->select('job_orders.id', 'job_orders.name', 'job_orders.project_id', 'job_orders.department_id', 'departments.name as department_name', 'projects.name as project_name')->get(),
                 'suppliers' => Supplier::select('id', 'name')->get(),
                 'supplierLocations' => \App\Models\Procurement\LocationSupplier::select('id', 'name')->get(),
             ]);
         } catch (\Exception $e) {
             Log::error('Edit error: ' . $e->getMessage());
-            return redirect()->route('project-purchases.index')
-                ->with('error', 'Terjadi kesalahan saat memuat halaman edit.');
+            return redirect()->route('project-purchases.index')->with('error', 'Terjadi kesalahan saat memuat halaman edit.');
         }
     }
 
@@ -720,12 +630,11 @@ public function show($id)
             Log::info('=== UPDATE REQUEST START ===');
             Log::info('PO ID: ' . $id);
             Log::info('All request data:', $request->all());
-            
+
             $purchase = ProjectPurchase::current()->findOrFail($id);
 
             if (!$purchase->canEdit()) {
-                return redirect()->route('project-purchases.show', $purchase->id)
-                    ->with('error', 'Purchase Order tidak dapat diupdate.');
+                return redirect()->route('project-purchases.show', $purchase->id)->with('error', 'Purchase Order tidak dapat diupdate.');
             }
 
             DB::beginTransaction();
@@ -736,7 +645,7 @@ public function show($id)
             // ===== 1. PROSES EXISTING ITEMS =====
             if ($request->has('items') && is_array($request->items)) {
                 Log::info('Processing ' . count($request->items) . ' existing items');
-                
+
                 foreach ($request->items as $index => $itemData) {
                     if (!isset($itemData['id'])) {
                         Log::warning('Item tanpa ID ditemukan:', $itemData);
@@ -744,7 +653,7 @@ public function show($id)
                     }
 
                     $item = ProjectPurchase::find($itemData['id']);
-                    
+
                     if (!$item) {
                         Log::warning('Item tidak ditemukan: ' . $itemData['id']);
                         continue;
@@ -764,10 +673,10 @@ public function show($id)
                         'department_id' => $request->department_id ?? $purchase->department_id,
                         'supplier_id' => $request->supplier_id ?? $purchase->supplier_id,
                         'is_offline_order' => $request->is_offline_order ?? $purchase->is_offline_order,
-                        'freight' => $request->freight ?? $purchase->freight ?? 0,
+                        'freight' => $request->freight ?? ($purchase->freight ?? 0),
                         'note' => $request->note ?? $purchase->note,
                         'project_type' => $request->project_type ?? $purchase->project_type,
-                        
+
                         // Item specific data
                         'purchase_type' => $itemData['purchase_type'] ?? $item->purchase_type,
                         'material_id' => $itemData['material_id'] ?? $item->material_id,
@@ -791,11 +700,11 @@ public function show($id)
 
                     // Validasi data
                     $validated = $this->purchaseService->validatePurchaseRequest(new Request($mergedData), $item->id);
-                    
+
                     // Update item (buat revisi baru)
                     $updatedItem = $this->purchaseService->updatePurchase($item, $validated);
                     $updatedItems[] = $updatedItem;
-                    
+
                     Log::info('Item updated successfully, new revision ID: ' . $updatedItem->id);
                 }
             }
@@ -803,7 +712,7 @@ public function show($id)
             // ===== 2. PROSES NEW ITEMS =====
             if ($request->has('new_items') && is_array($request->new_items)) {
                 Log::info('Processing ' . count($request->new_items) . ' new items');
-                
+
                 foreach ($request->new_items as $index => $itemData) {
                     Log::info('Creating new item:', $itemData);
 
@@ -817,7 +726,7 @@ public function show($id)
                         'freight' => 0, // New items don't have freight
                         'note' => $request->note ?? $purchase->note,
                         'project_type' => $request->project_type ?? $purchase->project_type,
-                        
+
                         // Item specific data
                         'purchase_type' => $itemData['purchase_type'] ?? 'restock',
                         'material_id' => $itemData['material_id'] ?? null,
@@ -841,11 +750,11 @@ public function show($id)
 
                     // Validasi data
                     $validated = $this->purchaseService->validatePurchaseRequest(new Request($mergedData));
-                    
+
                     // Buat item baru
                     $newItem = $this->purchaseService->createPurchase($validated);
                     $newItems[] = $newItem;
-                    
+
                     Log::info('New item created with ID: ' . $newItem->id);
                 }
             }
@@ -854,8 +763,8 @@ public function show($id)
 
             $totalUpdated = count($updatedItems);
             $totalNew = count($newItems);
-            $message = "Purchase Order berhasil diperbarui!";
-            
+            $message = 'Purchase Order berhasil diperbarui!';
+
             if ($totalUpdated > 0 && $totalNew > 0) {
                 $message .= " {$totalUpdated} item diupdate, {$totalNew} item baru ditambahkan.";
             } elseif ($totalUpdated > 0) {
@@ -866,23 +775,17 @@ public function show($id)
 
             Log::info('=== UPDATE REQUEST COMPLETED ===');
 
-            return redirect()->route('project-purchases.show', $purchase->id)
-                ->with('success', $message);
-
+            return redirect()->route('project-purchases.show', $purchase->id)->with('success', $message);
         } catch (\Illuminate\Validation\ValidationException $e) {
             DB::rollBack();
             Log::error('Validation errors:', $e->errors());
-            
-            return back()
-                ->withErrors($e->errors())
-                ->withInput($request->all())
-                ->with('error', 'Validasi gagal. Periksa kembali form Anda.');
-                
+
+            return back()->withErrors($e->errors())->withInput($request->all())->with('error', 'Validasi gagal. Periksa kembali form Anda.');
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Purchase Order update error: ' . $e->getMessage());
             Log::error('Stack trace: ' . $e->getTraceAsString());
-            
+
             return back()
                 ->withInput($request->all())
                 ->with('error', 'Gagal update Purchase Order: ' . $e->getMessage());
@@ -901,7 +804,7 @@ public function show($id)
                 return response()->json([
                     'success' => false,
                     'message' => 'Material tidak ditemukan',
-                    'price' => 0
+                    'price' => 0,
                 ]);
             }
 
@@ -912,14 +815,14 @@ public function show($id)
                 'unit_name' => $material->unit->name ?? null,
                 'category_id' => $material->category_id ?? null,
                 'category_name' => $material->category->name ?? null,
-                'material_name' => $material->name ?? null
+                'material_name' => $material->name ?? null,
             ]);
         } catch (\Exception $e) {
             Log::error('Get material price error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Terjadi kesalahan',
-                'price' => 0
+                'price' => 0,
             ]);
         }
     }
@@ -937,7 +840,7 @@ public function show($id)
                     'success' => false,
                     'message' => 'Job Order tidak ditemukan',
                     'department_id' => null,
-                    'project_id' => null
+                    'project_id' => null,
                 ]);
             }
 
@@ -947,7 +850,7 @@ public function show($id)
                 'department_name' => $jobOrder->department->name ?? null,
                 'project_id' => $jobOrder->project_id,
                 'project_name' => $jobOrder->project->name ?? null,
-                'job_order_name' => $jobOrder->name ?? null
+                'job_order_name' => $jobOrder->name ?? null,
             ]);
         } catch (\Exception $e) {
             Log::error('Get job order details error: ' . $e->getMessage());
@@ -955,7 +858,7 @@ public function show($id)
                 'success' => false,
                 'message' => 'Terjadi kesalahan',
                 'department_id' => null,
-                'project_id' => null
+                'project_id' => null,
             ]);
         }
     }
@@ -974,7 +877,7 @@ public function show($id)
                 'success' => false,
                 'message' => 'Terjadi kesalahan',
                 'job' => null,
-                'department' => null
+                'department' => null,
             ]);
         }
     }
@@ -1000,34 +903,19 @@ public function show($id)
     {
         try {
             $purchase = ProjectPurchase::current()
-                ->with([
-                    'material:id,name,price',
-                    'department:id,name',
-                    'project:id,name',
-                    'internalProject:id,project,job,department,department_id,description',
-                    'jobOrder:id,name',
-                    'category:id,name',
-                    'unit:id,name',
-                    'supplier:id,name,address',
-                    'pic:id,username',
-                    'approver:id,username'
-                ])->findOrFail($id);
+                ->with(['material:id,name,price', 'department:id,name', 'project:id,name', 'internalProject:id,project,job,department,department_id,description', 'jobOrder:id,name', 'category:id,name', 'unit:id,name', 'supplier:id,name,address', 'pic:id,username', 'approver:id,username'])
+                ->findOrFail($id);
 
             // Ambil semua item dengan PO number yang sama
             $poItems = ProjectPurchase::where('po_number', $purchase->po_number)
                 ->where('is_current', true)
-                ->with([
-                    'material:id,name,price',
-                    'category:id,name',
-                    'unit:id,name',
-                ])
+                ->with(['material:id,name,price', 'category:id,name', 'unit:id,name'])
                 ->orderBy('id')
                 ->get();
 
             $poTotal = $poItems->sum('invoice_total');
 
             return view('procurement.Project-Purchase.print', compact('purchase', 'poItems', 'poTotal'));
-            
         } catch (\Exception $e) {
             Log::error('Print error: ' . $e->getMessage());
             return back()->with('error', 'Gagal mencetak purchase order: ' . $e->getMessage());
@@ -1046,13 +934,13 @@ public function show($id)
 
             return response()->json([
                 'success' => true,
-                'materials' => $materials
+                'materials' => $materials,
             ]);
         } catch (\Exception $e) {
             Log::error('Get materials error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Terjadi kesalahan saat mengambil data material'
+                'message' => 'Terjadi kesalahan saat mengambil data material',
             ]);
         }
     }
@@ -1072,13 +960,13 @@ public function show($id)
                 'success' => true,
                 'items' => $items,
                 'total_items' => $items->count(),
-                'total_amount' => $items->sum('invoice_total')
+                'total_amount' => $items->sum('invoice_total'),
             ]);
         } catch (\Exception $e) {
             Log::error('Get PO items error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal mengambil data items'
+                'message' => 'Gagal mengambil data items',
             ]);
         }
     }

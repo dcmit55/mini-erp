@@ -23,126 +23,101 @@ class ProjectPurchaseService
     {
         try {
             // Build base query untuk mendapatkan PO numbers yang unik
-            $poNumbersQuery = ProjectPurchase::current()
-                ->select('po_number', 'department_id', 'project_type', 'supplier_id', 
-                         'status', 'date', 'created_at')
-                ->distinct('po_number');
-            
+            $poNumbersQuery = ProjectPurchase::current()->select('po_number', 'department_id', 'project_type', 'supplier_id', 'status', 'date', 'created_at')->distinct('po_number');
+
             // Apply filters
             if ($request->filled('status')) {
                 $poNumbersQuery->where('status', $request->status);
             }
-            
+
             if ($request->filled('item_status')) {
                 // Filter by item status - cek apakah ada item dengan status tertentu dalam PO
-                $poNumbersQuery->whereExists(function($query) use ($request) {
-                    $query->select(DB::raw(1))
-                          ->from('project_purchases as pp2')
-                          ->whereRaw('pp2.po_number = project_purchases.po_number')
-                          ->where('pp2.is_current', true)
-                          ->where('pp2.item_status', $request->item_status);
+                $poNumbersQuery->whereExists(function ($query) use ($request) {
+                    $query->select(DB::raw(1))->from('project_purchases as pp2')->whereRaw('pp2.po_number = project_purchases.po_number')->where('pp2.is_current', true)->where('pp2.item_status', $request->item_status);
                 });
             }
-            
+
             if ($request->filled('department_id')) {
                 $poNumbersQuery->where('department_id', $request->department_id);
             }
-            
+
             if ($request->filled('project_type')) {
                 $poNumbersQuery->where('project_type', $request->project_type);
             }
-            
+
             if ($request->filled('supplier_id')) {
                 $poNumbersQuery->where('supplier_id', $request->supplier_id);
             }
-            
+
             if ($request->filled('date')) {
                 $poNumbersQuery->whereDate('date', $request->date);
             }
-            
+
             if ($request->filled('search')) {
                 $search = $request->search;
-                $poNumbersQuery->where(function($q) use ($search) {
+                $poNumbersQuery->where(function ($q) use ($search) {
                     $q->where('po_number', 'like', "%{$search}%")
-                      ->orWhere('resi_number', 'like', "%{$search}%")
-                      ->orWhereHas('supplier', function($q) use ($search) {
-                          $q->where('name', 'like', "%{$search}%");
-                      })
-                      ->orWhereHas('project', function($q) use ($search) {
-                          $q->where('name', 'like', "%{$search}%");
-                      })
-                      ->orWhereHas('internalProject', function($q) use ($search) {
-                          $q->where('job', 'like', "%{$search}%")
-                            ->orWhere('project', 'like', "%{$search}%");
-                      });
+                        ->orWhere('resi_number', 'like', "%{$search}%")
+                        ->orWhereHas('supplier', function ($q) use ($search) {
+                            $q->where('name', 'like', "%{$search}%");
+                        })
+                        ->orWhereHas('project', function ($q) use ($search) {
+                            $q->where('name', 'like', "%{$search}%");
+                        })
+                        ->orWhereHas('internalProject', function ($q) use ($search) {
+                            $q->where('job', 'like', "%{$search}%")->orWhere('project', 'like', "%{$search}%");
+                        });
                 });
             }
-            
+
             // Get unique PO numbers dengan ordering
-            $poNumbers = $poNumbersQuery->orderBy('created_at', 'desc')
-                ->pluck('po_number')
-                ->unique()
-                ->values();
-            
+            $poNumbers = $poNumbersQuery->orderBy('created_at', 'desc')->pluck('po_number')->unique()->values();
+
             // Load ALL purchases for these PO numbers in ONE query with eager loading
             $allPurchases = ProjectPurchase::current()
-                ->with([
-                    'material:id,name',
-                    'department:id,name',
-                    'category:id,name',
-                    'unit:id,name',
-                    'supplier:id,name',
-                    'pic:id,username',
-                    'checker:id,username',
-                    'approver:id,username',
-                    'receiver:id,username',
-                    'project:id,name',
-                    'internalProject:id,project,job,department,department_id',
-                    'jobOrder:id,name',
-                ])
+                ->with(['material:id,name', 'department:id,name', 'category:id,name', 'unit:id,name', 'supplier:id,name', 'pic:id,username', 'checker:id,username', 'approver:id,username', 'receiver:id,username', 'project:id,name', 'internalProject:id,project,job,department,department_id', 'jobOrder:id,name'])
                 ->whereIn('po_number', $poNumbers)
                 ->get();
-            
+
             // Build collection of purchases (one per PO) from loaded data
             $purchases = collect();
             foreach ($poNumbers as $poNumber) {
                 // Get from already loaded collection, NOT from database
                 $firstItem = $allPurchases->where('po_number', $poNumber)->first();
-                
+
                 if ($firstItem) {
                     // Add status badge classes for view
                     $firstItem->status_badge_class = $this->getStatusBadgeClass($firstItem->status);
                     $firstItem->status_text = $this->getStatusText($firstItem->status);
-                    
+
                     // Add group info from already loaded collection
                     $poItems = $allPurchases->where('po_number', $poNumber);
                     $firstItem->group_info = $this->getGroupInfoFromCollection($poItems);
-                    
+
                     $purchases->push($firstItem);
                 }
             }
-            
+
             // Sort by created_at desc (already ordered, but ensure)
             $purchases = $purchases->sortByDesc('created_at')->values();
-            
+
             if ($paginate) {
                 return $this->paginateCollection($purchases, $request);
             }
-            
+
             return $purchases;
-            
         } catch (\Exception $e) {
             Log::error('Error in getPurchasesWithFilters: ' . $e->getMessage());
-            
+
             // Return empty collection on error
             if ($paginate) {
                 return new LengthAwarePaginator([], 0, 20, $request->page ?? 1);
             }
-            
+
             return collect();
         }
     }
-    
+
     /**
      * Paginate collection manually
      */
@@ -151,44 +126,38 @@ class ProjectPurchaseService
         $perPage = 20;
         $currentPage = $request->input('page', 1);
         $offset = ($currentPage - 1) * $perPage;
-        
+
         $currentPageItems = $items->slice($offset, $perPage)->values();
-        
-        return new LengthAwarePaginator(
-            $currentPageItems,
-            $items->count(),
-            $perPage,
-            $currentPage,
-            ['path' => $request->url(), 'query' => $request->query()]
-        );
+
+        return new LengthAwarePaginator($currentPageItems, $items->count(), $perPage, $currentPage, ['path' => $request->url(), 'query' => $request->query()]);
     }
-    
+
     /**
      * Get status badge class
      */
     private function getStatusBadgeClass($status)
     {
-        return match($status) {
+        return match ($status) {
             'pending' => 'bg-warning',
             'approved' => 'bg-success',
             'rejected' => 'bg-danger',
-            default => 'bg-secondary'
+            default => 'bg-secondary',
         };
     }
-    
+
     /**
      * Get status text
      */
     private function getStatusText($status)
     {
-        return match($status) {
+        return match ($status) {
             'pending' => 'Pending',
             'approved' => 'Approved',
             'rejected' => 'Rejected',
-            default => ucfirst($status)
+            default => ucfirst($status),
         };
     }
-    
+
     /**
      * GET GROUP INFORMATION FROM ALREADY LOADED COLLECTION (No database query)
      */
@@ -203,14 +172,14 @@ class ProjectPurchaseService
                     'received_count' => 0,
                     'not_matched_count' => 0,
                     'pending_count' => 0,
-                    'materials' => []
+                    'materials' => [],
                 ];
             }
-            
+
             $receivedCount = $items->where('item_status', 'matched')->count();
             $notMatchedCount = $items->where('item_status', 'not_matched')->count();
             $pendingCount = $items->whereIn('item_status', ['pending_check', 'pending'])->count();
-            
+
             return [
                 'total_items' => $items->count(),
                 'total_quantity' => $items->sum('quantity'),
@@ -218,23 +187,20 @@ class ProjectPurchaseService
                 'received_count' => $receivedCount,
                 'not_matched_count' => $notMatchedCount,
                 'pending_count' => $pendingCount,
-                'materials' => $items->map(function($item) {
+                'materials' => $items->map(function ($item) {
                     return [
-                        'name' => $item->purchase_type === 'restock' 
-                            ? ($item->material->name ?? 'Unknown') 
-                            : ($item->new_item_name ?? 'Unknown'),
+                        'name' => $item->purchase_type === 'restock' ? $item->material->name ?? 'Unknown' : $item->new_item_name ?? 'Unknown',
                         'quantity' => $item->quantity,
                         'unit_price' => $item->unit_price,
                         'subtotal' => $item->total_price,
                         'category' => $item->category->name ?? '-',
-                        'unit' => $item->unit->name ?? '-'
+                        'unit' => $item->unit->name ?? '-',
                     ];
-                })
+                }),
             ];
-            
         } catch (\Exception $e) {
-            Log::error("Error getting group info from collection: " . $e->getMessage());
-            
+            Log::error('Error getting group info from collection: ' . $e->getMessage());
+
             return [
                 'total_items' => 1,
                 'total_quantity' => 0,
@@ -242,13 +208,11 @@ class ProjectPurchaseService
                 'received_count' => 0,
                 'not_matched_count' => 0,
                 'pending_count' => 1,
-                'materials' => [
-                    ['name' => 'Error loading items', 'quantity' => 0]
-                ]
+                'materials' => [['name' => 'Error loading items', 'quantity' => 0]],
             ];
         }
     }
-    
+
     /**
      * GET GROUP INFORMATION FOR PO NUMBER
      */
@@ -257,17 +221,9 @@ class ProjectPurchaseService
         try {
             $items = ProjectPurchase::where('po_number', $poNumber)
                 ->where('is_current', true)
-                ->with([
-                    'material:id,name',
-                    'category:id,name',
-                    'unit:id,name',
-                    'pic:id,username',
-                    'checker:id,username',
-                    'approver:id,username',
-                    'receiver:id,username'
-                ])
+                ->with(['material:id,name', 'category:id,name', 'unit:id,name', 'pic:id,username', 'checker:id,username', 'approver:id,username', 'receiver:id,username'])
                 ->get();
-            
+
             if ($items->isEmpty()) {
                 return [
                     'total_items' => 0,
@@ -276,14 +232,14 @@ class ProjectPurchaseService
                     'received_count' => 0,
                     'not_matched_count' => 0,
                     'pending_count' => 0,
-                    'materials' => []
+                    'materials' => [],
                 ];
             }
-            
+
             $receivedCount = $items->where('item_status', 'matched')->count();
             $notMatchedCount = $items->where('item_status', 'not_matched')->count();
             $pendingCount = $items->whereIn('item_status', ['pending_check', 'pending'])->count();
-            
+
             return [
                 'total_items' => $items->count(),
                 'total_quantity' => $items->sum('quantity'),
@@ -291,23 +247,20 @@ class ProjectPurchaseService
                 'received_count' => $receivedCount,
                 'not_matched_count' => $notMatchedCount,
                 'pending_count' => $pendingCount,
-                'materials' => $items->map(function($item) {
+                'materials' => $items->map(function ($item) {
                     return [
-                        'name' => $item->purchase_type === 'restock' 
-                            ? ($item->material->name ?? 'Unknown') 
-                            : ($item->new_item_name ?? 'Unknown'),
+                        'name' => $item->purchase_type === 'restock' ? $item->material->name ?? 'Unknown' : $item->new_item_name ?? 'Unknown',
                         'quantity' => $item->quantity,
                         'unit_price' => $item->unit_price,
                         'subtotal' => $item->total_price,
                         'category' => $item->category->name ?? '-',
-                        'unit' => $item->unit->name ?? '-'
+                        'unit' => $item->unit->name ?? '-',
                     ];
-                })
+                }),
             ];
-            
         } catch (\Exception $e) {
             Log::error("Error getting group info for PO {$poNumber}: " . $e->getMessage());
-            
+
             return [
                 'total_items' => 1,
                 'total_quantity' => 0,
@@ -315,13 +268,11 @@ class ProjectPurchaseService
                 'received_count' => 0,
                 'not_matched_count' => 0,
                 'pending_count' => 1,
-                'materials' => [
-                    ['name' => 'Error loading items', 'quantity' => 0]
-                ]
+                'materials' => [['name' => 'Error loading items', 'quantity' => 0]],
             ];
         }
     }
-    
+
     /**
      * GET PURCHASE STATISTICS - GROUPED BY PO NUMBER
      */
@@ -329,13 +280,11 @@ class ProjectPurchaseService
     {
         try {
             // Get all current purchases with minimal eager loading
-            $allPurchases = ProjectPurchase::current()
-                ->select('po_number', 'status', 'item_status', 'invoice_total', 'project_type', 'created_at')
-                ->get();
-            
+            $allPurchases = ProjectPurchase::current()->select('po_number', 'status', 'item_status', 'invoice_total', 'project_type', 'created_at')->get();
+
             // Get unique PO numbers
             $uniquePOs = $allPurchases->pluck('po_number')->unique();
-            
+
             $stats = [
                 'total' => $uniquePOs->count(),
                 'total_amount' => 0,
@@ -349,53 +298,72 @@ class ProjectPurchaseService
                 'client_projects' => 0,
                 'internal_projects' => 0,
             ];
-            
+
             foreach ($uniquePOs as $poNumber) {
                 $poItems = $allPurchases->where('po_number', $poNumber);
-                
-                if ($poItems->isEmpty()) continue;
-                
+
+                if ($poItems->isEmpty()) {
+                    continue;
+                }
+
                 // Use first item for PO-level info
                 $firstItem = $poItems->first();
-                
+
                 // Count by status
-                if ($firstItem->status === 'pending') $stats['pending']++;
-                if ($firstItem->status === 'rejected') $stats['rejected']++;
-                if ($firstItem->status === 'approved') $stats['approved']++;
-                
+                if ($firstItem->status === 'pending') {
+                    $stats['pending']++;
+                }
+                if ($firstItem->status === 'rejected') {
+                    $stats['rejected']++;
+                }
+                if ($firstItem->status === 'approved') {
+                    $stats['approved']++;
+                }
+
                 // Count by receipt status
-                $allReceived = $poItems->every(function($item) {
+                $allReceived = $poItems->every(function ($item) {
                     return $item->item_status === 'matched';
                 });
-                
-                $anyNotMatched = $poItems->contains(function($item) {
+
+                $anyNotMatched = $poItems->contains(function ($item) {
                     return $item->item_status === 'not_matched';
                 });
-                
-                $anyPending = $poItems->contains(function($item) {
+
+                $anyPending = $poItems->contains(function ($item) {
                     return in_array($item->item_status, ['pending_check', 'pending']);
                 });
-                
-                if ($allReceived) $stats['received']++;
-                if ($anyNotMatched) $stats['not_matched']++;
-                if ($anyPending) $stats['pending_check']++;
-                
+
+                if ($allReceived) {
+                    $stats['received']++;
+                }
+                if ($anyNotMatched) {
+                    $stats['not_matched']++;
+                }
+                if ($anyPending) {
+                    $stats['pending_check']++;
+                }
+
                 // Total amount for all items in PO
                 $stats['total_amount'] += $poItems->sum('invoice_total');
-                
+
                 // Today's PO
-                if ($firstItem->created_at->isToday()) $stats['today']++;
-                
+                if ($firstItem->created_at->isToday()) {
+                    $stats['today']++;
+                }
+
                 // Project type
-                if ($firstItem->project_type === 'client') $stats['client_projects']++;
-                if ($firstItem->project_type === 'internal') $stats['internal_projects']++;
+                if ($firstItem->project_type === 'client') {
+                    $stats['client_projects']++;
+                }
+                if ($firstItem->project_type === 'internal') {
+                    $stats['internal_projects']++;
+                }
             }
-            
+
             return $stats;
-            
         } catch (\Exception $e) {
             Log::error('Error in getPurchaseStats: ' . $e->getMessage());
-            
+
             return [
                 'total' => 0,
                 'total_amount' => 0,
@@ -411,7 +379,7 @@ class ProjectPurchaseService
             ];
         }
     }
-    
+
     /**
      * GET INTERNAL PROJECT DETAILS
      */
@@ -419,7 +387,7 @@ class ProjectPurchaseService
     {
         try {
             $project = InternalProject::with(['department:id,name'])->find($id);
-            
+
             if (!$project) {
                 return [
                     'success' => false,
@@ -428,22 +396,21 @@ class ProjectPurchaseService
                     'department' => null,
                     'job' => null,
                     'description' => null,
-                    'department_id' => null
+                    'department_id' => null,
                 ];
             }
-            
+
             return [
                 'success' => true,
                 'project' => $project->project,
                 'department' => $project->department,
                 'job' => $project->job,
                 'description' => $project->description,
-                'department_id' => $project->department_id ?? null
+                'department_id' => $project->department_id ?? null,
             ];
-            
         } catch (\Exception $e) {
             Log::error('Get internal project details error: ' . $e->getMessage());
-            
+
             return [
                 'success' => false,
                 'message' => 'Terjadi kesalahan: ' . $e->getMessage(),
@@ -451,18 +418,18 @@ class ProjectPurchaseService
                 'department' => null,
                 'job' => null,
                 'description' => null,
-                'department_id' => null
+                'department_id' => null,
             ];
         }
     }
-    
+
     /**
      * VALIDATE PURCHASE REQUEST - DEPARTMENT TIDAK REQUIRE
      */
     public function validatePurchaseRequest(Request $request, $purchaseId = null)
     {
         Log::info('Validating purchase request:', $request->all());
-        
+
         $rules = [
             'po_number' => 'required|string|max:50',
             'date' => 'required|date',
@@ -482,7 +449,8 @@ class ProjectPurchaseService
         // Validasi berdasarkan purchase_type
         if ($request->purchase_type === 'restock') {
             $rules['material_id'] = 'required|exists:inventories,id';
-        } else { // new_item
+        } else {
+            // new_item
             $rules['new_item_name'] = 'nullable|required|string|max:255';
             $rules['category_id'] = 'nullable|required|exists:categories,id';
             $rules['unit_id'] = 'nullable|required|exists:units,id';
@@ -524,47 +492,47 @@ class ProjectPurchaseService
         ];
 
         $validated = $request->validate($rules, $messages);
-        
+
         // Hapus job_order_id dari validated data jika project_type = internal
         if ($validated['project_type'] === 'internal' && isset($validated['job_order_id'])) {
             unset($validated['job_order_id']);
             unset($validated['project_id']);
         }
-        
+
         // Hapus internal_project_id jika project_type = client
         if ($validated['project_type'] === 'client' && isset($validated['internal_project_id'])) {
             unset($validated['internal_project_id']);
         }
-        
+
         Log::info('Validation completed successfully', ['validated_data' => $validated]);
-        
+
         return $validated;
     }
-    
+
     /**
      * VALIDATE FOREIGN KEYS - Department tidak wajib
      */
     private function validateForeignKeys(array $data)
     {
         $errors = [];
-        
+
         // Department ID tidak wajib, hanya validasi jika ada
         if (isset($data['department_id']) && !empty($data['department_id'])) {
             if (!DB::table('departments')->where('id', $data['department_id'])->exists()) {
                 $errors[] = "Department ID {$data['department_id']} tidak valid";
             }
         }
-        
+
         if (isset($data['supplier_id']) && !DB::table('suppliers')->where('id', $data['supplier_id'])->exists()) {
             $errors[] = "Supplier ID {$data['supplier_id']} tidak valid";
         }
-        
+
         if (isset($data['purchase_type']) && $data['purchase_type'] === 'restock' && isset($data['material_id'])) {
             if (!DB::table('inventories')->where('id', $data['material_id'])->exists()) {
                 $errors[] = "Material ID {$data['material_id']} tidak valid";
             }
         }
-        
+
         if (isset($data['project_type']) && $data['project_type'] === 'client') {
             if (isset($data['project_id']) && !DB::table('projects')->where('id', $data['project_id'])->exists()) {
                 $errors[] = "Project ID {$data['project_id']} tidak valid";
@@ -573,13 +541,13 @@ class ProjectPurchaseService
                 $errors[] = "Job Order ID {$data['job_order_id']} tidak valid";
             }
         }
-        
+
         if (isset($data['project_type']) && $data['project_type'] === 'internal' && isset($data['internal_project_id'])) {
             if (!DB::table('internal_projects')->where('id', $data['internal_project_id'])->exists()) {
                 $errors[] = "Internal Project ID {$data['internal_project_id']} tidak valid";
             }
         }
-        
+
         if (isset($data['purchase_type']) && $data['purchase_type'] === 'new_item') {
             if (isset($data['category_id']) && !DB::table('categories')->where('id', $data['category_id'])->exists()) {
                 $errors[] = "Category ID {$data['category_id']} tidak valid";
@@ -588,12 +556,12 @@ class ProjectPurchaseService
                 $errors[] = "Unit ID {$data['unit_id']} tidak valid";
             }
         }
-        
+
         if (!empty($errors)) {
             throw new \Exception(implode(', ', $errors));
         }
     }
-    
+
     /**
      * GET VALID PIC ID
      */
@@ -601,70 +569,69 @@ class ProjectPurchaseService
     {
         if (auth()->check()) {
             $userId = auth()->id();
-            
+
             $exists = DB::table('employees')->where('id', $userId)->exists();
             if ($exists) {
                 return $userId;
             }
-            
+
             $userExists = DB::table('users')->where('id', $userId)->exists();
             if ($userExists) {
                 return $userId;
             }
         }
-        
+
         $firstEmployee = DB::table('employees')->orderBy('id')->first();
         if ($firstEmployee) {
             return $firstEmployee->id;
         }
-        
+
         $firstUser = DB::table('users')->orderBy('id')->first();
         if ($firstUser) {
             return $firstUser->id;
         }
-        
+
         throw new \Exception('Tidak ada PIC yang valid. Silakan tambahkan data employee/user terlebih dahulu.');
     }
-    
+
     /**
      * CREATE PURCHASE - Satu record per item
      */
     public function createPurchase(array $data)
     {
         DB::beginTransaction();
-        
+
         try {
             Log::info('Creating purchase with data:', $data);
-            
+
             $this->validateForeignKeys($data);
-            
+
             $purchaseData = $this->preparePurchaseData($data);
             $purchaseData['pic_id'] = $this->getValidPicId();
             $purchaseData['status'] = 'pending';
             $purchaseData['item_status'] = 'pending_check';
             $purchaseData['is_current'] = true;
-            
+
             // Calculate totals
             $purchaseData['total_price'] = $purchaseData['quantity'] * $purchaseData['unit_price'];
             $purchaseData['invoice_total'] = $purchaseData['total_price'] + ($purchaseData['freight'] ?? 0) + ($purchaseData['other_costs'] ?? 0);
-            
+
             Log::info('Final data for purchase creation:', $purchaseData);
-            
+
             $purchase = ProjectPurchase::create($purchaseData);
-            
+
             Log::info('Purchase created successfully:', [
                 'id' => $purchase->id,
                 'po_number' => $purchase->po_number,
-                'pic_id' => $purchase->pic_id
+                'pic_id' => $purchase->pic_id,
             ]);
-            
+
             DB::commit();
             return $purchase;
-            
         } catch (\Illuminate\Database\QueryException $e) {
             DB::rollBack();
             Log::error('Database error in createPurchase: ' . $e->getMessage());
-            
+
             if (str_contains($e->getMessage(), 'foreign key constraint')) {
                 if (str_contains($e->getMessage(), 'department_id')) {
                     throw new \Exception('Department yang dipilih tidak valid. Silakan pilih department lain.');
@@ -677,16 +644,15 @@ class ProjectPurchaseService
                 }
                 throw new \Exception('Terjadi kesalahan foreign key constraint. Periksa kembali data Anda.');
             }
-            
+
             throw $e;
-            
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Create purchase error: ' . $e->getMessage());
             throw $e;
         }
     }
-    
+
     /**
      * PREPARE PURCHASE DATA
      */
@@ -733,18 +699,18 @@ class ProjectPurchaseService
 
         return $purchaseData;
     }
-    
+
     /**
      * UPDATE PURCHASE - Create new revision
      */
     public function updatePurchase(ProjectPurchase $purchase, array $data)
     {
         DB::beginTransaction();
-        
+
         try {
             Log::info('🔄 UPDATE PURCHASE', [
                 'old_record_id' => $purchase->id,
-                'po_number' => $purchase->po_number
+                'po_number' => $purchase->po_number,
             ]);
 
             if (!$purchase->is_current) {
@@ -755,14 +721,14 @@ class ProjectPurchaseService
 
             $quantity = $data['quantity'] ?? $purchase->quantity;
             $unitPrice = $data['unit_price'] ?? $purchase->unit_price;
-            $freight = $data['freight'] ?? $purchase->freight ?? 0;
-            $otherCosts = $data['other_costs'] ?? $purchase->other_costs ?? 0;
-            
+            $freight = $data['freight'] ?? ($purchase->freight ?? 0);
+            $otherCosts = $data['other_costs'] ?? ($purchase->other_costs ?? 0);
+
             $totalPrice = $quantity * $unitPrice;
             $invoiceTotal = $totalPrice + $freight + $otherCosts;
-            
+
             $picId = $this->getValidPicId();
-            
+
             $newData = [
                 'po_number' => $data['po_number'] ?? $purchase->po_number,
                 'date' => $data['date'] ?? $purchase->date,
@@ -800,7 +766,7 @@ class ProjectPurchaseService
                 'is_current' => true,
                 'revision_at' => now(),
             ];
-            
+
             // Reset approval if status changed back to pending
             if (isset($data['status']) && $data['status'] === 'pending') {
                 $newData['approved_at'] = null;
@@ -810,91 +776,90 @@ class ProjectPurchaseService
                 $newData['received_at'] = null;
                 $newData['received_by'] = null;
             }
-            
+
             // Mark old record as not current
             $purchase->update([
                 'is_current' => false,
-                'updated_at' => now()
+                'updated_at' => now(),
             ]);
-            
+
             // Create new revision
             $newRevision = ProjectPurchase::create($newData);
-            
+
             Log::info('✅ NEW REVISION CREATED', [
                 'old_record_id' => $purchase->id,
                 'new_record_id' => $newRevision->id,
-                'po_number' => $newRevision->po_number
+                'po_number' => $newRevision->po_number,
             ]);
-            
+
             DB::commit();
-            
+
             return $newRevision;
-            
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('❌ Update purchase error', [
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ]);
             throw $e;
         }
     }
-    
+
     /**
      * Handle material ID for update
      */
     private function handleMaterialId(ProjectPurchase $purchase, array $data)
     {
         $purchaseType = $data['purchase_type'] ?? $purchase->purchase_type;
-        
+
         if ($purchaseType === 'new_item') {
             return null;
         }
-        
+
         return $data['material_id'] ?? $purchase->material_id;
     }
-    
+
     /**
      * Handle project ID for update
      */
     private function handleProjectId(ProjectPurchase $purchase, array $data)
     {
         $projectType = $data['project_type'] ?? $purchase->project_type;
-        
+
         if ($projectType === 'internal') {
             return null;
         }
-        
+
         return $data['project_id'] ?? $purchase->project_id;
     }
-    
+
     /**
      * Handle internal project ID for update
      */
     private function handleInternalProjectId(ProjectPurchase $purchase, array $data)
     {
         $projectType = $data['project_type'] ?? $purchase->project_type;
-        
+
         if ($projectType === 'client') {
             return null;
         }
-        
+
         return $data['internal_project_id'] ?? $purchase->internal_project_id;
     }
-    
+
     /**
      * Handle job order ID for update
      */
     private function handleJobOrderId(ProjectPurchase $purchase, array $data)
     {
         $projectType = $data['project_type'] ?? $purchase->project_type;
-        
+
         if ($projectType === 'internal') {
             return null;
         }
-        
+
         return $data['job_order_id'] ?? $purchase->job_order_id;
     }
-    
+
     /**
      * Handle note with revision tracking
      */
@@ -902,30 +867,27 @@ class ProjectPurchaseService
     {
         $newNote = $data['note'] ?? '';
         $oldNote = $purchase->note ?? '';
-        
+
         if (!empty($newNote) && $newNote !== $oldNote) {
             $timestamp = now()->format('d/m/Y H:i:s');
-            return "[Revisi {$timestamp}]\n" . 
-                   $newNote . "\n\n" . 
-                   "--- Sebelumnya ---\n" . 
-                   $oldNote;
+            return "[Revisi {$timestamp}]\n" . $newNote . "\n\n" . "--- Sebelumnya ---\n" . $oldNote;
         }
-        
+
         return $oldNote;
     }
-    
+
     /**
      * APPROVE PURCHASE
      */
     public function approvePurchase(ProjectPurchase $purchase, array $data)
     {
         DB::beginTransaction();
-        
+
         try {
             if (!$purchase->is_current) {
                 throw new \Exception('Hanya current revision yang bisa diapprove.');
             }
-            
+
             $purchase->update([
                 'status' => 'approved',
                 'approved_at' => now(),
@@ -933,42 +895,40 @@ class ProjectPurchaseService
                 'finance_notes' => $data['finance_notes'] ?? null,
                 'resi_number' => $data['resi_number'] ?? $purchase->resi_number,
             ]);
-            
+
             DB::commit();
-            
         } catch (\Exception $e) {
             DB::rollBack();
             throw $e;
         }
     }
-    
+
     /**
      * REJECT PURCHASE
      */
     public function rejectPurchase(ProjectPurchase $purchase, array $data)
     {
         DB::beginTransaction();
-        
+
         try {
             if (!$purchase->is_current) {
                 throw new \Exception('Hanya current revision yang bisa direject.');
             }
-            
+
             $purchase->update([
                 'status' => 'rejected',
                 'approved_at' => now(),
                 'approved_by' => auth()->id(),
                 'finance_notes' => $data['finance_notes'],
             ]);
-            
+
             DB::commit();
-            
         } catch (\Exception $e) {
             DB::rollBack();
             throw $e;
         }
     }
-    
+
     /**
      * UPDATE RESI NUMBER
      */
@@ -977,71 +937,70 @@ class ProjectPurchaseService
         if (!$purchase->is_current) {
             throw new \Exception('Hanya current revision yang bisa update resi number.');
         }
-        
+
         $updateData = [];
-        
+
         if (isset($data['resi_number'])) {
             $updateData['resi_number'] = $data['resi_number'];
         }
-        
+
         if (!empty($updateData)) {
             $purchase->update($updateData);
         }
     }
-    
+
     /**
      * MARK AS CHECKED
      */
     public function markAsChecked(ProjectPurchase $purchase, array $data)
     {
         DB::beginTransaction();
-        
+
         try {
             if (!$purchase->is_current) {
                 throw new \Exception('Hanya current revision yang bisa di-mark as checked.');
             }
-            
+
             $updateData = [
                 'item_status' => $data['item_status'],
                 'checked_at' => now(),
                 'checked_by' => auth()->id(),
             ];
-            
+
             if (isset($data['actual_quantity'])) {
                 $updateData['actual_quantity'] = $data['actual_quantity'];
             }
-            
+
             if (isset($data['note'])) {
                 $updateData['note'] = $purchase->note ? $purchase->note . "\n[Checked] " . $data['note'] : $data['note'];
             }
-            
+
             if ($data['item_status'] === 'matched') {
                 $this->insertToInventory($purchase);
             }
-            
+
             $purchase->update($updateData);
-            
+
             DB::commit();
-            
         } catch (\Exception $e) {
             DB::rollBack();
             throw $e;
         }
     }
-    
+
     /**
      * MARK AS RECEIVED
      */
     public function markAsReceived(ProjectPurchase $purchase)
     {
         DB::beginTransaction();
-        
+
         try {
             Log::info('Starting markAsReceived process', [
                 'purchase_id' => $purchase->id,
                 'po_number' => $purchase->po_number,
                 'status' => $purchase->status,
-                'item_status' => $purchase->item_status
+                'item_status' => $purchase->item_status,
             ]);
 
             if (!$purchase->is_current) {
@@ -1064,24 +1023,23 @@ class ProjectPurchaseService
 
             Log::info('Purchase updated successfully', [
                 'new_item_status' => $purchase->item_status,
-                'received_at' => $purchase->received_at
+                'received_at' => $purchase->received_at,
             ]);
 
             $this->insertToInventory($purchase);
 
             DB::commit();
-            
+
             Log::info('markAsReceived completed successfully');
-            
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('markAsReceived error: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
             throw $e;
         }
     }
-    
+
     /**
      * INSERT TO INVENTORY
      */
@@ -1089,19 +1047,19 @@ class ProjectPurchaseService
     {
         try {
             $unitName = $purchase->unit ? $purchase->unit->name : 'pcs';
-            
+
             if ($purchase->purchase_type === 'restock' && $purchase->material_id) {
                 $inventory = Inventory::find($purchase->material_id);
                 if ($inventory) {
                     $inventory->quantity += $purchase->quantity;
                     $inventory->updated_at = now();
                     $inventory->save();
-                    
+
                     Log::info('Inventory updated for restock', [
                         'material_id' => $inventory->id,
                         'old_quantity' => $inventory->quantity - $purchase->quantity,
                         'new_quantity' => $inventory->quantity,
-                        'added' => $purchase->quantity
+                        'added' => $purchase->quantity,
                     ]);
                 }
             } else {
@@ -1117,22 +1075,21 @@ class ProjectPurchaseService
                     'created_at' => now(),
                     'updated_at' => now(),
                 ];
-                
+
                 $newInventory = Inventory::create($inventoryData);
-                
+
                 Log::info('New inventory item created', [
                     'inventory_id' => $newInventory->id,
                     'name' => $newInventory->name,
-                    'quantity' => $newInventory->quantity
+                    'quantity' => $newInventory->quantity,
                 ]);
             }
-            
         } catch (\Exception $e) {
             Log::error('Error inserting to inventory: ' . $e->getMessage());
             throw $e;
         }
     }
-    
+
     /**
      * MARK AS NOT MATCHED
      */
@@ -1141,14 +1098,14 @@ class ProjectPurchaseService
         if (!$purchase->is_current) {
             throw new \Exception('Hanya current revision yang bisa di-mark as not matched.');
         }
-        
+
         $purchase->update([
             'item_status' => 'not_matched',
             'checked_at' => now(),
             'checked_by' => auth()->id(),
         ]);
     }
-    
+
     /**
      * EXPORT TO EXCEL
      */
@@ -1157,20 +1114,18 @@ class ProjectPurchaseService
         try {
             // Group purchases by PO number for export
             $groupedPurchases = $purchases->groupBy('po_number');
-            
+
             $exportData = [];
             foreach ($groupedPurchases as $poNumber => $items) {
                 $firstItem = $items->first();
-                
+
                 foreach ($items as $index => $item) {
                     $exportData[] = [
                         'PO Number' => $poNumber,
                         'Date' => $firstItem->date->format('d/m/Y'),
                         'Project Type' => ucfirst($firstItem->project_type),
                         'Purchase Type' => $item->purchase_type === 'restock' ? 'Restock' : 'Item Baru',
-                        'Material/Item Name' => $item->purchase_type === 'restock' 
-                            ? ($item->material->name ?? 'Unknown') 
-                            : ($item->new_item_name ?? 'Unknown'),
+                        'Material/Item Name' => $item->purchase_type === 'restock' ? $item->material->name ?? 'Unknown' : $item->new_item_name ?? 'Unknown',
                         'Quantity' => $item->quantity,
                         'Unit Price' => 'Rp ' . number_format($item->unit_price, 0),
                         'Total Price' => 'Rp ' . number_format($item->total_price, 0),
@@ -1179,52 +1134,36 @@ class ProjectPurchaseService
                         'Status PO' => ucfirst($firstItem->status),
                         'Status Item' => $this->getItemStatusText($item->item_status),
                         'Resi Number' => $firstItem->resi_number ?? '-',
-                        'Created At' => $firstItem->created_at->format('d/m/Y H:i:s')
+                        'Created At' => $firstItem->created_at->format('d/m/Y H:i:s'),
                     ];
                 }
             }
-            
+
             return [
                 'success' => true,
                 'data' => $exportData,
-                'headers' => [
-                    'PO Number',
-                    'Date',
-                    'Project Type',
-                    'Purchase Type',
-                    'Material/Item Name',
-                    'Quantity',
-                    'Unit Price',
-                    'Total Price',
-                    'Supplier',
-                    'Department',
-                    'Status PO',
-                    'Status Item',
-                    'Resi Number',
-                    'Created At'
-                ]
+                'headers' => ['PO Number', 'Date', 'Project Type', 'Purchase Type', 'Material/Item Name', 'Quantity', 'Unit Price', 'Total Price', 'Supplier', 'Department', 'Status PO', 'Status Item', 'Resi Number', 'Created At'],
             ];
-            
         } catch (\Exception $e) {
             Log::error('Export to Excel error: ' . $e->getMessage());
             throw $e;
         }
     }
-    
+
     /**
      * Get item status text
      */
     private function getItemStatusText($status)
     {
-        return match($status) {
+        return match ($status) {
             'pending' => 'Pending',
             'pending_check' => 'Pending Check',
             'matched' => 'Received',
             'not_matched' => 'Not Matched',
-            default => ucfirst($status)
+            default => ucfirst($status),
         };
     }
-    
+
     /**
      * GET ALL ITEMS FOR A PO NUMBER
      */
@@ -1235,16 +1174,14 @@ class ProjectPurchaseService
             ->with(['material', 'unit', 'category', 'supplier'])
             ->get();
     }
-    
+
     /**
      * UPDATE STATUS FOR ALL ITEMS IN A PO
      */
     public function updatePOStatus($poNumber, $status, $itemStatus = null)
     {
-        $items = ProjectPurchase::where('po_number', $poNumber)
-            ->where('is_current', true)
-            ->get();
-        
+        $items = ProjectPurchase::where('po_number', $poNumber)->where('is_current', true)->get();
+
         foreach ($items as $item) {
             $item->status = $status;
             if ($itemStatus) {
