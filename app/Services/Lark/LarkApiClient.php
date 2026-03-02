@@ -80,7 +80,7 @@ class LarkApiClient
      * @param string|null $viewId View ID (optional)
      * @return array Raw response dari Lark
      */
-    public function fetchRecords(string $appToken, string $tableId, ?string $viewId = null): array
+    public function fetchRecords(string $appToken, string $tableId, ?string $viewId = null, string $fieldKey = 'id'): array
     {
         $token = $this->getAccessToken();
         $allRecords = [];
@@ -90,8 +90,8 @@ class LarkApiClient
             $url = "{$this->baseUrl}/bitable/v1/apps/{$appToken}/tables/{$tableId}/records";
 
             $params = [
-                'page_size' => 500, // Max per request
-                'field_key' => 'id', // PENTING: Gunakan field_id untuk response (bukan field_name)
+                'page_size' => 500,
+                'field_key' => $fieldKey,
             ];
 
             if ($viewId) {
@@ -129,7 +129,7 @@ class LarkApiClient
 
         Log::info('Lark records fetched', [
             'total' => count($allRecords),
-            'field_key' => 'id', // Log untuk dokumentasi
+            'field_key' => $fieldKey,
         ]);
 
         return $allRecords;
@@ -138,14 +138,14 @@ class LarkApiClient
     /**
      * Get raw response untuk debugging
      */
-    public function fetchRawResponse(string $appToken, string $tableId, ?string $viewId = null): array
+    public function fetchRawResponse(string $appToken, string $tableId, ?string $viewId = null, string $fieldKey = 'name'): array
     {
         return [
             'fetched_at' => now()->toIso8601String(),
             'app_token' => $appToken,
             'table_id' => $tableId,
             'view_id' => $viewId,
-            'records' => $this->fetchRecords($appToken, $tableId, $viewId),
+            'records' => $this->fetchRecords($appToken, $tableId, $viewId, $fieldKey),
         ];
     }
 }

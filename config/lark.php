@@ -60,6 +60,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Job Order Type Gradings Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Lark Job Order Type Gradings table/view configuration
+    | Uses same base_id as other tables
+    |
+    */
+
+    'job_order_type_gradings' => [
+        'table_id' => env('LARK_JOB_ORDER_TYPE_GRADINGS_TABLE_ID', 'tblz7t2pCphoy6hk'),
+        'view_id' => env('LARK_JOB_ORDER_TYPE_GRADINGS_VIEW_ID', 'vew3AnbBNI'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Sync Configuration
     |--------------------------------------------------------------------------
     */
