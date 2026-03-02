@@ -79,6 +79,31 @@
                     </div>
                 @endif
 
+                <!-- Filters -->
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <select id="filterProject" class="form-select form-select-sm select2">
+                            <option value="">All Projects</option>
+                            @foreach ($projects as $project)
+                                <option value="{{ $project }}">{{ $project }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <select id="filterStatus" class="form-select form-select-sm select2">
+                            <option value="">All Statuses</option>
+                            @foreach ($statuses as $status)
+                                <option value="{{ $status }}">{{ $status }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="button" id="btnResetFilter" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-x-circle me-1"></i>Reset Filters
+                        </button>
+                    </div>
+                </div>
+
                 <!-- DataTable -->
                 <div class="table-responsive">
                     <table id="itemsTable" class="table table-bordered table-hover" style="width:100%">
@@ -129,10 +154,31 @@
 @push('scripts')
     <script>
         $(document).ready(function() {
-            $('#itemsTable').DataTable({
+            // Initialize Select2
+            $('#filterProject').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'All Projects',
+                allowClear: true,
+                width: '100%'
+            });
+
+            $('#filterStatus').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'All Statuses',
+                allowClear: true,
+                width: '100%'
+            });
+
+            var table = $('#itemsTable').DataTable({
                 processing: true,
                 serverSide: true,
-                ajax: '{{ route('lark.staging.sg-bt-items') }}',
+                ajax: {
+                    url: '{{ route('lark.staging.sg-bt-items') }}',
+                    data: function(d) {
+                        d.project = $('#filterProject').val();
+                        d.status = $('#filterStatus').val();
+                    }
+                },
                 columns: [{
                         data: 'DT_RowIndex',
                         name: 'DT_RowIndex',
@@ -174,6 +220,17 @@
                     [7, 'desc']
                 ],
                 pageLength: 25
+            });
+
+            // Filter change handlers
+            $('#filterProject, #filterStatus').on('change', function() {
+                table.ajax.reload();
+            });
+
+            // Reset filters
+            $('#btnResetFilter').on('click', function() {
+                $('#filterProject').val('').trigger('change');
+                $('#filterStatus').val('').trigger('change');
             });
         });
 

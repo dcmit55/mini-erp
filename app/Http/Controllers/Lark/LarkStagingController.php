@@ -96,6 +96,16 @@ class LarkStagingController extends Controller
         if ($request->ajax()) {
             $query = LarkBtSgItemTracking::with(['courier'])->latest('last_sync_at');
 
+            // Filter by project
+            if ($request->filled('project')) {
+                $query->where('project_lark', $request->project);
+            }
+
+            // Filter by status
+            if ($request->filled('status')) {
+                $query->where('status', $request->status);
+            }
+
             return DataTables::of($query)
                 ->addIndexColumn()
                 ->editColumn('item_name', function ($row) {
@@ -141,7 +151,22 @@ class LarkStagingController extends Controller
             'with_project' => LarkBtSgItemTracking::whereNotNull('project_lark')->count(),
         ];
 
-        return view('lark.staging.bt_sg_items', compact('stats'));
+        // Get unique projects and statuses for filters
+        $projects = LarkBtSgItemTracking::whereNotNull('project_lark')
+            ->distinct()
+            ->pluck('project_lark')
+            ->filter()
+            ->sort()
+            ->values();
+
+        $statuses = LarkBtSgItemTracking::whereNotNull('status')
+            ->distinct()
+            ->pluck('status')
+            ->filter()
+            ->sort()
+            ->values();
+
+        return view('lark.staging.bt_sg_items', compact('stats', 'projects', 'statuses'));
     }
 
     /**
@@ -207,6 +232,16 @@ class LarkStagingController extends Controller
         if ($request->ajax()) {
             $query = LarkSgBtItemTracking::with(['courier'])->latest('last_sync_at');
 
+            // Filter by project
+            if ($request->filled('project')) {
+                $query->where('project_lark', $request->project);
+            }
+
+            // Filter by status
+            if ($request->filled('status')) {
+                $query->where('status', $request->status);
+            }
+
             return DataTables::of($query)
                 ->addIndexColumn()
                 ->addColumn('courier', function ($row) {
@@ -252,7 +287,22 @@ class LarkStagingController extends Controller
             'with_project' => LarkSgBtItemTracking::whereNotNull('project_lark')->count(),
         ];
 
-        return view('lark.staging.sg_bt_items', compact('stats'));
+        // Get unique projects and statuses for filters
+        $projects = LarkSgBtItemTracking::whereNotNull('project_lark')
+            ->distinct()
+            ->pluck('project_lark')
+            ->filter()
+            ->sort()
+            ->values();
+
+        $statuses = LarkSgBtItemTracking::whereNotNull('status')
+            ->distinct()
+            ->pluck('status')
+            ->filter()
+            ->sort()
+            ->values();
+
+        return view('lark.staging.sg_bt_items', compact('stats', 'projects', 'statuses'));
     }
 
     /**

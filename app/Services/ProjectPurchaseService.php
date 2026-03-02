@@ -84,32 +84,39 @@ class ProjectPurchaseService
                 ->unique()
                 ->values();
             
-            // Build collection of purchases (one per PO)
+            // Load ALL purchases for these PO numbers in ONE query with eager loading
+            $allPurchases = ProjectPurchase::current()
+                ->with([
+                    'material:id,name',
+                    'department:id,name',
+                    'category:id,name',
+                    'unit:id,name',
+                    'supplier:id,name',
+                    'pic:id,username',
+                    'checker:id,username',
+                    'approver:id,username',
+                    'receiver:id,username',
+                    'project:id,name',
+                    'internalProject:id,project,job,department,department_id',
+                    'jobOrder:id,name',
+                ])
+                ->whereIn('po_number', $poNumbers)
+                ->get();
+            
+            // Build collection of purchases (one per PO) from loaded data
             $purchases = collect();
             foreach ($poNumbers as $poNumber) {
-                $firstItem = ProjectPurchase::current()
-                    ->with([
-                        'material:id,name',
-                        'department:id,name',
-                        'category:id,name',
-                        'unit:id,name',
-                        'supplier:id,name',
-                        'pic:id,username',
-                        'project:id,name',
-                        'internalProject:id,project,job,department,department_id',
-                        'jobOrder:id,name',
-                        'approver:id,username'
-                    ])
-                    ->where('po_number', $poNumber)
-                    ->first();
+                // Get from already loaded collection, NOT from database
+                $firstItem = $allPurchases->where('po_number', $poNumber)->first();
                 
                 if ($firstItem) {
                     // Add status badge classes for view
                     $firstItem->status_badge_class = $this->getStatusBadgeClass($firstItem->status);
                     $firstItem->status_text = $this->getStatusText($firstItem->status);
                     
-                    // Add group info
-                    $firstItem->group_info = $this->getGroupInfo($poNumber);
+                    // Add group info from already loaded collection
+                    $poItems = $allPurchases->where('po_number', $poNumber);
+                    $firstItem->group_info = $this->getGroupInfoFromCollection($poItems);
                     
                     $purchases->push($firstItem);
                 }
@@ -183,6 +190,66 @@ class ProjectPurchaseService
     }
     
     /**
+     * GET GROUP INFORMATION FROM ALREADY LOADED COLLECTION (No database query)
+     */
+    private function getGroupInfoFromCollection($items)
+    {
+        try {
+            if ($items->isEmpty()) {
+                return [
+                    'total_items' => 0,
+                    'total_quantity' => 0,
+                    'total_amount' => 0,
+                    'received_count' => 0,
+                    'not_matched_count' => 0,
+                    'pending_count' => 0,
+                    'materials' => []
+                ];
+            }
+            
+            $receivedCount = $items->where('item_status', 'matched')->count();
+            $notMatchedCount = $items->where('item_status', 'not_matched')->count();
+            $pendingCount = $items->whereIn('item_status', ['pending_check', 'pending'])->count();
+            
+            return [
+                'total_items' => $items->count(),
+                'total_quantity' => $items->sum('quantity'),
+                'total_amount' => $items->sum('invoice_total'),
+                'received_count' => $receivedCount,
+                'not_matched_count' => $notMatchedCount,
+                'pending_count' => $pendingCount,
+                'materials' => $items->map(function($item) {
+                    return [
+                        'name' => $item->purchase_type === 'restock' 
+                            ? ($item->material->name ?? 'Unknown') 
+                            : ($item->new_item_name ?? 'Unknown'),
+                        'quantity' => $item->quantity,
+                        'unit_price' => $item->unit_price,
+                        'subtotal' => $item->total_price,
+                        'category' => $item->category->name ?? '-',
+                        'unit' => $item->unit->name ?? '-'
+                    ];
+                })
+            ];
+            
+        } catch (\Exception $e) {
+            Log::error("Error getting group info from collection: " . $e->getMessage());
+            
+            return [
+                'total_items' => 1,
+                'total_quantity' => 0,
+                'total_amount' => 0,
+                'received_count' => 0,
+                'not_matched_count' => 0,
+                'pending_count' => 1,
+                'materials' => [
+                    ['name' => 'Error loading items', 'quantity' => 0]
+                ]
+            ];
+        }
+    }
+    
+    /**
      * GET GROUP INFORMATION FOR PO NUMBER
      */
     public function getGroupInfo($poNumber)
@@ -190,7 +257,15 @@ class ProjectPurchaseService
         try {
             $items = ProjectPurchase::where('po_number', $poNumber)
                 ->where('is_current', true)
-                ->with(['material:id,name', 'category:id,name', 'unit:id,name'])
+                ->with([
+                    'material:id,name',
+                    'category:id,name',
+                    'unit:id,name',
+                    'pic:id,username',
+                    'checker:id,username',
+                    'approver:id,username',
+                    'receiver:id,username'
+                ])
                 ->get();
             
             if ($items->isEmpty()) {
@@ -253,12 +328,13 @@ class ProjectPurchaseService
     public function getPurchaseStats()
     {
         try {
+            // Get all current purchases with minimal eager loading
+            $allPurchases = ProjectPurchase::current()
+                ->select('po_number', 'status', 'item_status', 'invoice_total', 'project_type', 'created_at')
+                ->get();
+            
             // Get unique PO numbers
-            $uniquePOs = ProjectPurchase::current()
-                ->select('po_number')
-                ->distinct()
-                ->get()
-                ->pluck('po_number');
+            $uniquePOs = $allPurchases->pluck('po_number')->unique();
             
             $stats = [
                 'total' => $uniquePOs->count(),
@@ -275,9 +351,7 @@ class ProjectPurchaseService
             ];
             
             foreach ($uniquePOs as $poNumber) {
-                $poItems = ProjectPurchase::where('po_number', $poNumber)
-                    ->where('is_current', true)
-                    ->get();
+                $poItems = $allPurchases->where('po_number', $poNumber);
                 
                 if ($poItems->isEmpty()) continue;
                 

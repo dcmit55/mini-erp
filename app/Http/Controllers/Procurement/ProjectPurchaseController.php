@@ -54,7 +54,22 @@ class ProjectPurchaseController extends Controller
             Log::error('Index error: ' . $e->getMessage());
 
             return view('procurement.Project-Purchase.index', [
-                'purchases' => ProjectPurchase::current()->paginate(20),
+                'purchases' => ProjectPurchase::current()
+                    ->with([
+                        'material:id,name',
+                        'department:id,name',
+                        'category:id,name',
+                        'unit:id,name',
+                        'supplier:id,name',
+                        'pic:id,username',
+                        'checker:id,username',
+                        'approver:id,username',
+                        'receiver:id,username',
+                        'project:id,name',
+                        'internalProject:id,project,job,department,department_id',
+                        'jobOrder:id,name',
+                    ])
+                    ->paginate(20),
                 'stats' => [
                     'total' => 0,
                     'total_amount' => 0,
