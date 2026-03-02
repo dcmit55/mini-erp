@@ -7,14 +7,24 @@
     <div class="row justify-content-center">
         <div class="col-12">
             <!-- Header -->
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <div>
-                    <h5 class="text-dark mb-1 mt-2">Overtime vs Attendance Comparison</h5>
+            <div class="position-relative d-flex align-items-center mb-3" style="min-height:52px;">
+                <!-- Left: Back button -->
+                <div class="flex-shrink-0">
+                    <a href="javascript:history.back()" class="btn btn-outline-secondary btn-sm rounded-2 px-3">
+                        <i class="fas fa-arrow-left me-1"></i> Back
+                    </a>
+                </div>
+                <!-- Center: Title (absolute) -->
+                <div class="position-absolute start-50 translate-middle-x text-center" style="pointer-events:none;">
                     <p class="text-muted small mb-0">Check if overtime end time matches clock out time</p>
                 </div>
-                <div class="d-flex gap-2">
+                <!-- Right: action buttons -->
+                <div class="ms-auto d-flex gap-2 flex-shrink-0">
+                    <a href="{{ route('overtime-requests.hr-approvals') }}" class="btn btn-outline-secondary btn-sm rounded-2 px-3">
+                        <i class="fas fa-user-check me-1"></i> HR Approvals
+                    </a>
                     <a href="{{ route('overtime-requests.index') }}" class="btn btn-outline-secondary btn-sm rounded-2 px-3">
-                        <i class="fas fa-arrow-left me-1"></i> Back to Overtime
+                        <i class="fas fa-list me-1"></i> All Requests
                     </a>
                 </div>
             </div>
@@ -138,33 +148,35 @@
             <!-- Table -->
             <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
                 <div class="card-body p-0">
-                    @if($overtimeRequests->isEmpty())
-                        <div class="text-center py-5">
-                            <i class="fas fa-clock fa-3x text-muted mb-3"></i>
-                            <h6 class="text-muted">No Overtime Requests Found</h6>
-                        </div>
-                    @else
-                        <div class="table-responsive">
-                            <table class="table table-hover mb-0">
-                                <thead class="bg-light">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="border-0 small text-dark fw-medium px-3 py-2">No</th>
+                                    <th class="border-0 small text-dark fw-medium px-3 py-2">Employee</th>
+                                    <th class="border-0 small text-dark fw-medium px-3 py-2">Date</th>
+                                    <th class="border-0 small text-dark fw-medium px-3 py-2">OT Start</th>
+                                    <th class="border-0 small text-dark fw-medium px-3 py-2">OT End</th>
+                                    <th class="border-0 small text-dark fw-medium px-3 py-2">Net Hours</th>
+                                    <th class="border-0 small text-dark fw-medium px-3 py-2">Clock In</th>
+                                    <th class="border-0 small text-dark fw-medium px-3 py-2">Clock Out</th>
+                                    <th class="border-0 small text-dark fw-medium px-3 py-2">Att. Hours</th>
+                                    <th class="border-0 small text-dark fw-medium px-3 py-2">Match Status</th>
+                                    <th class="border-0 small text-dark fw-medium px-3 py-2">Passed</th>
+                                    @if(in_array(auth()->user()->role, ['hr', 'admin_hr', 'super_admin']))
+                                        <th class="border-0 small text-dark fw-medium px-3 py-2 text-center">Action</th>
+                                    @endif
+                                </tr>
+                            </thead>
+                            <tbody>
+                                    @if($overtimeRequests->isEmpty())
                                     <tr>
-                                        <th class="border-0 small text-dark fw-medium px-3 py-2">No</th>
-                                        <th class="border-0 small text-dark fw-medium px-3 py-2">Employee</th>
-                                        <th class="border-0 small text-dark fw-medium px-3 py-2">Date</th>
-                                        <th class="border-0 small text-dark fw-medium px-3 py-2">OT Start</th>
-                                        <th class="border-0 small text-dark fw-medium px-3 py-2">OT End</th>
-                                        <th class="border-0 small text-dark fw-medium px-3 py-2">Net Hours</th>
-                                        <th class="border-0 small text-dark fw-medium px-3 py-2">Clock In</th>
-                                        <th class="border-0 small text-dark fw-medium px-3 py-2">Clock Out</th>
-                                        <th class="border-0 small text-dark fw-medium px-3 py-2">Attendance Hours</th>
-                                        <th class="border-0 small text-dark fw-medium px-3 py-2">Match Status</th>
-                                        <th class="border-0 small text-dark fw-medium px-3 py-2">Passed</th>
-                                        @if(in_array(auth()->user()->role, ['hr', 'admin_hr', 'super_admin']))
-                                            <th class="border-0 small text-dark fw-medium px-3 py-2 text-center">Action</th>
-                                        @endif
+                                        <td colspan="12" class="text-center py-5">
+                                            <i class="fas fa-clock fa-2x text-muted mb-2 d-block"></i>
+                                            <span class="text-muted small">No overtime requests found</span>
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody>
+                                    @else
                                     @php $startNumber = ($overtimeRequests->currentPage() - 1) * $overtimeRequests->perPage() + 1; @endphp
                                     @foreach($overtimeRequests as $index => $req)
                                     <tr>
@@ -221,21 +233,21 @@
                                         @endif
                                     </tr>
                                     @endforeach
-                                </tbody>
-                            </table>
-                        </div>
+                                    @endif
+                            </tbody>
+                        </table>
+                    </div>
 
-                        <!-- Pagination -->
-                        @if($overtimeRequests->hasPages())
-                        <div class="card-footer border-0 bg-light px-3 py-3">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div class="text-muted small">
-                                    Showing {{ $overtimeRequests->firstItem() }} to {{ $overtimeRequests->lastItem() }} of {{ $overtimeRequests->total() }} entries
-                                </div>
-                                {{ $overtimeRequests->appends(request()->query())->links() }}
+                    <!-- Pagination -->
+                    @if(!$overtimeRequests->isEmpty() && $overtimeRequests->hasPages())
+                    <div class="card-footer border-0 bg-light px-3 py-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="text-muted small">
+                                Showing {{ $overtimeRequests->firstItem() }} to {{ $overtimeRequests->lastItem() }} of {{ $overtimeRequests->total() }} entries
                             </div>
+                            {{ $overtimeRequests->appends(request()->query())->links() }}
                         </div>
-                        @endif
+                    </div>
                     @endif
                 </div>
             </div>

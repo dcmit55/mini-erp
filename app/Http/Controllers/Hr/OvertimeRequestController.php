@@ -388,7 +388,11 @@ class OvertimeRequestController extends Controller
             'avg_days' => 0,
         ];
 
-        return view('hr.overtime-requests.hr-approvals', compact('overtimeRequests', 'employees', 'departments', 'stats'));
+        $directorPendingCount = OvertimeRequest::where('status', 'submitted')
+                                ->where('director_approval_status', 'pending')
+                                ->count();
+
+        return view('hr.overtime-requests.hr-approvals', compact('overtimeRequests', 'employees', 'departments', 'stats', 'directorPendingCount'));
     }
 
     /**
@@ -434,7 +438,11 @@ class OvertimeRequestController extends Controller
             'avg_days' => 0,
         ];
 
-        return view('hr.overtime-requests.director-approvals', compact('overtimeRequests', 'employees', 'departments', 'stats'));
+        $hrPendingCount = OvertimeRequest::where('status', 'submitted')
+                            ->where('hr_approval_status', 'pending')
+                            ->count();
+
+        return view('hr.overtime-requests.director-approvals', compact('overtimeRequests', 'employees', 'departments', 'stats', 'hrPendingCount'));
     }
 
     /**

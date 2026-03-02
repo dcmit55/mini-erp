@@ -13,6 +13,7 @@ use App\Http\Controllers\Logistic\GoodsOutController;
 use App\Http\Controllers\Production\ProjectController;
 use App\Http\Controllers\Production\ProjectStatusController;
 use App\Http\Controllers\Production\JobOrderController;
+use App\Http\Controllers\Production\JobOrderTypeGradingController;
 use App\Http\Controllers\Logistic\CategoryController;
 use App\Http\Controllers\Finance\CurrencyController;
 use App\Http\Controllers\DashboardController;
@@ -229,6 +230,14 @@ Route::middleware(['auth'])->group(function () {
 
     // API untuk dropdown Job Orders
     Route::get('/api/job-orders/project/{projectId}', [JobOrderController::class, 'getByProject']);
+
+    // Job Order Type Gradings
+    Route::prefix('job-order-type-gradings')
+        ->name('job-order-type-gradings.')
+        ->group(function () {
+            Route::get('/', [JobOrderTypeGradingController::class, 'index'])->name('index');
+            Route::post('/sync-from-lark', [JobOrderTypeGradingController::class, 'syncFromLark'])->name('sync');
+        });
 
     // Material Requests
     Route::get('/material_requests/export', [MaterialRequestController::class, 'export'])->name('material_requests.export');
@@ -674,6 +683,40 @@ Route::middleware(['auth'])->group(function () {
         ->group(function () {
             Route::get('/{employee}/score', [App\Http\Controllers\Production\EmployeePerformanceController::class, 'getPerformanceScore']);
         });
+
+    // Chatbot AI
+    Route::post('/chatbot/message', [\App\Http\Controllers\ChatbotController::class, 'message'])->name('chatbot.message');
+
+    // Groq API connectivity test (local dev only)
+    Route::get('/test-groq', function () {
+        if (!app()->environment('local')) {
+            abort(404);
+        }
+        $apiKey = config('services.groq.api_key');
+        $url    = config('services.groq.url');
+        $model  = config('services.groq.model');
+
+        $result = ['api_key_set' => !blank($apiKey), 'url' => $url, 'model' => $model];
+
+        try {
+            $response = \Illuminate\Support\Facades\Http::withHeaders([
+                'Authorization' => 'Bearer ' . $apiKey,
+                'Content-Type'  => 'application/json',
+            ])->timeout(30)->withOptions(['verify' => false])->post($url, [
+                'model'      => $model,
+                'messages'   => [['role' => 'user', 'content' => 'Reply with just: OK']],
+                'max_tokens' => 10,
+            ]);
+
+            $result['http_status'] = $response->status();
+            $result['success']     = $response->successful();
+            $result['body']        = $response->json();
+        } catch (\Exception $e) {
+            $result['exception'] = $e->getMessage();
+        }
+
+        return response()->json($result, 200, [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    });
 
     // Feature Announcements Routes
     Route::prefix('feature-announcements')

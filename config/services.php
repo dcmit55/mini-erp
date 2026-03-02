@@ -37,6 +37,12 @@ return [
         'view_id' => env('LARK_VIEW_ID'), // Optional: Filter data by specific view
     ],
 
+    'groq' => [
+        'api_key' => env('GROQ_API_KEY'),
+        'model'   => env('GROQ_MODEL', 'llama-3.3-70b-versatile'),
+        'url'     => 'https://api.groq.com/openai/v1/chat/completions',
+    ],
+
     'recaptcha' => [
         'site_key' => env('RECAPTCHA_SITE_KEY', '6LfD2WgsAAAAAKM7FHahZOxYuFvtRHDIVt_uhkPX'),
         'secret_key' => env('RECAPTCHA_SECRET_KEY', '6LfD2WgsAAAAAFWpgoubzDNlqh_0q7ns5v_5mYgj'),

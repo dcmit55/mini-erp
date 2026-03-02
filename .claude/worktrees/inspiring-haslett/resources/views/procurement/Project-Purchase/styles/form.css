@@ -1,0 +1,483 @@
+/* 
+ * Purchase Order Form Styling
+ * For create, edit, and show views
+ */
+@import './show.css';
+/* Form Styling */
+.form-control, .form-select {
+    border-color: #e2e8f0;
+    font-size: 0.9rem;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 0.2rem rgba(79, 70, 229, 0.1);
+}
+
+.form-control.is-invalid, .form-select.is-invalid {
+    border-color: #dc2626;
+}
+
+.form-control:disabled, .form-select:disabled {
+    background-color: #f8fafc;
+    cursor: not-allowed;
+}
+
+/* Labels */
+.form-label.small {
+    font-size: 0.85rem;
+    margin-bottom: 0.25rem;
+}
+
+/* Card Styling */
+.card {
+    background: #ffffff;
+}
+
+/* Section Headers */
+h6.fw-medium {
+    color: #334155;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+/* Icons in headers */
+h6.fw-medium i {
+    color: #4f46e5;
+    font-size: 0.9rem;
+}
+
+/* Input Group Styling */
+.input-group-text {
+    background-color: #f8fafc;
+    border-color: #e2e8f0;
+    border-radius: 6px 0 0 6px;
+    font-size: 0.9rem;
+}
+
+/* Buttons */
+.btn {
+    font-size: 0.9rem;
+}
+
+.btn-primary {
+    background-color: #4f46e5;
+    border-color: #4f46e5;
+}
+
+.btn-primary:hover {
+    background-color: #4338ca;
+    border-color: #4338ca;
+}
+
+.btn-sm {
+    padding: 0.4rem 0.8rem;
+}
+
+/* Spacing */
+.mb-2 {
+    margin-bottom: 0.5rem !important;
+}
+
+.mb-3 {
+    margin-bottom: 1rem !important;
+}
+
+.mb-4 {
+    margin-bottom: 1.5rem !important;
+}
+
+.py-3 {
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+}
+
+/* Border radius */
+.rounded-2 {
+    border-radius: 8px !important;
+}
+
+.rounded-3 {
+    border-radius: 12px !important;
+}
+
+/* Alert */
+.alert {
+    font-size: 0.9rem;
+    border-radius: 8px;
+}
+
+/* Required star */
+.text-danger {
+    color: #dc2626 !important;
+}
+
+/* Select2 custom styling */
+.select2-container .select2-selection--single {
+    height: 42px;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 8px !important;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    line-height: 42px;
+    font-size: 0.9rem;
+    padding-left: 12px;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 40px;
+    right: 6px;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow b {
+    border-color: #6b7280 transparent transparent transparent;
+    border-width: 5px 4px 0 4px;
+}
+
+.select2-container--default.select2-container--open .select2-selection--single .select2-selection__arrow b {
+    border-color: transparent transparent #6b7280 transparent;
+    border-width: 0 4px 5px 4px;
+}
+
+/* Text colors */
+.text-primary {
+    color: #4f46e5 !important;
+}
+
+.text-success {
+    color: #10b981 !important;
+}
+
+.text-warning {
+    color: #f59e0b !important;
+}
+
+/* Small text */
+.small {
+    font-size: 0.85rem;
+}
+
+.smaller {
+    font-size: 0.8rem;
+}
+
+/* Form text */
+.form-text {
+    font-size: 0.8rem;
+}
+
+/* Background opacity */
+.bg-opacity-5 {
+    background-color: rgba(79, 70, 229, 0.05) !important;
+}
+
+.bg-opacity-10 {
+    background-color: rgba(16, 185, 129, 0.1) !important;
+}
+
+/* Badge colors */
+.badge {
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.bg-success {
+    background-color: #10b981 !important;
+}
+
+.bg-warning {
+    background-color: #f59e0b !important;
+}
+
+.bg-danger {
+    background-color: #dc2626 !important;
+}
+
+/* Font weight */
+.fw-medium {
+    font-weight: 500;
+}
+
+/* Icon colors */
+.text-muted {
+    color: #6b7280 !important;
+}
+
+/* Border styling */
+.border {
+    border-color: #e2e8f0 !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .d-flex.justify-content-between {
+        flex-direction: column;
+        gap: 0.5rem;
+        text-align: center;
+    }
+    
+    .col-md-2 .small {
+        font-size: 0.8rem;
+    }
+}
+
+/* Specific for display views */
+.info-box {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 12px;
+    background-color: #f8fafc;
+}
+
+.info-box .label {
+    font-size: 0.8rem;
+    color: #64748b;
+    margin-bottom: 4px;
+}
+
+.info-box .value {
+    font-size: 0.9rem;
+    color: #1f2937;
+    font-weight: 500;
+}
+
+/* Financial display cards */
+.financial-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+}
+
+.financial-card.primary {
+    background-color: rgba(79, 70, 229, 0.05);
+}
+
+.financial-card.success {
+    background-color: rgba(16, 185, 129, 0.1);
+}
+
+.financial-card .label {
+    font-size: 0.8rem;
+    color: #64748b;
+    margin-bottom: 8px;
+}
+
+.financial-card .amount {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.financial-card.primary .amount {
+    color: #4f46e5;
+}
+
+.financial-card.success .amount {
+    color: #10b981;
+}
+
+/* Status timeline */
+.status-timeline {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+}
+
+.status-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: #4f46e5;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 12px;
+}
+
+.status-info {
+    flex: 1;
+}
+
+.status-info .title {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #1f2937;
+}
+
+.status-info .time {
+    font-size: 0.8rem;
+    color: #6b7280;
+}
+
+.info-box {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 12px;
+    background-color: #f8fafc;
+    height: 100%;
+}
+
+.info-box .label {
+    font-size: 0.8rem;
+    color: #64748b;
+    margin-bottom: 4px;
+    font-weight: 500;
+}
+
+.info-box .value {
+    font-size: 0.9rem;
+    color: #1f2937;
+    font-weight: 500;
+}
+
+/* Status Timeline */
+.status-timeline {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background-color: #f8fafc;
+}
+
+.status-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: #4f46e5;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 12px;
+    flex-shrink: 0;
+}
+
+.status-info {
+    flex: 1;
+}
+
+.status-info .title {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #1f2937;
+    margin-bottom: 2px;
+}
+
+.status-info .time {
+    font-size: 0.8rem;
+    color: #6b7280;
+}
+
+/* Financial Card Styling */
+.financial-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    height: 100%;
+}
+
+.financial-card.primary {
+    background-color: rgba(79, 70, 229, 0.05);
+    border-color: rgba(79, 70, 229, 0.2);
+}
+
+.financial-card.success {
+    background-color: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.2);
+}
+
+.financial-card .label {
+    font-size: 0.8rem;
+    color: #64748b;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.financial-card .amount {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.financial-card.primary .amount {
+    color: #4f46e5;
+}
+
+.financial-card.success .amount {
+    color: #10b981;
+}
+
+/* Badge styling for show view */
+.badge {
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 0.25rem 0.5rem;
+}
+
+/* Status-specific badge colors */
+.bg-success {
+    background-color: #10b981 !important;
+}
+
+.bg-warning {
+    background-color: #f59e0b !important;
+}
+
+.bg-danger {
+    background-color: #dc2626 !important;
+}
+
+.bg-info {
+    background-color: #0ea5e9 !important;
+}
+
+/* Text utilities */
+.smaller {
+    font-size: 0.8rem;
+}
+
+/* Responsive adjustments for show view */
+@media (max-width: 768px) {
+    .status-timeline {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .status-icon {
+        margin-right: 0;
+        margin-bottom: 12px;
+    }
+    
+    .info-box.text-center .value {
+        font-size: 1rem;
+    }
+    
+    .financial-card .amount {
+        font-size: 1.1rem;
+    }
+}
+
+/* Print styles */
+@media print {
+    .btn,
+    .badge,
+    .alert {
+        display: none !important;
+    }
+    
+    .card {
+        border: 1px solid #000 !important;
+        box-shadow: none !important;
+    }
+    
+    .financial-card {
+        break-inside: avoid;
+    }
+}
