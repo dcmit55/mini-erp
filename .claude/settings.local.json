@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(php artisan:*)",
-      "Bash(php:*)",
-      "mcp__ide__getDiagnostics"
-    ]
-  }
-}
