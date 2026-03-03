@@ -113,6 +113,15 @@ class TimingApprovalController extends Controller
                 })
                 ->addColumn('actions', function ($timing) {
                     $buttons = '';
+
+                    // Edit button - always available
+                    $buttons .=
+                        '<a href="' .
+                        route('timing-approval.edit', $timing->id) .
+                        '" class="btn btn-sm btn-info me-1" title="Edit Timing Data">
+                                    <i class="bi bi-pencil-square"></i>
+                                </a>';
+
                     if ($timing->isPending()) {
                         $buttons .=
                             '<button class="btn btn-sm btn-success me-1 btn-approve" data-id="' .
@@ -127,11 +136,11 @@ class TimingApprovalController extends Controller
                                     </button>';
                     } else {
                         $buttons .=
-                            '<button class="btn btn-sm btn-info btn-view-reason" data-id="' .
+                            '<button class="btn btn-sm btn-secondary btn-view-reason" data-id="' .
                             $timing->id .
                             '" data-reason="' .
                             htmlspecialchars($timing->rejection_reason ?? '') .
-                            '">
+                            '" title="View Details">
                                         <i class="bi bi-eye"></i>
                                     </button>';
                     }
@@ -177,6 +186,9 @@ class TimingApprovalController extends Controller
             $timing->approve(auth()->id());
             DB::commit();
 
+            // Add session flash message
+            session()->flash('success', 'Timing session approved successfully');
+
             return response()->json([
                 'success' => true,
                 'message' => 'Timing session approved successfully',
@@ -218,6 +230,9 @@ class TimingApprovalController extends Controller
         try {
             $timing->reject(auth()->id(), $request->reason);
             DB::commit();
+
+            // Add session flash message
+            session()->flash('success', 'Timing session rejected successfully');
 
             return response()->json([
                 'success' => true,
@@ -272,6 +287,9 @@ class TimingApprovalController extends Controller
             }
 
             DB::commit();
+
+            // Add session flash message
+            session()->flash('success', 'Successfully approved ' . $timings->count() . ' timing session(s)');
 
             return response()->json([
                 'success' => true,
@@ -328,6 +346,9 @@ class TimingApprovalController extends Controller
 
             DB::commit();
 
+            // Add session flash message
+            session()->flash('success', 'Successfully rejected ' . $timings->count() . ' timing session(s)');
+
             return response()->json([
                 'success' => true,
                 'message' => 'Successfully rejected ' . $timings->count() . ' timing session(s)',
@@ -341,6 +362,74 @@ class TimingApprovalController extends Controller
                 ],
                 500,
             );
+        }
+    }
+
+    /**
+     * Edit timing from approval page
+     */
+    public function edit($id)
+    {
+        $timing = Timing::with(['project', 'employee.department', 'jobOrder'])->findOrFail($id);
+
+        $projects = \App\Models\Production\Project::orderBy('name')->get();
+        $jobOrders = \App\Models\Production\JobOrder::orderBy('name')->get();
+        $employees = \App\Models\Hr\Employee::with('department')->orderBy('name')->get();
+
+        return view('production.timing-approval.edit', compact('timing', 'projects', 'jobOrders', 'employees'));
+    }
+
+    /**
+     * Update timing from approval page
+     */
+    public function update(Request $request, $id)
+    {
+        $timing = Timing::findOrFail($id);
+
+        $request->validate([
+            'tanggal' => 'required|date',
+            'project_id' => 'required|exists:projects,id',
+            'job_order_id' => 'nullable|exists:job_orders,id',
+            'employee_id' => 'required|exists:employees,id',
+            'step' => 'nullable|string|max:255',
+            'parts' => 'nullable|string|max:255',
+            'start_time' => 'required|date_format:H:i',
+            'end_time' => 'required|date_format:H:i|after:start_time',
+            'measurement_value' => 'nullable|numeric|min:0',
+            'measurement_type' => 'nullable|string|max:50',
+            'remarks' => 'nullable|string',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            // Calculate duration
+            $start = \Carbon\Carbon::parse($request->tanggal . ' ' . $request->start_time);
+            $end = \Carbon\Carbon::parse($request->tanggal . ' ' . $request->end_time);
+            $durationMinutes = $start->diffInMinutes($end);
+
+            $timing->update([
+                'tanggal' => $request->tanggal,
+                'project_id' => $request->project_id,
+                'job_order_id' => $request->job_order_id,
+                'employee_id' => $request->employee_id,
+                'step' => $request->step,
+                'parts' => $request->parts,
+                'start_time' => $request->start_time,
+                'end_time' => $request->end_time,
+                'duration_minutes' => $durationMinutes,
+                'measurement_value' => $request->measurement_value,
+                'measurement_type' => $request->measurement_type,
+                'remarks' => $request->remarks,
+            ]);
+
+            DB::commit();
+
+            return redirect()->route('timing-approval.index')->with('success', 'Timing data updated successfully');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()
+                ->withInput()
+                ->withErrors(['error' => 'Error updating timing: ' . $e->getMessage()]);
         }
     }
 }

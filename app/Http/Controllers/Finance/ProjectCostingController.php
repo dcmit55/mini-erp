@@ -34,8 +34,8 @@ class ProjectCostingController extends Controller
 
     public function index(Request $request)
     {
-        // ❗ HANYA ambil project yang sudah closed
-        $query = Project::where('stage', 'closed');
+        // HANYA SHOW dan ambil project yang stage = 'closed' DAN project_status = 'Delivered'
+        $query = Project::where('stage', 'closed')->where('project_status', 'Delivered');
 
         // Search filter
         if ($request->has('search') && $request->search !== null) {
@@ -68,9 +68,15 @@ class ProjectCostingController extends Controller
             });
         }
 
+        // Filter by deadline month
+        if ($request->has('deadline_month') && $request->deadline_month !== null) {
+            $query->whereRaw('DATE_FORMAT(deadline, "%Y-%m") = ?', [$request->deadline_month]);
+        }
+
         $projects = $query
             ->with(['departments', 'jobOrders.materialRequests', 'jobOrders.department'])
-            ->latest() // Sort by most recent first
+            ->orderByDesc('deadline') // Sort by deadline descending
+            ->orderByDesc('created_at') // Then by created_at
             ->paginate(10);
 
         // Pass data for filters
@@ -82,7 +88,10 @@ class ProjectCostingController extends Controller
         // Get all job orders for filter dropdown
         $jobOrders = \App\Models\Production\JobOrder::select('id', 'name')->orderBy('name')->get();
 
-        return view('finance.costing.index', compact('projects', 'departments', 'createdByOptions', 'jobOrders'));
+        // Get unique months from deadline for filter dropdown
+        $deadlineMonths = Project::where('stage', 'closed')->where('project_status', 'Delivered')->whereNotNull('deadline')->selectRaw('DATE_FORMAT(deadline, "%Y-%m") as month')->distinct()->orderByDesc('month')->pluck('month');
+
+        return view('finance.costing.index', compact('projects', 'departments', 'createdByOptions', 'jobOrders', 'deadlineMonths'));
     }
 
     public function viewCosting($project_id)

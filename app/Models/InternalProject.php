@@ -17,22 +17,14 @@ class InternalProject extends Model
     protected $primaryKey = 'id';
     public $incrementing = false;
     protected $keyType = 'string';
-    
+
     public $timestamps = false;
 
-    protected $fillable = [
-        'project',
-        'job',
-        'description',
-        'department',
-        'department_id',
-        'pic',
-        'update_by'
-    ];
+    protected $fillable = ['project', 'job', 'description', 'department', 'department_id', 'pic', 'update_by'];
 
     protected $casts = [
         'created_at' => 'datetime',
-        'project'    => InternalProjectType::class, // cast ke enum
+        'project' => InternalProjectType::class, // cast ke enum
     ];
 
     protected static function boot()
@@ -41,11 +33,11 @@ class InternalProject extends Model
 
         static::creating(function ($model) {
             $datePart = date('dmy');
-            
+
             $lastProject = self::where('id', 'like', 'IP-' . $datePart . '-%')
                 ->orderBy('id', 'desc')
                 ->first();
-            
+
             if ($lastProject) {
                 $lastId = $lastProject->id;
                 $lastNumber = (int) substr($lastId, strrpos($lastId, '-') + 1);
@@ -53,21 +45,21 @@ class InternalProject extends Model
             } else {
                 $sequence = 1;
             }
-            
+
             $model->id = 'IP-' . $datePart . '-' . str_pad($sequence, 3, '0', STR_PAD_LEFT);
-            
+
             if (empty($model->uid)) {
                 $model->uid = Str::uuid();
             }
-            
+
             if (empty($model->created_at)) {
                 $model->created_at = now();
             }
-            
+
             if (empty($model->department)) {
                 $model->department = 'PT DCM';
             }
-            
+
             if (empty($model->update_by) && !empty($model->pic)) {
                 $model->update_by = $model->pic;
             }
@@ -93,12 +85,20 @@ class InternalProject extends Model
     // ========== ACCESSORS ==========
     public function getPicUsernameAttribute()
     {
-        return $this->picUser->username ?? 'N/A';
+        // Prevent N+1 query by checking if relation is loaded
+        if ($this->relationLoaded('picUser') && $this->picUser) {
+            return $this->picUser->username;
+        }
+        return $this->picUser?->username ?? 'N/A';
     }
 
     public function getUpdateByUsernameAttribute()
     {
-        return $this->updateUser->username ?? 'N/A';
+        // Prevent N+1 query by checking if relation is loaded
+        if ($this->relationLoaded('updateUser') && $this->updateUser) {
+            return $this->updateUser->username;
+        }
+        return $this->updateUser?->username ?? 'N/A';
     }
 
     public function getFormattedCreatedAtAttribute()

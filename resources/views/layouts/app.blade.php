@@ -580,6 +580,12 @@
                                                         <i class="fas fa-clipboard-list me-2"></i>Audit Log
                                                     </a>
                                                 </li>
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('feature-announcements*') ? 'active' : '' }}"
+                                                        href="{{ route('feature-announcements.index') }}">
+                                                        <i class="bi bi-megaphone-fill me-2"></i>Announcements
+                                                    </a>
+                                                </li>
                                             @endif
                                         </ul>
                                     </li>

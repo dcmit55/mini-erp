@@ -141,6 +141,18 @@
                                 @endforeach
                             </select>
                         </div>
+                        <div class="col-lg-2">
+                            <select id="filter-deadline-month" name="deadline_month" class="form-select select2"
+                                data-placeholder="All Months">
+                                <option value="">All Deadline Months</option>
+                                @foreach ($deadlineMonths as $month)
+                                    <option value="{{ $month }}"
+                                        {{ request('deadline_month') == $month ? 'selected' : '' }}>
+                                        {{ \Carbon\Carbon::parse($month . '-01')->format('F Y') }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
                         <div class="col-lg-2 align-self-end">
                             <button type="submit" class="btn btn-primary btn-sm me-1">
                                 <i class="fas fa-search me-1"></i> Search

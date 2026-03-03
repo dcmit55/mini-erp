@@ -13,6 +13,7 @@ use App\Models\Logistic\MaterialUsage;
 use App\Models\Hr\Employee;
 use App\Models\Admin\Department;
 use App\Models\Logistic\Category;
+use App\Models\Production\Timing;
 use Carbon\Carbon;
 
 class DashboardController extends Controller
@@ -113,7 +114,27 @@ class DashboardController extends Controller
             ->whereYear('created_at', Carbon::now()->year)
             ->sum('used_quantity');
 
+        // Production Efficiency Metrics (This Month)
+        $startDate = Carbon::now()->startOfMonth()->format('Y-m-d');
+        $endDate = Carbon::now()->format('Y-m-d');
+
+        $totalProductionMinutes = Timing::whereBetween('tanggal', [$startDate, $endDate])
+            ->where('approval_status', 'approved')
+            ->whereNotNull('duration_minutes')
+            ->sum('duration_minutes');
+
+        $totalProductionHours = round($totalProductionMinutes / 60, 1);
+
+        $totalProductionOutput = Timing::whereBetween('tanggal', [$startDate, $endDate])
+            ->where('approval_status', 'approved')
+            ->whereNotNull('measurement_value')
+            ->sum('measurement_value');
+
+        $activeProductionProjects = Project::whereHas('timings', function ($query) use ($startDate, $endDate) {
+            $query->whereBetween('tanggal', [$startDate, $endDate])->where('approval_status', 'approved');
+        })->count();
+
         // Pass veryLowStockItems ke view untuk ditampilkan di dashboard
-        return view('dashboard', compact('user', 'inventoryCount', 'projectCount', 'employeeCount', 'departmentCount', 'pendingRequests', 'approvedRequests', 'deliveredRequests', 'totalRequests', 'activeProjects', 'completedProjects', 'projectsThisMonth', 'lowStockItems', 'veryLowStockItems', 'outOfStockItems', 'totalInventoryValue', 'recentGoodsIn', 'recentGoodsOut', 'recentRequests', 'topCategories', 'departmentStats', 'monthlyData', 'upcomingDeadlines', 'materialUsageThisMonth', 'totalCategories'));
+        return view('dashboard', compact('user', 'inventoryCount', 'projectCount', 'employeeCount', 'departmentCount', 'pendingRequests', 'approvedRequests', 'deliveredRequests', 'totalRequests', 'activeProjects', 'completedProjects', 'projectsThisMonth', 'lowStockItems', 'veryLowStockItems', 'outOfStockItems', 'totalInventoryValue', 'recentGoodsIn', 'recentGoodsOut', 'recentRequests', 'topCategories', 'departmentStats', 'monthlyData', 'upcomingDeadlines', 'materialUsageThisMonth', 'totalCategories', 'totalProductionHours', 'totalProductionOutput', 'activeProductionProjects'));
     }
 }

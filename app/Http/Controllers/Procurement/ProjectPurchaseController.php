@@ -137,7 +137,7 @@ class ProjectPurchaseController extends Controller
 
             // Untuk internal project, ambil department_id dari internal project
             if ($request->project_type === 'internal' && $request->filled('internal_project_id')) {
-                $internalProject = InternalProject::find($request->internal_project_id);
+                $internalProject = InternalProject::with(['picUser', 'updateUser', 'department'])->find($request->internal_project_id);
 
                 if ($internalProject) {
                     if ($internalProject->department_id) {

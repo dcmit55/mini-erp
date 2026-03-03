@@ -4,6 +4,31 @@
 
 @section('content')
     <div class="container-fluid">
+        {{-- Session Alerts --}}
+        @if (session('success'))
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i>{{ session('success') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+        @if (session('error'))
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ session('error') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+        @if ($errors->any())
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                <ul class="mb-0">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1 class="h3 mb-0 text-gray-800">
                 <i class="bi bi-check-circle"></i> Timing Approval
@@ -65,7 +90,12 @@
         {{-- Filters --}}
         <div class="card shadow mb-4">
             <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-primary">Filters</h6>
+                <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">Filters</h6>
+                    <button type="button" id="btnResetFilters" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-arrow-counterclockwise"></i> Reset Filters
+                    </button>
+                </div>
             </div>
             <div class="card-body">
                 <form id="filterForm">
@@ -104,16 +134,6 @@
                         <div class="col-md-2">
                             <label for="date_to">Date To</label>
                             <input type="date" name="date_to" id="date_to" class="form-control">
-                        </div>
-                    </div>
-                    <div class="row mt-3">
-                        <div class="col-md-12 text-right">
-                            <button type="button" id="btnFilter" class="btn btn-primary">
-                                <i class="bi bi-funnel"></i> Apply Filters
-                            </button>
-                            <button type="button" id="btnReset" class="btn btn-secondary">
-                                <i class="bi bi-arrow-counterclockwise"></i> Reset
-                            </button>
                         </div>
                     </div>
                 </form>
@@ -249,6 +269,7 @@
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css"
         rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.min.css" rel="stylesheet" />
     <style>
         /* Fix Select2 with Bootstrap 5 */
         .select2-container .select2-selection--single {
@@ -264,9 +285,17 @@
 
 @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
 
     <script>
         $(document).ready(function() {
+            // Auto-dismiss session alerts after 5 seconds
+            setTimeout(function() {
+                $('.alert').not('.alert-permanent').fadeOut('slow', function() {
+                    $(this).remove();
+                });
+            }, 5000);
+
             // Initialize Select2
             $('.select2').select2({
                 theme: 'bootstrap-5',
@@ -305,34 +334,42 @@
                         searchable: false
                     },
                     {
-                        data: 'tanggal'
+                        data: 'tanggal',
+                        searchable: true
                     },
                     {
                         data: 'employee_info',
-                        orderable: false
+                        orderable: false,
+                        searchable: true
                     },
                     {
                         data: 'project_info',
-                        orderable: false
+                        orderable: false,
+                        searchable: true
                     },
                     {
                         data: 'work_details',
-                        orderable: false
+                        orderable: false,
+                        searchable: true
                     },
                     {
                         data: 'duration_info',
-                        orderable: false
+                        orderable: false,
+                        searchable: true
                     },
                     {
                         data: 'output_info',
-                        orderable: false
+                        orderable: false,
+                        searchable: true
                     },
                     {
-                        data: 'approval_status_badge'
+                        data: 'approval_status_badge',
+                        searchable: true
                     },
                     {
                         data: 'approver_info',
-                        orderable: false
+                        orderable: false,
+                        searchable: true
                     },
                     {
                         data: 'actions',
@@ -353,14 +390,15 @@
                 }
             });
 
-            // Filter button
-            $('#btnFilter').on('click', function() {
+            // Auto-filter on change
+            $('#approval_status, #project_id, #department_id, #date_from, #date_to').on('change', function() {
                 table.ajax.reload();
             });
 
-            // Reset button
-            $('#btnReset').on('click', function() {
+            // Reset filters button
+            $('#btnResetFilters').on('click', function() {
                 $('#filterForm')[0].reset();
+                $('#approval_status').val('pending'); // Set back to default
                 $('.select2').val(null).trigger('change');
                 table.ajax.reload();
             });
@@ -388,24 +426,47 @@
             // Approve single
             $(document).on('click', '.btn-approve', function() {
                 var id = $(this).data('id');
-                if (confirm('Are you sure you want to approve this timing session?')) {
-                    $.ajax({
-                        url: "/timing-approval/" + id + "/approve",
-                        type: 'POST',
-                        data: {
-                            _token: "{{ csrf_token() }}"
-                        },
-                        success: function(response) {
-                            showAlert('success', response.message);
-                            table.ajax.reload();
-                        },
-                        error: function(xhr) {
-                            var errorMsg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr
-                                .responseJSON.message : 'Error approving timing';
-                            showAlert('error', errorMsg);
-                        }
-                    });
-                }
+
+                Swal.fire({
+                    title: 'Approve Timing?',
+                    text: 'Are you sure you want to approve this timing session?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#28a745',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Yes, Approve!',
+                    cancelButtonText: 'Cancel'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: "/timing-approval/" + id + "/approve",
+                            type: 'POST',
+                            data: {
+                                _token: "{{ csrf_token() }}"
+                            },
+                            success: function(response) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Approved!',
+                                    text: response.message,
+                                    timer: 3000,
+                                    showConfirmButton: false
+                                });
+                                table.ajax.reload();
+                            },
+                            error: function(xhr) {
+                                var errorMsg = (xhr.responseJSON && xhr.responseJSON
+                                        .message) ? xhr
+                                    .responseJSON.message : 'Error approving timing';
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error!',
+                                    text: errorMsg
+                                });
+                            }
+                        });
+                    }
+                });
             });
 
             // Reject single
@@ -433,7 +494,13 @@
                     success: function(response) {
                         bootstrap.Modal.getInstance(document.getElementById('rejectModal'))
                             .hide();
-                        showAlert('success', response.message);
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Rejected!',
+                            text: response.message,
+                            timer: 3000,
+                            showConfirmButton: false
+                        });
                         table.ajax.reload();
                     },
                     error: function(xhr) {
@@ -448,30 +515,56 @@
             $('#btnBulkApprove').on('click', function() {
                 var ids = getSelectedIds();
                 if (ids.length === 0) {
-                    showAlert('warning', 'Please select at least one timing session');
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'No Selection',
+                        text: 'Please select at least one timing session'
+                    });
                     return;
                 }
 
-                if (confirm('Are you sure you want to approve ' + ids.length + ' timing session(s)?')) {
-                    $.ajax({
-                        url: "{{ route('timing-approval.bulk-approve') }}",
-                        type: 'POST',
-                        data: {
-                            _token: "{{ csrf_token() }}",
-                            timing_ids: ids
-                        },
-                        success: function(response) {
-                            showAlert('success', response.message);
-                            table.ajax.reload();
-                            $('#selectAll').prop('checked', false);
-                        },
-                        error: function(xhr) {
-                            var errorMsg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr
-                                .responseJSON.message : 'Error in bulk approval';
-                            showAlert('error', errorMsg);
-                        }
-                    });
-                }
+                Swal.fire({
+                    title: 'Bulk Approve?',
+                    text: 'Are you sure you want to approve ' + ids.length + ' timing session(s)?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#28a745',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Yes, Approve All!',
+                    cancelButtonText: 'Cancel'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: "{{ route('timing-approval.bulk-approve') }}",
+                            type: 'POST',
+                            data: {
+                                _token: "{{ csrf_token() }}",
+                                timing_ids: ids
+                            },
+                            success: function(response) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Approved!',
+                                    text: response.message,
+                                    timer: 3000,
+                                    showConfirmButton: false
+                                });
+                                table.ajax.reload();
+                                $('#selectAll').prop('checked', false);
+                            },
+                            error: function(xhr) {
+                                var errorMsg = (xhr.responseJSON && xhr.responseJSON
+                                        .message) ? xhr
+                                    .responseJSON.message : 'Error in bulk approval';
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error!',
+                                    text: errorMsg
+                                });
+                            }
+                        });
+                    }
+                });
             });
 
             // Bulk reject
@@ -504,7 +597,13 @@
                     success: function(response) {
                         bootstrap.Modal.getInstance(document.getElementById('bulkRejectModal'))
                             .hide();
-                        showAlert('success', response.message);
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Rejected!',
+                            text: response.message,
+                            timer: 3000,
+                            showConfirmButton: false
+                        });
                         table.ajax.reload();
                         $('#selectAll').prop('checked', false);
                     },

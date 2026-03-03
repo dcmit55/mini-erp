@@ -58,7 +58,10 @@ class EfficiencyDashboardController extends Controller
         $averageEfficiency = min($rawEfficiency, 100);
 
         // Projects with metrics - STANDARDIZED: Use minutes as primary unit
+        // ❗ FILTER: Hanya tampilkan project dengan stage='closed' DAN project_status='Delivered'
         $projects = Project::select('projects.*')
+            ->where('stage', 'closed')
+            ->where('project_status', 'Delivered')
             ->with(['department', 'projectStatus'])
             ->withCount([
                 'timings as sessions_count' => function ($query) use ($startDate, $endDate) {
@@ -148,7 +151,12 @@ class EfficiencyDashboardController extends Controller
         $startDate = $request->input('start_date', now()->startOfMonth()->format('Y-m-d'));
         $endDate = $request->input('end_date', now()->format('Y-m-d'));
 
-        $project = Project::with(['department', 'projectStatus'])->findOrFail($projectId);
+        // ❗ Validasi: Project harus closed DAN delivered
+        $project = Project::where('id', $projectId)
+            ->where('stage', 'closed')
+            ->where('project_status', 'Delivered')
+            ->with(['department', 'projectStatus'])
+            ->firstOrFail();
 
         // Project summary - STANDARDIZED: Use minutes
         $projectSummary = Timing::where('project_id', $projectId)
@@ -232,7 +240,18 @@ class EfficiencyDashboardController extends Controller
         $startDate = $request->input('start_date', now()->startOfMonth()->format('Y-m-d'));
         $endDate = $request->input('end_date', now()->format('Y-m-d'));
 
-        $jobOrder = JobOrder::with(['project', 'department'])->findOrFail($jobOrderId);
+        // ❗ Load job order dengan validasi project harus closed DAN delivered
+        $jobOrder = JobOrder::with([
+            'project' => function ($query) {
+                $query->where('stage', 'closed')->where('project_status', 'Delivered');
+            },
+            'department',
+        ])->findOrFail($jobOrderId);
+
+        // Jika project tidak memenuhi criteria, throw 404
+        if (!$jobOrder->project || $jobOrder->project->stage !== 'closed' || $jobOrder->project->project_status !== 'Delivered') {
+            abort(404, 'Job Order not found or project not in delivered status');
+        }
 
         // Job order summary - STANDARDIZED: Use minutes
         $jobOrderSummary = Timing::where('job_order_id', $jobOrderId)

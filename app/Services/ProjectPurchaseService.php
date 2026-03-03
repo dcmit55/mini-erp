@@ -386,7 +386,7 @@ class ProjectPurchaseService
     public function getInternalProjectDetails($id)
     {
         try {
-            $project = InternalProject::with(['department:id,name'])->find($id);
+            $project = InternalProject::with(['department:id,name', 'picUser', 'updateUser'])->find($id);
 
             if (!$project) {
                 return [

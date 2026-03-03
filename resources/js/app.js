@@ -49,6 +49,107 @@ function playNotificationSound() {
     }
 }
 
+// --- Feature Announcement Modal ---
+function showFeatureAnnouncementModal(announcement) {
+    const priorityClass = {
+        info: "primary",
+        important: "warning",
+        critical: "danger",
+    };
+
+    const priorityIcon = {
+        info: "bi-info-circle",
+        important: "bi-exclamation-triangle",
+        critical: "bi-exclamation-octagon",
+    };
+
+    const modalHtml = `
+        <div class="modal fade" id="featureAnnouncementModal" tabindex="-1" data-bs-backdrop="static">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content border-0 shadow-lg">
+                    <div class="modal-header bg-${
+                        priorityClass[announcement.priority]
+                    } text-white">
+                        <h5 class="modal-title">
+                            <i class="bi ${
+                                priorityIcon[announcement.priority]
+                            } me-2"></i>
+                            ${announcement.title}
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white"
+                                data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        ${
+                            announcement.version
+                                ? `<div class="mb-3">
+                            <span class="badge bg-info">
+                                <i class="bi bi-tag me-1"></i>Version ${announcement.version}
+                            </span>
+                        </div>`
+                                : ""
+                        }
+                        <div class="feature-description">
+                            ${announcement.description.replace(/\n/g, "<br>")}
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-secondary"
+                                data-bs-dismiss="modal">
+                            <i class="bi bi-clock me-1"></i>Remind Me Later
+                        </button>
+                        <button type="button" class="btn btn-${
+                            priorityClass[announcement.priority]
+                        }"
+                                onclick="markAnnouncementAsRead(${
+                                    announcement.id
+                                })">
+                            <i class="bi bi-check-circle me-1"></i>Got it!
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Remove existing modal if any
+    $("#featureAnnouncementModal").remove();
+
+    // Add new modal
+    $("body").append(modalHtml);
+
+    // Show modal
+    const modal = new bootstrap.Modal(
+        document.getElementById("featureAnnouncementModal"),
+    );
+    modal.show();
+
+    // Play notification sound
+    playNotificationSound();
+
+    // Cleanup after modal closed
+    $("#featureAnnouncementModal").on("hidden.bs.modal", function () {
+        $(this).remove();
+    });
+}
+
+// Mark announcement as read
+window.markAnnouncementAsRead = function (announcementId) {
+    $.post(`/feature-announcements/${announcementId}/mark-read`, function () {
+        $("#featureAnnouncementModal").modal("hide");
+        // Optional: Show success toast
+        if (typeof Swal !== "undefined") {
+            Swal.fire({
+                icon: "success",
+                title: "Noted!",
+                text: "You won't see this announcement again.",
+                timer: 2000,
+                showConfirmButton: false,
+            });
+        }
+    });
+};
+
 // --- Toast ---
 function showToast(materialRequest, action, playSound = true) {
     const toastContainer = document.getElementById("toast-container");
@@ -69,8 +170,8 @@ function showToast(materialRequest, action, playSound = true) {
     if (action === "created") {
         message = `
             <strong>${ucfirst(materialRequest.requested_by)} (${ucfirst(
-            departmentName
-        )})</strong><br>
+                departmentName,
+            )})</strong><br>
             <span class="text-success">New Request:</span> <strong>${
                 materialRequest.inventory?.name || "N/A"
             }</strong>
@@ -82,8 +183,8 @@ function showToast(materialRequest, action, playSound = true) {
     } else if (action === "updated") {
         message = `
             <strong>${ucfirst(materialRequest.requested_by)} (${ucfirst(
-            departmentName
-        )})</strong><br>
+                departmentName,
+            )})</strong><br>
             Material Request: <strong>${
                 materialRequest.inventory?.name || "N/A"
             }</strong>
@@ -96,8 +197,8 @@ function showToast(materialRequest, action, playSound = true) {
     } else if (action === "deleted") {
         message = `
             <strong>${ucfirst(materialRequest.requested_by)} (${ucfirst(
-            departmentName
-        )})</strong><br>
+                departmentName,
+            )})</strong><br>
             Material Request: <strong>${
                 materialRequest.inventory?.name || "N/A"
             }</strong>
@@ -121,7 +222,7 @@ function showToast(materialRequest, action, playSound = true) {
 
     // Isi konten toast
     toastElement.querySelector(".toast-time").textContent = moment(
-        materialRequest.created_at
+        materialRequest.created_at,
     ).fromNow();
     toastElement.querySelector(".toast-body").innerHTML = message;
 
@@ -153,7 +254,7 @@ function updateSelectColor(selectElement) {
         "status-pending",
         "status-approved",
         "status-delivered",
-        "status-canceled"
+        "status-canceled",
     );
 
     // Tambahkan kelas berdasarkan nilai yang dipilih
@@ -177,7 +278,7 @@ function updateDataTable(materialRequest) {
         // Check if the updated row is in current view
         const currentData = table.rows().data().toArray();
         const existingRowIndex = currentData.findIndex(
-            (row) => row.id == materialRequest.id
+            (row) => row.id == materialRequest.id,
         );
 
         if (existingRowIndex !== -1) {
@@ -214,22 +315,22 @@ function updateDataTable(materialRequest) {
                 materialRequest.status === "pending"
                     ? "text-bg-warning"
                     : materialRequest.status === "approved"
-                    ? "text-bg-primary"
-                    : materialRequest.status === "delivered"
-                    ? "text-bg-success"
-                    : materialRequest.status === "canceled"
-                    ? "text-bg-danger"
-                    : "";
+                      ? "text-bg-primary"
+                      : materialRequest.status === "delivered"
+                        ? "text-bg-success"
+                        : materialRequest.status === "canceled"
+                          ? "text-bg-danger"
+                          : "";
 
             statusColumn = `<span class="badge rounded-pill ${badgeClass}">${ucfirst(
-                materialRequest.status
+                materialRequest.status,
             )}</span>`;
         }
 
         // Pastikan juga setelah row update, initialize previous value
         setTimeout(() => {
             const $newSelect = $(
-                `#row-${materialRequest.id} .status-quick-update`
+                `#row-${materialRequest.id} .status-quick-update`,
             );
             if ($newSelect.length) {
                 $newSelect.data("previous-value", $newSelect.val());
@@ -317,7 +418,7 @@ function updateDataTable(materialRequest) {
         }" method="POST" class="delete-form" style="display:inline;">
             <input type="hidden" name="_method" value="DELETE">
             <input type="hidden" name="_token" value="${$(
-                'meta[name="csrf-token"]'
+                'meta[name="csrf-token"]',
             ).attr("content")}">
             <button type="button" class="btn btn-sm btn-danger btn-delete" title="${deleteTooltip}">
                 <i class="bi bi-trash3"></i>
@@ -352,7 +453,7 @@ function updateDataTable(materialRequest) {
 
         // Format tanggal
         const formattedDate = moment(materialRequest.created_at).format(
-            "YYYY-MM-DD, HH:mm"
+            "YYYY-MM-DD, HH:mm",
         );
 
         // Ambil nama departemen dari user yang membuat permintaan
@@ -374,7 +475,7 @@ function updateDataTable(materialRequest) {
                 materialRequest.inventory?.unit || "(No Unit)"
             }">
             ${formatNumberDynamic(
-                materialRequest.qty - (materialRequest.processed_qty ?? 0)
+                materialRequest.qty - (materialRequest.processed_qty ?? 0),
             )}
         </span>`, // Remaining Qty with tooltip
             `<span data-bs-toggle="tooltip" data-bs-placement="right" title="${
@@ -383,9 +484,9 @@ function updateDataTable(materialRequest) {
             ${formatNumberDynamic(materialRequest.processed_qty ?? 0)}
         </span>`, // Processed Qty with tooltip
             `<span data-bs-toggle="tooltip" data-bs-placement="right" title="${ucfirst(
-                departmentName
+                departmentName,
             )}" class="requested-by-tooltip">${ucfirst(
-                materialRequest.requested_by
+                materialRequest.requested_by,
             )}</span>`, // Requested By
             formattedDate, // Requested At (format lokal)
             statusColumn, // Status
@@ -410,7 +511,7 @@ function updateDataTable(materialRequest) {
 
         // Inisialisasi ulang tooltip Bootstrap pada elemen baru
         const tooltipTriggerList = [].slice.call(
-            row.node().querySelectorAll('[data-bs-toggle="tooltip"]')
+            row.node().querySelectorAll('[data-bs-toggle="tooltip"]'),
         );
         tooltipTriggerList.forEach(function (tooltipTriggerEl) {
             new bootstrap.Tooltip(tooltipTriggerEl);
@@ -465,7 +566,7 @@ document.addEventListener("DOMContentLoaded", () => {
             function handleRequest(request) {
                 // Hanya update DataTable jika tabel material request ada
                 const materialRequestTable = document.querySelector(
-                    '#datatable[data-material-request-table="1"]'
+                    '#datatable[data-material-request-table="1"]',
                 );
                 if (materialRequestTable) {
                     if (e.action === "deleted") {
@@ -489,7 +590,7 @@ document.addEventListener("DOMContentLoaded", () => {
             } else {
                 handleRequest(e.materialRequest);
             }
-        }
+        },
     );
 
     window.Echo.channel("material-requests").listen(
@@ -498,12 +599,35 @@ document.addEventListener("DOMContentLoaded", () => {
             if (window.authUser && window.authUser.is_logistic_admin) {
                 showToast(e.materialRequest, "reminder", true);
             }
-        }
+        },
     );
+
+    // === FEATURE ANNOUNCEMENTS LISTENER ===
+    window.Echo.channel("feature-announcements").listen(
+        "NewFeatureAnnouncement",
+        function (e) {
+            const userId = window.authUser ? window.authUser.id : null;
+
+            // Check apakah user ini target
+            if (e.target_user_ids && e.target_user_ids.includes(userId)) {
+                showFeatureAnnouncementModal(e.announcement);
+            }
+        },
+    );
+
+    // Check unread announcements saat page load
+    setTimeout(function () {
+        $.get("/feature-announcements/user", function (announcements) {
+            if (announcements && announcements.length > 0) {
+                // Show first announcement
+                showFeatureAnnouncementModal(announcements[0]);
+            }
+        });
+    }, 1000); // Delay 1 detik setelah page load
 
     // Hanya jalankan select color logic jika tabel material request ada
     const materialRequestTable = document.querySelector(
-        '#datatable[data-material-request-table="1"]'
+        '#datatable[data-material-request-table="1"]',
     );
     if (materialRequestTable) {
         // Terapkan fungsi ke semua elemen <select> dengan kelas .status-select
@@ -534,5 +658,5 @@ document.body.addEventListener(
             audioContext.resume();
         }
     },
-    { once: true }
+    { once: true },
 );

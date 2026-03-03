@@ -362,9 +362,8 @@ Route::middleware(['auth'])->group(function () {
         ->name('timing-approval.')
         ->group(function () {
             Route::get('/', [TimingApprovalController::class, 'index'])->name('index');
-            Route::get('/debug', function () {
-                return view('production.timing-approval.debug');
-            })->name('debug');
+            Route::get('/{id}/edit', [TimingApprovalController::class, 'edit'])->name('edit');
+            Route::put('/{id}', [TimingApprovalController::class, 'update'])->name('update');
             Route::post('/{id}/approve', [TimingApprovalController::class, 'approve'])->name('approve');
             Route::post('/{id}/reject', [TimingApprovalController::class, 'reject'])->name('reject');
             Route::post('/bulk-approve', [TimingApprovalController::class, 'bulkApprove'])->name('bulk-approve');
@@ -521,14 +520,12 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{id}/update-tracking', [ProjectPurchaseController::class, 'updateTracking'])->name('project-purchases.update-tracking');
 
         // Item Receipt Routes
-        Route::post('/project-purchases/{id}/mark-as-received', 
-            [ProjectPurchaseController::class, 'markAsReceived'])
-            ->name('project-purchases.mark-as-received');
+        Route::post('/project-purchases/{id}/mark-as-received', [ProjectPurchaseController::class, 'markAsReceived'])->name('project-purchases.mark-as-received');
         Route::post('/{id}/mark-as-not-matched', [ProjectPurchaseController::class, 'markAsNotMatched'])->name('project-purchases.mark-as-not-matched');
 
         // Print & Export
         Route::get('/{id}/print', [ProjectPurchaseController::class, 'print'])->name('project-purchases.print');
-        
+
         Route::get('/export', [ProjectPurchaseController::class, 'export'])->name('project-purchases.export');
 
         // AJAX Routes
@@ -580,10 +577,16 @@ Route::middleware(['auth'])->group(function () {
         ->name('purchase-edited.')
         ->group(function () {
             Route::get('/', [PurchaseEditedController::class, 'index'])->name('index');
-            Route::get('/compare/{poNumber}', [PurchaseEditedController::class, 'compare'])->name('compare')->where('poNumber', '.*');
-            Route::post('/verify/{poNumber}', [PurchaseEditedController::class, 'verify'])->name('verify')->where('poNumber', '.*');
+            Route::get('/compare/{poNumber}', [PurchaseEditedController::class, 'compare'])
+                ->name('compare')
+                ->where('poNumber', '.*');
+            Route::post('/verify/{poNumber}', [PurchaseEditedController::class, 'verify'])
+                ->name('verify')
+                ->where('poNumber', '.*');
             Route::post('/bulk-verify', [PurchaseEditedController::class, 'bulkVerify'])->name('bulk-verify');
-            Route::get('/check/{poNumber}', [PurchaseEditedController::class, 'check'])->name('check')->where('poNumber', '.*');
+            Route::get('/check/{poNumber}', [PurchaseEditedController::class, 'check'])
+                ->name('check')
+                ->where('poNumber', '.*');
             Route::get('/count', [PurchaseEditedController::class, 'getCount'])->name('count');
         });
     Route::get('/finance-dashboard', function () {
@@ -670,5 +673,24 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('auth')
         ->group(function () {
             Route::get('/{employee}/score', [App\Http\Controllers\Production\EmployeePerformanceController::class, 'getPerformanceScore']);
+        });
+
+    // Feature Announcements Routes
+    Route::prefix('feature-announcements')
+        ->name('feature-announcements.')
+        ->middleware('auth')
+        ->group(function () {
+            // Admin routes
+            Route::get('/', [App\Http\Controllers\Admin\FeatureAnnouncementController::class, 'index'])->name('index');
+            Route::get('/create', [App\Http\Controllers\Admin\FeatureAnnouncementController::class, 'create'])->name('create');
+            Route::post('/', [App\Http\Controllers\Admin\FeatureAnnouncementController::class, 'store'])->name('store');
+            Route::get('/{id}/edit', [App\Http\Controllers\Admin\FeatureAnnouncementController::class, 'edit'])->name('edit');
+            Route::put('/{id}', [App\Http\Controllers\Admin\FeatureAnnouncementController::class, 'update'])->name('update');
+            Route::delete('/{id}', [App\Http\Controllers\Admin\FeatureAnnouncementController::class, 'destroy'])->name('destroy');
+
+            // User API endpoints
+            Route::get('/user', [App\Http\Controllers\Admin\FeatureAnnouncementController::class, 'getUserAnnouncements'])->name('user');
+            Route::post('/{id}/mark-read', [App\Http\Controllers\Admin\FeatureAnnouncementController::class, 'markAsRead'])->name('mark-read');
+            Route::post('/{id}/re-broadcast', [App\Http\Controllers\Admin\FeatureAnnouncementController::class, 'reBroadcast'])->name('re-broadcast');
         });
 });
