@@ -141,7 +141,9 @@
                                                     <i class="fas fa-cogs me-2"></i>Internal Projects
                                                 </a>
                                             </li>
-                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <hr class="dropdown-divider">
+                                            </li>
                                             <li>
                                                 <a class="dropdown-item {{ request()->is('job-order-type-gradings*') ? 'active' : '' }}"
                                                     href="{{ route('job-order-type-gradings.index') }}">
@@ -310,7 +312,7 @@
                                         'general',
                                     ]))
                                     <li class="nav-item dropdown">
-                                        <a class="nav-link dropdown-toggle {{ request()->is('job-orders*') || request()->is('quick-timer*') || request()->is('employees/*/timing*') || request()->is('material-planning*') || request()->is('overtime-requests*') ? 'active' : '' }}"
+                                        <a class="nav-link dropdown-toggle {{ request()->is('job-orders*') || request()->is('quick-timer*') || request()->is('material-usage*') || request()->is('employees/*/timing*') || request()->is('material-planning*') || request()->is('overtime-requests*') ? 'active' : '' }}"
                                             href="#" id="productionsDropdown" role="button"
                                             data-bs-toggle="dropdown" aria-expanded="false">
                                             <i></i>Productions
@@ -464,7 +466,10 @@
                                 @auth
                                     @if (in_array(auth()->user()->role, ['super_admin', 'admin_hr', 'admin']))
                                         @php
-                                            $hrOvertimePendingCount = \App\Models\Hr\OvertimeRequest::where('status', 'submitted')
+                                            $hrOvertimePendingCount = \App\Models\Hr\OvertimeRequest::where(
+                                                'status',
+                                                'submitted',
+                                            )
                                                 ->where('hr_approval_status', 'pending')
                                                 ->count();
                                         @endphp
@@ -515,11 +520,13 @@
                                                 <li>
                                                     <a class="dropdown-item d-flex align-items-center justify-content-between {{ request()->routeIs('overtime-requests.hr-approvals') ? 'active' : '' }}"
                                                         href="{{ route('overtime-requests.hr-approvals') }}">
-                                                        <span><i class="fas fa-user-check me-2"></i>HR Overtime Approvals</span>
-                                                        @if($hrOvertimePendingCount > 0)
-                                                        <span class="badge bg-danger rounded-pill ms-2" style="font-size:0.65rem;">
-                                                            {{ $hrOvertimePendingCount > 99 ? '99+' : $hrOvertimePendingCount }}
-                                                        </span>
+                                                        <span><i class="fas fa-user-check me-2"></i>HR Overtime
+                                                            Approvals</span>
+                                                        @if ($hrOvertimePendingCount > 0)
+                                                            <span class="badge bg-danger rounded-pill ms-2"
+                                                                style="font-size:0.65rem;">
+                                                                {{ $hrOvertimePendingCount > 99 ? '99+' : $hrOvertimePendingCount }}
+                                                            </span>
                                                         @endif
                                                     </a>
                                                 </li>
@@ -709,284 +716,382 @@
         </footer>
 
         @auth
-        <!-- ============================================================ -->
-        <!-- SYMCORE AI CHATBOT                                            -->
-        <!-- ============================================================ -->
-        <div id="symcore-chatbot" style="position:fixed;bottom:28px;right:28px;z-index:1055;">
+            <!-- ============================================================ -->
+            <!-- SYMCORE AI CHATBOT                                            -->
+            <!-- ============================================================ -->
+            <div id="symcore-chatbot" style="position:fixed;bottom:28px;right:28px;z-index:1055;">
 
-            <!-- Floating Toggle Button -->
-            <button id="chatbot-toggle" onclick="chatbotToggle()"
-                title="Symcore AI Assistant"
-                style="width:56px;height:56px;border-radius:50%;border:none;background:linear-gradient(135deg,#1d4ed8,#3b82f6);
+                <!-- Floating Toggle Button -->
+                <button id="chatbot-toggle" onclick="chatbotToggle()" title="Symcore AI Assistant"
+                    style="width:56px;height:56px;border-radius:50%;border:none;background:linear-gradient(135deg,#1d4ed8,#3b82f6);
                        color:#fff;font-size:1.3rem;box-shadow:0 4px 18px rgba(29,78,216,.5);
                        cursor:pointer;display:flex;align-items:center;justify-content:center;
                        transition:transform .2s,box-shadow .2s;overflow:hidden;padding:0;"
-                onmouseenter="this.style.transform='scale(1.08)';this.style.boxShadow='0 6px 24px rgba(29,78,216,.7)'"
-                onmouseleave="this.style.transform='scale(1)';this.style.boxShadow='0 4px 18px rgba(29,78,216,.5)'">
-                <img id="chatbot-toggle-icon" src="https://i.ibb.co.com/FjyxLbK/20260302-1522-Image-Generation-simple-compose-01kjpt8j8ffcybrs13c1ac2pk3.webp"
-                     alt="AI" style="width:56px;height:56px;object-fit:cover;border-radius:50%;">
-            </button>
+                    onmouseenter="this.style.transform='scale(1.08)';this.style.boxShadow='0 6px 24px rgba(29,78,216,.7)'"
+                    onmouseleave="this.style.transform='scale(1)';this.style.boxShadow='0 4px 18px rgba(29,78,216,.5)'">
+                    <img id="chatbot-toggle-icon"
+                        src="https://i.ibb.co.com/FjyxLbK/20260302-1522-Image-Generation-simple-compose-01kjpt8j8ffcybrs13c1ac2pk3.webp"
+                        alt="AI" style="width:56px;height:56px;object-fit:cover;border-radius:50%;">
+                </button>
 
-            <!-- Chat Window -->
-            <div id="chatbot-window"
-                style="display:none;position:absolute;bottom:68px;right:0;width:370px;height:520px;
+                <!-- Chat Window -->
+                <div id="chatbot-window"
+                    style="display:none;position:absolute;bottom:68px;right:0;width:370px;height:520px;
                        background:#fff;border-radius:18px;box-shadow:0 8px 40px rgba(0,0,0,.18);
                        display:none;flex-direction:column;overflow:hidden;border:1px solid #e5e7eb;">
 
-                <!-- Header -->
-                <div style="background:linear-gradient(135deg,#1d4ed8,#3b82f6);padding:14px 16px;
+                    <!-- Header -->
+                    <div
+                        style="background:linear-gradient(135deg,#1d4ed8,#3b82f6);padding:14px 16px;
                             display:flex;align-items:center;justify-content:space-between;">
-                    <div style="display:flex;align-items:center;gap:10px;">
-                        <div style="width:36px;height:36px;border-radius:50%;overflow:hidden;
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <div
+                                style="width:36px;height:36px;border-radius:50%;overflow:hidden;
                                     display:flex;align-items:center;justify-content:center;border:2px solid rgba(255,255,255,.4);">
-                            <img src="https://i.ibb.co.com/FjyxLbK/20260302-1522-Image-Generation-simple-compose-01kjpt8j8ffcybrs13c1ac2pk3.webp"
-                                 alt="SymBot" style="width:36px;height:36px;object-fit:cover;border-radius:50%;">
+                                <img src="https://i.ibb.co.com/FjyxLbK/20260302-1522-Image-Generation-simple-compose-01kjpt8j8ffcybrs13c1ac2pk3.webp"
+                                    alt="SymBot" style="width:36px;height:36px;object-fit:cover;border-radius:50%;">
+                            </div>
+                            <div>
+                                <div style="color:#fff;font-weight:600;font-size:.9rem;line-height:1.2;">SymBot</div>
+                                <div style="color:rgba(255,255,255,.75);font-size:.72rem;">
+                                    <span
+                                        style="width:7px;height:7px;background:#4ade80;border-radius:50%;display:inline-block;margin-right:4px;"></span>Online
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <div style="color:#fff;font-weight:600;font-size:.9rem;line-height:1.2;">SymBot</div>
-                            <div style="color:rgba(255,255,255,.75);font-size:.72rem;">
-                                <span style="width:7px;height:7px;background:#4ade80;border-radius:50%;display:inline-block;margin-right:4px;"></span>Online
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <!-- Language Selector -->
+                            <select id="chatbot-lang" onchange="chatbotSetLang(this.value)"
+                                style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);
+                                   border-radius:8px;padding:3px 6px;font-size:.72rem;cursor:pointer;outline:none;">
+                                <option value="auto" style="color:#000;">🌐 Auto</option>
+                                <option value="id" style="color:#000;">🇮🇩 ID</option>
+                                <option value="en" style="color:#000;">🇬🇧 EN</option>
+                                <option value="zh" style="color:#000;">🇨🇳 ZH</option>
+                            </select>
+                            <!-- Clear -->
+                            <button onclick="chatbotClear()" title="Clear chat"
+                                style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;
+                                   width:28px;height:28px;cursor:pointer;font-size:.8rem;display:flex;align-items:center;justify-content:center;">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                            <!-- Close -->
+                            <button onclick="chatbotToggle()" title="Close"
+                                style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;
+                                   width:28px;height:28px;cursor:pointer;font-size:.85rem;display:flex;align-items:center;justify-content:center;">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Messages Area -->
+                    <div id="chatbot-messages"
+                        style="flex:1;overflow-y:auto;padding:14px 14px 6px;display:flex;flex-direction:column;gap:10px;
+                           background:#f8f9fc;">
+                        <!-- Welcome message -->
+                        <div class="cb-msg cb-msg-ai">
+                            <div class="cb-bubble cb-bubble-ai">
+                                👋 Halo! Saya <strong>Symcore AI</strong>.<br>
+                                Saya bisa membantu Anda dengan informasi sistem, data real-time, atau pertanyaan
+                                umum.<br><br>
+                                <em style="font-size:.8rem;opacity:.75;">Ketik dalam Bahasa Indonesia, English, atau 中文 —
+                                    saya akan menyesuaikan.</em>
                             </div>
                         </div>
                     </div>
-                    <div style="display:flex;align-items:center;gap:8px;">
-                        <!-- Language Selector -->
-                        <select id="chatbot-lang" onchange="chatbotSetLang(this.value)"
-                            style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);
-                                   border-radius:8px;padding:3px 6px;font-size:.72rem;cursor:pointer;outline:none;">
-                            <option value="auto" style="color:#000;">🌐 Auto</option>
-                            <option value="id"   style="color:#000;">🇮🇩 ID</option>
-                            <option value="en"   style="color:#000;">🇬🇧 EN</option>
-                            <option value="zh"   style="color:#000;">🇨🇳 ZH</option>
-                        </select>
-                        <!-- Clear -->
-                        <button onclick="chatbotClear()" title="Clear chat"
-                            style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;
-                                   width:28px;height:28px;cursor:pointer;font-size:.8rem;display:flex;align-items:center;justify-content:center;">
-                            <i class="fas fa-trash-alt"></i>
-                        </button>
-                        <!-- Close -->
-                        <button onclick="chatbotToggle()" title="Close"
-                            style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;
-                                   width:28px;height:28px;cursor:pointer;font-size:.85rem;display:flex;align-items:center;justify-content:center;">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                </div>
 
-                <!-- Messages Area -->
-                <div id="chatbot-messages"
-                    style="flex:1;overflow-y:auto;padding:14px 14px 6px;display:flex;flex-direction:column;gap:10px;
-                           background:#f8f9fc;">
-                    <!-- Welcome message -->
-                    <div class="cb-msg cb-msg-ai">
-                        <div class="cb-bubble cb-bubble-ai">
-                            👋 Halo! Saya <strong>Symcore AI</strong>.<br>
-                            Saya bisa membantu Anda dengan informasi sistem, data real-time, atau pertanyaan umum.<br><br>
-                            <em style="font-size:.8rem;opacity:.75;">Ketik dalam Bahasa Indonesia, English, atau 中文 — saya akan menyesuaikan.</em>
+                    <!-- Typing Indicator (hidden by default) -->
+                    <div id="chatbot-typing" style="padding:0 14px 6px;display:none;">
+                        <div class="cb-bubble cb-bubble-ai" style="padding:10px 14px;">
+                            <span class="cb-dots"><span></span><span></span><span></span></span>
                         </div>
                     </div>
-                </div>
 
-                <!-- Typing Indicator (hidden by default) -->
-                <div id="chatbot-typing" style="padding:0 14px 6px;display:none;">
-                    <div class="cb-bubble cb-bubble-ai" style="padding:10px 14px;">
-                        <span class="cb-dots"><span></span><span></span><span></span></span>
-                    </div>
-                </div>
-
-                <!-- Input Area -->
-                <div style="padding:10px 12px;border-top:1px solid #e5e7eb;background:#fff;display:flex;gap:8px;align-items:flex-end;">
-                    <textarea id="chatbot-input" placeholder="Ketik pesan..." rows="1"
-                        onkeydown="chatbotKeydown(event)"
-                        oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,96)+'px'"
-                        style="flex:1;resize:none;border:1px solid #e5e7eb;border-radius:12px;padding:9px 12px;
+                    <!-- Input Area -->
+                    <div
+                        style="padding:10px 12px;border-top:1px solid #e5e7eb;background:#fff;display:flex;gap:8px;align-items:flex-end;">
+                        <textarea id="chatbot-input" placeholder="Ketik pesan..." rows="1" onkeydown="chatbotKeydown(event)"
+                            oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,96)+'px'"
+                            style="flex:1;resize:none;border:1px solid #e5e7eb;border-radius:12px;padding:9px 12px;
                                font-size:.85rem;outline:none;font-family:inherit;line-height:1.4;max-height:96px;
                                transition:border-color .2s;"
-                        onfocus="this.style.borderColor='#3b82f6'"
-                        onblur="this.style.borderColor='#e5e7eb'"></textarea>
-                    <button onclick="chatbotSend()" id="chatbot-send-btn"
-                        style="width:38px;height:38px;border-radius:50%;border:none;
+                            onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#e5e7eb'"></textarea>
+                        <button onclick="chatbotSend()" id="chatbot-send-btn"
+                            style="width:38px;height:38px;border-radius:50%;border:none;
                                background:linear-gradient(135deg,#1d4ed8,#3b82f6);
                                color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;
                                flex-shrink:0;transition:opacity .2s;"
-                        title="Send">
-                        <i class="fas fa-paper-plane" style="font-size:.8rem;"></i>
-                    </button>
+                            title="Send">
+                            <i class="fas fa-paper-plane" style="font-size:.8rem;"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Chatbot Styles -->
-        <style>
-            .cb-msg { display:flex; }
-            .cb-msg-user { justify-content:flex-end; }
-            .cb-msg-ai   { justify-content:flex-start; }
-            .cb-bubble {
-                max-width:82%;padding:9px 13px;border-radius:16px;font-size:.84rem;
-                line-height:1.5;word-break:break-word;
-            }
-            .cb-bubble-ai {
-                background:#fff;color:#1f2937;border:1px solid #e5e7eb;
-                border-bottom-left-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,.06);
-            }
-            .cb-bubble-user {
-                background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;
-                border-bottom-right-radius:4px;
-            }
-            .cb-time {
-                font-size:.68rem;color:#9ca3af;margin-top:3px;text-align:right;
-            }
-            /* Typing dots */
-            .cb-dots { display:inline-flex;gap:4px;align-items:center; }
-            .cb-dots span {
-                width:7px;height:7px;border-radius:50%;background:#9ca3af;
-                animation:cb-bounce .9s infinite ease-in-out;
-            }
-            .cb-dots span:nth-child(2) { animation-delay:.15s; }
-            .cb-dots span:nth-child(3) { animation-delay:.3s; }
-            @keyframes cb-bounce {
-                0%,80%,100% { transform:scale(.7);opacity:.5; }
-                40%         { transform:scale(1);opacity:1; }
-            }
-            /* Scrollbar */
-            #chatbot-messages::-webkit-scrollbar { width:4px; }
-            #chatbot-messages::-webkit-scrollbar-track { background:transparent; }
-            #chatbot-messages::-webkit-scrollbar-thumb { background:#d1d5db;border-radius:4px; }
-            /* Slide-in animation */
-            @keyframes cb-slide-in { from { opacity:0;transform:translateY(16px); } to { opacity:1;transform:translateY(0); } }
-            .cb-slide-in { animation:cb-slide-in .25s ease; }
-        </style>
-
-        <!-- Chatbot Script -->
-        <script>
-        (function() {
-            let cbOpen    = false;
-            let cbHistory = [];
-            let cbLang    = 'auto';
-            let cbLoading = false;
-
-            const ROUTE = "{{ route('chatbot.message') }}";
-            const CSRF  = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
-
-            window.chatbotToggle = function() {
-                cbOpen = !cbOpen;
-                const win  = document.getElementById('chatbot-window');
-                const btn  = document.getElementById('chatbot-toggle');
-                if (cbOpen) {
-                    win.style.display = 'flex';
-                    btn.innerHTML = '<i class="fas fa-times" style="color:#fff;font-size:1.1rem;"></i>';
-                    setTimeout(() => document.getElementById('chatbot-input')?.focus(), 100);
-                    chatbotScroll();
-                } else {
-                    win.style.display = 'none';
-                    btn.innerHTML = '<img src="https://i.ibb.co.com/FjyxLbK/20260302-1522-Image-Generation-simple-compose-01kjpt8j8ffcybrs13c1ac2pk3.webp" alt="AI" style="width:56px;height:56px;object-fit:cover;border-radius:50%;">';
+            <!-- Chatbot Styles -->
+            <style>
+                .cb-msg {
+                    display: flex;
                 }
-            };
 
-            window.chatbotSetLang = function(val) {
-                cbLang = val;
-            };
+                .cb-msg-user {
+                    justify-content: flex-end;
+                }
 
-            window.chatbotClear = function() {
-                cbHistory = [];
-                const box = document.getElementById('chatbot-messages');
-                box.innerHTML = `
+                .cb-msg-ai {
+                    justify-content: flex-start;
+                }
+
+                .cb-bubble {
+                    max-width: 82%;
+                    padding: 9px 13px;
+                    border-radius: 16px;
+                    font-size: .84rem;
+                    line-height: 1.5;
+                    word-break: break-word;
+                }
+
+                .cb-bubble-ai {
+                    background: #fff;
+                    color: #1f2937;
+                    border: 1px solid #e5e7eb;
+                    border-bottom-left-radius: 4px;
+                    box-shadow: 0 1px 3px rgba(0, 0, 0, .06);
+                }
+
+                .cb-bubble-user {
+                    background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+                    color: #fff;
+                    border-bottom-right-radius: 4px;
+                }
+
+                .cb-time {
+                    font-size: .68rem;
+                    color: #9ca3af;
+                    margin-top: 3px;
+                    text-align: right;
+                }
+
+                /* Typing dots */
+                .cb-dots {
+                    display: inline-flex;
+                    gap: 4px;
+                    align-items: center;
+                }
+
+                .cb-dots span {
+                    width: 7px;
+                    height: 7px;
+                    border-radius: 50%;
+                    background: #9ca3af;
+                    animation: cb-bounce .9s infinite ease-in-out;
+                }
+
+                .cb-dots span:nth-child(2) {
+                    animation-delay: .15s;
+                }
+
+                .cb-dots span:nth-child(3) {
+                    animation-delay: .3s;
+                }
+
+                @keyframes cb-bounce {
+
+                    0%,
+                    80%,
+                    100% {
+                        transform: scale(.7);
+                        opacity: .5;
+                    }
+
+                    40% {
+                        transform: scale(1);
+                        opacity: 1;
+                    }
+                }
+
+                /* Scrollbar */
+                #chatbot-messages::-webkit-scrollbar {
+                    width: 4px;
+                }
+
+                #chatbot-messages::-webkit-scrollbar-track {
+                    background: transparent;
+                }
+
+                #chatbot-messages::-webkit-scrollbar-thumb {
+                    background: #d1d5db;
+                    border-radius: 4px;
+                }
+
+                /* Slide-in animation */
+                @keyframes cb-slide-in {
+                    from {
+                        opacity: 0;
+                        transform: translateY(16px);
+                    }
+
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+
+                .cb-slide-in {
+                    animation: cb-slide-in .25s ease;
+                }
+            </style>
+
+            <!-- Chatbot Script -->
+            <script>
+                (function() {
+                    let cbOpen = false;
+                    let cbHistory = [];
+                    let cbLang = 'auto';
+                    let cbLoading = false;
+
+                    const ROUTE = "{{ route('chatbot.message') }}";
+                    const CSRF = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+
+                    window.chatbotToggle = function() {
+                        cbOpen = !cbOpen;
+                        const win = document.getElementById('chatbot-window');
+                        const btn = document.getElementById('chatbot-toggle');
+                        if (cbOpen) {
+                            win.style.display = 'flex';
+                            btn.innerHTML = '<i class="fas fa-times" style="color:#fff;font-size:1.1rem;"></i>';
+                            setTimeout(() => document.getElementById('chatbot-input')?.focus(), 100);
+                            chatbotScroll();
+                        } else {
+                            win.style.display = 'none';
+                            btn.innerHTML =
+                                '<img src="https://i.ibb.co.com/FjyxLbK/20260302-1522-Image-Generation-simple-compose-01kjpt8j8ffcybrs13c1ac2pk3.webp" alt="AI" style="width:56px;height:56px;object-fit:cover;border-radius:50%;">';
+                        }
+                    };
+
+                    window.chatbotSetLang = function(val) {
+                        cbLang = val;
+                    };
+
+                    window.chatbotClear = function() {
+                        cbHistory = [];
+                        const box = document.getElementById('chatbot-messages');
+                        box.innerHTML = `
                     <div class="cb-msg cb-msg-ai cb-slide-in">
                         <div class="cb-bubble cb-bubble-ai">
                             👋 Chat cleared. How can I help you?<br>
                             <em style="font-size:.8rem;opacity:.75;">Ketik dalam Bahasa Indonesia, English, atau 中文.</em>
                         </div>
                     </div>`;
-            };
+                    };
 
-            window.chatbotKeydown = function(e) {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    chatbotSend();
-                }
-            };
+                    window.chatbotKeydown = function(e) {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            chatbotSend();
+                        }
+                    };
 
-            window.chatbotSend = async function() {
-                if (cbLoading) return;
-                const input = document.getElementById('chatbot-input');
-                const msg   = (input.value ?? '').trim();
-                if (!msg) return;
+                    window.chatbotSend = async function() {
+                        if (cbLoading) return;
+                        const input = document.getElementById('chatbot-input');
+                        const msg = (input.value ?? '').trim();
+                        if (!msg) return;
 
-                input.value = '';
-                input.style.height = 'auto';
+                        input.value = '';
+                        input.style.height = 'auto';
 
-                // Append user bubble
-                chatbotAppend('user', msg);
-                cbHistory.push({ role: 'user', content: msg });
+                        // Append user bubble
+                        chatbotAppend('user', msg);
+                        cbHistory.push({
+                            role: 'user',
+                            content: msg
+                        });
 
-                // Show typing
-                cbLoading = true;
-                document.getElementById('chatbot-send-btn').style.opacity = '.5';
-                document.getElementById('chatbot-typing').style.display = 'block';
-                chatbotScroll();
+                        // Show typing
+                        cbLoading = true;
+                        document.getElementById('chatbot-send-btn').style.opacity = '.5';
+                        document.getElementById('chatbot-typing').style.display = 'block';
+                        chatbotScroll();
 
-                // Build message with optional language override
-                let fullMsg = msg;
-                if (cbLang !== 'auto') {
-                    const langMap = { id: 'Respond in Bahasa Indonesia.', en: 'Respond in English.', zh: 'Respond in Mandarin Chinese (中文).' };
-                    fullMsg = '[' + langMap[cbLang] + ']\n' + msg;
-                }
+                        // Build message with optional language override
+                        let fullMsg = msg;
+                        if (cbLang !== 'auto') {
+                            const langMap = {
+                                id: 'Respond in Bahasa Indonesia.',
+                                en: 'Respond in English.',
+                                zh: 'Respond in Mandarin Chinese (中文).'
+                            };
+                            fullMsg = '[' + langMap[cbLang] + ']\n' + msg;
+                        }
 
-                try {
-                    const res = await fetch(ROUTE, {
-                        method : 'POST',
-                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF },
-                        body   : JSON.stringify({ message: fullMsg, history: cbHistory.slice(-10) }),
-                    });
-                    const data = await res.json();
-                    const reply = data.reply ?? 'No response received.';
+                        try {
+                            const res = await fetch(ROUTE, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': CSRF
+                                },
+                                body: JSON.stringify({
+                                    message: fullMsg,
+                                    history: cbHistory.slice(-10)
+                                }),
+                            });
+                            const data = await res.json();
+                            const reply = data.reply ?? 'No response received.';
 
-                    document.getElementById('chatbot-typing').style.display = 'none';
-                    chatbotAppend('ai', reply);
-                    cbHistory.push({ role: 'assistant', content: reply });
-                } catch (err) {
-                    document.getElementById('chatbot-typing').style.display = 'none';
-                    chatbotAppend('ai', '⚠️ Connection error. Please try again.');
-                } finally {
-                    cbLoading = false;
-                    document.getElementById('chatbot-send-btn').style.opacity = '1';
-                    chatbotScroll();
-                }
-            };
+                            document.getElementById('chatbot-typing').style.display = 'none';
+                            chatbotAppend('ai', reply);
+                            cbHistory.push({
+                                role: 'assistant',
+                                content: reply
+                            });
+                        } catch (err) {
+                            document.getElementById('chatbot-typing').style.display = 'none';
+                            chatbotAppend('ai', '⚠️ Connection error. Please try again.');
+                        } finally {
+                            cbLoading = false;
+                            document.getElementById('chatbot-send-btn').style.opacity = '1';
+                            chatbotScroll();
+                        }
+                    };
 
-            function chatbotAppend(role, text) {
-                const box  = document.getElementById('chatbot-messages');
-                const isAI = role === 'ai';
-                const now  = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    function chatbotAppend(role, text) {
+                        const box = document.getElementById('chatbot-messages');
+                        const isAI = role === 'ai';
+                        const now = new Date().toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
 
-                const div = document.createElement('div');
-                div.className = `cb-msg cb-msg-${isAI ? 'ai' : 'user'} cb-slide-in`;
+                        const div = document.createElement('div');
+                        div.className = `cb-msg cb-msg-${isAI ? 'ai' : 'user'} cb-slide-in`;
 
-                // Convert markdown-ish: **bold**, newlines
-                let html = text
-                    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-                    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
-                    .replace(/\*(.*?)\*/g,'<em>$1</em>')
-                    .replace(/\n/g,'<br>');
+                        // Convert markdown-ish: **bold**, newlines
+                        let html = text
+                            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                            .replace(/\n/g, '<br>');
 
-                div.innerHTML = `
+                        div.innerHTML = `
                     <div>
                         <div class="cb-bubble cb-bubble-${isAI ? 'ai' : 'user'}">${html}</div>
                         <div class="cb-time">${now}</div>
                     </div>`;
-                box.appendChild(div);
-                chatbotScroll();
-            }
+                        box.appendChild(div);
+                        chatbotScroll();
+                    }
 
-            function chatbotScroll() {
-                setTimeout(() => {
-                    const box = document.getElementById('chatbot-messages');
-                    if (box) box.scrollTop = box.scrollHeight;
-                }, 50);
-            }
-        })();
-        </script>
+                    function chatbotScroll() {
+                        setTimeout(() => {
+                            const box = document.getElementById('chatbot-messages');
+                            if (box) box.scrollTop = box.scrollHeight;
+                        }, 50);
+                    }
+                })
+                ();
+            </script>
         @endauth
         <!-- ============================================================ -->
         <!-- END SYMCORE AI CHATBOT                                        -->
