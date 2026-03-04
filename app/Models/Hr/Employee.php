@@ -43,6 +43,11 @@ class Employee extends Model implements AuditableContract
 
     protected $auditTimestamps = true;
 
+    public function getRouteKeyName(): string
+    {
+        return 'uid';
+    }
+
     /**
      * Boot method untuk model events
      */

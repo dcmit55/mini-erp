@@ -12,9 +12,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: "/up",
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // Register API token validation middleware
         $middleware->alias([
-            "api.token" => \App\Http\Middleware\ValidateApiToken::class,
+            'api.token'     => \App\Http\Middleware\ApiToken::class,
+            'webhook.token' => \App\Http\Middleware\WebhookToken::class,
+            'webhook.hmac'  => \App\Http\Middleware\VerifyWebhookHMAC::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

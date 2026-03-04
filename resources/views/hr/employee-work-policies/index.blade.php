@@ -100,7 +100,7 @@
                                             <span class="fw-medium">{{ $policy->employee_no }}</span>
                                         </td>
                                         <td style="vertical-align: middle;">
-                                            <a href="{{ route('employees.show', $policy->employee_id) }}" class="text-decoration-none">
+                                            <a href="{{ route('employees.show', $policy->employee->uid ?? $policy->employee_id) }}" class="text-decoration-none">
                                                 {{ $policy->employee->name ?? 'N/A' }}
                                             </a>
                                         </td>

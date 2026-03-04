@@ -512,28 +512,28 @@ Route::middleware(['auth'])->group(function () {
 
         Route::post('/', [ProjectPurchaseController::class, 'store'])->name('project-purchases.store');
 
-        Route::get('/{id}', [ProjectPurchaseController::class, 'show'])->name('project-purchases.show');
+        Route::get('/{uid}', [ProjectPurchaseController::class, 'show'])->name('project-purchases.show');
 
-        Route::get('/{id}/edit', [ProjectPurchaseController::class, 'edit'])->name('project-purchases.edit');
+        Route::get('/{uid}/edit', [ProjectPurchaseController::class, 'edit'])->name('project-purchases.edit');
 
-        Route::put('/{id}', [ProjectPurchaseController::class, 'update'])->name('project-purchases.update');
+        Route::put('/{uid}', [ProjectPurchaseController::class, 'update'])->name('project-purchases.update');
 
-        Route::delete('/{id}', [ProjectPurchaseController::class, 'destroy'])->name('project-purchases.destroy');
+        Route::delete('/{uid}', [ProjectPurchaseController::class, 'destroy'])->name('project-purchases.destroy');
 
         // Approval Routes (Finance)
-        Route::post('/{id}/approve', [ProjectPurchaseController::class, 'approve'])->name('project-purchases.approve');
+        Route::post('/{uid}/approve', [ProjectPurchaseController::class, 'approve'])->name('project-purchases.approve');
 
-        Route::post('/{id}/reject', [ProjectPurchaseController::class, 'reject'])->name('project-purchases.reject');
+        Route::post('/{uid}/reject', [ProjectPurchaseController::class, 'reject'])->name('project-purchases.reject');
 
         // Update Tracking Route
-        Route::post('/{id}/update-tracking', [ProjectPurchaseController::class, 'updateTracking'])->name('project-purchases.update-tracking');
+        Route::post('/{uid}/update-tracking', [ProjectPurchaseController::class, 'updateTracking'])->name('project-purchases.update-tracking');
 
         // Item Receipt Routes
-        Route::post('/project-purchases/{id}/mark-as-received', [ProjectPurchaseController::class, 'markAsReceived'])->name('project-purchases.mark-as-received');
-        Route::post('/{id}/mark-as-not-matched', [ProjectPurchaseController::class, 'markAsNotMatched'])->name('project-purchases.mark-as-not-matched');
+        Route::post('/project-purchases/{uid}/mark-as-received', [ProjectPurchaseController::class, 'markAsReceived'])->name('project-purchases.mark-as-received');
+        Route::post('/{uid}/mark-as-not-matched', [ProjectPurchaseController::class, 'markAsNotMatched'])->name('project-purchases.mark-as-not-matched');
 
         // Print & Export
-        Route::get('/{id}/print', [ProjectPurchaseController::class, 'print'])->name('project-purchases.print');
+        Route::get('/{uid}/print', [ProjectPurchaseController::class, 'print'])->name('project-purchases.print');
 
         Route::get('/export', [ProjectPurchaseController::class, 'export'])->name('project-purchases.export');
 

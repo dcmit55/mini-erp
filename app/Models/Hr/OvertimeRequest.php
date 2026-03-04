@@ -12,6 +12,22 @@ class OvertimeRequest extends Model
 {
     use HasFactory, SoftDeletes;
 
+    public function getRouteKeyName(): string
+    {
+        return 'uid';
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (empty($model->uid)) {
+                $model->uid = (string) Str::uuid();
+            }
+        });
+    }
+
     protected $fillable = [
         'uid', 'employee_id', 'department_id', 'job_order_id',
         'reason', 'ot_code', 'start_time', 'end_time',

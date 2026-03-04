@@ -325,11 +325,11 @@
                     </p>
                 </div>
                 <div>
-                    <a href="{{ route('project-purchases.show', $purchase->id) }}" 
+                    <a href="{{ route('project-purchases.show', $purchase->uid) }}" 
                        class="btn btn-outline-secondary btn-sm rounded-2 px-3">
                         <i class="fas fa-eye me-1"></i>View
                     </a>
-                    <a href="{{ route('project-purchases.print', $purchase->id) }}" 
+                    <a href="{{ route('project-purchases.print', $purchase->uid) }}" 
                        class="btn btn-outline-primary btn-sm rounded-2 px-3" target="_blank">
                         <i class="fas fa-print me-1"></i>Print
                     </a>
@@ -361,7 +361,7 @@
                         </div>
                     @endif
 
-                    <form action="{{ route('project-purchases.update', $purchase->id) }}" method="POST" id="purchaseForm">
+                    <form action="{{ route('project-purchases.update', $purchase->uid) }}" method="POST" id="purchaseForm">
                         @csrf
                         @method('PUT')
                         
@@ -831,7 +831,7 @@
 
                         <!-- Action Buttons -->
                         <div class="d-flex gap-2 pt-3 border-top">
-                            <a href="{{ route('project-purchases.show', $purchase->id) }}" class="btn btn-outline-secondary rounded-2 px-3 btn-sm">
+                            <a href="{{ route('project-purchases.show', $purchase->uid) }}" class="btn btn-outline-secondary rounded-2 px-3 btn-sm">
                                 Cancel
                             </a>
                             <button type="submit" class="btn btn-primary rounded-2 px-3 btn-sm">

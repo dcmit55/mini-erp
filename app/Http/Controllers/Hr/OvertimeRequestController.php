@@ -12,9 +12,14 @@ use App\Models\Hr\AttendanceLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
+use App\Models\Hr\ApprovalMatrix;
+use App\Models\Hr\ApprovalTransaction;
+use App\Services\ApprovalService;
 
 class OvertimeRequestController extends Controller
 {
+    public function __construct(private ApprovalService $approvalService) {}
+
     /**
      * Display a listing of the resource.
      */
@@ -249,6 +254,12 @@ class OvertimeRequestController extends Controller
         }
         $overtimeRequest->status = 'submitted';
         $overtimeRequest->save();
+
+        // Inisiasi audit trail di approval_transactions (jika matrix sudah dikonfigurasi)
+        if (ApprovalMatrix::where('module', 'overtime')->exists()) {
+            $this->approvalService->initiate('overtime', $overtimeRequest->id);
+        }
+
         return back()->with('success', 'Request submitted for approval.');
     }
 
@@ -265,20 +276,30 @@ class OvertimeRequestController extends Controller
             return back()->with('error', 'HR approval already processed.');
         }
 
-        $user = auth()->user();
-
-        if ($request->action === 'approve') {
-            $overtimeRequest->hr_approval_status = 'approved';
-            $overtimeRequest->hr_approved_by = $user->id;
-            $overtimeRequest->hr_approved_at = now();
-        } else {
-            $overtimeRequest->hr_approval_status = 'rejected';
-            $overtimeRequest->hr_approved_by = $user->id;
-            $overtimeRequest->hr_approved_at = now();
+        // Cek role dari approval_matrix level 1 (tidak hardcode)
+        $user        = auth()->user();
+        $requiredRole = ApprovalMatrix::where('module', 'overtime')->where('level', 1)->value('role') ?? 'admin_hr';
+        if ($user->role !== $requiredRole && $user->role !== 'super_admin') {
+            return back()->with('error', "Hanya role [{$requiredRole}] yang dapat melakukan HR approval.");
         }
+
+        $newStatus = $request->action === 'approve' ? 'approved' : 'rejected';
+        $overtimeRequest->hr_approval_status = $newStatus;
+        $overtimeRequest->hr_approved_by     = $user->id;
+        $overtimeRequest->hr_approved_at     = now();
 
         $overtimeRequest->updateOverallStatus();
         $overtimeRequest->save();
+
+        // Log ke approval_transactions
+        ApprovalTransaction::create([
+            'module'       => 'overtime',
+            'reference_id' => $overtimeRequest->id,
+            'level'        => 1,
+            'approved_by'  => $user->id,
+            'status'       => $newStatus,
+            'approved_at'  => now(),
+        ]);
 
         return back()->with('success', 'HR approval updated.');
     }
@@ -296,20 +317,32 @@ class OvertimeRequestController extends Controller
             return back()->with('error', 'Director approval already processed.');
         }
 
-        $user = auth()->user();
-
-        if ($request->action === 'approve') {
-            $overtimeRequest->director_approval_status = 'approved';
-            $overtimeRequest->director_approved_by = $user->id;
-            $overtimeRequest->director_approved_at = now();
-        } else {
-            $overtimeRequest->director_approval_status = 'rejected';
-            $overtimeRequest->director_approved_by = $user->id;
-            $overtimeRequest->director_approved_at = now();
+        // Cek semua role yang diizinkan dari approval_matrix level 2 (role utama + delegate)
+        $user         = auth()->user();
+        $level2Matrix = ApprovalMatrix::where('module', 'overtime')->where('level', 2)->first();
+        $allowedRoles = $level2Matrix ? $level2Matrix->getAllowedRoles() : ['director', 'admin_hr'];
+        if (!in_array($user->role, $allowedRoles) && $user->role !== 'super_admin') {
+            $label = implode(' / ', $allowedRoles);
+            return back()->with('error', "Hanya role [{$label}] yang dapat melakukan Director approval.");
         }
+
+        $newStatus = $request->action === 'approve' ? 'approved' : 'rejected';
+        $overtimeRequest->director_approval_status = $newStatus;
+        $overtimeRequest->director_approved_by     = $user->id;
+        $overtimeRequest->director_approved_at     = now();
 
         $overtimeRequest->updateOverallStatus();
         $overtimeRequest->save();
+
+        // Log ke approval_transactions
+        ApprovalTransaction::create([
+            'module'       => 'overtime',
+            'reference_id' => $overtimeRequest->id,
+            'level'        => 2,
+            'approved_by'  => $user->id,
+            'status'       => $newStatus,
+            'approved_at'  => now(),
+        ]);
 
         return back()->with('success', 'Director approval updated.');
     }
@@ -400,7 +433,13 @@ class OvertimeRequestController extends Controller
      */
     public function directorApprovals(Request $request)
     {
-        if (!in_array(auth()->user()->role, ['director', 'admin', 'super_admin'])) {
+        // Cek akses dari approval_matrix level 2 (role utama + delegate + super_admin)
+        $level2Matrix = ApprovalMatrix::where('module', 'overtime')->where('level', 2)->first();
+        $allowedRoles = $level2Matrix
+            ? array_merge($level2Matrix->getAllowedRoles(), ['super_admin'])
+            : ['director', 'admin_hr', 'super_admin'];
+
+        if (!in_array(auth()->user()->role, $allowedRoles)) {
             abort(403);
         }
 

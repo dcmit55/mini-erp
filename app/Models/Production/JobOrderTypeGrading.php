@@ -12,6 +12,11 @@ class JobOrderTypeGrading extends Model
 
     protected $table = 'job_order_type_gradings';
 
+    public function getRouteKeyName(): string
+    {
+        return 'uid';
+    }
+
     protected $fillable = [
         'uid',
         'job_type_grade',

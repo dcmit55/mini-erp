@@ -165,42 +165,34 @@ class InternalProjectController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(InternalProject $internalProject)
     {
-        try {
-            $internalProject = InternalProject::with(['picUser', 'updateUser', 'department'])->findOrFail($id);
-            return view('internal-projects.show', compact('internalProject'));
-        } catch (\Exception $e) {
-            return redirect()->route('internal-projects.index')->with('error', 'Project not found!');
-        }
+        $internalProject->load(['picUser', 'updateUser', 'department']);
+        return view('internal-projects.show', compact('internalProject'));
     }
 
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(string $id)
+    public function edit(InternalProject $internalProject)
     {
-        try {
-            $internalProject = InternalProject::with(['picUser', 'updateUser', 'department'])->findOrFail($id);
+        $internalProject->load(['picUser', 'updateUser', 'department']);
 
-            // Ambil daftar project dari enum
-            $projectTypes = collect(InternalProjectType::cases())->mapWithKeys(fn($case) => [$case->value => $case->value])->toArray();
+        // Ambil daftar project dari enum
+        $projectTypes = collect(InternalProjectType::cases())->mapWithKeys(fn($case) => [$case->value => $case->value])->toArray();
 
-            $departments = Department::orderBy('name')->get();
+        $departments = Department::orderBy('name')->get();
 
-            // Default department di-set ke ID 19 (PT DCM) – pastikan ID tersebut ada di tabel departments
-            $defaultPtDcmDepartmentId = 19;
+        // Default department di-set ke ID 19 (PT DCM) – pastikan ID tersebut ada di tabel departments
+        $defaultPtDcmDepartmentId = 19;
 
-            return view('internal-projects.edit', compact('internalProject', 'projectTypes', 'departments', 'defaultPtDcmDepartmentId'));
-        } catch (\Exception $e) {
-            return redirect()->route('internal-projects.index')->with('error', 'Project not found!');
-        }
+        return view('internal-projects.edit', compact('internalProject', 'projectTypes', 'departments', 'defaultPtDcmDepartmentId'));
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, InternalProject $internalProject)
     {
         $validator = Validator::make($request->all(), [
             'project' => ['required', 'string', Rule::in(InternalProjectType::values())],
@@ -216,7 +208,6 @@ class InternalProjectController extends Controller
         try {
             DB::beginTransaction();
 
-            $internalProject = InternalProject::with(['picUser', 'updateUser', 'department'])->findOrFail($id);
             $user = Auth::user();
 
             $department = Department::find($request->department_id);
@@ -246,12 +237,11 @@ class InternalProjectController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(InternalProject $internalProject)
     {
         try {
             DB::beginTransaction();
 
-            $internalProject = InternalProject::with(['picUser', 'updateUser'])->findOrFail($id);
             $internalProject->delete();
 
             DB::commit();

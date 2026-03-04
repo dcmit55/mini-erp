@@ -20,7 +20,12 @@ class InternalProject extends Model
 
     public $timestamps = false;
 
-    protected $fillable = ['project', 'job', 'description', 'department', 'department_id', 'pic', 'update_by'];
+    protected $fillable = ['uid', 'project', 'job', 'description', 'department', 'department_id', 'pic', 'update_by'];
+
+    public function getRouteKeyName(): string
+    {
+        return 'uid';
+    }
 
     protected $casts = [
         'created_at' => 'datetime',

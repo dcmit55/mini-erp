@@ -530,6 +530,15 @@
                                                         @endif
                                                     </a>
                                                 </li>
+                                                <!-- Director Overtime Approvals — tampil untuk role utama + delegate dari approval_matrix -->
+                                                @php
+                                                    $directorMatrix       = \App\Models\Hr\ApprovalMatrix::where('module', 'overtime')->where('level', 2)->first();
+                                                    $directorAllowedRoles = $directorMatrix ? $directorMatrix->getAllowedRoles() : ['director', 'admin_hr'];
+                                                    $directorAllowedRoles[] = 'super_admin';
+                                                    $directorPendingCount = in_array(auth()->user()->role, $directorAllowedRoles)
+                                                        ? \App\Models\Hr\OvertimeRequest::where('status', 'submitted')->where('director_approval_status', 'pending')->count()
+                                                        : 0;
+                                                @endphp
                                                 <!-- Overtime Pay -->
                                                 <li>
                                                     <a class="dropdown-item {{ request()->routeIs('overtime-pays.*') ? 'active' : '' }}"
@@ -719,24 +728,24 @@
             <!-- ============================================================ -->
             <!-- SYMCORE AI CHATBOT                                            -->
             <!-- ============================================================ -->
-            <div id="symcore-chatbot" style="position:fixed;bottom:28px;right:28px;z-index:1055;">
+            <div id="symcore-chatbot" style="position:fixed;bottom:28px;left:28px;z-index:1055;">
 
                 <!-- Floating Toggle Button -->
                 <button id="chatbot-toggle" onclick="chatbotToggle()" title="Symcore AI Assistant"
-                    style="width:56px;height:56px;border-radius:50%;border:none;background:linear-gradient(135deg,#1d4ed8,#3b82f6);
-                       color:#fff;font-size:1.3rem;box-shadow:0 4px 18px rgba(29,78,216,.5);
+                    style="width:56px;height:56px;border-radius:50%;border:none;background:#fff;
+                       color:#1d4ed8;font-size:1.3rem;box-shadow:0 4px 18px rgba(29,78,216,.5);
                        cursor:pointer;display:flex;align-items:center;justify-content:center;
                        transition:transform .2s,box-shadow .2s;overflow:hidden;padding:0;"
                     onmouseenter="this.style.transform='scale(1.08)';this.style.boxShadow='0 6px 24px rgba(29,78,216,.7)'"
-                    onmouseleave="this.style.transform='scale(1)';this.style.boxShadow='0 4px 18px rgba(29,78,216,.5)'">
+                    onmouseleave="this.style.transform='scale(1)';this.style.boxShadow='0 4px 18px rgba(29,78,216,.5)'"
                     <img id="chatbot-toggle-icon"
-                        src="https://i.ibb.co.com/FjyxLbK/20260302-1522-Image-Generation-simple-compose-01kjpt8j8ffcybrs13c1ac2pk3.webp"
+                        src="https://i.ibb.co/gb7RMPCV/chatbot.webp"
                         alt="AI" style="width:56px;height:56px;object-fit:cover;border-radius:50%;">
                 </button>
 
                 <!-- Chat Window -->
                 <div id="chatbot-window"
-                    style="display:none;position:absolute;bottom:68px;right:0;width:370px;height:520px;
+                    style="display:none;position:absolute;bottom:68px;left:0;width:370px;height:520px;
                        background:#fff;border-radius:18px;box-shadow:0 8px 40px rgba(0,0,0,.18);
                        display:none;flex-direction:column;overflow:hidden;border:1px solid #e5e7eb;">
 
@@ -748,7 +757,7 @@
                             <div
                                 style="width:36px;height:36px;border-radius:50%;overflow:hidden;
                                     display:flex;align-items:center;justify-content:center;border:2px solid rgba(255,255,255,.4);">
-                                <img src="https://i.ibb.co.com/FjyxLbK/20260302-1522-Image-Generation-simple-compose-01kjpt8j8ffcybrs13c1ac2pk3.webp"
+                                <img src="https://i.ibb.co/gb7RMPCV/chatbot.webp"
                                     alt="SymBot" style="width:36px;height:36px;object-fit:cover;border-radius:50%;">
                             </div>
                             <div>
@@ -965,7 +974,7 @@
                         } else {
                             win.style.display = 'none';
                             btn.innerHTML =
-                                '<img src="https://i.ibb.co.com/FjyxLbK/20260302-1522-Image-Generation-simple-compose-01kjpt8j8ffcybrs13c1ac2pk3.webp" alt="AI" style="width:56px;height:56px;object-fit:cover;border-radius:50%;">';
+                                '<img src="https://i.ibb.co/gb7RMPCV/chatbot.webp" alt="AI" style="width:56px;height:56px;object-fit:cover;border-radius:50%;">';
                         }
                     };
 

@@ -18,7 +18,11 @@
                         </span>
                         @endif
                     </a>
-                    @if(in_array(auth()->user()->role, ['director', 'admin', 'super_admin']))
+                    @php
+                        $directorMatrix2      = \App\Models\Hr\ApprovalMatrix::where('module', 'overtime')->where('level', 2)->first();
+                        $directorSwitchRoles  = $directorMatrix2 ? array_merge($directorMatrix2->getAllowedRoles(), ['super_admin']) : ['director', 'admin_hr', 'super_admin'];
+                    @endphp
+                    @if(in_array(auth()->user()->role, $directorSwitchRoles))
                     <a href="{{ route('overtime-requests.director-approvals') }}" class="btn btn-outline-primary btn-sm rounded-2 px-3 position-relative me-1">
                         <i class="fas fa-user-tie me-1"></i> Director
                         @if($directorPendingCount > 0)

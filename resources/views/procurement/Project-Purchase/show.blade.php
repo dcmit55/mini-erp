@@ -214,7 +214,7 @@
                                         @if($purchase->status == 'approved')
                                         <td class="text-center">
                                             @if(in_array($item->item_status, ['pending', 'pending_check']) && auth()->user() && in_array(auth()->user()->role, ['super_admin', 'admin', 'inventory', 'admin_logistic', 'procurement']))
-                                                <form action="{{ route('project-purchases.mark-as-received', $item->id) }}" 
+                                                <form action="{{ route('project-purchases.mark-as-received', $item->uid) }}" 
                                                       method="POST" class="d-inline"
                                                       onsubmit="return confirm('Mark this item as received and add to inventory?')">
                                                     @csrf
@@ -405,13 +405,13 @@
                             </div>
                             
                             <div class="d-flex gap-2">
-                                <a href="{{ route('project-purchases.print', $purchase->id) }}" 
+                                <a href="{{ route('project-purchases.print', $purchase->uid) }}" 
                                    class="btn btn-outline-primary rounded-2 px-3 btn-sm" target="_blank">
                                     <i class="fas fa-print me-1"></i>Print
                                 </a>
                                 
                                 @if($purchase->status == 'pending')
-                                    <a href="{{ route('project-purchases.edit', $purchase->id) }}" 
+                                    <a href="{{ route('project-purchases.edit', $purchase->uid) }}" 
                                        class="btn btn-primary rounded-2 px-3 btn-sm">
                                         <i class="fas fa-edit me-1"></i>Edit
                                     </a>
@@ -447,7 +447,7 @@
 <div class="modal fade" id="approveModal" tabindex="-1">
     <div class="modal-dialog modal-md">
         <div class="modal-content">
-            <form action="{{ route('project-purchases.approve', $purchase->id) }}" method="POST">
+            <form action="{{ route('project-purchases.approve', $purchase->uid) }}" method="POST">
                 @csrf
                 <div class="modal-header">
                     <h6 class="modal-title">Approve Purchase Order</h6>
@@ -492,7 +492,7 @@
 <div class="modal fade" id="rejectModal" tabindex="-1">
     <div class="modal-dialog modal-md">
         <div class="modal-content">
-            <form action="{{ route('project-purchases.reject', $purchase->id) }}" method="POST">
+            <form action="{{ route('project-purchases.reject', $purchase->uid) }}" method="POST">
                 @csrf
                 <div class="modal-header">
                     <h6 class="modal-title">Reject Purchase Order</h6>

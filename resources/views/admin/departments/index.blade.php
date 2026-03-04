@@ -51,11 +51,11 @@
                                     <td>{{ $department->name }}</td>
                                     <td>
                                         <div class="d-flex gap-2">
-                                            <a href="{{ route('departments.edit', $department->id) }}"
+                                            <a href="{{ route('departments.edit', $department->uid) }}"
                                                 class="btn btn-warning btn-sm">
                                                 <i class="fa-solid fa-pen-to-square"></i> Edit
                                             </a>
-                                            <form action="{{ route('departments.destroy', $department->id) }}"
+                                            <form action="{{ route('departments.destroy', $department->uid) }}"
                                                 method="POST" class="delete-form">
                                                 @csrf
                                                 @method('DELETE')

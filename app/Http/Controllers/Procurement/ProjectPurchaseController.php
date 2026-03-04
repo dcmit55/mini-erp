@@ -221,23 +221,24 @@ class ProjectPurchaseController extends Controller
     /**
      * SHOW - Menampilkan detail PO dengan semua item
      */
-    public function show($id)
+    public function show($uid)
     {
         try {
             // Ambil 1 item sebagai representasi (first item)
             $purchase = ProjectPurchase::current()
                 ->with(['material:id,name,price', 'department:id,name', 'project:id,name', 'internalProject:id,project,job,department,department_id,description', 'jobOrder:id,name', 'category:id,name', 'unit:id,name', 'supplier:id,name', 'pic:id,username', 'approver:id,username', 'checker:id,username', 'receiver:id,username'])
-                ->find($id);
+                ->where('uid', $uid)
+                ->first();
 
             if (!$purchase) {
                 return redirect()
                     ->route('project-purchases.index')
-                    ->with('error', 'Data purchase order tidak ditemukan (ID: ' . $id . ').');
+                    ->with('error', 'Data purchase order tidak ditemukan (UID: ' . $uid . ').');
             }
 
             // ===== DEBUGGING =====
             Log::info('=== SHOW METHOD DEBUG ===');
-            Log::info('Purchase ID: ' . $id);
+            Log::info('Purchase UID: ' . $uid);
             Log::info('PO Number: ' . $purchase->po_number);
 
             // AMBIL SEMUA ITEM dengan PO number yang SAMA
@@ -293,7 +294,7 @@ class ProjectPurchaseController extends Controller
     /**
      * APPROVE - Approve semua item dalam PO
      */
-    public function approve(Request $request, $id)
+    public function approve(Request $request, $uid)
     {
         try {
             $validated = $request->validate([
@@ -301,7 +302,7 @@ class ProjectPurchaseController extends Controller
                 'finance_notes' => 'nullable|string',
             ]);
 
-            $purchase = ProjectPurchase::current()->findOrFail($id);
+            $purchase = ProjectPurchase::current()->where('uid', $uid)->firstOrFail();
 
             if (!$purchase->canApprove()) {
                 return back()->with('error', 'Tidak dapat menyetujui Purchase Order ini.');
@@ -335,14 +336,14 @@ class ProjectPurchaseController extends Controller
     /**
      * REJECT - Reject semua item dalam PO
      */
-    public function reject(Request $request, $id)
+    public function reject(Request $request, $uid)
     {
         try {
             $validated = $request->validate([
                 'finance_notes' => 'required|string',
             ]);
 
-            $purchase = ProjectPurchase::current()->findOrFail($id);
+            $purchase = ProjectPurchase::current()->where('uid', $uid)->firstOrFail();
 
             if (!$purchase->canReject()) {
                 return back()->with('error', 'Tidak dapat menolak Purchase Order ini.');
@@ -372,14 +373,14 @@ class ProjectPurchaseController extends Controller
     /**
      * UPDATE RESI - Update resi semua item
      */
-    public function updateResi(Request $request, $id)
+    public function updateResi(Request $request, $uid)
     {
         try {
             $validated = $request->validate([
                 'resi_number' => 'nullable|string|max:255',
             ]);
 
-            $purchase = ProjectPurchase::current()->findOrFail($id);
+            $purchase = ProjectPurchase::current()->where('uid', $uid)->firstOrFail();
 
             if (!$purchase->canUpdateResi()) {
                 return back()->with('error', 'Tidak dapat mengupdate resi karena PO belum disetujui atau barang sudah dicek.');
@@ -411,20 +412,21 @@ class ProjectPurchaseController extends Controller
     /**
      * DESTROY - Hapus item
      */
-    public function destroy($id)
+    public function destroy($uid)
     {
         try {
-            $purchase = ProjectPurchase::current()->findOrFail($id);
+            $purchase = ProjectPurchase::current()->where('uid', $uid)->firstOrFail();
 
             if (!$purchase->canDelete()) {
-                return redirect()->route('project-purchases.show', $purchase->id)->with('error', 'Purchase Order tidak dapat dihapus.');
+                return redirect()->route('project-purchases.show', $purchase->uid)->with('error', 'Purchase Order tidak dapat dihapus.');
             }
 
             DB::beginTransaction();
 
             // Cek apakah ini satu-satunya item dalam PO
-            $otherItems = ProjectPurchase::where('po_number', $purchase->po_number)->where('is_current', true)->where('id', '!=', $id)->count();
+            $otherItems = ProjectPurchase::where('po_number', $purchase->po_number)->where('is_current', true)->where('id', '!=', $purchase->id)->count();
 
+            $purchaseUid = $purchase->uid;
             $purchase->delete();
 
             DB::commit();
@@ -435,7 +437,7 @@ class ProjectPurchaseController extends Controller
                     ->with('success', 'Item terakhir dalam PO berhasil dihapus. PO ' . $purchase->po_number . ' telah kosong.');
             } else {
                 return redirect()
-                    ->route('project-purchases.show', $purchase->id)
+                    ->route('project-purchases.show', $purchaseUid)
                     ->with('success', 'Item Purchase Order berhasil dihapus! PO masih memiliki ' . $otherItems . ' item lain.');
             }
         } catch (\Exception $e) {
@@ -450,7 +452,7 @@ class ProjectPurchaseController extends Controller
     /**
      * MARK AS CHECKED
      */
-    public function markAsChecked(Request $request, $id)
+    public function markAsChecked(Request $request, $uid)
     {
         try {
             $validated = $request->validate([
@@ -459,7 +461,7 @@ class ProjectPurchaseController extends Controller
                 'note' => 'nullable|string',
             ]);
 
-            $purchase = ProjectPurchase::current()->findOrFail($id);
+            $purchase = ProjectPurchase::current()->where('uid', $uid)->firstOrFail();
 
             if (!$purchase->canCheck()) {
                 return back()->with('error', 'Tidak dapat mengecek barang karena PO belum disetujui atau sudah dicek.');
@@ -490,15 +492,16 @@ class ProjectPurchaseController extends Controller
     /**
      * MARK AS RECEIVED
      */
-    public function markAsReceived($id)
+    public function markAsReceived($uid)
     {
         try {
             $purchase = ProjectPurchase::current()
                 ->with(['project:id,name', 'internalProject:id,project,job,department', 'jobOrder:id,name'])
-                ->findOrFail($id);
+                ->where('uid', $uid)
+                ->firstOrFail();
 
             Log::info('Attempting to mark as received', [
-                'purchase_id' => $id,
+                'purchase_id' => $purchase->id,
                 'status' => $purchase->status,
                 'item_status' => $purchase->item_status,
                 'is_current' => $purchase->is_current,
@@ -556,10 +559,10 @@ class ProjectPurchaseController extends Controller
     /**
      * MARK AS NOT MATCHED
      */
-    public function markAsNotMatched($id)
+    public function markAsNotMatched($uid)
     {
         try {
-            $purchase = ProjectPurchase::current()->findOrFail($id);
+            $purchase = ProjectPurchase::current()->where('uid', $uid)->firstOrFail();
 
             if (!$purchase->isItemPending()) {
                 return back()->with('error', 'Tidak dapat menandai sebagai tidak sesuai karena barang sudah ditandai.');
@@ -577,15 +580,16 @@ class ProjectPurchaseController extends Controller
     /**
      * EDIT
      */
-    public function edit($id)
+    public function edit($uid)
     {
         try {
             $purchase = ProjectPurchase::current()
                 ->with(['material:id,name,price', 'department:id,name', 'project:id,name', 'internalProject:id,project,job,department,department_id,description', 'jobOrder:id,name', 'category:id,name', 'unit:id,name', 'supplier:id,name', 'pic:id,username'])
-                ->findOrFail($id);
+                ->where('uid', $uid)
+                ->firstOrFail();
 
             if (!$purchase->canEdit()) {
-                return redirect()->route('project-purchases.show', $purchase->id)->with('error', 'Purchase Order tidak dapat diedit.');
+                return redirect()->route('project-purchases.show', $purchase->uid)->with('error', 'Purchase Order tidak dapat diedit.');
             }
 
             // Ambil semua item dengan PO number yang sama
@@ -623,18 +627,18 @@ class ProjectPurchaseController extends Controller
     /**
      * UPDATE - Update semua item dalam PO (MULTIPLE ITEMS SUPPORT)
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, $uid)
     {
         try {
             // LOG SEMUA DATA YANG MASUK
             Log::info('=== UPDATE REQUEST START ===');
-            Log::info('PO ID: ' . $id);
+            Log::info('PO UID: ' . $uid);
             Log::info('All request data:', $request->all());
 
-            $purchase = ProjectPurchase::current()->findOrFail($id);
+            $purchase = ProjectPurchase::current()->where('uid', $uid)->firstOrFail();
 
             if (!$purchase->canEdit()) {
-                return redirect()->route('project-purchases.show', $purchase->id)->with('error', 'Purchase Order tidak dapat diupdate.');
+                return redirect()->route('project-purchases.show', $purchase->uid)->with('error', 'Purchase Order tidak dapat diupdate.');
             }
 
             DB::beginTransaction();
@@ -775,7 +779,7 @@ class ProjectPurchaseController extends Controller
 
             Log::info('=== UPDATE REQUEST COMPLETED ===');
 
-            return redirect()->route('project-purchases.show', $purchase->id)->with('success', $message);
+            return redirect()->route('project-purchases.show', $purchase->uid)->with('success', $message);
         } catch (\Illuminate\Validation\ValidationException $e) {
             DB::rollBack();
             Log::error('Validation errors:', $e->errors());
@@ -899,12 +903,13 @@ class ProjectPurchaseController extends Controller
     /**
      * PRINT - Cetak semua item dalam PO
      */
-    public function print($id)
+    public function print($uid)
     {
         try {
             $purchase = ProjectPurchase::current()
                 ->with(['material:id,name,price', 'department:id,name', 'project:id,name', 'internalProject:id,project,job,department,department_id,description', 'jobOrder:id,name', 'category:id,name', 'unit:id,name', 'supplier:id,name,address', 'pic:id,username', 'approver:id,username'])
-                ->findOrFail($id);
+                ->where('uid', $uid)
+                ->firstOrFail();
 
             // Ambil semua item dengan PO number yang sama
             $poItems = ProjectPurchase::where('po_number', $purchase->po_number)

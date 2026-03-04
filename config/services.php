@@ -47,4 +47,14 @@ return [
         'site_key' => env('RECAPTCHA_SITE_KEY', '6LfD2WgsAAAAAKM7FHahZOxYuFvtRHDIVt_uhkPX'),
         'secret_key' => env('RECAPTCHA_SECRET_KEY', '6LfD2WgsAAAAAFWpgoubzDNlqh_0q7ns5v_5mYgj'),
     ],
+
+    'webhook' => [
+        'token'  => env('WEBHOOK_TOKEN'),
+        'uuid'   => env('WEBHOOK_UUID'),
+        'secret' => env('WEBHOOK_SECRET'),
+    ],
+
+    'api' => [
+        'token' => env('API_TOKEN'),
+    ],
 ];

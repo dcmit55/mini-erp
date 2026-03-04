@@ -22,7 +22,7 @@
                         <i class="fas fa-edit me-1"></i>Edit
                     </a>
                     @if($costing->purchase)
-                    <a href="{{ route('project-purchases.show', $costing->purchase_id) }}" 
+                    <a href="{{ route('project-purchases.show', $costing->purchase->uid) }}"
                        target="_blank"
                        class="btn btn-outline-info btn-sm rounded-2 px-3">
                         <i class="fas fa-external-link-alt me-1"></i>View Purchase

@@ -595,7 +595,7 @@
                                         <td class="text-center">
                                             <div class="d-flex justify-content-center gap-1">
                                                 <!-- View Details -->
-                                                <a href="{{ route('project-purchases.show', $purchase->id) }}" 
+                                                <a href="{{ route('project-purchases.show', $purchase->uid) }}" 
                                                    class="btn btn-sm btn-outline-info border-0 px-2 action-btn"
                                                    data-bs-toggle="tooltip" title="View Details">
                                                     <i class="fas fa-eye"></i>
@@ -603,7 +603,7 @@
                                                 
                                                 <!-- EDIT BUTTON - Bisa diedit jika pending ATAU approved -->
                                                 @if(in_array($purchase->status, ['pending', 'approved']))
-                                                <a href="{{ route('project-purchases.edit', $purchase->id) }}" 
+                                                <a href="{{ route('project-purchases.edit', $purchase->uid) }}" 
                                                    class="btn btn-sm btn-outline-primary border-0 px-2 action-btn"
                                                    data-bs-toggle="tooltip" title="Edit">
                                                     <i class="fas fa-edit"></i>
@@ -612,7 +612,7 @@
 
                                                 <!-- DELETE BUTTON - HANYA jika status pending -->
                                                 @if($purchase->status == 'pending')
-                                                <form action="{{ route('project-purchases.destroy', $purchase->id) }}" 
+                                                <form action="{{ route('project-purchases.destroy', $purchase->uid) }}" 
                                                       method="POST" class="d-inline" 
                                                       onsubmit="return confirm('Delete purchase order {{ $purchase->po_number }}? This will delete all {{ $groupInfo['total_items'] }} items in this PO.')">
                                                     @csrf
@@ -649,7 +649,7 @@
                                                 
                                                 <!-- RECEIVED BUTTON - Tampil jika status approved dan item belum diterima -->
                                                 @if($purchase->status == 'approved' && in_array($purchase->item_status, ['pending_check', 'pending']) && auth()->user() && in_array(auth()->user()->role, ['super_admin', 'admin', 'inventory', 'admin_logistic', 'procurement']))
-                                                <form action="{{ route('project-purchases.mark-as-received', $purchase->id) }}" 
+                                                <form action="{{ route('project-purchases.mark-as-received', $purchase->uid) }}" 
                                                       method="POST" class="d-inline"
                                                       onsubmit="return confirm('Mark this item as received and add to inventory?')">
                                                     @csrf
@@ -662,7 +662,7 @@
                                                 @endif
                                                 
                                                 <!-- PRINT BUTTON -->
-                                                <a href="{{ route('project-purchases.print', $purchase->id) }}" 
+                                                <a href="{{ route('project-purchases.print', $purchase->uid) }}" 
                                                    class="btn btn-sm btn-outline-secondary border-0 px-2 action-btn"
                                                    data-bs-toggle="tooltip" title="Print" target="_blank">
                                                     <i class="fas fa-print"></i>
@@ -676,7 +676,7 @@
                                     <div class="modal fade" id="approveModal{{ $purchase->id }}" tabindex="-1" aria-hidden="true">
                                         <div class="modal-dialog modal-md">
                                             <div class="modal-content">
-                                                <form action="{{ route('project-purchases.approve', $purchase->id) }}" method="POST">
+                                                <form action="{{ route('project-purchases.approve', $purchase->uid) }}" method="POST">
                                                     @csrf
                                                     <div class="modal-header">
                                                         <h6 class="modal-title">Approve Purchase Order</h6>
@@ -732,7 +732,7 @@
                                     <div class="modal fade" id="rejectModal{{ $purchase->id }}" tabindex="-1" aria-hidden="true">
                                         <div class="modal-dialog modal-md">
                                             <div class="modal-content">
-                                                <form action="{{ route('project-purchases.reject', $purchase->id) }}" method="POST">
+                                                <form action="{{ route('project-purchases.reject', $purchase->uid) }}" method="POST">
                                                     @csrf
                                                     <div class="modal-header">
                                                         <h6 class="modal-title">Reject Purchase Order</h6>

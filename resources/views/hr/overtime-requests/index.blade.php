@@ -278,15 +278,15 @@
                                         <td class="text-center">
                                             <div class="d-flex justify-content-center gap-1">
                                                 <!-- View Details -->
-                                                <a href="{{ route('overtime-requests.show', $req->id) }}" 
+                                                <a href="{{ route('overtime-requests.show', $req->uid) }}"
                                                    class="btn btn-sm btn-outline-info border-0 px-2 action-btn"
                                                    data-bs-toggle="tooltip" title="View Details">
                                                     <i class="fas fa-eye"></i>
                                                 </a>
-                                                
+
                                                 <!-- Edit Button (only for draft) -->
                                                 @if($req->status == 'draft')
-                                                <a href="{{ route('overtime-requests.edit', $req->id) }}" 
+                                                <a href="{{ route('overtime-requests.edit', $req->uid) }}"
                                                    class="btn btn-sm btn-outline-primary border-0 px-2 action-btn"
                                                    data-bs-toggle="tooltip" title="Edit">
                                                     <i class="fas fa-edit"></i>
@@ -295,22 +295,22 @@
 
                                                 <!-- Delete Button (only for draft) -->
                                                 @if($req->status == 'draft')
-                                                <form action="{{ route('overtime-requests.destroy', $req->id) }}" 
-                                                      method="POST" class="d-inline" 
+                                                <form action="{{ route('overtime-requests.destroy', $req->uid) }}"
+                                                      method="POST" class="d-inline"
                                                       onsubmit="return confirm('Delete overtime request #{{ $req->id }}?')">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button type="submit" 
+                                                    <button type="submit"
                                                             class="btn btn-sm btn-outline-danger border-0 px-2 action-btn"
                                                             data-bs-toggle="tooltip" title="Delete">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
                                                 </form>
                                                 @endif
-                                                
+
                                                 <!-- Submit Button (for draft) -->
                                                 @if($req->status == 'draft')
-                                                <form action="{{ route('overtime-requests.submit', $req->id) }}" 
+                                                <form action="{{ route('overtime-requests.submit', $req->uid) }}" 
                                                       method="POST" class="d-inline">
                                                     @csrf
                                                     <button type="submit" 

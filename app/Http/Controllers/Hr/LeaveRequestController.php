@@ -10,10 +10,13 @@ use App\Models\Hr\Employee;
 use App\Models\Hr\LeaveRequest;
 use App\Models\Admin\Department;
 use Illuminate\Support\Facades\DB;
+use App\Models\Hr\ApprovalMatrix;
+use App\Models\Hr\ApprovalTransaction;
+use App\Services\ApprovalService;
 
 class LeaveRequestController extends Controller
 {
-    public function __construct()
+    public function __construct(private ApprovalService $approvalService)
     {
         // Allow guest access only for create & store
         // Index requires authentication
@@ -136,6 +139,10 @@ class LeaveRequestController extends Controller
         $data = [];
         $leaveTypeLabels = LeaveRequest::getTypeLabels();
 
+        // Load sekali sebelum loop agar tidak N+1
+        $level2Matrix       = ApprovalMatrix::where('module', 'leave')->where('level', 2)->first();
+        $level2AllowedRoles = $level2Matrix ? $level2Matrix->getAllowedRoles() : ['director', 'admin_hr'];
+
         foreach ($leaveRequests as $index => $leave) {
             $row = [
                 'DT_RowIndex' => $start + $index + 1,
@@ -148,7 +155,7 @@ class LeaveRequestController extends Controller
                 'type' => $leaveTypeLabels[strtoupper($leave->type)] ?? $leave->type,
                 'reason' => $leave->reason ?? '-',
                 'approval_1' => $this->formatApproval1($leave, $isAuthenticated, $userRole),
-                'approval_2' => $this->formatApproval2($leave, $isAuthenticated, $userRole),
+                'approval_2' => $this->formatApproval2($leave, $isAuthenticated, $userRole, $level2AllowedRoles),
                 'submitted_on' => '<span data-bs-toggle="tooltip" data-bs-placement="right" title="' . $leave->created_at->format('H:i') . '">' . $leave->created_at->format('d M Y') . '</span>',
             ];
 
@@ -208,13 +215,13 @@ class LeaveRequestController extends Controller
         return $badge;
     }
 
-    private function formatApproval2($leave, $isAuthenticated, $userRole)
+    private function formatApproval2($leave, $isAuthenticated, $userRole, array $level2AllowedRoles = ['super_admin'])
     {
         $badgeClass = $leave->approval_2 == 'approved' ? 'success' : ($leave->approval_2 == 'rejected' ? 'danger' : 'warning text-dark');
         $badge = '<span class="badge bg-' . $badgeClass . '">' . ucfirst($leave->approval_2) . '</span>';
 
-        // Show form only for Super Admin
-        if ($isAuthenticated && $userRole === 'super_admin') {
+        // Tampilkan form untuk semua role yang diizinkan di level 2 (dari approval_matrix)
+        if ($isAuthenticated && (in_array($userRole, $level2AllowedRoles) || $userRole === 'super_admin')) {
             $html =
                 '
             <select name="approval_2"
@@ -397,7 +404,7 @@ class LeaveRequestController extends Controller
                 }
             }
 
-            LeaveRequest::create([
+            $leave = LeaveRequest::create([
                 'employee_id' => $request->employee_id,
                 'start_date' => $request->start_date,
                 'end_date' => $request->end_date,
@@ -407,6 +414,11 @@ class LeaveRequestController extends Controller
                 'approval_1' => 'pending',
                 'approval_2' => 'pending',
             ]);
+
+            // Inisiasi audit trail di approval_transactions (jika matrix sudah dikonfigurasi)
+            if (ApprovalMatrix::where('module', 'leave')->exists()) {
+                $this->approvalService->initiate('leave', $leave->id);
+            }
 
             DB::commit();
 
@@ -507,19 +519,26 @@ class LeaveRequestController extends Controller
 
         $userRole = Auth::user()->role;
 
-        // Validation berdasarkan role
-        if ($request->has('approval_1') && !in_array($userRole, ['admin_hr', 'super_admin'])) {
+        // Ambil semua role yang diizinkan dari approval_matrix (role utama + delegate)
+        $level1Matrix       = ApprovalMatrix::where('module', 'leave')->where('level', 1)->first();
+        $level2Matrix       = ApprovalMatrix::where('module', 'leave')->where('level', 2)->first();
+        $level1AllowedRoles = $level1Matrix ? $level1Matrix->getAllowedRoles() : ['admin_hr'];
+        $level2AllowedRoles = $level2Matrix ? $level2Matrix->getAllowedRoles() : ['director', 'admin_hr'];
+
+        if ($request->has('approval_1') && !in_array($userRole, $level1AllowedRoles) && $userRole !== 'super_admin') {
+            $label = implode(' / ', $level1AllowedRoles);
             if ($request->ajax()) {
-                return response()->json(['success' => false, 'message' => 'Only HR Admin can update Approval 1.'], 403);
+                return response()->json(['success' => false, 'message' => "Hanya role [{$label}] yang dapat mengubah Approval 1."], 403);
             }
-            return back()->with('error', 'Only HR Admin can update Approval 1.');
+            return back()->with('error', "Hanya role [{$label}] yang dapat mengubah Approval 1.");
         }
 
-        if ($request->has('approval_2') && $userRole !== 'super_admin') {
+        if ($request->has('approval_2') && !in_array($userRole, $level2AllowedRoles) && $userRole !== 'super_admin') {
+            $label = implode(' / ', $level2AllowedRoles);
             if ($request->ajax()) {
-                return response()->json(['success' => false, 'message' => 'Only Super Admin can update Approval 2.'], 403);
+                return response()->json(['success' => false, 'message' => "Hanya role [{$label}] yang dapat mengubah Approval 2."], 403);
             }
-            return back()->with('error', 'Only Super Admin can update Approval 2.');
+            return back()->with('error', "Hanya role [{$label}] yang dapat mengubah Approval 2.");
         }
 
         $request->validate([
@@ -535,16 +554,39 @@ class LeaveRequestController extends Controller
             $previousApproval1 = $leave->approval_1;
             $previousApproval2 = $leave->approval_2;
 
-            // Update approvals based on role
-            if ($request->has('approval_1') && in_array($userRole, ['admin_hr', 'super_admin'])) {
+            // Update approvals — role dicek dari approval_matrix (tidak hardcode)
+            if ($request->has('approval_1') && (in_array($userRole, $level1AllowedRoles) || $userRole === 'super_admin')) {
                 $leave->approval_1 = $request->approval_1;
             }
 
-            if ($request->has('approval_2') && $userRole === 'super_admin') {
+            if ($request->has('approval_2') && (in_array($userRole, $level2AllowedRoles) || $userRole === 'super_admin')) {
                 $leave->approval_2 = $request->approval_2;
             }
 
             $leave->save();
+
+            // Log setiap aksi approval ke approval_transactions (audit trail)
+            if ($request->has('approval_1') && (in_array($userRole, $level1AllowedRoles) || $userRole === 'super_admin')) {
+                ApprovalTransaction::create([
+                    'module'       => 'leave',
+                    'reference_id' => $leave->id,
+                    'level'        => 1,
+                    'approved_by'  => auth()->id(),
+                    'status'       => $leave->approval_1,
+                    'approved_at'  => $leave->approval_1 !== 'pending' ? now() : null,
+                ]);
+            }
+
+            if ($request->has('approval_2') && (in_array($userRole, $level2AllowedRoles) || $userRole === 'super_admin')) {
+                ApprovalTransaction::create([
+                    'module'       => 'leave',
+                    'reference_id' => $leave->id,
+                    'level'        => 2,
+                    'approved_by'  => auth()->id(),
+                    'status'       => $leave->approval_2,
+                    'approved_at'  => $leave->approval_2 !== 'pending' ? now() : null,
+                ]);
+            }
 
             // Check conditions
             $bothApproved = $leave->approval_1 === 'approved' && $leave->approval_2 === 'approved';
@@ -608,7 +650,7 @@ class LeaveRequestController extends Controller
             if ($request->ajax()) {
                 // Refresh approval badges HTML
                 $approval1Html = $this->formatApproval1($leave, true, $userRole);
-                $approval2Html = $this->formatApproval2($leave, true, $userRole);
+                $approval2Html = $this->formatApproval2($leave, true, $userRole, $level2AllowedRoles);
 
                 return response()->json([
                     'success' => true,

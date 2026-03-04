@@ -88,13 +88,11 @@ class DepartmentController extends Controller
         return view('admin.departments.edit', compact('department'));
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request, Department $department)
     {
-        $department = Department::findOrFail($id);
-
         $request->validate(
             [
-                'name' => 'required|string|max:255|unique:departments,name,' . $id,
+                'name' => 'required|string|max:255|unique:departments,name,' . $department->id,
             ],
             [
                 'name.required' => 'Department name is required.',

@@ -3,11 +3,28 @@
 namespace App\Models\Admin;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 use App\Models\Production\Project;
 
 class Department extends Model
 {
-    protected $fillable = ['name'];
+    protected $fillable = ['uid', 'name'];
+
+    public function getRouteKeyName(): string
+    {
+        return 'uid';
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (empty($model->uid)) {
+                $model->uid = (string) Str::uuid();
+            }
+        });
+    }
 
     public function users()
     {

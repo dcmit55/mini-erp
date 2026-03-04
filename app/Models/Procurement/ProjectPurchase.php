@@ -5,6 +5,7 @@ namespace App\Models\Procurement;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class ProjectPurchase extends Model
 {
@@ -13,6 +14,7 @@ class ProjectPurchase extends Model
     protected $table = 'indo_purchases';
 
     protected $fillable = [
+        'uid',
         'po_number',
         'date',
         'project_type',
@@ -770,15 +772,24 @@ class ProjectPurchase extends Model
         return $this->invoice_total;
     }
 
+    public function getRouteKeyName(): string
+    {
+        return 'uid';
+    }
+
     // ============================================
     // BOOT METHOD
     // ============================================
-    
+
     protected static function boot()
     {
         parent::boot();
 
         static::creating(function ($purchase) {
+            if (empty($purchase->uid)) {
+                $purchase->uid = (string) Str::uuid();
+            }
+
             // HAPUS atau KOMENTARI baris ini karena Anda tidak pakai generate otomatis
             // if (empty($purchase->po_number)) {
             //     $purchase->po_number = app(\App\Services\ProjectPurchaseService::class)->generatePONumber();

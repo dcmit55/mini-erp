@@ -126,13 +126,13 @@
                                         </td>
                                         <td class="text-center" style="vertical-align: middle;">
                                             <div class="d-flex justify-content-center gap-2">
-                                                <a href="{{ route('internal-projects.edit', $project->id) }}" 
+                                                <a href="{{ route('internal-projects.edit', $project->uid) }}"
                                                    class="btn btn-sm btn-outline-primary border-0 px-3 py-1 action-btn"
                                                    data-bs-toggle="tooltip" title="Edit">
                                                     <i class="fas fa-edit me-1"></i>Edit
                                                 </a>
-                                                
-                                                <form action="{{ route('internal-projects.destroy', $project->id) }}" 
+
+                                                <form action="{{ route('internal-projects.destroy', $project->uid) }}" 
                                                       method="POST" class="d-inline" 
                                                       onsubmit="return confirm('Are you sure you want to PERMANENTLY delete this project?\n\nThis action will COMPLETELY remove the data from the database and CANNOT be undone!')">
                                                     @csrf
