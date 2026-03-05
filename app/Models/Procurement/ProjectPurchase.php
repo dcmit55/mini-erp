@@ -168,7 +168,9 @@ class ProjectPurchase extends Model
     
     public function scopeCurrent($query)
     {
-        return $query->where('is_current', true);
+        return $query->where(function ($q) {
+            $q->where('is_current', true)->orWhereNull('is_current');
+        });
     }
 
     public function scopeByPoNumber($query, $poNumber)
@@ -557,53 +559,49 @@ class ProjectPurchase extends Model
     
     public function canEdit()
     {
-        return $this->is_current && ($this->status === 'pending' || $this->status === 'approved');
+        return $this->status === 'pending' || $this->status === 'approved';
     }
 
     public function canDelete()
     {
-        return $this->is_current && $this->status === 'pending';
+        return $this->status === 'pending';
     }
 
     public function canCheck()
     {
-        return $this->is_current && $this->status === 'approved' && is_null($this->checked_at) && $this->item_status === 'pending_check';
+        return $this->status === 'approved' && is_null($this->checked_at) && $this->item_status === 'pending_check';
     }
 
     public function canApprove()
     {
-        return $this->is_current && $this->status === 'pending';
+        return $this->status === 'pending';
     }
 
     public function canReject()
     {
-        return $this->is_current && $this->status === 'pending';
+        return $this->status === 'pending';
     }
 
     public function canMarkAsReceived()
     {
-        if (!$this->is_current) {
-            return false;
-        }
-        
         if ($this->status !== 'approved') {
             return false;
         }
-        
+
         if (!in_array($this->item_status, ['pending_check', 'pending'])) {
             return false;
         }
-        
+
         if (!is_null($this->received_at)) {
             return false;
         }
-        
+
         return true;
     }
 
     public function canUpdateResi()
     {
-        return $this->is_current && $this->status === 'approved' && in_array($this->item_status, ['pending_check', 'pending']);
+        return $this->status === 'approved' && in_array($this->item_status, ['pending_check', 'pending']);
     }
 
     public function isApproved()

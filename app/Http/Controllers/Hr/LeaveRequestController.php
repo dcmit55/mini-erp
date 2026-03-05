@@ -284,7 +284,7 @@ class LeaveRequestController extends Controller
      */
     public function create()
     {
-        $employees = Employee::with('department')->where('status', 'active')->orderBy('name')->get();
+        $employees = Employee::with('department')->whereRaw('LOWER(status) = ?', ['active'])->orderBy('name')->get();
         $leaveTypes = LeaveRequest::getTypeEnumOptions();
         $leaveTypeLabels = LeaveRequest::getTypeLabels();
 

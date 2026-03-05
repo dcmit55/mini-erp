@@ -47,6 +47,11 @@
         transform: translateY(-1px);
     }
 
+    .action-btn.btn-outline-danger:hover {
+        background-color: #fee2e2;
+        color: #dc2626;
+    }
+
     .icon-shape {
         width: 40px;
         height: 40px;
@@ -924,16 +929,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Confirm delete for PO with multiple items
-    const deleteForms = document.querySelectorAll('form[action*="/destroy/"]');
-    deleteForms.forEach(form => {
-        form.addEventListener('submit', function(e) {
-            const confirmed = confirm(this.getAttribute('onsubmit')?.replace('return confirm(\'', '').replace('\')', '') || 'Delete this PO?');
-            if (!confirmed) {
-                e.preventDefault();
-            }
-        });
-    });
 });
 </script>
 @endsection

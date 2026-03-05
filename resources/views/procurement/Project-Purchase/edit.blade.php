@@ -515,7 +515,7 @@
                             <div id="itemsContainer">
                                 @foreach($poItems as $itemIndex => $item)
                                     @php
-                                        $itemIsEditable = $item->status == 'pending' && $item->is_current;
+                                        $itemIsEditable = $item->status == 'pending';
                                     @endphp
                                     <div class="item-row {{ !$itemIsEditable ? 'readonly-item' : '' }}" data-id="{{ $item->id }}" data-index="{{ $itemIndex }}">
                                         <div class="item-header">
@@ -966,22 +966,23 @@ $(document).ready(function() {
     $('.material-select').each(function() {
         const select = $(this);
         const row = select.closest('.item-row');
-        
+
         select.on('change', function() {
             const selected = $(this).find('option:selected');
             const price = selected.data('price') || 0;
             const unitId = selected.data('unit-id');
             const categoryId = selected.data('category-id');
-            
+
             row.find('.unit-price').val(price);
-            
-            if (unitId) {
+
+            // Hanya set unit/category jika belum ada nilai (preserve existing values)
+            if (unitId && !row.find('.unit-select').val()) {
                 row.find('.unit-select').val(unitId);
             }
-            if (categoryId) {
+            if (categoryId && !row.find('.category-select').val()) {
                 row.find('.category-select').val(categoryId);
             }
-            
+
             calculateRowSubtotal(row);
             calculateGrandTotal();
         });
@@ -1027,11 +1028,27 @@ $(document).ready(function() {
     // Delete existing item
     $('.remove-item[data-item-id]').click(function() {
         const itemId = $(this).data('item-id');
-        if (itemId && confirm('Delete this item? Item will be permanently deleted.')) {
-            const form = $('#deleteItemForm');
-            form.attr('action', '/project-purchases/' + itemId);
-            form.submit();
-        }
+        const row = $(this).closest('.item-row');
+        const materialName = row.find('.material-select option:selected').text().trim()
+            || row.find('input[name*="new_item_name"]').val().trim()
+            || 'this material';
+
+        Swal.fire({
+            title: 'Remove Material?',
+            html: `Remove <strong>${materialName}</strong> from PO <strong>{{ $purchase->po_number }}</strong>?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, remove',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const form = $('#deleteItemForm');
+                form.attr('action', '/project-purchases/' + itemId);
+                form.submit();
+            }
+        });
     });
 
     // Delete new item (not saved yet)
@@ -1075,16 +1092,17 @@ $(document).ready(function() {
             const price = selected.data('price') || 0;
             const unitId = selected.data('unit-id');
             const categoryId = selected.data('category-id');
-            
+
             row.find('.unit-price').val(price);
-            
+
+            // Selalu auto-fill unit/category untuk row baru
             if (unitId) {
                 row.find('.unit-select').val(unitId);
             }
             if (categoryId) {
                 row.find('.category-select').val(categoryId);
             }
-            
+
             calculateRowSubtotal(row);
             calculateGrandTotal();
         });
@@ -1098,104 +1116,70 @@ $(document).ready(function() {
 
     // Form validation before submit
     $('#purchaseForm').submit(function(e) {
-        const itemRows = $('.item-row').length;
-        
-        if (itemRows === 0) {
-            e.preventDefault();
-            alert('At least 1 item must be filled');
-            return false;
-        }
-        
-        // Validate each item
-        let valid = true;
-        $('.item-row').each(function(index) {
-            const isReadOnly = $(this).hasClass('readonly-item');
-            
-            // Skip validation for read-only items
-            if (isReadOnly) return true;
-            
-            const type = $(this).find('.purchase-type').val();
-            
-            // Validate purchase type
-            if (!type) {
-                alert(`Item ${index + 1}: Purchase type must be selected`);
-                valid = false;
-                return false;
-            }
-            
-            // Validation for RESTOCK
-            if (type === 'restock') {
-                if (!$(this).find('.material-select').val()) {
-                    alert(`Item ${index + 1}: Material must be selected`);
-                    valid = false;
-                    return false;
-                }
-            } 
-            // Validation for NEW ITEM
-            else if (type === 'new_item') {
-                if (!$(this).find('input[name*="new_item_name"]').val().trim()) {
-                    alert(`Item ${index + 1}: New item name is required`);
-                    valid = false;
-                    return false;
-                }
-            }
-            
-            // Validation for Category (FOR ALL ITEMS)
-            if (!$(this).find('.category-select').val()) {
-                alert(`Item ${index + 1}: Category must be selected`);
-                valid = false;
-                return false;
-            }
-            
-            // Validation for Unit (FOR ALL ITEMS)
-            if (!$(this).find('.unit-select').val()) {
-                alert(`Item ${index + 1}: Unit must be selected`);
-                valid = false;
-                return false;
-            }
-            
-            // Validate quantity
-            const qty = $(this).find('.quantity').val();
-            if (!qty || qty <= 0) {
-                alert(`Item ${index + 1}: Quantity is required (minimum 1)`);
-                valid = false;
-                return false;
-            }
-            
-            // Validate price
-            const price = $(this).find('.unit-price').val();
-            if (!price || price <= 0) {
-                alert(`Item ${index + 1}: Price is required (minimum 1)`);
-                valid = false;
-                return false;
-            }
-        });
-        
-        if (!valid) {
-            e.preventDefault();
-            return false;
-        }
-        
+        const errors = [];
+
         // Validate project
         const projectType = $('input[name="project_type"]:checked').val();
         if (projectType === 'client' && !elements.jobOrderSelect.val()) {
-            e.preventDefault();
-            alert('Job Order must be selected for Client Project');
-            return false;
+            errors.push('Job Order must be selected for Client Project.');
         }
         if (projectType === 'internal' && !elements.internalProjectSelect.val()) {
-            e.preventDefault();
-            alert('Internal Project must be selected');
-            return false;
+            errors.push('Internal Project must be selected.');
         }
-        
+
         // Validate supplier
         if (!$('#supplierSelect').val()) {
+            errors.push('Supplier must be selected.');
+        }
+
+        // Validate items
+        const itemRows = $('.item-row').length;
+        if (itemRows === 0) {
+            errors.push('At least 1 material must be added.');
+        }
+
+        $('.item-row').each(function(index) {
+            if ($(this).hasClass('readonly-item')) return true;
+
+            const label = `Material #${index + 1}`;
+            const type = $(this).find('.purchase-type').val();
+
+            if (type === 'restock' && !$(this).find('.material-select').val()) {
+                errors.push(`${label}: Material must be selected.`);
+            } else if (type === 'new_item' && !$(this).find('input[name*="new_item_name"]').val().trim()) {
+                errors.push(`${label}: Item name is required.`);
+            }
+
+            if (!$(this).find('.category-select').val()) {
+                errors.push(`${label}: Category must be selected.`);
+            }
+            if (!$(this).find('.unit-select').val()) {
+                errors.push(`${label}: Unit must be selected.`);
+            }
+
+            const qty = parseFloat($(this).find('.quantity').val());
+            if (!qty || qty <= 0) {
+                errors.push(`${label}: Quantity must be at least 1.`);
+            }
+
+            const price = parseFloat($(this).find('.unit-price').val());
+            if (!price || price <= 0) {
+                errors.push(`${label}: Unit price must be greater than 0.`);
+            }
+        });
+
+        if (errors.length > 0) {
             e.preventDefault();
-            alert('Supplier must be selected');
+            Swal.fire({
+                title: 'Please fix the following:',
+                html: '<ul class="text-start mb-0">' + errors.map(err => `<li>${err}</li>`).join('') + '</ul>',
+                icon: 'warning',
+                confirmButtonColor: '#4f46e5',
+                confirmButtonText: 'OK'
+            });
             return false;
         }
-        
+
         // Show loading
         $(this).find('button[type="submit"]').prop('disabled', true)
                .html('<span class="spinner-border spinner-border-sm me-1"></span> Updating...');
@@ -1219,7 +1203,13 @@ $(document).ready(function() {
                     $('#supplierSelect').append(newOption).trigger('change');
                     $('#addSupplierModal').modal('hide');
                     form[0].reset();
-                    alert('Supplier added successfully');
+                    Swal.fire({
+                        title: 'Supplier Added',
+                        text: `"${response.supplier.name}" has been added successfully.`,
+                        icon: 'success',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
                 }
             },
             error: function(xhr) {
