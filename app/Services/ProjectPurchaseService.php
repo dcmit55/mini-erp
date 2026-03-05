@@ -23,7 +23,7 @@ class ProjectPurchaseService
     {
         try {
             // Build base query untuk mendapatkan PO numbers yang unik
-            $poNumbersQuery = ProjectPurchase::current()->select('po_number', 'department_id', 'project_type', 'supplier_id', 'status', 'date', 'created_at')->distinct('po_number');
+            $poNumbersQuery = ProjectPurchase::select('po_number', 'job_order_id', 'internal_project_id', 'department_id', 'project_type', 'supplier_id', 'status', 'date', 'created_at')->distinct();
 
             // Apply filters
             if ($request->filled('status')) {
@@ -33,7 +33,7 @@ class ProjectPurchaseService
             if ($request->filled('item_status')) {
                 // Filter by item status - cek apakah ada item dengan status tertentu dalam PO
                 $poNumbersQuery->whereExists(function ($query) use ($request) {
-                    $query->select(DB::raw(1))->from('project_purchases as pp2')->whereRaw('pp2.po_number = project_purchases.po_number')->where('pp2.is_current', true)->where('pp2.item_status', $request->item_status);
+                    $query->select(DB::raw(1))->from('project_purchases as pp2')->whereRaw('pp2.po_number = project_purchases.po_number')->where('pp2.item_status', $request->item_status);
                 });
             }
 
@@ -70,30 +70,36 @@ class ProjectPurchaseService
                 });
             }
 
-            // Get unique PO numbers dengan ordering
-            $poNumbers = $poNumbersQuery->orderBy('created_at', 'desc')->pluck('po_number')->unique()->values();
+            // Get unique combinations of PO number + project identifier (different project = different log)
+            $poGroups = $poNumbersQuery->orderBy('created_at', 'desc')
+                ->get()
+                ->unique(function ($item) {
+                    return $item->po_number . '_' . ($item->job_order_id ?? '') . '_' . ($item->internal_project_id ?? '');
+                })
+                ->values();
 
             // Load ALL purchases for these PO numbers in ONE query with eager loading
-            $allPurchases = ProjectPurchase::current()
-                ->with(['material:id,name', 'department:id,name', 'category:id,name', 'unit:id,name', 'supplier:id,name', 'pic:id,username', 'checker:id,username', 'approver:id,username', 'receiver:id,username', 'project:id,name', 'internalProject:id,project,job,department,department_id', 'jobOrder:id,name'])
-                ->whereIn('po_number', $poNumbers)
+            $poNumbersList = $poGroups->pluck('po_number')->unique()->values();
+            $allPurchases = ProjectPurchase::with(['material:id,name', 'department:id,name', 'category:id,name', 'unit:id,name', 'supplier:id,name', 'pic:id,username', 'checker:id,username', 'approver:id,username', 'receiver:id,username', 'project:id,name', 'internalProject:id,project,job,department,department_id', 'jobOrder:id,name'])
+                ->whereIn('po_number', $poNumbersList)
                 ->get();
 
-            // Build collection of purchases (one per PO) from loaded data
+            // Build collection (one entry per PO + project combination)
             $purchases = collect();
-            foreach ($poNumbers as $poNumber) {
-                // Get from already loaded collection, NOT from database
-                $firstItem = $allPurchases->where('po_number', $poNumber)->first();
+            foreach ($poGroups as $group) {
+                $poItems = $allPurchases
+                    ->where('po_number', $group->po_number)
+                    ->filter(function ($item) use ($group) {
+                        return $item->job_order_id == $group->job_order_id
+                            && $item->internal_project_id == $group->internal_project_id;
+                    });
+
+                $firstItem = $poItems->first();
 
                 if ($firstItem) {
-                    // Add status badge classes for view
                     $firstItem->status_badge_class = $this->getStatusBadgeClass($firstItem->status);
                     $firstItem->status_text = $this->getStatusText($firstItem->status);
-
-                    // Add group info from already loaded collection
-                    $poItems = $allPurchases->where('po_number', $poNumber);
                     $firstItem->group_info = $this->getGroupInfoFromCollection($poItems);
-
                     $purchases->push($firstItem);
                 }
             }
