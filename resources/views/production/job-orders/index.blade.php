@@ -88,8 +88,10 @@
                             <th>Name</th>
                             <th>Project</th>
                             <th>Department</th>
+                            <th>Delivery Date</th>
                             <th>Start Date</th>
                             <th>End Date</th>
+                            <th>Status</th>
                             <th>Description</th>
                             <th>Notes</th>
                             <th>Action</th>
@@ -166,6 +168,12 @@
                         width: '12%'
                     },
                     {
+                        data: 'countdown_display',
+                        name: 'delivery_date',
+                        width: '12%',
+                        className: 'text-center'
+                    },
+                    {
                         data: 'start_date',
                         name: 'start_date',
                         width: '10%'
@@ -174,6 +182,12 @@
                         data: 'end_date',
                         name: 'end_date',
                         width: '10%'
+                    },
+                    {
+                        data: 'status',
+                        name: 'status',
+                        width: '10%',
+                        className: 'text-center'
                     },
                     {
                         data: 'description',

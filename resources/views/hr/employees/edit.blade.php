@@ -37,6 +37,9 @@
                     @csrf
                     @method('PUT')
 
+                    <!-- Hidden input to signal return to index with filters -->
+                    <input type="hidden" name="return_to_index" value="1" id="returnToIndex">
+
                     <!-- ===== SECTION 1: PHOTO ===== -->
                     <div class="form-section mb-4">
                         <div class="section-header">
@@ -1306,7 +1309,7 @@
                     if (selectedSkillsets.length === 0) {
                         container.html(
                             '<div class="alert alert-info"><i class="bi bi-info-circle"></i> No skillsets selected</div>'
-                            );
+                        );
                         return;
                     }
 
@@ -1408,7 +1411,7 @@
                                 // Show success message
                                 alertMessage.html(
                                     `<i class="bi bi-check-circle"></i> ${response.message}`
-                                    );
+                                );
                                 alert.addClass('alert-success').fadeIn();
 
                                 // Reset form
@@ -1434,7 +1437,7 @@
 
                             alertMessage.html(
                                 `<i class="bi bi-exclamation-triangle"></i> ${errorMsg}`
-                                );
+                            );
                             alert.addClass('alert-danger').fadeIn();
                         },
                         complete: function() {

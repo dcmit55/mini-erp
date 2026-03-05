@@ -357,6 +357,11 @@ class EmployeeController extends Controller
             }
         }
 
+        // Check if request came from index page with active filters
+        if ($request->has('return_to_index')) {
+            return redirect()->route('employees.index')->with('success', 'Employee successfully updated.');
+        }
+
         return redirect()->route('employees.show', $employee)->with('success', 'Employee successfully updated.');
     }
 

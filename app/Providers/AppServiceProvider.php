@@ -11,6 +11,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use App\Models\Admin\User;
+use App\Models\Production\JobOrder;
+use App\Observers\JobOrderObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -56,7 +58,9 @@ class AppServiceProvider extends ServiceProvider
                     ], 429, $headers);
                 });
         });
-        
+
+        // Register JobOrder Observer for auto goods-out and delivery date notifications
+        JobOrder::observe(JobOrderObserver::class);
         // $link = public_path('storage');
         // $target = storage_path('app/public');
 

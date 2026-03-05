@@ -12,12 +12,59 @@ class Kernel extends ConsoleKernel
     /**
      * Define the application's command schedule.
      *
+     * cPanel Cron Job Setup:
+     * ----------------------
+     * * * * * * cd /home/username/public_html && php artisan schedule:run >> /dev/null 2>&1
+     *
+     * OR for logging:
+     * * * * * * cd /home/username/public_html && php artisan schedule:run >> /home/username/storage/logs/scheduler.log 2>&1
+     *
+     * IMPORTANT: Replace /home/username/public_html with your actual path
+     * Get path: run `pwd` in cPanel Terminal
+     *
      * @param  \Illuminate\Console\Scheduling\Schedule  $schedule
      * @return void
      */
     protected function schedule(Schedule $schedule)
     {
-        $schedule->command('material-request:auto-goods-out')->twiceDaily(0, 12);
+        // Auto goods-out for approved material requests
+        // Runs twice daily at midnight and noon
+        $schedule
+            ->command('material-request:auto-goods-out')
+            ->twiceDaily(0, 12)
+            ->timezone('Asia/Singapore')
+            ->onFailure(function () {
+                \Log::error('Failed to run auto-goods-out scheduler');
+            })
+            ->onSuccess(function () {
+                \Log::info('Auto-goods-out scheduler completed');
+            });
+
+        // Check delivery date alerts daily at 8 AM Singapore time
+        // Sends Pusher notifications for job orders with delivery_date = today + 2 days
+        $schedule
+            ->command('job-orders:check-delivery-alerts')
+            ->dailyAt('08:00')
+            ->timezone('Asia/Singapore')
+            ->withoutOverlapping(10) // Prevent concurrent runs, 10 min expiry
+            ->onFailure(function () {
+                \Log::error('Failed to run delivery alerts scheduler');
+            })
+            ->onSuccess(function () {
+                \Log::info('Delivery alerts scheduler completed');
+            });
+
+        // Cleanup old logs weekly (Sunday 2 AM)
+        $schedule
+            ->call(function () {
+                \DB::table('audits')
+                    ->where('created_at', '<', now()->subMonths(6))
+                    ->delete();
+            })
+            ->weekly()
+            ->sundays()
+            ->at('02:00')
+            ->timezone('Asia/Singapore');
     }
 
     /**

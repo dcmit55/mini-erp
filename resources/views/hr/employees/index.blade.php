@@ -15,11 +15,12 @@
                         <div class="d-flex flex-wrap gap-2 align-items-center justify-content-lg-end">
                             @if (auth()->user()->canModifyData())
                                 <!-- Tombol Import -->
-                                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#importEmployeeModal">
+                                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal"
+                                    data-bs-target="#importEmployeeModal">
                                     <i class="bi bi-upload me-1"></i>
                                     <span class="d-none d-sm-inline">Import Excel</span>
                                 </button>
-                                
+
                                 <!-- Tombol Add Employee -->
                                 <a href="{{ route('employees.create') }}" class="btn btn-primary btn-sm">
                                     <i class="bi bi-plus-circle me-1"></i>
@@ -286,7 +287,8 @@
     </div>
 
     <!-- Modal Import Employee - TANPA LINK TEMPLATE -->
-    <div class="modal fade" id="importEmployeeModal" tabindex="-1" aria-labelledby="importEmployeeModalLabel" aria-hidden="true">
+    <div class="modal fade" id="importEmployeeModal" tabindex="-1" aria-labelledby="importEmployeeModalLabel"
+        aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header py-2">
@@ -302,7 +304,7 @@
                         <!-- Info Alert - TANPA REFERENSI TEMPLATE -->
                         <div class="alert alert-info py-2 small mb-3">
                             <i class="bi bi-info-circle me-1"></i>
-                            <strong>Informasi Import:</strong> 
+                            <strong>Informasi Import:</strong>
                             <ul class="mb-0 mt-1 ps-3">
                                 <li>Upload file Excel dengan format yang sesuai</li>
                                 <li>Kolom wajib: <strong>employee_no, name, position, status</strong></li>
@@ -317,8 +319,8 @@
                         <!-- File Input -->
                         <div class="mb-3">
                             <label for="import_file" class="form-label small fw-bold">File Excel</label>
-                            <input type="file" name="file" id="import_file" class="form-control form-control-sm" 
-                                   required accept=".xlsx,.xls,.csv">
+                            <input type="file" name="file" id="import_file" class="form-control form-control-sm"
+                                required accept=".xlsx,.xls,.csv">
                             <div class="form-text small">
                                 Supported formats: .xlsx, .xls, .csv
                             </div>
@@ -326,8 +328,8 @@
 
                         <!-- Progress Bar -->
                         <div id="importProgress" class="progress d-none mb-2" style="height: 20px;">
-                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" 
-                                 style="width: 100%">Processing...</div>
+                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-success"
+                                style="width: 100%">Processing...</div>
                         </div>
 
                         <!-- Result Message -->
@@ -496,15 +498,15 @@
         .modal-lg {
             max-width: 800px;
         }
-        
+
         .progress {
             border-radius: 4px;
         }
-        
+
         #failedRowsContainer .table {
             font-size: 0.75rem;
         }
-        
+
         #failedRowsContainer .table th {
             position: sticky;
             top: 0;
@@ -623,15 +625,54 @@
                 }
             });
 
+            // Restore filter state from sessionStorage
+            function restoreFilters() {
+                const savedFilters = sessionStorage.getItem('employeeFilters');
+                if (savedFilters) {
+                    const filters = JSON.parse(savedFilters);
+                    if (filters.department) $('#departmentFilter').val(filters.department);
+                    if (filters.employmentType) $('#employmentTypeFilter').val(filters.employmentType);
+                    if (filters.status) $('#statusFilter').val(filters.status);
+                    if (filters.position) $('#positionFilter').val(filters.position);
+                    if (filters.search) $('#custom-search').val(filters.search);
+
+                    // Trigger Select2 update
+                    $('.select2').trigger('change.select2');
+
+                    // Apply the restored filters
+                    applyFilters();
+                    if (filters.search) {
+                        table.search(filters.search).draw();
+                    }
+                }
+            }
+
+            // Save filter state to sessionStorage
+            function saveFilters() {
+                const filters = {
+                    department: $('#departmentFilter').val(),
+                    employmentType: $('#employmentTypeFilter').val(),
+                    status: $('#statusFilter').val(),
+                    position: $('#positionFilter').val(),
+                    search: $('#custom-search').val()
+                };
+                sessionStorage.setItem('employeeFilters', JSON.stringify(filters));
+            }
+
             // Filter functionality
             $('#departmentFilter, #employmentTypeFilter, #statusFilter, #positionFilter').on('change',
                 function() {
                     applyFilters();
+                    saveFilters();
                 });
 
             $('#custom-search').on('input', debounce(function() {
                 table.search($(this).val()).draw();
+                saveFilters();
             }, 500));
+
+            // Restore filters on page load
+            restoreFilters();
 
             function applyFilters() {
                 const dept = $('#departmentFilter').val();
@@ -669,6 +710,8 @@
                     .trigger('change');
                 $('#custom-search').val('');
                 table.search('').columns().search('').draw();
+                // Clear saved filters from sessionStorage
+                sessionStorage.removeItem('employeeFilters');
             });
 
             // Handle Import Form Submit
@@ -699,9 +742,9 @@
                     },
                     success: function(response) {
                         $progress.addClass('d-none');
-                        $result.html('<div class="alert alert-success py-1 px-2 mb-0">' + 
+                        $result.html('<div class="alert alert-success py-1 px-2 mb-0">' +
                             response.message + '</div>');
-                        
+
                         setTimeout(function() {
                             $('#importEmployeeModal').modal('hide');
                             location.reload();
@@ -709,30 +752,35 @@
                     },
                     error: function(xhr) {
                         $progress.addClass('d-none');
-                        
+
                         if (xhr.responseJSON) {
-                            if (xhr.responseJSON.failed_rows && xhr.responseJSON.failed_rows.length > 0) {
+                            if (xhr.responseJSON.failed_rows && xhr.responseJSON.failed_rows
+                                .length > 0) {
                                 var failedRows = xhr.responseJSON.failed_rows;
                                 $.each(failedRows, function(index, item) {
                                     $failedBody.append('<tr>' +
                                         '<td>' + (item.row || '-') + '</td>' +
                                         '<td>' + (item.name || '-') + '</td>' +
-                                        '<td class="text-danger">' + (item.error || '-') + '</td>' +
+                                        '<td class="text-danger">' + (item.error ||
+                                            '-') + '</td>' +
                                         '</tr>');
                                 });
                                 $failedContainer.removeClass('d-none');
-                                
-                                $result.html('<div class="alert alert-warning py-1 px-2 mb-0">' + 
-                                    (xhr.responseJSON.message || 'Import completed with errors.') + '</div>');
+
+                                $result.html(
+                                    '<div class="alert alert-warning py-1 px-2 mb-0">' +
+                                    (xhr.responseJSON.message ||
+                                        'Import completed with errors.') + '</div>');
                             } else {
-                                $result.html('<div class="alert alert-danger py-1 px-2 mb-0">' + 
-                                    (xhr.responseJSON.message || 'Import failed.') + '</div>');
+                                $result.html('<div class="alert alert-danger py-1 px-2 mb-0">' +
+                                    (xhr.responseJSON.message || 'Import failed.') +
+                                    '</div>');
                             }
                         } else {
-                            $result.html('<div class="alert alert-danger py-1 px-2 mb-0">' + 
+                            $result.html('<div class="alert alert-danger py-1 px-2 mb-0">' +
                                 'Terjadi kesalahan saat mengupload file.</div>');
                         }
-                        
+
                         $btn.prop('disabled', false);
                     }
                 });
@@ -755,8 +803,14 @@
                 if (employeeId) {
                     const originalContent = $(this).html();
                     $(this).html('<i class="spinner-border spinner-border-sm"></i> Loading...');
+                    saveFilters(); // Save filters before navigation
                     window.location.href = `/employees/${employeeId}`;
                 }
+            });
+
+            // Save filter state before navigating to edit page
+            $(document).on('click', 'a[href*="/employees/"][href$="/edit"]', function(e) {
+                saveFilters();
             });
 
             // Delete employee
@@ -820,4 +874,4 @@
             $('[data-bs-toggle="tooltip"]').tooltip();
         });
     </script>
-@endpush    
+@endpush

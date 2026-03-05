@@ -82,8 +82,8 @@
                                     </div>
 
                                     <div class="col-md-6 mb-2">
-                                        <label for="department_id" class="form-label small text-dark">Department <span
-                                                class="text-danger">*</span></label>
+                                        <label for="department_id" class="form-label small text-dark">Primary Department
+                                            <span class="text-danger">*</span></label>
                                         <select
                                             class="form-select border-1 rounded-2 py-2 px-3 @error('department_id') is-invalid @enderror"
                                             id="department_id" name="department_id" required>
@@ -98,6 +98,29 @@
                                         @error('department_id')
                                             <div class="invalid-feedback small">{{ $message }}</div>
                                         @enderror
+                                        <small class="text-muted">Main department responsible for this job order</small>
+                                    </div>
+
+                                    <div class="col-md-6 mb-2">
+                                        <label for="department_ids" class="form-label small text-dark">Additional
+                                            Departments
+                                            <span class="text-muted">(Optional)</span>
+                                        </label>
+                                        <select
+                                            class="form-select select2-multiple border-1 rounded-2 py-2 px-3 @error('department_ids') is-invalid @enderror"
+                                            id="department_ids" name="department_ids[]" multiple>
+                                            @foreach ($departments as $department)
+                                                <option value="{{ $department->id }}"
+                                                    {{ in_array($department->id, old('department_ids', [])) ? 'selected' : '' }}>
+                                                    {{ $department->name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        @error('department_ids')
+                                            <div class="invalid-feedback small">{{ $message }}</div>
+                                        @enderror
+                                        <small class="text-muted">Select additional departments involved (synced from
+                                            Lark)</small>
                                     </div>
 
                                     <div class="col-md-12 mb-2">
@@ -329,6 +352,14 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialize Select2 for multiple departments
+            $('.select2-multiple').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Select additional departments',
+                allowClear: true,
+                width: '100%'
+            });
+
             const startDate = document.getElementById('start_date');
             const endDate = document.getElementById('end_date');
 

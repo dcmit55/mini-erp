@@ -10,6 +10,7 @@ use App\Models\Logistic\Inventory;
 use Illuminate\Http\Request;
 use App\Models\Logistic\MaterialRequest;
 use App\Helpers\MaterialUsageHelper;
+use App\Events\GoodsOutProcessed;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\GoodsOutExport;
 use Illuminate\Support\Facades\Auth;
@@ -334,7 +335,7 @@ class GoodsOutController extends Controller
             event(new \App\Events\MaterialRequestUpdated($materialRequest, 'status'));
 
             // Simpan Goods Out
-            GoodsOut::create([
+            $goodsOut = GoodsOut::create([
                 'material_request_id' => $materialRequest->id,
                 'inventory_id' => $inventory->id,
                 'project_id' => $materialRequest->project_id,
@@ -351,6 +352,10 @@ class GoodsOutController extends Controller
             MaterialUsageHelper::sync($inventory->id, $materialRequest->project_id, $materialRequest->job_order_id);
 
             DB::commit();
+
+            // Trigger Pusher notification AFTER successful commit
+            event(new GoodsOutProcessed($goodsOut));
+
             return redirect()
                 ->route('goods_out.index')
                 ->with('success', "Goods Out <b>{$inventory->name}</b> to <b>{$materialRequest->project->name}</b> processed successfully.");
@@ -475,6 +480,8 @@ class GoodsOutController extends Controller
             }
 
             $updatedRequests = [];
+            $createdGoodsOuts = []; // Track created goods out for notifications
+
             foreach ($materialRequests as $materialRequest) {
                 $inventory = Inventory::where('id', $materialRequest->inventory_id)->lockForUpdate()->first();
 
@@ -500,7 +507,7 @@ class GoodsOutController extends Controller
                 $inventory->save();
 
                 // Buat Goods Out
-                GoodsOut::create([
+                $goodsOut = GoodsOut::create([
                     'material_request_id' => $materialRequest->id,
                     'inventory_id' => $inventory->id,
                     'project_id' => $materialRequest->project_id,
@@ -509,6 +516,8 @@ class GoodsOutController extends Controller
                     'quantity' => $qtyToGoodsOut,
                     'remark' => 'Bulk Goods Out',
                 ]);
+
+                $createdGoodsOuts[] = $goodsOut; // Store for notification
 
                 // Update processed_qty dan status material request
                 $materialRequest->processed_qty += $qtyToGoodsOut;
@@ -527,6 +536,11 @@ class GoodsOutController extends Controller
             // Broadcast real-time ke semua client
             foreach ($updatedRequests as $mr) {
                 event(new \App\Events\MaterialRequestUpdated($mr, 'status'));
+            }
+
+            // Trigger Pusher notifications for each goods out AFTER successful commit
+            foreach ($createdGoodsOuts as $goodsOut) {
+                event(new GoodsOutProcessed($goodsOut));
             }
 
             return response()->json(['success' => true, 'message' => 'Bulk Goods Out processed successfully.']);

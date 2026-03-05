@@ -32,14 +32,7 @@ class MaterialRequestController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = MaterialRequest::with([
-                'inventory:id,name,quantity,unit',
-                'project:id,name,department_id',
-                'internalProject:id,project,job,department_id',
-                'jobOrder:id,name,project_id',
-                'user:id,username,department_id',
-                'user.department:id,name'
-            ])->latest();
+            $query = MaterialRequest::with(['inventory:id,name,quantity,unit', 'project:id,name,department_id', 'internalProject:id,project,job,department_id', 'jobOrder:id,name,project_id', 'user:id,username,department_id', 'user.department:id,name'])->latest();
 
             // Apply filters
             if ($request->filled('project')) {
@@ -72,15 +65,14 @@ class MaterialRequestController extends Controller
                     $q->whereHas('inventory', function ($q) use ($search) {
                         $q->where('name', 'like', "%{$search}%");
                     })
-                    ->orWhereHas('project', function ($q) use ($search) {
-                        $q->where('name', 'like', "%{$search}%");
-                    })
-                    ->orWhereHas('internalProject', function ($q) use ($search) {
-                        $q->where('job', 'like', "%{$search}%")
-                          ->orWhere('project', 'like', "%{$search}%");
-                    })
-                    ->orWhere('requested_by', 'like', "%{$search}%")
-                    ->orWhere('remark', 'like', "%{$search}%");
+                        ->orWhereHas('project', function ($q) use ($search) {
+                            $q->where('name', 'like', "%{$search}%");
+                        })
+                        ->orWhereHas('internalProject', function ($q) use ($search) {
+                            $q->where('job', 'like', "%{$search}%")->orWhere('project', 'like', "%{$search}%");
+                        })
+                        ->orWhere('requested_by', 'like', "%{$search}%")
+                        ->orWhere('remark', 'like', "%{$search}%");
                 });
             }
 
@@ -135,11 +127,21 @@ class MaterialRequestController extends Controller
 
                     if ($isLogisticAdmin || $isAdmin) {
                         return '<select name="status" class="form-select form-select-sm status-select status-select-rounded status-quick-update"
-                                data-id="' . $req->id . '">
-                                <option value="pending" ' . ($req->status === 'pending' ? 'selected' : '') . '>Pending</option>
-                                <option value="approved" ' . ($req->status === 'approved' ? 'selected' : '') . '>Approved</option>
-                                <option value="canceled" ' . ($req->status === 'canceled' ? 'selected' : '') . '>Canceled</option>
-                                <option value="delivered" ' . ($req->status === 'delivered' ? 'selected' : '') . ' disabled>Delivered</option>
+                                data-id="' .
+                            $req->id .
+                            '">
+                                <option value="pending" ' .
+                            ($req->status === 'pending' ? 'selected' : '') .
+                            '>Pending</option>
+                                <option value="approved" ' .
+                            ($req->status === 'approved' ? 'selected' : '') .
+                            '>Approved</option>
+                                <option value="canceled" ' .
+                            ($req->status === 'canceled' ? 'selected' : '') .
+                            '>Canceled</option>
+                                <option value="delivered" ' .
+                            ($req->status === 'delivered' ? 'selected' : '') .
+                            ' disabled>Delivered</option>
                             </select>';
                     } else {
                         return '<span class="badge rounded-pill ' . $req->getStatusBadgeClass() . '">' . ucfirst($req->status) . '</span>';
@@ -190,10 +192,17 @@ class MaterialRequestController extends Controller
                     }
 
                     if ($canDelete) {
-                        $actions .= '<form action="' . route('material_requests.destroy', $req->id) . '" method="POST" class="delete-form" style="display:inline;">
+                        $actions .=
+                            '<form action="' .
+                            route('material_requests.destroy', $req->id) .
+                            '" method="POST" class="delete-form" style="display:inline;">
                                 <input type="hidden" name="_method" value="DELETE">
-                                <input type="hidden" name="_token" value="' . csrf_token() . '">
-                                <button type="button" class="btn btn-sm btn-danger btn-delete" title="' . $deleteTooltip . '"><i class="bi bi-trash3"></i></button>
+                                <input type="hidden" name="_token" value="' .
+                            csrf_token() .
+                            '">
+                                <button type="button" class="btn btn-sm btn-danger btn-delete" title="' .
+                            $deleteTooltip .
+                            '"><i class="bi bi-trash3"></i></button>
                             </form>';
                     }
 
@@ -246,10 +255,7 @@ class MaterialRequestController extends Controller
             ->orderBy('id', 'desc')
             ->get(['id', 'name', 'project_id']);
 
-        $internalProjects = InternalProject::select('id', 'job', 'project', 'department_id')
-            ->with('department')
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $internalProjects = InternalProject::select('id', 'job', 'project', 'department_id')->with('department')->orderBy('created_at', 'desc')->get();
 
         $departments = Department::orderBy('name')->get();
         $units = Unit::orderBy('name')->get();
@@ -265,16 +271,7 @@ class MaterialRequestController extends Controller
         }
         $defaultPtDcmDepartmentId = $ptDcmDepartment ? $ptDcmDepartment->id : null;
 
-        return view('logistic.material_requests.create', compact(
-            'inventories',
-            'projects',
-            'jobOrders',
-            'internalProjects',
-            'selectedMaterial',
-            'departments',
-            'units',
-            'defaultPtDcmDepartmentId'
-        ));
+        return view('logistic.material_requests.create', compact('inventories', 'projects', 'jobOrders', 'internalProjects', 'selectedMaterial', 'departments', 'units', 'defaultPtDcmDepartmentId'));
     }
 
     /**
@@ -288,17 +285,17 @@ class MaterialRequestController extends Controller
 
         // Validasi dasar: gunakan job_order_id
         $request->validate([
-            'project_type'  => 'required|in:client,internal',
-            'inventory_id'  => 'required|exists:inventories,id',
-            'qty'           => 'required|numeric|min:0.01',
-            'job_order_id'  => 'required', // akan divalidasi lebih lanjut
+            'project_type' => 'required|in:client,internal',
+            'inventory_id' => 'required|exists:inventories,id',
+            'qty' => 'required|numeric|min:0.01',
+            'job_order_id' => 'required', // akan divalidasi lebih lanjut
         ]);
 
         // Validasi conditional berdasarkan tipe proyek
         if ($request->project_type === MaterialRequest::PROJECT_TYPE_CLIENT) {
             $request->validate([
                 'job_order_id' => 'required|exists:job_orders,id',
-                'project_id'   => 'required|exists:projects,id',
+                'project_id' => 'required|exists:projects,id',
             ]);
         } else {
             $request->validate([
@@ -320,22 +317,22 @@ class MaterialRequestController extends Controller
             }
 
             $data = [
-                'inventory_id'   => $request->inventory_id,
-                'project_type'   => $request->project_type,
-                'qty'            => $request->qty,
-                'processed_qty'  => 0,
-                'requested_by'   => $user->username,
-                'remark'         => $request->remark,
+                'inventory_id' => $request->inventory_id,
+                'project_type' => $request->project_type,
+                'qty' => $request->qty,
+                'processed_qty' => 0,
+                'requested_by' => $user->username,
+                'remark' => $request->remark,
             ];
 
             if ($request->project_type === MaterialRequest::PROJECT_TYPE_CLIENT) {
                 $data['job_order_id'] = $request->job_order_id;
-                $data['project_id']    = $request->project_id;
+                $data['project_id'] = $request->project_id;
                 $data['internal_project_id'] = null;
             } else {
                 $data['internal_project_id'] = $request->job_order_id; // ID internal project
                 $data['job_order_id'] = null;
-                $data['project_id']    = null;
+                $data['project_id'] = null;
             }
 
             $materialRequest = MaterialRequest::create($data);
@@ -368,10 +365,7 @@ class MaterialRequestController extends Controller
             ->orderBy('id', 'desc')
             ->get(['id', 'name', 'project_id']);
 
-        $internalProjects = InternalProject::select('id', 'job', 'project', 'department_id')
-            ->with('department')
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $internalProjects = InternalProject::select('id', 'job', 'project', 'department_id')->with('department')->orderBy('created_at', 'desc')->get();
 
         $departments = Department::orderBy('name')->get();
         $units = Unit::orderBy('name')->get();
@@ -382,15 +376,7 @@ class MaterialRequestController extends Controller
         }
         $defaultPtDcmDepartmentId = $ptDcmDepartment ? $ptDcmDepartment->id : null;
 
-        return view('logistic.material_requests.bulk_create', compact(
-            'inventories',
-            'projects',
-            'jobOrders',
-            'internalProjects',
-            'departments',
-            'units',
-            'defaultPtDcmDepartmentId'
-        ));
+        return view('logistic.material_requests.bulk_create', compact('inventories', 'projects', 'jobOrders', 'internalProjects', 'departments', 'units', 'defaultPtDcmDepartmentId'));
     }
 
     /**
@@ -404,10 +390,10 @@ class MaterialRequestController extends Controller
 
         // Validasi dasar per baris
         $request->validate([
-            'requests.*.project_type'   => 'required|in:client,internal',
-            'requests.*.inventory_id'   => 'required|exists:inventories,id',
-            'requests.*.qty'            => 'required|numeric|min:0.01',
-            'requests.*.job_order_id'   => 'required', // akan divalidasi lebih lanjut
+            'requests.*.project_type' => 'required|in:client,internal',
+            'requests.*.inventory_id' => 'required|exists:inventories,id',
+            'requests.*.qty' => 'required|numeric|min:0.01',
+            'requests.*.job_order_id' => 'required', // akan divalidasi lebih lanjut
         ]);
 
         // Validasi conditional per baris
@@ -415,7 +401,7 @@ class MaterialRequestController extends Controller
             if ($req['project_type'] === MaterialRequest::PROJECT_TYPE_CLIENT) {
                 $request->validate([
                     "requests.$index.job_order_id" => 'required|exists:job_orders,id',
-                    "requests.$index.project_id"    => 'required|exists:projects,id',
+                    "requests.$index.project_id" => 'required|exists:projects,id',
                 ]);
             } else {
                 $request->validate([
@@ -439,22 +425,22 @@ class MaterialRequestController extends Controller
                 }
 
                 $data = [
-                    'inventory_id'   => $req['inventory_id'],
-                    'project_type'   => $req['project_type'],
-                    'qty'            => $req['qty'],
-                    'processed_qty'  => 0,
-                    'requested_by'   => $user->username,
-                    'remark'         => $req['remark'] ?? null,
+                    'inventory_id' => $req['inventory_id'],
+                    'project_type' => $req['project_type'],
+                    'qty' => $req['qty'],
+                    'processed_qty' => 0,
+                    'requested_by' => $user->username,
+                    'remark' => $req['remark'] ?? null,
                 ];
 
                 if ($req['project_type'] === MaterialRequest::PROJECT_TYPE_CLIENT) {
                     $data['job_order_id'] = $req['job_order_id'];
-                    $data['project_id']    = $req['project_id'];
+                    $data['project_id'] = $req['project_id'];
                     $data['internal_project_id'] = null;
                 } else {
                     $data['internal_project_id'] = $req['job_order_id'];
                     $data['job_order_id'] = null;
-                    $data['project_id']    = null;
+                    $data['project_id'] = null;
                 }
 
                 $materialRequest = MaterialRequest::create($data);
@@ -471,7 +457,6 @@ class MaterialRequestController extends Controller
             if (!empty($createdRequests)) {
                 event(new MaterialRequestUpdated($createdRequests, 'created'));
             }
-
         } catch (\Exception $e) {
             DB::rollBack();
             return back()
@@ -501,51 +486,52 @@ class MaterialRequestController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-        public function edit(Request $request, $id)
-        {
-            $materialRequest = MaterialRequest::with('inventory', 'project', 'internalProject')->findOrFail($id);
-            $departments = Department::orderBy('name')->get();
-            $units = Unit::orderBy('name')->get();
+    public function edit(Request $request, $id)
+    {
+        $materialRequest = MaterialRequest::with('inventory', 'project', 'internalProject')->findOrFail($id);
+        $departments = Department::orderBy('name')->get();
+        $units = Unit::orderBy('name')->get();
 
-            $inventories = Inventory::orderBy('name')->get()->map(function ($inventory) {
+        $inventories = Inventory::orderBy('name')
+            ->get()
+            ->map(function ($inventory) {
                 $inventory->available_quantity = $inventory->quantity;
                 return $inventory;
             });
 
-            $jobOrders = \App\Models\Production\JobOrder::with('project:id,name')
-                ->orderBy('id', 'desc')
-                ->get(['id', 'name', 'project_id']);
+        $jobOrders = \App\Models\Production\JobOrder::with('project:id,name')
+            ->orderBy('id', 'desc')
+            ->get(['id', 'name', 'project_id']);
 
-            $internalProjects = InternalProject::select('id', 'job', 'project', 'department_id')
-                ->with('department')
-                ->orderBy('created_at', 'desc')
-                ->get();
+        $internalProjects = InternalProject::select('id', 'job', 'project', 'department_id')->with('department')->orderBy('created_at', 'desc')->get();
 
-            // TAMBAHKAN: Ambil default department untuk PT DCM
-            $ptDcmDepartment = Department::where('name', 'PT DCM')->first();
-            if (!$ptDcmDepartment) {
-                $ptDcmDepartment = Department::orderBy('id')->first();
-            }
-            $defaultPtDcmDepartmentId = $ptDcmDepartment ? $ptDcmDepartment->id : null;
+        // TAMBAHKAN: Ambil default department untuk PT DCM
+        $ptDcmDepartment = Department::where('name', 'PT DCM')->first();
+        if (!$ptDcmDepartment) {
+            $ptDcmDepartment = Department::orderBy('id')->first();
+        }
+        $defaultPtDcmDepartmentId = $ptDcmDepartment ? $ptDcmDepartment->id : null;
 
-            $filters = [
-                'project'       => $request->input('filter_project'),
-                'material'      => $request->input('filter_material'),
-                'status'        => $request->input('filter_status'),
-                'requested_by'  => $request->input('filter_requested_by'),
-                'requested_at'  => $request->input('filter_requested_at'),
-            ];
-            $filters = array_filter($filters, fn($v) => !is_null($v) && $v !== '');
+        $filters = [
+            'project' => $request->input('filter_project'),
+            'material' => $request->input('filter_material'),
+            'status' => $request->input('filter_status'),
+            'requested_by' => $request->input('filter_requested_by'),
+            'requested_at' => $request->input('filter_requested_at'),
+        ];
+        $filters = array_filter($filters, fn($v) => !is_null($v) && $v !== '');
 
-            if ($materialRequest->status !== 'pending') {
-                return redirect()->route('material_requests.index')->with('error', 'Only pending requests can be edited.');
-            }
+        if ($materialRequest->status !== 'pending') {
+            return redirect()->route('material_requests.index')->with('error', 'Only pending requests can be edited.');
+        }
 
-            if (auth()->user()->username !== $materialRequest->requested_by && !auth()->user()->isLogisticAdmin() && !auth()->user()->isReadOnlyAdmin()) {
-                return redirect()->route('material_requests.index', $filters)->with('error', 'You do not have permission to edit this request.');
-            }
+        if (auth()->user()->username !== $materialRequest->requested_by && !auth()->user()->isLogisticAdmin() && !auth()->user()->isReadOnlyAdmin()) {
+            return redirect()->route('material_requests.index', $filters)->with('error', 'You do not have permission to edit this request.');
+        }
 
-            return view('logistic.material_requests.edit', compact(
+        return view(
+            'logistic.material_requests.edit',
+            compact(
                 'materialRequest',
                 'inventories',
                 'jobOrders',
@@ -553,146 +539,169 @@ class MaterialRequestController extends Controller
                 'departments',
                 'units',
                 'filters',
-                'defaultPtDcmDepartmentId'  // Tambahkan ini
-            ));
-        }
-/**
- * Update the specified resource in storage.
- */
-public function update(Request $request, $id)
-{
-    if (Auth::user()->isReadOnlyAdmin()) {
-        if ($request->ajax()) {
-            return response()->json(['error' => 'You do not have permission to edit material requests.'], 403);
-        }
-        abort(403, 'You do not have permission to edit material requests.');
+                'defaultPtDcmDepartmentId', // Tambahkan ini
+            ),
+        );
     }
-
-    $materialRequest = MaterialRequest::findOrFail($id);
-
-    // Cek quick update
-    if ($request->has('status') && !$request->has('inventory_id')) {
-        return $this->quickUpdate($request, $id);
-    }
-
-    // Validasi dasar
-    $request->validate([
-        'project_type'        => 'required|in:client,internal',
-        'inventory_id'        => 'required|exists:inventories,id',
-        'qty'                 => 'required|numeric|min:0.01',
-        'status'              => 'required|in:pending,approved,delivered,canceled',
-        'remark'              => 'nullable|string',
-        'job_order_id'        => 'required',
-    ]);
-
-    // Validasi conditional berdasarkan tipe proyek
-    if ($request->project_type === MaterialRequest::PROJECT_TYPE_CLIENT) {
-        $request->validate([
-            'job_order_id' => 'required|exists:job_orders,id',
-            'project_id'   => 'required|exists:projects,id',
-        ]);
-    } else {
-        $request->validate([
-            'job_order_id' => 'required|exists:internal_projects,id',
-        ]);
-    }
-
-    // Cek status request
-    if (in_array($materialRequest->status, ['delivered', 'canceled'])) {
-        if ($request->ajax()) {
-            return response()->json(['error' => 'Delivered or canceled requests cannot be updated.'], 422);
-        }
-        return redirect()->route('material_requests.index')->with('error', 'Delivered or canceled requests cannot be updated.');
-    }
-
-    // Ambil filters untuk redirect
-    $filters = [
-        'project'       => $request->input('filter_project'),
-        'material'      => $request->input('filter_material'),
-        'status'        => $request->input('filter_status'),
-        'requested_by'  => $request->input('filter_requested_by'),
-        'requested_at'  => $request->input('filter_requested_at'),
-    ];
-    $filters = array_filter($filters, fn($v) => !is_null($v) && $v !== '');
-
-    DB::beginTransaction();
-    try {
-        // Cek stok inventory dengan lock
-        $inventory = Inventory::where('id', $request->inventory_id)->lockForUpdate()->first();
-
-        if ($request->qty > $inventory->quantity) {
-            DB::rollBack();
-            $errorMsg = 'Requested quantity cannot exceed available inventory quantity.';
-            
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, $id)
+    {
+        if (Auth::user()->isReadOnlyAdmin()) {
             if ($request->ajax()) {
-                return response()->json(['errors' => ['qty' => [$errorMsg]]], 422);
+                return response()->json(['error' => 'You do not have permission to edit material requests.'], 403);
             }
-            
+            abort(403, 'You do not have permission to edit material requests.');
+        }
+
+        $materialRequest = MaterialRequest::findOrFail($id);
+
+        // Cek quick update
+        if ($request->has('status') && !$request->has('inventory_id')) {
+            return $this->quickUpdate($request, $id);
+        }
+
+        // Validasi dasar
+        $request->validate([
+            'project_type' => 'required|in:client,internal',
+            'inventory_id' => 'required|exists:inventories,id',
+            'qty' => 'required|numeric|min:0.01',
+            'status' => 'required|in:pending,approved,delivered,canceled',
+            'remark' => 'nullable|string',
+            'job_order_id' => 'required',
+        ]);
+
+        // Validasi conditional berdasarkan tipe proyek
+        if ($request->project_type === MaterialRequest::PROJECT_TYPE_CLIENT) {
+            $request->validate([
+                'job_order_id' => 'required|exists:job_orders,id',
+                'project_id' => 'required|exists:projects,id',
+            ]);
+        } else {
+            $request->validate([
+                'job_order_id' => 'required|exists:internal_projects,id',
+            ]);
+        }
+
+        // Cek status request
+        if (in_array($materialRequest->status, ['delivered', 'canceled'])) {
+            if ($request->ajax()) {
+                return response()->json(['error' => 'Delivered or canceled requests cannot be updated.'], 422);
+            }
+            return redirect()->route('material_requests.index')->with('error', 'Delivered or canceled requests cannot be updated.');
+        }
+
+        // Ambil filters untuk redirect
+        $filters = [
+            'project' => $request->input('filter_project'),
+            'material' => $request->input('filter_material'),
+            'status' => $request->input('filter_status'),
+            'requested_by' => $request->input('filter_requested_by'),
+            'requested_at' => $request->input('filter_requested_at'),
+        ];
+        $filters = array_filter($filters, fn($v) => !is_null($v) && $v !== '');
+
+        DB::beginTransaction();
+        try {
+            // Cek stok inventory dengan lock
+            $inventory = Inventory::where('id', $request->inventory_id)->lockForUpdate()->first();
+
+            if ($request->qty > $inventory->quantity) {
+                DB::rollBack();
+                $errorMsg = 'Requested quantity cannot exceed available inventory quantity.';
+
+                if ($request->ajax()) {
+                    return response()->json(['errors' => ['qty' => [$errorMsg]]], 422);
+                }
+
+                return back()
+                    ->withInput()
+                    ->withErrors(['qty' => $errorMsg]);
+            }
+
+            // Siapkan data update
+            $updateData = [
+                'inventory_id' => $request->inventory_id,
+                'project_type' => $request->project_type,
+                'qty' => $request->qty,
+                'status' => $request->status,
+                'remark' => $request->remark,
+            ];
+
+            // Set relasi berdasarkan tipe project
+            if ($request->project_type === MaterialRequest::PROJECT_TYPE_CLIENT) {
+                $updateData['job_order_id'] = $request->job_order_id;
+                $updateData['project_id'] = $request->project_id;
+                $updateData['internal_project_id'] = null;
+            } else {
+                $updateData['internal_project_id'] = $request->job_order_id;
+                $updateData['job_order_id'] = null;
+                $updateData['project_id'] = null;
+            }
+
+            // Set approved_at jika status diubah ke approved
+            $oldStatus = $materialRequest->status;
+            if ($request->status === 'approved' && $materialRequest->status !== 'approved') {
+                $updateData['approved_at'] = now();
+            }
+
+            // Update data
+            $materialRequest->update($updateData);
+
+            DB::commit();
+
+            // Trigger event
+            event(new MaterialRequestUpdated($materialRequest, 'updated'));
+
+            // CRITICAL FIX: Auto goods-out when approving material for already-delivered job order
+            if ($request->status === 'approved' && $oldStatus !== 'approved') {
+                // Refresh to get updated relationships after transaction commit
+                $materialRequest = $materialRequest->fresh();
+
+                // Check if related Job Order is already delivered
+                $jobOrder = $materialRequest->jobOrder;
+
+                if ($jobOrder && strtolower($jobOrder->status) === 'delivered') {
+                    // Trigger auto goods-out service
+                    $autoGoodsOutService = app(\App\Services\AutoGoodsOutService::class);
+                    $result = $autoGoodsOutService->processJobOrderDelivery($jobOrder);
+
+                    \Illuminate\Support\Facades\Log::info('MaterialRequest update: Auto goods-out triggered for approved material', [
+                        'material_request_id' => $materialRequest->id,
+                        'job_order_id' => $jobOrder->id,
+                        'job_order_status' => $jobOrder->status,
+                        'result' => $result,
+                    ]);
+                }
+            }
+
+            // Return response berdasarkan tipe request
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Material Request updated successfully!',
+                    'redirect' => route('material_requests.index', $filters),
+                ]);
+            }
+
+            return redirect()
+                ->route('material_requests.index', $filters)
+                ->with('success', "Material Request for <b>{$inventory->name}</b> updated successfully.");
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            $errorMsg = 'Failed to update request: ' . $e->getMessage();
+
+            if ($request->ajax()) {
+                return response()->json(['error' => $errorMsg], 500);
+            }
+
             return back()
                 ->withInput()
                 ->withErrors(['qty' => $errorMsg]);
         }
-
-        // Siapkan data update
-        $updateData = [
-            'inventory_id'   => $request->inventory_id,
-            'project_type'   => $request->project_type,
-            'qty'            => $request->qty,
-            'status'         => $request->status,
-            'remark'         => $request->remark,
-        ];
-
-        // Set relasi berdasarkan tipe project
-        if ($request->project_type === MaterialRequest::PROJECT_TYPE_CLIENT) {
-            $updateData['job_order_id'] = $request->job_order_id;
-            $updateData['project_id']    = $request->project_id;
-            $updateData['internal_project_id'] = null;
-        } else {
-            $updateData['internal_project_id'] = $request->job_order_id;
-            $updateData['job_order_id'] = null;
-            $updateData['project_id']    = null;
-        }
-
-        // Set approved_at jika status diubah ke approved
-        if ($request->status === 'approved' && $materialRequest->status !== 'approved') {
-            $updateData['approved_at'] = now();
-        }
-
-        // Update data
-        $materialRequest->update($updateData);
-
-        DB::commit();
-
-        // Trigger event
-        event(new MaterialRequestUpdated($materialRequest, 'updated'));
-
-        // Return response berdasarkan tipe request
-        if ($request->ajax()) {
-            return response()->json([
-                'success' => true,
-                'message' => "Material Request updated successfully!",
-                'redirect' => route('material_requests.index', $filters)
-            ]);
-        }
-
-        return redirect()
-            ->route('material_requests.index', $filters)
-            ->with('success', "Material Request for <b>{$inventory->name}</b> updated successfully.");
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-        
-        $errorMsg = 'Failed to update request: ' . $e->getMessage();
-        
-        if ($request->ajax()) {
-            return response()->json(['error' => $errorMsg], 500);
-        }
-        
-        return back()
-            ->withInput()
-            ->withErrors(['qty' => $errorMsg]);
     }
-}
     /**
      * Export material requests to Excel.
      */
@@ -785,6 +794,25 @@ public function update(Request $request, $id)
 
         event(new MaterialRequestUpdated($materialRequest, 'status'));
 
+        // CRITICAL FIX: Auto goods-out when approving material for already-delivered job order
+        if ($request->status === 'approved' && $oldStatus !== 'approved') {
+            // Check if related Job Order is already delivered
+            $jobOrder = $materialRequest->jobOrder;
+
+            if ($jobOrder && strtolower($jobOrder->status) === 'delivered') {
+                // Trigger auto goods-out service
+                $autoGoodsOutService = app(\App\Services\AutoGoodsOutService::class);
+                $result = $autoGoodsOutService->processJobOrderDelivery($jobOrder);
+
+                \Illuminate\Support\Facades\Log::info('QuickUpdate: Auto goods-out triggered for approved material', [
+                    'material_request_id' => $materialRequest->id,
+                    'job_order_id' => $jobOrder->id,
+                    'job_order_status' => $jobOrder->status,
+                    'result' => $result,
+                ]);
+            }
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Status updated successfully',
@@ -805,11 +833,11 @@ public function update(Request $request, $id)
         $materialRequest = MaterialRequest::findOrFail($id);
 
         $filters = [
-            'project'       => $request->input('filter_project'),
-            'material'      => $request->input('filter_material'),
-            'status'        => $request->input('filter_status'),
-            'requested_by'  => $request->input('filter_requested_by'),
-            'requested_at'  => $request->input('filter_requested_at'),
+            'project' => $request->input('filter_project'),
+            'material' => $request->input('filter_material'),
+            'status' => $request->input('filter_status'),
+            'requested_by' => $request->input('filter_requested_by'),
+            'requested_at' => $request->input('filter_requested_at'),
         ];
         $filters = array_filter($filters, fn($v) => !is_null($v) && $v !== '');
 
@@ -873,22 +901,18 @@ public function update(Request $request, $id)
             'selected_ids.*' => 'exists:material_requests,id',
         ]);
 
-        $requests = MaterialRequest::with('inventory', 'project', 'jobOrder', 'internalProject')
-            ->whereIn('id', $request->selected_ids)
-            ->get();
+        $requests = MaterialRequest::with('inventory', 'project', 'jobOrder', 'internalProject')->whereIn('id', $request->selected_ids)->get();
 
         $data = $requests->map(function ($req) {
             return [
-                'id'                => $req->id,
-                'material_name'     => $req->inventory->name ?? '-',
-                'unit'              => $req->inventory->unit ?? '',
-                'job_order_name'    => $req->project_type === MaterialRequest::PROJECT_TYPE_CLIENT
-                                        ? ($req->jobOrder->name ?? '-')
-                                        : ($req->internalProject->job ?? '-'),
-                'project_name'      => $req->project_name,
-                'requested_by'      => $req->requested_by,
-                'requested_qty'     => rtrim(rtrim(number_format($req->qty, 2, '.', ''), '0'), '.'),
-                'remaining_qty'     => rtrim(rtrim(number_format($req->remaining_qty, 2, '.', ''), '0'), '.'),
+                'id' => $req->id,
+                'material_name' => $req->inventory->name ?? '-',
+                'unit' => $req->inventory->unit ?? '',
+                'job_order_name' => $req->project_type === MaterialRequest::PROJECT_TYPE_CLIENT ? $req->jobOrder->name ?? '-' : $req->internalProject->job ?? '-',
+                'project_name' => $req->project_name,
+                'requested_by' => $req->requested_by,
+                'requested_qty' => rtrim(rtrim(number_format($req->qty, 2, '.', ''), '0'), '.'),
+                'remaining_qty' => rtrim(rtrim(number_format($req->remaining_qty, 2, '.', ''), '0'), '.'),
             ];
         });
 
@@ -903,18 +927,18 @@ public function update(Request $request, $id)
         $inventory = Inventory::with(['category', 'currency', 'supplier', 'location'])->findOrFail($id);
 
         $data = [
-            'id'          => $inventory->id,
-            'name'        => $inventory->name,
-            'category'    => $inventory->category->name ?? '-',
-            'quantity'    => rtrim(rtrim(number_format($inventory->quantity, 2, '.', ''), '0'), '.'),
-            'unit'        => $inventory->unit ?? '-',
-            'price'       => $inventory->price ? number_format($inventory->price, 2, ',', '.') : '0',
-            'currency'    => $inventory->currency->name ?? '-',
-            'supplier'    => $inventory->supplier->name ?? '-',
-            'location'    => $inventory->location->name ?? '-',
-            'remark'      => $inventory->remark ?? '-',
-            'img_url'     => $inventory->img ? asset('storage/' . $inventory->img) : null,
-            'qr_code'     => $inventory->qr_code ?? null,
+            'id' => $inventory->id,
+            'name' => $inventory->name,
+            'category' => $inventory->category->name ?? '-',
+            'quantity' => rtrim(rtrim(number_format($inventory->quantity, 2, '.', ''), '0'), '.'),
+            'unit' => $inventory->unit ?? '-',
+            'price' => $inventory->price ? number_format($inventory->price, 2, ',', '.') : '0',
+            'currency' => $inventory->currency->name ?? '-',
+            'supplier' => $inventory->supplier->name ?? '-',
+            'location' => $inventory->location->name ?? '-',
+            'remark' => $inventory->remark ?? '-',
+            'img_url' => $inventory->img ? asset('storage/' . $inventory->img) : null,
+            'qr_code' => $inventory->qr_code ?? null,
         ];
 
         return response()->json($data);

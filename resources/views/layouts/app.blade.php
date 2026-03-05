@@ -1102,6 +1102,197 @@
                 ();
             </script>
         @endauth
+
+        @auth
+            <!-- ============================================================ -->
+            <!-- PUSHER NOTIFICATIONS - Job Order Countdown Alerts           -->
+            <!-- ============================================================ -->
+            <script>
+                (function() {
+                    // Initialize Pusher
+                    const pusher = new Pusher('{{ env('PUSHER_APP_KEY') }}', {
+                        cluster: '{{ env('PUSHER_APP_CLUSTER') }}',
+                        encrypted: true
+                    });
+
+                    // Get user's departments (assuming user has department_id)
+                    const userDepartmentId = '{{ auth()->user()->department_id ?? '' }}';
+                    const userRole = '{{ auth()->user()->role }}';
+
+                    // Subscribe to department-specific channel if user has department
+                    if (userDepartmentId) {
+                        const departmentChannel = pusher.subscribe(`department.${userDepartmentId}.job-order-alerts`);
+
+                        departmentChannel.bind('job-order.delivery-alert', function(data) {
+                            showCountdownNotification(data);
+                        });
+
+                        console.log(`Subscribed to department.${userDepartmentId}.job-order-alerts`);
+                    }
+
+                    // Admin roles subscribe to global alerts
+                    // Include: super_admin, admin, admin_logistic, admin_mascot, admin_costume, etc.
+                    const adminRoles = ['super_admin', 'admin', 'admin_logistic', 'admin_mascot', 'admin_costume',
+                        'admin_animatronic', 'admin_finance', 'admin_hr', 'admin_procurement'
+                    ];
+                    if (adminRoles.includes(userRole)) {
+                        // Subscribe to global job order alerts channel
+                        const globalChannel = pusher.subscribe('job-order-alerts');
+
+                        globalChannel.bind('job-order.delivery-alert', function(data) {
+                            showCountdownNotification(data);
+                        });
+
+                        console.log('Subscribed to global job-order-alerts channel (admin role)');
+                    }
+
+                    function showCountdownNotification(data) {
+                        // Play notification sound
+                        const audio = new Audio('{{ asset('sounds/notification.mp3') }}');
+                        audio.play().catch(e => console.log('Audio play failed:', e));
+
+                        // Determine urgency level based on days
+                        const daysUntil = data.days_until_delivery || 0;
+                        const isUrgent = daysUntil <= 1;
+                        const icon = isUrgent ? 'error' : 'warning';
+                        const title = isUrgent ? 'Urgent: Job Order Delivery!' : 'Job Order Delivery Warning';
+
+                        // Show SweetAlert notification
+                        Swal.fire({
+                            icon: icon,
+                            title: title,
+                            html: `
+                                <div class="text-start">
+                                    <p><strong>Job Order:</strong> ${data.job_order_name}</p>
+                                    <p><strong>Delivery Date:</strong> ${data.delivery_date}</p>
+                                    <p><strong>Time Left:</strong>
+                                        <span class="badge bg-${isUrgent ? 'danger' : 'warning'}">${data.delivery_display}</span>
+                                    </p>
+                                    <p><strong>Project:</strong> ${data.project_name || '-'}</p>
+                                    <p><strong>Departments:</strong><br>
+                                        ${data.departments.map(d => `<span class="badge bg-secondary me-1">${d}</span>`).join('')}
+                                    </p>
+                                    <p class="text-muted mb-0">${data.message}</p>
+                                </div>
+                            `,
+                            showCancelButton: true,
+                            confirmButtonText: '<i class="fas fa-eye me-1"></i> View Job Order',
+                            cancelButtonText: 'Dismiss',
+                            confirmButtonColor: isUrgent ? '#dc3545' : '#ffc107',
+                            cancelButtonColor: '#6c757d',
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                // Redirect to job order detail page
+                                window.location.href = `/job-orders/${data.job_order_id}`;
+                            }
+                        });
+
+                        // Show browser notification if permission granted
+                        if ('Notification' in window && Notification.permission === 'granted') {
+                            new Notification(title, {
+                                body: `${data.job_order_name} - Delivery: ${data.delivery_date} (${data.delivery_display})`,
+                                icon: '{{ asset('favicon.png') }}',
+                                badge: '{{ asset('favicon.png') }}',
+                                tag: `job-order-${data.job_order_id}`,
+                                requireInteraction: isUrgent
+                            });
+                        }
+                    }
+
+                    // Request notification permission on page load
+                    if ('Notification' in window && Notification.permission === 'default') {
+                        Notification.requestPermission();
+                    }
+                })
+                ();
+            </script>
+
+            <!-- ============================================================ -->
+            <!-- GOODS OUT PUSHER NOTIFICATIONS                              -->
+            <!-- ============================================================ -->
+            <script>
+                (() => {
+                    const userRole = '{{ auth()->user()->role ?? '' }}';
+                    const userDepartmentId = {{ auth()->user()->department_id ?? 'null' }};
+
+                    // Admin roles that should receive all goods out notifications
+                    const adminRoles = [
+                        'super_admin', 'admin', 'admin_logistic',
+                        'admin_mascot', 'admin_costume', 'admin_animatronic',
+                        'admin_finance', 'admin_hr', 'admin_procurement'
+                    ];
+
+                    const isAdmin = adminRoles.includes(userRole);
+
+                    // Subscribe to department-specific channel
+                    if (userDepartmentId) {
+                        const departmentChannel = pusher.subscribe(`department.${userDepartmentId}.goods-out-alerts`);
+                        departmentChannel.bind('goods-out.processed', handleGoodsOutNotification);
+                        console.log(`Subscribed to department.${userDepartmentId}.goods-out-alerts`);
+                    }
+
+                    // Admins subscribe to global channel
+                    if (isAdmin) {
+                        const globalChannel = pusher.subscribe('goods-out-alerts');
+                        globalChannel.bind('goods-out.processed', handleGoodsOutNotification);
+                        console.log('Subscribed to global goods-out-alerts channel');
+                    }
+
+                    function handleGoodsOutNotification(data) {
+                        console.log('Goods Out notification received:', data);
+
+                        // Play notification sound
+                        const audio = new Audio('{{ asset('sounds/notification.mp3') }}');
+                        audio.play().catch(e => console.log('Audio play failed:', e));
+
+                        // SweetAlert popup
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'Material Issued',
+                            html: `
+                                <div class="text-start">
+                                    <p class="mb-2"><strong>Material:</strong> ${data.material_name}</p>
+                                    <p class="mb-2"><strong>Quantity:</strong> ${parseFloat(data.quantity).toFixed(2)} ${data.unit}</p>
+                                    <p class="mb-2"><strong>Project:</strong> ${data.project_name}</p>
+                                    ${data.job_order_name ? `<p class="mb-2"><strong>Job Order:</strong> ${data.job_order_name}</p>` : ''}
+                                    <p class="mb-2"><strong>Requested By:</strong> ${data.requested_by}</p>
+                                    <p class="mb-2"><strong>Department:</strong> ${data.department_name}</p>
+                                    <hr>
+                                    <p class="text-muted small mb-0">${data.timestamp}</p>
+                                </div>
+                            `,
+                            showCancelButton: true,
+                            confirmButtonText: '<i class="fas fa-eye"></i> View Goods Out',
+                            cancelButtonText: 'Close',
+                            confirmButtonColor: '#0d6efd',
+                            cancelButtonColor: '#6c757d',
+                            customClass: {
+                                popup: 'swal-wide'
+                            }
+                        }).then((result) => {
+                            if (result.isConfirmed && data.url) {
+                                window.location.href = data.url;
+                            }
+                        });
+
+                        // Browser notification
+                        if ('Notification' in window && Notification.permission === 'granted') {
+                            new Notification('Material Issued', {
+                                body: `${data.material_name} (${parseFloat(data.quantity).toFixed(2)} ${data.unit}) → ${data.project_name}`,
+                                icon: '{{ asset('favicon.png') }}',
+                                badge: '{{ asset('favicon.png') }}',
+                                tag: `goods-out-${data.goods_out_id}`,
+                                requireInteraction: false
+                            });
+                        }
+                    }
+                })();
+            </script>
+            <!-- ============================================================ -->
+            <!-- END GOODS OUT PUSHER NOTIFICATIONS                          -->
+            <!-- ============================================================ -->
+        @endauth
+
         <!-- ============================================================ -->
         <!-- END SYMCORE AI CHATBOT                                        -->
         <!-- ============================================================ -->

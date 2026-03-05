@@ -17,7 +17,7 @@ class JobOrderController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = JobOrder::with(['project:id,name', 'department:id,name', 'creator:id,username'])->latest();
+            $query = JobOrder::with(['project:id,name', 'department:id,name', 'departments:id,name', 'creator:id,username'])->latest();
 
             // Apply filters
             if ($request->filled('project')) {
@@ -25,7 +25,13 @@ class JobOrderController extends Controller
             }
 
             if ($request->filled('department')) {
-                $query->where('department_id', $request->department);
+                // Filter by ANY department (primary OR in pivot table)
+                $departmentId = $request->department;
+                $query->where(function ($q) use ($departmentId) {
+                    $q->where('department_id', $departmentId)->orWhereHas('departments', function ($dq) use ($departmentId) {
+                        $dq->where('departments.id', $departmentId);
+                    });
+                });
             }
 
             if ($request->filled('custom_search')) {
@@ -46,6 +52,21 @@ class JobOrderController extends Controller
                     return $jo->project ? $jo->project->name : '-';
                 })
                 ->addColumn('department_name', function ($jo) {
+                    // Show all departments from pivot table
+                    if ($jo->departments && $jo->departments->count() > 0) {
+                        $deptNames = $jo->departments->pluck('name')->toArray();
+                        $displayText = implode(', ', $deptNames);
+
+                        // If more than 3 departments, show tooltip with truncation
+                        if (count($deptNames) > 3) {
+                            $shortText = implode(', ', array_slice($deptNames, 0, 2)) . '... +' . (count($deptNames) - 2);
+                            return '<span data-bs-toggle="tooltip" title="' . htmlspecialchars($displayText) . '">' . $shortText . '</span>';
+                        }
+                        // Show all departments if 3 or less
+                        return $displayText;
+                    }
+
+                    // Fallback to primary department if pivot is empty
                     return $jo->department ? $jo->department->name : '-';
                 })
                 ->addColumn('start_date', function ($jo) {
@@ -65,6 +86,46 @@ class JobOrderController extends Controller
                         return '<span data-bs-toggle="tooltip" title="' . htmlspecialchars($jo->notes) . '">' . \Str::limit($jo->notes, 30) . '</span>';
                     }
                     return '-';
+                })
+                ->addColumn('countdown_display', function ($jo) {
+                    // Priority: Show "Delivered" status if job is delivered
+                    if ($jo->isDelivered()) {
+                        return '<span class="badge bg-success" title="Job has been delivered"><i class="fas fa-check-circle me-1"></i>Delivered</span>';
+                    }
+
+                    if (!$jo->delivery_date) {
+                        return '-';
+                    }
+
+                    $daysUntil = $jo->days_until_delivery;
+
+                    if ($daysUntil === null) {
+                        return '<span class="text-muted">' . $jo->delivery_date->format('Y-m-d') . '</span>';
+                    }
+
+                    // Overdue
+                    if ($daysUntil < 0) {
+                        $overdueDays = abs($daysUntil);
+                        return '<span class="badge bg-dark" title="Overdue by ' . $overdueDays . ' days"><i class="fas fa-times-circle me-1"></i>Overdue (' . $overdueDays . 'd)</span>';
+                    }
+
+                    // Today
+                    if ($daysUntil === 0) {
+                        return '<span class="badge bg-danger" title="Delivery today!"><i class="fas fa-exclamation-triangle me-1"></i>Today</span>';
+                    }
+
+                    $displayText = $daysUntil . ' days left';
+
+                    // Warning badges for urgent deliveries
+                    if ($daysUntil == 1) {
+                        return '<span class="badge bg-danger" title="Urgent: 1 day left!"><i class="fas fa-exclamation-triangle me-1"></i>' . $displayText . '</span>';
+                    } elseif ($daysUntil == 2) {
+                        return '<span class="badge bg-warning text-dark" title="Warning: 2 days left"><i class="fas fa-exclamation-circle me-1"></i>' . $displayText . '</span>';
+                    } elseif ($daysUntil <= 5) {
+                        return '<span class="badge bg-info" title="' . $daysUntil . ' days remaining">' . $displayText . '</span>';
+                    }
+
+                    return '<span class="text-muted">' . $displayText . '</span>';
                 })
                 ->addColumn('actions', function ($jo) {
                     $actions = '<div class="btn-group btn-group-sm" role="group">';
@@ -104,7 +165,7 @@ class JobOrderController extends Controller
                     $actions .= '</div>';
                     return $actions;
                 })
-                ->rawColumns(['description', 'notes', 'actions'])
+                ->rawColumns(['description', 'notes', 'countdown_display', 'department_name', 'actions'])
                 ->make(true);
         }
 
@@ -132,6 +193,8 @@ class JobOrderController extends Controller
             'name' => 'required|string|max:255',
             'project_id' => 'required|exists:projects,id',
             'department_id' => 'required|exists:departments,id',
+            'department_ids' => 'nullable|array', // NEW: Multiple departments
+            'department_ids.*' => 'exists:departments,id',
             'description' => 'nullable|string',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
@@ -143,8 +206,17 @@ class JobOrderController extends Controller
         // ID sudah otomatis digenerate oleh model
         $validated['created_by'] = Auth::id();
 
+        // Extract department_ids untuk pivot sync
+        $departmentIds = $validated['department_ids'] ?? [];
+        unset($validated['department_ids']);
+
         // Simpan
         $jobOrder = JobOrder::create($validated);
+
+        // Sync multiple departments via pivot table
+        if (!empty($departmentIds)) {
+            $jobOrder->departments()->sync($departmentIds);
+        }
 
         return redirect()
             ->route('job-orders.index')
@@ -161,7 +233,7 @@ class JobOrderController extends Controller
     // EDIT - Form edit
     public function edit($id)
     {
-        $jobOrder = JobOrder::findOrFail($id);
+        $jobOrder = JobOrder::with('departments')->findOrFail($id);
         $projects = Project::orderBy('name')->get(['id', 'name']);
         $departments = Department::orderBy('name')->get(['id', 'name']);
 
@@ -177,6 +249,8 @@ class JobOrderController extends Controller
             'name' => 'required|string|max:255',
             'project_id' => 'required|exists:projects,id',
             'department_id' => 'required|exists:departments,id',
+            'department_ids' => 'nullable|array', // NEW: Multiple departments
+            'department_ids.*' => 'exists:departments,id',
             'description' => 'nullable|string',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
@@ -185,7 +259,19 @@ class JobOrderController extends Controller
             'standard_time_per_unit' => 'nullable|numeric|min:0',
         ]);
 
+        // Extract department_ids untuk pivot sync
+        $departmentIds = $validated['department_ids'] ?? [];
+        unset($validated['department_ids']);
+
         $jobOrder->update($validated);
+
+        // Sync multiple departments via pivot table
+        if (!empty($departmentIds)) {
+            $jobOrder->departments()->sync($departmentIds);
+        } else {
+            // If no additional departments selected, detach all
+            $jobOrder->departments()->detach();
+        }
 
         return redirect()
             ->route('job-orders.index')

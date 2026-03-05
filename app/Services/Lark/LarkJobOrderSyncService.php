@@ -81,6 +81,10 @@ class LarkJobOrderSyncService
                     // Validate
                     $this->transformer->validate($data);
 
+                    // Extract department IDs for pivot sync (remove from main data)
+                    $departmentIds = $data['_department_ids'] ?? [];
+                    unset($data['_department_ids']);
+
                     // Upsert to database with source tracking
                     $jobOrder = JobOrder::updateOrCreate(
                         ['lark_record_id' => $dto->recordId],
@@ -89,6 +93,19 @@ class LarkJobOrderSyncService
                             'last_sync_at' => now(),
                         ]),
                     );
+
+                    // Sync departments via pivot table (many-to-many)
+                    if (!empty($departmentIds)) {
+                        $jobOrder->departments()->sync($departmentIds);
+
+                        Log::debug('Job Order departments synced', [
+                            'job_order_id' => $jobOrder->id,
+                            'department_ids' => $departmentIds,
+                        ]);
+                    } else {
+                        // If no departments from Lark, detach all
+                        $jobOrder->departments()->detach();
+                    }
 
                     if ($jobOrder->wasRecentlyCreated) {
                         $stats['created']++;
@@ -100,6 +117,7 @@ class LarkJobOrderSyncService
                         'lark_record_id' => $dto->recordId,
                         'job_order_id' => $jobOrder->id,
                         'action' => $jobOrder->wasRecentlyCreated ? 'created' : 'updated',
+                        'countdown_days' => $jobOrder->countdown_days,
                     ]);
                 } catch (\Exception $e) {
                     $stats['errors']++;
