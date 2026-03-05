@@ -486,8 +486,34 @@
                 $('#previous-progress-display').text(previousProgress);
                 $('#current-progress-display').text(previousProgress);
 
-                // Reset stage selection dropdown
+                // Calculate current stage from progress (progress / 10)
+                const currentStage = Math.floor(previousProgress / 10);
+
+                // Reset and enable/disable stage options based on current progress
                 $('#stop-stage').val('').trigger('change');
+                $('#stop-stage option').each(function() {
+                    const optionValue = parseInt($(this).val());
+                    if (optionValue && optionValue <= currentStage) {
+                        // Disable stages that are already completed
+                        $(this).prop('disabled', true);
+                        $(this).text($(this).text().replace(' (Completed)', '') + ' (Completed)');
+                    } else {
+                        // Enable future stages
+                        $(this).prop('disabled', false);
+                        $(this).text($(this).text().replace(' (Completed)', ''));
+                    }
+                });
+
+                // Add info message
+                if (currentStage > 0) {
+                    $('#stop-session-info').append(
+                        `<div class="alert alert-warning mt-2 mb-0">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Current progress is at stage ${currentStage} (${previousProgress}%).
+                            You can only select stage ${currentStage + 1} or higher.
+                        </div>`
+                    );
+                }
 
                 // Update current progress when stage changes
                 $('#stop-stage').off('change').on('change', function() {

@@ -315,15 +315,31 @@
                         <div class="alert alert-info">
                             <h6><i class="bi bi-info-circle me-1"></i>Import Guidelines:</h6>
                             <ul class="mb-0 small">
-                                <li>Download the template first to see the required format</li>
-                                <li><strong>Date format:</strong> YYYY-MM-DD (e.g., 2024-01-15)</li>
-                                <li><strong>Time format:</strong> HH:MM or HH:mm (e.g., 08:30, 13:45)</li>
-                                <li><strong>Status:</strong> complete, on progress, or pending</li>
-                                <li><strong>Project and Employee:</strong> names must exist in the system</li>
-                                <li><strong>Department:</strong> should match the project's department</li>
-                                <li><strong>Parts:</strong> required for projects that have parts</li>
-                                <li><strong>Important:</strong> Ensure time columns are formatted as TEXT in Excel, not TIME
-                                    format</li>
+                                <li>Download the template first to see the required format and detailed instructions</li>
+                                <li><strong>Required Fields:</strong>
+                                    <ul>
+                                        <li><strong>Date:</strong> DD/MM/YYYY or DD-MM-YYYY (e.g., 15/01/2024, 15-01-2024)
+                                        </li>
+                                        <li><strong>Job Order OR Project:</strong> At least ONE must be filled (names must
+                                            exist in system)</li>
+                                        <li><strong>Department:</strong> Must match existing department name exactly</li>
+                                        <li><strong>Employee:</strong> Must match existing employee name exactly</li>
+                                        <li><strong>Start & End Time:</strong> HH:MM in 24-hour format (e.g., 08:00, 13:30)
+                                        </li>
+                                    </ul>
+                                </li>
+                                <li><strong>Optional Fields:</strong> step, parts, value, type, status, approval, remarks
+                                </li>
+                                <li><strong>Duration:</strong> Auto-calculated from start and end time (leave empty)</li>
+                                <li><strong>Important Notes:</strong>
+                                    <ul>
+                                        <li>If both job_order and project provided, system uses job_order's project</li>
+                                        <li>Date formats supported: DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD</li>
+                                        <li>Time must be in 24-hour format (not AM/PM)</li>
+                                        <li>Ensure date and time columns are formatted as TEXT in Excel, not DATE/TIME
+                                            format</li>
+                                    </ul>
+                                </li>
                             </ul>
                         </div>
 

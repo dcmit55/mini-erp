@@ -175,6 +175,16 @@
                                                     @endif
                                                 </div>
                                             </div>
+
+                                            <!-- Stop Work Button -->
+                                            <div class="border-top pt-2 mt-2">
+                                                <button class="btn btn-danger btn-sm w-5 stop-work-btn"
+                                                    data-timing-id="{{ $session->id }}"
+                                                    data-employee-name="{{ $session->employee->name }}"
+                                                    data-job-order="{{ $session->jobOrder->name ?? 'N/A' }}">
+                                                    <i class="bi bi-stop-circle me-1"></i>STOP WORK
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -195,6 +205,59 @@
                 </div>
             </div>
         @endif
+    </div>
+
+    <!-- Stop Work Modal -->
+    <div class="modal fade" id="stopWorkModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title"><i class="bi bi-stop-circle me-2"></i>Stop Work Session</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="stop-work-form">
+                    <div class="modal-body">
+                        <div id="stop-session-info" class="alert alert-info mb-3"></div>
+
+                        <!-- Measurement Type Selection -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                Measurement Type
+                                <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select" id="stop-measurement-type" name="measurement_type" required>
+                                <option value="qty">Qty</option>
+                                <option value="pcs" selected>Pcs</option>
+                                <option value="unit">Unit</option>
+                                <option value="piece">Piece</option>
+                                <option value="item">Item</option>
+                                <option value="set">Set</option>
+                                <option value="meter">Meter</option>
+                                <option value="cm">Cm</option>
+                                <option value="kg">Kg</option>
+                                <option value="gram">Gram</option>
+                            </select>
+                            <small class="text-muted">Select measurement unit for output quantity</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Output Quantity <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control form-control-lg" id="stop-output-qty"
+                                name="output_qty" min="0" step="0.1" value="1" required>
+                            <small class="text-muted">Enter the total quantity produced during this session</small>
+                        </div>
+
+                        <input type="hidden" id="stop-timing-id" name="timing_id">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-stop-circle me-1"></i>Stop & Save
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
     <style>
@@ -296,6 +359,90 @@
 
             // Auto-refresh every 30 seconds
             setInterval(refreshData, 30000);
+
+            // Stop work handler
+            $(document).on('click', '.stop-work-btn', function() {
+                const timingId = $(this).data('timing-id');
+                const employeeName = $(this).data('employee-name');
+                const jobOrder = $(this).data('job-order');
+
+                if (timingId) {
+                    $('#stop-timing-id').val(timingId);
+                    $('#stop-session-info').html(`
+                        <strong>Employee:</strong> ${employeeName}<br>
+                        <strong>Job Order:</strong> ${jobOrder}
+                    `);
+                    $('#stop-output-qty').val(1).focus();
+                    $('#stopWorkModal').modal('show');
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Cannot identify timing session. Please refresh the page.'
+                    });
+                }
+            });
+
+            // Stop work form submission
+            $('#stop-work-form').on('submit', function(e) {
+                e.preventDefault();
+
+                const timingId = $('#stop-timing-id').val();
+                const outputQty = parseFloat($('#stop-output-qty').val());
+                const measurementType = $('#stop-measurement-type').val();
+
+                if (!outputQty || outputQty < 0) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Invalid Quantity',
+                        text: 'Please enter a valid output quantity'
+                    });
+                    return;
+                }
+
+                $.ajax({
+                    url: '{{ route('costume-timing.stop') }}',
+                    method: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        timing_id: timingId,
+                        output_qty: outputQty,
+                        measurement_type: measurementType
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            $('#stopWorkModal').modal('hide');
+
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Work Completed!',
+                                text: response.message,
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+
+                            // Remove the specific card
+                            $(`#session-${timingId}`).fadeOut(300, function() {
+                                $(this).remove();
+                            });
+
+                            // Reload page after delay
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 2000);
+                        }
+                    },
+                    error: function(xhr) {
+                        const message = xhr.responseJSON?.message ||
+                            'Failed to stop work session.';
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: message
+                        });
+                    }
+                });
+            });
         });
     </script>
 @endsection

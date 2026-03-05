@@ -51,7 +51,7 @@
                 <!-- filter form -->
                 <div class="mb-3">
                     <form id="filter-form" class="row g-1">
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <select id="filter-project" name="project" class="form-select form-select-sm select2">
                                 <option value="">All Projects</option>
                                 @foreach ($projects as $project)
@@ -59,11 +59,19 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <select id="filter-department" name="department" class="form-select form-select-sm select2">
                                 <option value="">All Departments</option>
                                 @foreach ($departments as $department)
                                     <option value="{{ $department->id }}">{{ $department->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <select id="filter-status" name="status" class="form-select form-select-sm select2">
+                                <option value="">All Status</option>
+                                @foreach ($statuses as $status)
+                                    <option value="{{ $status }}">{{ $status }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -139,6 +147,7 @@
                     data: function(d) {
                         d.project = $('#filter-project').val();
                         d.department = $('#filter-department').val();
+                        d.status = $('#filter-status').val();
                         d.custom_search = $('#custom-search').val();
                     },
                     error: function(xhr, error, thrown) {
@@ -244,11 +253,11 @@
                 table.draw();
             }, 300);
 
-            $('#filter-project, #filter-department, #custom-search')
+            $('#filter-project, #filter-department, #filter-status, #custom-search')
                 .on('change input', debouncedFilter);
 
             $('#reset-filters').on('click', function() {
-                $('#filter-project, #filter-department, #custom-search')
+                $('#filter-project, #filter-department, #filter-status, #custom-search')
                     .val('').trigger('change');
                 table.draw();
             });
@@ -259,6 +268,7 @@
                 const params = {
                     project: $('#filter-project').val(),
                     department: $('#filter-department').val(),
+                    status: $('#filter-status').val(),
                     search: $('#custom-search').val()
                 };
                 const query = $.param(params);
@@ -276,6 +286,7 @@
 
             $('#filter-project').attr('data-placeholder', 'All Projects');
             $('#filter-department').attr('data-placeholder', 'All Departments');
+            $('#filter-status').attr('data-placeholder', 'All Status');
 
             // Delete Confirmation
             $(document).on('click', '.btn-delete', function(e) {

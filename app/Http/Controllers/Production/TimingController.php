@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Production\Timing;
 use App\Models\Production\Project;
+use App\Models\Production\JobOrder;
 use App\Models\Hr\Employee;
 use App\Models\Admin\Department;
 use Illuminate\Http\Request;
@@ -375,32 +376,40 @@ class TimingController extends Controller
                     continue;
                 }
 
-                // Map columns - Sinkron dengan urutan file import: date, project, department, step, part, employee, start, end, qty, status, remark
+                // Map columns - NEW ORDER: date, job_order, project, department, step, parts, employee, start, end, duration, value, type, status, approval, remarks
                 $tanggal = $row[0] ?? null;
-                $projectName = $row[1] ?? null;
-                $departmentName = $row[2] ?? null;
-                $step = $row[3] ?? null;
-                $parts = $row[4] ?? null;
-                $employeeName = $row[5] ?? null;
-                $startTime = $row[6] ?? null;
-                $endTime = $row[7] ?? null;
-                $outputQty = $row[8] ?? null;
-                $status = $row[9] ?? null;
-                $remarks = $row[10] ?? null;
+                $jobOrderName = $row[1] ?? null;
+                $projectName = $row[2] ?? null;
+                $departmentName = $row[3] ?? null;
+                $step = $row[4] ?? null;
+                $parts = $row[5] ?? null;
+                $employeeName = $row[6] ?? null;
+                $startTime = $row[7] ?? null;
+                $endTime = $row[8] ?? null;
+                // $duration = $row[9] ?? null; // Auto-calculated, ignore from import
+                $measurementValue = $row[10] ?? null;
+                $measurementType = $row[11] ?? null;
+                $status = $row[12] ?? null;
+                $approvalStatus = $row[13] ?? null;
+                $remarks = $row[14] ?? null;
 
                 // Validate required fields
                 if (empty($tanggal)) {
                     $errors[] = "Row {$rowIndex}: Date is required";
                     continue;
                 }
-                if (empty($projectName)) {
-                    $errors[] = "Row {$rowIndex}: Project Name is required";
+
+                // Validate: At least one of job_order or project is required
+                if (empty($jobOrderName) && empty($projectName)) {
+                    $errors[] = "Row {$rowIndex}: Either Job Order or Project is required";
                     continue;
                 }
-                if (empty($step)) {
-                    $errors[] = "Row {$rowIndex}: Step is required";
+
+                if (empty($departmentName)) {
+                    $errors[] = "Row {$rowIndex}: Department is required";
                     continue;
                 }
+
                 if (empty($employeeName)) {
                     $errors[] = "Row {$rowIndex}: Employee Name is required";
                     continue;
@@ -413,39 +422,87 @@ class TimingController extends Controller
                     $errors[] = "Row {$rowIndex}: End Time is required";
                     continue;
                 }
-                if (empty($outputQty) || !is_numeric($outputQty)) {
-                    $errors[] = "Row {$rowIndex}: Output Qty must be a valid number";
-                    continue;
-                }
-                if (empty($status) || !in_array($status, ['complete', 'on progress', 'pending'])) {
-                    $errors[] = "Row {$rowIndex}: Status must be one of: complete, on progress, pending";
-                    continue;
-                }
 
-                // Validate date format
+                // Validate date format - Handle multiple formats including DD/MM/YYYY, DD-MM-YYYY
                 try {
-                    $parsedDate = Carbon::parse($tanggal)->format('Y-m-d');
+                    $parsedDate = null;
+
+                    // Handle Excel serial date number (e.g., 44941 for 2023-01-15)
+                    if (is_numeric($tanggal) && $tanggal > 25569) {
+                        // Excel date: days since 1900-01-01
+                        $parsedDate = Carbon::createFromFormat('Y-m-d', '1900-01-01')
+                            ->addDays($tanggal - 2) // -2 for Excel leap year bug
+                            ->format('Y-m-d');
+                    } else {
+                        // Try different date formats
+                        $dateFormats = [
+                            'd/m/Y', // 15/01/2024
+                            'd-m-Y', // 15-01-2024
+                            'd/m/y', // 15/01/24
+                            'd-m-y', // 15-01-24
+                            'Y-m-d', // 2024-01-15
+                            'Y/m/d', // 2024/01/15
+                            'm/d/Y', // 01/15/2024
+                            'm-d-Y', // 01-15-2024
+                        ];
+
+                        foreach ($dateFormats as $format) {
+                            try {
+                                $date = Carbon::createFromFormat($format, $tanggal);
+                                if ($date && $date->format($format) == $tanggal) {
+                                    $parsedDate = $date->format('Y-m-d');
+                                    break;
+                                }
+                            } catch (\Exception $e) {
+                                continue;
+                            }
+                        }
+
+                        // If still not parsed, try Carbon::parse as last resort
+                        if (!$parsedDate) {
+                            $parsedDate = Carbon::parse($tanggal)->format('Y-m-d');
+                        }
+                    }
                 } catch (\Exception $e) {
-                    $errors[] = "Row {$rowIndex}: Invalid date format";
+                    $errors[] = "Row {$rowIndex}: Invalid date format '{$tanggal}'. Supported: DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD";
                     continue;
                 }
 
-                // Find Project with department relationship
-                $project = Project::with('departments')->where('name', $projectName)->first();
+                // Find Job Order if provided
+                $jobOrder = null;
+                if (!empty($jobOrderName)) {
+                    $jobOrder = JobOrder::where('name', $jobOrderName)->first();
+                    if (!$jobOrder) {
+                        $errors[] = "Row {$rowIndex}: Job Order '{$jobOrderName}' not found";
+                        continue;
+                    }
+                }
+
+                // Find Project if provided (or use job order's project)
+                $project = null;
+                if (!empty($projectName)) {
+                    $project = Project::with('departments')->where('name', $projectName)->first();
+                    if (!$project) {
+                        $errors[] = "Row {$rowIndex}: Project '{$projectName}' not found";
+                        continue;
+                    }
+                } elseif ($jobOrder && $jobOrder->project_id) {
+                    // If no project but have job order, use job order's project
+                    $project = Project::with('departments')->find($jobOrder->project_id);
+                }
+
+                // Validate we have at least project
                 if (!$project) {
-                    $errors[] = "Row {$rowIndex}: Project '{$projectName}' not found";
+                    $errors[] = "Row {$rowIndex}: Could not determine project from provided data";
                     continue;
                 }
 
-                // Get department from project
-                $projectDepartments = $project->departments;
-                if ($projectDepartments->isEmpty()) {
-                    $errors[] = "Row {$rowIndex}: Project '{$projectName}' does not have department(s) assigned";
+                // Find Department
+                $department = Department::where('name', $departmentName)->first();
+                if (!$department) {
+                    $errors[] = "Row {$rowIndex}: Department '{$departmentName}' not found";
                     continue;
                 }
-
-                // Ambil department pertama atau gabung semua
-                $projectDepartment = $projectDepartments->pluck('name')->implode(', ');
 
                 // Find Employee
                 $employee = Employee::where('name', $employeeName)->first();
@@ -458,16 +515,6 @@ class TimingController extends Controller
                 if ($employee->status !== 'active') {
                     $errors[] = "Row {$rowIndex}: Employee '{$employeeName}' is not active";
                     continue;
-                }
-
-                // Department will be taken from project, not from import data or employee
-                // Note: Department is not stored in timings table, it's accessed via project relationship
-                if (!empty($departmentName)) {
-                    // Check if provided department matches any of project's departments
-                    $departmentExists = $projectDepartments->pluck('name')->contains($departmentName);
-                    if (!$departmentExists) {
-                        $warnings[] = "Row {$rowIndex}: Department '{$departmentName}' from import will be ignored. Using project departments: {$projectDepartment}";
-                    }
                 }
 
                 // Validate and parse time format with detailed error messages
@@ -507,16 +554,26 @@ class TimingController extends Controller
                     }
                 }
 
-                // Check if project has parts and parts is required
-                $projectsWithParts = Project::has('parts')->pluck('id')->toArray();
-                if (in_array($project->id, $projectsWithParts) && empty($parts)) {
-                    $errors[] = "Row {$rowIndex}: Parts is required for project '{$projectName}'";
+                // Validate status if provided
+                if (!empty($status) && !in_array($status, ['complete', 'on progress', 'pending'])) {
+                    $errors[] = "Row {$rowIndex}: Status must be one of: complete, on progress, pending";
                     continue;
                 }
 
-                // If project doesn't have parts, set default
-                if (!in_array($project->id, $projectsWithParts)) {
-                    $parts = 'No Part';
+                // Set default status if empty
+                if (empty($status)) {
+                    $status = 'pending';
+                }
+
+                // Validate approval status if provided
+                if (!empty($approvalStatus) && !in_array($approvalStatus, ['pending', 'approved', 'rejected'])) {
+                    $errors[] = "Row {$rowIndex}: Approval status must be one of: pending, approved, rejected";
+                    continue;
+                }
+
+                // Set default approval status if empty
+                if (empty($approvalStatus)) {
+                    $approvalStatus = 'pending';
                 }
 
                 // Create timing record
@@ -532,14 +589,17 @@ class TimingController extends Controller
 
                     $timing = Timing::create([
                         'tanggal' => $parsedDate,
+                        'job_order_id' => $jobOrder ? $jobOrder->id : null,
                         'project_id' => $project->id,
                         'step' => $step,
-                        'parts' => $parts,
+                        'parts' => $parts ?? 'No Part',
                         'employee_id' => $employee->id,
                         'start_time' => $startTimeParsed,
                         'end_time' => $endTimeParsed,
-                        'output_qty' => $outputQty,
+                        'measurement_value' => $measurementValue ?? 0,
+                        'measurement_type' => $measurementType ?? 'pcs',
                         'status' => $status,
+                        'approval_status' => $approvalStatus,
                         'remarks' => $remarks,
                     ]);
 

@@ -45,6 +45,8 @@ class JobOrderObserver
         }
 
         // CRITICAL BUSINESS LOGIC: Auto goods-out when status becomes "Delivered"
+        // COMMENTED OUT - UNDER REVISION
+        /*
         if ($jobOrder->wasChanged('status')) {
             $oldStatus = $jobOrder->getOriginal('status');
             $newStatus = $jobOrder->status;
@@ -79,6 +81,7 @@ class JobOrderObserver
                 }
             }
         }
+        */
     }
 
     /**

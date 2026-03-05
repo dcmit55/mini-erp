@@ -176,6 +176,18 @@
                                                     </div>
                                                 </div>
                                             </div>
+
+                                            <!-- Stop Work Button -->
+                                            <div class="border-top pt-2 mt-2">
+                                                <button class="btn btn-warning btn-sm w-100 stop-work-btn"
+                                                    data-timing-id="{{ $session->id }}"
+                                                    data-employee-name="{{ $session->employee->name }}"
+                                                    data-job-order="{{ $session->jobOrder->name ?? 'N/A' }}"
+                                                    data-job-order-id="{{ $session->job_order_id }}"
+                                                    data-previous-progress="{{ $session->jobOrder->current_progress ?? 0 }}">
+                                                    <i class="bi bi-stop-circle me-1"></i>STOP WORK & SELECT STAGE
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -196,6 +208,65 @@
                 </div>
             </div>
         @endif
+    </div>
+
+    <!-- Stop Work Modal with Stage Selection -->
+    <div class="modal fade" id="stopWorkModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title"><i class="bi bi-stop-circle me-2"></i>Complete Work Session</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="stop-work-form">
+                    <div class="modal-body">
+                        @csrf
+                        <input type="hidden" id="stop-timing-id" name="timing_id">
+                        <input type="hidden" id="stop-job-order-id" name="job_order_id">
+
+                        <!-- Session Info -->
+                        <div id="stop-session-info" class="alert alert-info mb-3"></div>
+
+                        <!-- Stage Selection Dropdown (1-10) -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                Select Stage Completed <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select form-select-lg" id="stop-stage" name="stage" required>
+                                <option value="">Choose stage...</option>
+                                <option value="1">Design & Prototyping</option>
+                                <option value="2">Structure Approval</option>
+                                <option value="3">Structure & Sample</option>
+                                <option value="4">Visual Review & Paint Prep</option>
+                                <option value="5">Adjustment & Finishing (Structure)</option>
+                                <option value="6">Final Structure Approval</option>
+                                <option value="7">Wrapping & Painting</option>
+                                <option value="8">Wrapping Approval</option>
+                                <option value="9">Finishing & Approval</option>
+                                <option value="10">Final QC & Shipping</option>
+                            </select>
+                            <small class="text-muted">Each stage represents 10% progress increment. Select the stage you've
+                                just completed.</small>
+                        </div>
+
+                        <!-- Progress Info -->
+                        <div class="mb-3">
+                            <div class="alert alert-success mb-0">
+                                <strong>Previous Progress:</strong> <span id="previous-progress-display">0</span>%<br>
+                                <strong>Will be updated to:</strong> <span id="current-progress-display"
+                                    class="text-primary fw-bold">0</span>%
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-warning" id="stop-submit-btn">
+                            <i class="bi bi-stop-circle me-1"></i>Stop & Save
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
     <style>
@@ -297,6 +368,129 @@
 
             // Auto-refresh every 30 seconds
             setInterval(refreshData, 30000);
+
+            // Stop work button click handler
+            $(document).on('click', '.stop-work-btn', function() {
+                const timingId = $(this).data('timing-id');
+                const employeeName = $(this).data('employee-name');
+                const jobOrder = $(this).data('job-order');
+                const jobOrderId = $(this).data('job-order-id');
+                const previousProgress = $(this).data('previous-progress') || 0;
+
+                $('#stop-timing-id').val(timingId);
+                $('#stop-job-order-id').val(jobOrderId);
+                $('#stop-session-info').html(
+                    `<strong>Employee:</strong> ${employeeName}<br>
+                     <strong>Job Order:</strong> ${jobOrder}`
+                );
+
+                // Display previous progress
+                $('#previous-progress-display').text(previousProgress);
+                $('#current-progress-display').text(previousProgress);
+
+                // Calculate current stage from progress (progress / 10)
+                const currentStage = Math.floor(previousProgress / 10);
+
+                // Reset and enable/disable stage options based on current progress
+                $('#stop-stage').val('').trigger('change');
+                $('#stop-stage option').each(function() {
+                    const optionValue = parseInt($(this).val());
+                    if (optionValue && optionValue <= currentStage) {
+                        // Disable stages that are already completed
+                        $(this).prop('disabled', true);
+                        $(this).text($(this).text().replace(' (Completed)', '') + ' (Completed)');
+                    } else {
+                        // Enable future stages
+                        $(this).prop('disabled', false);
+                        $(this).text($(this).text().replace(' (Completed)', ''));
+                    }
+                });
+
+                // Add info message
+                if (currentStage > 0) {
+                    $('#stop-session-info').append(
+                        `<div class="alert alert-warning mt-2 mb-0">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Current progress is at stage ${currentStage} (${previousProgress}%).
+                            You can only select stage ${currentStage + 1} or higher.
+                        </div>`
+                    );
+                }
+
+                // Update current progress when stage changes
+                $('#stop-stage').off('change').on('change', function() {
+                    const stage = parseInt($(this).val()) || 0;
+                    const newProgress = stage * 10;
+                    $('#current-progress-display').text(newProgress);
+                });
+
+                $('#stopWorkModal').modal('show');
+            });
+
+            // Stop work form submission
+            $('#stop-work-form').on('submit', function(e) {
+                e.preventDefault();
+
+                const timingId = $('#stop-timing-id').val();
+                const stage = parseInt($('#stop-stage').val());
+
+                if (!stage || stage < 1 || stage > 10) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Stage Required',
+                        text: 'Please select a stage (1-10)'
+                    });
+                    return;
+                }
+
+                // Disable submit button
+                const submitBtn = $('#stop-submit-btn');
+                submitBtn.prop('disabled', true).html(
+                    '<i class="spinner-border spinner-border-sm me-1"></i>Saving...');
+
+                $.ajax({
+                    url: '{{ route('mascot-timing.stop') }}',
+                    method: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        timing_id: timingId,
+                        stage: parseInt(stage)
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            $('#stopWorkModal').modal('hide');
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Work Completed!',
+                                text: response.message,
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+
+                            // Remove session card
+                            $(`#session-${timingId}`).fadeOut(300, function() {
+                                $(this).remove();
+                            });
+
+                            // Reload page after delay
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 2000);
+                        }
+                    },
+                    error: function(xhr) {
+                        const message = xhr.responseJSON?.message ||
+                            'Failed to complete work session.';
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: message
+                        });
+                        submitBtn.prop('disabled', false).html(
+                            '<i class="bi bi-stop-circle me-1"></i>Stop & Save');
+                    }
+                });
+            });
         });
     </script>
 @endsection
