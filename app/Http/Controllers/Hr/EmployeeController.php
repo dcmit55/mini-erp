@@ -16,7 +16,7 @@ class EmployeeController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('auth');
+        $this->middleware('auth')->except('getLeaveBalance');
 
         // Admin HR, Super Admin, dan Admin (read-only) bisa akses
         $this->middleware(function ($request, $next) {
@@ -25,7 +25,7 @@ class EmployeeController extends Controller
                 abort(403, 'Unauthorized access to HR module.');
             }
             return $next($request);
-        });
+        })->except('getLeaveBalance');
     }
 
     /**

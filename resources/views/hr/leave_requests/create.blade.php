@@ -43,7 +43,8 @@
                                 @foreach ($employees as $emp)
                                     <option value="{{ $emp->id }}" data-department="{{ $emp->department->name ?? '' }}"
                                         data-position="{{ $emp->position ?? '' }}"
-                                        data-hiredate="{{ $emp->hire_date ? \Carbon\Carbon::parse($emp->hire_date)->format('d-m-Y') : '' }}">
+                                        data-hiredate="{{ $emp->hire_date ? \Carbon\Carbon::parse($emp->hire_date)->format('d-m-Y') : '' }}"
+                                        data-saldo="{{ $emp->saldo_cuti ?? 0 }}">
                                         {{ $emp->name }}
                                     </option>
                                 @endforeach
@@ -107,7 +108,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="row ">
+<div class="row ">
                         <div class="col-lg-12 mb-3">
                             <label class="form-label">Reason</label>
                             <textarea name="reason" class="form-control" rows="4"></textarea>
@@ -208,6 +209,7 @@
             $('#department').val(selected.getAttribute('data-department') || '');
             $('#position').val(selected.getAttribute('data-position') || '');
             $('#hire_date').val(selected.getAttribute('data-hiredate') || '');
+            updateAnnualBalanceDisplay();
         });
 
         // Leave type change handler - Auto calculate dates for fixed-day types
@@ -314,6 +316,42 @@
             $('[data-bs-toggle="tooltip"]').tooltip();
         });
 
+        function getSelectedSaldo() {
+            const selectedOption = $('#employee_id option:selected');
+            return parseFloat(selectedOption.attr('data-saldo') || 0);
+        }
+
+        function updateAnnualBalanceDisplay() {
+            const employeeId = $('#employee_id').val();
+            const leaveType = $('input[name="type"]:checked').val();
+            const infoElement = $('#leave-balance-info');
+
+            if (employeeId && leaveType === 'ANNUAL') {
+                const balance = getSelectedSaldo();
+                $('#duration').attr('max', balance);
+
+                const currentDuration = parseFloat($('#duration').val());
+                if (currentDuration && currentDuration > balance) {
+                    $('#duration').addClass('is-invalid');
+                    infoElement.html(
+                        `<i class="bi bi-exclamation-triangle text-danger"></i> Exceeds balance! Available: <strong>${balance} days</strong>`
+                    );
+                } else if (currentDuration) {
+                    $('#duration').removeClass('is-invalid');
+                    infoElement.html(
+                        `<i class="bi bi-info-circle"></i> Leave balance: <strong>${balance} days</strong> &mdash; Remaining after leave: <strong>${(balance - currentDuration).toFixed(1)} days</strong>`
+                    );
+                } else {
+                    infoElement.html(
+                        `<i class="bi bi-info-circle"></i> Available leave balance: <strong>${balance} days</strong>`
+                    );
+                }
+            } else {
+                infoElement.html('');
+                $('#duration').removeAttr('max').removeClass('is-invalid');
+            }
+        }
+
         $('#duration').on('input', function() {
             let value = parseFloat($(this).val());
             if ($(this).val().includes('.')) {
@@ -322,75 +360,11 @@
                     $(this).val(parseFloat($(this).val()).toFixed(2));
                 }
             }
-            const employeeId = $('#employee_id').val();
-            const leaveType = $('input[name="type"]:checked').val();
-            const infoElement = $('#leave-balance-info');
-
-            if (employeeId && leaveType === 'ANNUAL' && value) {
-                $.ajax({
-                    url: `/employees/${employeeId}/leave-balance`,
-                    method: 'GET',
-                    success: function(response) {
-                        if (response.success) {
-                            const balance = parseFloat(response.balance);
-                            if (value > balance) {
-                                $('#duration').addClass('is-invalid');
-                                infoElement.html(
-                                    `<i class="bi bi-exclamation-triangle text-danger"></i> Insufficient balance! Available: <strong>${balance} days</strong>`
-                                );
-                            } else {
-                                $('#duration').removeClass('is-invalid');
-                                infoElement.html(
-                                    `<i class="bi bi-info-circle"></i> Available balance: <strong>${balance} days</strong>`
-                                );
-                            }
-                        }
-                    }
-                });
-            }
+            updateAnnualBalanceDisplay();
         });
 
         $('#employee_id, input[name="type"]').on('change', function() {
-            const employeeId = $('#employee_id').val();
-            const leaveType = $('input[name="type"]:checked').val();
-            const infoElement = $('#leave-balance-info');
-
-            if (employeeId && leaveType === 'ANNUAL') {
-                const selectedOption = $('#employee_id option:selected');
-                const employeeName = selectedOption.text();
-                $.ajax({
-                    url: `/employees/${employeeId}/leave-balance`,
-                    method: 'GET',
-                    success: function(response) {
-                        if (response.success) {
-                            infoElement.html(
-                                `<i class="bi bi-info-circle"></i> Available balance: <strong>${response.balance} days</strong>`
-                            );
-                            $('#duration').attr('max', response.balance);
-                            $('#duration').on('input', function() {
-                                const duration = parseFloat($(this).val());
-                                if (duration > response.balance) {
-                                    $(this).addClass('is-invalid');
-                                    infoElement.html(
-                                        `<i class="bi bi-exclamation-triangle text-danger"></i> Insufficient balance! Available: <strong>${response.balance} days</strong>`
-                                    );
-                                } else {
-                                    $(this).removeClass('is-invalid');
-                                    infoElement.html(
-                                        `<i class="bi bi-info-circle"></i> Available balance: <strong>${response.balance} days</strong>`
-                                    );
-                                }
-                            });
-                        }
-                    },
-                    error: function() {
-                        infoElement.html('');
-                    }
-                });
-            } else {
-                infoElement.html('');
-                $('#duration').removeAttr('max').removeClass('is-invalid');
-            }
+            updateAnnualBalanceDisplay();
         });
 
         // Prevent multiple submit & show loading spinner

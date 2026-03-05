@@ -70,6 +70,8 @@ use App\Http\Controllers\Hr\EmployeeWorkPolicyImportController;
 // Leave Requests - Public access ONLY for create & store
 Route::get('leave_requests/create', [LeaveRequestController::class, 'create'])->name('leave_requests.create');
 Route::post('leave_requests', [LeaveRequestController::class, 'store'])->name('leave_requests.store');
+// Employee leave balance - public agar guest bisa melihat sisa cuti saat form create
+Route::get('/employees/{employee}/leave-balance', [EmployeeController::class, 'getLeaveBalance'])->name('employees.leave-balance.public');
 
 Auth::routes([
     'reset' => false,
@@ -347,9 +349,6 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/skillsets/store', [App\Http\Controllers\Hr\SkillsetController::class, 'store'])->name('skillsets.store');
     Route::get('/skillsets/json', [App\Http\Controllers\Hr\SkillsetController::class, 'json'])->name('skillsets.json');
     Route::get('/skillsets/search', [App\Http\Controllers\Hr\SkillsetController::class, 'search'])->name('skillsets.search');
-
-    // Employee leave balance check - Authenticated only
-    Route::get('/employees/{employee}/leave-balance', [EmployeeController::class, 'getLeaveBalance'])->name('employees.leave-balance');
 
     // Leave Request - Authenticated only
     Route::get('leave_requests', [LeaveRequestController::class, 'index'])->name('leave_requests.index');
