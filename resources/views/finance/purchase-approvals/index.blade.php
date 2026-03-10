@@ -159,6 +159,28 @@
             </div>
             @endif
 
+            <!-- Bulk Action Toolbar -->
+            <div id="bulkActionBar" class="card border-0 shadow-sm rounded-3 mb-3 d-none">
+                <div class="card-body p-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="text-dark fw-medium">
+                            <span id="selectedCount">0</span> PO(s) selected
+                        </span>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-success btn-sm rounded-2 px-3" id="bulkApproveBtn">
+                                <i class="fas fa-check me-1"></i> Approve All
+                            </button>
+                            <button type="button" class="btn btn-danger btn-sm rounded-2 px-3" id="bulkRejectBtn">
+                                <i class="fas fa-times me-1"></i> Reject All
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm rounded-2 px-3" id="clearSelectionBtn">
+                                <i class="fas fa-ban me-1"></i> Clear Selection
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Purchases Table -->
             <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
                 <div class="card-body p-0">
@@ -175,6 +197,11 @@
                             <table class="table table-hover mb-0">
                                 <thead class="bg-light">
                                     <tr>
+                                        <th class="border-0 small text-dark fw-medium px-3 py-2 text-center" style="width: 100px;">
+                                            <button type="button" class="btn btn-outline-secondary btn-sm rounded-2 px-2 py-1" id="selectAllBtn" style="font-size:0.75rem; white-space:nowrap;">
+                                                <i class="fas fa-check-square me-1"></i> Select All
+                                            </button>
+                                        </th>
                                         <th class="border-0 small text-dark fw-medium px-3 py-2 text-center" style="width: 50px;">No</th>
                                         <th class="border-0 small text-dark fw-medium px-3 py-2">PO Number</th>
                                         <th class="border-0 small text-dark fw-medium px-3 py-2">Date</th>
@@ -192,7 +219,12 @@
                                         $startNumber = ($purchases->currentPage() - 1) * $purchases->perPage() + 1;
                                     @endphp
                                     @foreach($purchases as $index => $purchase)
-                                    <tr class="border-top">
+                                    <tr class="border-top purchase-row" data-po="{{ $purchase['po_number'] }}">
+                                        <td class="px-3 py-2 text-center">
+                                            <input type="checkbox" class="form-check-input row-checkbox"
+                                                   value="{{ $purchase['first_item_id'] }}"
+                                                   data-po="{{ $purchase['po_number'] }}">
+                                        </td>
                                         <td class="px-3 py-2 text-center text-muted">
                                             {{ $startNumber + $loop->index }}
                                         </td>
@@ -293,13 +325,23 @@
                         
                         <!-- Pagination -->
                         @if($purchases->hasPages())
-                        <div class="card-footer border-0 bg-light px-3 py-3">
+                        <div class="card-footer border-0 bg-light px-3 py-2">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div class="text-muted small">
                                     Showing {{ $purchases->firstItem() }} to {{ $purchases->lastItem() }} of {{ $purchases->total() }} entries
                                 </div>
-                                <div>
-                                    {{ $purchases->links() }}
+                                <div class="d-flex gap-2 align-items-center">
+                                    @if($purchases->onFirstPage())
+                                        <span class="btn btn-outline-secondary btn-sm rounded-2 px-3 disabled" style="font-size:0.78rem;">Previous</span>
+                                    @else
+                                        <a href="{{ $purchases->previousPageUrl() }}" class="btn btn-outline-primary btn-sm rounded-2 px-3" style="font-size:0.78rem;">Previous</a>
+                                    @endif
+                                    <span class="text-muted small">Page {{ $purchases->currentPage() }} of {{ $purchases->lastPage() }}</span>
+                                    @if($purchases->hasMorePages())
+                                        <a href="{{ $purchases->nextPageUrl() }}" class="btn btn-outline-primary btn-sm rounded-2 px-3" style="font-size:0.78rem;">Next</a>
+                                    @else
+                                        <span class="btn btn-outline-secondary btn-sm rounded-2 px-3 disabled" style="font-size:0.78rem;">Next</span>
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -307,6 +349,71 @@
                     @endif
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Approve Modal -->
+<div class="modal fade" id="bulkApproveModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Bulk Approve Purchase Orders</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="bulkApproveForm" method="POST" action="{{ route('purchase-approvals.bulk-approve') }}">
+                @csrf
+                <div id="bulkApproveHiddenIds"></div>
+                <div class="modal-body">
+                    <div class="alert alert-info py-2">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Approving <strong><span id="bulkApproveCount">0</span> PO(s)</strong> at once.
+                    </div>
+                    <div id="bulkApprovePoList" class="mb-3 small text-muted"></div>
+                    <div class="mb-3">
+                        <label class="form-label">Finance Notes (Optional)</label>
+                        <textarea name="finance_notes" class="form-control" rows="3"
+                                  placeholder="Add notes for these approvals..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-success">Confirm Approve Semua</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Reject Modal -->
+<div class="modal fade" id="bulkRejectModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Bulk Reject Purchase Orders</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="bulkRejectForm" method="POST" action="{{ route('purchase-approvals.bulk-reject') }}">
+                @csrf
+                <div id="bulkRejectHiddenIds"></div>
+                <div class="modal-body">
+                    <div class="alert alert-warning py-2">
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        Rejecting <strong><span id="bulkRejectCount">0</span> PO(s)</strong> at once.
+                    </div>
+                    <div id="bulkRejectPoList" class="mb-3 small text-muted"></div>
+                    <div class="mb-3">
+                        <label class="form-label">Reason for Rejection <span class="text-danger">*</span></label>
+                        <textarea name="finance_notes" class="form-control" rows="4"
+                                  placeholder="Explain why these purchase orders are being rejected..." required minlength="5"></textarea>
+                        <div class="form-text">This reason will be recorded and visible to the requester.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-danger">Confirm Reject Semua</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -539,10 +646,10 @@
         color: #4f46e5;
         border: 1px solid #e2e8f0;
         background-color: #ffffff;
-        min-width: 36px;
+        min-width: 26px;
         text-align: center;
-        padding: 0.25rem 0.5rem;
-        font-size: 0.8rem;
+        padding: 0.15rem 0.35rem;
+        font-size: 0.7rem;
     }
 
     .page-link:hover {
@@ -566,13 +673,9 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Load statistics
     loadStatistics();
-    
-    // Setup button event listeners
     setupEventListeners();
-    
-    // Auto-refresh statistics every 30 seconds
+    setupBulkSelection();
     setInterval(loadStatistics, 30000);
 });
 
@@ -580,7 +683,7 @@ async function loadStatistics() {
     try {
         const response = await fetch('{{ route("purchase-approvals.statistics") }}');
         const data = await response.json();
-        
+
         document.getElementById('totalPending').textContent = data.total_pending;
         document.getElementById('thisMonth').textContent = data.this_month;
         document.getElementById('totalAmount').textContent = formatCurrency(data.total_amount);
@@ -602,41 +705,123 @@ function setupEventListeners() {
             const poNumber = this.dataset.poNumber;
             const totalItems = this.dataset.totalItems;
             const totalAmount = this.dataset.totalAmount;
-            
+
             document.getElementById('approvePurchaseId').value = purchaseId;
             document.getElementById('approvePoNumber').value = poNumber;
             document.getElementById('approveTotalItems').value = totalItems + ' item(s)';
             document.getElementById('approveTotalAmount').value = 'Rp ' + formatNumber(totalAmount);
             document.getElementById('approveForm').action = '/purchase-approvals/' + purchaseId + '/approve';
-            
-            // Clear previous values
             document.querySelector('#approveForm textarea').value = '';
-            
-            // Show modal
-            const modal = new bootstrap.Modal(document.getElementById('approveModal'));
-            modal.show();
+
+            new bootstrap.Modal(document.getElementById('approveModal')).show();
         });
     });
-    
+
     // Reject button
     document.querySelectorAll('.reject-purchase').forEach(button => {
         button.addEventListener('click', function() {
             const purchaseId = this.dataset.purchaseId;
             const poNumber = this.dataset.poNumber;
             const totalItems = this.dataset.totalItems;
-            
+
             document.getElementById('rejectPurchaseId').value = purchaseId;
             document.getElementById('rejectPoNumber').value = poNumber;
             document.getElementById('rejectTotalItems').value = totalItems + ' item(s)';
             document.getElementById('rejectForm').action = '/purchase-approvals/' + purchaseId + '/reject';
-            
-            // Clear previous value
             document.querySelector('#rejectForm textarea').value = '';
-            
-            // Show modal
-            const modal = new bootstrap.Modal(document.getElementById('rejectModal'));
-            modal.show();
+
+            new bootstrap.Modal(document.getElementById('rejectModal')).show();
         });
+    });
+}
+
+function setupBulkSelection() {
+    const selectAllBtn = document.getElementById('selectAllBtn');
+    const bulkActionBar = document.getElementById('bulkActionBar');
+    const selectedCountEl = document.getElementById('selectedCount');
+    let allSelected = false;
+
+    function getChecked() {
+        return document.querySelectorAll('.row-checkbox:checked');
+    }
+
+    function updateBulkBar() {
+        const checked = getChecked();
+        const all = document.querySelectorAll('.row-checkbox');
+        const count = checked.length;
+        selectedCountEl.textContent = count;
+        bulkActionBar.classList.toggle('d-none', count === 0);
+
+        // Highlight selected rows
+        all.forEach(cb => {
+            cb.closest('tr').classList.toggle('table-active', cb.checked);
+        });
+
+        // Toggle button label
+        allSelected = count === all.length && all.length > 0;
+        if (selectAllBtn) {
+            selectAllBtn.innerHTML = allSelected
+                ? '<i class="fas fa-square me-1"></i> Deselect All'
+                : '<i class="fas fa-check-square me-1"></i> Select All';
+        }
+    }
+
+    // Select All button
+    if (selectAllBtn) {
+        selectAllBtn.addEventListener('click', function() {
+            const all = document.querySelectorAll('.row-checkbox');
+            const shouldSelectAll = !allSelected;
+            all.forEach(cb => cb.checked = shouldSelectAll);
+            updateBulkBar();
+        });
+    }
+
+    // Individual checkboxes
+    document.querySelectorAll('.row-checkbox').forEach(cb => {
+        cb.addEventListener('change', updateBulkBar);
+    });
+
+    // Clear selection
+    document.getElementById('clearSelectionBtn')?.addEventListener('click', function() {
+        document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = false);
+        updateBulkBar();
+    });
+
+    // Bulk Approve
+    document.getElementById('bulkApproveBtn')?.addEventListener('click', function() {
+        const checked = getChecked();
+        if (checked.length === 0) return;
+
+        const ids = Array.from(checked).map(cb => cb.value);
+        const poNumbers = Array.from(checked).map(cb => cb.dataset.po);
+
+        // Populate hidden inputs
+        const container = document.getElementById('bulkApproveHiddenIds');
+        container.innerHTML = ids.map(id => `<input type="hidden" name="purchase_ids[]" value="${id}">`).join('');
+
+        document.getElementById('bulkApproveCount').textContent = checked.length;
+        document.getElementById('bulkApprovePoList').innerHTML = 'PO: ' + poNumbers.join(', ');
+        document.querySelector('#bulkApproveForm textarea').value = '';
+
+        new bootstrap.Modal(document.getElementById('bulkApproveModal')).show();
+    });
+
+    // Bulk Reject
+    document.getElementById('bulkRejectBtn')?.addEventListener('click', function() {
+        const checked = getChecked();
+        if (checked.length === 0) return;
+
+        const ids = Array.from(checked).map(cb => cb.value);
+        const poNumbers = Array.from(checked).map(cb => cb.dataset.po);
+
+        const container = document.getElementById('bulkRejectHiddenIds');
+        container.innerHTML = ids.map(id => `<input type="hidden" name="purchase_ids[]" value="${id}">`).join('');
+
+        document.getElementById('bulkRejectCount').textContent = checked.length;
+        document.getElementById('bulkRejectPoList').innerHTML = 'PO: ' + poNumbers.join(', ');
+        document.querySelector('#bulkRejectForm textarea').value = '';
+
+        new bootstrap.Modal(document.getElementById('bulkRejectModal')).show();
     });
 }
 

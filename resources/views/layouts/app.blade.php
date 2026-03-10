@@ -474,7 +474,7 @@
                                                 ->count();
                                         @endphp
                                         <li class="nav-item dropdown">
-                                            <a class="nav-link dropdown-toggle {{ request()->is('employees*') || request()->routeIs('leave_requests.index') || request()->is('attendance*') || request()->routeIs('employee-work-policies.*') || request()->routeIs('timings.*') || request()->routeIs('attendance-logs.*') || request()->routeIs('overtime-requests.*') || request()->routeIs('overtime-pays.*') ? 'active' : '' }}"
+                                            <a class="nav-link dropdown-toggle {{ request()->is('employees*') || request()->routeIs('leave_requests.index') || request()->is('attendance*') || request()->routeIs('employee-work-policies.*') || request()->routeIs('timings.*') || request()->routeIs('attendance-logs.*') || request()->routeIs('overtime-requests.*') || request()->routeIs('overtime-pays.*') || request()->routeIs('fingerspot.*') ? 'active' : '' }}"
                                                 href="#" id="hrDropdown" role="button" data-bs-toggle="dropdown"
                                                 aria-expanded="false">
                                                 <i></i>HR
@@ -544,6 +544,13 @@
                                                     <a class="dropdown-item {{ request()->routeIs('overtime-pays.*') ? 'active' : '' }}"
                                                         href="{{ route('overtime-pays.index') }}">
                                                         <i class="fas fa-calculator me-2"></i>Overtime Pay
+                                                    </a>
+                                                </li>
+                                                <!-- Fingerspot Device Management -->
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->routeIs('fingerspot.*') ? 'active' : '' }}"
+                                                        href="{{ route('fingerspot.index') }}">
+                                                        <i class="fas fa-fingerprint me-2"></i>Fingerspot
                                                     </a>
                                                 </li>
                                             </ul>
