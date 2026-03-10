@@ -373,7 +373,11 @@ class TimingApprovalController extends Controller
         $timing = Timing::with(['project', 'employee.department', 'jobOrder'])->findOrFail($id);
 
         $projects = \App\Models\Production\Project::orderBy('name')->get();
-        $jobOrders = \App\Models\Production\JobOrder::orderBy('name')->get();
+        $jobOrders = \App\Models\Production\JobOrder::where(function ($q) {
+            $q->whereNull('status')->orWhere('status', 'not like', '%deliver%');
+        })
+            ->orderBy('name')
+            ->get();
         $employees = \App\Models\Hr\Employee::with('department')->orderBy('name')->get();
 
         return view('production.timing-approval.edit', compact('timing', 'projects', 'jobOrders', 'employees'));
@@ -381,6 +385,8 @@ class TimingApprovalController extends Controller
 
     /**
      * Update timing from approval page
+     * Supports multiple employee_ids: updates the existing record for the first,
+     * creates new records for any additional employees with the same timing data.
      */
     public function update(Request $request, $id)
     {
@@ -390,7 +396,8 @@ class TimingApprovalController extends Controller
             'tanggal' => 'required|date',
             'project_id' => 'required|exists:projects,id',
             'job_order_id' => 'nullable|exists:job_orders,id',
-            'employee_id' => 'required|exists:employees,id',
+            'employee_ids' => 'required|array|min:1',
+            'employee_ids.*' => 'required|exists:employees,id',
             'step' => 'nullable|string|max:255',
             'parts' => 'nullable|string|max:255',
             'start_time' => 'required|date_format:H:i',
@@ -407,11 +414,11 @@ class TimingApprovalController extends Controller
             $end = \Carbon\Carbon::parse($request->tanggal . ' ' . $request->end_time);
             $durationMinutes = $start->diffInMinutes($end);
 
-            $timing->update([
+            $employeeIds = $request->employee_ids;
+            $baseData = [
                 'tanggal' => $request->tanggal,
                 'project_id' => $request->project_id,
                 'job_order_id' => $request->job_order_id,
-                'employee_id' => $request->employee_id,
                 'step' => $request->step,
                 'parts' => $request->parts,
                 'start_time' => $request->start_time,
@@ -420,11 +427,36 @@ class TimingApprovalController extends Controller
                 'measurement_value' => $request->measurement_value,
                 'measurement_type' => $request->measurement_type,
                 'remarks' => $request->remarks,
-            ]);
+            ];
+
+            // Update the existing record with the first selected employee
+            $timing->update(
+                array_merge($baseData, [
+                    'employee_id' => $employeeIds[0],
+                ]),
+            );
+
+            // Create new records for any additional employees
+            $createdCount = 0;
+            for ($i = 1; $i < count($employeeIds); $i++) {
+                Timing::create(
+                    array_merge($baseData, [
+                        'employee_id' => $employeeIds[$i],
+                        'status' => $timing->status ?? 'done',
+                        'approval_status' => 'pending',
+                    ]),
+                );
+                $createdCount++;
+            }
 
             DB::commit();
 
-            return redirect()->route('timing-approval.index')->with('success', 'Timing data updated successfully');
+            $message = 'Timing data updated successfully.';
+            if ($createdCount > 0) {
+                $message .= " {$createdCount} additional record(s) created for other employees.";
+            }
+
+            return redirect()->route('timing-approval.index')->with('success', $message);
         } catch (\Exception $e) {
             DB::rollBack();
             return back()

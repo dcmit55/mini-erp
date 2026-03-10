@@ -62,6 +62,22 @@
                                 @endforeach
                             </select>
                         </div>
+
+                        <div class="col-lg-12 mb-3">
+                            <label for="project_id" class="form-label">Project (Optional)</label>
+                            <select name="project_id" id="project_id" class="form-select select2">
+                                <option value="">Select Project</option>
+                                @foreach ($projects as $project)
+                                    <option value="{{ $project->id }}"
+                                        {{ old('project_id', $inventory->project_id) == $project->id ? 'selected' : '' }}>
+                                        {{ $project->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('project_id')
+                                <small class="text-danger">{{ $message }}</small>
+                            @enderror
+                        </div>
                     </div>
 
                     <div class="row mb-3">
@@ -596,6 +612,18 @@
                         });
                     }
                 });
+            });
+
+            // Inisialisasi Select2 untuk dropdown Project
+            $('#project_id').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Select Project',
+                allowClear: true
+            }).on('select2:open', function() {
+                setTimeout(function() {
+                    document.querySelector('.select2-container--open .select2-search__field')
+                        .focus();
+                }, 100);
             });
 
             // Inisialisasi Select2 untuk dropdown Supplier

@@ -430,8 +430,9 @@ class InventoryController extends Controller
         $suppliers = Supplier::nonBlacklisted()->orderBy('name')->get();
         $locations = Location::orderBy('name')->get();
         $supplierLocations = LocationSupplier::orderBy('name')->get();
+        $projects = Project::notArchived()->orderBy('name')->get();
 
-        return view('logistic.inventory.create', compact('currencies', 'units', 'categories', 'suppliers', 'locations', 'supplierLocations'));
+        return view('logistic.inventory.create', compact('currencies', 'units', 'categories', 'suppliers', 'locations', 'supplierLocations', 'projects'));
     }
 
     public function store(Request $request)
@@ -443,6 +444,7 @@ class InventoryController extends Controller
         $request->validate([
             'name' => 'required|string|max:255|unique:inventories,name,NULL,id,deleted_at,NULL',
             'category_id' => 'required|exists:categories,id',
+            'project_id' => 'nullable|exists:projects,id',
             'quantity' => 'required|numeric|min:0',
             'unit' => 'required|string',
             'new_unit' => 'required_if:unit,__new__|nullable|string|max:255',
@@ -459,6 +461,7 @@ class InventoryController extends Controller
         $inventory = new Inventory();
         $inventory->name = $request->name;
         $inventory->category_id = $request->category_id;
+        $inventory->project_id = $request->project_id;
         $inventory->quantity = $request->quantity;
         $inventory->unit = $request->unit;
         $inventory->price = $request->price;
@@ -568,8 +571,9 @@ class InventoryController extends Controller
         $suppliers = Supplier::nonBlacklisted()->orderBy('name')->get();
         $locations = Location::orderBy('name')->get();
         $supplierLocations = LocationSupplier::orderBy('name')->get();
+        $projects = Project::notArchived()->orderBy('name')->get();
 
-        return view('logistic.inventory.edit', compact('inventory', 'currencies', 'units', 'categories', 'suppliers', 'locations', 'supplierLocations'));
+        return view('logistic.inventory.edit', compact('inventory', 'currencies', 'units', 'categories', 'suppliers', 'locations', 'supplierLocations', 'projects'));
     }
 
     public function update(Request $request, Inventory $inventory)
@@ -581,6 +585,7 @@ class InventoryController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:inventories,name,' . $inventory->id . ',id,deleted_at,NULL',
             'category_id' => 'required|exists:categories,id',
+            'project_id' => 'nullable|exists:projects,id',
             'quantity' => 'required|numeric|min:0',
             'unit' => 'required|string',
             'unit_id' => 'nullable|exists:units,id',
@@ -604,6 +609,7 @@ class InventoryController extends Controller
         // Update data inventory
         $inventory->name = $request->name;
         $inventory->category_id = $request->category_id;
+        $inventory->project_id = $request->project_id;
         $inventory->quantity = $request->quantity;
         $inventory->unit = $request->unit;
         $inventory->currency_id = $request->currency_id;

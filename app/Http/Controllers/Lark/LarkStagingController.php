@@ -7,18 +7,25 @@ use App\Models\Lark\LarkBtSgCourierId;
 use App\Models\Lark\LarkBtSgItemTracking;
 use App\Models\Lark\LarkSgBtCourierId;
 use App\Models\Lark\LarkSgBtItemTracking;
+use App\Models\Lark\LarkStagingInventory;
+use App\Models\Logistic\Inventory;
 use App\Services\Lark\LarkStagingSyncService;
+use App\Services\Lark\LarkInventoryStagingSyncService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Yajra\DataTables\Facades\DataTables;
 
 class LarkStagingController extends Controller
 {
     private LarkStagingSyncService $syncService;
+    private LarkInventoryStagingSyncService $inventoryStagingService;
 
-    public function __construct(LarkStagingSyncService $syncService)
+    public function __construct(LarkStagingSyncService $syncService, LarkInventoryStagingSyncService $inventoryStagingService)
     {
         $this->middleware('auth');
         $this->syncService = $syncService;
+        $this->inventoryStagingService = $inventoryStagingService;
     }
 
     /**
@@ -378,6 +385,355 @@ class LarkStagingController extends Controller
             return redirect()
                 ->route('lark.staging.sg-bt-items')
                 ->withErrors(['error' => 'Sync failed: ' . $e->getMessage()]);
+        }
+    }
+
+    // =========================================================================
+    // LARK STAGING INVENTORY
+    // =========================================================================
+
+    /**
+     * Show Lark Staging Inventory listing
+     * Data di sini berasal dari sync Lark, belum masuk ke inventory resmi.
+     * Admin bisa review, approve, atau reject masing-masing item.
+     */
+    public function inventoryIndex(Request $request)
+    {
+        if ($request->ajax()) {
+            $query = LarkStagingInventory::query()->latest('last_sync_at');
+
+            // Filter by review_status
+            if ($request->filled('review_status')) {
+                $query->where('review_status', $request->review_status);
+            }
+
+            // Filter by project
+            if ($request->filled('project')) {
+                $query->where('project_lark', 'like', '%' . $request->project . '%');
+            }
+
+            return DataTables::of($query)
+                ->addIndexColumn()
+                ->addColumn('checkbox', function ($row) {
+                    return '<input type="checkbox" class="row-checkbox" value="' . $row->id . '">';
+                })
+                ->editColumn('name', function ($row) {
+                    return $row->name ?: '-';
+                })
+                ->editColumn('quantity', function ($row) {
+                    $unit = $row->unit ? ' ' . $row->unit : '';
+                    return number_format($row->quantity, 2) . $unit;
+                })
+                ->editColumn('price', function ($row) {
+                    return $row->price > 0 ? number_format($row->price, 2) . ' RMB' : '-';
+                })
+                ->editColumn('project_lark', function ($row) {
+                    return $row->project_lark ?: '-';
+                })
+                ->editColumn('supplier_lark', function ($row) {
+                    return $row->supplier_lark ?: '-';
+                })
+                ->editColumn('source_record_count', function ($row) {
+                    return $row->source_record_count > 1 ? '<span class="badge bg-info">' . $row->source_record_count . ' records</span>' : '<span class="badge bg-secondary">1 record</span>';
+                })
+                ->addColumn('review_status_badge', function ($row) {
+                    return $row->review_status_badge;
+                })
+                ->editColumn('last_sync_at', function ($row) {
+                    return $row->last_sync_at ? $row->last_sync_at->format('d M Y H:i') : '-';
+                })
+                ->addColumn('actions', function ($row) {
+                    $approveBtn = $row->review_status !== 'approved' ? '<button class="btn btn-success btn-xs btn-approve me-1" data-id="' . $row->id . '" title="Approve & Push to Inventory"><i class="bi bi-check-lg"></i></button>' : '';
+                    $rejectBtn = $row->review_status !== 'rejected' ? '<button class="btn btn-danger btn-xs btn-reject me-1" data-id="' . $row->id . '" title="Reject"><i class="bi bi-x-lg"></i></button>' : '';
+                    $resetBtn = $row->review_status !== 'pending' ? '<button class="btn btn-secondary btn-xs btn-reset me-1" data-id="' . $row->id . '" title="Reset to Pending"><i class="bi bi-arrow-counterclockwise"></i></button>' : '';
+                    return $approveBtn . $rejectBtn . $resetBtn;
+                })
+                ->rawColumns(['checkbox', 'review_status_badge', 'source_record_count', 'actions'])
+                ->make(true);
+        }
+
+        $stats = [
+            'total' => LarkStagingInventory::count(),
+            'pending' => LarkStagingInventory::where('review_status', 'pending')->count(),
+            'approved' => LarkStagingInventory::where('review_status', 'approved')->count(),
+            'rejected' => LarkStagingInventory::where('review_status', 'rejected')->count(),
+        ];
+
+        $lastSync = LarkStagingInventory::max('last_sync_at');
+
+        return view('lark.staging.inventory', compact('stats', 'lastSync'));
+    }
+
+    /**
+     * Sync inventory data dari Lark ke staging table
+     * Data TIDAK langsung masuk ke inventories - harus di-approve dulu
+     */
+    public function syncInventory()
+    {
+        try {
+            $stats = $this->inventoryStagingService->syncToStaging();
+
+            $message = sprintf('Lark Inventory Staging sync selesai! Fetched: %d | Filtered: %d | Aggregated: %d materials | Created: %d | Updated: %d | Skipped: %d', $stats['fetched'], $stats['filtered'], $stats['aggregated_groups'] ?? 0, $stats['created'], $stats['updated'], $stats['skipped']);
+
+            if ($stats['errors'] > 0) {
+                $message .= sprintf(' | Errors: %d', $stats['errors']);
+                return redirect()->route('lark.staging.inventory')->with('warning', $message);
+            }
+
+            return redirect()->route('lark.staging.inventory')->with('success', $message);
+        } catch (\Exception $e) {
+            Log::error('Lark inventory staging sync failed', ['error' => $e->getMessage()]);
+            return redirect()
+                ->route('lark.staging.inventory')
+                ->withErrors(['error' => 'Sync failed: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Approve staging item → push ke tabel inventories
+     * AJAX endpoint
+     */
+    public function approveInventory(Request $request, int $id)
+    {
+        try {
+            $staging = LarkStagingInventory::findOrFail($id);
+
+            DB::transaction(function () use ($staging, $request) {
+                // Upsert ke inventories - cari by name saja (source bisa belum ada)
+                // Jika sudah ada inventory dengan nama sama (manual), update datanya
+                $inventory = Inventory::withTrashed()->where('name', $staging->name)->first();
+
+                if ($inventory) {
+                    // Restore jika soft-deleted
+                    if ($inventory->trashed()) {
+                        $inventory->restore();
+                    }
+                    $inventory->update([
+                        'lark_record_id' => $staging->source_record_ids ?: $staging->lark_record_id,
+                        'project_lark' => $staging->project_lark,
+                        'quantity' => $staging->quantity,
+                        'unit' => $staging->unit,
+                        'price' => $staging->price,
+                        'currency_id' => $staging->currency_id ?? 6,
+                        'supplier_lark' => $staging->supplier_lark,
+                        'img' => $staging->img,
+                        'last_sync_at' => now(),
+                        'source' => 'lark',
+                    ]);
+                } else {
+                    $inventory = Inventory::create([
+                        'name' => $staging->name,
+                        'lark_record_id' => $staging->source_record_ids ?: $staging->lark_record_id,
+                        'project_lark' => $staging->project_lark,
+                        'quantity' => $staging->quantity,
+                        'unit' => $staging->unit,
+                        'price' => $staging->price,
+                        'currency_id' => $staging->currency_id ?? 6,
+                        'supplier_lark' => $staging->supplier_lark,
+                        'img' => $staging->img,
+                        'last_sync_at' => now(),
+                        'source' => 'lark',
+                    ]);
+                }
+
+                // Update staging status
+                $staging->update([
+                    'review_status' => 'approved',
+                    'review_note' => $request->input('note'),
+                    'reviewed_by' => auth()->id(),
+                    'reviewed_at' => now(),
+                ]);
+
+                Log::info('Staging inventory approved and pushed to inventory', [
+                    'staging_id' => $staging->id,
+                    'inventory_id' => $inventory->id,
+                    'name' => $staging->name,
+                ]);
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => "Item <strong>{$staging->name}</strong> telah di-approve dan masuk ke Inventory Listing.",
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Staging approve failed', ['id' => $id, 'error' => $e->getMessage()]);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Gagal approve: ' . $e->getMessage(),
+                ],
+                500,
+            );
+        }
+    }
+
+    /**
+     * Reject staging item
+     * AJAX endpoint
+     */
+    public function rejectInventory(Request $request, int $id)
+    {
+        try {
+            $staging = LarkStagingInventory::findOrFail($id);
+
+            $staging->update([
+                'review_status' => 'rejected',
+                'review_note' => $request->input('note'),
+                'reviewed_by' => auth()->id(),
+                'reviewed_at' => now(),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Item <strong>{$staging->name}</strong> ditolak.",
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Staging reject failed', ['id' => $id, 'error' => $e->getMessage()]);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Gagal reject: ' . $e->getMessage(),
+                ],
+                500,
+            );
+        }
+    }
+
+    /**
+     * Reset staging item to pending
+     * AJAX endpoint
+     */
+    public function resetInventory(int $id)
+    {
+        try {
+            $staging = LarkStagingInventory::findOrFail($id);
+
+            $staging->update([
+                'review_status' => 'pending',
+                'review_note' => null,
+                'reviewed_by' => null,
+                'reviewed_at' => null,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Item <strong>{$staging->name}</strong> direset ke pending.",
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Staging reset failed', ['id' => $id, 'error' => $e->getMessage()]);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Gagal reset: ' . $e->getMessage(),
+                ],
+                500,
+            );
+        }
+    }
+
+    /**
+     * Bulk approve selected staging items → push to inventories
+     * Accepts: ids[] = array of staging IDs to approve
+     * If ids not provided, approves ALL pending items
+     */
+    public function bulkApproveInventory(Request $request)
+    {
+        try {
+            $ids = $request->input('ids', []);
+
+            if (!empty($ids)) {
+                // Approve only selected IDs (any review_status)
+                $items = LarkStagingInventory::whereIn('id', $ids)->get();
+            } else {
+                // Fallback: approve all pending
+                $items = LarkStagingInventory::where('review_status', 'pending')->get();
+            }
+
+            if ($items->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tidak ada item yang dipilih untuk di-approve.',
+                ]);
+            }
+
+            $approved = 0;
+            $errors = 0;
+            $userId = auth()->id();
+
+            foreach ($items as $staging) {
+                try {
+                    DB::transaction(function () use ($staging, $userId) {
+                        // Cari by name saja, tidak pakai source di WHERE
+                        $inventory = Inventory::withTrashed()->where('name', $staging->name)->first();
+
+                        if ($inventory) {
+                            if ($inventory->trashed()) {
+                                $inventory->restore();
+                            }
+                            $inventory->update([
+                                'lark_record_id' => $staging->source_record_ids ?: $staging->lark_record_id,
+                                'project_lark' => $staging->project_lark,
+                                'quantity' => $staging->quantity,
+                                'unit' => $staging->unit,
+                                'price' => $staging->price,
+                                'currency_id' => $staging->currency_id ?? 6,
+                                'supplier_lark' => $staging->supplier_lark,
+                                'img' => $staging->img,
+                                'last_sync_at' => now(),
+                                'source' => 'lark',
+                            ]);
+                        } else {
+                            Inventory::create([
+                                'name' => $staging->name,
+                                'lark_record_id' => $staging->source_record_ids ?: $staging->lark_record_id,
+                                'project_lark' => $staging->project_lark,
+                                'quantity' => $staging->quantity,
+                                'unit' => $staging->unit,
+                                'price' => $staging->price,
+                                'currency_id' => $staging->currency_id ?? 6,
+                                'supplier_lark' => $staging->supplier_lark,
+                                'img' => $staging->img,
+                                'last_sync_at' => now(),
+                                'source' => 'lark',
+                            ]);
+                        }
+
+                        $staging->update([
+                            'review_status' => 'approved',
+                            'reviewed_by' => $userId,
+                            'reviewed_at' => now(),
+                        ]);
+                    });
+                    $approved++;
+                } catch (\Exception $e) {
+                    $errors++;
+                    Log::error('Bulk approve item failed', [
+                        'staging_id' => $staging->id,
+                        'name' => $staging->name,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            $message = "Bulk approve selesai! Approved: {$approved}";
+            if ($errors > 0) {
+                $message .= " | Errors: {$errors}";
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'stats' => compact('approved', 'errors'),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Bulk approve failed', ['error' => $e->getMessage()]);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Bulk approve gagal: ' . $e->getMessage(),
+                ],
+                500,
+            );
         }
     }
 }

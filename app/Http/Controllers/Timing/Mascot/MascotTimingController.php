@@ -37,8 +37,12 @@ class MascotTimingController extends Controller
         $employees = Employee::where('status', 'active')->where('department_id', $mascotDept->id)->whereNotIn('id', $employeesWithActiveSessions)->with('department')->orderBy('name')->get();
 
         // Get ALL job orders (mascot can work on any department's job orders)
+        // Only show active job orders (exclude Delivered)
         $jobOrders = JobOrder::with(['project', 'department'])
             ->whereNull('deleted_at')
+            ->where(function ($q) {
+                $q->whereNull('status')->orWhere('status', 'not like', '%deliver%');
+            })
             ->orderBy('created_at', 'desc')
             ->get();
 

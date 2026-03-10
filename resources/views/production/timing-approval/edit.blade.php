@@ -51,18 +51,23 @@
                         </div>
 
                         <div class="col-md-6">
-                            <label for="employee_id" class="form-label">Employee <span class="text-danger">*</span></label>
-                            <select class="form-select select2 @error('employee_id') is-invalid @enderror" id="employee_id"
-                                name="employee_id" required>
-                                <option value="">Select Employee</option>
+                            <label for="employee_ids" class="form-label">Employee(s) <span
+                                    class="text-danger">*</span></label>
+                            <select class="form-select select2-multi @error('employee_ids') is-invalid @enderror"
+                                id="employee_ids" name="employee_ids[]" multiple required>
                                 @foreach ($employees as $employee)
                                     <option value="{{ $employee->id }}"
-                                        {{ old('employee_id', $timing->employee_id) == $employee->id ? 'selected' : '' }}>
+                                        {{ in_array($employee->id, old('employee_ids', [$timing->employee_id])) ? 'selected' : '' }}>
                                         {{ $employee->name }} - {{ $employee->department->name ?? 'N/A' }}
                                     </option>
                                 @endforeach
                             </select>
-                            @error('employee_id')
+                            <small class="text-muted">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Select one employee to update this record, or multiple to create additional records with the
+                                same timing data.
+                            </small>
+                            @error('employee_ids')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
@@ -265,11 +270,18 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         $(document).ready(function() {
-            // Initialize Select2
+            // Initialize Select2 (single selects)
             $('.select2').select2({
                 theme: 'bootstrap-5',
                 allowClear: true,
                 placeholder: 'Select an option'
+            });
+
+            // Initialize Select2 (multi-select for employees)
+            $('#employee_ids').select2({
+                theme: 'bootstrap-5',
+                allowClear: true,
+                placeholder: 'Select employee(s)...'
             });
 
             // Calculate duration preview

@@ -39,6 +39,9 @@ class CostumeTimingController extends Controller
             $jobOrders = JobOrder::with(['project', 'department'])
                 ->where('department_id', $costumeDept->id)
                 ->whereNull('deleted_at')
+                ->where(function ($q) {
+                    $q->whereNull('status')->orWhere('status', 'not like', '%deliver%');
+                })
                 ->orderBy('created_at', 'desc')
                 ->get();
         } else {
@@ -47,6 +50,9 @@ class CostumeTimingController extends Controller
 
             $jobOrders = JobOrder::with(['project', 'department'])
                 ->whereNull('deleted_at')
+                ->where(function ($q) {
+                    $q->whereNull('status')->orWhere('status', 'not like', '%deliver%');
+                })
                 ->orderBy('created_at', 'desc')
                 ->get();
         }

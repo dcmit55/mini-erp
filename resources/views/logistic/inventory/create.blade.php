@@ -56,6 +56,22 @@
                         @enderror
                     </div>
 
+                    <div class="mb-3">
+                        <label for="project_id" class="form-label">Project (Optional)</label>
+                        <select name="project_id" id="project_id" class="form-select select2">
+                            <option value="">Select Project</option>
+                            @foreach ($projects as $project)
+                                <option value="{{ $project->id }}"
+                                    {{ old('project_id') == $project->id ? 'selected' : '' }}>
+                                    {{ $project->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('project_id')
+                            <small class="text-danger">{{ $message }}</small>
+                        @enderror
+                    </div>
+
                     <div class="row">
                         <div class="col-lg-6 mb-3">
                             <label for="quantity" class="form-label">Quantity <span class="text-danger">*</span></label>
@@ -318,8 +334,7 @@
                         <div class="mb-3">
                             <label for="supplier_lead_time_days" class="form-label">Lead Time <span
                                     class="text-danger">*</span>
-                                <i class="bi bi-info-circle text-info" data-bs-toggle="tooltip"
-                                    data-bs-placement="top"
+                                <i class="bi bi-info-circle text-info" data-bs-toggle="tooltip" data-bs-placement="top"
                                     title="Lead Time refers to the number of days required by the supplier to deliver goods after an order is placed. This value is typically based on past delivery records or can be confirmed directly with the supplier. Accurate lead time helps ensure timely procurement and project planning.">
                                 </i>
                             </label>
@@ -549,6 +564,18 @@
                         });
                     }
                 });
+            });
+
+            // Inisialisasi Select2 untuk dropdown Project
+            $('#project_id').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Select Project',
+                allowClear: true
+            }).on('select2:open', function() {
+                setTimeout(function() {
+                    document.querySelector('.select2-container--open .select2-search__field')
+                        .focus();
+                }, 100);
             });
 
             // Inisialisasi Select2 untuk dropdown Supplier

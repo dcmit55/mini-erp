@@ -152,16 +152,12 @@
                                 </button>
                             @endif
                             @if (in_array(auth()->user()->role, ['super_admin', 'admin']))
-                                <form action="{{ route('inventory.sync.lark') }}" method="POST" class="d-inline"
-                                    id="syncLarkForm">
-                                    @csrf
-                                    <button type="button" class="btn btn-info btn-sm flex-shrink-0" id="btnSyncLark"
-                                        data-bs-toggle="tooltip" data-bs-placement="bottom"
-                                        title="Sync and aggregate real-time inventory stock from Lark Base (Destination: BATAM, Status: Sent Out). Same materials will be totaled.">
-                                        <i class="fas fa-sync me-1" id="syncIcon"></i>
-                                        <span id="syncText">Sync from Lark</span>
-                                    </button>
-                                </form>
+                                <a href="{{ route('lark.staging.inventory') }}" class="btn btn-info btn-sm flex-shrink-0"
+                                    data-bs-toggle="tooltip" data-bs-placement="bottom"
+                                    title="Review & approve data purchase dari Lark sebelum masuk ke inventory listing">
+                                    <i class="fas fa-filter me-1"></i>
+                                    <span>Lark Staging</span>
+                                </a>
                             @endif
                             <button type="button" id="export-btn" class="btn btn-outline-success btn-sm">
                                 <i class="bi bi-file-earmark-excel me-1"></i> Export
@@ -679,53 +675,6 @@
             // Initialize Bootstrap Tooltip
             $('[data-bs-toggle="tooltip"]').tooltip();
 
-            // Sync from Lark button handler
-            $('#btnSyncLark').on('click', function(e) {
-                e.preventDefault();
-
-                Swal.fire({
-                    title: 'Sync from Lark?',
-                    html: 'Sync and aggregate real-time inventory from Lark Base?<br><br>' +
-                        '<strong>Filter Conditions:</strong><br>' +
-                        '• Destination: BATAM<br>' +
-                        '• Status: Sent Out<br>' +
-                        '• DEPT: Not Stock<br><br>' +
-                        '<strong>Aggregation Logic:</strong><br>' +
-                        '• Same material name = <strong>Quantities TOTALED</strong><br>' +
-                        '• Example: Cable USB (300) + Cable USB (50) = Cable USB (350)<br>' +
-                        '• Projects merged into comma-separated list<br>' +
-                        '• Latest price used<br><br>' +
-                        'This will:<br>' +
-                        '- Fetch all matching records from Lark<br>' +
-                        '- Group and sum quantities by material name<br>' +
-                        '- Create/update aggregated inventory<br>' +
-                        '- Remove items no longer in Lark<br>' +
-                        '- Currency: RMB (CNY)<br><br>' +
-                        '<strong>Result: Real-time total stock per material!</strong><br><br>' +
-                        'Continue?',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonColor: '#3085d6',
-                    cancelButtonColor: '#d33',
-                    confirmButtonText: 'Yes, sync now!',
-                    cancelButtonText: 'Cancel',
-                    reverseButtons: true
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        // Show loading state
-                        const $btn = $('#btnSyncLark');
-                        const $icon = $('#syncIcon');
-                        const $text = $('#syncText');
-
-                        $btn.prop('disabled', true);
-                        $icon.addClass('fa-spin');
-                        $text.text('Syncing...');
-
-                        // Submit form
-                        $('#syncLarkForm').submit();
-                    }
-                });
-            });
         });
 
         document.addEventListener('DOMContentLoaded', function() {

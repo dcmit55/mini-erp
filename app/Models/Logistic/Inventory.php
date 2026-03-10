@@ -20,7 +20,7 @@ class Inventory extends Model implements Auditable
 
     protected $auditTimestamps = true;
 
-    protected $fillable = ['name', 'category_id', 'quantity', 'unit', 'unit_id', 'price', 'unit_domestic_freight_cost', 'unit_international_freight_cost', 'currency_id', 'supplier_id', 'location_id', 'remark', 'img', 'status', 'project_lark', 'supplier_lark', 'lark_record_id', 'last_sync_at'];
+    protected $fillable = ['name', 'category_id', 'project_id', 'quantity', 'unit', 'unit_id', 'price', 'unit_domestic_freight_cost', 'unit_international_freight_cost', 'currency_id', 'supplier_id', 'location_id', 'remark', 'img', 'status', 'project_lark', 'supplier_lark', 'lark_record_id', 'last_sync_at', 'source'];
 
     protected $casts = [
         'price' => 'decimal:2',

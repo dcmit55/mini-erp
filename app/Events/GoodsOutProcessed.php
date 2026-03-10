@@ -37,7 +37,7 @@ class GoodsOutProcessed implements ShouldBroadcast
     public function __construct(GoodsOut $goodsOut)
     {
         // Eager load relationships to avoid N+1
-        $goodsOut->load(['inventory:id,name,unit', 'project:id,name', 'jobOrder:id,name', 'materialRequest.user:id,first_name,last_name', 'materialRequest.user.department:id,name']);
+        $goodsOut->load(['inventory:id,name,unit', 'project:id,name', 'jobOrder:id,name', 'materialRequest.user:id,username', 'materialRequest.user.department:id,name']);
 
         $this->goodsOutId = $goodsOut->id;
         $this->materialName = $goodsOut->inventory->name ?? 'Unknown Material';
@@ -48,7 +48,7 @@ class GoodsOutProcessed implements ShouldBroadcast
 
         // Requested by info
         $user = $goodsOut->materialRequest?->user;
-        $this->requestedByName = $user ? trim("{$user->first_name} {$user->last_name}") : 'System';
+        $this->requestedByName = $user?->username ?? 'System';
 
         $this->departmentId = $user?->department?->id;
         $this->departmentName = $user?->department?->name ?? 'Unknown Department';

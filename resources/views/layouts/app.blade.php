@@ -238,6 +238,12 @@
                                                     <i class="fas fa-boxes me-2"></i>SG-BT Item Tracking
                                                 </a>
                                             </li>
+                                            <li>
+                                                <a class="dropdown-item {{ request()->is('lark/staging/inventory*') ? 'active' : '' }}"
+                                                    href="{{ route('lark.staging.inventory') }}">
+                                                    <i class="fas fa-filter me-2"></i>Staging Inventory
+                                                </a>
+                                            </li>
                                         </ul>
                                     </li>
                                 @endif
@@ -532,11 +538,23 @@
                                                 </li>
                                                 <!-- Director Overtime Approvals — tampil untuk role utama + delegate dari approval_matrix -->
                                                 @php
-                                                    $directorMatrix       = \App\Models\Hr\ApprovalMatrix::where('module', 'overtime')->where('level', 2)->first();
-                                                    $directorAllowedRoles = $directorMatrix ? $directorMatrix->getAllowedRoles() : ['director', 'admin_hr'];
+                                                    $directorMatrix = \App\Models\Hr\ApprovalMatrix::where(
+                                                        'module',
+                                                        'overtime',
+                                                    )
+                                                        ->where('level', 2)
+                                                        ->first();
+                                                    $directorAllowedRoles = $directorMatrix
+                                                        ? $directorMatrix->getAllowedRoles()
+                                                        : ['director', 'admin_hr'];
                                                     $directorAllowedRoles[] = 'super_admin';
-                                                    $directorPendingCount = in_array(auth()->user()->role, $directorAllowedRoles)
-                                                        ? \App\Models\Hr\OvertimeRequest::where('status', 'submitted')->where('director_approval_status', 'pending')->count()
+                                                    $directorPendingCount = in_array(
+                                                        auth()->user()->role,
+                                                        $directorAllowedRoles,
+                                                    )
+                                                        ? \App\Models\Hr\OvertimeRequest::where('status', 'submitted')
+                                                            ->where('director_approval_status', 'pending')
+                                                            ->count()
                                                         : 0;
                                                 @endphp
                                                 <!-- Overtime Pay -->
@@ -738,9 +756,8 @@
                        transition:transform .2s,box-shadow .2s;overflow:hidden;padding:0;"
                     onmouseenter="this.style.transform='scale(1.08)';this.style.boxShadow='0 6px 24px rgba(29,78,216,.7)'"
                     onmouseleave="this.style.transform='scale(1)';this.style.boxShadow='0 4px 18px rgba(29,78,216,.5)'"
-                    <img id="chatbot-toggle-icon"
-                        src="https://i.ibb.co/gb7RMPCV/chatbot.webp"
-                        alt="AI" style="width:56px;height:56px;object-fit:cover;border-radius:50%;">
+                    <img id="chatbot-toggle-icon" src="https://i.ibb.co/gb7RMPCV/chatbot.webp" alt="AI"
+                    style="width:56px;height:56px;object-fit:cover;border-radius:50%;">
                 </button>
 
                 <!-- Chat Window -->
@@ -757,8 +774,8 @@
                             <div
                                 style="width:36px;height:36px;border-radius:50%;overflow:hidden;
                                     display:flex;align-items:center;justify-content:center;border:2px solid rgba(255,255,255,.4);">
-                                <img src="https://i.ibb.co/gb7RMPCV/chatbot.webp"
-                                    alt="SymBot" style="width:36px;height:36px;object-fit:cover;border-radius:50%;">
+                                <img src="https://i.ibb.co/gb7RMPCV/chatbot.webp" alt="SymBot"
+                                    style="width:36px;height:36px;object-fit:cover;border-radius:50%;">
                             </div>
                             <div>
                                 <div style="color:#fff;font-weight:600;font-size:.9rem;line-height:1.2;">SymBot</div>

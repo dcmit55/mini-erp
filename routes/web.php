@@ -203,6 +203,14 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/sg-bt-items', [App\Http\Controllers\Lark\LarkStagingController::class, 'sgBtItemIndex'])->name('sg-bt-items');
             Route::post('/sync-sg-bt-courier', [App\Http\Controllers\Lark\LarkStagingController::class, 'syncSgBtCourier'])->name('sync-sg-bt-courier');
             Route::post('/sync-sg-bt-items', [App\Http\Controllers\Lark\LarkStagingController::class, 'syncSgBtItems'])->name('sync-sg-bt-items');
+
+            // Lark Staging Inventory (filter data purchase dari Lark sebelum masuk ke inventory listing)
+            Route::get('/inventory', [App\Http\Controllers\Lark\LarkStagingController::class, 'inventoryIndex'])->name('inventory');
+            Route::post('/sync-inventory', [App\Http\Controllers\Lark\LarkStagingController::class, 'syncInventory'])->name('sync-inventory');
+            Route::post('/inventory/{id}/approve', [App\Http\Controllers\Lark\LarkStagingController::class, 'approveInventory'])->name('inventory.approve');
+            Route::post('/inventory/{id}/reject', [App\Http\Controllers\Lark\LarkStagingController::class, 'rejectInventory'])->name('inventory.reject');
+            Route::post('/inventory/{id}/reset', [App\Http\Controllers\Lark\LarkStagingController::class, 'resetInventory'])->name('inventory.reset');
+            Route::post('/inventory/bulk-approve', [App\Http\Controllers\Lark\LarkStagingController::class, 'bulkApproveInventory'])->name('inventory.bulk-approve');
         });
 
     // Job Orders
@@ -503,25 +511,18 @@ Route::middleware(['auth'])->group(function () {
             Route::delete('/{id}', [AttendanceController::class, 'destroy'])->name('destroy');
         });
 
+    // CRUD Routes for Project Purchases
     Route::prefix('project-purchases')->group(function () {
-        // CRUD Routes
         Route::get('/', [ProjectPurchaseController::class, 'index'])->name('project-purchases.index');
-
         Route::get('/create', [ProjectPurchaseController::class, 'create'])->name('project-purchases.create');
-
         Route::post('/', [ProjectPurchaseController::class, 'store'])->name('project-purchases.store');
-
         Route::get('/{uid}', [ProjectPurchaseController::class, 'show'])->name('project-purchases.show');
-
         Route::get('/{uid}/edit', [ProjectPurchaseController::class, 'edit'])->name('project-purchases.edit');
-
         Route::put('/{uid}', [ProjectPurchaseController::class, 'update'])->name('project-purchases.update');
-
         Route::delete('/{uid}', [ProjectPurchaseController::class, 'destroy'])->name('project-purchases.destroy');
 
         // Approval Routes (Finance)
         Route::post('/{uid}/approve', [ProjectPurchaseController::class, 'approve'])->name('project-purchases.approve');
-
         Route::post('/{uid}/reject', [ProjectPurchaseController::class, 'reject'])->name('project-purchases.reject');
 
         // Update Tracking Route
@@ -533,16 +534,12 @@ Route::middleware(['auth'])->group(function () {
 
         // Print & Export
         Route::get('/{uid}/print', [ProjectPurchaseController::class, 'print'])->name('project-purchases.print');
-
         Route::get('/export', [ProjectPurchaseController::class, 'export'])->name('project-purchases.export');
 
         // AJAX Routes
         Route::get('/material/{id}/price', [ProjectPurchaseController::class, 'getMaterialPrice'])->name('project-purchases.get-material-price');
-
         Route::get('/material/all', [ProjectPurchaseController::class, 'getMaterials'])->name('project-purchases.get-materials');
-
         Route::get('/po-items/{poNumber}', [ProjectPurchaseController::class, 'getPOItems'])->name('project-purchases.get-po-items');
-
         Route::get('/job-order/{id}/details', [ProjectPurchaseController::class, 'getJobOrderDetails'])->name('project-purchases.get-job-order-details');
     });
 
@@ -692,24 +689,27 @@ Route::middleware(['auth'])->group(function () {
             abort(404);
         }
         $apiKey = config('services.groq.api_key');
-        $url    = config('services.groq.url');
-        $model  = config('services.groq.model');
+        $url = config('services.groq.url');
+        $model = config('services.groq.model');
 
         $result = ['api_key_set' => !blank($apiKey), 'url' => $url, 'model' => $model];
 
         try {
             $response = \Illuminate\Support\Facades\Http::withHeaders([
                 'Authorization' => 'Bearer ' . $apiKey,
-                'Content-Type'  => 'application/json',
-            ])->timeout(30)->withOptions(['verify' => false])->post($url, [
-                'model'      => $model,
-                'messages'   => [['role' => 'user', 'content' => 'Reply with just: OK']],
-                'max_tokens' => 10,
-            ]);
+                'Content-Type' => 'application/json',
+            ])
+                ->timeout(30)
+                ->withOptions(['verify' => false])
+                ->post($url, [
+                    'model' => $model,
+                    'messages' => [['role' => 'user', 'content' => 'Reply with just: OK']],
+                    'max_tokens' => 10,
+                ]);
 
             $result['http_status'] = $response->status();
-            $result['success']     = $response->successful();
-            $result['body']        = $response->json();
+            $result['success'] = $response->successful();
+            $result['body'] = $response->json();
         } catch (\Exception $e) {
             $result['exception'] = $e->getMessage();
         }

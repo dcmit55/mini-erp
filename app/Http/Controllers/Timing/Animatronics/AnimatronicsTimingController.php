@@ -43,8 +43,12 @@ class AnimatronicsTimingController extends Controller
         $employees = Employee::where('status', 'active')->where('department_id', $animatronicsDept->id)->whereNotIn('id', $employeesWithActiveSessions)->with('department')->orderBy('name')->get();
 
         // Get ALL job orders (tidak filter by department, karena dept lain bisa dikerjakan animatronics)
+        // Only show active job orders (exclude Delivered)
         $jobOrders = JobOrder::with(['project', 'department'])
             ->whereNull('deleted_at')
+            ->where(function ($q) {
+                $q->whereNull('status')->orWhere('status', 'not like', '%deliver%');
+            })
             ->orderBy('created_at', 'desc')
             ->get();
 
