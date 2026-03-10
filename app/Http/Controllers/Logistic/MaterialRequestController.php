@@ -654,27 +654,27 @@ class MaterialRequestController extends Controller
             // Trigger event
             event(new MaterialRequestUpdated($materialRequest, 'updated'));
 
-            // CRITICAL FIX: Auto goods-out when approving material for already-delivered job order
-            if ($request->status === 'approved' && $oldStatus !== 'approved') {
-                // Refresh to get updated relationships after transaction commit
-                $materialRequest = $materialRequest->fresh();
-
-                // Check if related Job Order is already delivered
-                $jobOrder = $materialRequest->jobOrder;
-
-                if ($jobOrder && strtolower($jobOrder->status) === 'delivered') {
-                    // Trigger auto goods-out service
-                    $autoGoodsOutService = app(\App\Services\AutoGoodsOutService::class);
-                    $result = $autoGoodsOutService->processJobOrderDelivery($jobOrder);
-
-                    \Illuminate\Support\Facades\Log::info('MaterialRequest update: Auto goods-out triggered for approved material', [
-                        'material_request_id' => $materialRequest->id,
-                        'job_order_id' => $jobOrder->id,
-                        'job_order_status' => $jobOrder->status,
-                        'result' => $result,
-                    ]);
-                }
-            }
+            // REVISION:             // CRITICAL FIX: Auto goods-out when approving material for already-delivered job order
+            // REVISION:             if ($request->status === 'approved' && $oldStatus !== 'approved') {
+            // REVISION:                 // Refresh to get updated relationships after transaction commit
+            // REVISION:                 $materialRequest = $materialRequest->fresh();
+            // REVISION:
+            // REVISION:                 // Check if related Job Order is already delivered
+            // REVISION:                 $jobOrder = $materialRequest->jobOrder;
+            // REVISION:
+            // REVISION:                 if ($jobOrder && strtolower($jobOrder->status) === 'delivered') {
+            // REVISION:                     // Trigger auto goods-out service
+            // REVISION:                     $autoGoodsOutService = app(\App\Services\AutoGoodsOutService::class);
+            // REVISION:                     $result = $autoGoodsOutService->processJobOrderDelivery($jobOrder);
+            // REVISION:
+            // REVISION:                     \Illuminate\Support\Facades\Log::info('MaterialRequest update: Auto goods-out triggered for approved material', [
+            // REVISION:                         'material_request_id' => $materialRequest->id,
+            // REVISION:                         'job_order_id' => $jobOrder->id,
+            // REVISION:                         'job_order_status' => $jobOrder->status,
+            // REVISION:                         'result' => $result,
+            // REVISION:                     ]);
+            // REVISION:                 }
+            // REVISION:             }
 
             // Return response berdasarkan tipe request
             if ($request->ajax()) {
@@ -795,6 +795,8 @@ class MaterialRequestController extends Controller
         event(new MaterialRequestUpdated($materialRequest, 'status'));
 
         // CRITICAL FIX: Auto goods-out when approving material for already-delivered job order
+        // COMMENTED OUT - UNDER REVISION
+        /*
         if ($request->status === 'approved' && $oldStatus !== 'approved') {
             // Check if related Job Order is already delivered
             $jobOrder = $materialRequest->jobOrder;
@@ -812,6 +814,7 @@ class MaterialRequestController extends Controller
                 ]);
             }
         }
+        */
 
         return response()->json([
             'success' => true,

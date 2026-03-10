@@ -34,6 +34,11 @@ class JobOrderController extends Controller
                 });
             }
 
+            // Filter by status
+            if ($request->filled('status')) {
+                $query->where('status', $request->status);
+            }
+
             if ($request->filled('custom_search')) {
                 $search = $request->custom_search;
                 $query->where(function ($q) use ($search) {
@@ -173,7 +178,10 @@ class JobOrderController extends Controller
         $projects = Project::orderBy('name')->get(['id', 'name']);
         $departments = Department::orderBy('name')->get(['id', 'name']);
 
-        return view('production.job-orders.index', compact('projects', 'departments'));
+        // Get distinct status values from database
+        $statuses = JobOrder::select('status')->distinct()->whereNotNull('status')->orderBy('status')->pluck('status');
+
+        return view('production.job-orders.index', compact('projects', 'departments', 'statuses'));
     }
 
     // CREATE - Form tambah job order

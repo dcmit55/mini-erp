@@ -45,17 +45,21 @@ class AppServiceProvider extends ServiceProvider
                 ->by($request->ip())
                 ->response(function (Request $request, array $headers) {
                     Log::warning('Webhook: Rate limit exceeded', [
-                        'ip'          => $request->ip(),
-                        'uuid'        => $request->route('uuid'),
-                        'user_agent'  => $request->userAgent(),
+                        'ip' => $request->ip(),
+                        'uuid' => $request->route('uuid'),
+                        'user_agent' => $request->userAgent(),
                         'retry_after' => $headers['Retry-After'] ?? null,
                     ]);
 
-                    return response()->json([
-                        'success'     => false,
-                        'message'     => 'Too many requests. Please try again later.',
-                        'retry_after' => (int) ($headers['Retry-After'] ?? 60),
-                    ], 429, $headers);
+                    return response()->json(
+                        [
+                            'success' => false,
+                            'message' => 'Too many requests. Please try again later.',
+                            'retry_after' => (int) ($headers['Retry-After'] ?? 60),
+                        ],
+                        429,
+                        $headers,
+                    );
                 });
         });
 
