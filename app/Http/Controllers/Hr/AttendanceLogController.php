@@ -12,6 +12,7 @@ use App\Imports\AttendancesImport;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use App\Services\DailyAttendanceService;
 use Carbon\Carbon;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -104,7 +105,7 @@ class AttendanceLogController extends Controller
                         $clockOut = $logs->max('clock_out');
 
                         // Tentukan status dan remarks
-                        $status = $this->determineStatus($employee, $currentDate, $clockIn, $clockOut);
+                        $status = app(DailyAttendanceService::class)->determineStatus($employee, $currentDate, $clockIn, $clockOut);
                         $remarks = null;
 
                         if (!$clockIn && $clockOut) {
@@ -137,7 +138,7 @@ class AttendanceLogController extends Controller
                             ->where('approval_2', 'approved')
                             ->first();
 
-                        $status = $leave ? $this->mapLeaveTypeToStatus($leave->type) : 'Alpha';
+                        $status = $leave ? app(DailyAttendanceService::class)->mapLeaveTypeToStatus($leave->type) : 'Alpha';
                         $remarks = $leave ? $leave->reason : null;
 
                         $attendances->push((object)[
@@ -180,94 +181,9 @@ class AttendanceLogController extends Controller
         return view('hr.attendance-logs.index', compact('attendancesPaginated', 'employees', 'latestImportSource', 'search'));
     }
 
-    /**
-     * Mendapatkan jam standar berdasarkan hari dari policy
-     */
-    private function getStandardTimes($policy, $dayOfWeek)
-    {
-        $start = null;
-        $end = null;
-        if (in_array($dayOfWeek, ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'])) {
-            $start = $policy->weekday_start;
-            $end = $policy->weekday_end;
-        } elseif ($dayOfWeek === 'saturday') {
-            $start = $policy->saturday_start;
-            $end = $policy->saturday_end;
-        } elseif ($dayOfWeek === 'sunday') {
-            $start = $policy->sunday_start;
-            $end = $policy->sunday_end;
-        }
-        return [$start, $end];
-    }
-
-    /**
-     * Menentukan status kehadiran berdasarkan toleransi 3 menit.
-     * Toleransi 3 menit: jika jam masuk standar 08:00, maka sampai 08:03 = Present.
-     * 08:04 ke atas = Late.
-     * Jika hanya ada clockOut, dianggap Present.
-     * Jika hanya ada clockIn, dihitung keterlambatan (bisa Present/Late).
-     * Jika tidak ada keduanya, Alpha (harusnya sudah ditangani di luar).
-     */
-    private function determineStatus($employee, $date, $clockIn, $clockOut)
-    {
-        // Jika tidak ada clockIn dan clockOut -> Alpha (nanti di luar sudah cek cuti)
-        if (!$clockIn && !$clockOut) {
-            return 'Alpha';
-        }
-
-        // Jika hanya clockOut, langsung Present (tidak bisa hitung keterlambatan)
-        if (!$clockIn && $clockOut) {
-            return 'Present';
-        }
-
-        // Jika ada clockIn (dengan atau tanpa clockOut), hitung keterlambatan
-        $policy = $employee->workPolicy;
-        if (!$policy) {
-            return 'Present';
-        }
-
-        $dayOfWeek = strtolower($date->format('l'));
-        list($standardStart, $standardEnd) = $this->getStandardTimes($policy, $dayOfWeek);
-
-        // Jika tidak ada jam standar atau jam standar 00:00:00 (dianggap libur/tidak masuk)
-        if (!$standardStart || trim($standardStart) == '00:00:00') {
-            return 'Present';
-        }
-
-        // Toleransi 3 menit: misal masuk 08:00, batas toleransi = 08:03
-        // 08:04 ke atas sudah dianggap Late
-        $toleranceMinutes = 3;
-        // Set tanggal absensi agar perbandingan tidak terpengaruh tanggal hari ini
-        $clockInTime = Carbon::parse($clockIn)
-            ->setDate($date->year, $date->month, $date->day);
-        $standardStartTime = Carbon::parse($standardStart)
-            ->setDate($date->year, $date->month, $date->day);
-
-        // Batas akhir toleransi (inklusif sampai menit ke-3)
-        $toleranceEnd = $standardStartTime->copy()->addMinutes($toleranceMinutes);
-
-        // Jika clock_in SETELAH batas toleransi (lebih dari 3 menit) -> Late
-        if ($clockInTime->gt($toleranceEnd)) {
-            return 'Late';
-        }
-
-        return 'Present';
-    }
-
     private function calculateHours($clockIn, $clockOut)
     {
         return Carbon::parse($clockIn)->diffInMinutes(Carbon::parse($clockOut)) / 60;
-    }
-
-    private function mapLeaveTypeToStatus($type)
-    {
-        $map = [
-            'ANNUAL' => 'Annual Leave',
-            'MATERNITY' => 'Maternity Leave',
-            'WEDDING' => 'Wedding Leave',
-            'SONWED' => 'Son\'s Wedding Leave',
-        ];
-        return $map[$type] ?? 'Excused';
     }
 
     public function edit($employeeId, $date)
@@ -317,135 +233,10 @@ class AttendanceLogController extends Controller
             ]
         );
 
-        $this->calculateAttendanceFields($attendance);
+        app(DailyAttendanceService::class)->calculateAttendanceFields($attendance);
 
         return redirect()->route('attendance-logs.index', ['date' => $date->format('Y-m-d')])
             ->with('success', 'Attendance data updated successfully.');
-    }
-
-    /**
-     * Menghitung field-field seperti total jam, potongan terlambat, dll.
-     *
-     * Aturan keterlambatan:
-     * - Toleransi 3 menit: misal masuk jam 08:00, maka 08:01 - 08:03 tidak ada potongan.
-     * - Lewat toleransi (misal 08:04) → status Late, potongan FLAT Rp 25.000
-     *   (berlaku selama keterlambatan < 60 menit dari batas toleransi, yaitu sebelum jam 09:04 jika standar 08:00)
-     * - Jika keterlambatan >= 60 menit dihitung dari jam standar (bukan dari batas toleransi),
-     *   yaitu masuk di jam 09:00 ke atas (jika standar 08:00), maka:
-     *   potongan = (jumlah menit terlambat / 60) * (gaji_bulanan / 173)
-     *
-     * Catatan: Threshold 60 menit dihitung dari jam STANDAR (bukan dari menit toleransi).
-     *   Jadi jika standar 08:00:
-     *   - 08:01 - 08:03 → Present, tidak ada potongan
-     *   - 08:04 - 08:59 → Late, potongan flat 25.000
-     *   - 09:00+        → Late, potongan per jam dari gaji/173
-     */
-    private function calculateAttendanceFields(DailyAttendance $attendance)
-    {
-        $employee = $attendance->employee;
-        $policy = $employee->workPolicy;
-        if (!$policy) {
-            return;
-        }
-
-        // Gaji per jam = gaji bulanan / 173 (standar umum)
-        $monthlySalary = $employee->salary ?? 0;
-        $hourlyRate = $monthlySalary > 0 ? $monthlySalary / 173 : 0;
-
-        $dayOfWeek = strtolower($attendance->date->format('l'));
-        list($standardStart, $standardEnd) = $this->getStandardTimes($policy, $dayOfWeek);
-
-        // Jika tidak ada jam standar atau jam standar 00:00:00 (dianggap libur), tidak perlu hitung
-        if (!$standardStart || !$standardEnd || trim($standardStart) == '00:00:00' || trim($standardEnd) == '00:00:00') {
-            return;
-        }
-
-        if ($attendance->clock_in && $attendance->clock_out) {
-            // Set tanggal absensi pada clock_in/clock_out agar perbandingan konsisten
-            $start = Carbon::parse($attendance->clock_in)
-                ->setDate($attendance->date->year, $attendance->date->month, $attendance->date->day);
-            $end = Carbon::parse($attendance->clock_out)
-                ->setDate($attendance->date->year, $attendance->date->month, $attendance->date->day);
-
-            // Set tanggal agar sama dengan tanggal attendance
-            $standardStartTime = Carbon::parse($standardStart)
-                ->setDate($attendance->date->year, $attendance->date->month, $attendance->date->day);
-            $standardEndTime = Carbon::parse($standardEnd)
-                ->setDate($attendance->date->year, $attendance->date->month, $attendance->date->day);
-
-            $attendance->total_hours = $end->diffInMinutes($start) / 60;
-
-            // Reset semua field perhitungan
-            $attendance->late_minutes = null;
-            $attendance->late_deduction = null;
-            $attendance->early_leave_minutes = null;
-            $attendance->early_leave_deduction = null;
-            $attendance->overtime_minutes = null;
-            $attendance->overtime_pay = null;
-
-            // ─── KETERLAMBATAN ───────────────────────────────────────────────────
-            if ($start->gt($standardStartTime)) {
-                // Jumlah menit terlambat dihitung dari jam standar
-                $lateMinutes = $standardStartTime->diffInMinutes($start);
-                $attendance->late_minutes = $lateMinutes;
-
-                $toleranceMinutes = 3;
-
-                if ($lateMinutes <= $toleranceMinutes) {
-                    // Masih dalam toleransi → tidak ada potongan
-                    $attendance->late_deduction = 0;
-                } elseif ($lateMinutes < 60) {
-                    // Lewat toleransi tapi kurang dari 60 menit dari jam standar
-                    // (misal 08:04 - 08:59 jika standar 08:00) → flat Rp 25.000
-                    $attendance->late_deduction = 25000;
-                } else {
-                    // Terlambat 60 menit atau lebih dari jam standar
-                    // (misal 09:00+ jika standar 08:00) → potongan per jam
-                    $attendance->late_deduction = ($lateMinutes / 60) * $hourlyRate;
-                }
-            }
-
-            // ─── PULANG AWAL ─────────────────────────────────────────────────────
-            if ($end->lt($standardEndTime)) {
-                $earlyMinutes = $end->diffInMinutes($standardEndTime);
-                $attendance->early_leave_minutes = $earlyMinutes;
-                $attendance->early_leave_deduction = ($earlyMinutes / 60) * $hourlyRate;
-            }
-
-            // ─── LEMBUR ──────────────────────────────────────────────────────────
-            if ($end->gt($standardEndTime)) {
-                $overtimeMinutes = $standardEndTime->diffInMinutes($end);
-                $attendance->overtime_minutes = $overtimeMinutes;
-                $attendance->overtime_pay = ($overtimeMinutes / 60) * $hourlyRate * 1.5;
-            }
-        } else {
-            // Jika hanya ada salah satu (hanya clock_in atau hanya clock_out),
-            // tidak bisa hitung total jam dan potongan lengkap.
-            // Namun jika hanya ada clock_in dan status Late, catat late_minutes-nya.
-            if ($attendance->clock_in && !$attendance->clock_out) {
-                $start = Carbon::parse($attendance->clock_in)
-                    ->setDate($attendance->date->year, $attendance->date->month, $attendance->date->day);
-                $standardStartTime = Carbon::parse($standardStart)
-                    ->setDate($attendance->date->year, $attendance->date->month, $attendance->date->day);
-
-                if ($start->gt($standardStartTime)) {
-                    $lateMinutes = $standardStartTime->diffInMinutes($start);
-                    $attendance->late_minutes = $lateMinutes;
-
-                    $toleranceMinutes = 3;
-                    if ($lateMinutes <= $toleranceMinutes) {
-                        $attendance->late_deduction = 0;
-                    } elseif ($lateMinutes < 60) {
-                        $attendance->late_deduction = 25000;
-                    } else {
-                        $attendance->late_deduction = ($lateMinutes / 60) * $hourlyRate;
-                    }
-                }
-            }
-            $attendance->total_hours = null;
-        }
-
-        $attendance->save();
     }
 
     public function storeImport(Request $request)
@@ -506,7 +297,7 @@ class AttendanceLogController extends Controller
                 Log::info('Dates to generate daily: ' . $dates->implode(', '));
 
                 foreach ($dates as $date) {
-                    $this->generateDailyForDate(Carbon::parse($date));
+                    app(DailyAttendanceService::class)->generateForDate(Carbon::parse($date), Auth::id());
                 }
                 $minDate = $dates->min();
                 $maxDate = $dates->max();
@@ -567,105 +358,9 @@ class AttendanceLogController extends Controller
         ]);
 
         $date = $request->filled('date') ? Carbon::parse($request->date) : Carbon::today();
-        $this->generateDailyForDate($date);
+        app(DailyAttendanceService::class)->generateForDate($date, Auth::id());
 
         return redirect()->back()->with('success', 'Daily data updated for ' . $date->format('d-m-Y'));
-    }
-
-    private function generateDailyForDate(Carbon $date)
-    {
-        Log::info("===== GENERATING DAILY FOR DATE: " . $date->format('Y-m-d') . " =====");
-
-        $employees = Employee::where('status', 'active')->get();
-        $dateStr = $date->format('Y-m-d');
-
-        foreach ($employees as $employee) {
-            $logs = AttendanceLog::where('employee_id', $employee->id)
-                ->whereDate('date', $dateStr)
-                ->orderBy('clock_in')
-                ->get();
-
-            Log::info("Employee {$employee->id} ({$employee->name}) - Logs found: " . $logs->count());
-
-            if ($logs->isNotEmpty()) {
-                $clockIn = $logs->min('clock_in');
-                $clockOut = $logs->max('clock_out');
-
-                // Tentukan status dan remarks
-                $status = $this->determineStatus($employee, $date, $clockIn, $clockOut);
-                $remarks = null;
-
-                if (!$clockIn && $clockOut) {
-                    $remarks = 'Missing clock in';
-                } elseif ($clockIn && !$clockOut) {
-                    $remarks = 'Missing clock out';
-                }
-
-                // Untuk menghitung total jam, kita perlu tanggal yang sama
-                $totalHours = null;
-                if ($clockIn && $clockOut) {
-                    $clockInTime = Carbon::parse($clockIn)->setDate($date->year, $date->month, $date->day);
-                    $clockOutTime = Carbon::parse($clockOut)->setDate($date->year, $date->month, $date->day);
-                    $totalHours = $clockOutTime->diffInMinutes($clockInTime) / 60;
-                }
-
-                $clockInFormatted = $clockIn ? Carbon::parse($clockIn)->format('H:i:s') : null;
-                $clockOutFormatted = $clockOut ? Carbon::parse($clockOut)->format('H:i:s') : null;
-
-                Log::info("   -> Prepared: clock_in={$clockInFormatted}, clock_out={$clockOutFormatted}, total_hours={$totalHours}, status={$status}, remarks={$remarks}");
-
-                try {
-                    $daily = DailyAttendance::updateOrCreate(
-                        ['employee_id' => $employee->id, 'date' => $dateStr],
-                        [
-                            'clock_in' => $clockInFormatted,
-                            'clock_out' => $clockOutFormatted,
-                            'total_hours' => $totalHours,
-                            'status' => $status,
-                            'remarks' => $remarks,
-                            'updated_by' => Auth::id(),
-                        ]
-                    );
-
-                    if ($clockIn && $clockOut) {
-                        $this->calculateAttendanceFields($daily);
-                    }
-
-                    Log::info("   ✅ Successfully saved daily for employee {$employee->id}");
-                } catch (\Exception $e) {
-                    Log::error("   ❌ Failed to save daily for employee {$employee->id}: " . $e->getMessage());
-                }
-            } else {
-                // Tidak ada log sama sekali, cek cuti
-                $leave = LeaveRequest::where('employee_id', $employee->id)
-                    ->where('start_date', '<=', $dateStr)
-                    ->where('end_date', '>=', $dateStr)
-                    ->where('approval_1', 'approved')
-                    ->where('approval_2', 'approved')
-                    ->first();
-
-                $status = $leave ? $this->mapLeaveTypeToStatus($leave->type) : 'Alpha';
-                $remarks = $leave ? $leave->reason : null;
-
-                try {
-                    DailyAttendance::updateOrCreate(
-                        ['employee_id' => $employee->id, 'date' => $dateStr],
-                        [
-                            'clock_in' => null,
-                            'clock_out' => null,
-                            'total_hours' => null,
-                            'status' => $status,
-                            'remarks' => $remarks,
-                            'updated_by' => Auth::id(),
-                        ]
-                    );
-                    Log::info("   ✅ Saved alpha record for employee {$employee->id}");
-                } catch (\Exception $e) {
-                    Log::error("   ❌ Failed to save alpha for employee {$employee->id}: " . $e->getMessage());
-                }
-            }
-        }
-        Log::info("===== FINISHED GENERATING DAILY FOR DATE: " . $date->format('Y-m-d') . " =====\n");
     }
 
     public function export(Request $request)

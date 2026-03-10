@@ -6,12 +6,23 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Hr\Employee;
 use App\Models\Admin\User;
+use Illuminate\Support\Str;
 
 class DailyAttendance extends Model
 {
     use HasFactory;
 
     protected $table = 'daily_attendances';
+
+    protected static function boot()
+    {
+        parent::boot();
+        static::creating(function ($model) {
+            if (empty($model->uid)) {
+                $model->uid = (string) Str::uuid();
+            }
+        });
+    }
 
     protected $fillable = [
         'employee_id',

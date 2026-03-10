@@ -327,6 +327,64 @@ class PurchaseApprovalController extends Controller
     }
     
     /**
+     * Bulk reject purchases
+     */
+    public function bulkReject(Request $request)
+    {
+        $request->validate([
+            'purchase_ids' => 'required|array',
+            'purchase_ids.*' => 'exists:indo_purchases,id',
+            'finance_notes' => 'required|string|min:5|max:1000',
+        ]);
+
+        $rejectedCount = 0;
+        $failed = [];
+        $processedPOs = [];
+
+        foreach ($request->purchase_ids as $purchaseId) {
+            try {
+                DB::transaction(function () use ($purchaseId, $request, &$rejectedCount, &$processedPOs) {
+                    $purchase = ProjectPurchase::where('is_current', 1)
+                        ->findOrFail($purchaseId);
+
+                    if (in_array($purchase->po_number, $processedPOs)) {
+                        return;
+                    }
+
+                    $poItems = ProjectPurchase::where('po_number', $purchase->po_number)
+                        ->where('is_current', 1)
+                        ->where('status', 'pending')
+                        ->get();
+
+                    foreach ($poItems as $item) {
+                        $item->update([
+                            'status' => 'rejected',
+                            'finance_notes' => $request->finance_notes,
+                        ]);
+
+                        $this->createDcmCosting($item, 'rejected', $request);
+                    }
+
+                    $processedPOs[] = $purchase->po_number;
+                    $rejectedCount += $poItems->count();
+                });
+
+            } catch (\Exception $e) {
+                $failed[] = $purchaseId;
+                \Log::error("Bulk reject failed for purchase {$purchaseId}: " . $e->getMessage());
+            }
+        }
+
+        $message = "Berhasil reject {$rejectedCount} item(s) dalam " . count($processedPOs) . " PO(s).";
+        if (count($failed) > 0) {
+            $message .= " Gagal: " . implode(', ', $failed);
+        }
+
+        return redirect()->route('purchase-approvals.index')
+            ->with('success', $message);
+    }
+
+    /**
      * Get statistics for dashboard
      */
     public function statistics()

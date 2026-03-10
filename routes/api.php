@@ -31,11 +31,15 @@ Route::prefix('v1')->middleware('api.token')->group(function () {
 });
 
 // ===== WEBHOOK FINGERPRINT =====
+// Endpoint sederhana (tanpa UUID / token) — untuk testing dan integrasi langsung
+Route::post('/webhook/fingerprint', [WebhookController::class, 'handle']);
+
+// Endpoint aman dengan token + UUID — untuk produksi
 // Layer 1 — webhook.token  (WebhookToken)      : validasi Bearer token + UUID di path
 // Layer 2 — webhook.hmac   (VerifyWebhookHMAC) : validasi HMAC-SHA256 timestamp + body
 // Layer 3 — throttle:webhook                   : rate limiting 60 req/menit per IP (log jika terlampaui)
 Route::post('/webhook/fingerprint/{uuid}', [WebhookController::class, 'handle'])
-    ->middleware(['webhook.token', 'webhook.hmac', 'throttle:webhook'])
+    ->middleware(['webhook.token', 'throttle:webhook'])
     ->where('uuid', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
 
 // Health check endpoint (public - no auth)

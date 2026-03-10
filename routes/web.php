@@ -60,6 +60,8 @@ use App\Http\Controllers\Hr\EmployeeImportController;
 use App\Http\Controllers\Hr\OvertimeRequestController;
 use App\Http\Controllers\Hr\OvertimePayController;
 use App\Http\Controllers\Hr\EmployeeWorkPolicyImportController;
+use App\Http\Controllers\Hr\FingerprintLogController;
+use App\Http\Controllers\Hr\FingerspotController;
 
 /*
 |--------------------------------------------------------------------------
@@ -577,6 +579,7 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/{id}/approve', [PurchaseApprovalController::class, 'approve'])->name('approve');
             Route::post('/{id}/reject', [PurchaseApprovalController::class, 'reject'])->name('reject');
             Route::post('/bulk-approve', [PurchaseApprovalController::class, 'bulkApprove'])->name('bulk-approve');
+            Route::post('/bulk-reject', [PurchaseApprovalController::class, 'bulkReject'])->name('bulk-reject');
         });
     Route::prefix('finance/purchase-edited')
         ->name('purchase-edited.')
@@ -619,7 +622,32 @@ Route::middleware(['auth'])->group(function () {
     }); // API endpoint untuk mengambil jam kerja karyawan (opsional)
     Route::get('/employees/{employee}/work-hours', [App\Http\Controllers\Hr\EmployeeWorkPolicyController::class, 'getHours'])->name('employees.work-hours');
 
-    // Attendance Logs
+    // Fingerprint Webhook Logs (raw data dari mesin fingerprint)
+    Route::get('/fingerprint-logs', [FingerprintLogController::class, 'index'])->name('fingerprint-logs.index');
+
+    // Fingerspot Device Management
+    Route::prefix('fingerspot')->name('fingerspot.')->group(function () {
+        Route::get('/',                     [FingerspotController::class, 'index'])->name('index');
+        
+        // Halaman form (GET)
+        Route::get('/sync',                  [FingerspotController::class, 'showSyncForm'])->name('sync.form');
+        Route::get('/employee-list',         [FingerspotController::class, 'showEmployeeList'])->name('employee-list.form');
+        Route::get('/register-employee',     [FingerspotController::class, 'showRegisterForm'])->name('register-employee.form');
+        Route::get('/register-biometric',    [FingerspotController::class, 'showBiometricForm'])->name('register-biometric.form');
+        Route::get('/delete-employee',       [FingerspotController::class, 'showDeleteForm'])->name('delete-employee.form');
+        Route::get('/device-info',           [FingerspotController::class, 'showDeviceInfoForm'])->name('device-info.form');
+        Route::get('/set-timezone',          [FingerspotController::class, 'showTimezoneForm'])->name('set-timezone.form');
+        Route::get('/restart',               [FingerspotController::class, 'showRestartForm'])->name('restart.form');
+        
+        // Proses form (POST)
+        Route::post('/sync',                 [FingerspotController::class, 'syncAttendance'])->name('sync');
+        Route::post('/register-employee',    [FingerspotController::class, 'registerEmployee'])->name('register-employee');
+        Route::post('/register-biometric',   [FingerspotController::class, 'registerBiometric'])->name('register-biometric');
+        Route::post('/delete-employee',      [FingerspotController::class, 'deleteEmployee'])->name('delete-employee');
+        Route::post('/device-info',          [FingerspotController::class, 'deviceInfo'])->name('device-info');
+        Route::post('/set-timezone',         [FingerspotController::class, 'setTimezone'])->name('set-timezone');
+        Route::post('/restart',              [FingerspotController::class, 'restartDevice'])->name('restart');
+    });    // Attendance Logs
     Route::get('/attendance-logs', [AttendanceLogController::class, 'index'])->name('attendance-logs.index');
     Route::post('/attendance-logs/import', [AttendanceLogController::class, 'storeImport'])->name('attendance-logs.import.store');
     Route::get('/attendance-logs/import', function () {
