@@ -142,11 +142,10 @@ class DailyAttendanceService
             return 'Present';
         }
 
-        $clockInTime      = Carbon::parse($clockIn)->setDate($date->year, $date->month, $date->day);
+        $clockInTime       = Carbon::parse($clockIn)->setDate($date->year, $date->month, $date->day);
         $standardStartTime = Carbon::parse($standardStart)->setDate($date->year, $date->month, $date->day);
-        $toleranceEnd      = $standardStartTime->copy()->addMinutes(3);
 
-        return $clockInTime->gt($toleranceEnd) ? 'Late' : 'Present';
+        return $clockInTime->gt($standardStartTime) ? 'Late' : 'Present';
     }
 
     // ─── Helper: peta jenis cuti → status ────────────────────────────────────

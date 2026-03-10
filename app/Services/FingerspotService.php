@@ -42,7 +42,19 @@ class FingerspotService
             throw new \Exception('Fingerspot API error (' . $response->status() . '): ' . $response->body());
         }
 
-        return $response->json() ?? [];
+        $json = $response->json() ?? [];
+
+        // Fingerspot API selalu return HTTP 200, tapi bisa success=false di body
+        if (array_key_exists('success', $json) && $json['success'] === false) {
+            $msg = $json['msg'] ?? $json['message'] ?? $json['info'] ?? $response->body();
+            Log::error('Fingerspot API returned failure', [
+                'endpoint' => $endpoint,
+                'body'     => $response->body(),
+            ]);
+            throw new \Exception('Fingerspot device error: ' . $msg);
+        }
+
+        return $json;
     }
 
     private function transId(): string

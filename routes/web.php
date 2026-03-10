@@ -344,12 +344,13 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/trash/delete-by-date', [TrashController::class, 'deleteByDateRange'])->name('trash.deleteByDateRange');
     Route::post('/trash/purge-old', [TrashController::class, 'purgeOldTrash'])->name('trash.purgeOldTrash');
 
-    // Employees
+    // Employees — route statis harus SEBELUM resource agar tidak kalah dengan {employee}
+    Route::get('/employees/search', [EmployeeController::class, 'search'])->name('employees.search');
+    Route::post('/employees/check-employee-no', [EmployeeController::class, 'checkEmployeeNo'])->name('employees.check-employee-no');
+    Route::post('/employees/check-ktp', [EmployeeController::class, 'checkKtpId'])->name('employees.check-ktp');
     Route::resource('employees', EmployeeController::class);
     Route::get('employees/{employee}/timing', [EmployeeController::class, 'timing'])->name('employees.timing');
     Route::delete('employee-documents/{document}', [EmployeeController::class, 'deleteDocument'])->name('employee-documents.destroy');
-    Route::post('/employees/check-employee-no', [EmployeeController::class, 'checkEmployeeNo'])->name('employees.check-employee-no');
-    Route::post('/employees/check-ktp', [EmployeeController::class, 'checkKtpId'])->name('employees.check-ktp');
     Route::get('/employee-documents/{document}/download', [EmployeeController::class, 'downloadDocument'])->name('employee-documents.download');
     Route::get('/employees/{employee}/documents', [EmployeeController::class, 'getDocuments'])->name('employees.documents');
 
@@ -647,6 +648,10 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/device-info',          [FingerspotController::class, 'deviceInfo'])->name('device-info');
         Route::post('/set-timezone',         [FingerspotController::class, 'setTimezone'])->name('set-timezone');
         Route::post('/restart',              [FingerspotController::class, 'restartDevice'])->name('restart');
+
+        // Download laporan absensi (XLSX)
+        Route::get('/download-attendance',   [FingerspotController::class, 'showDownloadForm'])->name('download-attendance.form');
+        Route::post('/download-attendance',  [FingerspotController::class, 'downloadAttendance'])->name('download-attendance');
     });    // Attendance Logs
     Route::get('/attendance-logs', [AttendanceLogController::class, 'index'])->name('attendance-logs.index');
     Route::post('/attendance-logs/import', [AttendanceLogController::class, 'storeImport'])->name('attendance-logs.import.store');

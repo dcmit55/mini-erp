@@ -34,20 +34,14 @@
                     <form action="{{ route('fingerspot.register-employee') }}" method="POST">
                         @csrf
 
-                        <div class="mb-3">
-                            <label for="device_id" class="form-label small text-dark">Device ID <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control border-1 rounded-2 py-2 px-3 @error('device_id') is-invalid @enderror"
-                                   id="device_id" name="device_id" value="{{ old('device_id', $defaultDeviceId) }}" required>
-                            @error('device_id')
-                                <div class="invalid-feedback small">{{ $message }}</div>
-                            @enderror
-                        </div>
+                        {{-- Hidden Device ID --}}
+                        <input type="hidden" name="device_id" value="{{ $defaultDeviceId }}">
 
                         <div class="row g-2 mb-3">
                             <div class="col-md-6">
                                 <label for="pin" class="form-label small text-dark">Employee ID on Device <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control border-1 rounded-2 py-2 px-3 @error('pin') is-invalid @enderror"
-                                       id="pin" name="pin" value="{{ old('pin') }}" placeholder="e.g. 528" required>
+                                       id="pin" name="pin" value="{{ old('pin') }}" required>
                                 <div class="form-text small">Number only — matches the numeric part of the Employee NIK (e.g. DCM-0528 → 528)</div>
                                 @error('pin')
                                     <div class="invalid-feedback small">{{ $message }}</div>
@@ -58,7 +52,7 @@
                                 <select class="form-select border-1 rounded-2 py-2 px-3 @error('privilege') is-invalid @enderror"
                                         id="privilege" name="privilege" required>
                                     <option value="">-- Select Access Level --</option>
-                                    <option value="0" {{ old('privilege') == '0' ? 'selected' : '' }}>Regular User</option>
+                                    <option value="1" {{ old('privilege') == '1' ? 'selected' : '' }}>Regular User</option>
                                     <option value="3" {{ old('privilege') == '3' ? 'selected' : '' }}>Sub-admin</option>
                                     <option value="2" {{ old('privilege') == '2' ? 'selected' : '' }}>Administrator</option>
                                 </select>
@@ -68,12 +62,19 @@
                             </div>
                         </div>
 
+                        {{-- Employee search + Name --}}
                         <div class="mb-3">
-                            <label for="name" class="form-label small text-dark">Full Name <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control border-1 rounded-2 py-2 px-3 @error('name') is-invalid @enderror"
-                                   id="name" name="name" value="{{ old('name') }}" maxlength="100" required>
+                            <label for="employee_search" class="form-label small text-dark">Select Employee <span class="text-danger">*</span></label>
+                            <input type="text"
+                                   id="employee_search"
+                                   class="form-control border-1 rounded-2 py-2 px-3"
+                                   placeholder="Ketik nama atau NIK karyawan..."
+                                   autocomplete="off">
+                            <input type="hidden" id="name" name="name" value="{{ old('name') }}" required>
+                            <div id="employee_dropdown" class="list-group shadow-sm mt-1" style="display:none; max-height:220px; overflow-y:auto; position:absolute; z-index:1000; width:auto; min-width:300px;"></div>
+                            <div class="form-text small">Ketik nama atau NIK untuk mencari, lalu pilih dari daftar</div>
                             @error('name')
-                                <div class="invalid-feedback small">{{ $message }}</div>
+                                <div class="text-danger small mt-1">{{ $message }}</div>
                             @enderror
                         </div>
 
@@ -105,3 +106,63 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const employees = @json($employees->map(fn($e) => ['id' => $e->id, 'employee_no' => $e->employee_no, 'name' => $e->name]));
+
+    const searchInput  = document.getElementById('employee_search');
+    const nameHidden   = document.getElementById('name');
+    const dropdown     = document.getElementById('employee_dropdown');
+
+    // Pre-fill if old value exists
+    const oldName = nameHidden.value;
+    if (oldName) {
+        const found = employees.find(e => e.name === oldName);
+        if (found) searchInput.value = found.employee_no + ' - ' + found.name;
+    }
+
+    searchInput.addEventListener('input', function () {
+        const q = this.value.trim().toLowerCase();
+        dropdown.innerHTML = '';
+
+        if (q.length < 1) {
+            dropdown.style.display = 'none';
+            return;
+        }
+
+        const matches = employees.filter(e =>
+            e.name.toLowerCase().includes(q) || e.employee_no.toLowerCase().includes(q)
+        ).slice(0, 30);
+
+        if (matches.length === 0) {
+            dropdown.style.display = 'none';
+            return;
+        }
+
+        matches.forEach(emp => {
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'list-group-item list-group-item-action py-2 px-3 small';
+            item.textContent = emp.employee_no + ' - ' + emp.name;
+            item.addEventListener('click', function () {
+                searchInput.value = emp.employee_no + ' - ' + emp.name;
+                nameHidden.value  = emp.name;
+                dropdown.style.display = 'none';
+            });
+            dropdown.appendChild(item);
+        });
+
+        dropdown.style.display = 'block';
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function (e) {
+        if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.style.display = 'none';
+        }
+    });
+});
+</script>
+@endpush

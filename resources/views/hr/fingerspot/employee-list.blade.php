@@ -5,55 +5,84 @@
 @section('content')
 <div class="container-fluid py-4">
 
-    {{-- Header --}}
-    <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
-        <div class="d-flex align-items-center gap-3">
-            <a href="{{ route('fingerspot.index') }}" class="btn btn-outline-secondary btn-sm rounded-2 px-3">
-                <i class="fas fa-arrow-left me-1"></i>Back
-            </a>
-            <div>
-                <h5 class="fw-semibold mb-1 text-dark">
-                    <i class="fas fa-users me-2 text-primary"></i>Device Employee List
-                </h5>
-                <p class="text-muted small mb-0">
-                    Employees who have been registered and scanned on the fingerprint device
-                </p>
-            </div>
-        </div>
-        <a href="{{ route('fingerspot.register-employee.form') }}" class="btn btn-primary btn-sm rounded-2 px-4">
-            <i class="fas fa-user-plus me-2"></i>Add Employee to Device
+    {{-- Header with Back Button --}}
+    <div class="mb-4">
+        <a href="{{ route('fingerspot.index') }}" class="btn btn-outline-secondary btn-sm rounded-2 px-3">
+            <i class="fas fa-arrow-left me-1"></i>Back
         </a>
     </div>
 
-    {{-- Config info bar --}}
-    <div class="alert alert-info border-0 shadow-sm mb-4 py-2 px-3 small d-flex align-items-center gap-3">
-        <i class="fas fa-info-circle"></i>
-        <span>Device ID: <strong>{{ $defaultDeviceId ?: '(not set in .env)' }}</strong></span>
-        <span class="vr"></span>
-        <span>API Token: <strong>{{ config('fingerspot.api_token') ? '✓ Configured' : '✗ Not configured' }}</strong></span>
-        <span class="ms-auto text-muted">
-            Total registered: <strong class="text-dark">{{ $employees->total() }}</strong>
-        </span>
+    {{-- Title Section --}}
+    <div class="row align-items-center mb-4">
+        <div class="col">
+            <div class="d-flex align-items-center gap-3">
+                <div class="icon-shape icon-lg bg-soft-primary rounded-3">
+                    <i class="fas fa-users text-primary fs-4"></i>
+                </div>
+                <div>
+                    <h4 class="mb-1 fw-semibold">Device Employee List</h4>
+                    <p class="text-muted mb-0">Employees who have been registered and scanned on the fingerprint device</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-auto">
+            <a href="{{ route('fingerspot.register-employee.form') }}" class="btn btn-primary btn-sm rounded-2 px-4">
+                <i class="fas fa-user-plus me-2"></i>Add Employee to Device
+            </a>
+        </div>
     </div>
 
-    {{-- Flash messages --}}
+    {{-- Flash Messages --}}
     @if(session('success'))
-        <div class="alert alert-success border-0 d-flex align-items-center px-4 py-3 mb-4">
-            <i class="fas fa-check-circle me-2"></i>
-            <div class="flex-grow-1">{{ session('success') }}</div>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
+    <div class="alert alert-soft-success alert-dismissible fade show mb-4" role="alert">
+        <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
     @endif
     @if(session('error'))
-        <div class="alert alert-danger border-0 d-flex align-items-center px-4 py-3 mb-4">
-            <i class="fas fa-exclamation-circle me-2"></i>
-            <div class="flex-grow-1">{{ session('error') }}</div>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
+    <div class="alert alert-soft-danger alert-dismissible fade show mb-4" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i>{{ session('error') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
     @endif
 
+    {{-- Configuration Card --}}
+    <div class="card border-0 shadow-xs mb-4">
+        <div class="card-body py-3">
+            <div class="row align-items-center g-3">
+                <div class="col-auto">
+                    <span class="badge bg-soft-info text-info px-3 py-2">
+                        <i class="fas fa-info-circle me-1"></i>Configuration
+                    </span>
+                </div>
+                <div class="col">
+                    <div class="d-flex flex-wrap gap-4">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="text-secondary small">Device ID:</span>
+                            <span class="badge bg-soft-dark fw-normal">
+                                {!! $defaultDeviceId ?: '<span class="text-danger">Not set</span>' !!}
+                            </span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="text-secondary small">Token API:</span>
+                            <span class="badge {{ config('fingerspot.api_token') ? 'bg-soft-success text-success' : 'bg-soft-danger text-danger' }} fw-normal">
+                                {{ config('fingerspot.api_token') ? 'Configured' : 'Not set' }}
+                            </span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 ms-auto">
+                            <span class="text-secondary small">Total registered:</span>
+                            <span class="badge bg-soft-primary text-primary fw-normal">
+                                {{ $employees->total() }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- Search --}}
-    <div class="card border-0 shadow-sm mb-4">
+    <div class="card border-0 shadow-xs mb-4">
         <div class="card-body p-3">
             <form method="GET" action="{{ route('fingerspot.employee-list.form') }}">
                 <div class="row g-2 align-items-center">
@@ -79,7 +108,7 @@
     </div>
 
     {{-- Table --}}
-    <div class="card border-0 shadow-sm">
+    <div class="card border-0 shadow-xs">
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover mb-0" id="employeeListTable">
@@ -210,6 +239,57 @@
 
 @push('styles')
 <style>
+    /* Custom Styles from the reference */
+    .icon-shape {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        vertical-align: middle;
+    }
+    
+    .icon-shape.icon-lg {
+        width: 56px;
+        height: 56px;
+    }
+    
+    .bg-soft-primary {
+        background-color: rgba(13, 110, 253, 0.1);
+    }
+    
+    .bg-soft-success {
+        background-color: rgba(25, 135, 84, 0.1);
+    }
+    
+    .bg-soft-danger {
+        background-color: rgba(220, 53, 69, 0.1);
+    }
+    
+    .bg-soft-info {
+        background-color: rgba(13, 202, 240, 0.1);
+    }
+    
+    .bg-soft-dark {
+        background-color: rgba(33, 37, 41, 0.1);
+    }
+    
+    .alert-soft-success {
+        background-color: rgba(25, 135, 84, 0.1);
+        color: #0f5132;
+        border: none;
+    }
+    
+    .alert-soft-danger {
+        background-color: rgba(220, 53, 69, 0.1);
+        color: #842029;
+        border: none;
+    }
+    
+    .shadow-xs {
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+    
+    /* Original styles */
     .row-number {
         display: inline-flex;
         align-items: center;
@@ -240,9 +320,6 @@
         font-size: 0.8rem;
         flex-shrink: 0;
     }
-
-    .bg-soft-primary { background-color: rgba(13,110,253,.1); }
-    .bg-soft-success { background-color: rgba(25,135,84,.1); }
 
     .table th {
         font-weight: 600;

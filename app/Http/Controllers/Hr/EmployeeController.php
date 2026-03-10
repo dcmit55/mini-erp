@@ -438,6 +438,27 @@ class EmployeeController extends Controller
         }
     }
 
+    /**
+     * Endpoint AJAX untuk autocomplete pencarian karyawan aktif.
+     * GET /hr/employees/search?q=nama&limit=10
+     */
+    public function search(Request $request)
+    {
+        $q     = trim($request->input('q', ''));
+        $limit = min((int) $request->input('limit', 10), 50);
+
+        $employees = Employee::where('status', 'active')
+            ->where(function ($query) use ($q) {
+                $query->where('name', 'like', "%{$q}%")
+                      ->orWhere('employee_no', 'like', "%{$q}%");
+            })
+            ->orderBy('name')
+            ->limit($limit)
+            ->get(['id', 'employee_no', 'name']);
+
+        return response()->json($employees);
+    }
+
     public function checkEmployeeNo(Request $request)
     {
         $employeeNo = $request->input('employee_no');

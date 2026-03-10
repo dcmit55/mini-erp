@@ -4,23 +4,30 @@ namespace App\Http\Controllers\Hr;
 
 use App\Http\Controllers\Controller;
 use App\Services\FingerspotService;
+use App\Services\AttendanceReconcileService;
 use App\Models\Hr\Employee;
 use App\Models\Hr\AttendanceLog;
 use App\Models\FingerprintLog;
+use App\Models\Admin\Department;
+use App\Exports\DailyAttendanceExport;
 use App\Services\DailyAttendanceService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Support\Collection;
 
 class FingerspotController extends Controller
 {
-    protected FingerspotService $fingerspot;
+    protected FingerspotService           $fingerspot;
+    protected AttendanceReconcileService  $reconciler;
 
-    public function __construct(FingerspotService $fingerspot)
+    public function __construct(FingerspotService $fingerspot, AttendanceReconcileService $reconciler)
     {
-        $this->fingerspot = $fingerspot;
+        $this->fingerspot  = $fingerspot;
+        $this->reconciler  = $reconciler;
 
         $this->middleware('auth');
         $this->middleware(function ($request, $next) {
@@ -31,14 +38,29 @@ class FingerspotController extends Controller
         });
     }
 
-    // ─── Halaman utama ───────────────────────────────────────────────────────
+    /**
+     * Convert an employee number to the raw PIN used by the fingerprint device.
+     *
+     * @param string $employeeNo
+     * @return string
+     */
+    private function pinFromEmployeeNo($employeeNo)
+    {
+        // Remove the "DCM-" prefix (assuming format "DCM-1234")
+        $numericPart = substr($employeeNo, 4);
+        // Normalize (remove leading zeros) to match the raw PIN from the device
+        return $this->reconciler->normalizePin($numericPart);
+    }
+
+    // =========================================================================
+    // Halaman tampilan
+    // =========================================================================
+
     public function index()
     {
         $defaultDeviceId = config('fingerspot.device_id', '');
         return view('hr.fingerspot.index', compact('defaultDeviceId'));
     }
-
-    // ─── Halaman form untuk setiap fitur ─────────────────────────────────────
 
     public function showSyncForm()
     {
@@ -48,8 +70,12 @@ class FingerspotController extends Controller
 
     public function showRegisterForm()
     {
+        $employees = Employee::where('status', 'active')
+            ->orderBy('name')
+            ->get(['id', 'employee_no', 'name']);
+            
         $defaultDeviceId = config('fingerspot.device_id', '');
-        return view('hr.fingerspot.register-employee', compact('defaultDeviceId'));
+        return view('hr.fingerspot.register-employee', compact('defaultDeviceId', 'employees'));
     }
 
     public function showBiometricForm()
@@ -59,21 +85,21 @@ class FingerspotController extends Controller
     }
 
     /**
-     * Tampilkan daftar karyawan yang sudah terdaftar di mesin (pernah scan)
+     * Daftar karyawan yang sudah terdaftar di mesin (pernah scan) – dengan statistik HARIAN (hari ini).
      */
     public function showEmployeeList(Request $request)
     {
         $defaultDeviceId = config('fingerspot.device_id', '');
 
-        // Hitung total scan dan last scan per employee machine ID
+        // Statistik scan HARI INI per PIN (cloud_id di fingerprint_logs)
         $fingerprintStats = FingerprintLog::selectRaw('cloud_id, COUNT(*) as total_scans, MAX(event_time) as last_scan')
+            ->whereDate('event_time', Carbon::today())
             ->groupBy('cloud_id')
             ->get()
-            ->keyBy(fn($r) => ltrim((string) $r->cloud_id, '0'));
+            ->keyBy('cloud_id');
 
         $existingPins = $fingerprintStats->keys()->toArray();
 
-        // Query karyawan aktif + optional search
         $query = Employee::where('status', 'active')->orderBy('name');
 
         if ($request->filled('search')) {
@@ -84,23 +110,20 @@ class FingerspotController extends Controller
             });
         }
 
-        // Filter hanya yang PIN-nya ada di fingerprint_logs, lalu attach stats
         $filtered = $query->get()
             ->filter(function ($emp) use ($existingPins) {
-                $pin = ltrim(preg_replace('/[^0-9]/', '', $emp->employee_no), '0');
-                return in_array($pin, $existingPins);
+                return in_array($this->pinFromEmployeeNo($emp->employee_no), $existingPins);
             })
             ->map(function ($emp) use ($fingerprintStats) {
-                $pin   = ltrim(preg_replace('/[^0-9]/', '', $emp->employee_no), '0');
-                $stats = $fingerprintStats->get($pin);
+                $pin               = $this->pinFromEmployeeNo($emp->employee_no);
+                $stats             = $fingerprintStats->get($pin);
                 $emp->device_pin   = $pin;
-                $emp->total_scans  = $stats ? $stats->total_scans : 0;
-                $emp->last_scan    = $stats ? $stats->last_scan   : null;
+                $emp->total_scans  = $stats?->total_scans ?? 0;   // jumlah scan hari ini
+                $emp->last_scan    = $stats?->last_scan   ?? null; // scan terakhir hari ini
                 return $emp;
             })
             ->values();
 
-        // Manual pagination
         $perPage     = 25;
         $currentPage = (int) $request->get('page', 1);
         $employees   = new LengthAwarePaginator(
@@ -114,21 +137,15 @@ class FingerspotController extends Controller
         return view('hr.fingerspot.employee-list', compact('defaultDeviceId', 'employees'));
     }
 
-    /**
-     * Tampilkan halaman hapus karyawan dari mesin
-     */
     public function showDeleteForm(Request $request)
     {
         $defaultDeviceId = config('fingerspot.device_id', '');
-        $error = null;
+        $error           = null;
 
-        // Ambil semua employee machine ID yang pernah scan, strip leading zeros
-        $existingMachineIds = FingerprintLog::distinct()->pluck('cloud_id')
-            ->map(fn($id) => ltrim((string) $id, '0'))
+        $existingPins = FingerprintLog::distinct()->pluck('cloud_id')
             ->filter()
             ->toArray();
 
-        // Query karyawan aktif dengan optional search
         $query = Employee::where('status', 'active')->orderBy('name');
 
         if ($request->filled('search')) {
@@ -139,13 +156,10 @@ class FingerspotController extends Controller
             });
         }
 
-        // Filter hanya karyawan yang machine ID-nya ada di fingerprint_logs
-        $filtered = $query->get()->filter(function ($emp) use ($existingMachineIds) {
-            $pin = ltrim(preg_replace('/[^0-9]/', '', $emp->employee_no), '0');
-            return in_array($pin, $existingMachineIds);
-        })->values();
+        $filtered = $query->get()
+            ->filter(fn($emp) => in_array($this->pinFromEmployeeNo($emp->employee_no), $existingPins))
+            ->values();
 
-        // Buat paginator manual dari koleksi yang sudah difilter
         $perPage     = 50;
         $currentPage = (int) $request->get('page', 1);
         $employees   = new LengthAwarePaginator(
@@ -177,7 +191,14 @@ class FingerspotController extends Controller
         return view('hr.fingerspot.restart', compact('defaultDeviceId'));
     }
 
-    // ─── Proses form ──────────────────────────────────────────────────────────
+    // =========================================================================
+    // SYNC ATTENDANCE
+    // =========================================================================
+
+    /**
+     * Ambil data raw dari mesin fingerspot, simpan ke fingerprint_logs (tanpa duplikat),
+     * lalu rekonsiliasi attendance_logs per karyawan per tanggal.
+     */
     public function syncAttendance(Request $request)
     {
         $request->validate([
@@ -193,100 +214,180 @@ class FingerspotController extends Controller
                 $request->end_date
             );
 
-            // Jika Fingerspot mengembalikan data langsung di response (bukan via webhook push)
             $records = $response['data'] ?? [];
 
             if (empty($records)) {
                 return back()->with('info', 'Sync command sent. No attendance data returned directly — data may arrive via webhook push.');
             }
 
-            $saved   = 0;
-            $skipped = 0;
-            $dates   = [];
+            $saved         = 0;
+            $duplicates    = 0;
+            $invalidFields = 0; // record dari API tidak punya PIN atau waktu
+            $notMatched    = 0; // PIN tidak cocok ke karyawan manapun
+            $affectedPairs = [];
 
             foreach ($records as $record) {
-                // Format field: pin / cloud_id = employee ID on device, time / scan_time = timestamp
-                $pin      = (string) ($record['pin'] ?? $record['cloud_id'] ?? null);
-                $timeRaw  = $record['time'] ?? $record['scan_time'] ?? null;
 
-                if (!$pin || !$timeRaw) {
-                    $skipped++;
+                $pinRaw  = (string) ($record['pin'] ?? $record['cloud_id'] ?? null);
+                $timeRaw = $record['scan_date'] ?? $record['time'] ?? $record['scan_time'] ?? null;
+
+                if (!$pinRaw || !$timeRaw) {
+                    Log::warning('Sync: record tidak lengkap', ['record' => $record]);
+                    $invalidFields++;
                     continue;
                 }
 
-                // Cocokkan ke employee
-                $employee = Employee::where('employee_no', $pin)
-                    ->orWhere('employee_no', 'DCM-' . str_pad($pin, 4, '0', STR_PAD_LEFT))
-                    ->orWhere('employee_no', 'like', '%-' . $pin)
-                    ->first();
+                $employee = $this->reconciler->findEmployeeByPin($pinRaw);
 
                 if (!$employee) {
-                    Log::warning('Sync: employee not found', ['pin' => $pin]);
-                    $skipped++;
+                    Log::warning('Sync: karyawan tidak ditemukan', [
+                        'pin_raw'    => $pinRaw,
+                        'pin_lookup' => 'DCM-' . str_pad($this->reconciler->normalizePin($pinRaw), 4, '0', STR_PAD_LEFT),
+                    ]);
+                    $notMatched++;
                     continue;
                 }
 
                 $scanCarbon = Carbon::parse($timeRaw);
-                $date       = $scanCarbon->format('Y-m-d');
-                $timeOnly   = $scanCarbon->format('H:i:s');
+                $isSaved    = $this->reconciler->saveRawLog($pinRaw, $scanCarbon, $record);
 
-                // Simpan ke fingerprint_logs
-                FingerprintLog::create([
-                    'cloud_id'   => $pin,
-                    'event_time' => $scanCarbon,
-                    'payload'    => $record,
-                ]);
-
-                // Update attendance_logs
-                $log = AttendanceLog::where('employee_id', $employee->id)
-                    ->whereDate('date', $date)
-                    ->first();
-
-                if (!$log) {
-                    AttendanceLog::create([
-                        'employee_id'   => $employee->id,
-                        'date'          => $date,
-                        'clock_in'      => $timeOnly,
-                        'import_source' => 'fingerprint_sync',
-                    ]);
-                } elseif (is_null($log->clock_out)) {
-                    $log->clock_out = $timeOnly;
-                    $log->save();
+                if (!$isSaved) {
+                    $duplicates++;
+                    continue;
                 }
 
-                $dates[] = $date;
+                $date = $scanCarbon->format('Y-m-d');
+                $affectedPairs[$employee->id][$date] = true;
                 $saved++;
             }
 
-            // Regenerate daily attendances untuk semua tanggal yang terdampak
-            foreach (array_unique($dates) as $date) {
+            // ── Rekonsiliasi & regenerate DailyAttendance ──────────────────────
+            $allAffectedDates = [];
+            foreach ($affectedPairs as $employeeId => $dates) {
+                foreach (array_keys($dates) as $date) {
+                    $this->reconciler->reconcile($employeeId, $date);
+                    $allAffectedDates[$date] = true;
+                }
+            }
+
+            foreach (array_keys($allAffectedDates) as $date) {
                 app(DailyAttendanceService::class)->generateForDate(Carbon::parse($date));
             }
 
-            return back()->with('success', "Sync complete. {$saved} record(s) saved" . ($skipped ? ", {$skipped} skipped." : '.'));
+            $msg = "Sync selesai. {$saved} data baru tersimpan";
+            if ($duplicates)    $msg .= ", {$duplicates} duplikat dilewati";
+            if ($notMatched)    $msg .= ", {$notMatched} PIN tidak cocok ke karyawan";
+            if ($invalidFields) $msg .= ", {$invalidFields} record tidak lengkap (cek log)";
+
+            return back()->with('success', $msg . '.');
 
         } catch (\Exception $e) {
-            return back()->with('error', 'Sync failed: ' . $e->getMessage());
+            Log::error('syncAttendance error', ['message' => $e->getMessage()]);
+            return back()->with('error', 'Sync gagal: ' . $e->getMessage());
         }
     }
+
+    // =========================================================================
+    // DOWNLOAD ATTENDANCE (XLSX)
+    // =========================================================================
+
+    public function showDownloadForm()
+    {
+        $departments = Department::orderBy('name')->get();
+        
+        // Ambil karyawan yang sudah terdaftar di device (pernah scan)
+        $existingPins = FingerprintLog::distinct()->pluck('cloud_id')
+            ->filter()
+            ->toArray();
+        
+        $deviceEmployeeIds = [];
+        
+        foreach ($existingPins as $pin) {
+            $employee = $this->reconciler->findEmployeeByPin($pin);
+            if ($employee) {
+                $deviceEmployeeIds[] = $employee->id;
+            }
+        }
+        
+        $deviceEmployeeIds = array_unique($deviceEmployeeIds);
+        
+        $deviceEmployees = collect();
+        
+        if (!empty($deviceEmployeeIds)) {
+            $deviceEmployees = Employee::where('status', 'active')
+                ->whereIn('id', $deviceEmployeeIds)
+                ->orderBy('name')
+                ->get(['id', 'employee_no', 'name']);
+        }
+            
+        $defaultDeviceId = config('fingerspot.device_id', '');
+        
+        return view('hr.fingerspot.download-attendance', compact('departments', 'deviceEmployees', 'defaultDeviceId'));
+    }
+
+    public function downloadAttendance(Request $request)
+    {
+        $request->validate([
+            'mode'          => 'required|in:range,month',
+            'start_date'    => 'required_if:mode,range|nullable|date',
+            'end_date'      => 'required_if:mode,range|nullable|date|after_or_equal:start_date',
+            'month'         => 'required_if:mode,month|nullable|integer|min:1|max:12',
+            'year'          => 'required_if:mode,month|nullable|integer|min:2020|max:2099',
+            'department_id' => 'nullable|integer|exists:departments,id',
+            'employee_id'   => 'nullable|integer|exists:employees,id',
+        ]);
+
+        if ($request->mode === 'month') {
+            $year      = (int) $request->year;
+            $month     = (int) $request->month;
+            $startDate = now()->setDate($year, $month, 1)->startOfMonth()->format('Y-m-d');
+            $endDate   = now()->setDate($year, $month, 1)->endOfMonth()->format('Y-m-d');
+            $label     = now()->setDate($year, $month, 1)->format('Y-M');
+        } else {
+            $startDate = $request->start_date;
+            $endDate   = $request->end_date;
+            $label     = str_replace('-', '', $startDate) . '_' . str_replace('-', '', $endDate);
+        }
+
+        $export   = new DailyAttendanceExport(
+            $startDate,
+            $endDate,
+            $request->department_id ? (int) $request->department_id : null,
+            $request->employee_id   ? (int) $request->employee_id   : null
+        );
+
+        $filename = "attendance_{$label}.xlsx";
+
+        return Excel::download($export, $filename);
+    }
+
+    // =========================================================================
+    // Proses form lain
+    // =========================================================================
 
     public function registerEmployee(Request $request)
     {
         $request->validate([
             'device_id' => 'required|string',
             'pin'       => 'required|string',
+            'privilege' => 'required|in:1,2,3',
             'name'      => 'required|string|max:100',
-            'privilege' => 'required|in:0,1,2,3',
+            'password'  => 'nullable|string',
+            'rfid'      => 'nullable|string',
         ]);
 
         try {
             $this->fingerspot->setUserinfo($request->device_id, [
                 'pin'       => $request->pin,
                 'name'      => $request->name,
-                'privilege' => $request->privilege,
+                'privilege' => (int) $request->privilege,
                 'password'  => $request->password ?? '',
                 'rfid'      => $request->rfid      ?? '',
+                'template'  => '',
             ]);
+            
+            // Simpan relasi antara employee_id, pin, dan username di database jika diperlukan
+            
             return back()->with('success', 'Register employee command sent to device.');
         } catch (\Exception $e) {
             return back()->with('error', 'Registration failed: ' . $e->getMessage());

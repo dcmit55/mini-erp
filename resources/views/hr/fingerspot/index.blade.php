@@ -17,11 +17,6 @@
                 </div>
             </div>
         </div>
-        <div class="col-auto">
-            <a href="{{ route('fingerprint-logs.index') }}" class="btn btn-light">
-                <i class="fas fa-list me-2"></i>View Logs
-            </a>
-        </div>
     </div>
 
     {{-- Flash Messages --}}
@@ -73,6 +68,7 @@
             'Data Management' => [
                 ['employee-list', 'Employee List', 'View employees registered on the device', 'fas fa-users', 'info'],
                 ['sync', 'Sync Attendance', 'Pull scan data from the device', 'fas fa-sync-alt', 'primary'],
+                ['download-attendance', 'Download Absensi', 'Export laporan absensi harian ke Excel (.xlsx)', 'fas fa-file-excel', 'success'],
                 ['register-employee', 'Register Employee', 'Add an employee to the device', 'fas fa-user-plus', 'primary'],
                 ['register-biometric', 'Register Biometric', 'Enroll fingerprint / face online', 'fas fa-fingerprint', 'success'],
                 ['delete-employee', 'Remove Employee', 'Delete a user from the device', 'fas fa-user-minus', 'danger'],

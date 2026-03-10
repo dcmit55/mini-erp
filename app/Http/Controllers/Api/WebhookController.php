@@ -4,26 +4,36 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\FingerprintLog;
-use App\Models\Hr\AttendanceLog;
-use App\Models\Hr\Employee;
+use App\Services\AttendanceReconcileService;
 use App\Services\DailyAttendanceService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * Menerima push data scan dari mesin fingerprint (otomatis, tanpa aksi HR).
+ *
+ * Endpoint:
+ *   POST /api/webhook/fingerprint           (test, tanpa auth)
+ *   POST /api/webhook/fingerprint/{uuid}    (produksi, dengan token + throttle)
+ *
+ * Alur:
+ *  1. Validasi field wajib (PIN karyawan + waktu scan).
+ *  2. Simpan raw payload ke fingerprint_logs — idempoten (skip duplikat).
+ *  3. Cari karyawan via AttendanceReconcileService::findEmployeeByPin.
+ *  4. Jika ketemu, rekonsiliasi attendance_logs untuk tanggal scan.
+ *  5. Regenerate daily_attendances.
+ *  6. Selalu kembalikan HTTP 200 agar mesin tidak retry berulang.
+ */
 class WebhookController extends Controller
 {
-    /**
-     * Handle incoming scan dari mesin fingerprint.
-     *
-     * Payload dari Fingerspot:
-     *   cloud_id  : ID karyawan di mesin (misal "528") — BUKAN device ID
-     *   pin       : fallback jika cloud_id tidak ada
-     *   scan_time | time | timestamp : waktu scan
-     *
-     * Catatan: device ID mesin (misal C2656C741B331925) ada di .env sebagai
-     *          FINGERSPOT_DEVICE_ID dan tidak dikirim dalam webhook scan.
-     */
+    protected AttendanceReconcileService $reconciler;
+
+    public function __construct(AttendanceReconcileService $reconciler)
+    {
+        $this->reconciler = $reconciler;
+    }
+
     public function handle(Request $request)
     {
         Log::info('Fingerprint webhook received', [
@@ -31,138 +41,96 @@ class WebhookController extends Controller
             'payload' => $request->all(),
         ]);
 
-        // ── Ekstrak ID karyawan di mesin ─────────────────────────────────────
-        // cloud_id di webhook = ID karyawan di mesin (mis. "528")
-        // pin = fallback untuk format firmware tertentu
-        $employeePin = $request->input('cloud_id')
+        // ── Ekstrak PIN dan waktu scan dari payload ────────────────────────────
+        // Fingerspot mengirim data dalam berbagai format tergantung firmware:
+        //   cloud_id / pin / user_id  → ID karyawan di mesin
+        //   scan_time / time / timestamp → waktu scan
+        $pinRaw   = (string) ($request->input('cloud_id')
             ?? $request->input('pin')
-            ?? $request->input('user_id');
+            ?? $request->input('user_id')
+            ?? '');
 
-        // ── Ekstrak waktu scan ───────────────────────────────────────────────
-        // Fingerspot firmware berbeda-beda: scan_time, time, atau timestamp
-        $scanTime = $request->input('scan_time')
+        $timeRaw  = $request->input('scan_time')
             ?? $request->input('time')
             ?? $request->input('timestamp');
 
-        // ── Validasi field wajib ─────────────────────────────────────────────
-        if (!$employeePin || !$scanTime) {
-            Log::warning('Webhook: missing required fields', [
-                'received_fields' => array_keys($request->all()),
-                'employee_pin'    => $employeePin,
-                'scan_time'       => $scanTime,
+        if (!$pinRaw || !$timeRaw) {
+            Log::warning('Webhook: field wajib tidak lengkap', [
+                'fields_received' => array_keys($request->all()),
+                'pin'             => $pinRaw  ?: null,
+                'time'            => $timeRaw ?: null,
             ]);
 
             return response()->json([
-                'success'  => false,
-                'message'  => 'Missing required fields. Need employee ID (cloud_id/pin) and scan time (scan_time/time/timestamp).',
-                'received' => array_keys($request->all()),
+                'success' => false,
+                'message' => 'Missing required fields: employee PIN (cloud_id/pin) and scan time (scan_time/time/timestamp).',
+                'fields'  => array_keys($request->all()),
             ], 422);
         }
 
-        // ── Simpan raw payload ke fingerprint_logs ───────────────────────────
-        $fingerprintLog = FingerprintLog::create([
-            'cloud_id'   => (string) $employeePin,
-            'event_time' => Carbon::parse($scanTime),
-            'payload'    => $request->all(),
+        $scanCarbon = Carbon::parse($timeRaw);
+        $date       = $scanCarbon->format('Y-m-d');
+
+        // ── Simpan raw log (idempoten) ─────────────────────────────────────────
+        $isNew = $this->reconciler->saveRawLog($pinRaw, $scanCarbon, $request->all());
+
+        Log::info('FingerprintLog ' . ($isNew ? 'saved' : 'duplicate skipped'), [
+            'pin'  => $pinRaw,
+            'time' => $scanCarbon->toDateTimeString(),
         ]);
 
-        Log::info('FingerprintLog saved', [
-            'id'          => $fingerprintLog->id,
-            'employee_pin'=> $employeePin,
-        ]);
-
-        // ── Cari employee berdasarkan ID karyawan di mesin ───────────────────
-        // Contoh: cloud_id = "528" → cocokkan ke DCM-0528
-        $employee = Employee::where('employee_no', 'DCM-' . str_pad($employeePin, 4, '0', STR_PAD_LEFT))
-            ->orWhere('employee_no', 'DCM-' . ltrim((string) $employeePin, '0'))
-            ->orWhere('employee_no', (string) $employeePin)
-            ->orWhere('employee_no', 'like', '%-' . ltrim((string) $employeePin, '0'))
-            ->first();
+        // ── Cari karyawan ──────────────────────────────────────────────────────
+        $employee = $this->reconciler->findEmployeeByPin($pinRaw);
 
         if (!$employee) {
-            Log::warning('Webhook: employee not found', [
-                'employee_pin'       => $employeePin,
-                'fingerprint_log_id' => $fingerprintLog->id,
-                'tried_formats'      => [
-                    'DCM-' . str_pad($employeePin, 4, '0', STR_PAD_LEFT),
-                    'DCM-' . ltrim((string) $employeePin, '0'),
-                    (string) $employeePin,
-                ],
+            Log::warning('Webhook: karyawan tidak ditemukan', [
+                'pin'       => $pinRaw,
+                'normalized'=> $this->reconciler->normalizePin($pinRaw),
             ]);
 
-            // Tetap return 200 agar mesin tidak retry terus-menerus
-            // Data sudah tersimpan di fingerprint_logs untuk audit
+            // Tetap 200 agar mesin tidak retry terus — raw log sudah tersimpan
             return response()->json([
-                'success' => true,
-                'message' => 'Scan recorded (employee not matched in system)',
-                'pin'     => $employeePin,
+                'success'    => true,
+                'message'    => 'Scan recorded (employee not matched in system)',
+                'pin'        => $pinRaw,
+                'is_new_log' => $isNew,
             ]);
         }
 
-        // ── Parse waktu scan ─────────────────────────────────────────────────
-        $scanCarbon = Carbon::parse($scanTime);
-        $date       = $scanCarbon->format('Y-m-d');
-        $timeOnly   = $scanCarbon->format('H:i:s');
-
-        // ── Update atau buat attendance_log ──────────────────────────────────
-        $attendanceLog = AttendanceLog::where('employee_id', $employee->id)
-            ->whereDate('date', $date)
-            ->first();
-
-        $action = '';
-
-        if (!$attendanceLog) {
-            AttendanceLog::create([
-                'employee_id'   => $employee->id,
-                'date'          => $date,
-                'clock_in'      => $timeOnly,
-                'clock_out'     => null,
-                'import_source' => 'fingerprint',
-            ]);
-            $action = 'clock_in';
-
-        } elseif (is_null($attendanceLog->clock_in)) {
-            $attendanceLog->clock_in = $timeOnly;
-            $attendanceLog->save();
-            $action = 'clock_in';
-
-        } elseif (is_null($attendanceLog->clock_out)) {
-            $attendanceLog->clock_out = $timeOnly;
-            $attendanceLog->save();
-            $action = 'clock_out';
-
-        } else {
-            Log::info('Webhook: extra scan recorded in logs but attendance already complete', [
+        // ── Rekonsiliasi attendance_logs ───────────────────────────────────────
+        // Jalankan meski $isNew = false, karena bisa saja rekonsiliasi sebelumnya gagal
+        try {
+            $this->reconciler->reconcile($employee->id, $date);
+        } catch (\Exception $e) {
+            Log::error('Webhook: reconcile gagal', [
                 'employee_id' => $employee->id,
                 'date'        => $date,
-                'extra_time'  => $timeOnly,
+                'error'       => $e->getMessage(),
             ]);
-            $action = 'extra_scan';
         }
 
-        // ── Regenerate daily_attendances ─────────────────────────────────────
+        // ── Regenerate daily_attendances ───────────────────────────────────────
         try {
             app(DailyAttendanceService::class)->generateForDate(Carbon::parse($date));
         } catch (\Exception $e) {
-            Log::error('Failed to regenerate daily_attendances: ' . $e->getMessage());
+            Log::error('Webhook: regenerate daily_attendances gagal: ' . $e->getMessage());
         }
 
         Log::info('Webhook processed', [
             'employee_id' => $employee->id,
             'employee'    => $employee->name,
             'date'        => $date,
-            'time'        => $timeOnly,
-            'action'      => $action,
+            'is_new_log'  => $isNew,
         ]);
 
         return response()->json([
             'success'     => true,
-            'message'     => 'Scan recorded',
-            'action'      => $action,
+            'message'     => 'Scan recorded and processed',
             'employee'    => $employee->name,
             'employee_no' => $employee->employee_no,
             'date'        => $date,
-            'time'        => $timeOnly,
+            'time'        => $scanCarbon->format('H:i:s'),
+            'is_new_log'  => $isNew,
             'received_at' => now()->toIso8601String(),
         ]);
     }

@@ -30,14 +30,8 @@ Route::prefix('v1')->middleware('api.token')->group(function () {
     Route::get('/employees',       [ProjectApiController::class, 'getEmployees']);
 });
 
-// ===== WEBHOOK FINGERPRINT =====
-// Endpoint sederhana (tanpa UUID / token) — untuk testing dan integrasi langsung
 Route::post('/webhook/fingerprint', [WebhookController::class, 'handle']);
 
-// Endpoint aman dengan token + UUID — untuk produksi
-// Layer 1 — webhook.token  (WebhookToken)      : validasi Bearer token + UUID di path
-// Layer 2 — webhook.hmac   (VerifyWebhookHMAC) : validasi HMAC-SHA256 timestamp + body
-// Layer 3 — throttle:webhook                   : rate limiting 60 req/menit per IP (log jika terlampaui)
 Route::post('/webhook/fingerprint/{uuid}', [WebhookController::class, 'handle'])
     ->middleware(['webhook.token', 'throttle:webhook'])
     ->where('uuid', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
@@ -53,24 +47,6 @@ Route::get('/health', function () {
     ]);
 });
 
-// ===== TESTING ENDPOINTS (HAPUS SAAT PRODUCTION) =====
-/*
-Route::get('/debug/headers', function (\Illuminate\Http\Request $request) {
-    if (!app()->environment('local', 'development')) {
-        return response()->json(['error' => 'Not available in production'], 404);
-    }
-    return response()->json([
-        'bearer_token'             => $request->bearerToken(),
-        'authorization_header'     => $request->header('Authorization'),
-        'all_headers'              => $request->headers->all(),
-        'server_http_authorization'=> $_SERVER['HTTP_AUTHORIZATION'] ?? null,
-        'server_redirect_http_auth'=> $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? null,
-        'getallheaders'            => function_exists('getallheaders') ? getallheaders() : 'not available',
-        'php_sapi'                 => PHP_SAPI,
-        'config_token_set'         => !empty(config('services.api.token')),
-    ]);
-});
-*/
 
 // Endpoint untuk cek konfigurasi webhook - TANPA AUTH
 Route::get('/debug/webhook-config', function () {
