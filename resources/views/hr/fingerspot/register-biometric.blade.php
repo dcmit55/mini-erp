@@ -118,10 +118,6 @@
                             @error('pin')
                                 <div class="invalid-feedback d-block">{{ $message }}</div>
                             @enderror
-                            <div class="form-text text-muted small mt-1">
-                                <i class="fas fa-info-circle me-1"></i>
-                                Auto-filled from employee number (e.g. DCM-0528 → 528)
-                            </div>
                         </div>
 
                         {{-- Biometric Type Field --}}
