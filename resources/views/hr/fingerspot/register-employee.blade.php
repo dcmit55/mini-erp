@@ -41,8 +41,8 @@
                             <div class="col-md-6">
                                 <label for="pin" class="form-label small text-dark">Employee ID on Device <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control border-1 rounded-2 py-2 px-3 @error('pin') is-invalid @enderror"
-                                       id="pin" name="pin" value="{{ old('pin') }}" required>
-                                <div class="form-text small">Number only — matches the numeric part of the Employee NIK (e.g. DCM-0528 → 528)</div>
+                                       id="pin" name="pin" value="{{ old('pin') }}"
+                                       placeholder="Auto-filled from employee selection" required>
                                 @error('pin')
                                     <div class="invalid-feedback small">{{ $message }}</div>
                                 @enderror
@@ -114,13 +114,23 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const searchInput  = document.getElementById('employee_search');
     const nameHidden   = document.getElementById('name');
+    const pinInput     = document.getElementById('pin');
     const dropdown     = document.getElementById('employee_dropdown');
+
+    function pinFromEmployeeNo(employeeNo) {
+        // Strip "DCM-" prefix then remove leading zeros
+        const numeric = employeeNo.replace(/^DCM-/i, '');
+        return String(parseInt(numeric, 10) || 0);
+    }
 
     // Pre-fill if old value exists
     const oldName = nameHidden.value;
     if (oldName) {
         const found = employees.find(e => e.name === oldName);
-        if (found) searchInput.value = found.employee_no + ' - ' + found.name;
+        if (found) {
+            searchInput.value = found.employee_no + ' - ' + found.name;
+            pinInput.value    = pinFromEmployeeNo(found.employee_no);
+        }
     }
 
     searchInput.addEventListener('input', function () {
@@ -149,6 +159,7 @@ document.addEventListener('DOMContentLoaded', function () {
             item.addEventListener('click', function () {
                 searchInput.value = emp.employee_no + ' - ' + emp.name;
                 nameHidden.value  = emp.name;
+                pinInput.value    = pinFromEmployeeNo(emp.employee_no);
                 dropdown.style.display = 'none';
             });
             dropdown.appendChild(item);

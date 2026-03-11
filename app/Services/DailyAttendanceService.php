@@ -145,7 +145,12 @@ class DailyAttendanceService
         $clockInTime       = Carbon::parse($clockIn)->setDate($date->year, $date->month, $date->day);
         $standardStartTime = Carbon::parse($standardStart)->setDate($date->year, $date->month, $date->day);
 
-        return $clockInTime->gt($standardStartTime) ? 'Late' : 'Present';
+        // Toleransi keterlambatan: <= 3 menit 59 detik masih dianggap Present
+        $lateSeconds = $clockInTime->diffInSeconds($standardStartTime, false) * -1;
+        if ($lateSeconds <= 0) {
+            return 'Present';
+        }
+        return $lateSeconds <= 239 ? 'Present' : 'Late'; // 239 detik = 3 menit 59 detik
     }
 
     // ─── Helper: peta jenis cuti → status ────────────────────────────────────
@@ -208,12 +213,23 @@ class DailyAttendanceService
                 $lateMinutes              = $standardStartTime->diffInMinutes($start);
                 $attendance->late_minutes = $lateMinutes;
 
-                if ($lateMinutes <= 3) {
-                    $attendance->late_deduction = 0;
-                } elseif ($lateMinutes < 60) {
-                    $attendance->late_deduction = 25000;
+                if ($dayOfWeek === 'saturday') {
+                    // Aturan khusus Sabtu: telat 20-39 menit = 30 menit, >= 40 menit = 60 menit
+                    if ($lateMinutes < 20) {
+                        $attendance->late_deduction = 0;
+                    } elseif ($lateMinutes <= 39) {
+                        $attendance->late_deduction = (30 / 60) * $hourlyRate;
+                    } else {
+                        $attendance->late_deduction = (60 / 60) * $hourlyRate;
+                    }
                 } else {
-                    $attendance->late_deduction = ($lateMinutes / 60) * $hourlyRate;
+                    if ($lateMinutes <= 3) {
+                        $attendance->late_deduction = 0;
+                    } elseif ($lateMinutes < 60) {
+                        $attendance->late_deduction = 25000;
+                    } else {
+                        $attendance->late_deduction = ($lateMinutes / 60) * $hourlyRate;
+                    }
                 }
             }
 
@@ -242,12 +258,23 @@ class DailyAttendanceService
                     $lateMinutes              = $standardStartTime->diffInMinutes($start);
                     $attendance->late_minutes = $lateMinutes;
 
-                    if ($lateMinutes <= 3) {
-                        $attendance->late_deduction = 0;
-                    } elseif ($lateMinutes < 60) {
-                        $attendance->late_deduction = 25000;
+                    if ($dayOfWeek === 'saturday') {
+                        // Aturan khusus Sabtu: telat 20-39 menit = 30 menit, >= 40 menit = 60 menit
+                        if ($lateMinutes < 20) {
+                            $attendance->late_deduction = 0;
+                        } elseif ($lateMinutes <= 39) {
+                            $attendance->late_deduction = (30 / 60) * $hourlyRate;
+                        } else {
+                            $attendance->late_deduction = (60 / 60) * $hourlyRate;
+                        }
                     } else {
-                        $attendance->late_deduction = ($lateMinutes / 60) * $hourlyRate;
+                        if ($lateMinutes <= 3) {
+                            $attendance->late_deduction = 0;
+                        } elseif ($lateMinutes < 60) {
+                            $attendance->late_deduction = 25000;
+                        } else {
+                            $attendance->late_deduction = ($lateMinutes / 60) * $hourlyRate;
+                        }
                     }
                 }
             }

@@ -557,13 +557,12 @@
                                                             ->count()
                                                         : 0;
                                                 @endphp
-                                                {{-- Overtime Pay (disabled - hanya butuh output jam late/leave/OT & day type) --}}
-                                                {{-- <li>
+                                                <li>
                                                     <a class="dropdown-item {{ request()->routeIs('overtime-pays.*') ? 'active' : '' }}"
                                                         href="{{ route('overtime-pays.index') }}">
                                                         <i class="fas fa-calculator me-2"></i>Overtime Pay
                                                     </a>
-                                                </li> --}}
+                                                </li>
                                                 <!-- Fingerspot Device Management -->
                                                 <li>
                                                     <a class="dropdown-item {{ request()->routeIs('fingerspot.*') ? 'active' : '' }}"

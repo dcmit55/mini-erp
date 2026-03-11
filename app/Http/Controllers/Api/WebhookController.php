@@ -45,12 +45,13 @@ class WebhookController extends Controller
         // Fingerspot mengirim data dalam berbagai format tergantung firmware:
         //   cloud_id / pin / user_id  → ID karyawan di mesin
         //   scan_time / time / timestamp → waktu scan
-        $pinRaw   = (string) ($request->input('cloud_id')
-            ?? $request->input('pin')
+        $pinRaw   = (string) ($request->input('id')
+            ?? $request->input('employee_id')
             ?? $request->input('user_id')
             ?? '');
 
         $timeRaw  = $request->input('scan_time')
+            ?? $request->input('scan_date')
             ?? $request->input('time')
             ?? $request->input('timestamp');
 

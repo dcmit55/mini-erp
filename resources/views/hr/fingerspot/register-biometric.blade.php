@@ -73,29 +73,54 @@
                             </div>
                         </div>
 
-                        {{-- Employee ID Field --}}
+                        {{-- Employee Select --}}
                         <div class="mb-4">
-                            <label for="pin" class="form-label fw-semibold text-dark">
-                                Employee ID <span class="text-danger">*</span>
+                            <label for="employee_select" class="form-label fw-semibold text-dark">
+                                Employee <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-0">
+                                    <i class="fas fa-user text-primary"></i>
+                                </span>
+                                <select class="form-select border-0 bg-light"
+                                        id="employee_select" required>
+                                    <option value="">-- Select Employee --</option>
+                                    @foreach($employees as $emp)
+                                        @php
+                                            $pin = ltrim(substr($emp->employee_no, 4), '0') ?: '0';
+                                        @endphp
+                                        <option value="{{ $pin }}" data-name="{{ $emp->name }}" {{ old('pin') == $pin ? 'selected' : '' }}>
+                                            {{ $emp->employee_no }} — {{ $emp->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+
+                        {{-- PIN (auto-filled, hidden) --}}
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold text-dark">
+                                Employee ID on Device
                             </label>
                             <div class="input-group">
                                 <span class="input-group-text bg-light border-0">
                                     <i class="fas fa-id-card text-primary"></i>
                                 </span>
-                                <input type="text" 
-                                       class="form-control border-0 bg-light @error('pin') is-invalid @enderror"
-                                       id="pin" 
-                                       name="pin" 
-                                       value="{{ old('pin') }}" 
-                                       placeholder="Enter employee ID registered on device"
-                                       required>
+                                <input type="text"
+                                       class="form-control border-0 @error('pin') is-invalid @enderror"
+                                       id="pin"
+                                       name="pin"
+                                       value="{{ old('pin') }}"
+                                       readonly
+                                       style="background-color: #e9ecef !important; cursor: not-allowed;"
+                                       placeholder="Auto-filled from employee selection">
                             </div>
                             @error('pin')
                                 <div class="invalid-feedback d-block">{{ $message }}</div>
                             @enderror
                             <div class="form-text text-muted small mt-1">
                                 <i class="fas fa-info-circle me-1"></i>
-                                Employee ID used when scanning fingerprint on the device
+                                Auto-filled from employee number (e.g. DCM-0528 → 528)
                             </div>
                         </div>
 
@@ -175,6 +200,19 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+document.getElementById('employee_select').addEventListener('change', function () {
+    document.getElementById('pin').value = this.value;
+});
+// Trigger on page load if old value exists
+(function () {
+    var sel = document.getElementById('employee_select');
+    if (sel.value) document.getElementById('pin').value = sel.value;
+})();
+</script>
+@endpush
 
 @push('styles')
 <style>

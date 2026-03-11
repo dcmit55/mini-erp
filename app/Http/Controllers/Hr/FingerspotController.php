@@ -81,7 +81,16 @@ class FingerspotController extends Controller
     public function showBiometricForm()
     {
         $defaultDeviceId = config('fingerspot.device_id', '');
-        return view('hr.fingerspot.register-biometric', compact('defaultDeviceId'));
+
+        $existingPins = FingerprintLog::distinct()->pluck('cloud_id')->filter()->toArray();
+
+        $employees = Employee::where('status', 'active')
+            ->orderBy('name')
+            ->get(['id', 'employee_no', 'name'])
+            ->filter(fn($emp) => in_array($this->pinFromEmployeeNo($emp->employee_no), $existingPins))
+            ->values();
+
+        return view('hr.fingerspot.register-biometric', compact('defaultDeviceId', 'employees'));
     }
 
     /**
@@ -91,9 +100,8 @@ class FingerspotController extends Controller
     {
         $defaultDeviceId = config('fingerspot.device_id', '');
 
-        // Statistik scan HARI INI per PIN (cloud_id di fingerprint_logs)
+        // Statistik scan per PIN (cloud_id di fingerprint_logs) — semua waktu
         $fingerprintStats = FingerprintLog::selectRaw('cloud_id, COUNT(*) as total_scans, MAX(event_time) as last_scan')
-            ->whereDate('event_time', Carbon::today())
             ->groupBy('cloud_id')
             ->get()
             ->keyBy('cloud_id');
@@ -208,57 +216,69 @@ class FingerspotController extends Controller
         ]);
 
         try {
-            $response = $this->fingerspot->getAttlog(
-                $request->device_id,
-                $request->start_date,
-                $request->end_date
-            );
-
-            $records = $response['data'] ?? [];
-
-            if (empty($records)) {
-                return back()->with('info', 'Sync command sent. No attendance data returned directly — data may arrive via webhook push.');
-            }
-
             $saved         = 0;
             $duplicates    = 0;
-            $invalidFields = 0; // record dari API tidak punya PIN atau waktu
-            $notMatched    = 0; // PIN tidak cocok ke karyawan manapun
+            $invalidFields = 0;
+            $notMatched    = 0;
             $affectedPairs = [];
 
-            foreach ($records as $record) {
+            // Fingerspot API membatasi max 2 hari per request — pecah range menjadi chunk 2 hari
+            $current = Carbon::parse($request->start_date);
+            $endDate = Carbon::parse($request->end_date);
 
-                $pinRaw  = (string) ($record['pin'] ?? $record['cloud_id'] ?? null);
-                $timeRaw = $record['scan_date'] ?? $record['time'] ?? $record['scan_time'] ?? null;
-
-                if (!$pinRaw || !$timeRaw) {
-                    Log::warning('Sync: record tidak lengkap', ['record' => $record]);
-                    $invalidFields++;
-                    continue;
+            while ($current->lte($endDate)) {
+                $chunkEnd = $current->copy()->addDay(); // +1 hari = 2 hari per chunk
+                if ($chunkEnd->gt($endDate)) {
+                    $chunkEnd = $endDate->copy();
                 }
 
-                $employee = $this->reconciler->findEmployeeByPin($pinRaw);
+                $response = $this->fingerspot->getAttlog(
+                    $request->device_id,
+                    $current->format('Y-m-d'),
+                    $chunkEnd->format('Y-m-d')
+                );
 
-                if (!$employee) {
-                    Log::warning('Sync: karyawan tidak ditemukan', [
-                        'pin_raw'    => $pinRaw,
-                        'pin_lookup' => 'DCM-' . str_pad($this->reconciler->normalizePin($pinRaw), 4, '0', STR_PAD_LEFT),
-                    ]);
-                    $notMatched++;
-                    continue;
+                $records = $response['data'] ?? [];
+
+                foreach ($records as $record) {
+                    $pinRaw  = (string) ($record['pin'] ?? $record['cloud_id'] ?? null);
+                    $timeRaw = $record['scan_date'] ?? $record['time'] ?? $record['scan_time'] ?? null;
+
+                    if (!$pinRaw || !$timeRaw) {
+                        Log::warning('Sync: record tidak lengkap', ['record' => $record]);
+                        $invalidFields++;
+                        continue;
+                    }
+
+                    $employee = $this->reconciler->findEmployeeByPin($pinRaw);
+
+                    if (!$employee) {
+                        Log::warning('Sync: karyawan tidak ditemukan', [
+                            'pin_raw'    => $pinRaw,
+                            'pin_lookup' => 'DCM-' . str_pad($this->reconciler->normalizePin($pinRaw), 4, '0', STR_PAD_LEFT),
+                        ]);
+                        $notMatched++;
+                        continue;
+                    }
+
+                    $scanCarbon = Carbon::parse($timeRaw);
+                    $isSaved    = $this->reconciler->saveRawLog($pinRaw, $scanCarbon, $record);
+
+                    if (!$isSaved) {
+                        $duplicates++;
+                        continue;
+                    }
+
+                    $date = $scanCarbon->format('Y-m-d');
+                    $affectedPairs[$employee->id][$date] = true;
+                    $saved++;
                 }
 
-                $scanCarbon = Carbon::parse($timeRaw);
-                $isSaved    = $this->reconciler->saveRawLog($pinRaw, $scanCarbon, $record);
+                $current->addDays(2); // geser ke chunk berikutnya
+            }
 
-                if (!$isSaved) {
-                    $duplicates++;
-                    continue;
-                }
-
-                $date = $scanCarbon->format('Y-m-d');
-                $affectedPairs[$employee->id][$date] = true;
-                $saved++;
+            if ($saved === 0 && $duplicates === 0 && $notMatched === 0 && $invalidFields === 0) {
+                return back()->with('info', 'Tidak ada data absensi pada range tanggal tersebut.');
             }
 
             // ── Rekonsiliasi & regenerate DailyAttendance ──────────────────────
