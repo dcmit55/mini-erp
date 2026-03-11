@@ -23,7 +23,7 @@ class ProjectPurchaseService
     {
         try {
             // Build base query untuk mendapatkan PO numbers yang unik
-            $poNumbersQuery = ProjectPurchase::select('po_number', 'job_order_id', 'internal_project_id', 'department_id', 'project_type', 'supplier_id', 'status', 'date', 'created_at')->distinct();
+            $poNumbersQuery = ProjectPurchase::select('po_number', 'job_order_id', 'internal_project_id', 'department_id', 'project_type', 'supplier_id', 'status', 'date', 'created_at')->where('is_current', true)->distinct();
 
             // Apply filters
             if ($request->filled('status')) {
@@ -82,6 +82,7 @@ class ProjectPurchaseService
             $poNumbersList = $poGroups->pluck('po_number')->unique()->values();
             $allPurchases = ProjectPurchase::with(['material:id,name', 'department:id,name', 'category:id,name', 'unit:id,name', 'supplier:id,name', 'pic:id,username', 'checker:id,username', 'approver:id,username', 'receiver:id,username', 'project:id,name', 'internalProject:id,project,job,department,department_id', 'jobOrder:id,name'])
                 ->whereIn('po_number', $poNumbersList)
+                ->where('is_current', true)
                 ->get();
 
             // Build collection (one entry per PO + project combination)

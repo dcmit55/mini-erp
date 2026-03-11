@@ -527,7 +527,7 @@
                                                 @endif
                                             </div>
                                             @if($itemIsEditable && $poItems->count() > 1)
-                                                <button type="button" class="btn btn-sm btn-outline-danger remove-item" data-item-id="{{ $item->id }}">
+                                                <button type="button" class="btn btn-sm btn-outline-danger remove-item" data-item-uid="{{ $item->uid }}">
                                                     <i class="fas fa-trash me-1"></i>Delete
                                                 </button>
                                             @endif
@@ -618,11 +618,11 @@
                                         <div class="row">
                                             <div class="col-md-4 mb-2">
                                                 <label class="form-label">Quantity <span class="text-danger">*</span></label>
-                                                <input type="number" name="items[{{ $itemIndex }}][quantity]" class="form-control quantity" min="1" value="{{ $item->quantity }}" {{ !$itemIsEditable ? 'readonly' : '' }}>
+                                                <input type="number" name="items[{{ $itemIndex }}][quantity]" class="form-control quantity" min="0.01" step="0.01" value="{{ $item->quantity }}" {{ !$itemIsEditable ? 'readonly' : '' }}>
                                             </div>
                                             <div class="col-md-4 mb-2">
                                                 <label class="form-label">Unit Price <span class="text-danger">*</span></label>
-                                                <input type="number" name="items[{{ $itemIndex }}][unit_price]" class="form-control unit-price" min="0" step="100" value="{{ $item->unit_price }}" {{ !$itemIsEditable ? 'readonly' : '' }}>
+                                                <input type="number" name="items[{{ $itemIndex }}][unit_price]" class="form-control unit-price" min="0" step="0.01" value="{{ $item->unit_price }}" {{ !$itemIsEditable ? 'readonly' : '' }}>
                                             </div>
                                             <div class="col-md-4 mb-2">
                                                 <label class="form-label">Subtotal</label>
@@ -722,11 +722,11 @@
                                     <div class="row">
                                         <div class="col-md-4 mb-2">
                                             <label class="form-label">Quantity <span class="text-danger">*</span></label>
-                                            <input type="number" name="new_items[__INDEX__][quantity]" class="form-control quantity" min="1" value="1">
+                                            <input type="number" name="new_items[__INDEX__][quantity]" class="form-control quantity" min="0.01" step="0.01" value="1">
                                         </div>
                                         <div class="col-md-4 mb-2">
                                             <label class="form-label">Unit Price <span class="text-danger">*</span></label>
-                                            <input type="number" name="new_items[__INDEX__][unit_price]" class="form-control unit-price" min="0" step="100">
+                                            <input type="number" name="new_items[__INDEX__][unit_price]" class="form-control unit-price" min="0" step="0.01">
                                         </div>
                                         <div class="col-md-4 mb-2">
                                             <label class="form-label">Subtotal</label>
@@ -801,7 +801,7 @@
                                 </div>
                                 <div class="col-md-6 mb-2">
                                     <label class="form-label">Freight Cost</label>
-                                    <input type="number" class="form-control" name="freight" id="freight" value="{{ old('freight', $purchase->freight ?? 0) }}" step="100" min="0">
+                                    <input type="number" class="form-control" name="freight" id="freight" value="{{ old('freight', $purchase->freight ?? 0) }}" step="0.01" min="0">
                                 </div>
                             </div>
                         </div>
@@ -1026,8 +1026,8 @@ $(document).ready(function() {
     elements.freight.on('input', calculateGrandTotal);
 
     // Delete existing item
-    $('.remove-item[data-item-id]').click(function() {
-        const itemId = $(this).data('item-id');
+    $('.remove-item[data-item-uid]').click(function() {
+        const itemUid = $(this).data('item-uid');
         const row = $(this).closest('.item-row');
         const materialName = row.find('.material-select option:selected').text().trim()
             || row.find('input[name*="new_item_name"]').val().trim()
@@ -1045,7 +1045,7 @@ $(document).ready(function() {
         }).then((result) => {
             if (result.isConfirmed) {
                 const form = $('#deleteItemForm');
-                form.attr('action', '/project-purchases/' + itemId);
+                form.attr('action', '/project-purchases/' + itemUid);
                 form.submit();
             }
         });

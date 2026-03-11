@@ -53,8 +53,8 @@ class ProjectPurchase extends Model
 
     protected $casts = [
         'date' => 'date',
-        'quantity' => 'integer',
-        'actual_quantity' => 'integer',
+        'quantity' => 'decimal:2',
+        'actual_quantity' => 'decimal:2',
         'unit_price' => 'decimal:2',
         'total_price' => 'decimal:2',
         'freight' => 'decimal:2',

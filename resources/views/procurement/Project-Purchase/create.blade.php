@@ -481,11 +481,11 @@
                                 <div class="row">
                                     <div class="col-md-4 mb-2">
                                         <label class="form-label">Quantity <span class="text-danger">*</span></label>
-                                        <input type="number" class="form-control quantity" data-index="__INDEX__" min="1" value="1">
+                                        <input type="number" class="form-control quantity" data-index="__INDEX__" min="0.01" step="0.01" value="1">
                                     </div>
                                     <div class="col-md-4 mb-2">
                                         <label class="form-label">Unit Price <span class="text-danger">*</span></label>
-                                        <input type="number" class="form-control unit-price" data-index="__INDEX__" min="0" step="100">
+                                        <input type="number" class="form-control unit-price" data-index="__INDEX__" min="0" step="0.01">
                                     </div>
                                     <div class="col-md-4 mb-2">
                                         <label class="form-label">Subtotal</label>
@@ -549,7 +549,7 @@
                                 </div>
                                 <div class="col-md-6 mb-2">
                                     <label class="form-label">Freight Cost</label>
-                                    <input type="number" class="form-control" name="freight" id="freight" value="{{ old('freight', 0) }}" step="100" min="0">
+                                    <input type="number" class="form-control" name="freight" id="freight" value="{{ old('freight', 0) }}" step="0.01" min="0">
                                 </div>
                             </div>
                         </div>
@@ -562,7 +562,7 @@
                             <div class="row g-2">
                                 <div class="col-md-6 mb-2">
                                     <label class="form-label">Other Costs</label>
-                                    <input type="number" class="form-control" name="other_costs" id="otherCosts" value="{{ old('other_costs', 0) }}" step="100" min="0">
+                                    <input type="number" class="form-control" name="other_costs" id="otherCosts" value="{{ old('other_costs', 0) }}" step="0.01" min="0">
                                 </div>
                             </div>
                         </div>

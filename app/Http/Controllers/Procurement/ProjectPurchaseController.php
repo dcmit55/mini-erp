@@ -241,6 +241,7 @@ class ProjectPurchaseController extends Controller
 
             // Get items with same PO number AND same project (different project = different log)
             $poItemsQuery = ProjectPurchase::where('po_number', $purchase->po_number)
+                                ->where('is_current', true)
                                 ->with(['material:id,name,price', 'category:id,name', 'unit:id,name']);
 
             if ($purchase->project_type === 'client') {
@@ -429,6 +430,7 @@ class ProjectPurchaseController extends Controller
 
             // Get another item in the same PO group (same project) to redirect to after delete
             $otherItemQuery = ProjectPurchase::where('po_number', $purchase->po_number)
+                                ->where('is_current', true)
                                 ->where('id', '!=', $purchase->id);
 
             if ($purchase->project_type === 'client') {
@@ -469,7 +471,7 @@ class ProjectPurchaseController extends Controller
         try {
             $validated = $request->validate([
                 'item_status' => 'required|in:matched,not_matched',
-                'actual_quantity' => 'nullable|integer|min:0',
+                'actual_quantity' => 'nullable|numeric|min:0',
                 'note' => 'nullable|string',
             ]);
 
@@ -603,7 +605,8 @@ class ProjectPurchaseController extends Controller
             }
 
             // Get items with same PO number AND same project (different project = different log)
-            $poItemsQuery = ProjectPurchase::where('po_number', $purchase->po_number);
+            $poItemsQuery = ProjectPurchase::where('po_number', $purchase->po_number)
+                                ->where('is_current', true);
 
             if ($purchase->project_type === 'client') {
                 $poItemsQuery->where('job_order_id', $purchase->job_order_id);
@@ -804,7 +807,8 @@ class ProjectPurchaseController extends Controller
 
             Log::info('=== UPDATE REQUEST COMPLETED ===');
 
-            return redirect()->route('project-purchases.show', $purchase->uid)->with('success', $message);
+            $redirectUid = !empty($updatedItems) ? $updatedItems[0]->uid : (!empty($newItems) ? $newItems[0]->uid : $purchase->uid);
+            return redirect()->route('project-purchases.show', $redirectUid)->with('success', $message);
         } catch (\Illuminate\Validation\ValidationException $e) {
             DB::rollBack();
             Log::error('Validation errors:', $e->errors());
