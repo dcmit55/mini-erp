@@ -118,10 +118,19 @@ class BuildAttendanceSessionsCommand extends Command
             $attendance = $existing ?? new DailyAttendance();
             $attendance->employee_id       = $employeeId;
             $attendance->date              = $workDate;
-            $attendance->clock_in_datetime = $firstIn->event_time;
+            $attendance->clock_in_datetime  = $firstIn->event_time;
             $attendance->clock_out_datetime = $lastOut?->event_time;
             $attendance->clock_in  = $firstIn->event_time->format('H:i:s');
             $attendance->clock_out = $lastOut?->event_time->format('H:i:s');
+
+            // Hitung actual_work_hours (tidak pakai GENERATED column)
+            if ($lastOut) {
+                $grossMins = $firstIn->event_time->diffInMinutes($lastOut->event_time);
+                $breakMins = (int) ($attendance->total_break_mins ?? 0);
+                $attendance->actual_work_hours = round(max(0, $grossMins - $breakMins) / 60, 2);
+            } else {
+                $attendance->actual_work_hours = null;
+            }
 
             if (! $attendance->exists) {
                 $attendance->status = 'Present';

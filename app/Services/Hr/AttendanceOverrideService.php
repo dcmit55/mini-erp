@@ -50,6 +50,7 @@ class AttendanceOverrideService
 
         $attendance->exception_type      = $exceptionType;
         $attendance->total_break_mins    = $newBreakMins;
+        $attendance->actual_work_hours   = $actualHours;
         $attendance->hours_status        = $hoursStatus;
         $attendance->supervisor_approved = true;
 

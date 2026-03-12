@@ -54,8 +54,8 @@
         <div class="col-6 col-md-3">
             <div class="card border-0 shadow-xs h-100">
                 <div class="card-body py-3 px-4">
-                    <div class="text-secondary small mb-1">Total Employees</div>
-                    <div class="fw-bold fs-4">{{ $employees->total() }}</div>
+                    <div class="text-secondary small mb-1">Active Employees</div>
+                    <div class="fw-bold fs-4">{{ $totalActive }}</div>
                 </div>
             </div>
         </div>
@@ -71,7 +71,7 @@
             <div class="card border-0 shadow-xs h-100">
                 <div class="card-body py-3 px-4">
                     <div class="text-secondary small mb-1">Not Registered</div>
-                    <div class="fw-bold fs-4 text-secondary">{{ $employees->total() - $totalOnDevice }}</div>
+                    <div class="fw-bold fs-4 text-secondary">{{ $totalActive - $totalOnDevice }}</div>
                 </div>
             </div>
         </div>

@@ -171,6 +171,29 @@ class FingerspotController extends Controller
             ->get()
             ->keyBy(fn($row) => $this->reconciler->normalizePin($row->cloud_id));
 
+        $mapEmployee = function ($emp) use ($fingerprintStats) {
+            $pin   = $this->pinFromEmployeeNo($emp->employee_no);
+            $stats = $fingerprintStats->get($pin);
+
+            $emp->device_pin           = $pin;
+            $emp->on_device            = !is_null($emp->device_registered_at) || $fingerprintStats->has($pin);
+            $emp->total_scans          = $stats?->total_scans ?? 0;
+            $emp->last_scan            = $stats?->last_scan   ?? null;
+            $emp->biometric_registered = ($emp->total_scans > 0);
+            return $emp;
+        };
+
+        // Semua employee aktif — untuk hitung statistik (tidak terpengaruh search)
+        $allActive = Employee::where('status', 'active')
+            ->orderBy('name')
+            ->get()
+            ->map($mapEmployee);
+
+        $totalActive      = $allActive->count();
+        $totalOnDevice    = $allActive->where('on_device', true)->count();
+        $totalNoBiometric = $allActive->filter(fn($e) => $e->on_device && !$e->biometric_registered)->count();
+
+        // Query untuk tabel — bisa kena search + filter
         $query = Employee::where('status', 'active')->orderBy('name');
 
         if ($request->filled('search')) {
@@ -181,29 +204,16 @@ class FingerspotController extends Controller
             });
         }
 
-        $all = $query->get()->map(function ($emp) use ($fingerprintStats) {
-            $pin   = $this->pinFromEmployeeNo($emp->employee_no);
-            $stats = $fingerprintStats->get($pin);
+        $tableData = $query->get()->map($mapEmployee);
 
-            $emp->device_pin           = $pin; // selalu diisi untuk keperluan form
-            $emp->on_device            = !is_null($emp->device_registered_at) || $fingerprintStats->has($pin);
-            $emp->total_scans          = $stats?->total_scans ?? 0;
-            $emp->last_scan            = $stats?->last_scan   ?? null;
-            $emp->biometric_registered = ($emp->total_scans > 0);
-            return $emp;
-        });
-
-        // Apply filter
+        // Apply dropdown filter
         $filtered = match($request->input('filter')) {
-            'on_device'      => $all->filter(fn($e) => $e->on_device),
-            'not_registered' => $all->filter(fn($e) => !$e->on_device),
-            'no_biometric'   => $all->filter(fn($e) => $e->on_device && !$e->biometric_registered),
-            default          => $all,
+            'on_device'      => $tableData->filter(fn($e) => $e->on_device),
+            'not_registered' => $tableData->filter(fn($e) => !$e->on_device),
+            'no_biometric'   => $tableData->filter(fn($e) => $e->on_device && !$e->biometric_registered),
+            default          => $tableData,
         };
         $filtered = $filtered->values();
-
-        $totalOnDevice    = $all->where('on_device', true)->count();
-        $totalNoBiometric = $all->filter(fn($e) => $e->on_device && !$e->biometric_registered)->count();
 
         $perPage     = 25;
         $currentPage = (int) $request->get('page', 1);
@@ -216,7 +226,7 @@ class FingerspotController extends Controller
         );
 
         return view('hr.fingerspot.employee-list', compact(
-            'defaultDeviceId', 'employees', 'totalOnDevice', 'totalNoBiometric'
+            'defaultDeviceId', 'employees', 'totalActive', 'totalOnDevice', 'totalNoBiometric'
         ));
     }
 

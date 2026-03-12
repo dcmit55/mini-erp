@@ -66,6 +66,7 @@ class DailyAttendanceService
 
                     if ($clockIn && $clockOut) {
                         $this->calculateAttendanceFields($daily);
+                        $this->recalcActualWorkHours($daily);
                     }
 
                     Log::info("   ✅ Successfully saved daily for employee {$employee->id}");
@@ -282,5 +283,25 @@ class DailyAttendanceService
         }
 
         $attendance->save();
+    }
+
+    /**
+     * Hitung actual_work_hours dari clock_in_datetime / clock_out_datetime.
+     * Dipanggil setelah record disimpan agar tidak bergantung pada GENERATED column.
+     */
+    public function recalcActualWorkHours(DailyAttendance $attendance): void
+    {
+        if (!$attendance->clock_in_datetime || !$attendance->clock_out_datetime) {
+            return;
+        }
+
+        $grossMins   = Carbon::parse($attendance->clock_in_datetime)
+            ->diffInMinutes(Carbon::parse($attendance->clock_out_datetime));
+        $breakMins   = (int) ($attendance->total_break_mins ?? 0);
+        $netMins     = max(0, $grossMins - $breakMins);
+        $actualHours = round($netMins / 60, 2);
+
+        $attendance->actual_work_hours = $actualHours;
+        $attendance->saveQuietly();
     }
 }
