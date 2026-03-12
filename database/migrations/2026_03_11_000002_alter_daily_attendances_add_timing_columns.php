@@ -55,20 +55,11 @@ return new class extends Migration
             }
         });
 
-        // Generated column — cek apakah sudah ada
+        // Kolom biasa (bukan GENERATED) — dihitung oleh aplikasi saat save
         if (! Schema::hasColumn('daily_attendances', 'actual_work_hours')) {
             DB::statement("
                 ALTER TABLE daily_attendances
-                ADD COLUMN actual_work_hours DECIMAL(5,2) GENERATED ALWAYS AS (
-                    CASE
-                        WHEN clock_in_datetime IS NOT NULL AND clock_out_datetime IS NOT NULL
-                        THEN ROUND(
-                            (TIMESTAMPDIFF(MINUTE, clock_in_datetime, clock_out_datetime) - total_break_mins) / 60,
-                            2
-                        )
-                        ELSE NULL
-                    END
-                ) STORED
+                ADD COLUMN actual_work_hours DECIMAL(5,2) NULL
                 AFTER total_break_mins
             ");
         }
