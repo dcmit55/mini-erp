@@ -14,5 +14,6 @@ class VerifyCsrfToken extends Middleware
     protected $except = [
         'api/webhook/fingerprint',
         'api/webhook/fingerprint/*',
+        'api/fingerspot/webhook/*',
     ];
 }

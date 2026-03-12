@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Hr;
 
 use App\Http\Controllers\Controller;
+use App\Services\FingerspotService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
 use App\Models\Hr\Employee;
 use App\Models\Admin\Department;
@@ -572,6 +574,21 @@ class EmployeeController extends Controller
         foreach ($employee->documents as $document) {
             if (Storage::disk('public')->exists($document->file_path)) {
                 Storage::disk('public')->delete($document->file_path);
+            }
+        }
+
+        // Hapus dari mesin fingerspot jika terdaftar (abaikan error agar tidak blokir proses)
+        if ($employee->device_registered_at && str_starts_with($employee->employee_no, 'DCM-')) {
+            try {
+                $deviceId = config('fingerspot.device_id');
+                if ($deviceId) {
+                    $pin = ltrim(substr($employee->employee_no, 4), '0') ?: '0';
+                    app(FingerspotService::class)->deleteUserinfo($deviceId, $pin);
+                }
+            } catch (\Exception $e) {
+                Log::warning('Gagal hapus employee dari fingerspot: ' . $e->getMessage(), [
+                    'employee_no' => $employee->employee_no,
+                ]);
             }
         }
 

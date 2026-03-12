@@ -645,6 +645,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/register-employee',    [FingerspotController::class, 'registerEmployee'])->name('register-employee');
         Route::post('/register-biometric',   [FingerspotController::class, 'registerBiometric'])->name('register-biometric');
         Route::post('/delete-employee',      [FingerspotController::class, 'deleteEmployee'])->name('delete-employee');
+        Route::post('/sync-device',          [FingerspotController::class, 'syncFromDevice'])->name('sync-device');
         Route::post('/device-info',          [FingerspotController::class, 'deviceInfo'])->name('device-info');
         Route::post('/set-timezone',         [FingerspotController::class, 'setTimezone'])->name('set-timezone');
         Route::post('/restart',              [FingerspotController::class, 'restartDevice'])->name('restart');

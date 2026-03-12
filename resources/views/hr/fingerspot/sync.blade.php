@@ -96,30 +96,36 @@
                             <div class="form-text small text-muted">Device ID is configured in the system and cannot be changed</div>
                         </div>
 
-                        <div class="row g-3 mb-4">
+                        {{-- Date Range --}}
+                        <div class="row g-3 mb-3">
                             <div class="col-md-6">
-                                <label for="start_date" class="form-label fw-semibold text-dark">Start Date <span class="text-danger">*</span></label>
+                                <label for="start_date" class="form-label fw-semibold text-dark">Start Date</label>
                                 <input type="date" class="form-control @error('start_date') is-invalid @enderror"
-                                       id="start_date" name="start_date" value="{{ old('start_date', date('Y-m-d')) }}" required>
+                                       id="start_date" name="start_date" value="{{ old('start_date') }}">
                                 @error('start_date')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
                             <div class="col-md-6">
-                                <label for="end_date" class="form-label fw-semibold text-dark">End Date <span class="text-danger">*</span></label>
+                                <label for="end_date" class="form-label fw-semibold text-dark">End Date</label>
                                 <input type="date" class="form-control @error('end_date') is-invalid @enderror"
-                                       id="end_date" name="end_date" value="{{ old('end_date', date('Y-m-d')) }}" required>
+                                       id="end_date" name="end_date" value="{{ old('end_date') }}">
                                 @error('end_date')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
                         </div>
 
+                        <div class="alert alert-soft-info py-2 px-3 mb-4 small" id="sync-hint">
+                            <i class="fas fa-info-circle me-1"></i>
+                            <span id="sync-hint-text">Leave both dates empty to sync <strong>all available data</strong> from device start date to today. This may take longer.</span>
+                        </div>
+
                         <div class="d-flex gap-2 pt-3 border-top">
                             <a href="{{ route('fingerspot.index') }}" class="btn btn-outline-secondary rounded-2 px-4">
                                 Cancel
                             </a>
-                            <button type="submit" class="btn btn-primary rounded-2 px-4">
+                            <button type="submit" class="btn btn-primary rounded-2 px-4" id="sync-btn">
                                 <i class="fas fa-sync-alt me-2"></i> Sync Now
                             </button>
                         </div>
@@ -285,6 +291,29 @@ document.addEventListener('DOMContentLoaded', function () {
             if (btn) btn.click();
         });
     }, 5000);
+
+    // Update hint text based on date input
+    const startInput = document.getElementById('start_date');
+    const endInput   = document.getElementById('end_date');
+    const hintText   = document.getElementById('sync-hint-text');
+
+    function updateHint() {
+        const hasStart = startInput.value !== '';
+        const hasEnd   = endInput.value   !== '';
+
+        if (!hasStart && !hasEnd) {
+            hintText.innerHTML = 'Leave both dates empty to sync <strong>all available data</strong> from device start date to today. This may take longer.';
+        } else if (hasStart && hasEnd) {
+            hintText.innerHTML = 'Syncing data from <strong>' + startInput.value + '</strong> to <strong>' + endInput.value + '</strong>.';
+        } else if (hasStart) {
+            hintText.innerHTML = 'End date not set — will sync from <strong>' + startInput.value + '</strong> to <strong>today</strong>.';
+        } else {
+            hintText.innerHTML = 'Start date not set — will sync from <strong>device start date</strong> to <strong>' + endInput.value + '</strong>.';
+        }
+    }
+
+    startInput.addEventListener('change', updateHint);
+    endInput.addEventListener('change', updateHint);
 });
 </script>
 @endpush

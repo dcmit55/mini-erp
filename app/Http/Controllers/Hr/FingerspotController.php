@@ -15,6 +15,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Collection;
@@ -44,12 +45,9 @@ class FingerspotController extends Controller
      * @param string $employeeNo
      * @return string
      */
-    private function pinFromEmployeeNo($employeeNo)
+    private function pinFromEmployeeNo($employeeNo): string
     {
-        // Remove the "DCM-" prefix (assuming format "DCM-1234")
-        $numericPart = substr($employeeNo, 4);
-        // Normalize (remove leading zeros) to match the raw PIN from the device
-        return $this->reconciler->normalizePin($numericPart);
+        return ltrim(preg_replace('/[^0-9]/', '', $employeeNo), '0') ?: '0';
     }
 
     // =========================================================================
@@ -82,31 +80,96 @@ class FingerspotController extends Controller
     {
         $defaultDeviceId = config('fingerspot.device_id', '');
 
-        $existingPins = FingerprintLog::distinct()->pluck('cloud_id')->filter()->toArray();
+        $scannedPins = FingerprintLog::distinct()->pluck('cloud_id')
+            ->map(fn($p) => $this->reconciler->normalizePin($p))
+            ->filter()
+            ->flip();
 
         $employees = Employee::where('status', 'active')
             ->orderBy('name')
-            ->get(['id', 'employee_no', 'name'])
-            ->filter(fn($emp) => in_array($this->pinFromEmployeeNo($emp->employee_no), $existingPins))
+            ->get()
+            ->filter(function ($emp) use ($scannedPins) {
+                $pin = $this->pinFromEmployeeNo($emp->employee_no);
+                return !is_null($emp->device_registered_at) || isset($scannedPins[$pin]);
+            })
+            ->map(function ($emp) {
+                $emp->device_pin = $this->pinFromEmployeeNo($emp->employee_no);
+                return $emp;
+            })
             ->values();
 
         return view('hr.fingerspot.register-biometric', compact('defaultDeviceId', 'employees'));
     }
 
     /**
-     * Daftar karyawan yang sudah terdaftar di mesin (pernah scan) – dengan statistik HARIAN (hari ini).
+     * Parse berbagai format response getAllPin dari Fingerspot API ke array PIN ter-normalisasi.
+     */
+    private function parseAllPinResponse(array $apiResult): array
+    {
+        $raw = $apiResult['data'] ?? $apiResult['pin'] ?? $apiResult['pins'] ?? null;
+
+        if (is_null($raw)) {
+            return [];
+        }
+
+        // Format string: "1,2,3" atau "1 2 3" atau "1\t2\t3" atau "1\n2\n3"
+        if (is_string($raw)) {
+            $pins = preg_split('/[\s,;|]+/', trim($raw), -1, PREG_SPLIT_NO_EMPTY);
+            return collect($pins)
+                ->map(fn($p) => $this->reconciler->normalizePin(trim($p)))
+                ->filter()
+                ->values()
+                ->toArray();
+        }
+
+        if (is_array($raw)) {
+            return collect($raw)
+                ->map(function ($item) {
+                    if (is_array($item)) {
+                        // { "pin": "1", "name": "..." } atau { "no": "1" }
+                        $pin = $item['pin'] ?? $item['no'] ?? $item['id'] ?? null;
+                    } elseif (is_string($item) || is_numeric($item)) {
+                        $pin = (string) $item;
+                    } else {
+                        $pin = null;
+                    }
+                    return $pin ? $this->reconciler->normalizePin(trim($pin)) : null;
+                })
+                ->filter()
+                ->values()
+                ->toArray();
+        }
+
+        return [];
+    }
+
+    /**
+     * Kumpulkan PIN yang terdaftar di device — hanya dari device_registered_at.
+     * Scan history (fingerprint_logs) tidak dipakai sebagai penanda registrasi.
+     */
+    private function getRegisteredPins(): array
+    {
+        return Employee::whereNotNull('device_registered_at')
+            ->pluck('employee_no')
+            ->map(fn($no) => $this->pinFromEmployeeNo($no))
+            ->filter()
+            ->values()
+            ->toArray();
+    }
+
+    /**
+     * Daftar semua karyawan aktif dengan status device dan statistik scan.
+     * on_device = device_registered_at IS NOT NULL  OR  pernah scan di fingerprint_logs.
      */
     public function showEmployeeList(Request $request)
     {
         $defaultDeviceId = config('fingerspot.device_id', '');
 
-        // Statistik scan per PIN (cloud_id di fingerprint_logs) — semua waktu
+        // Statistik scan per PIN dari fingerprint_logs (keyed by normalized PIN)
         $fingerprintStats = FingerprintLog::selectRaw('cloud_id, COUNT(*) as total_scans, MAX(event_time) as last_scan')
             ->groupBy('cloud_id')
             ->get()
-            ->keyBy('cloud_id');
-
-        $existingPins = $fingerprintStats->keys()->toArray();
+            ->keyBy(fn($row) => $this->reconciler->normalizePin($row->cloud_id));
 
         $query = Employee::where('status', 'active')->orderBy('name');
 
@@ -118,19 +181,29 @@ class FingerspotController extends Controller
             });
         }
 
-        $filtered = $query->get()
-            ->filter(function ($emp) use ($existingPins) {
-                return in_array($this->pinFromEmployeeNo($emp->employee_no), $existingPins);
-            })
-            ->map(function ($emp) use ($fingerprintStats) {
-                $pin               = $this->pinFromEmployeeNo($emp->employee_no);
-                $stats             = $fingerprintStats->get($pin);
-                $emp->device_pin   = $pin;
-                $emp->total_scans  = $stats?->total_scans ?? 0;   // jumlah scan hari ini
-                $emp->last_scan    = $stats?->last_scan   ?? null; // scan terakhir hari ini
-                return $emp;
-            })
-            ->values();
+        $all = $query->get()->map(function ($emp) use ($fingerprintStats) {
+            $pin   = $this->pinFromEmployeeNo($emp->employee_no);
+            $stats = $fingerprintStats->get($pin);
+
+            $emp->device_pin           = $pin; // selalu diisi untuk keperluan form
+            $emp->on_device            = !is_null($emp->device_registered_at) || $fingerprintStats->has($pin);
+            $emp->total_scans          = $stats?->total_scans ?? 0;
+            $emp->last_scan            = $stats?->last_scan   ?? null;
+            $emp->biometric_registered = ($emp->total_scans > 0);
+            return $emp;
+        });
+
+        // Apply filter
+        $filtered = match($request->input('filter')) {
+            'on_device'      => $all->filter(fn($e) => $e->on_device),
+            'not_registered' => $all->filter(fn($e) => !$e->on_device),
+            'no_biometric'   => $all->filter(fn($e) => $e->on_device && !$e->biometric_registered),
+            default          => $all,
+        };
+        $filtered = $filtered->values();
+
+        $totalOnDevice    = $all->where('on_device', true)->count();
+        $totalNoBiometric = $all->filter(fn($e) => $e->on_device && !$e->biometric_registered)->count();
 
         $perPage     = 25;
         $currentPage = (int) $request->get('page', 1);
@@ -142,17 +215,51 @@ class FingerspotController extends Controller
             ['path' => $request->url(), 'query' => $request->query()]
         );
 
-        return view('hr.fingerspot.employee-list', compact('defaultDeviceId', 'employees'));
+        return view('hr.fingerspot.employee-list', compact(
+            'defaultDeviceId', 'employees', 'totalOnDevice', 'totalNoBiometric'
+        ));
+    }
+
+    /**
+     * Kirim perintah get_all_pin ke mesin (async).
+     * Mesin akan mengirim balik data PIN via webhook ke /api/fingerspot/webhook/get_all_pin.
+     */
+    public function syncFromDevice(Request $request)
+    {
+        $deviceId = config('fingerspot.device_id');
+        if (!$deviceId) {
+            return back()->with('error', 'Device ID tidak dikonfigurasi.');
+        }
+
+        $transId = uniqid('sync_', true);
+        Cache::put('sync_' . $transId, ['status' => 'pending', 'started_at' => now()->toIso8601String()], now()->addMinutes(10));
+
+        try {
+            $response = $this->fingerspot->getAllPin($deviceId, $transId);
+
+            if ($response['success'] ?? false) {
+                return back()->with('info', 'Perintah sync dikirim ke device. Data akan diproses setelah device merespons. Silakan refresh halaman beberapa saat lagi.');
+            }
+
+            Cache::forget('sync_' . $transId);
+            $msg = $response['msg'] ?? $response['message'] ?? 'Gagal mengirim perintah ke device.';
+            return back()->with('error', $msg);
+
+        } catch (\Exception $e) {
+            Cache::forget('sync_' . $transId);
+            return back()->with('error', 'Gagal menghubungi device: ' . $e->getMessage());
+        }
     }
 
     public function showDeleteForm(Request $request)
     {
         $defaultDeviceId = config('fingerspot.device_id', '');
-        $error           = null;
 
-        $existingPins = FingerprintLog::distinct()->pluck('cloud_id')
+        // PIN yang pernah scan (dari fingerprint_logs)
+        $scannedPins = FingerprintLog::distinct()->pluck('cloud_id')
+            ->map(fn($p) => $this->reconciler->normalizePin($p))
             ->filter()
-            ->toArray();
+            ->flip(); // jadikan key untuk lookup O(1)
 
         $query = Employee::where('status', 'active')->orderBy('name');
 
@@ -165,7 +272,15 @@ class FingerspotController extends Controller
         }
 
         $filtered = $query->get()
-            ->filter(fn($emp) => in_array($this->pinFromEmployeeNo($emp->employee_no), $existingPins))
+            ->filter(function ($emp) use ($scannedPins) {
+                $pin = $this->pinFromEmployeeNo($emp->employee_no);
+                // on_device: device_registered_at terisi ATAU pernah scan
+                return !is_null($emp->device_registered_at) || isset($scannedPins[$pin]);
+            })
+            ->map(function ($emp) {
+                $emp->device_pin = $this->pinFromEmployeeNo($emp->employee_no);
+                return $emp;
+            })
             ->values();
 
         $perPage     = 50;
@@ -178,7 +293,7 @@ class FingerspotController extends Controller
             ['path' => $request->url(), 'query' => $request->query()]
         );
 
-        return view('hr.fingerspot.delete-employee', compact('defaultDeviceId', 'employees', 'error'));
+        return view('hr.fingerspot.delete-employee', compact('defaultDeviceId', 'employees'));
     }
 
     public function showDeviceInfoForm()
@@ -211,9 +326,18 @@ class FingerspotController extends Controller
     {
         $request->validate([
             'device_id'  => 'required|string',
-            'start_date' => 'required|date',
-            'end_date'   => 'required|date|after_or_equal:start_date',
+            'start_date' => 'nullable|date',
+            'end_date'   => 'nullable|date|after_or_equal:start_date',
         ]);
+
+        // Jika tanggal tidak diisi, sync semua data dari awal device hingga hari ini
+        $startDate = $request->filled('start_date')
+            ? Carbon::parse($request->start_date)
+            : Carbon::parse(config('fingerspot.device_start_date', '2026-03-07'));
+
+        $endDate = $request->filled('end_date')
+            ? Carbon::parse($request->end_date)
+            : Carbon::today();
 
         try {
             $saved         = 0;
@@ -223,8 +347,7 @@ class FingerspotController extends Controller
             $affectedPairs = [];
 
             // Fingerspot API membatasi max 2 hari per request — pecah range menjadi chunk 2 hari
-            $current = Carbon::parse($request->start_date);
-            $endDate = Carbon::parse($request->end_date);
+            $current = $startDate->copy();
 
             while ($current->lte($endDate)) {
                 $chunkEnd = $current->copy()->addDay(); // +1 hari = 2 hari per chunk
@@ -405,9 +528,13 @@ class FingerspotController extends Controller
                 'rfid'      => $request->rfid      ?? '',
                 'template'  => '',
             ]);
-            
-            // Simpan relasi antara employee_id, pin, dan username di database jika diperlukan
-            
+
+            // Tandai employee sebagai terdaftar di device
+            $employee = $this->reconciler->findEmployeeByPin($request->pin);
+            if ($employee) {
+                $employee->update(['device_registered_at' => now()]);
+            }
+
             return back()->with('success', 'Register employee command sent to device.');
         } catch (\Exception $e) {
             return back()->with('error', 'Registration failed: ' . $e->getMessage());
@@ -423,6 +550,13 @@ class FingerspotController extends Controller
 
         try {
             $this->fingerspot->deleteUserinfo($request->device_id, $request->pin);
+
+            // Hapus tanda registrasi di database
+            $employee = $this->reconciler->findEmployeeByPin($request->pin);
+            if ($employee) {
+                $employee->update(['device_registered_at' => null]);
+            }
+
             return back()->with('success', 'Remove employee command sent to device.');
         } catch (\Exception $e) {
             return back()->with('error', 'Remove failed: ' . $e->getMessage());

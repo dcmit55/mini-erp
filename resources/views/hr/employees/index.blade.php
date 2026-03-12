@@ -4,32 +4,63 @@
     <div class="container-fluid py-4">
         <div class="card shadow-sm border-0 mb-4">
             <div class="card-body">
-                <!-- Header - TANPA TOMBOL TEMPLATE -->
-                <div class="d-flex flex-column flex-lg-row align-items-lg-center gap-3 mb-3">
-                    <div class="d-flex align-items-center">
-                        <i class="fas fa-users gradient-icon me-2" style="font-size: 1.5rem;"></i>
-                        <h2 class="mb-0 flex-shrink-0" style="font-size:1.3rem;">Employees Management</h2>
+                @php
+                    $activeCount     = $employees->where('status', 'active')->count();
+                    $inactiveCount   = $employees->where('status', 'inactive')->count();
+                    $terminatedCount = $employees->where('status', 'terminated')->count();
+                    $allCount        = $employees->count();
+                @endphp
+
+                <!-- Header -->
+                <div class="position-relative d-flex align-items-center mb-3" style="min-height:40px;">
+                    <!-- Left: status tab buttons -->
+                    <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                        <button type="button" class="btn btn-sm rounded-2 px-3 emp-status-tab active-tab btn-purple"
+                            data-status="" id="tab-all">
+                            <i class="fas fa-users me-1"></i> All
+                            <span class="tab-badge ms-1" style="font-size:0.65rem;font-weight:600;">{{ $allCount }}</span>
+                        </button>
+                        <button type="button" class="btn btn-sm rounded-2 px-3 emp-status-tab btn-outline-purple"
+                            data-status="active" id="tab-active">
+                            <i class="fas fa-user-check me-1"></i> Active
+                            <span class="tab-badge ms-1" style="font-size:0.65rem;font-weight:600;">{{ $activeCount }}</span>
+                        </button>
+                        <button type="button" class="btn btn-sm rounded-2 px-3 emp-status-tab btn-outline-purple"
+                            data-status="inactive" id="tab-inactive">
+                            <i class="fas fa-user-clock me-1"></i> Inactive
+                            <span class="tab-badge ms-1" style="font-size:0.65rem;font-weight:600;">{{ $inactiveCount }}</span>
+                        </button>
+                        @if($terminatedCount > 0)
+                        <button type="button" class="btn btn-sm rounded-2 px-3 emp-status-tab btn-outline-purple"
+                            data-status="terminated" id="tab-terminated">
+                            <i class="fas fa-user-times me-1"></i> Terminated
+                            <span class="tab-badge ms-1" style="font-size:0.65rem;font-weight:600;">{{ $terminatedCount }}</span>
+                        </button>
+                        @endif
                     </div>
 
-                    <div class="ms-lg-auto">
-                        <div class="d-flex flex-wrap gap-2 align-items-center justify-content-lg-end">
-                            @if (auth()->user()->canModifyData())
-                                <!-- Tombol Import -->
-                                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal"
-                                    data-bs-target="#importEmployeeModal">
-                                    <i class="bi bi-upload me-1"></i>
-                                    <span class="d-none d-sm-inline">Import Excel</span>
-                                </button>
-
-                                <!-- Tombol Add Employee -->
-                                <a href="{{ route('employees.create') }}" class="btn btn-primary btn-sm">
-                                    <i class="bi bi-plus-circle me-1"></i>
-                                    <span class="d-none d-sm-inline">Add Employee</span>
-                                    <span class="d-sm-none">Add</span>
-                                </a>
-                            @endif
-                        </div>
+                    <!-- Center: Title -->
+                    <div class="position-absolute start-50 translate-middle-x text-center d-none d-lg-block" style="pointer-events:none;">
+                        <h5 class="fw-semibold mb-0" style="background:linear-gradient(135deg,#8F12FE,#4A25AA);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
+                            Employees Management
+                        </h5>
                     </div>
+
+                    <!-- Right: action buttons -->
+                    @if (auth()->user()->canModifyData())
+                    <div class="ms-auto d-flex gap-2 flex-shrink-0">
+                        <button type="button" class="btn btn-sm btn-outline-purple rounded-2 px-3"
+                            data-bs-toggle="modal" data-bs-target="#importEmployeeModal">
+                            <i class="bi bi-upload me-1"></i>
+                            <span class="d-none d-sm-inline">Import Excel</span>
+                        </button>
+                        <a href="{{ route('employees.create') }}" class="btn btn-sm btn-purple rounded-2 px-3">
+                            <i class="bi bi-plus-circle me-1"></i>
+                            <span class="d-none d-sm-inline">Add Employee</span>
+                            <span class="d-sm-none">Add</span>
+                        </a>
+                    </div>
+                    @endif
                 </div>
 
                 @if (session('success'))
@@ -59,7 +90,7 @@
                 @endphp
 
                 @if ($expiringCount > 0)
-                    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                    <div class="alert alert-info alert-dismissible fade show" role="alert">
                         <i class="bi bi-exclamation-triangle me-1"></i>
                         <strong>Contract Expiry Alert:</strong> {{ $expiringCount }} employee(s) have contracts expiring
                         within 30 days.
@@ -139,7 +170,7 @@
                         </thead>
                         <tbody>
                             @foreach ($employees as $employee)
-                                <tr data-employee-id="{{ $employee->id }}">
+                                <tr data-employee-id="{{ $employee->id }}" data-status="{{ $employee->status }}">
                                     <td class="text-center">
                                         <img src="{{ $employee->photo_url }}" alt="{{ $employee->name }}"
                                             class="rounded-circle employee-photo"
@@ -371,6 +402,39 @@
 
 @push('styles')
     <style>
+        /* Purple theme buttons */
+        .btn-purple {
+            background: linear-gradient(135deg, #8F12FE 0%, #4A25AA 100%);
+            border-color: #8F12FE;
+            color: #fff;
+        }
+        .btn-purple:hover, .btn-purple:focus {
+            background: linear-gradient(135deg, #7a0fe0 0%, #3b1e8e 100%);
+            border-color: #7a0fe0;
+            color: #fff;
+        }
+        .btn-outline-purple {
+            border: 1px solid #8F12FE;
+            color: #8F12FE;
+            background: transparent;
+        }
+        .btn-outline-purple:hover, .btn-outline-purple:focus {
+            background: rgba(143,18,254,0.08);
+            color: #4A25AA;
+            border-color: #4A25AA;
+        }
+        .emp-status-tab.active-tab {
+            background: linear-gradient(135deg, #8F12FE 0%, #4A25AA 100%);
+            border-color: #8F12FE;
+            color: #fff;
+        }
+        .emp-status-tab.active-tab .tab-badge {
+            color: rgba(255,255,255,0.85);
+        }
+        .emp-status-tab:not(.active-tab) .tab-badge {
+            color: #8F12FE;
+        }
+
         .gradient-icon {
             background: linear-gradient(135deg, #8F12FE 0%, #4A25AA 100%);
             -webkit-background-clip: text;
@@ -639,6 +703,13 @@
                     // Trigger Select2 update
                     $('.select2').trigger('change.select2');
 
+                    // Restore active tab
+                    if (filters.status) {
+                        $('.emp-status-tab').removeClass('active-tab btn-purple').addClass('btn-outline-purple');
+                        $('.emp-status-tab[data-status="' + filters.status + '"]')
+                            .removeClass('btn-outline-purple').addClass('active-tab btn-purple');
+                    }
+
                     // Apply the restored filters
                     applyFilters();
                     if (filters.search) {
@@ -686,13 +757,13 @@
                     table.column(4).search('').draw(false);
                 }
 
+                // Bangun regex gabungan empType + status dengan word-boundary
                 let patterns = [];
-                if (empType) patterns.push(empType);
-                if (status) patterns.push(status);
+                if (empType) patterns.push('\\b' + empType + '\\b');
+                if (status)  patterns.push('\\b' + status + '\\b');
 
                 if (patterns.length > 0) {
-                    let regexPattern = patterns.map(p => '(?=.*' + p + ')').join('');
-                    table.column(8).search(regexPattern, true, false).draw(false);
+                    table.column(8).search(patterns.join('(?=.*?)'), true, false, true).draw(false);
                 } else {
                     table.column(8).search('').draw(false);
                 }
@@ -704,12 +775,36 @@
                 }
             }
 
+            // Status tab buttons
+            $('.emp-status-tab').on('click', function() {
+                const status = $(this).data('status');
+
+                // Toggle active style
+                $('.emp-status-tab').removeClass('active-tab btn-purple').addClass('btn-outline-purple');
+                $(this).removeClass('btn-outline-purple').addClass('active-tab btn-purple');
+
+                // Sync status dropdown (visual only)
+                $('#statusFilter').val(status).trigger('change.select2');
+
+                // Word-boundary regex: \bactive\b tidak akan match "inactive"
+                if (status) {
+                    table.column(8).search('\\b' + status + '\\b', true, false, true).draw();
+                } else {
+                    table.column(8).search('').draw();
+                }
+
+                saveFilters();
+            });
+
             // Reset filters
             $('#reset-filters').on('click', function() {
                 $('#departmentFilter, #employmentTypeFilter, #statusFilter, #positionFilter').val('')
                     .trigger('change');
                 $('#custom-search').val('');
                 table.search('').columns().search('').draw();
+                // Reset tab to "All"
+                $('.emp-status-tab').removeClass('active-tab btn-purple').addClass('btn-outline-purple');
+                $('#tab-all').removeClass('btn-outline-purple').addClass('active-tab btn-purple');
                 // Clear saved filters from sessionStorage
                 sessionStorage.removeItem('employeeFilters');
             });

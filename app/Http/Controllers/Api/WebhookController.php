@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\FingerprintLog;
+use App\Models\Hr\Employee;
 use App\Services\AttendanceReconcileService;
 use App\Services\DailyAttendanceService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -40,6 +42,14 @@ class WebhookController extends Controller
             'ip'      => $request->ip(),
             'payload' => $request->all(),
         ]);
+
+        // ── Deteksi apakah ini respons get_all_pin (async sync) ───────────────
+        // Mesin mengirim semua event ke satu webhook URL yang sama.
+        // Respons get_all_pin dikenali dari trans_id yang ada di cache.
+        $transId = $request->input('trans_id', '');
+        if ($transId && Cache::has('sync_' . $transId)) {
+            return $this->handleGetAllPinWebhook($request, $transId);
+        }
 
         // ── Ekstrak PIN dan waktu scan dari payload ────────────────────────────
         // Fingerspot mengirim data dalam berbagai format tergantung firmware:
@@ -134,5 +144,50 @@ class WebhookController extends Controller
             'is_new_log'  => $isNew,
             'received_at' => now()->toIso8601String(),
         ]);
+    }
+
+    /**
+     * Proses respons get_all_pin dari mesin.
+     * Dipanggil dari handle() ketika trans_id cocok dengan cache sync.
+     */
+    private function handleGetAllPinWebhook(Request $request, string $transId)
+    {
+        $cacheKey = 'sync_' . $transId;
+
+        // Coba berbagai kemungkinan field nama data PIN
+        $rawData = $request->input('data')
+            ?? $request->input('pin_list')
+            ?? $request->input('pins')
+            ?? [];
+
+        if (empty($rawData) || !is_array($rawData)) {
+            Log::info('Webhook get_all_pin: no PIN data', [
+                'trans_id' => $transId,
+                'fields'   => array_keys($request->all()),
+            ]);
+            Cache::forget($cacheKey);
+            return response()->json(['success' => true, 'updated' => 0]);
+        }
+
+        $updated = 0;
+        foreach ($rawData as $item) {
+            $rawPin        = is_array($item) ? ($item['pin'] ?? '') : (string) $item;
+            $normalizedPin = ltrim(preg_replace('/[^0-9]/', '', $rawPin), '0') ?: '0';
+            $padded        = str_pad($normalizedPin, 4, '0', STR_PAD_LEFT);
+
+            $employee = Employee::where('employee_no', 'DCM-' . $padded)
+                ->whereNull('device_registered_at')
+                ->first();
+
+            if ($employee) {
+                $employee->update(['device_registered_at' => now()]);
+                $updated++;
+            }
+        }
+
+        Cache::forget($cacheKey);
+        Log::info("Webhook get_all_pin: {$updated} employees marked as on device", ['trans_id' => $transId]);
+
+        return response()->json(['success' => true, 'updated' => $updated]);
     }
 }

@@ -117,21 +117,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @if(isset($error) && $error)
-                            <tr>
-                                <td colspan="5" class="text-center py-5">
-                                    <div class="text-danger">
-                                        <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
-                                        <h5>Failed to retrieve data from device</h5>
-                                        <p class="mb-0 small">{{ $error }}</p>
-                                    </div>
-                                </td>
-                            </tr>
-                        @else
                         @forelse($employees as $employee)
-                            @php
-                                $deviceId = ltrim(preg_replace('/[^0-9]/', '', $employee->employee_no), '0');
-                            @endphp
                             <tr class="align-middle">
                                 <td class="ps-4">
                                     <span class="row-number">
@@ -151,7 +137,7 @@
                                 </td>
                                 <td data-label="Device PIN">
                                     <span class="badge bg-light text-dark border px-3 py-1 font-monospace">
-                                        {{ $deviceId }}
+                                        {{ $employee->device_pin }}
                                     </span>
                                 </td>
                                 <td data-label="Actions" class="text-center">
@@ -159,10 +145,10 @@
                                         <form action="{{ route('fingerspot.delete-employee') }}"
                                               method="POST"
                                               class="d-inline w-100-mobile"
-                                              onsubmit="return confirm('Remove {{ addslashes($employee->name) }} (PIN: {{ $deviceId }}) from the device?')">
+                                              onsubmit="return confirm('Remove {{ addslashes($employee->name) }} (PIN: {{ $employee->device_pin }}) from the device?')">
                                             @csrf
                                             <input type="hidden" name="device_id" value="{{ $defaultDeviceId }}">
-                                            <input type="hidden" name="pin" value="{{ $deviceId }}">
+                                            <input type="hidden" name="pin" value="{{ $employee->device_pin }}">
                                             <button type="submit"
                                                     class="btn btn-sm btn-outline-danger border-0 px-3 py-2 action-btn w-100-mobile"
                                                     data-bs-toggle="tooltip" title="Remove from Device">
@@ -196,7 +182,6 @@
                                 </td>
                             </tr>
                         @endforelse
-                        @endif
                     </tbody>
                 </table>
             </div>

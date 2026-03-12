@@ -114,12 +114,14 @@ class FingerspotService
     }
 
     /**
-     * Ambil semua PIN user dari mesin
+     * Ambil semua PIN user dari mesin.
+     * API bersifat async — mesin akan mengirim balik data via webhook.
+     * $transId opsional; jika tidak diberikan, dibuat otomatis.
      */
-    public function getAllPin(string $cloudId): array
+    public function getAllPin(string $cloudId, ?string $transId = null): array
     {
         return $this->sendCommand('/get_all_pin', [
-            'trans_id' => $this->transId(),
+            'trans_id' => $transId ?? $this->transId(),
             'cloud_id' => $cloudId,
         ]);
     }

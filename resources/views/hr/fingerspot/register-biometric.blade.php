@@ -86,10 +86,7 @@
                                         id="employee_select" required>
                                     <option value="">-- Select Employee --</option>
                                     @foreach($employees as $emp)
-                                        @php
-                                            $pin = ltrim(substr($emp->employee_no, 4), '0') ?: '0';
-                                        @endphp
-                                        <option value="{{ $pin }}" data-name="{{ $emp->name }}" {{ old('pin') == $pin ? 'selected' : '' }}>
+                                        <option value="{{ $emp->device_pin }}" data-name="{{ $emp->name }}" {{ old('pin') == $emp->device_pin ? 'selected' : '' }}>
                                             {{ $emp->employee_no }} — {{ $emp->name }}
                                         </option>
                                     @endforeach

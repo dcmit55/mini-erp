@@ -65,6 +65,45 @@ class Kernel extends ConsoleKernel
             ->sundays()
             ->at('02:00')
             ->timezone('Asia/Singapore');
+
+        // ─── Timing Module Pipeline ─────────────────────────────────────────
+        // Jalankan setelah sync fingerspot selesai (misal sync dijadwal jam 23:30)
+        // Pipeline: Parse → Build Sessions → Classify Breaks → Next Schedule → Anomalies
+
+        // Tahap 1: Parse fingerprint logs (setiap hari 23:45)
+        $schedule->command('hr:parse-fingerprint --date=' . now()->toDateString())
+            ->dailyAt('23:45')
+            ->timezone('Asia/Jakarta')
+            ->withoutOverlapping(15)
+            ->onFailure(fn() => \Log::error('hr:parse-fingerprint gagal'));
+
+        // Tahap 2: Build sessions (setiap hari 23:50)
+        $schedule->command('hr:build-sessions --date=' . now()->toDateString())
+            ->dailyAt('23:50')
+            ->timezone('Asia/Jakarta')
+            ->withoutOverlapping(15)
+            ->onFailure(fn() => \Log::error('hr:build-sessions gagal'));
+
+        // Tahap 3: Classify breaks (setiap hari 23:55)
+        $schedule->command('hr:classify-breaks --date=' . now()->toDateString())
+            ->dailyAt('23:55')
+            ->timezone('Asia/Jakarta')
+            ->withoutOverlapping(15)
+            ->onFailure(fn() => \Log::error('hr:classify-breaks gagal'));
+
+        // Tahap 4 & 5: Next schedule + deteksi anomali (dini hari keesokan)
+        $schedule->command('hr:calc-next-schedule --date=' . now()->toDateString())
+            ->dailyAt('00:05')
+            ->timezone('Asia/Jakarta')
+            ->withoutOverlapping(10)
+            ->onFailure(fn() => \Log::error('hr:calc-next-schedule gagal'));
+
+        $schedule->command('hr:detect-anomalies --date=' . now()->subDay()->toDateString())
+            ->dailyAt('00:10')
+            ->timezone('Asia/Jakarta')
+            ->withoutOverlapping(10)
+            ->onFailure(fn() => \Log::error('hr:detect-anomalies gagal'));
+        // ────────────────────────────────────────────────────────────────────
     }
 
     /**

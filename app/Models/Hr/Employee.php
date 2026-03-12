@@ -22,7 +22,7 @@ class Employee extends Model implements AuditableContract
         'department_id', 'email', 'phone', 'address', 'gender', 'ktp_id', 
         'place_of_birth', 'date_of_birth', 'rekening', 'hire_date', 
         'contract_end_date', 'salary', 'saldo_cuti', 'status', 'notes',
-        'username', 'uid' // <-- TAMBAHKAN kolom baru
+        'username', 'uid', 'device_registered_at',
     ];
 
     protected $casts = [
@@ -31,6 +31,7 @@ class Employee extends Model implements AuditableContract
         'date_of_birth' => 'date',
         'salary' => 'decimal:2',
         'saldo_cuti' => 'decimal:2',
+        'device_registered_at' => 'datetime',
     ];
 
     protected $auditInclude = [
