@@ -2,7 +2,7 @@
 // ============================================
 // KONFIGURASI - SESUAIKAN!
 // ============================================
-$url = 'https://caprice-noncotyledonal-protestingly.ngrok-free.dev/api/webhook/fingerprint/b368aad6-87f7-4a78-9edb-001fcdf1e543';
+$url = 'https://mascotenterpriseid.com/api/webhook/fingerprint/b368aad6-87f7-4a78-9edb-001fcdf1e543';
 $token = '2a6ed3ef8a9f7ae3b2744129b583d392f7f066f478e5fc0699413777b25a25d2'; // Ganti dengan token sebenarnya
 $data = [
     'trans_id' => '1',
@@ -30,7 +30,7 @@ curl_setopt($ch, CURLOPT_HTTPHEADER, [
     'Authorization: Bearer ' . $token,
     'X-Timestamp: ' . $timestamp,
     'X-Signature: ' . $signature,
-    'ngrok-skip-browser-warning: true'
+    // 'ngrok-skip-browser-warning: true' // tidak diperlukan lagi
 ]);
 curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
 curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);

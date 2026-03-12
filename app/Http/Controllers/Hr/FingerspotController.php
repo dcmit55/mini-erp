@@ -88,10 +88,7 @@ class FingerspotController extends Controller
         $employees = Employee::where('status', 'active')
             ->orderBy('name')
             ->get()
-            ->filter(function ($emp) use ($scannedPins) {
-                $pin = $this->pinFromEmployeeNo($emp->employee_no);
-                return !is_null($emp->device_registered_at) || isset($scannedPins[$pin]);
-            })
+            ->filter(fn($emp) => !is_null($emp->device_registered_at))
             ->map(function ($emp) {
                 $emp->device_pin = $this->pinFromEmployeeNo($emp->employee_no);
                 return $emp;
@@ -176,7 +173,7 @@ class FingerspotController extends Controller
             $stats = $fingerprintStats->get($pin);
 
             $emp->device_pin           = $pin;
-            $emp->on_device            = !is_null($emp->device_registered_at) || $fingerprintStats->has($pin);
+            $emp->on_device            = !is_null($emp->device_registered_at);
             $emp->total_scans          = $stats?->total_scans ?? 0;
             $emp->last_scan            = $stats?->last_scan   ?? null;
             $emp->biometric_registered = ($emp->total_scans > 0);
@@ -282,11 +279,7 @@ class FingerspotController extends Controller
         }
 
         $filtered = $query->get()
-            ->filter(function ($emp) use ($scannedPins) {
-                $pin = $this->pinFromEmployeeNo($emp->employee_no);
-                // on_device: device_registered_at terisi ATAU pernah scan
-                return !is_null($emp->device_registered_at) || isset($scannedPins[$pin]);
-            })
+            ->filter(fn($emp) => !is_null($emp->device_registered_at))
             ->map(function ($emp) {
                 $emp->device_pin = $this->pinFromEmployeeNo($emp->employee_no);
                 return $emp;
@@ -392,6 +385,11 @@ class FingerspotController extends Controller
                         ]);
                         $notMatched++;
                         continue;
+                    }
+
+                    // Auto-set device_registered_at jika belum ada
+                    if (is_null($employee->device_registered_at)) {
+                        $employee->update(['device_registered_at' => now()]);
                     }
 
                     $scanCarbon = Carbon::parse($timeRaw);

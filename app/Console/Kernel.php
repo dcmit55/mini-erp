@@ -66,6 +66,14 @@ class Kernel extends ConsoleKernel
             ->at('02:00')
             ->timezone('Asia/Singapore');
 
+        // ─── Auto Sync Fingerspot (setiap 5 menit) ──────────────────────────
+        $schedule->command('hr:sync-fingerspot --days=2')
+            ->everyFiveMinutes()
+            ->timezone('Asia/Jakarta')
+            ->withoutOverlapping(4)
+            ->onFailure(fn() => \Log::error('hr:sync-fingerspot gagal'));
+        // ────────────────────────────────────────────────────────────────────
+
         // ─── Timing Module Pipeline ─────────────────────────────────────────
         // Jalankan setelah sync fingerspot selesai (misal sync dijadwal jam 23:30)
         // Pipeline: Parse → Build Sessions → Classify Breaks → Next Schedule → Anomalies

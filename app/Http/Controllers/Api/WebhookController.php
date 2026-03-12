@@ -108,6 +108,11 @@ class WebhookController extends Controller
             ]);
         }
 
+        // Auto-set device_registered_at jika belum ada (pertama kali scan masuk webhook)
+        if (is_null($employee->device_registered_at)) {
+            $employee->update(['device_registered_at' => now()]);
+        }
+
         // ── Rekonsiliasi attendance_logs ───────────────────────────────────────
         // Jalankan meski $isNew = false, karena bisa saja rekonsiliasi sebelumnya gagal
         try {
