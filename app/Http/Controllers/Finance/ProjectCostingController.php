@@ -49,16 +49,16 @@ class ProjectCostingController extends Controller
             });
         }
 
-        // Filter by created_by
-        if ($request->has('created_by') && $request->created_by !== null) {
-            if ($request->created_by === 'sync_from_lark') {
-                $query->where('created_by', 'Sync from Lark');
-            } elseif ($request->created_by === 'manual') {
-                $query->where('created_by', '!=', 'Sync from Lark')->orWhereNull('created_by');
-            } else {
-                // Filter by specific username
-                $query->where('created_by', $request->created_by);
-            }
+        // Filter by sales (field may contain comma-separated names)
+        if ($request->filled('sales')) {
+            $query->where(function ($q) use ($request) {
+                $name = $request->sales;
+                // Exact full-field match OR name appears within a comma-separated list
+                $q->where('sales', $name)
+                    ->orWhere('sales', 'like', $name . ',%')
+                    ->orWhere('sales', 'like', '%, ' . $name . ',%')
+                    ->orWhere('sales', 'like', '%, ' . $name);
+            });
         }
 
         // Filter by job order - show only projects that have this job order
@@ -82,8 +82,9 @@ class ProjectCostingController extends Controller
         // Pass data for filters
         $departments = Department::orderBy('name')->pluck('name');
 
-        // Get unique created_by values for filter
-        $createdByOptions = Project::selectRaw('DISTINCT created_by')->whereNotNull('created_by')->orderBy('created_by')->pluck('created_by');
+        // Get unique individual sales names (field may contain comma-separated values)
+        $rawSales = Project::where('stage', 'closed')->where('project_status', 'Delivered')->whereNotNull('sales')->pluck('sales');
+        $salesOptions = $rawSales->flatMap(fn($s) => array_map('trim', explode(',', $s)))->filter()->unique()->sort()->values();
 
         // Get all job orders for filter dropdown
         $jobOrders = \App\Models\Production\JobOrder::select('id', 'name')->orderBy('name')->get();
@@ -91,7 +92,7 @@ class ProjectCostingController extends Controller
         // Get unique months from deadline for filter dropdown
         $deadlineMonths = Project::where('stage', 'closed')->where('project_status', 'Delivered')->whereNotNull('deadline')->selectRaw('DATE_FORMAT(deadline, "%Y-%m") as month')->distinct()->orderByDesc('month')->pluck('month');
 
-        return view('finance.costing.index', compact('projects', 'departments', 'createdByOptions', 'jobOrders', 'deadlineMonths'));
+        return view('finance.costing.index', compact('projects', 'departments', 'salesOptions', 'jobOrders', 'deadlineMonths'));
     }
 
     public function viewCosting($project_id)

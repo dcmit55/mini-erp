@@ -96,6 +96,7 @@ class InventoryController extends Controller
     {
         $query = Inventory::query()
             ->with(['category', 'supplier', 'location', 'currency'])
+            ->withComputedStock()
             ->latest();
 
         // Apply filters dari form filter
@@ -112,10 +113,14 @@ class InventoryController extends Controller
             $query->where('location_id', $request->location_filter);
         }
         if ($request->filled('min_quantity')) {
-            $query->where('quantity', '>=', $request->min_quantity);
+            $query->whereHas('batches', function ($q) use ($request) {
+                $q->where('qty_remaining', '>=', $request->min_quantity);
+            });
         }
         if ($request->filled('max_quantity')) {
-            $query->where('quantity', '<=', $request->max_quantity);
+            $query->whereHas('batches', function ($q) use ($request) {
+                $q->where('qty_remaining', '<=', $request->max_quantity);
+            });
         }
         if ($request->filled('unitFilter')) {
             $query->where('unit', $request->unitFilter);
@@ -136,8 +141,7 @@ class InventoryController extends Controller
             $query->where(function ($q) use ($searchValue) {
                 $q->where('name', 'like', "%{$searchValue}%")
                     ->orWhere('remark', 'like', "%{$searchValue}%")
-                    ->orWhere('unit', 'like', "%{$searchValue}%")
-                    ->orWhere('quantity', 'like', "%{$searchValue}%");
+                    ->orWhere('unit', 'like', "%{$searchValue}%");
             });
         }
 
@@ -161,7 +165,7 @@ class InventoryController extends Controller
         }
 
         // Sorting dari DataTables
-        $columns = ['id', 'name', 'category_name', 'quantity', 'price', 'supplier_name', 'location_name', 'remark', 'updated_at'];
+        $columns = ['id', 'name', 'category_name', 'stock', 'unit_price', 'supplier_name', 'location_name', 'remark', 'updated_at'];
         if ($request->filled('order')) {
             $orderColumnIndex = $request->input('order.0.column');
             $orderDirection = $request->input('order.0.dir', 'asc');
@@ -222,20 +226,7 @@ class InventoryController extends Controller
         foreach ($inventories as $index => $inventory) {
             $rowNumber = $start + $index + 1;
 
-            // Quantity: angka bold, unit biasa
-            $quantityValue = rtrim(rtrim(number_format($inventory->quantity, 2, '.', ''), '0'), '.');
-            $quantityUnit = $inventory->unit ?? '';
-            $quantityClass = '';
-            if ($inventory->quantity == 0) {
-                $quantityClass = 'text-danger fw-semibold';
-            } elseif ($inventory->quantity < 3) {
-                $quantityClass = 'text-warning fw-semibold';
-            }
-
-            // Unit Price: angka bold, currency biasa
-            $priceValue = number_format($inventory->price ?? 0, 2, ',', '.');
-
-            // **BARU**: Freight Costs
+            // Freight Costs
             $domesticFreightValue = number_format($inventory->unit_domestic_freight_cost ?? 0, 2, ',', '.');
             $internationalFreightValue = number_format($inventory->unit_international_freight_cost ?? 0, 2, ',', '.');
 
@@ -257,8 +248,7 @@ class InventoryController extends Controller
                 'number' => $rowNumber,
                 'name' => '<div class="fw-semibold">' . $inventory->name . '</div>',
                 'category' => $categoryBadge,
-                'quantity' => '<span class="' . $quantityClass . '"><span class="fw-semibold">' . $quantityValue . '</span> ' . $quantityUnit . '</span>',
-                'price' => in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance', 'admin']) ? '<span class="fw-semibold">' . $priceValue . '</span> ' . $currencyName : '',
+                'stock' => '<span class="fw-semibold">' . number_format($inventory->quantity, 2) . '</span>' . ($inventory->unit ? ' <span class="text-muted">' . $inventory->unit . '</span>' : ''),
                 'domestic_freight' => in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance', 'admin']) ? '<span class="fw-semibold text-info">' . $domesticFreightValue . '</span> ' . $currencyName : '',
                 'international_freight' => in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance', 'admin']) ? '<span class="fw-semibold text-warning">' . $internationalFreightValue . '</span> ' . $currencyName : '',
                 'supplier' => $inventory->supplier ? $inventory->supplier->name : '-',
@@ -360,10 +350,14 @@ class InventoryController extends Controller
             $query->where('location_id', $request->location_filter);
         }
         if ($request->filled('min_quantity')) {
-            $query->where('quantity', '>=', $request->min_quantity);
+            $query->whereHas('batches', function ($q) use ($request) {
+                $q->where('qty_remaining', '>=', $request->min_quantity);
+            });
         }
         if ($request->filled('max_quantity')) {
-            $query->where('quantity', '<=', $request->max_quantity);
+            $query->whereHas('batches', function ($q) use ($request) {
+                $q->where('qty_remaining', '<=', $request->max_quantity);
+            });
         }
         if ($request->filled('unitFilter')) {
             $query->where('unit', $request->unitFilter);
@@ -376,8 +370,7 @@ class InventoryController extends Controller
             $query->where(function ($q) use ($searchValue) {
                 $q->where('name', 'like', "%{$searchValue}%")
                     ->orWhere('remark', 'like', "%{$searchValue}%")
-                    ->orWhere('unit', 'like', "%{$searchValue}%")
-                    ->orWhere('quantity', 'like', "%{$searchValue}%");
+                    ->orWhere('unit', 'like', "%{$searchValue}%");
             });
         }
 
@@ -462,9 +455,7 @@ class InventoryController extends Controller
         $inventory->name = $request->name;
         $inventory->category_id = $request->category_id;
         $inventory->project_id = $request->project_id;
-        $inventory->quantity = $request->quantity;
         $inventory->unit = $request->unit;
-        $inventory->price = $request->price;
         $inventory->unit_domestic_freight_cost = $request->unit_domestic_freight_cost;
         $inventory->unit_international_freight_cost = $request->unit_international_freight_cost;
         $inventory->supplier_id = $request->supplier_id;
@@ -488,9 +479,24 @@ class InventoryController extends Controller
 
         $inventory->save();
 
+        // Create initial batch for the opening stock
+        if ($request->quantity > 0) {
+            \App\Models\Logistic\InventoryBatch::create([
+                'batch_number' => \App\Models\Logistic\InventoryBatch::generateBatchNumber($inventory->id),
+                'inventory_id' => $inventory->id,
+                'qty' => $request->quantity,
+                'qty_remaining' => $request->quantity,
+                'unit_price' => $request->price ?? 0,
+                'currency_id' => $request->currency_id ?? null,
+                'received_date' => now()->toDateString(),
+                'source_type' => \App\Models\Logistic\InventoryBatch::SOURCE_INITIAL_STOCK,
+                'source_id' => $inventory->id,
+            ]);
+        }
+
         // Warning message untuk field kosong
         $warningMessage = null;
-        if (!$inventory->currency_id || !$inventory->price) {
+        if (!$inventory->currency_id || !$request->price) {
             $warningMessage = "Price or Currency is empty for <b>{$inventory->name}</b>. Please update it as soon as possible, as it will affect the cost calculation!";
         }
 
@@ -538,11 +544,24 @@ class InventoryController extends Controller
 
         $material = Inventory::create([
             'name' => $request->name,
-            'quantity' => $request->quantity,
             'unit' => $unit->name,
-            'price' => $request->price ?? 0,
             'remark' => $request->remark ? $request->remark . ' <span style="color: orange;">(From Quick Add)</span>' : '<span style="color: orange;">(From Quick Add)</span>',
         ]);
+
+        // Create initial batch
+        if ((float) $request->quantity > 0) {
+            \App\Models\Logistic\InventoryBatch::create([
+                'batch_number' => \App\Models\Logistic\InventoryBatch::generateBatchNumber($material->id),
+                'inventory_id' => $material->id,
+                'qty' => $request->quantity,
+                'qty_remaining' => $request->quantity,
+                'unit_price' => $request->price ?? 0,
+                'currency_id' => $request->currency_id ?? null,
+                'received_date' => now()->toDateString(),
+                'source_type' => \App\Models\Logistic\InventoryBatch::SOURCE_INITIAL_STOCK,
+                'source_id' => $material->id,
+            ]);
+        }
 
         return response()->json(['success' => true, 'material' => $material]);
     }
@@ -610,15 +629,37 @@ class InventoryController extends Controller
         $inventory->name = $request->name;
         $inventory->category_id = $request->category_id;
         $inventory->project_id = $request->project_id;
-        $inventory->quantity = $request->quantity;
         $inventory->unit = $request->unit;
         $inventory->currency_id = $request->currency_id;
-        $inventory->price = $request->price;
         $inventory->unit_domestic_freight_cost = $request->unit_domestic_freight_cost;
         $inventory->unit_international_freight_cost = $request->unit_international_freight_cost;
         $inventory->supplier_id = $request->supplier_id;
         $inventory->location_id = $request->location_id;
         $inventory->remark = $request->remark;
+
+        // Sync opening stock batch: update INIT batch or create one if missing
+        $initBatch = $inventory->batches()->where('source_type', 'initial_stock')->first();
+        $newQty = (float) $request->quantity;
+        $newPrice = (float) ($request->price ?? 0);
+        if ($initBatch) {
+            $consumed = (float) $initBatch->qty - (float) $initBatch->qty_remaining;
+            $initBatch->qty = $newQty;
+            $initBatch->qty_remaining = max(0, $newQty - $consumed);
+            $initBatch->unit_price = $newPrice;
+            $initBatch->save();
+        } elseif ($newQty > 0) {
+            \App\Models\Logistic\InventoryBatch::create([
+                'batch_number' => \App\Models\Logistic\InventoryBatch::generateBatchNumber($inventory->id),
+                'inventory_id' => $inventory->id,
+                'qty' => $newQty,
+                'qty_remaining' => $newQty,
+                'unit_price' => $newPrice,
+                'currency_id' => $request->currency_id ?? null,
+                'received_date' => now()->toDateString(),
+                'source_type' => \App\Models\Logistic\InventoryBatch::SOURCE_INITIAL_STOCK,
+                'source_id' => $inventory->id,
+            ]);
+        }
 
         // Simpan unit baru jika ada
         if ($request->unit === '__new__' && $request->new_unit) {
@@ -644,7 +685,7 @@ class InventoryController extends Controller
         $inventory->save();
 
         $warningMessage = null;
-        if (!$inventory->currency_id || !$inventory->price) {
+        if (!$inventory->currency_id || !$request->price) {
             $warningMessage = "Price or Currency is empty for <b>{$inventory->name}</b>. Please update it as soon as possible, as it will affect the cost calculation!";
         }
 
@@ -719,28 +760,42 @@ class InventoryController extends Controller
 
             $inventory = new Inventory();
             $inventory->name = $inventoryName;
-            $inventory->category_id = $category ? $category->id : null; // Set category ID jika valid
-            $inventory->quantity = is_numeric($row[2]) ? $row[2] : 0; // Jika quantity kosong, set ke 0
-            $inventory->unit = $unit->name; // Gunakan nama unit yang sudah divalidasi
-            $inventory->price = $price;
-            $inventory->currency_id = $currency ? $currency->id : null; // Set currency ID jika valid
-            $inventory->supplier_id = $supplier ? $supplier->id : null; // Set supplier ID jika valid
-            $inventory->location_id = $location ? $location->id : null; // Set location ID jika valid
+            $inventory->category_id = $category ? $category->id : null;
+            $inventory->unit = $unit->name;
+            $inventory->currency_id = $currency ? $currency->id : null;
+            $inventory->supplier_id = $supplier ? $supplier->id : null;
+            $inventory->location_id = $location ? $location->id : null;
             $inventory->remark = $row[8] ?? null;
 
             // Cek jika inventory sudah ada
             $existingInventory = Inventory::where('name', $inventory->name)->first();
             if ($existingInventory) {
                 $errors[] = "Row <b>{$index}</b> Error: Duplicate inventory <b>{$inventory->name}</b>.";
-                continue; // Skip jika sudah ada
+                continue;
             }
 
-            // Simpan inventory
             $inventory->save();
-            $successCount++; // Tambahkan jumlah data yang berhasil diimpor
+
+            // Create initial batch for opening stock
+            $importQty = is_numeric($row[2]) ? (float) $row[2] : 0;
+            if ($importQty > 0) {
+                \App\Models\Logistic\InventoryBatch::create([
+                    'batch_number' => \App\Models\Logistic\InventoryBatch::generateBatchNumber($inventory->id),
+                    'inventory_id' => $inventory->id,
+                    'qty' => $importQty,
+                    'qty_remaining' => $importQty,
+                    'unit_price' => $price,
+                    'currency_id' => $currency ? $currency->id : null,
+                    'received_date' => now()->toDateString(),
+                    'source_type' => \App\Models\Logistic\InventoryBatch::SOURCE_INITIAL_STOCK,
+                    'source_id' => $inventory->id,
+                ]);
+            }
+
+            $successCount++;
 
             // Tambahkan warning jika currency atau price kosong
-            if (!$inventory->currency_id || !$inventory->price) {
+            if (!$inventory->currency_id || !$price) {
                 $warnings[] = "Price or Currency is empty for <b>{$inventory->name}</b>. Please update it as soon as possible, as it will affect the cost calculation!";
             }
         }

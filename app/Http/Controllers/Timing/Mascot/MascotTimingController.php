@@ -299,6 +299,82 @@ class MascotTimingController extends Controller
     }
 
     /**
+     * Bulk stop multiple mascot timing sessions (from monitor)
+     * Uses the last saved stage for each session; skips sessions with no stage saved.
+     */
+    public function bulkStop(Request $request)
+    {
+        $validated = $request->validate([
+            'timing_ids' => 'required|array|min:1',
+            'timing_ids.*' => 'required|exists:timings,id',
+        ]);
+
+        $endTime = now()->format('H:i:s');
+        $stopped = 0;
+        $skipped = 0;
+
+        DB::beginTransaction();
+        try {
+            foreach ($validated['timing_ids'] as $timingId) {
+                $timing = Timing::where('id', $timingId)->where('status', 'on progress')->whereNull('end_time')->first();
+
+                if (!$timing) {
+                    $skipped++;
+                    continue;
+                }
+
+                $deptData = $timing->department_specific_data ?? [];
+                $currentStage = $deptData['previous_stage'] ?? ($deptData['stage'] ?? 0);
+
+                if ($currentStage < 1) {
+                    // No stage saved yet — skip (cannot determine progress)
+                    $skipped++;
+                    continue;
+                }
+
+                $currentProgress = $currentStage * 10;
+                $durationMinutes = 0;
+                if ($timing->start_time) {
+                    try {
+                        $today = now()->format('Y-m-d');
+                        $start = \Carbon\Carbon::parse($today . ' ' . $timing->start_time);
+                        $end = \Carbon\Carbon::parse($today . ' ' . $endTime);
+                        $durationMinutes = $start->diffInMinutes($end);
+                    } catch (\Exception $e) {
+                    }
+                }
+
+                $deptData['current_stage'] = $currentStage;
+                $deptData['stage'] = $currentStage;
+                $deptData['current_progress'] = $currentProgress;
+
+                $timing->update([
+                    'end_time' => $endTime,
+                    'measurement_type' => 'percentage',
+                    'measurement_value' => $currentProgress,
+                    'duration_minutes' => $durationMinutes,
+                    'duration_hours' => round($durationMinutes / 60, 2),
+                    'status' => 'complete',
+                    'approval_status' => 'pending',
+                    'department_specific_data' => $deptData,
+                ]);
+                $stopped++;
+            }
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Bulk stop completed. {$stopped} session(s) stopped" . ($skipped > 0 ? ", {$skipped} skipped (no stage saved or already stopped)." : '.'),
+                'stopped' => $stopped,
+                'skipped' => $skipped,
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => 'Bulk stop failed: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
      * Get active sessions via AJAX (individual sessions)
      */
     public function getActiveSessions()

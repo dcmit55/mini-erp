@@ -60,7 +60,6 @@ class LarkInventoryStagingSyncService
             'filtered' => 0,
             'created' => 0,
             'updated' => 0,
-            'aggregated_groups' => 0,
             'skipped' => 0,
             'errors' => 0,
             'error_details' => [],
@@ -112,95 +111,72 @@ class LarkInventoryStagingSyncService
                 }
             }
 
-            // 3. AGGREGATE by material name
-            $aggregated = [];
-
+            // 3. Upsert each DTO as a separate record (no aggregation by name)
             foreach ($validDTOs as $dto) {
-                $data = $this->transformer->transform($dto);
-                $materialKey = strtolower(trim($data['name'] ?? ''));
-
-                if (!isset($aggregated[$materialKey])) {
-                    $aggregated[$materialKey] = $data;
-                    $aggregated[$materialKey]['lark_record_ids'] = [$dto->recordId];
-                    $aggregated[$materialKey]['destination'] = $dto->destinationRaw;
-                    $aggregated[$materialKey]['status_lark'] = $dto->statusRaw;
-                    $aggregated[$materialKey]['dept_imported'] = $dto->deptImportedRaw;
-                } else {
-                    // Aggregate: sum quantities
-                    $aggregated[$materialKey]['quantity'] += $data['quantity'] ?? 0;
-
-                    // Track all source records
-                    $aggregated[$materialKey]['lark_record_ids'][] = $dto->recordId;
-
-                    // Use latest price
-                    $aggregated[$materialKey]['price'] = $data['price'] ?? $aggregated[$materialKey]['price'];
-
-                    // Merge projects (comma-separated)
-                    if (!empty($data['project_lark']) && $aggregated[$materialKey]['project_lark'] !== $data['project_lark']) {
-                        $existingProjects = explode(', ', $aggregated[$materialKey]['project_lark'] ?? '');
-                        if (!in_array($data['project_lark'], $existingProjects)) {
-                            $aggregated[$materialKey]['project_lark'] .= ', ' . $data['project_lark'];
-                        }
-                    }
-                }
-            }
-
-            $stats['aggregated_groups'] = count($aggregated);
-
-            // 4. Upsert aggregated data ke lark_staging_inventories
-            foreach ($aggregated as $materialKey => $data) {
                 try {
-                    $larkRecordIdsStr = implode(',', $data['lark_record_ids'] ?? []);
-                    $recordCount = count($data['lark_record_ids'] ?? [1]);
+                    $data = $this->transformer->transform($dto);
 
-                    // Upsert ke staging (BUKAN inventories)
-                    // Update data yang sudah ada, tapi JANGAN ubah review_status jika sudah diset admin
-                    $existing = LarkStagingInventory::where('name', $data['name'])->first();
+                    // Upsert by lark_record_id — each Lark record is its own staging row
+                    $existing = LarkStagingInventory::where('lark_record_id', $dto->recordId)->first();
 
                     if ($existing) {
-                        // Update data Lark terbaru, tapi preserve review_status & review_note
+                        // Skip update if record is locked (already approved — do not overwrite)
+                        if ($existing->locked) {
+                            $stats['skipped']++;
+                            Log::debug('Staging sync: skipped (locked — record already approved)', [
+                                'lark_record_id' => $dto->recordId,
+                                'staging_id' => $existing->id,
+                            ]);
+                            continue;
+                        }
+
+                        // Update Lark data but preserve review_status & review_note
                         $existing->update([
-                            'lark_record_id' => $data['lark_record_id'],
-                            'project_lark' => $data['project_lark'],
+                            'name' => $data['name'],
+                            'project_lark' => $data['project_lark'] ?? null,
                             'quantity' => $data['quantity'],
                             'unit' => $data['unit'] ?? null,
                             'price' => $data['price'],
                             'currency_id' => $data['currency_id'] ?? 6,
                             'supplier_lark' => $data['supplier_lark'] ?? null,
+                            'order_date' => $data['order_date'] ?? null,
+                            'pic' => $data['pic'] ?? null,
+                            'international_waybill' => $data['international_waybill'] ?? null,
                             'img' => $data['img'] ?? null,
-                            'destination' => $data['destination'] ?? null,
-                            'status' => $data['status_lark'] ?? null,
-                            'dept_imported' => $data['dept_imported'] ?? null,
-                            'source_record_ids' => $larkRecordIdsStr,
-                            'source_record_count' => $recordCount,
+                            'destination' => $data['destination'] ?? $dto->destinationRaw,
+                            'status' => $dto->statusRaw ?? null,
+                            'dept_imported' => $dto->deptImportedRaw ?? null,
+                            'source_record_ids' => $dto->recordId,
+                            'source_record_count' => 1,
                             'last_sync_at' => now(),
-                            // review_status & review_note NOT reset - preserve admin input
                         ]);
 
                         $stats['updated']++;
 
                         Log::debug('Staging inventory updated', [
-                            'name' => $data['name'],
+                            'lark_record_id' => $dto->recordId,
                             'staging_id' => $existing->id,
                             'review_status' => $existing->review_status,
                         ]);
                     } else {
-                        // New record → default pending
                         $staging = LarkStagingInventory::create([
-                            'lark_record_id' => $data['lark_record_id'],
+                            'lark_record_id' => $dto->recordId,
                             'name' => $data['name'],
-                            'project_lark' => $data['project_lark'],
+                            'project_lark' => $data['project_lark'] ?? null,
                             'quantity' => $data['quantity'],
                             'unit' => $data['unit'] ?? null,
                             'price' => $data['price'],
                             'currency_id' => $data['currency_id'] ?? 6,
                             'supplier_lark' => $data['supplier_lark'] ?? null,
+                            'order_date' => $data['order_date'] ?? null,
+                            'pic' => $data['pic'] ?? null,
+                            'international_waybill' => $data['international_waybill'] ?? null,
                             'img' => $data['img'] ?? null,
-                            'destination' => $data['destination'] ?? null,
-                            'status' => $data['status_lark'] ?? null,
-                            'dept_imported' => $data['dept_imported'] ?? null,
-                            'source_record_ids' => $larkRecordIdsStr,
-                            'source_record_count' => $recordCount,
+                            'destination' => $data['destination'] ?? $dto->destinationRaw,
+                            'status' => $dto->statusRaw ?? null,
+                            'dept_imported' => $dto->deptImportedRaw ?? null,
+                            'source_record_ids' => $dto->recordId,
+                            'source_record_count' => 1,
                             'review_status' => 'pending',
                             'last_sync_at' => now(),
                         ]);
@@ -208,18 +184,18 @@ class LarkInventoryStagingSyncService
                         $stats['created']++;
 
                         Log::debug('Staging inventory created', [
-                            'name' => $data['name'],
+                            'lark_record_id' => $dto->recordId,
                             'staging_id' => $staging->id,
                         ]);
                     }
                 } catch (\Exception $e) {
                     $stats['errors']++;
                     $stats['error_details'][] = [
-                        'material' => $data['name'] ?? 'unknown',
+                        'record_id' => $dto->recordId ?? 'unknown',
                         'error' => $e->getMessage(),
                     ];
                     Log::error('Staging sync: failed to upsert item', [
-                        'data' => $data,
+                        'record_id' => $dto->recordId ?? 'unknown',
                         'error' => $e->getMessage(),
                     ]);
                 }

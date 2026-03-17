@@ -40,7 +40,7 @@ class GoodsOutController extends Controller
         }
 
         // For non-AJAX requests, return view with master data for filters
-        $materials = Inventory::orderBy('name')->get();
+        $materials = Inventory::orderBy('name')->get(['id', 'name', 'unit']);
         $projects = Project::orderBy('name')->get();
         $users = User::orderBy('username')->get();
 
@@ -291,7 +291,7 @@ class GoodsOutController extends Controller
     public function create($materialRequestId)
     {
         $materialRequest = MaterialRequest::with('inventory', 'project')->findOrFail($materialRequestId);
-        $inventories = Inventory::orderBy('name')->get();
+        $inventories = Inventory::withComputedStock()->orderBy('name')->get();
         return view('logistic.goods_out.create', compact('materialRequest', 'inventories'));
     }
 
@@ -346,8 +346,7 @@ class GoodsOutController extends Controller
             ]);
 
             // Kurangi stok inventory
-            $inventory->quantity -= $request->quantity;
-            $inventory->save();
+            $inventory->consumeStock($request->quantity);
 
             MaterialUsageHelper::sync($inventory->id, $materialRequest->project_id, $materialRequest->job_order_id);
 
@@ -373,7 +372,7 @@ class GoodsOutController extends Controller
 
     public function createIndependent()
     {
-        $inventories = Inventory::orderBy('name')->get();
+        $inventories = Inventory::withComputedStock()->orderBy('name')->get();
         $projects = Project::with('departments', 'status')->notArchived()->orderBy('name')->get();
         $jobOrders = \App\Models\Production\JobOrder::with(['project:id,name', 'department:id,name'])
             ->orderBy('id', 'desc')
@@ -415,8 +414,7 @@ class GoodsOutController extends Controller
             }
 
             // Kurangi stok di inventory
-            $inventory->quantity -= $request->quantity;
-            $inventory->save();
+            $inventory->consumeStock($request->quantity);
 
             // Simpan Goods Out
             GoodsOut::create([
@@ -507,8 +505,7 @@ class GoodsOutController extends Controller
                 }
 
                 // Kurangi stok inventory
-                $inventory->quantity -= $qtyToGoodsOut;
-                $inventory->save();
+                $inventory->consumeStock($qtyToGoodsOut);
 
                 // Buat Goods Out
                 $goodsOut = GoodsOut::create([
@@ -582,7 +579,7 @@ class GoodsOutController extends Controller
     public function edit($id)
     {
         $goodsOut = GoodsOut::with('inventory', 'project', 'materialRequest', 'jobOrder.department')->findOrFail($id);
-        $inventories = Inventory::orderBy('name')->get();
+        $inventories = Inventory::withComputedStock()->orderBy('name')->get();
         $projects = Project::with('departments', 'status')->notArchived()->orderBy('name')->get();
         $jobOrders = \App\Models\Production\JobOrder::with(['project:id,name', 'department:id,name'])
             ->orderBy('id', 'desc')
@@ -635,7 +632,6 @@ class GoodsOutController extends Controller
             $user = User::with('department')->findOrFail($request->user_id);
 
             $oldQuantity = $goodsOut->quantity;
-            $inventory->quantity += $oldQuantity;
 
             // VALIDASI: Quantity tidak boleh melebihi Remaining Quantity (jika ada material request)
             if ($materialRequest) {
@@ -648,17 +644,18 @@ class GoodsOutController extends Controller
                 }
             }
 
-            // Validasi stok inventory
-            if ($request->quantity > $inventory->quantity) {
+            // Validasi stok inventory (add back old quantity temporarily for calculation)
+            $availableAfterReturn = $inventory->quantity + $oldQuantity;
+            if ($request->quantity > $availableAfterReturn) {
                 DB::rollBack();
                 return back()
                     ->withInput()
                     ->withErrors(['quantity' => 'Quantity cannot exceed the available inventory.']);
             }
 
-            // Kurangi stok dengan quantity baru
-            $inventory->quantity -= $request->quantity;
-            $inventory->save();
+            // Kurangi stok dengan quantity baru (return lama dulu, consume baru)
+            $inventory->returnStock($oldQuantity);
+            $inventory->consumeStock($request->quantity);
 
             // Perbarui Material Request dengan quantity baru
             if ($materialRequest) {
@@ -712,8 +709,7 @@ class GoodsOutController extends Controller
         // Kurangi stok di inventory
         $inventory = $goodsOut->inventory;
         if ($inventory) {
-            $inventory->quantity -= $goodsOut->quantity;
-            $inventory->save();
+            $inventory->consumeStock($goodsOut->quantity);
         }
 
         // Sinkronkan Material Usage
@@ -777,8 +773,7 @@ class GoodsOutController extends Controller
             }
 
             // Return stock to inventory
-            $inventory->quantity += $goodsOut->quantity;
-            $inventory->save();
+            $inventory->returnStock($goodsOut->quantity);
 
             // Soft delete Goods Out
             $goodsOut->delete();

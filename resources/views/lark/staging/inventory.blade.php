@@ -191,11 +191,14 @@
                                 </th>
                                 <th>No</th>
                                 <th>Item Name</th>
-                                <th>Qty</th>
+                                <th>Qty (Lark)</th>
+                                <th>Received Qty</th>
                                 <th>Price (RMB)</th>
+                                <th>Order Date</th>
+                                <th>PIC</th>
+                                <th>Waybill</th>
                                 <th>Project</th>
                                 <th>Supplier</th>
-                                <th>Source Records</th>
                                 <th>Review Status</th>
                                 <th>Last Sync</th>
                                 <th>Actions</th>
@@ -230,6 +233,10 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
+                    <div id="noteModalReceivedQtyReminder" class="alert alert-warning py-2 small d-none mb-2">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                        Pastikan <strong>Received Qty</strong> sudah diisi sebelum Approve.
+                    </div>
                     <textarea id="noteInput" class="form-control" rows="3" placeholder="Tambahkan catatan review..."></textarea>
                 </div>
                 <div class="modal-footer">
@@ -287,8 +294,27 @@
                         name: 'quantity'
                     },
                     {
+                        data: 'received_qty_input',
+                        name: 'received_qty',
+                        orderable: false,
+                        searchable: false,
+                        width: '140px'
+                    },
+                    {
                         data: 'price',
                         name: 'price'
+                    },
+                    {
+                        data: 'order_date',
+                        name: 'order_date'
+                    },
+                    {
+                        data: 'pic',
+                        name: 'pic'
+                    },
+                    {
+                        data: 'international_waybill',
+                        name: 'international_waybill'
                     },
                     {
                         data: 'project_lark',
@@ -297,11 +323,6 @@
                     {
                         data: 'supplier_lark',
                         name: 'supplier_lark'
-                    },
-                    {
-                        data: 'source_record_count',
-                        name: 'source_record_count',
-                        orderable: false
                     },
                     {
                         data: 'review_status_badge',
@@ -321,7 +342,7 @@
                     }
                 ],
                 order: [
-                    [9, 'desc']
+                    [13, 'desc']
                 ],
                 pageLength: 25,
                 language: {
@@ -366,6 +387,8 @@
                 $('#noteInput').val('');
                 $('#btnConfirmAction').removeClass('btn-danger').addClass('btn-success').text(
                     'Approve & Push to Inventory');
+                // Show reminder about received_qty
+                $('#noteModalReceivedQtyReminder').removeClass('d-none');
                 $('#noteModal').modal('show');
             });
 
@@ -376,6 +399,7 @@
                 $('#noteModalTitle').text('Reject Item');
                 $('#noteInput').val('');
                 $('#btnConfirmAction').removeClass('btn-success').addClass('btn-danger').text('Reject');
+                $('#noteModalReceivedQtyReminder').addClass('d-none');
                 $('#noteModal').modal('show');
             });
 
@@ -394,6 +418,55 @@
                         doAction('reset', id, '');
                     }
                 });
+            });
+
+            // Save Received Qty button
+            $(document).on('click', '.btn-save-received-qty', function() {
+                var id = $(this).data('id');
+                var $btn = $(this);
+                var $input = $btn.closest('.input-group').find('.received-qty-input');
+                var qty = $input.val();
+
+                if (!qty || parseFloat(qty) <= 0) {
+                    Swal.fire('Peringatan', 'Received Qty harus lebih dari 0.', 'warning');
+                    return;
+                }
+
+                $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
+
+                $.ajax({
+                    url: '{{ url('lark/staging/inventory') }}/' + id + '/received-qty',
+                    method: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        received_qty: qty
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            $btn.html('<i class="bi bi-check-lg text-success"></i>');
+                            setTimeout(function() {
+                                $btn.prop('disabled', false).html(
+                                    '<i class="bi bi-check-lg"></i>');
+                            }, 1500);
+                        } else {
+                            Swal.fire('Gagal', response.message, 'error');
+                            $btn.prop('disabled', false).html('<i class="bi bi-check-lg"></i>');
+                        }
+                    },
+                    error: function(xhr) {
+                        var msg = xhr.responseJSON ? xhr.responseJSON.message :
+                            'Terjadi kesalahan.';
+                        Swal.fire('Error', msg, 'error');
+                        $btn.prop('disabled', false).html('<i class="bi bi-check-lg"></i>');
+                    }
+                });
+            });
+
+            // Allow Enter key to save received qty
+            $(document).on('keydown', '.received-qty-input', function(e) {
+                if (e.key === 'Enter') {
+                    $(this).closest('.input-group').find('.btn-save-received-qty').trigger('click');
+                }
             });
 
             // Confirm modal action

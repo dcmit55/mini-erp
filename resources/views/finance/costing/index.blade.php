@@ -109,23 +109,13 @@
                             </select>
                         </div>
                         <div class="col-lg-3">
-                            <select id="filter-created-by" name="created_by" class="form-select select2"
-                                data-placeholder="All Creators">
-                                <option value="">All Created_by</option>
-                                <option value="sync_from_lark"
-                                    {{ request('created_by') == 'sync_from_lark' ? 'selected' : '' }}>
-                                    Sync from Lark
-                                </option>
-                                <option value="manual" {{ request('created_by') == 'manual' ? 'selected' : '' }}>
-                                    Manual Entry
-                                </option>
-                                @foreach ($createdByOptions as $creator)
-                                    @if ($creator && $creator !== 'Sync from Lark')
-                                        <option value="{{ $creator }}"
-                                            {{ request('created_by') == $creator ? 'selected' : '' }}>
-                                            {{ $creator }}
-                                        </option>
-                                    @endif
+                            <select id="filter-sales" name="sales" class="form-select select2"
+                                data-placeholder="All Sales">
+                                <option value="">All Sales</option>
+                                @foreach ($salesOptions as $sales)
+                                    <option value="{{ $sales }}" {{ request('sales') == $sales ? 'selected' : '' }}>
+                                        {{ $sales }}
+                                    </option>
                                 @endforeach
                             </select>
                         </div>
@@ -169,7 +159,7 @@
                             <th style="width: 5%"></th>
                             <th>Project Name</th>
                             <th>Department</th>
-                            <th>Created By</th>
+                            <th>Sales</th>
                             <th style="width: 10%">Actions</th>
                         </tr>
                     </thead>
@@ -192,13 +182,7 @@
                                         -
                                     @endif
                                 </td>
-                                <td>
-                                    @if ($project->created_by === 'Sync from Lark')
-                                        <span class="">{{ $project->created_by }}</span>
-                                    @else
-                                        {{ $project->created_by ?? '-' }}
-                                    @endif
-                                </td>
+                                <td>{{ $project->sales ?? '-' }}</td>
                                 <td>
                                     <button class="btn btn-primary btn-sm" onclick="viewCosting('{{ $project->id }}')"
                                         title="View Report"><i class="bi bi-eye"></i></button>

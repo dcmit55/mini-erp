@@ -32,7 +32,7 @@ class MaterialRequestController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = MaterialRequest::with(['inventory:id,name,quantity,unit', 'project:id,name,department_id', 'internalProject:id,project,job,department_id', 'jobOrder:id,name,project_id', 'user:id,username,department_id', 'user.department:id,name'])->latest();
+            $query = MaterialRequest::with(['inventory:id,name,unit', 'project:id,name,department_id', 'internalProject:id,project,job,department_id', 'jobOrder:id,name,project_id', 'user:id,username,department_id', 'user.department:id,name'])->latest();
 
             // Apply filters
             if ($request->filled('project')) {
@@ -249,9 +249,12 @@ class MaterialRequestController extends Controller
      */
     public function create(Request $request)
     {
-        $inventories = Inventory::orderBy('name')->get();
+        $inventories = Inventory::withComputedStock()->orderBy('name')->get();
         $projects = Project::fromLark()->with('departments', 'status')->notArchived()->orderBy('name')->get();
         $jobOrders = \App\Models\Production\JobOrder::with('project:id,name')
+            ->where(function ($q) {
+                $q->whereNull('description')->orWhere('description', 'not like', 'IP:%');
+            })
             ->orderBy('id', 'desc')
             ->get(['id', 'name', 'project_id']);
 
@@ -359,9 +362,12 @@ class MaterialRequestController extends Controller
      */
     public function bulkCreate()
     {
-        $inventories = Inventory::orderBy('name')->get();
+        $inventories = Inventory::withComputedStock()->orderBy('name')->get();
         $projects = Project::with('departments', 'status')->notArchived()->orderBy('name')->get();
         $jobOrders = \App\Models\Production\JobOrder::with('project:id,name')
+            ->where(function ($q) {
+                $q->whereNull('description')->orWhere('description', 'not like', 'IP:%');
+            })
             ->orderBy('id', 'desc')
             ->get(['id', 'name', 'project_id']);
 
@@ -492,14 +498,19 @@ class MaterialRequestController extends Controller
         $departments = Department::orderBy('name')->get();
         $units = Unit::orderBy('name')->get();
 
-        $inventories = Inventory::orderBy('name')
+        $inventories = Inventory::withComputedStock()
+            ->orderBy('name')
             ->get()
             ->map(function ($inventory) {
+                // quantity is already loaded via withComputedStock(), no extra query
                 $inventory->available_quantity = $inventory->quantity;
                 return $inventory;
             });
 
         $jobOrders = \App\Models\Production\JobOrder::with('project:id,name')
+            ->where(function ($q) {
+                $q->whereNull('description')->orWhere('description', 'not like', 'IP:%');
+            })
             ->orderBy('id', 'desc')
             ->get(['id', 'name', 'project_id']);
 

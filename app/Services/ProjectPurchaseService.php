@@ -71,7 +71,8 @@ class ProjectPurchaseService
             }
 
             // Get unique combinations of PO number + project identifier (different project = different log)
-            $poGroups = $poNumbersQuery->orderBy('created_at', 'desc')
+            $poGroups = $poNumbersQuery
+                ->orderBy('created_at', 'desc')
                 ->get()
                 ->unique(function ($item) {
                     return $item->po_number . '_' . ($item->job_order_id ?? '') . '_' . ($item->internal_project_id ?? '');
@@ -88,12 +89,9 @@ class ProjectPurchaseService
             // Build collection (one entry per PO + project combination)
             $purchases = collect();
             foreach ($poGroups as $group) {
-                $poItems = $allPurchases
-                    ->where('po_number', $group->po_number)
-                    ->filter(function ($item) use ($group) {
-                        return $item->job_order_id == $group->job_order_id
-                            && $item->internal_project_id == $group->internal_project_id;
-                    });
+                $poItems = $allPurchases->where('po_number', $group->po_number)->filter(function ($item) use ($group) {
+                    return $item->job_order_id == $group->job_order_id && $item->internal_project_id == $group->internal_project_id;
+                });
 
                 $firstItem = $poItems->first();
 
@@ -1058,24 +1056,36 @@ class ProjectPurchaseService
             if ($purchase->purchase_type === 'restock' && $purchase->material_id) {
                 $inventory = Inventory::find($purchase->material_id);
                 if ($inventory) {
-                    $inventory->quantity += $purchase->quantity;
+                    $newQty = (float) $purchase->quantity;
+                    $oldQty = $inventory->quantity;
+
+                    // Add stock via batch
+                    \App\Models\Logistic\InventoryBatch::create([
+                        'batch_number' => \App\Models\Logistic\InventoryBatch::generateBatchNumber($inventory->id),
+                        'inventory_id' => $inventory->id,
+                        'qty' => $newQty,
+                        'qty_remaining' => $newQty,
+                        'unit_price' => $purchase->unit_price ?? 0,
+                        'currency_id' => $inventory->currency_id,
+                        'received_date' => now()->toDateString(),
+                        'source_type' => \App\Models\Logistic\InventoryBatch::SOURCE_GOODS_IN,
+                        'source_id' => $purchase->id,
+                    ]);
                     $inventory->updated_at = now();
                     $inventory->save();
 
                     Log::info('Inventory updated for restock', [
                         'material_id' => $inventory->id,
-                        'old_quantity' => $inventory->quantity - $purchase->quantity,
+                        'old_quantity' => $oldQty,
                         'new_quantity' => $inventory->quantity,
-                        'added' => $purchase->quantity,
+                        'added' => $newQty,
                     ]);
                 }
             } else {
                 $inventoryData = [
                     'name' => $purchase->new_item_name,
-                    'quantity' => $purchase->quantity,
                     'unit_id' => $purchase->unit_id,
                     'unit' => $unitName,
-                    'price' => $purchase->unit_price,
                     'supplier_id' => $purchase->supplier_id,
                     'category_id' => $purchase->category_id,
                     'remark' => $purchase->note,
@@ -1084,6 +1094,21 @@ class ProjectPurchaseService
                 ];
 
                 $newInventory = Inventory::create($inventoryData);
+
+                // Create initial batch for new inventory from purchase
+                if ((float) $purchase->quantity > 0) {
+                    \App\Models\Logistic\InventoryBatch::create([
+                        'batch_number' => \App\Models\Logistic\InventoryBatch::generateBatchNumber($newInventory->id),
+                        'inventory_id' => $newInventory->id,
+                        'qty' => $purchase->quantity,
+                        'qty_remaining' => $purchase->quantity,
+                        'unit_price' => $purchase->unit_price ?? 0,
+                        'currency_id' => $newInventory->currency_id,
+                        'received_date' => now()->toDateString(),
+                        'source_type' => \App\Models\Logistic\InventoryBatch::SOURCE_INITIAL_STOCK,
+                        'source_id' => $newInventory->id,
+                    ]);
+                }
 
                 Log::info('New inventory item created', [
                     'inventory_id' => $newInventory->id,

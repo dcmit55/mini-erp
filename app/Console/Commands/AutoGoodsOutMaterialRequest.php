@@ -34,8 +34,7 @@ class AutoGoodsOutMaterialRequest extends Command
                 // Cek stok cukup
                 if ($remainingQty > 0 && $inventory && $inventory->quantity >= $remainingQty) {
                     // Kurangi stok
-                    $inventory->quantity -= $remainingQty;
-                    $inventory->save();
+                    $inventory->consumeStock($remainingQty);
 
                     // Buat Goods Out
                     GoodsOut::create([

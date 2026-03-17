@@ -18,6 +18,9 @@ class LarkInventoryDTO extends BaseLarkDTO
     public readonly ?string $unitRaw;
     public readonly ?string $totalCostRmbRaw;
     public readonly ?string $supplierLarkRaw;
+    public readonly ?string $orderDateRaw;
+    public readonly ?string $picRaw;
+    public readonly ?string $internationalWaybillRaw;
     public readonly ?string $destinationRaw;
     public readonly ?string $statusRaw;
     public readonly ?string $deptImportedRaw;
@@ -52,6 +55,9 @@ class LarkInventoryDTO extends BaseLarkDTO
         'inventories.unit' => 'Unit',
         'inventories.price' => 'Cost Amount Per Unit',
         'inventories.supplier_lark' => 'Supplier Name',
+        'inventories.order_date' => 'Order Date',
+        'inventories.pic' => 'PIC',
+        'inventories.international_waybill' => 'International Waybill',
         'inventories.destination' => 'Destination',
         'inventories.status' => 'Status',
         'inventories.dept_imported' => 'DEPT (IMPORTED)',
@@ -77,6 +83,9 @@ class LarkInventoryDTO extends BaseLarkDTO
         $this->unitRaw = $this->extractField($fields, 'inventories.unit');
         $this->totalCostRmbRaw = $this->extractField($fields, 'inventories.price');
         $this->supplierLarkRaw = $this->extractField($fields, 'inventories.supplier_lark');
+        $this->orderDateRaw = $this->extractField($fields, 'inventories.order_date');
+        $this->picRaw = $this->extractField($fields, 'inventories.pic');
+        $this->internationalWaybillRaw = $this->extractField($fields, 'inventories.international_waybill');
         $this->destinationRaw = $this->extractField($fields, 'inventories.destination');
         $this->statusRaw = $this->extractField($fields, 'inventories.status');
         $this->deptImportedRaw = $this->extractField($fields, 'inventories.dept_imported');

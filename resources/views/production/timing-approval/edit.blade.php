@@ -44,7 +44,7 @@
                         <div class="col-md-6">
                             <label for="tanggal" class="form-label">Date <span class="text-danger">*</span></label>
                             <input type="date" class="form-control @error('tanggal') is-invalid @enderror" id="tanggal"
-                                name="tanggal" value="{{ old('tanggal', $timing->tanggal) }}" required>
+                                name="tanggal" value="{{ old('tanggal', $timing->tanggal?->format('Y-m-d')) }}" required>
                             @error('tanggal')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -135,7 +135,8 @@
                         <div class="col-md-6">
                             <label for="start_time" class="form-label">Start Time <span class="text-danger">*</span></label>
                             <input type="time" class="form-control @error('start_time') is-invalid @enderror"
-                                id="start_time" name="start_time" value="{{ old('start_time', $timing->start_time) }}"
+                                id="start_time" name="start_time"
+                                value="{{ old('start_time', $timing->start_time ? \Carbon\Carbon::parse($timing->start_time)->format('H:i') : '') }}"
                                 required>
                             @error('start_time')
                                 <div class="invalid-feedback">{{ $message }}</div>
@@ -145,7 +146,8 @@
                         <div class="col-md-6">
                             <label for="end_time" class="form-label">End Time <span class="text-danger">*</span></label>
                             <input type="time" class="form-control @error('end_time') is-invalid @enderror"
-                                id="end_time" name="end_time" value="{{ old('end_time', $timing->end_time) }}"
+                                id="end_time" name="end_time"
+                                value="{{ old('end_time', $timing->end_time ? \Carbon\Carbon::parse($timing->end_time)->format('H:i') : '') }}"
                                 required>
                             @error('end_time')
                                 <div class="invalid-feedback">{{ $message }}</div>

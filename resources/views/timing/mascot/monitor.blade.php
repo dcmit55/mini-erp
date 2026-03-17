@@ -57,27 +57,49 @@
         @if ($runningSessions->count() > 0)
             @foreach ($groupedSessions as $projectName => $sessions)
                 <div class="card shadow-sm border-0 mb-4">
-                    <div class="card-header bg-gradient-mascot text-white">
+                    <div
+                        class="card-header bg-gradient-mascot text-white d-flex justify-content-between align-items-center">
                         <h5 class="mb-0">
                             <i class="fas fa-project-diagram me-2"></i>{{ $projectName }}
                             <span class="badge bg-light text-dark ms-2">{{ $sessions->count() }} Employee(s)</span>
                         </h5>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="form-check mb-0">
+                                <input class="form-check-input group-select-all" type="checkbox"
+                                    data-group="{{ Str::slug($projectName) }}" id="grp-all-{{ Str::slug($projectName) }}"
+                                    title="Select all employees in this project">
+                                <label class="form-check-label text-white small fw-normal"
+                                    for="grp-all-{{ Str::slug($projectName) }}">Select All</label>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-danger bulk-stop-btn"
+                                data-group="{{ Str::slug($projectName) }}" style="display:none;">
+                                <i class="bi bi-stop-circle me-1"></i>Bulk Stop (<span class="bulk-count">0</span>)
+                            </button>
+                        </div>
                     </div>
                     <div class="card-body">
                         <div class="row g-3">
                             @foreach ($sessions as $session)
-                                <div class="col-md-6 col-lg-4 col-xl-3">
+                                <div class="col-md-4 col-lg-3 col-xl-2">
                                     <div class="card border session-card h-100" id="session-{{ $session->id }}">
-                                        <div class="card-body p-3">
+                                        <div class="card-body p-2">
+                                            <!-- Bulk Select Checkbox -->
+                                            <div class="form-check mb-1">
+                                                <input class="form-check-input session-checkbox" type="checkbox"
+                                                    value="{{ $session->id }}" data-group="{{ Str::slug($projectName) }}"
+                                                    id="chk-{{ $session->id }}">
+                                                <label class="form-check-label small text-muted"
+                                                    for="chk-{{ $session->id }}">Select</label>
+                                            </div>
                                             <!-- Employee Info -->
                                             <div class="d-flex align-items-center mb-2">
                                                 @if ($session->employee->photo)
                                                     <img src="{{ asset('storage/' . $session->employee->photo) }}"
-                                                        class="rounded-circle me-2" width="50" height="50"
+                                                        class="rounded-circle me-2" width="36" height="36"
                                                         style="object-fit: cover;">
                                                 @else
                                                     <div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center me-2"
-                                                        style="width: 50px; height: 50px;">
+                                                        style="width: 36px; height: 36px;">
                                                         <i class="bi bi-person text-white fs-4"></i>
                                                     </div>
                                                 @endif
@@ -368,6 +390,84 @@
 
             // Auto-refresh every 30 seconds
             setInterval(refreshData, 30000);
+
+            // Bulk stop handler
+            $(document).on('change', '.session-checkbox', function() {
+                const group = $(this).data('group');
+                const total = $(`.session-checkbox[data-group="${group}"]`).length;
+                const checkedCount = $(`.session-checkbox[data-group="${group}"]:checked`).length;
+                const btn = $(`.bulk-stop-btn[data-group="${group}"]`);
+                btn.find('.bulk-count').text(checkedCount);
+                btn.toggle(checkedCount > 0);
+                const groupAll = $(`.group-select-all[data-group="${group}"]`);
+                groupAll.prop('indeterminate', checkedCount > 0 && checkedCount < total);
+                groupAll.prop('checked', checkedCount === total && total > 0);
+            });
+
+            $(document).on('change', '.group-select-all', function() {
+                const group = $(this).data('group');
+                const checked = $(this).prop('checked');
+                $(`.session-checkbox[data-group="${group}"]`).prop('checked', checked);
+                const count = checked ? $(`.session-checkbox[data-group="${group}"]`).length : 0;
+                const btn = $(`.bulk-stop-btn[data-group="${group}"]`);
+                btn.find('.bulk-count').text(count);
+                btn.toggle(count > 0);
+            });
+
+            $(document).on('click', '.bulk-stop-btn', function() {
+                const group = $(this).data('group');
+                const ids = [];
+                $(`.session-checkbox[data-group="${group}"]:checked`).each(function() {
+                    ids.push($(this).val());
+                });
+                if (ids.length === 0) return;
+
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Bulk Stop ' + ids.length + ' session(s)?',
+                    text: 'All selected sessions will be stopped. Each session must have a stage already saved.',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc3545',
+                    confirmButtonText: '<i class="bi bi-stop-circle"></i> Stop All',
+                    cancelButtonText: 'Cancel'
+                }).then(function(result) {
+                    if (!result.isConfirmed) return;
+                    $.ajax({
+                        url: '{{ route('mascot-timing.bulk-stop') }}',
+                        method: 'POST',
+                        data: {
+                            _token: '{{ csrf_token() }}',
+                            timing_ids: ids
+                        },
+                        success: function(r) {
+                            if (r.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Done!',
+                                    text: r.message,
+                                    timer: 2000,
+                                    showConfirmButton: false
+                                });
+                                setTimeout(() => location.reload(), 2100);
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: r.message
+                                });
+                            }
+                        },
+                        error: function(xhr) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: xhr.responseJSON?.message ||
+                                    'Bulk stop failed.'
+                            });
+                        }
+                    });
+                });
+            });
 
             // Stop work button click handler
             $(document).on('click', '.stop-work-btn', function() {

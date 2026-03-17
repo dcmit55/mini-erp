@@ -25,19 +25,25 @@ class CostumeTimingController extends Controller
      */
     public function index()
     {
-        // Get costume department
-        $costumeDept = Department::where('name', 'LIKE', '%costume%')->orWhere('name', 'LIKE', '%sewing%')->first();
+        // Get costume department(s) — includes 'costume', 'sewing', and 'DCM PLUSH'
+        $costumeDepts = Department::where(function ($q) {
+            $q->where('name', 'LIKE', '%costume%')->orWhere('name', 'LIKE', '%sewing%')->orWhere('name', 'LIKE', '%DCM PLUSH%');
+        })->get();
+
+        $costumeDeptIds = $costumeDepts->pluck('id')->filter()->toArray();
+        // Keep single dept for backward compat (used in active session filter)
+        $costumeDept = $costumeDepts->first();
 
         // Get employees with running sessions for today
         $employeesWithActiveSessions = Timing::running()->today()->pluck('employee_id')->toArray();
 
         // Get active costume employees (exclude those with active sessions)
-        if ($costumeDept) {
-            $employees = Employee::where('status', 'active')->where('department_id', $costumeDept->id)->whereNotIn('id', $employeesWithActiveSessions)->with('department')->orderBy('name')->get();
+        if (!empty($costumeDeptIds)) {
+            $employees = Employee::where('status', 'active')->whereIn('department_id', $costumeDeptIds)->whereNotIn('id', $employeesWithActiveSessions)->with('department')->orderBy('name')->get();
 
-            // Get job orders related to costume
+            // Get job orders related to costume / DCM PLUSH departments
             $jobOrders = JobOrder::with(['project', 'department'])
-                ->where('department_id', $costumeDept->id)
+                ->whereIn('department_id', $costumeDeptIds)
                 ->whereNull('deleted_at')
                 ->where(function ($q) {
                     $q->whereNull('status')->orWhere('status', 'not like', '%deliver%');
@@ -63,13 +69,13 @@ class CostumeTimingController extends Controller
         // Get unique positions from active employees
         $positions = Employee::where('status', 'active')->whereNotNull('position')->distinct()->pluck('position')->sort();
 
-        // Get active timing sessions (ONLY from costume department, not all)
+        // Get active timing sessions (ONLY from costume / DCM PLUSH departments, not all)
         $activeSessions = Timing::running()
             ->today()
             ->withRelations()
-            ->whereHas('employee', function ($query) use ($costumeDept) {
-                if ($costumeDept) {
-                    $query->where('department_id', $costumeDept->id);
+            ->whereHas('employee', function ($query) use ($costumeDeptIds, $costumeDept) {
+                if (!empty($costumeDeptIds)) {
+                    $query->whereIn('department_id', $costumeDeptIds);
                 }
             })
             ->orderBy('start_time', 'desc')
@@ -269,6 +275,67 @@ class CostumeTimingController extends Controller
                 ],
                 500,
             );
+        }
+    }
+
+    /**
+     * Bulk stop multiple timing sessions at once (from monitor)
+     */
+    public function bulkStop(Request $request)
+    {
+        $validated = $request->validate([
+            'timing_ids' => 'required|array|min:1',
+            'timing_ids.*' => 'required|exists:timings,id',
+        ]);
+
+        $endTime = now()->format('H:i:s');
+        $stopped = 0;
+        $skipped = 0;
+        $errors = [];
+
+        DB::beginTransaction();
+        try {
+            foreach ($validated['timing_ids'] as $timingId) {
+                $timing = Timing::where('id', $timingId)->where('status', 'on progress')->whereNull('end_time')->first();
+
+                if (!$timing) {
+                    $skipped++;
+                    continue;
+                }
+
+                $durationMinutes = 0;
+                if ($timing->start_time) {
+                    try {
+                        $today = now()->format('Y-m-d');
+                        $start = \Carbon\Carbon::parse($today . ' ' . $timing->start_time);
+                        $end = \Carbon\Carbon::parse($today . ' ' . $endTime);
+                        $durationMinutes = $start->diffInMinutes($end);
+                    } catch (\Exception $e) {
+                    }
+                }
+
+                $timing->update([
+                    'end_time' => $endTime,
+                    'measurement_type' => 'pcs',
+                    'measurement_value' => 1,
+                    'duration_minutes' => $durationMinutes,
+                    'duration_hours' => round($durationMinutes / 60, 2),
+                    'status' => 'complete',
+                    'approval_status' => 'pending',
+                ]);
+                $stopped++;
+            }
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Bulk stop completed. {$stopped} session(s) stopped" . ($skipped > 0 ? ", {$skipped} skipped (already stopped)." : '.'),
+                'stopped' => $stopped,
+                'skipped' => $skipped,
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => 'Bulk stop failed: ' . $e->getMessage()], 500);
         }
     }
 

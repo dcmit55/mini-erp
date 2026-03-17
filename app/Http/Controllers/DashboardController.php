@@ -55,14 +55,39 @@ class DashboardController extends Controller
             ->count();
 
         // Inventory Statistics
-        $lowStockItems = Inventory::where('quantity', '<=', 10)->count();
+        $lowStockItems = Inventory::whereHas('batches', function ($q) {
+            $q->whereNull('deleted_at')->where('qty_remaining', '>', 0);
+        })
+            ->withSum(
+                [
+                    'batches as total_qty' => function ($q) {
+                        $q->whereNull('deleted_at');
+                    },
+                ],
+                'qty_remaining',
+            )
+            ->get()
+            ->filter(fn($i) => ($i->total_qty ?? 0) <= 10)
+            ->count();
         // Data untuk low stock items di dashboard dengan relasi category dan supplier
         $veryLowStockItems = Inventory::with(['category', 'supplier'])
-            ->where('quantity', '<', 3)
-            ->orderBy('quantity', 'asc')
-            ->get();
-        $outOfStockItems = Inventory::where('quantity', '<=', 0)->count();
-        $totalInventoryValue = Inventory::join('currencies', 'inventories.currency_id', '=', 'currencies.id')->selectRaw('SUM(inventories.quantity * inventories.price * currencies.exchange_rate) as total_value')->value('total_value') ?? 0;
+            ->withComputedStock()
+            ->get()
+            ->filter(fn($i) => $i->quantity < 3 && $i->quantity >= 0)
+            ->sortBy('quantity')
+            ->values();
+        $outOfStockItems = Inventory::withSum(
+            [
+                'batches as total_qty' => function ($q) {
+                    $q->whereNull('deleted_at');
+                },
+            ],
+            'qty_remaining',
+        )
+            ->get()
+            ->filter(fn($i) => ($i->total_qty ?? 0) <= 0)
+            ->count();
+        $totalInventoryValue = DB::table('inventory_batches as ib')->join('currencies', 'ib.currency_id', '=', 'currencies.id')->whereNull('ib.deleted_at')->where('ib.qty_remaining', '>', 0)->selectRaw('SUM(ib.qty_remaining * ib.unit_price * currencies.exchange_rate) as total_value')->value('total_value') ?? 0;
 
         // Recent Activities
         $recentGoodsIn = GoodsIn::with(['inventory', 'project'])

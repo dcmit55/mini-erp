@@ -21,13 +21,25 @@ class TimingApprovalController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = Timing::with(['employee.department', 'project', 'jobOrder', 'approver'])->whereNotNull('end_time'); // Show all finished sessions (regardless of status field)
+            $query = Timing::with(['employee.department', 'project', 'jobOrder', 'approver'])
+                ->where('status', '!=', 'frozen')
+                ->where(function ($q) {
+                    // Include completed/paused sessions OR orphaned 'on progress' sessions (started > 1 hour ago)
+                    $q->whereNotNull('end_time')->orWhere(function ($q2) {
+                        $q2->where('status', 'on progress')->where('tanggal', '<', now()->toDateString());
+                    });
+                });
 
-            // Filter by approval status
+            // Filter by approval status / session status
             if ($request->has('approval_status') && $request->approval_status !== '') {
-                $query->where('approval_status', $request->approval_status);
+                if ($request->approval_status === 'paused') {
+                    // Special filter: show paused sessions regardless of approval_status
+                    $query->where('status', 'paused');
+                } else {
+                    $query->where('approval_status', $request->approval_status);
+                }
             } else {
-                // Default to pending only
+                // Default: show pending approval (includes paused sessions awaiting approval)
                 $query->where('approval_status', 'pending');
             }
 
@@ -54,6 +66,9 @@ class TimingApprovalController extends Controller
             $query->orderBy('tanggal', 'desc')->orderBy('created_at', 'desc');
 
             return DataTables::of($query)
+                ->addColumn('tanggal_formatted', function ($timing) {
+                    return $timing->tanggal ? $timing->tanggal->format('d-m-Y') : '-';
+                })
                 ->addColumn('checkbox', function ($timing) {
                     if ($timing->isPending()) {
                         return '<input type="checkbox" class="timing-checkbox" value="' . $timing->id . '">';
@@ -75,13 +90,27 @@ class TimingApprovalController extends Controller
                     return $step . ' ' . $parts;
                 })
                 ->addColumn('duration_info', function ($timing) {
+                    // For still-running sessions, calculate elapsed time live
+                    if (is_null($timing->end_time) && $timing->start_time) {
+                        try {
+                            $start = \Carbon\Carbon::parse($timing->tanggal->format('Y-m-d') . ' ' . $timing->start_time);
+                            $elapsedMinutes = (int) $start->diffInMinutes(now());
+                            $h = intdiv($elapsedMinutes, 60);
+                            $m = $elapsedMinutes % 60;
+                            $durationStr = sprintf('%02d:%02d', $h, $m) . ' <span class="badge bg-warning text-dark">RUNNING</span>';
+                        } catch (\Exception $e) {
+                            $durationStr = '-- <span class="badge bg-warning text-dark">RUNNING</span>';
+                        }
+                    } else {
+                        $durationStr = $timing->duration_formatted;
+                    }
                     return '<strong>' .
-                        $timing->duration_formatted .
+                        $durationStr .
                         '</strong><br>
                             <small class="text-muted">' .
                         $timing->start_time .
                         ' - ' .
-                        $timing->end_time .
+                        ($timing->end_time ?? '<em>still running</em>') .
                         '</small>';
                 })
                 ->addColumn('output_info', function ($timing) {
@@ -98,16 +127,21 @@ class TimingApprovalController extends Controller
                         '/hr</small>';
                 })
                 ->addColumn('approval_status_badge', function ($timing) {
+                    $isPaused = $timing->status === 'paused';
                     $badges = [
                         'pending' => '<span class="badge bg-warning">Pending</span>',
                         'approved' => '<span class="badge bg-success">Approved</span>',
                         'rejected' => '<span class="badge bg-danger">Rejected</span>',
                     ];
-                    return $badges[$timing->approval_status] ?? '<span class="badge bg-secondary">Unknown</span>';
+                    $badge = $badges[$timing->approval_status] ?? '<span class="badge bg-secondary">Unknown</span>';
+                    if ($isPaused) {
+                        $badge .= ' <span class="badge bg-info">Paused</span>';
+                    }
+                    return $badge;
                 })
                 ->addColumn('approver_info', function ($timing) {
                     if ($timing->approved_by && $timing->approver) {
-                        return '<small>' . $timing->approver->name . '<br>' . $timing->approved_at->format('d M Y H:i') . '</small>';
+                        return '<small>' . $timing->approver->name . '<br>' . $timing->approved_at?->format('d M Y H:i') . '</small>';
                     }
                     return '<small class="text-muted">-</small>';
                 })
@@ -146,7 +180,7 @@ class TimingApprovalController extends Controller
                     }
                     return $buttons;
                 })
-                ->rawColumns(['checkbox', 'employee_info', 'project_info', 'work_details', 'duration_info', 'output_info', 'approval_status_badge', 'approver_info', 'actions'])
+                ->rawColumns(['checkbox', 'tanggal_formatted', 'employee_info', 'project_info', 'work_details', 'duration_info', 'output_info', 'approval_status_badge', 'approver_info', 'actions'])
                 ->make(true);
         }
 
@@ -157,11 +191,30 @@ class TimingApprovalController extends Controller
         // Get statistics
         $stats = [
             'pending' => Timing::pending()->count(),
+            'paused' => Timing::paused()->where('approval_status', 'pending')->count(),
             'approved_today' => Timing::approved()->whereDate('approved_at', today())->count(),
             'rejected_today' => Timing::rejected()->whereDate('approved_at', today())->count(),
         ];
 
-        return view('production.timing-approval.index', compact('projects', 'departments', 'stats'));
+        // Build available filter statuses from actual DB data
+        $availableStatuses = [];
+        $dbStatuses = Timing::whereNotNull('end_time')->whereNotNull('approval_status')->distinct()->pluck('approval_status')->toArray();
+        foreach (['pending', 'approved', 'rejected'] as $s) {
+            if (in_array($s, $dbStatuses)) {
+                $availableStatuses[] = $s;
+            }
+        }
+        // Insert 'paused' after 'pending' if any paused sessions exist
+        if (Timing::where('status', 'paused')->exists()) {
+            $pendingIdx = array_search('pending', $availableStatuses);
+            if ($pendingIdx !== false) {
+                array_splice($availableStatuses, $pendingIdx + 1, 0, ['paused']);
+            } else {
+                array_unshift($availableStatuses, 'paused');
+            }
+        }
+
+        return view('production.timing-approval.index', compact('projects', 'departments', 'stats', 'availableStatuses'));
     }
 
     /**
@@ -171,11 +224,11 @@ class TimingApprovalController extends Controller
     {
         $timing = Timing::findOrFail($id);
 
-        if (!$timing->isPending()) {
+        if (!$timing->isPending() && !$timing->isPaused()) {
             return response()->json(
                 [
                     'success' => false,
-                    'message' => 'Only pending timings can be approved',
+                    'message' => 'Only pending or paused timings can be approved',
                 ],
                 400,
             );
@@ -183,6 +236,10 @@ class TimingApprovalController extends Controller
 
         DB::beginTransaction();
         try {
+            // If session was paused, mark as complete on approve
+            if ($timing->isPaused()) {
+                $timing->status = 'complete';
+            }
             $timing->approve(auth()->id());
             DB::commit();
 
@@ -216,11 +273,11 @@ class TimingApprovalController extends Controller
 
         $timing = Timing::findOrFail($id);
 
-        if (!$timing->isPending()) {
+        if (!$timing->isPending() && !$timing->isPaused()) {
             return response()->json(
                 [
                     'success' => false,
-                    'message' => 'Only pending timings can be rejected',
+                    'message' => 'Only pending or paused timings can be rejected',
                 ],
                 400,
             );
@@ -283,6 +340,10 @@ class TimingApprovalController extends Controller
             }
 
             foreach ($timings as $timing) {
+                // If paused, mark as complete on approval
+                if ($timing->isPaused()) {
+                    $timing->status = 'complete';
+                }
                 $timing->approve(auth()->id());
             }
 

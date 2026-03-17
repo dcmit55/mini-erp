@@ -160,6 +160,11 @@ class LarkInventorySyncService
                     $larkRecordIdsStr = implode(',', $larkRecordIdsArray);
                     unset($data['lark_record_ids']); // Remove temporary field
 
+                    // Extract qty/price before upsert (not DB columns anymore)
+                    $syncQty = (float) ($data['quantity'] ?? 0);
+                    $syncPrice = (float) ($data['price'] ?? 0);
+                    unset($data['quantity'], $data['price']);
+
                     // Upsert by name (or name+supplier if you want more granularity)
                     $inventory = Inventory::updateOrCreate(
                         [
@@ -171,6 +176,21 @@ class LarkInventorySyncService
                         ]),
                     );
 
+                    // Create a batch for this sync (stock addition from Lark)
+                    if ($syncQty > 0) {
+                        \App\Models\Logistic\InventoryBatch::create([
+                            'batch_number' => \App\Models\Logistic\InventoryBatch::generateBatchNumber($inventory->id),
+                            'inventory_id' => $inventory->id,
+                            'qty' => $syncQty,
+                            'qty_remaining' => $syncQty,
+                            'unit_price' => $syncPrice,
+                            'currency_id' => $inventory->currency_id,
+                            'received_date' => now()->toDateString(),
+                            'source_type' => \App\Models\Logistic\InventoryBatch::SOURCE_LARK,
+                            'source_id' => null,
+                        ]);
+                    }
+
                     if ($inventory->wasRecentlyCreated) {
                         $stats['created']++;
                     } else {
@@ -181,7 +201,7 @@ class LarkInventorySyncService
                         'name' => $data['name'],
                         'inventory_id' => $inventory->id,
                         'total_quantity' => $inventory->quantity,
-                        'source_records' => count($data['lark_record_ids'] ?? []),
+                        'source_records' => count($larkRecordIdsArray),
                         'action' => $inventory->wasRecentlyCreated ? 'created' : 'updated',
                     ]);
                 } catch (\Exception $e) {

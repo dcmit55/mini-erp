@@ -225,6 +225,30 @@ class Timing extends Model
         return $query->where('approval_status', 'rejected');
     }
 
+    /**
+     * Scope: Only paused sessions
+     */
+    public function scopePaused($query)
+    {
+        return $query->where('status', 'paused');
+    }
+
+    /**
+     * Scope: Only frozen sessions (timer stopped, still in monitor, NOT in approval)
+     */
+    public function scopeFrozen($query)
+    {
+        return $query->where('status', 'frozen');
+    }
+
+    /**
+     * Check if timing is frozen
+     */
+    public function isFrozen()
+    {
+        return $this->status === 'frozen';
+    }
+
     // ============================================
     // APPROVAL METHODS
     // ============================================
@@ -270,6 +294,14 @@ class Timing extends Model
     public function isPending()
     {
         return $this->approval_status === 'pending';
+    }
+
+    /**
+     * Check if timing is paused
+     */
+    public function isPaused()
+    {
+        return $this->status === 'paused';
     }
 
     /**

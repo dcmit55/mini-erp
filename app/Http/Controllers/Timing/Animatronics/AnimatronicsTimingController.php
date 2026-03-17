@@ -343,6 +343,69 @@ class AnimatronicsTimingController extends Controller
     }
 
     /**
+     * Bulk stop multiple animatronics timing sessions (from monitor)
+     */
+    public function bulkStop(Request $request)
+    {
+        $validated = $request->validate([
+            'timing_ids' => 'required|array|min:1',
+            'timing_ids.*' => 'required|exists:timings,id',
+        ]);
+
+        $endTime = now()->format('H:i:s');
+        $stopped = 0;
+        $skipped = 0;
+
+        DB::beginTransaction();
+        try {
+            foreach ($validated['timing_ids'] as $timingId) {
+                $timing = Timing::where('id', $timingId)
+                    ->whereIn('status', ['on progress', 'frozen'])
+                    ->whereNull('end_time')
+                    ->first();
+
+                if (!$timing) {
+                    $skipped++;
+                    continue;
+                }
+
+                $durationMinutes = 0;
+                if ($timing->start_time) {
+                    try {
+                        $today = now()->format('Y-m-d');
+                        $start = \Carbon\Carbon::parse($today . ' ' . $timing->start_time);
+                        $end = \Carbon\Carbon::parse($today . ' ' . $endTime);
+                        $durationMinutes = $start->diffInMinutes($end);
+                    } catch (\Exception $e) {
+                    }
+                }
+
+                $timing->update([
+                    'end_time' => $endTime,
+                    'measurement_type' => 'pcs',
+                    'measurement_value' => 1,
+                    'duration_minutes' => $durationMinutes,
+                    'duration_hours' => round($durationMinutes / 60, 2),
+                    'status' => 'complete',
+                    'approval_status' => 'pending',
+                ]);
+                $stopped++;
+            }
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Bulk stop completed. {$stopped} session(s) stopped" . ($skipped > 0 ? ", {$skipped} skipped (already stopped)." : '.'),
+                'stopped' => $stopped,
+                'skipped' => $skipped,
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => 'Bulk stop failed: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
      * Get active sessions via AJAX (individual sessions, not grouped)
      */
     public function getActiveSessions()
@@ -360,7 +423,7 @@ class AnimatronicsTimingController extends Controller
             );
         }
 
-        $activeSessions = Timing::running()
+        $activeSessions = Timing::whereIn('status', ['on progress', 'frozen'])
             ->today()
             ->withRelations()
             ->whereHas('employee', function ($query) use ($animatronicsDept) {
@@ -373,6 +436,7 @@ class AnimatronicsTimingController extends Controller
             $departmentData = $timing->department_specific_data ?? [];
             $trackingMode = $departmentData['tracking_mode'] ?? 'timer';
             $previousProgress = $departmentData['previous_progress'] ?? 0;
+            $isFrozen = $timing->isFrozen();
 
             return [
                 'id' => $timing->id,
@@ -386,13 +450,14 @@ class AnimatronicsTimingController extends Controller
                 'step' => $timing->step,
                 'parts' => $timing->parts,
                 'start_time' => $timing->start_time,
+                'frozen_at' => $departmentData['frozen_at'] ?? null,
                 'output_qty' => $timing->output_qty,
-                'duration' => $this->calculateDuration($timing->start_time),
+                'duration' => $isFrozen ? $departmentData['frozen_duration'] ?? '00:00:00' : $this->calculateDuration($timing->start_time),
+                'is_frozen' => $isFrozen,
                 'department_data' => [
                     'tracking_mode' => $trackingMode,
                     'previous_progress' => $previousProgress,
                 ],
-                // Also include at root level for backward compatibility
                 'tracking_mode' => $trackingMode,
                 'previous_progress' => $previousProgress,
             ];
@@ -422,6 +487,246 @@ class AnimatronicsTimingController extends Controller
             return sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds);
         } catch (\Exception $e) {
             return '00:00:00';
+        }
+    }
+
+    /**
+     * Pause an active session (save as complete with status 'paused')
+     * so the user can start a new job order without losing the current session.
+     */
+    public function pause(Request $request)
+    {
+        $validated = $request->validate([
+            'timing_id' => 'required|exists:timings,id',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $timing = Timing::where('id', $validated['timing_id'])->where('status', 'on progress')->whereNull('end_time')->first();
+
+            if (!$timing) {
+                DB::rollBack();
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => 'No active work session found to pause.',
+                    ],
+                    422,
+                );
+            }
+
+            $pauseTime = now()->format('H:i:s');
+            $today = now()->format('Y-m-d');
+
+            // Calculate duration so far
+            $durationMinutes = 0;
+            if ($timing->start_time) {
+                $start = \Carbon\Carbon::parse($today . ' ' . $timing->start_time);
+                $end = \Carbon\Carbon::parse($today . ' ' . $pauseTime);
+                $durationMinutes = $start->diffInMinutes($end);
+            }
+
+            $deptSpecificData = $timing->department_specific_data ?? [];
+            $deptSpecificData['paused_at'] = $pauseTime;
+
+            // Map tracking_mode to valid ENUM values for measurement_type
+            $trackingMode = $deptSpecificData['tracking_mode'] ?? 'timer';
+            $measurementType = $trackingMode === 'progress' ? 'percentage' : 'pcs';
+
+            $timing->update([
+                'end_time' => $pauseTime,
+                'duration_minutes' => max(0, $durationMinutes),
+                'duration_hours' => round($durationMinutes / 60, 2),
+                'measurement_value' => 0,
+                'measurement_type' => $measurementType,
+                'status' => 'paused',
+                'approval_status' => 'pending',
+                'department_specific_data' => $deptSpecificData,
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Session paused. You can now start a new job order.',
+                'timing_id' => $timing->id,
+                'paused_at' => $pauseTime,
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Failed to pause session: ' . $e->getMessage(),
+                ],
+                500,
+            );
+        }
+    }
+
+    /**
+     * Freeze an active session (timer stops, card stays in monitor, NOT sent to approval)
+     */
+    public function freeze(Request $request)
+    {
+        $validated = $request->validate([
+            'timing_id' => 'required|exists:timings,id',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $timing = Timing::where('id', $validated['timing_id'])->where('status', 'on progress')->whereNull('end_time')->first();
+
+            if (!$timing) {
+                DB::rollBack();
+                return response()->json(['success' => false, 'message' => 'No active session found to freeze.'], 422);
+            }
+
+            $frozenAt = now()->format('H:i:s');
+            $today = now()->format('Y-m-d');
+            $deptSpecificData = $timing->department_specific_data ?? [];
+
+            // Calculate elapsed duration at freeze time
+            $frozenDuration = '00:00:00';
+            if ($timing->start_time) {
+                $start = \Carbon\Carbon::parse($today . ' ' . $timing->start_time);
+                $end = \Carbon\Carbon::parse($today . ' ' . $frozenAt);
+                $diff = $start->diff($end);
+                $frozenDuration = sprintf('%02d:%02d:%02d', $diff->h, $diff->i, $diff->s);
+            }
+
+            $deptSpecificData['frozen_at'] = $frozenAt;
+            $deptSpecificData['frozen_duration'] = $frozenDuration;
+
+            $timing->update([
+                'status' => 'frozen',
+                'department_specific_data' => $deptSpecificData,
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Session frozen. Timer is paused.',
+                'timing_id' => $timing->id,
+                'frozen_duration' => $frozenDuration,
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => 'Failed to freeze: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Unfreeze a frozen session (timer resumes, start_time is adjusted)
+     */
+    public function unfreeze(Request $request)
+    {
+        $validated = $request->validate([
+            'timing_id' => 'required|exists:timings,id',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $timing = Timing::where('id', $validated['timing_id'])->where('status', 'frozen')->first();
+
+            if (!$timing) {
+                DB::rollBack();
+                return response()->json(['success' => false, 'message' => 'No frozen session found.'], 422);
+            }
+
+            $deptSpecificData = $timing->department_specific_data ?? [];
+            $frozenDuration = $deptSpecificData['frozen_duration'] ?? '00:00:00';
+
+            // Adjust start_time so elapsed = frozenDuration when timer resumes
+            [$h, $m, $s] = array_map('intval', explode(':', $frozenDuration));
+            $frozenSeconds = $h * 3600 + $m * 60 + $s;
+            $newStartTime = now()->subSeconds($frozenSeconds)->format('H:i:s');
+
+            // Clean freeze fields
+            unset($deptSpecificData['frozen_at'], $deptSpecificData['frozen_duration']);
+
+            $timing->update([
+                'status' => 'on progress',
+                'start_time' => $newStartTime,
+                'department_specific_data' => $deptSpecificData,
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Session resumed.',
+                'timing_id' => $timing->id,
+                'new_start_time' => $newStartTime,
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => 'Failed to unfreeze: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Quick-create a Job Order from the timing page.
+     * Creates an InternalProject first, then a JobOrder linked to it.
+     */
+    public function quickStoreJobOrder(Request $request)
+    {
+        $validated = $request->validate([
+            'jo_name' => 'required|string|max:255',
+            'ip_job' => 'required|string|max:255',
+            'ip_type' => 'required|string|in:Office,Machine,Testing,Facilities,Store',
+            'ip_description' => 'nullable|string',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $animatronicsDept = \App\Models\Admin\Department::where('name', 'like', '%animatronics%')->first();
+
+            // 1. Create the InternalProject
+            $internalProject = \App\Models\InternalProject::create([
+                'project' => $validated['ip_type'],
+                'job' => $validated['ip_job'],
+                'description' => $validated['ip_description'] ?? null,
+                'department_id' => $animatronicsDept?->id,
+                'department' => $animatronicsDept?->name ?? 'Animatronics',
+                'pic' => auth()->id(),
+                'update_by' => auth()->id(),
+            ]);
+
+            // 2. Create the JobOrder with a default/placeholder project
+            $defaultProject = \App\Models\Production\Project::orderBy('id')->first();
+
+            $jobOrder = \App\Models\Production\JobOrder::create([
+                'name' => $validated['jo_name'],
+                'project_id' => $defaultProject?->id,
+                'department_id' => $animatronicsDept?->id,
+                'description' => 'IP: ' . $internalProject->id . ' - ' . $validated['ip_job'],
+                'source_by' => auth()->id(),
+            ]);
+
+            $jobOrder->load('project');
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Internal Project & Job Order created: ' . $jobOrder->name,
+                'job_order' => [
+                    'id' => $jobOrder->id,
+                    'name' => $jobOrder->name,
+                    'project_name' => $validated['ip_job'] . ' [' . $validated['ip_type'] . ']',
+                    'project_id' => $jobOrder->project_id,
+                    'ip_id' => $internalProject->id,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => 'Failed to create: ' . $e->getMessage()], 500);
         }
     }
 }

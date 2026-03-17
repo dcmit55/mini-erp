@@ -55,9 +55,23 @@
                                     <span class="badge bg-primary me-2">1</span>Select Employees (Multiple)
                                 </label>
 
+                                <!-- Employee Search -->
+                                <div class="mb-2">
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                        <input type="text" id="employee-search" class="form-control form-control-sm"
+                                            placeholder="Search by name, position, or department...">
+                                        <button type="button" id="select-all-btn" class="btn btn-outline-primary btn-sm">
+                                            <i class="bi bi-check-all"></i> All Visible
+                                        </button>
+                                        <button type="button" id="deselect-all-btn"
+                                            class="btn btn-outline-secondary btn-sm">
+                                            <i class="bi bi-x-lg"></i> Clear
+                                        </button>
+                                    </div>
+                                </div>
 
-
-                                <div class="row g-3" id="employee-cards">
+                                <div class="row g-3" id="employee-cards" style="max-height: 280px; overflow-y: auto;">
                                     @forelse($employees as $employee)
                                         <div class="col-md-4 col-sm-6 employee-card-wrapper"
                                             data-department-id="{{ $employee->department_id }}"
@@ -301,6 +315,28 @@
                 width: '100%'
             });
 
+            // Employee text search
+            $('#employee-search').on('input', function() {
+                filterEmployees();
+            });
+
+            // Select all visible
+            $('#select-all-btn').on('click', function() {
+                $('.employee-card-wrapper:visible').each(function() {
+                    const cb = $(this).find('.employee-checkbox');
+                    if (!cb.prop('checked')) {
+                        cb.prop('checked', true).trigger('change');
+                    }
+                });
+            });
+
+            // Deselect all
+            $('#deselect-all-btn').on('click', function() {
+                $('.employee-checkbox:checked').each(function() {
+                    $(this).prop('checked', false).trigger('change');
+                });
+            });
+
             // Initialize Select2 for filters
             $('#filter-department, #filter-position').select2({
                 theme: 'bootstrap-5',
@@ -332,11 +368,17 @@
             function filterEmployees() {
                 const deptFilter = $('#filter-department').val();
                 const posFilter = $('#filter-position').val();
+                const searchTerm = ($('#employee-search').val() || '').toLowerCase().trim();
                 let visibleCount = 0;
 
                 $('.employee-card-wrapper').each(function() {
                     const deptId = $(this).data('department-id');
                     const position = $(this).data('position');
+                    const empName = ($(this).find('h6').text() || '').toLowerCase();
+                    const empPos = ($(this).find('.employee-card small').first().text() || '')
+                .toLowerCase();
+                    const empDept = ($(this).find('.employee-card small').last().text() || '')
+                .toLowerCase();
 
                     let showCard = true;
 
@@ -345,6 +387,11 @@
                     }
 
                     if (posFilter && position != posFilter) {
+                        showCard = false;
+                    }
+
+                    if (searchTerm && !empName.includes(searchTerm) && !empPos.includes(searchTerm) && !
+                        empDept.includes(searchTerm)) {
                         showCard = false;
                     }
 

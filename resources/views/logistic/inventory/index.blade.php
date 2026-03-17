@@ -268,10 +268,7 @@
                                 <th>Name</th>
                                 <th>Project List</th>
                                 <th>Category</th>
-                                <th>Quantity</th>
-                                @if (in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance', 'admin', 'admin_procurement']))
-                                    <th>Unit Price</th>
-                                @endif
+                                <th>Stock</th>
                                 <th>Supplier</th>
                                 <th>Location</th>
                                 <th>Source</th>
@@ -403,28 +400,14 @@
                     {
                         data: 'category',
                         name: 'category.name',
+                    }, {
+                        data: 'stock',
+                        name: 'stock',
+                        orderable: true,
+                        searchable: false,
                         width: '8%'
                     },
                     {
-                        data: 'quantity',
-                        name: 'quantity',
-                        width: '10%',
-                    },
-                    @if (in_array(auth()->user()->role, [
-                            'super_admin',
-                            'admin_logistic',
-                            'admin_finance',
-                            'admin',
-                            'admin_procurement',
-                            'admin',
-                        ]))
-                        {
-                            data: 'price',
-                            name: 'price',
-                            width: '10%',
-                            orderable: true
-                        },
-                    @endif {
                         data: 'supplier',
                         name: 'supplier.name',
                         width: '15%'

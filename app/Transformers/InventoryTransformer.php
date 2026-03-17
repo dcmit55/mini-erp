@@ -42,6 +42,9 @@ class InventoryTransformer
             'price' => $this->normalizePrice($dto->totalCostRmbRaw),
             'currency_id' => 6, // RMB currency ID (fixed as per requirement)
             'supplier_lark' => $this->normalizeSupplierLark($dto->supplierLarkRaw),
+            'order_date' => $dto->orderDateRaw ? trim($dto->orderDateRaw) : null,
+            'pic' => $dto->picRaw ? substr(trim($dto->picRaw), 0, 255) : null,
+            'international_waybill' => $dto->internationalWaybillRaw ? substr(trim($dto->internationalWaybillRaw), 0, 255) : null,
             'img' => $this->normalizeImageUrl($dto->itemPhotoRaw),
             'last_sync_at' => now(),
         ];

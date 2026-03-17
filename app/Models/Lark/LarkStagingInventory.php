@@ -20,14 +20,17 @@ class LarkStagingInventory extends Model
 {
     protected $table = 'lark_staging_inventories';
 
-    protected $fillable = ['lark_record_id', 'name', 'project_lark', 'quantity', 'unit', 'price', 'currency_id', 'supplier_lark', 'img', 'destination', 'status', 'dept_imported', 'source_record_ids', 'source_record_count', 'review_status', 'review_note', 'reviewed_by', 'reviewed_at', 'last_sync_at'];
+    protected $fillable = ['lark_record_id', 'material_code', 'name', 'project_lark', 'quantity', 'received_qty', 'unit', 'price', 'currency_id', 'supplier_lark', 'order_date', 'pic', 'international_waybill', 'img', 'destination', 'status', 'dept_imported', 'source_record_ids', 'source_record_count', 'review_status', 'review_note', 'reviewed_by', 'reviewed_at', 'processed', 'locked', 'last_sync_at'];
 
     protected $casts = [
         'quantity' => 'decimal:2',
+        'received_qty' => 'decimal:2',
         'price' => 'decimal:2',
         'source_record_count' => 'integer',
         'reviewed_at' => 'datetime',
         'last_sync_at' => 'datetime',
+        'processed' => 'boolean',
+        'locked' => 'boolean',
     ];
 
     /**

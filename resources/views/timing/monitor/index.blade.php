@@ -117,18 +117,18 @@
                     <div class="card-body">
                         <div class="row g-2">
                             @foreach ($sessions as $session)
-                                <div class="col-md-6 col-lg-4 col-xl-3">
+                                <div class="col-md-4 col-lg-3 col-xl-2">
                                     <div class="card border session-card shadow-sm" id="session-{{ $session->id }}">
-                                        <div class="card-body p-3">
+                                        <div class="card-body p-2">
                                             <!-- Header: Photo, Name, Status -->
-                                            <div class="d-flex align-items-center mb-3">
+                                            <div class="d-flex align-items-center mb-2">
                                                 @if ($session->employee->photo)
                                                     <img src="{{ asset('storage/' . $session->employee->photo) }}"
-                                                        class="rounded-circle me-3" width="50" height="50"
+                                                        class="rounded-circle me-2" width="36" height="36"
                                                         style="object-fit: cover;">
                                                 @else
                                                     <div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center me-3"
-                                                        style="width: 50px; height: 50px;">
+                                                        style="width: 36px; height: 36px;">
                                                         <i class="bi bi-person text-white fs-5"></i>
                                                     </div>
                                                 @endif
@@ -142,9 +142,9 @@
                                             </div>
 
                                             <!-- Duration - Large centered -->
-                                            <div class="text-center mb-3 py-2" style="border-bottom: 1px solid #dee2e6;">
+                                            <div class="text-center mb-2 py-1" style="border-bottom: 1px solid #dee2e6;">
                                                 <span class="duration-display fw-bold text-success d-block"
-                                                    style="font-size: 2rem; font-family: 'Courier New', monospace; letter-spacing: 2px;"
+                                                    style="font-size: 1.2rem; font-family: 'Courier New', monospace; letter-spacing: 2px;"
                                                     data-start-time="{{ $session->start_time }}">
                                                     {{ $session->duration }}
                                                 </span>
@@ -152,24 +152,24 @@
 
                                             <!-- Job Info - With proper spacing -->
                                             <div class="job-info">
-                                                <div class="mb-2">
+                                                <div class="mb-1">
                                                     <div class="d-flex">
-                                                        <strong class="me-2" style="min-width: 80px;">Job Order :</strong>
+                                                        <strong class="me-2" style="min-width: 60px;">Job Order :</strong>
                                                         <div class="text-truncate flex-grow-1"
                                                             title="{{ $session->jobOrder->name ?? 'N/A' }}">
                                                             {{ $session->jobOrder->name ?? 'N/A' }}</div>
                                                     </div>
                                                 </div>
-                                                <div class="mb-2">
+                                                <div class="mb-1">
                                                     <div class="d-flex">
-                                                        <strong class="me-2" style="min-width: 80px;">Step :</strong>
+                                                        <strong class="me-2" style="min-width: 60px;">Step :</strong>
                                                         <div class="text-truncate flex-grow-1"
                                                             title="{{ $session->step }}">{{ $session->step }}</div>
                                                     </div>
                                                 </div>
-                                                <div class="mb-2">
+                                                <div class="mb-1">
                                                     <div class="d-flex">
-                                                        <strong class="me-2" style="min-width: 80px;">Project:</strong>
+                                                        <strong class="me-2" style="min-width: 60px;">Project:</strong>
                                                         <div class="text-truncate flex-grow-1"
                                                             title="{{ $session->jobOrder->project->name ?? 'N/A' }}">
                                                             {{ $session->jobOrder->project->name ?? 'N/A' }}</div>
@@ -177,7 +177,7 @@
                                                 </div>
                                                 <div class="mb-3">
                                                     <div class="d-flex">
-                                                        <strong class="me-2" style="min-width: 80px;">Part:</strong>
+                                                        <strong class="me-2" style="min-width: 60px;">Part:</strong>
                                                         <div class="text-truncate flex-grow-1"
                                                             title="{{ $session->parts }}">{{ $session->parts }}</div>
                                                     </div>
@@ -293,7 +293,7 @@
 
         /* Job info styling */
         .job-info {
-            font-size: 0.9rem;
+            font-size: 0.8rem;
             line-height: 1.6;
         }
 
@@ -457,13 +457,13 @@
 
                     emps.forEach(emp => {
                         const photoHtml = emp.photo ?
-                            `<img src="/storage/${emp.photo}" class="rounded-circle" width="50" height="50" style="object-fit: cover;">` :
-                            `<div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center" style="width: 50px; height: 50px;"><i class="bi bi-person text-white fs-4"></i></div>`;
+                            `<img src="/storage/${emp.photo}" class="rounded-circle" width="36" height="36" style="object-fit: cover;">` :
+                            `<div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center" style="width: 36px; height: 36px;"><i class="bi bi-person text-white fs-4"></i></div>`;
 
                         html += `
-                            <div class="col-md-6 col-lg-4">
+                            <div class="col-md-4 col-lg-3 col-xl-2">
                                 <div class="card border-0 shadow-sm h-100">
-                                    <div class="card-body p-3">
+                                    <div class="card-body p-2">
                                         <div class="d-flex align-items-center">
                                             ${photoHtml}
                                             <div class="ms-3 flex-grow-1">

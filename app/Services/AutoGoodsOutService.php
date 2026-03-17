@@ -127,8 +127,7 @@ class AutoGoodsOutService
                 ]);
 
                 // Reduce inventory stock
-                $inventory->quantity -= $remainingQty;
-                $inventory->save();
+                $inventory->consumeStock($remainingQty);
 
                 // Update material request status and processed quantity
                 Log::info('AutoGoodsOut: Before updating MaterialRequest', [

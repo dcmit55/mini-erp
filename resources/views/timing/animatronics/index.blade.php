@@ -100,7 +100,7 @@
                                 </label>
 
                                 <!-- Filter by Position -->
-                                <div class="row g-2 mb-3">
+                                <div class="row g-2 mb-2">
                                     <div class="col-md-10">
                                         <select class="form-select form-select-sm" id="filter-position"
                                             data-placeholder="All Positions">
@@ -118,7 +118,23 @@
                                     </div>
                                 </div>
 
-                                <div class="row g-3" id="employee-cards">
+                                <!-- Employee Name Search -->
+                                <div class="mb-2">
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                        <input type="text" id="employee-search" class="form-control form-control-sm"
+                                            placeholder="Search by name or position...">
+                                        <button type="button" id="select-all-btn" class="btn btn-outline-danger btn-sm">
+                                            <i class="bi bi-check-all"></i> All Visible
+                                        </button>
+                                        <button type="button" id="deselect-all-btn"
+                                            class="btn btn-outline-secondary btn-sm">
+                                            <i class="bi bi-x-lg"></i> Clear
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="row g-3" id="employee-cards" style="max-height: 280px; overflow-y: auto;">
                                     @forelse($employees as $employee)
                                         <div class="col-md-4 col-sm-6 employee-card-wrapper"
                                             data-position="{{ $employee->position }}">
@@ -133,8 +149,8 @@
                                                     </div>
                                                     @if ($employee->photo)
                                                         <img src="{{ asset('storage/' . $employee->photo) }}"
-                                                            class="rounded-circle mb-2 border" width="50" height="50"
-                                                            style="object-fit: cover;">
+                                                            class="rounded-circle mb-2 border" width="50"
+                                                            height="50" style="object-fit: cover;">
                                                     @else
                                                         <div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center mb-2"
                                                             style="width: 50px; height: 50px;">
@@ -168,16 +184,30 @@
                                 <label class="form-label fw-bold">
                                     <span class="badge bg-danger me-2">3</span>Select Job Order
                                 </label>
-                                <select class="form-select select2" id="job-order-select" name="job_order_id" required>
-                                    <option value="">Choose Animatronics Job Order...</option>
-                                    @foreach ($jobOrders as $jo)
-                                        <option value="{{ $jo->id }}" data-project-id="{{ $jo->project_id }}"
-                                            data-project-name="{{ $jo->project->name ?? 'N/A' }}"
-                                            data-job-order-name="{{ $jo->name }}">
-                                            {{ $jo->name }} ({{ $jo->project->name ?? 'N/A' }})
-                                        </option>
-                                    @endforeach
-                                </select>
+                                <div class="d-flex gap-1">
+                                    <select class="form-select select2" id="job-order-select" name="job_order_id"
+                                        required>
+                                        <option value="">Choose Animatronics Job Order...</option>
+                                        @foreach ($jobOrders as $jo)
+                                            @php
+                                                $joDesc = $jo->description ?? '';
+                                                $displayProject = str_starts_with($joDesc, 'IP:')
+                                                    ? (trim(explode(' - ', $joDesc, 2)[1] ?? '') ?:
+                                                    $jo->project->name ?? 'N/A')
+                                                    : $jo->project->name ?? 'N/A';
+                                            @endphp
+                                            <option value="{{ $jo->id }}" data-project-id="{{ $jo->project_id }}"
+                                                data-project-name="{{ $displayProject }}"
+                                                data-job-order-name="{{ $jo->name }}">
+                                                {{ $jo->name }} ({{ $displayProject }})
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <button type="button" class="btn btn-outline-danger btn-sm text-nowrap"
+                                        id="quick-add-jo-btn" title="Quick Add Job Order">
+                                        <i class="bi bi-plus-circle me-1"></i>Quick Add
+                                    </button>
+                                </div>
 
                                 <!-- Auto-filled Project Info -->
                                 <div id="project-info" class="mt-3 p-3 bg-light rounded d-none">
@@ -253,6 +283,54 @@
                         ])
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Add Job Order Modal -->
+    <div class="modal fade" id="quickAddJoModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Quick Add Job Order</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="quick-add-jo-form">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Job Order Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="qa-jo-name"
+                                placeholder="e.g., Robot Dragon - Build Phase 1" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Internal Project Job <span
+                                    class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="qa-ip-job"
+                                placeholder="e.g., Body painting - Dragon" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Project Type <span class="text-danger">*</span></label>
+                            <select class="form-select" id="qa-ip-type" required>
+                                <option value="">Select Type...</option>
+                                <option value="Office">Office</option>
+                                <option value="Machine">Machine</option>
+                                <option value="Testing">Testing</option>
+                                <option value="Facilities">Facilities</option>
+                                <option value="Store">Store</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea class="form-control" id="qa-ip-description" rows="2" placeholder="Optional description..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger" id="qa-jo-submit">
+                            <i class="bi bi-plus-circle me-1"></i>Create Job Order
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -458,6 +536,26 @@
                 }
             });
 
+            // Employee text search
+            $('#employee-search').on('input', function() {
+                filterEmployees();
+            });
+
+            // Select all visible
+            $('#select-all-btn').on('click', function() {
+                $('.employee-card-wrapper:visible').each(function() {
+                    const cb = $(this).find('.employee-checkbox');
+                    if (!cb.prop('checked')) cb.prop('checked', true).trigger('change');
+                });
+            });
+
+            // Deselect all
+            $('#deselect-all-btn').on('click', function() {
+                $('.employee-checkbox:checked').each(function() {
+                    $(this).prop('checked', false).trigger('change');
+                });
+            });
+
             // Filter employees by position
             $('#filter-position').on('change', function() {
                 filterEmployees();
@@ -466,20 +564,27 @@
             // Reset filters
             $('#reset-filters').on('click', function() {
                 $('#filter-position').val('').trigger('change');
+                $('#employee-search').val('');
                 filterEmployees();
             });
 
             // Filter function
             function filterEmployees() {
                 const posFilter = $('#filter-position').val();
+                const searchTerm = ($('#employee-search').val() || '').toLowerCase().trim();
                 let visibleCount = 0;
 
                 $('.employee-card-wrapper').each(function() {
                     const position = $(this).data('position');
+                    const empName = ($(this).find('h6').text() || '').toLowerCase();
+                    const empPos = ($(this).find('small').first().text() || '').toLowerCase();
 
                     let showCard = true;
 
                     if (posFilter && position != posFilter) {
+                        showCard = false;
+                    }
+                    if (searchTerm && !empName.includes(searchTerm) && !empPos.includes(searchTerm)) {
                         showCard = false;
                     }
 
@@ -532,77 +637,6 @@
             function updateSelectedCount() {
                 const count = selectedEmployees.length;
                 $('#selected-count').text(count + ' employee(s) selected');
-            }
-
-            // Initialize Select2 for filters
-            $('#filter-position').select2({
-                theme: 'bootstrap-5',
-                allowClear: true,
-                width: '100%',
-                placeholder: 'All Positions'
-            });
-
-            // Initialize Select2 for step and parts
-            $('#step-select, #parts-select').select2({
-                theme: 'bootstrap-5',
-                width: '100%',
-                allowClear: true
-            });
-
-            // Tracking mode selection
-            $('input[name="tracking_mode"]').on('change', function() {
-                trackingMode = $(this).val();
-                updateModeUI();
-            });
-
-            function updateModeUI() {
-                if (trackingMode === 'progress') {
-                    $('#btn-info').text('(Progress tracking mode selected)');
-                } else {
-                    $('#btn-info').text('(Timer mode selected)');
-                }
-            }
-
-            // Filter employees by position
-            $('#filter-position').on('change', function() {
-                filterEmployees();
-            });
-
-            // Reset filters
-            $('#reset-filters').on('click', function() {
-                $('#filter-position').val('').trigger('change');
-                filterEmployees();
-            });
-
-            // Filter function
-            function filterEmployees() {
-                const posFilter = $('#filter-position').val();
-                let visibleCount = 0;
-
-                $('.employee-card-wrapper').each(function() {
-                    const position = $(this).data('position');
-                    let showCard = true;
-
-                    if (posFilter && position != posFilter) {
-                        showCard = false;
-                    }
-
-                    if (showCard) {
-                        $(this).show();
-                        visibleCount++;
-                    } else {
-                        $(this).hide();
-                        // Uncheck if hidden
-                        $(this).find('.employee-checkbox').prop('checked', false).trigger('change');
-                    }
-                });
-
-                // Update filtered count
-                if (posFilter) {
-                    $('#filtered-count').html(`<span class="badge bg-info">${visibleCount} shown</span>`);
-                } else {
-                    $('#filtered-count').html('');
-                }
             }
 
             // Job order selection handler
@@ -973,6 +1007,183 @@
                 });
             });
 
+            // ---- QUICK ADD JOB ORDER ----
+            $('#quick-add-jo-btn').on('click', function() {
+                $('#qa-jo-name').val('');
+                $('#qa-ip-job').val('');
+                $('#qa-ip-type').val('');
+                $('#qa-ip-description').val('');
+                $('#quickAddJoModal').modal('show');
+            });
+
+            $('#quick-add-jo-form').on('submit', function(e) {
+                e.preventDefault();
+                const joName = $('#qa-jo-name').val().trim();
+                const ipJob = $('#qa-ip-job').val().trim();
+                const ipType = $('#qa-ip-type').val();
+                if (!joName || !ipJob || !ipType) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Required Fields',
+                        text: 'Please fill in Job Order Name, IP Job, and Project Type.'
+                    });
+                    return;
+                }
+                const btn = $('#qa-jo-submit');
+                btn.prop('disabled', true).html(
+                    '<i class="spinner-border spinner-border-sm me-1"></i>Creating...');
+                $.ajax({
+                    url: '{{ route('animatronics-timing.quick-job-order') }}',
+                    method: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        jo_name: joName,
+                        ip_job: ipJob,
+                        ip_type: ipType,
+                        ip_description: $('#qa-ip-description').val()
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            $('#quickAddJoModal').modal('hide');
+                            const jo = response.job_order;
+                            const newOption = new Option(jo.name + ' (' + jo.project_name + ')',
+                                jo.id, true, true);
+                            $(newOption).attr('data-project-id', jo.project_id)
+                                .attr('data-project-name', jo.project_name)
+                                .attr('data-job-order-name', jo.name);
+                            $('#job-order-select').append(newOption).trigger('change');
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Created!',
+                                text: response.message,
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: response.message || 'Failed to create.'
+                            });
+                        }
+                    },
+                    error: function(xhr) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: (xhr.responseJSON && xhr.responseJSON.message) ? xhr
+                                .responseJSON.message : 'Failed to create job order.'
+                        });
+                    },
+                    complete: function() {
+                        btn.prop('disabled', false).html(
+                            '<i class="bi bi-plus-circle me-1"></i>Create Job Order');
+                    }
+                });
+            });
+
+            // ---- PAUSE / CONTINUE (freeze / unfreeze) ----
+            $(document).on('click', '.freeze-work-btn', function() {
+                const timingId = $(this).data('timing-id');
+                const empName = $(this).data('employee-name');
+                const joName = $(this).data('job-order');
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Pause Session?',
+                    html: `Timer for <strong>${empName}</strong> (${joName}) will be paused. The card stays visible in the monitor.`,
+                    showCancelButton: true,
+                    confirmButtonColor: '#0dcaf0',
+                    confirmButtonText: '<i class="bi bi-pause-circle"></i> Pause',
+                    cancelButtonText: 'Cancel'
+                }).then(result => {
+                    if (!result.isConfirmed) return;
+                    $.ajax({
+                        url: '{{ route('animatronics-timing.freeze') }}',
+                        method: 'POST',
+                        data: {
+                            _token: '{{ csrf_token() }}',
+                            timing_id: timingId
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                loadActiveSessions();
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Paused!',
+                                    text: response.message,
+                                    timer: 1800,
+                                    showConfirmButton: false
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: response.message
+                                });
+                            }
+                        },
+                        error: function(xhr) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: xhr.responseJSON?.message ||
+                                    'Failed to pause.'
+                            });
+                        }
+                    });
+                });
+            });
+
+            $(document).on('click', '.unfreeze-work-btn', function() {
+                const timingId = $(this).data('timing-id');
+                const empName = $(this).data('employee-name');
+                Swal.fire({
+                    icon: 'question',
+                    title: 'Continue Session?',
+                    html: `Timer for <strong>${empName}</strong> will continue from where it was paused.`,
+                    showCancelButton: true,
+                    confirmButtonColor: '#198754',
+                    confirmButtonText: '<i class="bi bi-play-circle"></i> Continue',
+                    cancelButtonText: 'Cancel'
+                }).then(result => {
+                    if (!result.isConfirmed) return;
+                    $.ajax({
+                        url: '{{ route('animatronics-timing.unfreeze') }}',
+                        method: 'POST',
+                        data: {
+                            _token: '{{ csrf_token() }}',
+                            timing_id: timingId
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                loadActiveSessions();
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Continued!',
+                                    text: response.message,
+                                    timer: 1800,
+                                    showConfirmButton: false
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: response.message
+                                });
+                            }
+                        },
+                        error: function(xhr) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: xhr.responseJSON?.message ||
+                                    'Failed to continue.'
+                            });
+                        }
+                    });
+                });
+            });
+
             // Load active sessions
             function loadActiveSessions() {
                 $.ajax({
@@ -1004,40 +1215,56 @@
                 // Render INDIVIDUAL session cards (NOT grouped)
                 let html = '';
                 sessions.forEach(session => {
+                    const isFrozen = session.is_frozen || false;
                     const photoHtml = session.employee_photo ?
                         `<img src="/storage/${session.employee_photo}" class="rounded-circle me-2" width="40" height="40" style="object-fit: cover;">` :
-                        `<div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
-                             <i class="bi bi-person text-white"></i>
-                           </div>`;
+                        `<div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center me-2" style="width:40px;height:40px;"><i class="bi bi-person text-white"></i></div>`;
 
                     const trackingMode = session.tracking_mode || 'timer';
                     const previousProgress = session.previous_progress || 0;
-
+                    const statusBadge = isFrozen ?
+                        '<span class="badge bg-warning text-dark me-1"><i class="bi bi-pause-circle"></i> PAUSED</span>' :
+                        '<span class="badge bg-success me-1">RUNNING</span>';
                     const modeBadge = trackingMode === 'progress' ?
                         '<span class="badge bg-warning text-dark ms-1">PROGRESS</span>' :
-                        '<span class="badge bg-info ms-1">TIMER</span>';
+                        '<span class="badge bg-secondary ms-1">TIMER</span>';
+                    const durationDisplay = isFrozen ?
+                        `<span class="duration-display fs-5 fw-bold text-warning" data-frozen="true" data-session-id="${session.id}">${session.duration || '00:00:00'}</span>` :
+                        `<span class="duration-display fs-5 fw-bold text-success" data-start-time="${session.start_time}" data-session-id="${session.id}">${session.duration || '00:00:00'}</span>`;
+                    const cardBorder = isFrozen ? 'border-warning border-2' : '';
+                    const actionButtons = isFrozen ?
+                        `<button class="btn btn-success btn-sm unfreeze-work-btn flex-grow-1"
+                                   data-timing-id="${session.id}"
+                                   data-employee-name="${session.employee_name || 'Unknown'}">
+                               <i class="bi bi-play-circle me-1"></i>Continue
+                           </button>` :
+                        `<button class="btn btn-warning btn-sm freeze-work-btn flex-shrink-0"
+                                   data-timing-id="${session.id}"
+                                   data-employee-name="${session.employee_name || 'Unknown'}"
+                                   data-job-order="${session.job_order_name || 'Unknown'}">
+                               <i class="bi bi-pause-circle me-1"></i>Pause
+                           </button>
+                           <button class="btn btn-danger btn-sm stop-work-btn flex-grow-1"
+                                   data-timing-id="${session.id}"
+                                   data-employee-name="${session.employee_name || 'Unknown'}"
+                                   data-job-order="${session.job_order_name || 'Unknown'}"
+                                   data-tracking-mode="${trackingMode}"
+                                   data-previous-progress="${previousProgress}">
+                               <i class="bi bi-stop-circle me-1"></i>Stop
+                           </button>`;
 
                     html += `
-                        <div class="card session-card mb-3" id="session-card-${session.id}" data-session-id="${session.id}">
+                        <div class="card session-card mb-3 ${cardBorder}" id="session-card-${session.id}" data-session-id="${session.id}">
                             <div class="card-body p-3">
                                 <div class="d-flex align-items-center mb-2">
                                     ${photoHtml}
                                     <div class="flex-grow-1">
                                         <h6 class="mb-0">
-                                            <span class="badge bg-success me-1">RUNNING</span>
-                                            ${session.employee_name || 'Unknown'}
-                                            ${modeBadge}
+                                            ${statusBadge}${session.employee_name || 'Unknown'}${modeBadge}
                                         </h6>
                                         <small class="text-muted">${session.employee_position || 'N/A'}</small>
-                                        <div class="mt-1">
-                                            <span class="badge bg-danger"><i class="bi bi-calendar-x"></i> Deadline: 30 Mar 2026</span>
-                                        </div>
                                     </div>
-                                    <span class="duration-display fs-5 fw-bold text-success"
-                                          data-start-time="${session.start_time}"
-                                          data-session-id="${session.id}">
-                                        ${session.duration || '00:00:00'}
-                                    </span>
+                                    ${durationDisplay}
                                 </div>
                                 <div class="border-top pt-2 mb-2">
                                     <div class="row g-2 small">
@@ -1045,33 +1272,16 @@
                                             <strong>Job Order:</strong> ${session.job_order_name || 'N/A'}<br>
                                             <strong>Project:</strong> ${session.project_name || 'N/A'}
                                         </div>
-                                        <div class="col-6">
-                                            <strong>Step:</strong> ${session.step || 'N/A'}
-                                        </div>
-                                        <div class="col-6">
-                                            <strong>Part:</strong> ${session.parts || 'N/A'}
-                                        </div>
-                                        ${trackingMode === 'progress' ? `
-                                                                <div class="col-12">
-                                                                    <strong>Previous Progress:</strong> ${previousProgress}%
-                                                                </div>
-                                                                ` : ''}
+                                        <div class="col-6"><strong>Step:</strong> ${session.step || 'N/A'}</div>
+                                        <div class="col-6"><strong>Part:</strong> ${session.parts || 'N/A'}</div>
+                                        ${trackingMode === 'progress' ? `<div class="col-12"><strong>Previous Progress:</strong> ${previousProgress}%</div>` : ''}
                                         <div class="col-12">
-                                            <small class="text-muted">
-                                                <i class="bi bi-clock"></i> Started: ${session.start_time}
-                                            </small>
+                                            <small class="text-muted"><i class="bi bi-clock"></i> Started: ${session.start_time}</small>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="d-grid">
-                                    <button class="btn btn-danger btn-sm stop-work-btn"
-                                            data-timing-id="${session.id}"
-                                            data-employee-name="${session.employee_name || 'Unknown'}"
-                                            data-job-order="${session.job_order_name || 'Unknown'}"
-                                            data-tracking-mode="${trackingMode}"
-                                            data-previous-progress="${previousProgress}">
-                                        <i class="bi bi-stop-circle me-1"></i>STOP WORK & ENTER ${trackingMode === 'progress' ? 'PROGRESS' : 'QTY'}
-                                    </button>
+                                <div class="d-flex gap-1 mt-1">
+                                    ${actionButtons}
                                 </div>
                             </div>
                         </div>
@@ -1084,38 +1294,57 @@
 
             // Add individual session card (Real-time display for Animatronics)
             function addSessionCard(timing) {
+                const isFrozen = timing.is_frozen || false;
                 const photoHtml = timing.employee_photo ?
                     `<img src="/storage/${timing.employee_photo}" class="rounded-circle me-2" width="40" height="40" style="object-fit: cover;">` :
-                    `<div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
-                         <i class="bi bi-person text-white"></i>
-                       </div>`;
+                    `<div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center me-2" style="width:40px;height:40px;"><i class="bi bi-person text-white"></i></div>`;
 
                 const departmentData = timing.department_data || {};
                 const trackingMode = departmentData.tracking_mode || 'timer';
                 const previousProgress = departmentData.previous_progress || 0;
-
+                const statusBadge = isFrozen ?
+                    '<span class="badge bg-warning text-dark me-1"><i class="bi bi-pause-circle"></i> PAUSED</span>' :
+                    '<span class="badge bg-success me-1">RUNNING</span>';
                 const modeBadge = trackingMode === 'progress' ?
                     '<span class="badge bg-warning text-dark ms-1">PROGRESS MODE</span>' :
                     '<span class="badge bg-info ms-1">TIMER MODE</span>';
+                const durationDisplay = isFrozen ?
+                    `<span class="duration-display fs-5 fw-bold text-warning" data-frozen="true" data-session-id="${timing.id}">${timing.duration || '00:00:00'}</span>` :
+                    `<span class="duration-display fs-5 fw-bold text-success" data-start-time="${timing.start_time}" data-session-id="${timing.id}">00:00:00</span>`;
+                const cardBorder = isFrozen ? 'border-warning border-2' : '';
+                const actionButtons = isFrozen ?
+                    `<button class="btn btn-success btn-sm unfreeze-work-btn flex-grow-1"
+                               data-timing-id="${timing.id}"
+                               data-employee-name="${timing.employee_name || 'Unknown'}">
+                           <i class="bi bi-play-circle me-1"></i>Continue
+                       </button>` :
+                    `<button class="btn btn-warning btn-sm freeze-work-btn flex-shrink-0"
+                               data-timing-id="${timing.id}"
+                               data-employee-name="${timing.employee_name || 'Unknown'}"
+                               data-job-order="${timing.job_order_name || 'Unknown'}">
+                           <i class="bi bi-pause-circle me-1"></i>Pause
+                       </button>
+                       <button class="btn btn-danger btn-sm stop-work-btn flex-grow-1"
+                               data-timing-id="${timing.id}"
+                               data-employee-name="${timing.employee_name || 'Unknown'}"
+                               data-job-order="${timing.job_order_name || 'Unknown'}"
+                               data-tracking-mode="${trackingMode}"
+                               data-previous-progress="${previousProgress}">
+                           <i class="bi bi-stop-circle me-1"></i>Stop
+                       </button>`;
 
                 const cardHtml = `
-                    <div class="card session-card mb-3" id="session-card-${timing.id}" data-session-id="${timing.id}">
+                    <div class="card session-card mb-3 ${cardBorder}" id="session-card-${timing.id}" data-session-id="${timing.id}">
                         <div class="card-body p-3">
                             <div class="d-flex align-items-center mb-2">
                                 ${photoHtml}
                                 <div class="flex-grow-1">
                                     <h6 class="mb-0">
-                                        <span class="badge bg-success me-1">RUNNING</span>
-                                        ${timing.employee_name || 'Unknown'}
-                                        ${modeBadge}
+                                        ${statusBadge}${timing.employee_name || 'Unknown'}${modeBadge}
                                     </h6>
                                     <small class="text-muted">${timing.employee_position || 'N/A'}</small>
                                 </div>
-                                <span class="duration-display fs-5 fw-bold text-success"
-                                      data-start-time="${timing.start_time}"
-                                      data-session-id="${timing.id}">
-                                    00:00:00
-                                </span>
+                                ${durationDisplay}
                             </div>
                             <div class="border-top pt-2 mb-2">
                                 <div class="row g-2 small">
@@ -1123,17 +1352,9 @@
                                         <strong>Job Order:</strong> ${timing.job_order_name || 'N/A'}<br>
                                         <strong>Project:</strong> ${timing.project_name || 'N/A'}
                                     </div>
-                                    <div class="col-6">
-                                        <strong>Step:</strong> ${timing.step || 'N/A'}
-                                    </div>
-                                    <div class="col-6">
-                                        <strong>Part:</strong> ${timing.parts || 'N/A'}
-                                    </div>
-                                    ${trackingMode === 'progress' ? `
-                                                            <div class="col-12">
-                                                                <strong>Previous Progress:</strong> ${previousProgress}%
-                                                            </div>
-                                                            ` : ''}
+                                    <div class="col-6"><strong>Step:</strong> ${timing.step || 'N/A'}</div>
+                                    <div class="col-6"><strong>Part:</strong> ${timing.parts || 'N/A'}</div>
+                                    ${trackingMode === 'progress' ? `<div class="col-12"><strong>Previous Progress:</strong> ${previousProgress}%</div>` : ''}
                                     <div class="col-12">
                                         <small class="text-muted d-flex justify-content-between">
                                             <span><i class="bi bi-clock"></i> Started: ${timing.start_time}</span>
@@ -1142,15 +1363,8 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="d-grid">
-                                <button class="btn btn-danger btn-sm stop-work-btn"
-                                        data-timing-id="${timing.id}"
-                                        data-employee-name="${timing.employee_name || 'Unknown'}"
-                                        data-job-order="${timing.job_order_name || 'Unknown'}"
-                                        data-tracking-mode="${trackingMode}"
-                                        data-previous-progress="${previousProgress}">
-                                    <i class="bi bi-stop-circle me-1"></i>STOP WORK & ENTER ${trackingMode === 'progress' ? 'PROGRESS' : 'QTY'}
-                                </button>
+                            <div class="d-flex gap-1 mt-1">
+                                ${actionButtons}
                             </div>
                         </div>
                     </div>
@@ -1170,6 +1384,7 @@
             function startDurationTimers() {
                 setInterval(function() {
                     $('.duration-display').each(function() {
+                        if ($(this).data('frozen')) return; // skip frozen cards
                         const startTime = $(this).data('start-time');
                         if (startTime) {
                             const duration = calculateDuration(startTime);

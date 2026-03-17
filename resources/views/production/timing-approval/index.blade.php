@@ -37,7 +37,7 @@
 
         {{-- Statistics Cards --}}
         <div class="row mb-4">
-            <div class="col-xl-4 col-md-6 mb-3">
+            <div class="col-xl-3 col-md-6 mb-3">
                 <div class="card border-left-warning shadow h-100 py-2">
                     <div class="card-body">
                         <div class="row no-gutters align-items-center">
@@ -54,7 +54,23 @@
                 </div>
             </div>
 
-            <div class="col-xl-4 col-md-6 mb-3">
+            <div class="col-xl-3 col-md-6 mb-3">
+                <div class="card border-left-info shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Paused Sessions</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $stats['paused'] }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="bi bi-pause-circle fa-2x text-info"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6 mb-3">
                 <div class="card border-left-success shadow h-100 py-2">
                     <div class="card-body">
                         <div class="row no-gutters align-items-center">
@@ -70,7 +86,7 @@
                 </div>
             </div>
 
-            <div class="col-xl-4 col-md-6 mb-3">
+            <div class="col-xl-3 col-md-6 mb-3">
                 <div class="card border-left-danger shadow h-100 py-2">
                     <div class="card-body">
                         <div class="row no-gutters align-items-center">
@@ -104,9 +120,11 @@
                             <label for="approval_status">Approval Status</label>
                             <select name="approval_status" id="approval_status" class="form-control">
                                 <option value="">All Status</option>
-                                <option value="pending" selected>Pending</option>
-                                <option value="approved">Approved</option>
-                                <option value="rejected">Rejected</option>
+                                @foreach ($availableStatuses as $s)
+                                    <option value="{{ $s }}" {{ $s === 'pending' ? 'selected' : '' }}>
+                                        {{ ucfirst($s) }}
+                                    </option>
+                                @endforeach
                             </select>
                         </div>
                         <div class="col-md-3">
@@ -303,6 +321,43 @@
                 placeholder: 'Select an option'
             });
 
+            // --- Filter persistence via sessionStorage ---
+            const FILTER_KEY = 'timingApprovalFilters';
+
+            function saveFilters() {
+                const filters = {
+                    approval_status: $('#approval_status').val(),
+                    project_id: $('#project_id').val(),
+                    department_id: $('#department_id').val(),
+                    date_from: $('#date_from').val(),
+                    date_to: $('#date_to').val(),
+                };
+                sessionStorage.setItem(FILTER_KEY, JSON.stringify(filters));
+            }
+
+            function restoreFilters() {
+                const raw = sessionStorage.getItem(FILTER_KEY);
+                if (!raw) return;
+                try {
+                    const filters = JSON.parse(raw);
+                    if (filters.approval_status !== undefined) {
+                        $('#approval_status').val(filters.approval_status);
+                    }
+                    if (filters.project_id) {
+                        $('#project_id').val(filters.project_id).trigger('change');
+                    }
+                    if (filters.department_id) {
+                        $('#department_id').val(filters.department_id).trigger('change');
+                    }
+                    if (filters.date_from) $('#date_from').val(filters.date_from);
+                    if (filters.date_to) $('#date_to').val(filters.date_to);
+                } catch (e) {}
+            }
+
+            // Restore filters before DataTable initialises
+            restoreFilters();
+            // --- End filter persistence ---
+
             // Initialize DataTable
             var table = $('#timingApprovalTable').DataTable({
                 processing: true,
@@ -334,7 +389,7 @@
                         searchable: false
                     },
                     {
-                        data: 'tanggal',
+                        data: 'tanggal_formatted',
                         searchable: true
                     },
                     {
@@ -390,13 +445,15 @@
                 }
             });
 
-            // Auto-filter on change
+            // Auto-filter on change — save to sessionStorage
             $('#approval_status, #project_id, #department_id, #date_from, #date_to').on('change', function() {
+                saveFilters();
                 table.ajax.reload();
             });
 
             // Reset filters button
             $('#btnResetFilters').on('click', function() {
+                sessionStorage.removeItem(FILTER_KEY);
                 $('#filterForm')[0].reset();
                 $('#approval_status').val('pending'); // Set back to default
                 $('.select2').val(null).trigger('change');

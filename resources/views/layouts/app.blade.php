@@ -175,9 +175,15 @@
                                         </a>
                                         <ul class="dropdown-menu" aria-labelledby="logisticsDropdown">
                                             <li>
-                                                <a class="dropdown-item {{ request()->is('inventory*') ? 'active' : '' }}"
+                                                <a class="dropdown-item {{ request()->is('inventory') || (request()->is('inventory/*') && !request()->is('inventory-batch*')) ? 'active' : '' }}"
                                                     href="{{ route('inventory.index') }}">
                                                     <i class="fas fa-boxes me-2"></i>Inventory Listing
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item {{ request()->is('inventory-batch*') ? 'active' : '' }}"
+                                                    href="{{ route('inventory-batch.index') }}">
+                                                    <i class="fas fa-layer-group me-2"></i>Inventory Batches
                                                 </a>
                                             </li>
                                             <li>

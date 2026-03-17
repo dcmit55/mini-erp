@@ -49,7 +49,23 @@
                                     <span class="badge bg-warning text-dark me-2">1</span>Select Employees (Multiple)
                                 </label>
 
-                                <div class="row g-3" id="employee-cards">
+                                <!-- Employee Search -->
+                                <div class="mb-2">
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                        <input type="text" id="employee-search" class="form-control form-control-sm"
+                                            placeholder="Search by name or position...">
+                                        <button type="button" id="select-all-btn" class="btn btn-outline-warning btn-sm">
+                                            <i class="bi bi-check-all"></i> All Visible
+                                        </button>
+                                        <button type="button" id="deselect-all-btn"
+                                            class="btn btn-outline-secondary btn-sm">
+                                            <i class="bi bi-x-lg"></i> Clear
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="row g-3" id="employee-cards" style="max-height: 280px; overflow-y: auto;">
                                     @forelse($employees as $employee)
                                         <div class="col-md-4 col-sm-6 employee-card-wrapper">
                                             <div class="card employee-card h-100 border-2"
@@ -293,6 +309,55 @@
                 width: '100%'
             });
 
+            // Employee text search
+            $('#employee-search').on('input', function() {
+                filterEmployees();
+            });
+
+            // Select all visible employees
+            $('#select-all-btn').on('click', function() {
+                $('.employee-card-wrapper:visible').each(function() {
+                    const cb = $(this).find('.employee-checkbox');
+                    if (!cb.prop('checked')) {
+                        cb.prop('checked', true).trigger('change');
+                    }
+                });
+            });
+
+            // Deselect all
+            $('#deselect-all-btn').on('click', function() {
+                $('.employee-checkbox:checked').each(function() {
+                    $(this).prop('checked', false).trigger('change');
+                });
+            });
+
+            // Filter employees
+            function filterEmployees() {
+                const searchTerm = ($('#employee-search').val() || '').toLowerCase().trim();
+                let visibleCount = 0;
+
+                $('.employee-card-wrapper').each(function() {
+                    const empName = ($(this).find('h6').text() || '').toLowerCase();
+                    const empPos = ($(this).find('small').first().text() || '').toLowerCase();
+
+                    let showCard = true;
+                    if (searchTerm && !empName.includes(searchTerm) && !empPos.includes(searchTerm)) {
+                        showCard = false;
+                    }
+
+                    if (showCard) {
+                        $(this).show();
+                        visibleCount++;
+                    } else {
+                        $(this).hide();
+                        $(this).find('.employee-checkbox').prop('checked', false).trigger('change');
+                    }
+                });
+
+                $('#selected-count').text(selectedEmployees.length + ' employee(s) selected' + (searchTerm ?
+                    ` (${visibleCount} shown)` : ''));
+            }
+
             // Employee card click handler
             $(document).on('click', '.employee-card', function(e) {
                 if (!$(e.target).hasClass('employee-checkbox') && !$(e.target).is('input')) {
@@ -490,19 +555,25 @@
                 const currentStage = Math.floor(previousProgress / 10);
 
                 // Reset and enable/disable stage options based on current progress
+                // Allow re-selecting the last saved stage (currentStage), but not stages before it
                 $('#stop-stage').val('').trigger('change');
                 $('#stop-stage option').each(function() {
                     const optionValue = parseInt($(this).val());
-                    if (optionValue && optionValue <= currentStage) {
-                        // Disable stages that are already completed
+                    if (optionValue && optionValue < currentStage) {
+                        // Disable stages BEFORE the current stage (cannot go backward)
                         $(this).prop('disabled', true);
                         $(this).text($(this).text().replace(' (Completed)', '') + ' (Completed)');
                     } else {
-                        // Enable future stages
+                        // Allow current stage and future stages
                         $(this).prop('disabled', false);
                         $(this).text($(this).text().replace(' (Completed)', ''));
                     }
                 });
+
+                // Pre-select current stage so user can re-save same stage
+                if (currentStage > 0) {
+                    $('#stop-stage').val(currentStage).trigger('change');
+                }
 
                 // Add info message
                 if (currentStage > 0) {
@@ -510,7 +581,7 @@
                         `<div class="alert alert-warning mt-2 mb-0">
                             <i class="bi bi-info-circle me-1"></i>
                             Current progress is at stage ${currentStage} (${previousProgress}%).
-                            You can only select stage ${currentStage + 1} or higher.
+                            You can select stage ${currentStage} (repeat) or higher. Cannot go back.
                         </div>`
                     );
                 }

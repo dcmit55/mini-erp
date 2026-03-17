@@ -181,6 +181,10 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/inventories/quick-add', [InventoryController::class, 'storeQuick'])->name('inventories.store.quick');
     Route::get('/inventories/json', [InventoryController::class, 'json'])->name('inventories.json');
 
+    // Inventory Batches
+    Route::get('/inventory-batch', [\App\Http\Controllers\Logistic\InventoryBatchController::class, 'index'])->name('inventory-batch.index');
+    Route::get('/inventory-batch/by-inventory/{id}', [\App\Http\Controllers\Logistic\InventoryBatchController::class, 'byInventory'])->name('inventory-batch.by-inventory');
+
     // Projects
     Route::get('/projects/export', [ProjectController::class, 'export'])->name('projects.export');
     Route::post('/projects/sync-from-lark', [ProjectController::class, 'syncFromLark'])->name('projects.sync.lark');
@@ -212,6 +216,7 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/inventory/{id}/approve', [App\Http\Controllers\Lark\LarkStagingController::class, 'approveInventory'])->name('inventory.approve');
             Route::post('/inventory/{id}/reject', [App\Http\Controllers\Lark\LarkStagingController::class, 'rejectInventory'])->name('inventory.reject');
             Route::post('/inventory/{id}/reset', [App\Http\Controllers\Lark\LarkStagingController::class, 'resetInventory'])->name('inventory.reset');
+            Route::post('/inventory/{id}/received-qty', [App\Http\Controllers\Lark\LarkStagingController::class, 'updateReceivedQty'])->name('inventory.update-received-qty');
             Route::post('/inventory/bulk-approve', [App\Http\Controllers\Lark\LarkStagingController::class, 'bulkApproveInventory'])->name('inventory.bulk-approve');
         });
 
@@ -402,6 +407,7 @@ Route::middleware(['auth'])->group(function () {
             // Costume Monitor
             Route::get('/monitor', [CostumeMonitorController::class, 'index'])->name('monitor');
             Route::get('/monitor/running', [CostumeMonitorController::class, 'getRunning'])->name('monitor.running');
+            Route::post('/bulk-stop', [CostumeTimingController::class, 'bulkStop'])->name('bulk-stop');
         });
 
     // Animatronics Timing - Animatronics Department Production Timer
@@ -411,10 +417,15 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/', [AnimatronicsTimingController::class, 'index'])->name('index');
             Route::post('/start', [AnimatronicsTimingController::class, 'start'])->name('start');
             Route::post('/stop', [AnimatronicsTimingController::class, 'stop'])->name('stop');
+            Route::post('/pause', [AnimatronicsTimingController::class, 'pause'])->name('pause');
+            Route::post('/freeze', [AnimatronicsTimingController::class, 'freeze'])->name('freeze');
+            Route::post('/unfreeze', [AnimatronicsTimingController::class, 'unfreeze'])->name('unfreeze');
+            Route::post('/quick-job-order', [AnimatronicsTimingController::class, 'quickStoreJobOrder'])->name('quick-job-order');
             Route::get('/active-sessions', [AnimatronicsTimingController::class, 'getActiveSessions'])->name('active-sessions');
             // Animatronics Monitor
             Route::get('/monitor', [AnimatronicsMonitorController::class, 'index'])->name('monitor');
             Route::get('/monitor/running', [AnimatronicsMonitorController::class, 'getRunning'])->name('monitor.running');
+            Route::post('/bulk-stop', [AnimatronicsTimingController::class, 'bulkStop'])->name('bulk-stop');
         });
 
     // Mascot Timing - Mascot Department Production Timer with Stage Progress
@@ -429,6 +440,7 @@ Route::middleware(['auth'])->group(function () {
             // Mascot Monitor
             Route::get('/monitor', [MascotMonitorController::class, 'index'])->name('monitor');
             Route::get('/monitor/running', [MascotMonitorController::class, 'getRunning'])->name('monitor.running');
+            Route::post('/bulk-stop', [MascotTimingController::class, 'bulkStop'])->name('bulk-stop');
         });
 
     // Timing Monitor - Real-time Running Sessions Dashboard (All Departments)
@@ -627,33 +639,35 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/fingerprint-logs', [FingerprintLogController::class, 'index'])->name('fingerprint-logs.index');
 
     // Fingerspot Device Management
-    Route::prefix('fingerspot')->name('fingerspot.')->group(function () {
-        Route::get('/',                     [FingerspotController::class, 'index'])->name('index');
-        
-        // Halaman form (GET)
-        Route::get('/sync',                  [FingerspotController::class, 'showSyncForm'])->name('sync.form');
-        Route::get('/employee-list',         [FingerspotController::class, 'showEmployeeList'])->name('employee-list.form');
-        Route::get('/register-employee',     [FingerspotController::class, 'showRegisterForm'])->name('register-employee.form');
-        Route::get('/register-biometric',    [FingerspotController::class, 'showBiometricForm'])->name('register-biometric.form');
-        Route::get('/delete-employee',       [FingerspotController::class, 'showDeleteForm'])->name('delete-employee.form');
-        Route::get('/device-info',           [FingerspotController::class, 'showDeviceInfoForm'])->name('device-info.form');
-        Route::get('/set-timezone',          [FingerspotController::class, 'showTimezoneForm'])->name('set-timezone.form');
-        Route::get('/restart',               [FingerspotController::class, 'showRestartForm'])->name('restart.form');
-        
-        // Proses form (POST)
-        Route::post('/sync',                 [FingerspotController::class, 'syncAttendance'])->name('sync');
-        Route::post('/register-employee',    [FingerspotController::class, 'registerEmployee'])->name('register-employee');
-        Route::post('/register-biometric',   [FingerspotController::class, 'registerBiometric'])->name('register-biometric');
-        Route::post('/delete-employee',      [FingerspotController::class, 'deleteEmployee'])->name('delete-employee');
-        Route::post('/sync-device',          [FingerspotController::class, 'syncFromDevice'])->name('sync-device');
-        Route::post('/device-info',          [FingerspotController::class, 'deviceInfo'])->name('device-info');
-        Route::post('/set-timezone',         [FingerspotController::class, 'setTimezone'])->name('set-timezone');
-        Route::post('/restart',              [FingerspotController::class, 'restartDevice'])->name('restart');
+    Route::prefix('fingerspot')
+        ->name('fingerspot.')
+        ->group(function () {
+            Route::get('/', [FingerspotController::class, 'index'])->name('index');
 
-        // Download laporan absensi (XLSX)
-        Route::get('/download-attendance',   [FingerspotController::class, 'showDownloadForm'])->name('download-attendance.form');
-        Route::post('/download-attendance',  [FingerspotController::class, 'downloadAttendance'])->name('download-attendance');
-    });    // Attendance Logs
+            // Halaman form (GET)
+            Route::get('/sync', [FingerspotController::class, 'showSyncForm'])->name('sync.form');
+            Route::get('/employee-list', [FingerspotController::class, 'showEmployeeList'])->name('employee-list.form');
+            Route::get('/register-employee', [FingerspotController::class, 'showRegisterForm'])->name('register-employee.form');
+            Route::get('/register-biometric', [FingerspotController::class, 'showBiometricForm'])->name('register-biometric.form');
+            Route::get('/delete-employee', [FingerspotController::class, 'showDeleteForm'])->name('delete-employee.form');
+            Route::get('/device-info', [FingerspotController::class, 'showDeviceInfoForm'])->name('device-info.form');
+            Route::get('/set-timezone', [FingerspotController::class, 'showTimezoneForm'])->name('set-timezone.form');
+            Route::get('/restart', [FingerspotController::class, 'showRestartForm'])->name('restart.form');
+
+            // Proses form (POST)
+            Route::post('/sync', [FingerspotController::class, 'syncAttendance'])->name('sync');
+            Route::post('/register-employee', [FingerspotController::class, 'registerEmployee'])->name('register-employee');
+            Route::post('/register-biometric', [FingerspotController::class, 'registerBiometric'])->name('register-biometric');
+            Route::post('/delete-employee', [FingerspotController::class, 'deleteEmployee'])->name('delete-employee');
+            Route::post('/sync-device', [FingerspotController::class, 'syncFromDevice'])->name('sync-device');
+            Route::post('/device-info', [FingerspotController::class, 'deviceInfo'])->name('device-info');
+            Route::post('/set-timezone', [FingerspotController::class, 'setTimezone'])->name('set-timezone');
+            Route::post('/restart', [FingerspotController::class, 'restartDevice'])->name('restart');
+
+            // Download laporan absensi (XLSX)
+            Route::get('/download-attendance', [FingerspotController::class, 'showDownloadForm'])->name('download-attendance.form');
+            Route::post('/download-attendance', [FingerspotController::class, 'downloadAttendance'])->name('download-attendance');
+        }); // Attendance Logs
     Route::get('/attendance-logs', [AttendanceLogController::class, 'index'])->name('attendance-logs.index');
     Route::post('/attendance-logs/import', [AttendanceLogController::class, 'storeImport'])->name('attendance-logs.import.store');
     Route::get('/attendance-logs/import', function () {
