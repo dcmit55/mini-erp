@@ -103,8 +103,8 @@ class InventoryController extends Controller
         if ($request->filled('category_filter')) {
             $query->where('category_id', $request->category_filter);
         }
-        if ($request->filled('currency_filter')) {
-            $query->where('currency_id', $request->currency_filter);
+        if ($request->filled('material_code_filter')) {
+            $query->where('material_code', 'like', '%' . $request->material_code_filter . '%');
         }
         if ($request->filled('supplier_filter')) {
             $query->where('supplier_id', $request->supplier_filter);
@@ -150,6 +150,7 @@ class InventoryController extends Controller
             $searchValue = $request->input('search.value');
             $query->where(function ($q) use ($searchValue) {
                 $q->where('name', 'like', "%{$searchValue}%")
+                    ->orWhere('material_code', 'like', "%{$searchValue}%")
                     ->orWhere('remark', 'like', "%{$searchValue}%")
                     ->orWhere('unit', 'like', "%{$searchValue}%")
                     ->orWhereHas('category', function ($q) use ($searchValue) {
@@ -246,6 +247,7 @@ class InventoryController extends Controller
             $data[] = [
                 'DT_RowId' => 'row_' . $inventory->id,
                 'number' => $rowNumber,
+                'material_code' => $inventory->material_code ?? '-',
                 'name' => '<div class="fw-semibold">' . $inventory->name . '</div>',
                 'category' => $categoryBadge,
                 'stock' => '<span class="fw-semibold">' . number_format($inventory->quantity, 2) . '</span>' . ($inventory->unit ? ' <span class="text-muted">' . $inventory->unit . '</span>' : ''),
@@ -340,8 +342,8 @@ class InventoryController extends Controller
         if ($request->filled('category_filter')) {
             $query->where('category_id', $request->category_filter);
         }
-        if ($request->filled('currency_filter')) {
-            $query->where('currency_id', $request->currency_filter);
+        if ($request->filled('material_code_filter')) {
+            $query->where('material_code', 'like', '%' . $request->material_code_filter . '%');
         }
         if ($request->filled('supplier_filter')) {
             $query->where('supplier_id', $request->supplier_filter);
@@ -369,6 +371,7 @@ class InventoryController extends Controller
             $searchValue = $request->input('custom_search');
             $query->where(function ($q) use ($searchValue) {
                 $q->where('name', 'like', "%{$searchValue}%")
+                    ->orWhere('material_code', 'like', "%{$searchValue}%")
                     ->orWhere('remark', 'like', "%{$searchValue}%")
                     ->orWhere('unit', 'like', "%{$searchValue}%");
             });

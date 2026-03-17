@@ -148,7 +148,7 @@ class StagingInventoryApprovalService
             $updateData = [
                 'lark_record_id' => $staging->source_record_ids ?: $staging->lark_record_id,
                 'project_lark' => $staging->project_lark,
-                'unit' => $staging->unit,
+                'unit' => $staging->unit ?: ($inventory->unit ?: 'pcs'),
                 'currency_id' => $staging->currency_id ?? ($inventory->currency_id ?? 6),
                 'supplier_lark' => $staging->supplier_lark,
                 'img' => $staging->img,
@@ -157,8 +157,10 @@ class StagingInventoryApprovalService
             ];
 
             // Backfill material_code if existing record doesn't have one yet
-            if (empty($inventory->material_code) && !empty($staging->material_code)) {
-                $updateData['material_code'] = $staging->material_code;
+            if (empty($inventory->material_code)) {
+                $updateData['material_code'] = !empty($staging->material_code)
+                    ? $staging->material_code
+                    : Inventory::generateMaterialCode();
             }
 
             $inventory->update($updateData);
@@ -169,10 +171,10 @@ class StagingInventoryApprovalService
         // ── Step 4: create new inventory record ───────────────────────────────
         $inventory = Inventory::create([
             'name' => $staging->name,
-            'material_code' => $staging->material_code ?: null,
+            'material_code' => $staging->material_code ?: Inventory::generateMaterialCode(),
             'lark_record_id' => $staging->source_record_ids ?: $staging->lark_record_id,
             'project_lark' => $staging->project_lark,
-            'unit' => $staging->unit,
+            'unit' => $staging->unit ?: 'pcs',
             'currency_id' => $staging->currency_id ?? 6,
             'supplier_lark' => $staging->supplier_lark,
             'img' => $staging->img,

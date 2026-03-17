@@ -199,12 +199,7 @@
                         </div>
                         @if (in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance', 'admin_procurement', 'admin']))
                             <div class="col-md-2">
-                                <select id="currencyFilter" class="form-select form-select-sm select2">
-                                    <option value="">All Currencies</option>
-                                    @foreach ($currencies as $currency)
-                                        <option value="{{ $currency->id }}">{{ $currency->name }}</option>
-                                    @endforeach
-                                </select>
+                                <input type="text" id="materialCodeFilter" class="form-control form-control-sm" placeholder="Search Material Code...">
                             </div>
                         @endif
                         <div class="col-md-2">
@@ -265,6 +260,7 @@
                         <thead class="table-light text-nowrap">
                             <tr>
                                 <th width="50">#</th>
+                                <th width="120">Material Code</th>
                                 <th>Name</th>
                                 <th>Project List</th>
                                 <th>Category</th>
@@ -366,7 +362,7 @@
                     data: function(d) {
                         // Add filter parameters
                         d.category_filter = $('#categoryFilter').val();
-                        d.currency_filter = $('#currencyFilter').val();
+                        d.material_code_filter = $('#materialCodeFilter').val();
                         d.supplier_filter = $('#supplierFilter').val();
                         d.location_filter = $('#locationFilter').val();
                         d.unitFilter = $('#unitFilter').val();
@@ -382,6 +378,17 @@
                         searchable: false,
                         width: '2%',
                         className: 'text-center'
+                    },
+                    {
+                        data: 'material_code',
+                        name: 'material_code',
+                        width: '8%',
+                        render: function(data) {
+                            if (!data || data === '-') {
+                                return '<span class="text-muted">-</span>';
+                            }
+                            return '<code class="text-primary">' + data + '</code>';
+                        }
                     },
                     {
                         data: 'name',
@@ -481,12 +488,16 @@
             });
 
             // Filter functionality
-            $('#categoryFilter, #currencyFilter, #supplierFilter, #locationFilter, #unitFilter, #projectFilter, #sourceFilter')
+            $('#categoryFilter, #supplierFilter, #locationFilter, #unitFilter, #projectFilter, #sourceFilter')
                 .on(
                     'change',
                     function() {
                         table.ajax.reload();
                     });
+
+            $('#materialCodeFilter').on('input', debounce(function() {
+                table.ajax.reload();
+            }, 400));
 
             $('#customSearch').on('input', debounce(function() {
                 table.ajax.reload();
@@ -494,10 +505,10 @@
 
             // Reset filters
             $('#resetFilters').on('click', function() {
-                $('#categoryFilter, #currencyFilter, #supplierFilter, #locationFilter, #unitFilter, #projectFilter, #sourceFilter')
+                $('#categoryFilter, #supplierFilter, #locationFilter, #unitFilter, #projectFilter, #sourceFilter')
                     .val('')
                     .trigger('change');
-                $('#customSearch').val('');
+                $('#materialCodeFilter, #customSearch').val('');
                 table.ajax.reload();
             });
 
@@ -514,7 +525,7 @@
             $('#export-btn').on('click', function() {
                 const filters = {
                     category_filter: $('#categoryFilter').val(),
-                    currency_filter: $('#currencyFilter').val(),
+                    material_code_filter: $('#materialCodeFilter').val(),
                     supplier_filter: $('#supplierFilter').val(),
                     location_filter: $('#locationFilter').val(),
                     project_filter: $('#projectFilter').val(),

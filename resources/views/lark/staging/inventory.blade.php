@@ -200,6 +200,7 @@
                                 <th>Project</th>
                                 <th>Supplier</th>
                                 <th>Review Status</th>
+                                <th>Note</th>
                                 <th>Last Sync</th>
                                 <th>Actions</th>
                             </tr>
@@ -330,6 +331,13 @@
                         orderable: false
                     },
                     {
+                        data: 'review_note_display',
+                        name: 'review_note',
+                        orderable: false,
+                        searchable: false,
+                        width: '160px'
+                    },
+                    {
                         data: 'last_sync_at',
                         name: 'last_sync_at'
                     },
@@ -342,7 +350,7 @@
                     }
                 ],
                 order: [
-                    [13, 'desc']
+                    [14, 'desc']
                 ],
                 pageLength: 25,
                 language: {
@@ -694,6 +702,62 @@
 
                         $('#syncStagingForm').submit();
                     }
+                });
+            });
+
+            // ============================================================
+            // Edit Item Name (inline)
+            // ============================================================
+            $(document).on('click', '.btn-edit-name', function() {
+                var id = $(this).data('id');
+                var currentName = $(this).data('name');
+
+                Swal.fire({
+                    title: 'Edit Nama Item',
+                    html: '<div class="text-start small text-muted mb-2">Nama dari Lark: <strong>' + currentName + '</strong></div>' +
+                          '<input id="swal-name-input" class="swal2-input" value="' + currentName + '" placeholder="Nama item inventory">',
+                    showCancelButton: true,
+                    confirmButtonText: 'Simpan',
+                    cancelButtonText: 'Batal',
+                    confirmButtonColor: '#0d6efd',
+                    didOpen: function() {
+                        var inp = document.getElementById('swal-name-input');
+                        inp.focus();
+                        inp.select();
+                    },
+                    preConfirm: function() {
+                        var val = document.getElementById('swal-name-input').value.trim();
+                        if (!val) {
+                            Swal.showValidationMessage('Nama tidak boleh kosong');
+                            return false;
+                        }
+                        return val;
+                    }
+                }).then(function(result) {
+                    if (!result.isConfirmed) return;
+                    var newName = result.value;
+
+                    $.ajax({
+                        url: '{{ url('lark/staging/inventory') }}/' + id + '/update-name',
+                        method: 'POST',
+                        data: { _token: '{{ csrf_token() }}', name: newName },
+                        success: function(response) {
+                            if (response.success) {
+                                // Update teks di baris tanpa reload full table
+                                var $nameText = $('.staging-name-text[data-id="' + id + '"]');
+                                $nameText.text(response.name);
+                                // Update data-name on the edit button
+                                $('.btn-edit-name[data-id="' + id + '"]').data('name', response.name).attr('data-name', response.name);
+                                Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'Nama item diperbarui.', timer: 1500, showConfirmButton: false });
+                            } else {
+                                Swal.fire('Gagal', response.message, 'error');
+                            }
+                        },
+                        error: function(xhr) {
+                            var msg = xhr.responseJSON ? xhr.responseJSON.message : 'Terjadi kesalahan.';
+                            Swal.fire('Error', msg, 'error');
+                        }
+                    });
                 });
             });
 

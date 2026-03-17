@@ -42,12 +42,36 @@ class InventoryTransformer
             'price' => $this->normalizePrice($dto->totalCostRmbRaw),
             'currency_id' => 6, // RMB currency ID (fixed as per requirement)
             'supplier_lark' => $this->normalizeSupplierLark($dto->supplierLarkRaw),
-            'order_date' => $dto->orderDateRaw ? trim($dto->orderDateRaw) : null,
+            'order_date' => $this->normalizeOrderDate($dto->orderDateRaw),
             'pic' => $dto->picRaw ? substr(trim($dto->picRaw), 0, 255) : null,
             'international_waybill' => $dto->internationalWaybillRaw ? substr(trim($dto->internationalWaybillRaw), 0, 255) : null,
             'img' => $this->normalizeImageUrl($dto->itemPhotoRaw),
             'last_sync_at' => now(),
         ];
+    }
+
+    /**
+     * Normalize order_date from Lark.
+     * Lark stores dates as Unix timestamp in milliseconds (e.g. 1772035200000).
+     * Convert to Y-m-d string. Also handles plain date strings.
+     */
+    private function normalizeOrderDate(?string $raw): ?string
+    {
+        if (empty($raw)) {
+            return null;
+        }
+        $raw = trim($raw);
+        // Lark Unix timestamp in milliseconds (13-digit number)
+        if (ctype_digit($raw) && strlen($raw) >= 10) {
+            $seconds = strlen($raw) >= 13 ? (int) substr($raw, 0, 10) : (int) $raw;
+            return \Carbon\Carbon::createFromTimestamp($seconds)->toDateString();
+        }
+        // Already a date string — try to parse
+        try {
+            return \Carbon\Carbon::parse($raw)->toDateString();
+        } catch (\Exception $e) {
+            return null;
+        }
     }
 
     /**

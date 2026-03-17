@@ -217,6 +217,7 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/inventory/{id}/reject', [App\Http\Controllers\Lark\LarkStagingController::class, 'rejectInventory'])->name('inventory.reject');
             Route::post('/inventory/{id}/reset', [App\Http\Controllers\Lark\LarkStagingController::class, 'resetInventory'])->name('inventory.reset');
             Route::post('/inventory/{id}/received-qty', [App\Http\Controllers\Lark\LarkStagingController::class, 'updateReceivedQty'])->name('inventory.update-received-qty');
+            Route::post('/inventory/{id}/update-name', [App\Http\Controllers\Lark\LarkStagingController::class, 'updateName'])->name('inventory.update-name');
             Route::post('/inventory/bulk-approve', [App\Http\Controllers\Lark\LarkStagingController::class, 'bulkApproveInventory'])->name('inventory.bulk-approve');
         });
 

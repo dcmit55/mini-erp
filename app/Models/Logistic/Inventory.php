@@ -22,6 +22,27 @@ class Inventory extends Model implements Auditable
 
     protected $fillable = ['name', 'material_code', 'category_id', 'project_id', 'unit', 'unit_id', 'unit_domestic_freight_cost', 'unit_international_freight_cost', 'currency_id', 'supplier_id', 'location_id', 'remark', 'img', 'status', 'project_lark', 'supplier_lark', 'lark_record_id', 'last_sync_at', 'source'];
 
+    /**
+     * Generate a globally unique material code in format: MAT-0001
+     * Sequence is global across all inventories.
+     */
+    public static function generateMaterialCode(): string
+    {
+        for ($attempt = 0; $attempt < 10; $attempt++) {
+            $maxSeq = static::withTrashed()
+                ->where('material_code', 'regexp', '^MAT-[0-9]+$')
+                ->selectRaw('MAX(CAST(SUBSTRING(material_code, 5) AS UNSIGNED)) as max_seq')
+                ->value('max_seq') ?? 0;
+
+            $candidate = 'MAT-' . str_pad($maxSeq + 1, 4, '0', STR_PAD_LEFT);
+
+            if (!static::withTrashed()->where('material_code', $candidate)->exists()) {
+                return $candidate;
+            }
+        }
+        return 'MAT-' . date('ymdHis');
+    }
+
     protected $casts = [
         'unit_domestic_freight_cost' => 'decimal:2',
         'unit_international_freight_cost' => 'decimal:2',

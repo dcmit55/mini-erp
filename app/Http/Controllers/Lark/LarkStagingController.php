@@ -419,7 +419,9 @@ class LarkStagingController extends Controller
                     return '<input type="checkbox" class="row-checkbox" value="' . $row->id . '">';
                 })
                 ->editColumn('name', function ($row) {
-                    return $row->name ?: '-';
+                    $name = e($row->name ?: '-');
+                    // Wrap in span so JS can update it in-place after edit
+                    return '<span class="staging-name-text" data-id="' . $row->id . '">' . $name . '</span>';
                 })
                 ->editColumn('quantity', function ($row) {
                     $unit = $row->unit ? ' ' . $row->unit : '';
@@ -435,7 +437,12 @@ class LarkStagingController extends Controller
                     return $row->supplier_lark ?: '-';
                 })
                 ->editColumn('order_date', function ($row) {
-                    return $row->order_date ?: '-';
+                    if (!$row->order_date) return '-';
+                    try {
+                        return \Carbon\Carbon::parse($row->order_date)->format('d M Y');
+                    } catch (\Exception $e) {
+                        return $row->order_date;
+                    }
                 })
                 ->editColumn('pic', function ($row) {
                     return $row->pic ?: '-';
@@ -460,18 +467,24 @@ class LarkStagingController extends Controller
                     $val = $row->received_qty !== null ? number_format((float) $row->received_qty, 2) : '';
                     return '<div class="input-group input-group-sm" style="min-width:120px;">' . '<input type="number" step="0.01" min="0.01" class="form-control form-control-sm received-qty-input" ' . 'data-id="' . $row->id . '" value="' . $val . '" placeholder="Enter qty" style="max-width:90px;">' . '<button class="btn btn-outline-secondary btn-xs btn-save-received-qty" data-id="' . $row->id . '" title="Save">' . '<i class="bi bi-check-lg"></i></button>' . '</div>';
                 })
+                ->addColumn('review_note_display', function ($row) {
+                    if (empty($row->review_note)) return '-';
+                    $note = e($row->review_note);
+                    return '<span class="text-truncate d-inline-block" style="max-width:160px;" data-bs-toggle="tooltip" title="' . $note . '">' . $note . '</span>';
+                })
                 ->addColumn('actions', function ($row) {
                     if ($row->locked) {
                         // Locked = approved; show lock icon and reset button only
                         $resetBtn = '<button class="btn btn-secondary btn-xs btn-reset me-1" data-id="' . $row->id . '" title="Reset to Pending"><i class="bi bi-arrow-counterclockwise"></i></button>';
                         return '<span class="badge bg-success me-1" title="Approved &amp; Locked"><i class="bi bi-lock-fill"></i></span>' . $resetBtn;
                     }
+                    $editNameBtn = '<button class="btn btn-outline-primary btn-xs btn-edit-name me-1" data-id="' . $row->id . '" data-name="' . e($row->name) . '" title="Edit Nama Item"><i class="bi bi-pencil-fill"></i></button>';
                     $approveBtn = $row->review_status !== 'approved' ? '<button class="btn btn-success btn-xs btn-approve me-1" data-id="' . $row->id . '" title="Approve &amp; Push to Inventory"><i class="bi bi-check-lg"></i></button>' : '';
-                    $rejectBtn = $row->review_status !== 'rejected' ? '<button class="btn btn-danger btn-xs btn-reject me-1" data-id="' . $row->id . '" title="Reject"><i class="bi bi-x-lg"></i></button>' : '';
-                    $resetBtn = $row->review_status !== 'pending' ? '<button class="btn btn-secondary btn-xs btn-reset me-1" data-id="' . $row->id . '" title="Reset to Pending"><i class="bi bi-arrow-counterclockwise"></i></button>' : '';
-                    return $approveBtn . $rejectBtn . $resetBtn;
+                    $rejectBtn  = $row->review_status !== 'rejected'  ? '<button class="btn btn-danger btn-xs btn-reject me-1" data-id="' . $row->id . '" title="Reject"><i class="bi bi-x-lg"></i></button>' : '';
+                    $resetBtn   = $row->review_status !== 'pending'   ? '<button class="btn btn-secondary btn-xs btn-reset me-1" data-id="' . $row->id . '" title="Reset to Pending"><i class="bi bi-arrow-counterclockwise"></i></button>' : '';
+                    return $editNameBtn . $approveBtn . $rejectBtn . $resetBtn;
                 })
-                ->rawColumns(['checkbox', 'review_status_badge', 'received_qty_input', 'actions'])
+                ->rawColumns(['checkbox', 'name', 'review_note_display', 'review_status_badge', 'received_qty_input', 'actions'])
                 ->make(true);
         }
 
@@ -563,6 +576,48 @@ class LarkStagingController extends Controller
     }
 
     /**
+     * Update item name on a staging record.
+     * Allows admin to rename before approve so it matches the known inventory name.
+     * AJAX endpoint
+     */
+    public function updateName(Request $request, int $id)
+    {
+        try {
+            $request->validate([
+                'name' => ['required', 'string', 'max:255'],
+            ]);
+
+            $staging = LarkStagingInventory::findOrFail($id);
+
+            if ($staging->locked) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Item ini sudah di-approve dan terkunci. Nama tidak dapat diubah.',
+                ], 422);
+            }
+
+            $staging->update(['name' => trim($request->name)]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Nama berhasil diperbarui.',
+                'name' => $staging->name,
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->errors()['name'][0] ?? 'Validasi gagal.',
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Update staging name failed', ['id' => $id, 'error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menyimpan: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Approve staging item → push ke tabel inventories
      * AJAX endpoint
      */
@@ -638,16 +693,24 @@ class LarkStagingController extends Controller
         try {
             $staging = LarkStagingInventory::findOrFail($id);
 
+            $wasLocked = $staging->locked; // capture before update
+
             $staging->update([
                 'review_status' => 'pending',
-                'review_note' => null,
-                'reviewed_by' => null,
-                'reviewed_at' => null,
+                'review_note'   => null,
+                'reviewed_by'   => null,
+                'reviewed_at'   => null,
+                'locked'        => false,
+                'processed'     => false,
             ]);
+
+            $warning = $wasLocked
+                ? ' <span class="text-warning small">(Catatan: data inventory yang sudah dibuat tidak otomatis dihapus)</span>'
+                : '';
 
             return response()->json([
                 'success' => true,
-                'message' => "Item <strong>{$staging->name}</strong> direset ke pending.",
+                'message' => "Item <strong>{$staging->name}</strong> direset ke pending." . $warning,
             ]);
         } catch (\Exception $e) {
             Log::error('Staging reset failed', ['id' => $id, 'error' => $e->getMessage()]);
