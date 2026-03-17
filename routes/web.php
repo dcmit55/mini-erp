@@ -784,4 +784,6 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/{id}/mark-read', [App\Http\Controllers\Admin\FeatureAnnouncementController::class, 'markAsRead'])->name('mark-read');
             Route::post('/{id}/re-broadcast', [App\Http\Controllers\Admin\FeatureAnnouncementController::class, 'reBroadcast'])->name('re-broadcast');
         });
+
+
 });

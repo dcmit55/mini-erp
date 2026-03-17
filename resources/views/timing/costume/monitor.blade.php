@@ -78,13 +78,13 @@
                         </div>
                     </div>
                     <div class="card-body">
-                        <div class="row g-3">
+                        <div class="row g-2">
                             @foreach ($sessions as $session)
-                                <div class="col-md-4 col-lg-3 col-xl-2">
+                                <div class="col-4 col-md-2 session-col">
                                     <div class="card border session-card h-100" id="session-{{ $session->id }}">
-                                        <div class="card-body p-2">
-                                            <!-- Bulk Select Checkbox -->
-                                            <div class="form-check mb-1">
+                                        <div class="card-body p-1 d-flex flex-column">
+                                            <!-- Checkbox -->
+                                            <div class="form-check mb-2">
                                                 <input class="form-check-input session-checkbox" type="checkbox"
                                                     value="{{ $session->id }}"
                                                     data-group="{{ Str::slug($jobOrderName) }}"
@@ -92,120 +92,82 @@
                                                 <label class="form-check-label small text-muted"
                                                     for="chk-{{ $session->id }}">Select</label>
                                             </div>
-                                            <!-- Employee Info -->
-                                            <div class="d-flex align-items-center mb-2">
+
+                                            <!-- Employee (centered) -->
+                                            <div class="text-center mb-1">
                                                 @if ($session->employee->photo)
                                                     <img src="{{ asset('storage/' . $session->employee->photo) }}"
-                                                        class="rounded-circle me-2" width="36" height="36"
+                                                        class="rounded-circle mb-1" width="20" height="20"
                                                         style="object-fit: cover;">
                                                 @else
-                                                    <div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center me-2"
-                                                        style="width: 36px; height: 36px;">
-                                                        <i class="bi bi-person text-white fs-4"></i>
+                                                    <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center mx-auto mb-1"
+                                                        style="width: 20px; height: 20px;">
+                                                        <i class="bi bi-person text-white" style="font-size:0.55rem;"></i>
                                                     </div>
                                                 @endif
-                                                <div class="flex-grow-1">
-                                                    <h6 class="mb-0">
-                                                        <span class="badge bg-success me-1">RUNNING</span>
-                                                    </h6>
-                                                    <div class="fw-bold">{{ $session->employee->name ?? 'Unknown' }}</div>
-                                                    <small
-                                                        class="text-muted">{{ $session->employee->position ?? 'N/A' }}</small>
-                                                </div>
+                                                <div><span class="badge bg-success" style="font-size:0.57rem;">RUNNING</span></div>
+                                                <div class="fw-semibold mt-1 lh-sm" style="font-size:0.65rem;">{{ $session->employee->name ?? 'Unknown' }}</div>
+                                                <div class="text-muted" style="font-size:0.58rem;">{{ $session->employee->position ?? 'N/A' }}</div>
                                             </div>
 
-                                            <!-- Duration -->
-                                            <div class="text-center mb-2 py-2 bg-light rounded">
-                                                <span class="duration-display fs-4 fw-bold text-success"
+                                            <!-- Timer -->
+                                            <div class="text-center mb-1 py-1 bg-light rounded">
+                                                <span class="duration-display fw-bold text-success"
+                                                    style="font-family:'Courier New',monospace;font-size:0.76rem;"
                                                     data-start-time="{{ $session->start_time }}">
                                                     {{ $session->duration }}
                                                 </span>
                                             </div>
 
-                                            <!-- Job Info -->
-                                            <div class="border-top pt-2">
-                                                <div class="small">
-                                                    <div class="mb-1">
-                                                        <strong>Job Order:</strong><br>
-                                                        {{ $session->jobOrder->name ?? 'N/A' }}
-                                                    </div>
-                                                    <div class="row g-1">
-                                                        <div class="col-6">
-                                                            <strong>Step:</strong> {{ $session->step }}
-                                                        </div>
-                                                        <div class="col-6">
-                                                            <strong>Part:</strong> {{ $session->parts }}
-                                                        </div>
-                                                    </div>
-                                                    <div class="mt-2 text-muted">
-                                                        <i class="bi bi-clock"></i> Started:
-                                                        {{ $session->start_time }}
-                                                    </div>
-                                                    @php
-                                                        $totalMinutes = $session->jobOrder->total_standard_minutes ?? 0;
-                                                        $standardTimePerUnit =
-                                                            $session->jobOrder->standard_time_per_unit ?? 0;
-                                                        $deadlineTime = null;
-                                                        $deadlineWarning = null;
-
-                                                        // Only show deadline if total_standard_minutes exists
-                                                        if ($totalMinutes > 0 && $session->start_time) {
-                                                            try {
-                                                                $startDateTime = \Carbon\Carbon::parse(
-                                                                    date('Y-m-d') . ' ' . $session->start_time,
-                                                                );
-                                                                $deadlineTime = $startDateTime
-                                                                    ->addMinutes($totalMinutes)
-                                                                    ->format('H:i');
-
-                                                                $now = \Carbon\Carbon::now();
-                                                                $deadline = \Carbon\Carbon::parse(
-                                                                    date('Y-m-d') . ' ' . $deadlineTime,
-                                                                );
-                                                                $minutesRemaining = $now->diffInMinutes(
-                                                                    $deadline,
-                                                                    false,
-                                                                );
-
-                                                                if ($minutesRemaining < 0) {
-                                                                    $deadlineWarning = 'exceeded';
-                                                                } elseif ($minutesRemaining <= 15) {
-                                                                    $deadlineWarning = 'critical';
-                                                                } elseif ($minutesRemaining <= 30) {
-                                                                    $deadlineWarning = 'warning';
-                                                                }
-                                                            } catch (\Exception $e) {
-                                                                $deadlineTime = null;
-                                                            }
-                                                        }
-                                                    @endphp
-                                                    @if ($deadlineTime)
-                                                        <div class="mt-2">
-                                                            <i class="bi bi-calendar-x"></i> Deadline:
-                                                            <strong
-                                                                class="{{ $deadlineWarning === 'exceeded' ? 'text-danger' : ($deadlineWarning === 'critical' ? 'text-warning' : 'text-danger') }}">{{ $deadlineTime }}</strong>
-                                                            <span class="badge bg-info badge-sm ms-1">{{ $totalMinutes }}
-                                                                min</span>
-                                                            @if ($deadlineWarning === 'exceeded')
-                                                                <span class="badge bg-danger ms-1"><i
-                                                                        class="bi bi-exclamation-triangle"></i>
-                                                                    OVERDUE</span>
-                                                            @elseif ($deadlineWarning === 'critical')
-                                                                <span class="badge bg-warning text-dark ms-1"><i
-                                                                        class="bi bi-clock-history"></i> URGENT</span>
-                                                            @endif
-                                                        </div>
-                                                    @endif
+                                            <!-- Info -->
+                                            <div class="border-top pt-2 small flex-grow-1">
+                                                @php
+                                                    $totalMinutes = $session->jobOrder->total_standard_minutes ?? 0;
+                                                    $deadlineTime = null;
+                                                    $deadlineWarning = null;
+                                                    if ($totalMinutes > 0 && $session->start_time) {
+                                                        try {
+                                                            $startDateTime = \Carbon\Carbon::parse(date('Y-m-d') . ' ' . $session->start_time);
+                                                            $deadlineTime = $startDateTime->addMinutes($totalMinutes)->format('H:i');
+                                                            $minutesRemaining = \Carbon\Carbon::now()->diffInMinutes(\Carbon\Carbon::parse(date('Y-m-d') . ' ' . $deadlineTime), false);
+                                                            if ($minutesRemaining < 0) $deadlineWarning = 'exceeded';
+                                                            elseif ($minutesRemaining <= 15) $deadlineWarning = 'critical';
+                                                            elseif ($minutesRemaining <= 30) $deadlineWarning = 'warning';
+                                                        } catch (\Exception $e) { $deadlineTime = null; }
+                                                    }
+                                                @endphp
+                                                <div class="mb-1 text-truncate" title="{{ $session->jobOrder->name ?? 'N/A' }}">
+                                                    <strong>{{ $session->jobOrder->name ?? 'N/A' }}</strong>
                                                 </div>
+                                                <div class="row g-0 mb-1">
+                                                    <div class="col-6 text-truncate">
+                                                        <span class="text-muted">Step:</span> {{ $session->step }}
+                                                    </div>
+                                                    <div class="col-6 text-truncate">
+                                                        <span class="text-muted">Part:</span> {{ $session->parts }}
+                                                    </div>
+                                                </div>
+                                                <div class="text-muted"><i class="bi bi-clock"></i> {{ $session->start_time }}</div>
+                                                @if ($deadlineTime)
+                                                    <div class="mt-1">
+                                                        <i class="bi bi-calendar-x"></i>
+                                                        <strong class="{{ $deadlineWarning === 'exceeded' ? 'text-danger' : ($deadlineWarning === 'critical' ? 'text-warning' : '') }}">{{ $deadlineTime }}</strong>
+                                                        @if ($deadlineWarning === 'exceeded')
+                                                            <span class="badge bg-danger ms-1">OVERDUE</span>
+                                                        @elseif ($deadlineWarning === 'critical')
+                                                            <span class="badge bg-warning text-dark ms-1">URGENT</span>
+                                                        @endif
+                                                    </div>
+                                                @endif
                                             </div>
 
-                                            <!-- Stop Work Button -->
-                                            <div class="border-top pt-2 mt-2">
-                                                <button class="btn btn-danger btn-sm w-5 stop-work-btn"
+                                            <!-- Stop Button (always at bottom) -->
+                                            <div class="mt-auto pt-2">
+                                                <button class="btn btn-danger btn-sm w-100 stop-work-btn"
                                                     data-timing-id="{{ $session->id }}"
                                                     data-employee-name="{{ $session->employee->name }}"
                                                     data-job-order="{{ $session->jobOrder->name ?? 'N/A' }}">
-                                                    <i class="bi bi-stop-circle me-1"></i>STOP WORK
+                                                    <i class="bi bi-stop-circle me-1"></i>STOP
                                                 </button>
                                             </div>
                                         </div>
@@ -301,6 +263,10 @@
         .session-card:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        @media (min-width: 768px) {
+            .session-col { flex: 0 0 14.28%; max-width: 14.28%; }
         }
     </style>
 @endsection

@@ -111,15 +111,6 @@
                         @endif
                     </form>
                 </div>
-                <div class="col-auto">
-                    <form action="{{ route('fingerspot.sync-device') }}" method="POST" class="d-inline">
-                        @csrf
-                        <button type="submit" class="btn btn-sm btn-outline-info rounded-2"
-                                onclick="return confirm('Sync will pull registered PINs from the device and mark matching employees as On Device. Continue?')">
-                            <i class="fas fa-sync-alt me-1"></i>Sync from Device
-                        </button>
-                    </form>
-                </div>
             </div>
         </div>
     </div>

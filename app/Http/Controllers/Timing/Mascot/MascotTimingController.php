@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Production\Timing;
 use App\Models\Production\JobOrder;
 use App\Models\Hr\Employee;
+use App\Models\Hr\Skillset;
 use App\Models\Admin\Department;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -34,10 +35,17 @@ class MascotTimingController extends Controller
         $employeesWithActiveSessions = Timing::running()->today()->pluck('employee_id')->toArray();
 
         // Get active mascot employees (exclude those with active sessions)
-        $employees = Employee::where('status', 'active')->where('department_id', $mascotDept->id)->whereNotIn('id', $employeesWithActiveSessions)->with('department')->orderBy('name')->get();
+        $employees = Employee::where('status', 'active')
+            ->where('department_id', $mascotDept->id)
+            ->whereNotIn('id', $employeesWithActiveSessions)
+            ->with(['department', 'skillsets'])
+            ->orderBy('name')
+            ->get();
+
+        // Group employees by skillset — dengan rename khusus Mascot
+        $employeesBySkillset = $this->groupEmployeesBySkillset($employees);
 
         // Get ALL job orders (mascot can work on any department's job orders)
-        // Only show active job orders (exclude Delivered)
         $jobOrders = JobOrder::with(['project', 'department'])
             ->whereNull('deleted_at')
             ->where(function ($q) {
@@ -46,7 +54,7 @@ class MascotTimingController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // Get active timing sessions for mascot (individual, not grouped)
+        // Get active timing sessions for mascot
         $activeSessions = Timing::running()
             ->today()
             ->withRelations()
@@ -59,7 +67,52 @@ class MascotTimingController extends Controller
         // Get positions in mascot dept
         $positions = Employee::where('status', 'active')->where('department_id', $mascotDept->id)->whereNotNull('position')->distinct()->pluck('position')->sort();
 
-        return view('timing.mascot.index', compact('employees', 'jobOrders', 'activeSessions', 'mascotDept', 'positions', 'employeesWithActiveSessions'));
+        return view('timing.mascot.index', compact('employees', 'employeesBySkillset', 'jobOrders', 'activeSessions', 'mascotDept', 'positions', 'employeesWithActiveSessions'));
+    }
+
+    // Rename khusus Mascot
+    private const SKILLSET_LABELS = [
+        45 => 'Inflatable',
+        3  => 'FRP',
+    ];
+
+    /**
+     * Group employees by skillset dengan rename khusus Mascot.
+     */
+    private function groupEmployeesBySkillset($employees): \Illuminate\Support\Collection
+    {
+        $employeeIds = $employees->pluck('id')->toArray();
+        $employeeMap = $employees->keyBy('id');
+
+        $skillsets = Skillset::where('is_active', true)
+            ->whereHas('employees', fn($q) => $q->whereIn('employees.id', $employeeIds))
+            ->with(['employees' => fn($q) => $q
+                ->whereIn('employees.id', $employeeIds)
+                ->orderBy('name')
+            ])
+            ->orderBy('name')
+            ->get();
+
+        $groups = $skillsets->map(fn($skillset) => [
+            'skillset_id' => $skillset->id,
+            'label'       => self::SKILLSET_LABELS[$skillset->id] ?? $skillset->name,
+            'employees'   => $skillset->employees->map(fn($emp) => [
+                'employee' => $employeeMap->get($emp->id) ?? $emp,
+            ]),
+        ]);
+
+        $assignedIds = $skillsets->flatMap(fn($s) => $s->employees->pluck('id'))->unique();
+        $unassigned  = $employees->whereNotIn('id', $assignedIds);
+
+        if ($unassigned->isNotEmpty()) {
+            $groups->push([
+                'skillset_id' => null,
+                'label'       => 'Other',
+                'employees'   => $unassigned->map(fn($emp) => ['employee' => $emp]),
+            ]);
+        }
+
+        return $groups->values();
     }
 
     /**

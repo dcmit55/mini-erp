@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Sync Attendance - Fingerspot')
+@section('title', 'Sync from Machine - Fingerspot')
 
 @section('content')
 <div class="container-fluid py-4">
@@ -20,8 +20,8 @@
                     <i class="fas fa-sync-alt text-primary fs-4"></i>
                 </div>
                 <div>
-                    <h4 class="mb-1 fw-semibold">Sync Attendance</h4>
-                    <p class="text-muted mb-0">Pull scan data from the fingerprint device</p>
+                    <h4 class="mb-1 fw-semibold">Sync from Machine</h4>
+                    <p class="text-muted mb-0">Pull attendance data & sync employee registration from device</p>
                 </div>
             </div>
         </div>
@@ -126,7 +126,7 @@
                                 Cancel
                             </a>
                             <button type="submit" class="btn btn-primary rounded-2 px-4" id="sync-btn">
-                                <i class="fas fa-sync-alt me-2"></i> Sync Now
+                                <i class="fas fa-sync-alt me-2"></i> Sync from Machine
                             </button>
                         </div>
                     </form>

@@ -171,28 +171,52 @@ class WebhookController extends Controller
                 'fields'   => array_keys($request->all()),
             ]);
             Cache::forget($cacheKey);
-            return response()->json(['success' => true, 'updated' => 0]);
+            return response()->json(['success' => true, 'marked' => 0, 'cleared' => 0]);
         }
 
-        $updated = 0;
-        foreach ($rawData as $item) {
-            $rawPin        = is_array($item) ? ($item['pin'] ?? '') : (string) $item;
-            $normalizedPin = ltrim(preg_replace('/[^0-9]/', '', $rawPin), '0') ?: '0';
-            $padded        = str_pad($normalizedPin, 4, '0', STR_PAD_LEFT);
+        // Bangun set employee_no yang benar-benar ada di mesin saat ini
+        $deviceEmployeeNos = collect($rawData)
+            ->map(function ($item) {
+                $rawPin        = is_array($item) ? ($item['pin'] ?? '') : (string) $item;
+                $normalizedPin = ltrim(preg_replace('/[^0-9]/', '', $rawPin), '0') ?: '0';
+                $padded        = str_pad($normalizedPin, 4, '0', STR_PAD_LEFT);
+                return 'DCM-' . $padded;
+            })
+            ->filter()
+            ->unique()
+            ->values()
+            ->toArray();
 
-            $employee = Employee::where('employee_no', 'DCM-' . $padded)
-                ->whereNull('device_registered_at')
-                ->first();
+        // Tandai sebagai terdaftar di device (device → sistem)
+        $marked = Employee::whereIn('employee_no', $deviceEmployeeNos)
+            ->whereNull('device_registered_at')
+            ->get();
+        foreach ($marked as $employee) {
+            $employee->update(['device_registered_at' => now()]);
+        }
 
-            if ($employee) {
-                $employee->update(['device_registered_at' => now()]);
-                $updated++;
-            }
+        // Hapus tanda registrasi untuk yang sudah tidak ada di mesin (mesin → sistem)
+        $cleared = Employee::whereNotNull('device_registered_at')
+            ->whereNotIn('employee_no', $deviceEmployeeNos)
+            ->get();
+        foreach ($cleared as $employee) {
+            $employee->update(['device_registered_at' => null]);
         }
 
         Cache::forget($cacheKey);
-        Log::info("Webhook get_all_pin: {$updated} employees marked as on device", ['trans_id' => $transId]);
 
-        return response()->json(['success' => true, 'updated' => $updated]);
+        Log::info('Webhook get_all_pin: sync selesai', [
+            'trans_id'          => $transId,
+            'device_pin_count'  => count($deviceEmployeeNos),
+            'newly_marked'      => $marked->count(),
+            'cleared_from_db'   => $cleared->count(),
+            'cleared_employees' => $cleared->pluck('employee_no')->toArray(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'marked'  => $marked->count(),
+            'cleared' => $cleared->count(),
+        ]);
     }
 }

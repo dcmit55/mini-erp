@@ -80,15 +80,10 @@ class FingerspotController extends Controller
     {
         $defaultDeviceId = config('fingerspot.device_id', '');
 
-        $scannedPins = FingerprintLog::distinct()->pluck('cloud_id')
-            ->map(fn($p) => $this->reconciler->normalizePin($p))
-            ->filter()
-            ->flip();
-
         $employees = Employee::where('status', 'active')
+            ->whereNotNull('device_registered_at')
             ->orderBy('name')
             ->get()
-            ->filter(fn($emp) => !is_null($emp->device_registered_at))
             ->map(function ($emp) {
                 $emp->device_pin = $this->pinFromEmployeeNo($emp->employee_no);
                 return $emp;
@@ -162,11 +157,13 @@ class FingerspotController extends Controller
     {
         $defaultDeviceId = config('fingerspot.device_id', '');
 
-        // Statistik scan per PIN dari fingerprint_logs (keyed by normalized PIN)
-        $fingerprintStats = FingerprintLog::selectRaw('cloud_id, COUNT(*) as total_scans, MAX(event_time) as last_scan')
-            ->groupBy('cloud_id')
-            ->get()
-            ->keyBy(fn($row) => $this->reconciler->normalizePin($row->cloud_id));
+        // Statistik scan per PIN — di-cache 5 menit agar tidak query besar tiap page load
+        $fingerprintStats = Cache::remember('fingerspot_stats', 300, function () {
+            return FingerprintLog::selectRaw('cloud_id, COUNT(*) as total_scans, MAX(event_time) as last_scan')
+                ->groupBy('cloud_id')
+                ->get()
+                ->keyBy(fn($row) => $this->reconciler->normalizePin($row->cloud_id));
+        });
 
         $mapEmployee = function ($emp) use ($fingerprintStats) {
             $pin   = $this->pinFromEmployeeNo($emp->employee_no);
@@ -228,8 +225,12 @@ class FingerspotController extends Controller
     }
 
     /**
-     * Kirim perintah get_all_pin ke mesin (async).
-     * Mesin akan mengirim balik data PIN via webhook ke /api/fingerspot/webhook/get_all_pin.
+     * Kirim perintah get_all_pin ke mesin, lalu rekonsiliasi registrasi device ↔ sistem.
+     *
+     * Beberapa firmware Fingerspot mengembalikan daftar PIN langsung di response body
+     * (synchronous). Jika PIN sudah ada di response, langsung diproses tanpa menunggu
+     * webhook. Jika tidak, perintah tetap dikirim dan webhook akan memproses saat device
+     * merespons (async).
      */
     public function syncFromDevice(Request $request)
     {
@@ -244,6 +245,19 @@ class FingerspotController extends Controller
         try {
             $response = $this->fingerspot->getAllPin($deviceId, $transId);
 
+            // Coba proses PIN langsung dari response (sync response)
+            $pins = $this->parseAllPinResponse($response);
+
+            if (!empty($pins)) {
+                Cache::forget('sync_' . $transId);
+                [$marked, $cleared] = $this->reconcileDevicePins($pins);
+
+                return back()->with('success',
+                    "Sync selesai. {$marked} karyawan ditandai terdaftar, {$cleared} karyawan dihapus dari daftar device."
+                );
+            }
+
+            // Tidak ada PIN di response → async (device akan callback via webhook)
             if ($response['success'] ?? false) {
                 return back()->with('info', 'Perintah sync dikirim ke device. Data akan diproses setelah device merespons. Silakan refresh halaman beberapa saat lagi.');
             }
@@ -258,15 +272,47 @@ class FingerspotController extends Controller
         }
     }
 
+    /**
+     * Rekonsiliasi daftar PIN dari device dengan database.
+     * Mengembalikan [jumlah_marked, jumlah_cleared].
+     */
+    private function reconcileDevicePins(array $normalizedPins): array
+    {
+        $deviceEmployeeNos = collect($normalizedPins)
+            ->map(fn($pin) => 'DCM-' . str_pad($pin, 4, '0', STR_PAD_LEFT))
+            ->unique()
+            ->values()
+            ->toArray();
+
+        // Tandai yang ada di mesin tapi belum tercatat di sistem
+        $marked = Employee::whereIn('employee_no', $deviceEmployeeNos)
+            ->whereNull('device_registered_at')
+            ->get();
+        foreach ($marked as $emp) {
+            $emp->update(['device_registered_at' => now()]);
+        }
+
+        // Hapus tanda untuk yang sudah tidak ada di mesin
+        $cleared = Employee::whereNotNull('device_registered_at')
+            ->whereNotIn('employee_no', $deviceEmployeeNos)
+            ->get();
+        foreach ($cleared as $emp) {
+            $emp->update(['device_registered_at' => null]);
+        }
+
+        Log::info('reconcileDevicePins', [
+            'device_pins'  => count($deviceEmployeeNos),
+            'marked'       => $marked->count(),
+            'cleared'      => $cleared->count(),
+            'cleared_nos'  => $cleared->pluck('employee_no')->toArray(),
+        ]);
+
+        return [$marked->count(), $cleared->count()];
+    }
+
     public function showDeleteForm(Request $request)
     {
         $defaultDeviceId = config('fingerspot.device_id', '');
-
-        // PIN yang pernah scan (dari fingerprint_logs)
-        $scannedPins = FingerprintLog::distinct()->pluck('cloud_id')
-            ->map(fn($p) => $this->reconciler->normalizePin($p))
-            ->filter()
-            ->flip(); // jadikan key untuk lookup O(1)
 
         $query = Employee::where('status', 'active')->orderBy('name');
 
@@ -333,6 +379,8 @@ class FingerspotController extends Controller
             'end_date'   => 'nullable|date|after_or_equal:start_date',
         ]);
 
+        $deviceId = $request->device_id;
+
         // Jika tanggal tidak diisi, sync semua data dari awal device hingga hari ini
         $startDate = $request->filled('start_date')
             ? Carbon::parse($request->start_date)
@@ -349,17 +397,17 @@ class FingerspotController extends Controller
             $notMatched    = 0;
             $affectedPairs = [];
 
-            // Fingerspot API membatasi max 2 hari per request — pecah range menjadi chunk 2 hari
+            // ── 1) Pull attendance data ──────────────────────────────────────
             $current = $startDate->copy();
 
             while ($current->lte($endDate)) {
-                $chunkEnd = $current->copy()->addDay(); // +1 hari = 2 hari per chunk
+                $chunkEnd = $current->copy()->addDay();
                 if ($chunkEnd->gt($endDate)) {
                     $chunkEnd = $endDate->copy();
                 }
 
                 $response = $this->fingerspot->getAttlog(
-                    $request->device_id,
+                    $deviceId,
                     $current->format('Y-m-d'),
                     $chunkEnd->format('Y-m-d')
                 );
@@ -387,11 +435,6 @@ class FingerspotController extends Controller
                         continue;
                     }
 
-                    // Auto-set device_registered_at jika belum ada
-                    if (is_null($employee->device_registered_at)) {
-                        $employee->update(['device_registered_at' => now()]);
-                    }
-
                     $scanCarbon = Carbon::parse($timeRaw);
                     $isSaved    = $this->reconciler->saveRawLog($pinRaw, $scanCarbon, $record);
 
@@ -400,19 +443,20 @@ class FingerspotController extends Controller
                         continue;
                     }
 
+                    // Hanya set device_registered_at untuk scan BARU (bukan historis/duplikat)
+                    if (is_null($employee->device_registered_at)) {
+                        $employee->update(['device_registered_at' => now()]);
+                    }
+
                     $date = $scanCarbon->format('Y-m-d');
                     $affectedPairs[$employee->id][$date] = true;
                     $saved++;
                 }
 
-                $current->addDays(2); // geser ke chunk berikutnya
+                $current->addDays(2);
             }
 
-            if ($saved === 0 && $duplicates === 0 && $notMatched === 0 && $invalidFields === 0) {
-                return back()->with('info', 'Tidak ada data absensi pada range tanggal tersebut.');
-            }
-
-            // ── Rekonsiliasi & regenerate DailyAttendance ──────────────────────
+            // ── 2) Rekonsiliasi & regenerate DailyAttendance ─────────────────
             $allAffectedDates = [];
             foreach ($affectedPairs as $employeeId => $dates) {
                 foreach (array_keys($dates) as $date) {
@@ -425,10 +469,48 @@ class FingerspotController extends Controller
                 app(DailyAttendanceService::class)->generateForDate(Carbon::parse($date));
             }
 
+            // ── 3) Sync registrasi via getAllPin ─────────────────────────────
+            // Coba ambil daftar PIN yang terdaftar di mesin saat ini.
+            // Jika device mengembalikan data langsung → reconcile penuh (tambah + hapus).
+            // Jika async (hanya success:true tanpa data) → webhook akan handle nanti.
+            $regMarked  = 0;
+            $regCleared = 0;
+
+            try {
+                // Buat transId dan simpan ke cache agar webhook callback bisa dikenali
+                $pinTransId = uniqid('sync_', true);
+                Cache::put('sync_' . $pinTransId, ['status' => 'pending', 'started_at' => now()->toIso8601String()], now()->addMinutes(10));
+
+                $allPinResponse = $this->fingerspot->getAllPin($deviceId, $pinTransId);
+
+                $devicePins = $this->parseAllPinResponse($allPinResponse);
+
+                if (!empty($devicePins)) {
+                    // Device langsung kirim data (sync response)
+                    Cache::forget('sync_' . $pinTransId);
+                    [$regMarked, $regCleared] = $this->reconcileDevicePins($devicePins);
+                    Log::info('getAllPin sync response: reconcile selesai', ['marked' => $regMarked, 'cleared' => $regCleared]);
+                } else {
+                    // Device akan kirim data via webhook — cache entry sudah siap
+                    Log::info('getAllPin: menunggu webhook callback', ['trans_id' => $pinTransId]);
+                }
+            } catch (\Exception $e) {
+                Log::warning('Sync: getAllPin gagal: ' . $e->getMessage());
+            }
+
+            Cache::forget('fingerspot_stats');
+
+            // ── 4) Hasil ─────────────────────────────────────────────────────
             $msg = "Sync selesai. {$saved} data baru tersimpan";
             if ($duplicates)    $msg .= ", {$duplicates} duplikat dilewati";
             if ($notMatched)    $msg .= ", {$notMatched} PIN tidak cocok ke karyawan";
-            if ($invalidFields) $msg .= ", {$invalidFields} record tidak lengkap (cek log)";
+            if ($invalidFields) $msg .= ", {$invalidFields} record tidak lengkap";
+            if ($regMarked)     $msg .= ". {$regMarked} karyawan baru terdeteksi di mesin";
+            if ($regCleared)    $msg .= ". {$regCleared} karyawan dihapus dari daftar (tidak ada di mesin)";
+
+            if ($saved === 0 && $duplicates === 0 && $notMatched === 0 && $regMarked === 0 && $regCleared === 0) {
+                return back()->with('info', 'Tidak ada perubahan data.');
+            }
 
             return back()->with('success', $msg . '.');
 

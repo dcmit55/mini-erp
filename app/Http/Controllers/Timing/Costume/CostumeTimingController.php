@@ -8,6 +8,7 @@ use App\Models\Production\Timing;
 use App\Models\Production\JobOrder;
 use App\Models\Production\Project;
 use App\Models\Hr\Employee;
+use App\Models\Hr\Skillset;
 use App\Models\Admin\Department;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -39,9 +40,13 @@ class CostumeTimingController extends Controller
 
         // Get active costume employees (exclude those with active sessions)
         if (!empty($costumeDeptIds)) {
-            $employees = Employee::where('status', 'active')->whereIn('department_id', $costumeDeptIds)->whereNotIn('id', $employeesWithActiveSessions)->with('department')->orderBy('name')->get();
+            $employees = Employee::where('status', 'active')
+                ->whereIn('department_id', $costumeDeptIds)
+                ->whereNotIn('id', $employeesWithActiveSessions)
+                ->with(['department', 'skillsets'])
+                ->orderBy('name')
+                ->get();
 
-            // Get job orders related to costume / DCM PLUSH departments
             $jobOrders = JobOrder::with(['project', 'department'])
                 ->whereIn('department_id', $costumeDeptIds)
                 ->whereNull('deleted_at')
@@ -51,8 +56,11 @@ class CostumeTimingController extends Controller
                 ->orderBy('created_at', 'desc')
                 ->get();
         } else {
-            // Fallback to all employees if no costume dept found
-            $employees = Employee::where('status', 'active')->whereNotIn('id', $employeesWithActiveSessions)->with('department')->orderBy('name')->get();
+            $employees = Employee::where('status', 'active')
+                ->whereNotIn('id', $employeesWithActiveSessions)
+                ->with(['department', 'skillsets'])
+                ->orderBy('name')
+                ->get();
 
             $jobOrders = JobOrder::with(['project', 'department'])
                 ->whereNull('deleted_at')
@@ -62,6 +70,9 @@ class CostumeTimingController extends Controller
                 ->orderBy('created_at', 'desc')
                 ->get();
         }
+
+        // Group employees by skillset (1 employee bisa muncul di beberapa group)
+        $employeesBySkillset = $this->groupEmployeesBySkillset($employees);
 
         // Get unique departments from active employees
         $departments = Employee::where('status', 'active')->with('department')->get()->pluck('department')->unique('id')->filter()->sortBy('name');
@@ -81,7 +92,50 @@ class CostumeTimingController extends Controller
             ->orderBy('start_time', 'desc')
             ->get();
 
-        return view('timing.costume.index', compact('employees', 'jobOrders', 'activeSessions', 'departments', 'positions', 'employeesWithActiveSessions'));
+        return view('timing.costume.index', compact('employees', 'employeesBySkillset', 'jobOrders', 'activeSessions', 'departments', 'positions', 'employeesWithActiveSessions'));
+    }
+
+    /**
+     * Ambil skillsets dari tabel skillsets, lalu attach employee yang relevan.
+     * Employee tanpa skillset dikumpulkan di group "Other".
+     */
+    private function groupEmployeesBySkillset($employees): \Illuminate\Support\Collection
+    {
+        $employeeIds = $employees->pluck('id')->toArray();
+        $employeeMap = $employees->keyBy('id');
+
+        $allowedSkillsets = ['Sewing', 'Cutting', 'Embroidery Operation', 'Finishing'];
+
+        $skillsets = Skillset::where('is_active', true)
+            ->whereIn('name', $allowedSkillsets)
+            ->whereHas('employees', fn($q) => $q->whereIn('employees.id', $employeeIds))
+            ->with(['employees' => fn($q) => $q
+                ->whereIn('employees.id', $employeeIds)
+                ->orderBy('name')
+            ])
+            ->orderBy('name')
+            ->get();
+
+        $groups = $skillsets->map(fn($skillset) => [
+            'skillset_id' => $skillset->id,
+            'label'       => $skillset->name,
+            'employees'   => $skillset->employees->map(fn($emp) => [
+                'employee' => $employeeMap->get($emp->id) ?? $emp,
+            ]),
+        ]);
+
+        $assignedIds = $skillsets->flatMap(fn($s) => $s->employees->pluck('id'))->unique();
+        $unassigned  = $employees->whereNotIn('id', $assignedIds);
+
+        if ($unassigned->isNotEmpty()) {
+            $groups->push([
+                'skillset_id' => null,
+                'label'       => 'Other',
+                'employees'   => $unassigned->map(fn($emp) => ['employee' => $emp]),
+            ]);
+        }
+
+        return $groups->values();
     }
 
     /**

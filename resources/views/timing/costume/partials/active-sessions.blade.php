@@ -119,18 +119,3 @@ if ($totalMinutes > 0 && $session->start_time) {
     @endforeach
 @endif
 
-<style>
-    .session-card {
-        border-left: 4px solid #28a745;
-        transition: all 0.3s ease;
-    }
-
-    .session-card:hover {
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        transform: translateX(2px);
-    }
-
-    .duration-display {
-        font-family: 'Courier New', monospace;
-    }
-</style>

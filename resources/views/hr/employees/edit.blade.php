@@ -164,20 +164,30 @@
                                     @enderror
                                 </div>
 
-                                <div class="col-md-4 mb-3">
-                                    <label for="gender" class="form-label">Gender</label>
-                                    <select name="gender" id="gender" class="form-select">
-                                        <option value="">Select Gender</option>
-                                        <option value="male"
-                                            {{ old('gender', $employee->gender) == 'male' ? 'selected' : '' }}>Male
-                                        </option>
-                                        <option value="female"
-                                            {{ old('gender', $employee->gender) == 'female' ? 'selected' : '' }}>Female
-                                        </option>
-                                    </select>
-                                    @error('gender')
-                                        <small class="text-danger d-block">{{ $message }}</small>
-                                    @enderror
+                                <!-- Row for Gender and Citizenship -->
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="gender" class="form-label">Gender</label>
+                                        <select name="gender" id="gender" class="form-select">
+                                            <option value="">Select Gender</option>
+                                            <option value="male" {{ old('gender', $employee->gender) == 'male' ? 'selected' : '' }}>Male</option>
+                                            <option value="female" {{ old('gender', $employee->gender) == 'female' ? 'selected' : '' }}>Female</option>
+                                        </select>
+                                        @error('gender')
+                                            <small class="text-danger d-block">{{ $message }}</small>
+                                        @enderror
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label for="citizenship" class="form-label">Citizenship</label>
+                                        <select name="citizenship" id="citizenship" class="form-select">
+                                            <option value="WNI" {{ old('citizenship', $employee->citizenship) == 'WNI' ? 'selected' : '' }}>WNI (Indonesian Citizen)</option>
+                                            <option value="WNA" {{ old('citizenship', $employee->citizenship) == 'WNA' ? 'selected' : '' }}>WNA (Foreign Citizen)</option>
+                                        </select>
+                                        @error('citizenship')
+                                            <small class="text-danger d-block">{{ $message }}</small>
+                                        @enderror
+                                    </div>
                                 </div>
                             </div>
                         </div>

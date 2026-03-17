@@ -6,6 +6,7 @@ use App\Models\Hr\AttendanceLog;
 use App\Models\Hr\DailyAttendance;
 use App\Models\Hr\Employee;
 use App\Models\Hr\LeaveRequest;
+use App\Models\Hr\SessionShift;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
@@ -52,15 +53,30 @@ class DailyAttendanceService
                 Log::info("   -> Prepared: clock_in={$clockInFormatted}, clock_out={$clockOutFormatted}, total_hours={$totalHours}, status={$status}, remarks={$remarks}");
 
                 try {
+                    // Auto-detect shift berdasarkan department, clock-in, dan status WNA
+                    $sessionShiftId = null;
+                    if ($clockInFormatted && $employee->department_id) {
+                        $shift = SessionShift::detectFromClockIn(
+                            $employee->department_id,
+                            $clockInFormatted,
+                            (bool) $employee->is_wna
+                        );
+                        $sessionShiftId = $shift?->id;
+                        if ($shift) {
+                            Log::info("   -> Shift terdeteksi: {$shift->type_of_shift}");
+                        }
+                    }
+
                     $daily = DailyAttendance::updateOrCreate(
                         ['employee_id' => $employee->id, 'date' => $dateStr],
                         [
-                            'clock_in'    => $clockInFormatted,
-                            'clock_out'   => $clockOutFormatted,
-                            'total_hours' => $totalHours,
-                            'status'      => $status,
-                            'remarks'     => $remarks,
-                            'updated_by'  => $updatedBy,
+                            'clock_in'          => $clockInFormatted,
+                            'clock_out'         => $clockOutFormatted,
+                            'total_hours'       => $totalHours,
+                            'status'            => $status,
+                            'remarks'           => $remarks,
+                            'updated_by'        => $updatedBy,
+                            'session_shift_id'  => $sessionShiftId,
                         ]
                     );
 

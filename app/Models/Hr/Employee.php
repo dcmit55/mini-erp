@@ -18,9 +18,9 @@ class Employee extends Model implements AuditableContract
     use HasFactory, SoftDeletes, \OwenIt\Auditing\Auditable;
 
     protected $fillable = [
-        'employee_no', 'name', 'employment_type', 'photo', 'position', 
-        'department_id', 'email', 'phone', 'address', 'gender', 'ktp_id', 
-        'place_of_birth', 'date_of_birth', 'rekening', 'hire_date', 
+        'employee_no', 'name', 'employment_type', 'citizenship', 'photo', 'position',
+        'department_id', 'email', 'phone', 'address', 'gender', 'ktp_id',
+        'place_of_birth', 'date_of_birth', 'rekening', 'hire_date',
         'contract_end_date', 'salary', 'saldo_cuti', 'status', 'notes',
         'username', 'uid', 'device_registered_at',
     ];
@@ -215,6 +215,7 @@ class Employee extends Model implements AuditableContract
             'PKWTT' => 'success',
             'Daily Worker' => 'warning',
             'Probation' => 'info',
+            'Internship' => 'secondary',
         ];
         return [
             'color' => $colors[$this->employment_type] ?? 'secondary',
@@ -229,6 +230,7 @@ class Employee extends Model implements AuditableContract
             'PKWTT' => 'PKWTT (Permanent)',
             'Daily Worker' => 'Daily Worker',
             'Probation' => 'Probation',
+            'Internship' => 'Internship',
         ];
     }
 

@@ -42,7 +42,7 @@
             <!-- Left Column: Start New Work -->
             <div class="col-lg-7">
                 <div class="card shadow-sm border-0">
-                    <div class="card-header bg-gradient-primary text-white">
+                    <div class="card-header bg-gradient-costume text-white">
                         <h5 class="mb-0"><i class="bi bi-play-circle me-2"></i>Start New Work Session</h5>
                     </div>
                     <div class="card-body">
@@ -52,7 +52,7 @@
                             <!-- STEP 1: Select Employees -->
                             <div class="mb-4">
                                 <label class="form-label fw-bold">
-                                    <span class="badge bg-primary me-2">1</span>Select Employees (Multiple)
+                                    <span class="badge bg-secondary me-2">1</span>Select Employees (Multiple)
                                 </label>
 
                                 <!-- Employee Search -->
@@ -61,7 +61,7 @@
                                         <span class="input-group-text"><i class="bi bi-search"></i></span>
                                         <input type="text" id="employee-search" class="form-control form-control-sm"
                                             placeholder="Search by name, position, or department...">
-                                        <button type="button" id="select-all-btn" class="btn btn-outline-primary btn-sm">
+                                        <button type="button" id="select-all-btn" class="btn btn-outline-secondary btn-sm">
                                             <i class="bi bi-check-all"></i> All Visible
                                         </button>
                                         <button type="button" id="deselect-all-btn"
@@ -71,44 +71,56 @@
                                     </div>
                                 </div>
 
-                                <div class="row g-3" id="employee-cards" style="max-height: 280px; overflow-y: auto;">
-                                    @forelse($employees as $employee)
-                                        <div class="col-md-4 col-sm-6 employee-card-wrapper"
-                                            data-department-id="{{ $employee->department_id }}"
-                                            data-position="{{ $employee->position }}">
-                                            <div class="card employee-card h-100 border-2"
-                                                data-employee-id="{{ $employee->id }}"
-                                                style="cursor: pointer; transition: all 0.3s;">
-                                                <div class="card-body text-center p-3">
-                                                    <div class="form-check position-absolute top-0 end-0 m-2">
-                                                        <input class="form-check-input employee-checkbox" type="checkbox"
-                                                            name="employees[]" value="{{ $employee->id }}"
-                                                            id="emp-{{ $employee->id }}">
-                                                    </div>
-                                                    @if ($employee->photo)
-                                                        <img src="{{ asset('storage/' . $employee->photo) }}"
-                                                            class="rounded-circle mb-2 border" width="50" height="50"
-                                                            style="object-fit: cover;">
-                                                    @else
-                                                        <div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center mb-2"
-                                                            style="width: 50px; height: 50px;">
-                                                            <i class="bi bi-person text-white fs-4"></i>
+{{-- Skillset Filter Buttons --}}
+                                <div class="mb-2 d-flex gap-1 flex-wrap">
+                                    <button type="button" class="btn btn-secondary btn-xs skillset-filter active" data-skillset="all">All</button>
+                                    @foreach($employeesBySkillset as $group)
+                                        <button type="button" class="btn btn-outline-secondary btn-xs skillset-filter"
+                                            data-skillset="{{ $group['skillset_id'] ?? 'none' }}">
+                                            {{ $group['label'] }}
+                                        </button>
+                                    @endforeach
+                                </div>
+
+                                <div id="employee-cards">
+                                    @if($employees->isEmpty())
+                                        <div class="alert alert-warning">
+                                            No active employees found. Please add employees first.
+                                        </div>
+                                    @else
+                                        <div class="row g-2">
+                                            @foreach($employees as $employee)
+                                                <div class="col-md-4 col-sm-6 employee-card-wrapper"
+                                                    data-skillset-ids=",{{ $employee->skillsets->pluck('id')->implode(',') }},"
+                                                    data-department-id="{{ $employee->department_id }}"
+                                                    data-position="{{ $employee->position }}"
+                                                    data-name="{{ strtolower($employee->name) }}">
+                                                    <div class="card employee-card h-100 border-2"
+                                                        data-employee-id="{{ $employee->id }}"
+                                                        style="cursor: pointer; transition: all 0.3s;">
+                                                        <div class="card-body text-center p-2">
+                                                            <div class="form-check position-absolute top-0 end-0 m-1">
+                                                                <input class="form-check-input employee-checkbox" type="checkbox"
+                                                                    name="employees[]" value="{{ $employee->id }}"
+                                                                    id="emp-{{ $employee->id }}">
+                                                            </div>
+                                                            @if ($employee->photo)
+                                                                <img src="{{ asset('storage/' . $employee->photo) }}"
+                                                                    class="rounded-circle mb-1 border" width="44" height="44"
+                                                                    style="object-fit: cover;">
+                                                            @else
+                                                                <div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center mb-1"
+                                                                    style="width: 44px; height: 44px;">
+                                                                    <i class="bi bi-person text-white"></i>
+                                                                </div>
+                                                            @endif
+                                                            <h6 class="mb-0 small lh-sm">{{ $employee->name }}</h6>
                                                         </div>
-                                                    @endif
-                                                    <h6 class="mb-1 small">{{ $employee->name }}</h6>
-                                                    <small class="text-muted d-block">{{ $employee->position }}</small>
-                                                    <small
-                                                        class="text-muted">{{ $employee->department->name ?? 'N/A' }}</small>
+                                                    </div>
                                                 </div>
-                                            </div>
+                                            @endforeach
                                         </div>
-                                    @empty
-                                        <div class="col-12">
-                                            <div class="alert alert-warning">
-                                                No active employees found. Please add employees first.
-                                            </div>
-                                        </div>
-                                    @endforelse
+                                    @endif
                                 </div>
                                 <div class="mt-2">
                                     <small class="text-muted">
@@ -122,7 +134,7 @@
                             <!-- STEP 2: Select Job Order -->
                             <div class="mb-4">
                                 <label class="form-label fw-bold">
-                                    <span class="badge bg-primary me-2">2</span>Select Job Order
+                                    <span class="badge bg-secondary me-2">2</span>Select Job Order
                                 </label>
                                 <select class="form-select select2" id="job-order-select" name="job_order_id" required>
                                     <option value="">Choose Job Order...</option>
@@ -154,7 +166,7 @@
                             <!-- STEP 3: Work Details -->
                             <div class="mb-4">
                                 <label class="form-label fw-bold">
-                                    <span class="badge bg-primary me-2">3</span>Work Details
+                                    <span class="badge bg-secondary me-2">3</span>Work Details
                                 </label>
                                 <div class="row g-3">
                                     <div class="col-md-6">
@@ -187,10 +199,13 @@
             <!-- Right Column: Active Sessions -->
             <div class="col-lg-5">
                 <div class="card shadow-sm border-0">
-                    <div class="card-header bg-gradient-success text-white">
-                        <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Active Work Sessions</h5>
+                    <div class="card-header bg-gradient-costume text-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Active Sessions</h5>
+                        <button class="btn btn-sm btn-light" onclick="location.reload()">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </button>
                     </div>
-                    <div class="card-body" id="active-sessions-container" style="max-height: 600px; overflow-y: auto;">
+                    <div class="card-body" id="active-sessions-container" style="max-height: 70vh; overflow-y: auto;">
                         @include('timing.costume.partials.active-sessions', [
                             'activeSessions' => $activeSessions,
                         ])
@@ -254,18 +269,16 @@
     </div>
 
     <style>
+        .btn-xs { padding: 0.15rem 0.5rem; font-size: 0.72rem; }
+
         .gradient-icon {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
-        .bg-gradient-primary {
+        .bg-gradient-costume {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-
-        .bg-gradient-success {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
         }
 
         .employee-card {
@@ -273,23 +286,24 @@
         }
 
         .employee-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
 
         .employee-card.selected {
             border-color: #667eea !important;
             background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
-            box-shadow: 0 0 15px rgba(102, 126, 234, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
         }
 
         .session-card {
-            border-left: 4px solid #28a745;
-            transition: all 0.3s ease;
+            border-left: 4px solid #667eea;
+            transition: all 0.3s;
         }
 
         .session-card:hover {
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
 
         .duration-display {
@@ -364,53 +378,47 @@
                 filterEmployees();
             });
 
+            // Skillset filter buttons
+            let activeSkillset = 'all';
+            $('.skillset-filter').on('click', function() {
+                $('.skillset-filter').removeClass('active btn-secondary').addClass('btn-outline-secondary');
+                $(this).removeClass('btn-outline-secondary').addClass('active btn-secondary');
+                activeSkillset = $(this).attr('data-skillset');
+                filterEmployees();
+            });
+
             // Filter function
             function filterEmployees() {
                 const deptFilter = $('#filter-department').val();
-                const posFilter = $('#filter-position').val();
+                const posFilter  = $('#filter-position').val();
                 const searchTerm = ($('#employee-search').val() || '').toLowerCase().trim();
                 let visibleCount = 0;
 
                 $('.employee-card-wrapper').each(function() {
-                    const deptId = $(this).data('department-id');
-                    const position = $(this).data('position');
-                    const empName = ($(this).find('h6').text() || '').toLowerCase();
-                    const empPos = ($(this).find('.employee-card small').first().text() || '')
-                .toLowerCase();
-                    const empDept = ($(this).find('.employee-card small').last().text() || '')
-                .toLowerCase();
+                    const skillsetIds = $(this).attr('data-skillset-ids') || ',';
+                    const deptId      = $(this).data('department-id');
+                    const position    = $(this).data('position');
+                    const empName     = ($(this).data('name') || '');
 
-                    let showCard = true;
+                    let show = true;
+                    if (activeSkillset !== 'all' && !skillsetIds.includes(',' + activeSkillset + ',')) show = false;
+                    if (deptFilter && deptId != deptFilter)                                            show = false;
+                    if (posFilter  && position != posFilter)                                           show = false;
+                    if (searchTerm && !empName.includes(searchTerm))                                   show = false;
 
-                    if (deptFilter && deptId != deptFilter) {
-                        showCard = false;
-                    }
-
-                    if (posFilter && position != posFilter) {
-                        showCard = false;
-                    }
-
-                    if (searchTerm && !empName.includes(searchTerm) && !empPos.includes(searchTerm) && !
-                        empDept.includes(searchTerm)) {
-                        showCard = false;
-                    }
-
-                    if (showCard) {
+                    if (show) {
                         $(this).show();
                         visibleCount++;
                     } else {
                         $(this).hide();
-                        // Uncheck if hidden
                         $(this).find('.employee-checkbox').prop('checked', false).trigger('change');
                     }
                 });
 
-                // Update filtered count
-                if (deptFilter || posFilter) {
-                    $('#filtered-count').html(`<span class="badge bg-info">${visibleCount} shown</span>`);
-                } else {
-                    $('#filtered-count').html('');
-                }
+                $('#filtered-count').html(
+                    (deptFilter || posFilter || activeSkillset !== 'all' || searchTerm)
+                        ? `<span class="badge bg-info">${visibleCount} shown</span>` : ''
+                );
             }
 
             // Employee card click handler (delegated event)
