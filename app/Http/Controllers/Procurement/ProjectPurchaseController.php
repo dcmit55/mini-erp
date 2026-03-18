@@ -98,7 +98,7 @@ class ProjectPurchaseController extends Controller
                 });
 
             $materials = Inventory::with(['unit:id,name', 'category:id,name'])
-                ->select('id', 'name', 'price', 'unit_id', 'category_id')
+                ->select('id', 'name', 'unit_id', 'category_id')
                 ->get();
 
             $units = Unit::select('id', 'name')->get();
@@ -224,7 +224,7 @@ class ProjectPurchaseController extends Controller
     {
         try {
             // Ambil 1 item sebagai representasi (first item)
-            $purchase = ProjectPurchase::with(['material:id,name,price', 'department:id,name', 'project:id,name', 'internalProject:id,project,job,department,department_id,description', 'jobOrder:id,name', 'category:id,name', 'unit:id,name', 'supplier:id,name', 'pic:id,username', 'approver:id,username', 'checker:id,username', 'receiver:id,username'])
+            $purchase = ProjectPurchase::with(['material:id,name', 'department:id,name', 'project:id,name', 'internalProject:id,project,job,department,department_id,description', 'jobOrder:id,name', 'category:id,name', 'unit:id,name', 'supplier:id,name', 'pic:id,username', 'approver:id,username', 'checker:id,username', 'receiver:id,username'])
                 ->where('uid', $uid)
                 ->first();
 
@@ -242,7 +242,7 @@ class ProjectPurchaseController extends Controller
             // Get items with same PO number AND same project (different project = different log)
             $poItemsQuery = ProjectPurchase::where('po_number', $purchase->po_number)
                                 ->where('is_current', true)
-                                ->with(['material:id,name,price', 'category:id,name', 'unit:id,name']);
+                                ->with(['material:id,name', 'category:id,name', 'unit:id,name']);
 
             if ($purchase->project_type === 'client') {
                 $poItemsQuery->where('job_order_id', $purchase->job_order_id);
@@ -596,7 +596,7 @@ class ProjectPurchaseController extends Controller
     public function edit($uid)
     {
         try {
-            $purchase = ProjectPurchase::with(['material:id,name,price', 'department:id,name', 'project:id,name', 'internalProject:id,project,job,department,department_id,description', 'jobOrder:id,name', 'category:id,name', 'unit:id,name', 'supplier:id,name', 'pic:id,username'])
+            $purchase = ProjectPurchase::with(['material:id,name', 'department:id,name', 'project:id,name', 'internalProject:id,project,job,department,department_id,description', 'jobOrder:id,name', 'category:id,name', 'unit:id,name', 'supplier:id,name', 'pic:id,username'])
                 ->where('uid', $uid)
                 ->firstOrFail();
 
@@ -636,7 +636,7 @@ class ProjectPurchaseController extends Controller
                     'current_revision_id' => $purchase->id,
                     'revision_number' => $revisions->where('created_at', '<=', $purchase->created_at)->count(),
                 ],
-                'materials' => Inventory::select('id', 'name', 'price', 'unit_id', 'category_id')->get(),
+                'materials' => Inventory::select('id', 'name', 'unit_id', 'category_id')->get(),
                 'departments' => Department::select('id', 'name')->get(),
                 'projects' => Project::select('id', 'name')->get(),
                 'internal_projects' => InternalProject::select('id', 'project', 'job', 'department', 'department_id', 'description')->orderBy('project')->get(),
@@ -935,13 +935,13 @@ class ProjectPurchaseController extends Controller
     public function print($uid)
     {
         try {
-            $purchase = ProjectPurchase::with(['material:id,name,price', 'department:id,name', 'project:id,name', 'internalProject:id,project,job,department,department_id,description', 'jobOrder:id,name', 'category:id,name', 'unit:id,name', 'supplier:id,name,address', 'pic:id,username', 'approver:id,username'])
+            $purchase = ProjectPurchase::with(['material:id,name', 'department:id,name', 'project:id,name', 'internalProject:id,project,job,department,department_id,description', 'jobOrder:id,name', 'category:id,name', 'unit:id,name', 'supplier:id,name,address', 'pic:id,username', 'approver:id,username'])
                 ->where('uid', $uid)
                 ->firstOrFail();
 
             // Ambil semua item dengan PO number yang sama
             $poItems = ProjectPurchase::where('po_number', $purchase->po_number)
-                                ->with(['material:id,name,price', 'category:id,name', 'unit:id,name'])
+                                ->with(['material:id,name', 'category:id,name', 'unit:id,name'])
                 ->orderBy('id')
                 ->get();
 
@@ -961,7 +961,7 @@ class ProjectPurchaseController extends Controller
     {
         try {
             $materials = Inventory::with(['unit:id,name', 'category:id,name'])
-                ->select('id', 'name', 'price', 'unit_id', 'category_id')
+                ->select('id', 'name', 'unit_id', 'category_id')
                 ->get();
 
             return response()->json([
