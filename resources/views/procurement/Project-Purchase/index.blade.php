@@ -816,67 +816,73 @@
                             Showing {{ $purchases->firstItem() }} - {{ $purchases->lastItem() }} of {{ $purchases->total() }} PO(s)
                         </div>
                         
-                        <div class="d-flex align-items-center">
-                            <!-- DaisyUI Pagination -->
-                            <div class="join">
-                                @if($purchases->onFirstPage())
-                                    <button class="join-item btn btn-disabled">
-                                        <i class="fas fa-chevron-left"></i>
-                                    </button>
-                                @else
-                                    <a href="{{ $purchases->previousPageUrl() }}" class="join-item btn">
-                                        <i class="fas fa-chevron-left"></i>
-                                    </a>
-                                @endif
-                                
-                                @php
-                                    $current = $purchases->currentPage();
-                                    $last = $purchases->lastPage();
-                                    $maxPages = 5;
-                                    $start = max($current - floor($maxPages/2), 1);
-                                    $end = min($start + $maxPages - 1, $last);
-                                    
-                                    if ($end - $start < $maxPages - 1) {
-                                        $start = max($end - $maxPages + 1, 1);
-                                    }
-                                    
-                                    if ($start > 1) {
-                                        echo '<a href="' . $purchases->url(1) . '" class="join-item btn">1</a>';
-                                        if ($start > 2) {
-                                            echo '<button class="join-item btn btn-disabled">...</button>';
+                        <div>
+                            <nav aria-label="Page navigation">
+                                <ul class="pagination pagination-sm mb-0">
+                                    <!-- Previous Page Link -->
+                                    @if($purchases->onFirstPage())
+                                        <li class="page-item disabled">
+                                            <span class="page-link py-1 px-3 rounded-2 me-1" aria-label="Previous">
+                                                <i class="fas fa-chevron-left"></i>
+                                            </span>
+                                        </li>
+                                    @else
+                                        <li class="page-item">
+                                            <a class="page-link py-1 px-3 rounded-2 me-1"
+                                               href="{{ $purchases->previousPageUrl() }}"
+                                               aria-label="Previous">
+                                                <i class="fas fa-chevron-left"></i>
+                                            </a>
+                                        </li>
+                                    @endif
+
+                                    <!-- Page Numbers -->
+                                    @php
+                                        $current = $purchases->currentPage();
+                                        $last = $purchases->lastPage();
+                                        $start = max($current - 2, 1);
+                                        $end = min($current + 2, $last);
+
+                                        if ($start > 1) {
+                                            echo '<li class="page-item"><span class="page-link py-1 px-3 rounded-2 me-1">...</span></li>';
                                         }
-                                    }
-                                    
-                                    for ($i = $start; $i <= $end; $i++) {
-                                        if ($i == $current) {
-                                            echo '<button class="join-item btn btn-active">' . $i . '</button>';
-                                        } else {
-                                            echo '<a href="' . $purchases->url($i) . '" class="join-item btn">' . $i . '</a>';
-                                        }
-                                    }
-                                    
-                                    if ($end < $last) {
-                                        if ($end < $last - 1) {
-                                            echo '<button class="join-item btn btn-disabled">...</button>';
-                                        }
-                                        echo '<a href="' . $purchases->url($last) . '" class="join-item btn">' . $last . '</a>';
-                                    }
-                                @endphp
-                                
-                                @if($purchases->hasMorePages())
-                                    <a href="{{ $purchases->nextPageUrl() }}" class="join-item btn">
-                                        <i class="fas fa-chevron-right"></i>
-                                    </a>
-                                @else
-                                    <button class="join-item btn btn-disabled">
-                                        <i class="fas fa-chevron-right"></i>
-                                    </button>
-                                @endif
-                            </div>
-                            
-                            <div class="ms-3 d-none d-md-block">
-                                <span class="small text-muted">{{ $purchases->perPage() }} data per page</span>
-                            </div>
+                                    @endphp
+
+                                    @for ($i = $start; $i <= $end; $i++)
+                                        @if ($i == $current)
+                                            <li class="page-item active">
+                                                <span class="page-link py-1 px-3 rounded-2 me-1">{{ $i }}</span>
+                                            </li>
+                                        @else
+                                            <li class="page-item">
+                                                <a class="page-link py-1 px-3 rounded-2 me-1"
+                                                   href="{{ $purchases->url($i) }}">{{ $i }}</a>
+                                            </li>
+                                        @endif
+                                    @endfor
+
+                                    @if ($end < $last)
+                                        <li class="page-item"><span class="page-link py-1 px-3 rounded-2 me-1">...</span></li>
+                                    @endif
+
+                                    <!-- Next Page Link -->
+                                    @if($purchases->hasMorePages())
+                                        <li class="page-item">
+                                            <a class="page-link py-1 px-3 rounded-2"
+                                               href="{{ $purchases->nextPageUrl() }}"
+                                               aria-label="Next">
+                                                <i class="fas fa-chevron-right"></i>
+                                            </a>
+                                        </li>
+                                    @else
+                                        <li class="page-item disabled">
+                                            <span class="page-link py-1 px-3 rounded-2" aria-label="Next">
+                                                <i class="fas fa-chevron-right"></i>
+                                            </span>
+                                        </li>
+                                    @endif
+                                </ul>
+                            </nav>
                         </div>
                     </div>
                 </div>
