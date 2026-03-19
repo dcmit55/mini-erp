@@ -96,16 +96,11 @@ class StagingInventoryApprovalService
                     'batch_id' => $batchId,
                     'created' => $created,
                 ];
-
             } catch (\Illuminate\Database\QueryException $e) {
                 // Catch UNIQUE constraint violations (e.g. lark_record_id duplicate)
                 // and surface as a user-friendly message instead of a raw SQL error.
                 if ($e->errorInfo[1] === 1062) {
-                    throw new \InvalidArgumentException(
-                        "Data item <strong>{$staging->name}</strong> sudah ada di Inventory Listing. "
-                        . "Tidak dapat di-approve karena akan membuat data duplikat. "
-                        . "Silakan reset item ini dan sesuaikan Material Code / Nama terlebih dahulu."
-                    );
+                    throw new \InvalidArgumentException("Data item <strong>{$staging->name}</strong> sudah ada di Inventory Listing. " . 'Tidak dapat di-approve karena akan membuat data duplikat. ' . 'Silakan reset item ini dan sesuaikan Material Code / Nama terlebih dahulu.');
                 }
                 throw $e;
             }
@@ -162,12 +157,7 @@ class StagingInventoryApprovalService
             $newLarkRecordId = $staging->source_record_ids ?: $staging->lark_record_id;
 
             // Only update lark_record_id if no OTHER inventory row already owns it
-            $larkIdOwner = $newLarkRecordId
-                ? Inventory::withTrashed()
-                    ->where('lark_record_id', $newLarkRecordId)
-                    ->where('id', '!=', $inventory->id)
-                    ->exists()
-                : false;
+            $larkIdOwner = $newLarkRecordId ? Inventory::withTrashed()->where('lark_record_id', $newLarkRecordId)->where('id', '!=', $inventory->id)->exists() : false;
 
             $updateData = [
                 'project_lark' => $staging->project_lark,
