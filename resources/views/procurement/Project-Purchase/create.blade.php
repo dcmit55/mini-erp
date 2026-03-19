@@ -431,15 +431,7 @@
                                         <div class="col-md-12 mb-2">
                                             <label class="form-label">Material <span class="text-danger">*</span></label>
                                             <select class="form-select material-select" data-index="__INDEX__">
-                                                <option value="">Select Material</option>
-                                                @foreach($materials as $material)
-                                                    <option value="{{ $material->id }}" 
-                                                            data-price="{{ $material->price ?? 0 }}"
-                                                            data-unit-id="{{ $material->unit_id }}"
-                                                            data-category-id="{{ $material->category_id }}">
-                                                        {{ $material->name }}
-                                                    </option>
-                                                @endforeach
+                                                <option value="">Type to search material...</option>
                                             </select>
                                         </div>
                                     </div>
@@ -761,22 +753,29 @@ $(document).ready(function() {
             setFieldNames();
         });
         
-        // Material select
-        row.find('.material-select').change(function() {
-            const selected = $(this).find('option:selected');
-            const price = selected.data('price') || 0;
-            const unitId = selected.data('unit-id');
-            const categoryId = selected.data('category-id');
-            
-            row.find('.unit-price').val(price);
-            
-            if (unitId) {
-                row.find('.unit-select').val(unitId);
-            }
-            if (categoryId) {
-                row.find('.category-select').val(categoryId);
-            }
-            
+        // Material select — Select2 AJAX (tidak load 4414 option sekaligus)
+        const materialSel = row.find('.material-select');
+        materialSel.select2({
+            width: '100%',
+            placeholder: 'Type to search material...',
+            minimumInputLength: 1,
+            ajax: {
+                url: '{{ route("project-purchases.materials.search") }}',
+                dataType: 'json',
+                delay: 300,
+                data: params => ({ q: params.term }),
+                processResults: data => ({ results: data.results }),
+                cache: true,
+            },
+            templateResult: item => item.loading ? item.text : $(`<span>${item.text}</span>`),
+            templateSelection: item => item.text || item.id,
+        });
+
+        materialSel.on('select2:select', function(e) {
+            const d = e.params.data;
+            row.find('.unit-price').val(0);
+            if (d.unit_id)     row.find('.unit-select').val(d.unit_id);
+            if (d.category_id) row.find('.category-select').val(d.category_id);
             calculateRowSubtotal(row);
             calculateGrandTotal();
         });

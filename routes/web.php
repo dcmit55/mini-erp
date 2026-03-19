@@ -62,6 +62,7 @@ use App\Http\Controllers\Hr\OvertimePayController;
 use App\Http\Controllers\Hr\EmployeeWorkPolicyImportController;
 use App\Http\Controllers\Hr\FingerprintLogController;
 use App\Http\Controllers\Hr\FingerspotController;
+use App\Http\Controllers\Hr\SessionShiftController;
 
 /*
 |--------------------------------------------------------------------------
@@ -531,6 +532,7 @@ Route::middleware(['auth'])->group(function () {
     Route::prefix('project-purchases')->group(function () {
         Route::get('/', [ProjectPurchaseController::class, 'index'])->name('project-purchases.index');
         Route::get('/create', [ProjectPurchaseController::class, 'create'])->name('project-purchases.create');
+        Route::get('/materials/search', [ProjectPurchaseController::class, 'searchMaterials'])->name('project-purchases.materials.search');
         Route::post('/', [ProjectPurchaseController::class, 'store'])->name('project-purchases.store');
         Route::get('/{uid}', [ProjectPurchaseController::class, 'show'])->name('project-purchases.show');
         Route::get('/{uid}/edit', [ProjectPurchaseController::class, 'edit'])->name('project-purchases.edit');
@@ -660,6 +662,7 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/register-employee', [FingerspotController::class, 'registerEmployee'])->name('register-employee');
             Route::post('/register-biometric', [FingerspotController::class, 'registerBiometric'])->name('register-biometric');
             Route::post('/delete-employee', [FingerspotController::class, 'deleteEmployee'])->name('delete-employee');
+            Route::post('/reset-device-status', [FingerspotController::class, 'resetDeviceStatus'])->name('reset-device-status');
             Route::post('/sync-device', [FingerspotController::class, 'syncFromDevice'])->name('sync-device');
             Route::post('/device-info', [FingerspotController::class, 'deviceInfo'])->name('device-info');
             Route::post('/set-timezone', [FingerspotController::class, 'setTimezone'])->name('set-timezone');
@@ -669,6 +672,9 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/download-attendance', [FingerspotController::class, 'showDownloadForm'])->name('download-attendance.form');
             Route::post('/download-attendance', [FingerspotController::class, 'downloadAttendance'])->name('download-attendance');
         }); // Attendance Logs
+    // Session Shifts CRUD
+    Route::resource('session-shifts', SessionShiftController::class)->except(['show']);
+
     Route::get('/attendance-logs', [AttendanceLogController::class, 'index'])->name('attendance-logs.index');
     Route::post('/attendance-logs/import', [AttendanceLogController::class, 'storeImport'])->name('attendance-logs.import.store');
     Route::get('/attendance-logs/import', function () {

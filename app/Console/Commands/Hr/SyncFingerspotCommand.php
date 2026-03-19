@@ -54,6 +54,21 @@ class SyncFingerspotCommand extends Command
             $startDate = Carbon::today()->subDays($days - 1);
         }
 
+        // Terapkan batas minimum tanggal (FINGERSPOT_SYNC_VALID_FROM di .env).
+        // Berguna ketika data lama di cloud Fingerspot tidak bisa dihapus via API.
+        $syncValidFrom = config('fingerspot.sync_valid_from');
+        if ($syncValidFrom) {
+            $validFrom = Carbon::parse($syncValidFrom);
+            if ($startDate->lt($validFrom)) {
+                $startDate = $validFrom;
+            }
+            // Jika end date pun sebelum valid_from, tidak ada yang perlu di-sync
+            if ($endDate->lt($validFrom)) {
+                $this->line('Semua tanggal sebelum FINGERSPOT_SYNC_VALID_FROM, sync dilewati.');
+                return self::SUCCESS;
+            }
+        }
+
         $this->line("Sync fingerspot [{$deviceId}]: {$startDate->toDateString()} s/d {$endDate->toDateString()}");
 
         // ── 1) Pull attendance data ──────────────────────────────────────────
@@ -107,9 +122,16 @@ class SyncFingerspotCommand extends Command
                         continue;
                     }
 
-                    // Hanya set device_registered_at untuk scan BARU (bukan historis/duplikat)
+                    // Hanya set field registrasi untuk scan BARU (bukan historis/duplikat)
+                    $updates = [];
                     if (is_null($employee->device_registered_at)) {
-                        $employee->update(['device_registered_at' => now()]);
+                        $updates['device_registered_at'] = now();
+                    }
+                    if (is_null($employee->biometric_enrolled_at)) {
+                        $updates['biometric_enrolled_at'] = now();
+                    }
+                    if (!empty($updates)) {
+                        $employee->update($updates);
                     }
 
                     $date = $scanCarbon->format('Y-m-d');
@@ -149,11 +171,18 @@ class SyncFingerspotCommand extends Command
             $allPinResponse = $this->fingerspot->getAllPin($deviceId, $pinTransId);
             $devicePins     = $this->parseAllPinResponse($allPinResponse);
 
-            if (!empty($devicePins)) {
+            // Cek apakah device merespons secara sinkron (ada key data/pin/pins di response),
+            // vs async (hanya success:true tanpa data — device akan callback via webhook).
+            $deviceRespondedSync = array_key_exists('data', $allPinResponse)
+                || array_key_exists('pin',  $allPinResponse)
+                || array_key_exists('pins', $allPinResponse);
+
+            if ($deviceRespondedSync) {
+                // Device langsung kirim list PIN (bisa kosong jika memang belum ada user)
                 Cache::forget('sync_' . $pinTransId);
                 [$regMarked, $regCleared] = $this->reconcileDevicePins($devicePins);
-            } else {
-                // Webhook callback akan handle dengan trans_id ini
+            } elseif ($allPinResponse['success'] ?? false) {
+                // Async — webhook callback akan handle dengan trans_id ini
                 Log::info('hr:sync-fingerspot getAllPin: menunggu webhook callback', ['trans_id' => $pinTransId]);
             }
         } catch (\Exception $e) {
@@ -226,24 +255,29 @@ class SyncFingerspotCommand extends Command
             ->values()
             ->toArray();
 
-        if (empty($deviceEmployeeNos)) {
-            return [0, 0];
-        }
-
         // Tandai yang ada di mesin tapi belum tercatat di sistem
-        $marked = Employee::whereIn('employee_no', $deviceEmployeeNos)
-            ->whereNull('device_registered_at')
-            ->get();
-        foreach ($marked as $emp) {
-            $emp->update(['device_registered_at' => now()]);
+        $marked = collect();
+        if (!empty($deviceEmployeeNos)) {
+            $marked = Employee::whereIn('employee_no', $deviceEmployeeNos)
+                ->whereNull('device_registered_at')
+                ->get();
+            foreach ($marked as $emp) {
+                $emp->update([
+                    'device_registered_at'  => now(),
+                    'biometric_enrolled_at' => now(),
+                ]);
+            }
         }
 
-        // Hapus tanda untuk yang sudah tidak ada di mesin
-        $cleared = Employee::whereNotNull('device_registered_at')
-            ->whereNotIn('employee_no', $deviceEmployeeNos)
-            ->get();
+        // Hapus tanda untuk yang sudah tidak ada di mesin.
+        // Jika $deviceEmployeeNos kosong (mesin kosong), bersihkan semua.
+        $clearQuery = Employee::whereNotNull('device_registered_at');
+        if (!empty($deviceEmployeeNos)) {
+            $clearQuery->whereNotIn('employee_no', $deviceEmployeeNos);
+        }
+        $cleared = $clearQuery->get();
         foreach ($cleared as $emp) {
-            $emp->update(['device_registered_at' => null]);
+            $emp->update(['device_registered_at' => null, 'biometric_enrolled_at' => null]);
         }
 
         Log::info('reconcileDevicePins (auto-sync)', [

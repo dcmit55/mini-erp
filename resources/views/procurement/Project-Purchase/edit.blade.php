@@ -554,16 +554,11 @@
                                                 <div class="col-md-12 mb-2">
                                                     <label class="form-label">Material <span class="text-danger">*</span></label>
                                                     <select name="items[{{ $itemIndex }}][material_id]" class="form-select material-select" {{ !$itemIsEditable ? 'disabled' : '' }}>
-                                                        <option value="">Select Material</option>
-                                                        @foreach($materials as $material)
-                                                            <option value="{{ $material->id }}" 
-                                                                    data-price="{{ $material->price ?? 0 }}"
-                                                                    data-unit-id="{{ $material->unit_id }}"
-                                                                    data-category-id="{{ $material->category_id }}"
-                                                                    {{ $item->material_id == $material->id ? 'selected' : '' }}>
-                                                                {{ $material->name }}
-                                                            </option>
-                                                        @endforeach
+                                                        @if($item->material_id && $item->material)
+                                                            <option value="{{ $item->material_id }}" selected>{{ $item->material->name }}</option>
+                                                        @else
+                                                            <option value="">Type to search material...</option>
+                                                        @endif
                                                     </select>
                                                     @if(!$itemIsEditable)
                                                         <input type="hidden" name="items[{{ $itemIndex }}][material_id]" value="{{ $item->material_id }}">
@@ -672,15 +667,7 @@
                                             <div class="col-md-12 mb-2">
                                                 <label class="form-label">Material <span class="text-danger">*</span></label>
                                                 <select name="new_items[__INDEX__][material_id]" class="form-select material-select">
-                                                    <option value="">Select Material</option>
-                                                    @foreach($materials as $material)
-                                                        <option value="{{ $material->id }}" 
-                                                                data-price="{{ $material->price ?? 0 }}"
-                                                                data-unit-id="{{ $material->unit_id }}"
-                                                                data-category-id="{{ $material->category_id }}">
-                                                            {{ $material->name }}
-                                                        </option>
-                                                    @endforeach
+                                                    <option value="">Type to search material...</option>
                                                 </select>
                                             </div>
                                         </div>
@@ -962,31 +949,33 @@ $(document).ready(function() {
         }
     });
 
-    // Material Auto-fill for existing items
-    $('.material-select').each(function() {
-        const select = $(this);
-        const row = select.closest('.item-row');
-
-        select.on('change', function() {
-            const selected = $(this).find('option:selected');
-            const price = selected.data('price') || 0;
-            const unitId = selected.data('unit-id');
-            const categoryId = selected.data('category-id');
-
-            row.find('.unit-price').val(price);
-
-            // Hanya set unit/category jika belum ada nilai (preserve existing values)
-            if (unitId && !row.find('.unit-select').val()) {
-                row.find('.unit-select').val(unitId);
-            }
-            if (categoryId && !row.find('.category-select').val()) {
-                row.find('.category-select').val(categoryId);
-            }
-
+    // Material Select2 AJAX — existing items (sudah punya selected value dari server)
+    function initMaterialSelect2(sel) {
+        const row = sel.closest('.item-row');
+        sel.select2({
+            width: '100%',
+            placeholder: 'Type to search material...',
+            minimumInputLength: 1,
+            ajax: {
+                url: '{{ route("project-purchases.materials.search") }}',
+                dataType: 'json',
+                delay: 300,
+                data: params => ({ q: params.term }),
+                processResults: data => ({ results: data.results }),
+                cache: true,
+            },
+        });
+        sel.on('select2:select', function(e) {
+            const d = e.params.data;
+            row.find('.unit-price').val(0);
+            if (d.unit_id     && !row.find('.unit-select').val())     row.find('.unit-select').val(d.unit_id);
+            if (d.category_id && !row.find('.category-select').val()) row.find('.category-select').val(d.category_id);
             calculateRowSubtotal(row);
             calculateGrandTotal();
         });
-    });
+    }
+
+    $('.material-select').each(function() { initMaterialSelect2($(this)); });
 
     // Quantity/Price change for existing items
     $('.quantity, .unit-price').on('input', function() {
@@ -1086,26 +1075,8 @@ $(document).ready(function() {
             }
         });
         
-        // Material select
-        row.find('.material-select').change(function() {
-            const selected = $(this).find('option:selected');
-            const price = selected.data('price') || 0;
-            const unitId = selected.data('unit-id');
-            const categoryId = selected.data('category-id');
-
-            row.find('.unit-price').val(price);
-
-            // Selalu auto-fill unit/category untuk row baru
-            if (unitId) {
-                row.find('.unit-select').val(unitId);
-            }
-            if (categoryId) {
-                row.find('.category-select').val(categoryId);
-            }
-
-            calculateRowSubtotal(row);
-            calculateGrandTotal();
-        });
+        // Material select — pakai Select2 AJAX
+        initMaterialSelect2(row.find('.material-select'));
         
         // Quantity/Price change
         row.find('.quantity, .unit-price').on('input', function() {

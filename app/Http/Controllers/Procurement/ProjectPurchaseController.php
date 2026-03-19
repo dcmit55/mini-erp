@@ -14,6 +14,7 @@ use App\Models\Logistic\Category;
 use App\Models\Logistic\Unit;
 use App\Models\InternalProject;
 use App\Services\ProjectPurchaseService;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -83,38 +84,9 @@ class ProjectPurchaseController extends Controller
     public function create()
     {
         try {
-            $jobOrders = JobOrder::with(['department:id,name', 'project:id,name'])
-                ->select('id', 'name', 'department_id', 'project_id')
-                ->get()
-                ->map(function ($jobOrder) {
-                    return [
-                        'id' => $jobOrder->id,
-                        'name' => $jobOrder->name,
-                        'department_id' => $jobOrder->department_id,
-                        'department_name' => $jobOrder->department->name ?? 'N/A',
-                        'project_id' => $jobOrder->project_id,
-                        'project_name' => $jobOrder->project->name ?? 'N/A',
-                    ];
-                });
+            $formData = $this->getFormDropdowns();
 
-            $materials = Inventory::with(['unit:id,name', 'category:id,name'])
-                ->select('id', 'name', 'unit_id', 'category_id')
-                ->get();
-
-            $units = Unit::select('id', 'name')->get();
-            $categories = Category::select('id', 'name')->get();
-
-            return view('procurement.Project-Purchase.create', [
-                'materials' => $materials,
-                'departments' => Department::select('id', 'name')->get(),
-                'projects' => Project::select('id', 'name')->get(),
-                'internal_projects' => InternalProject::select('id', 'project', 'job', 'department', 'department_id', 'description')->orderBy('project')->get(),
-                'categories' => $categories,
-                'units' => $units,
-                'jobOrders' => $jobOrders,
-                'suppliers' => Supplier::select('id', 'name')->get(),
-                'supplierLocations' => \App\Models\Procurement\LocationSupplier::select('id', 'name')->get(),
-            ]);
+            return view('procurement.Project-Purchase.create', $formData);
         } catch (\Exception $e) {
             Log::error('Create view error: ' . $e->getMessage());
             return redirect()
@@ -627,7 +599,9 @@ class ProjectPurchaseController extends Controller
 
             $revisions = $revisionsQuery->get(['id', 'revision_at', 'status', 'item_status', 'created_at', 'is_current']);
 
-            return view('procurement.Project-Purchase.edit', [
+            $formData = $this->getFormDropdowns();
+
+            return view('procurement.Project-Purchase.edit', array_merge($formData, [
                 'purchase' => $purchase,
                 'poItems' => $poItems,
                 'revisions' => $revisions,
@@ -636,16 +610,7 @@ class ProjectPurchaseController extends Controller
                     'current_revision_id' => $purchase->id,
                     'revision_number' => $revisions->where('created_at', '<=', $purchase->created_at)->count(),
                 ],
-                'materials' => Inventory::select('id', 'name', 'unit_id', 'category_id')->get(),
-                'departments' => Department::select('id', 'name')->get(),
-                'projects' => Project::select('id', 'name')->get(),
-                'internal_projects' => InternalProject::select('id', 'project', 'job', 'department', 'department_id', 'description')->orderBy('project')->get(),
-                'categories' => Category::select('id', 'name')->get(),
-                'units' => Unit::select('id', 'name')->get(),
-                'jobOrders' => JobOrder::leftJoin('departments', 'job_orders.department_id', '=', 'departments.id')->leftJoin('projects', 'job_orders.project_id', '=', 'projects.id')->select('job_orders.id', 'job_orders.name', 'job_orders.project_id', 'job_orders.department_id', 'departments.name as department_name', 'projects.name as project_name')->get(),
-                'suppliers' => Supplier::select('id', 'name')->get(),
-                'supplierLocations' => \App\Models\Procurement\LocationSupplier::select('id', 'name')->get(),
-            ]);
+            ]));
         } catch (\Exception $e) {
             Log::error('Edit error: ' . $e->getMessage());
             return redirect()->route('project-purchases.index')->with('error', 'Terjadi kesalahan saat memuat halaman edit.');
@@ -1000,5 +965,93 @@ class ProjectPurchaseController extends Controller
                 'message' => 'Gagal mengambil data items',
             ]);
         }
+    }
+
+    /**
+     * AJAX: cari material by name — dipakai Select2 di form create/edit.
+     * Menggantikan @foreach 4414 option di HTML (penyebab utama loading lambat).
+     */
+    public function searchMaterials(Request $request)
+    {
+        $q = $request->input('q', '');
+
+        $items = Inventory::with(['unit:id,name', 'category:id,name'])
+            ->select('id', 'name', 'unit_id', 'category_id')
+            ->when($q, fn($query) => $query->where('name', 'like', "%{$q}%"))
+            ->orderBy('name')
+            ->limit(50)
+            ->get()
+            ->map(fn($m) => [
+                'id'          => $m->id,
+                'text'        => $m->name,
+                'unit_id'     => $m->unit_id,
+                'unit_name'   => $m->unit->name ?? '',
+                'category_id' => $m->category_id,
+            ]);
+
+        return response()->json(['results' => $items]);
+    }
+
+    /**
+     * Shared dropdown data untuk form create & edit.
+     * Di-cache 10 menit — data ini jarang berubah.
+     * Inventory (4414 item), JobOrders (626), Suppliers (383) adalah penyebab utama loading lambat.
+     */
+    private function getFormDropdowns(): array
+    {
+        $jobOrders = Cache::remember('pp_job_orders', 300, fn() =>
+            JobOrder::with(['department:id,name', 'project:id,name'])
+                ->select('id', 'name', 'department_id', 'project_id')
+                ->get()
+                ->map(fn($jo) => [
+                    'id'              => $jo->id,
+                    'name'            => $jo->name,
+                    'department_id'   => $jo->department_id,
+                    'department_name' => $jo->department->name ?? 'N/A',
+                    'project_id'      => $jo->project_id,
+                    'project_name'    => $jo->project->name ?? 'N/A',
+                ])
+        );
+
+        $suppliers = Cache::remember('pp_suppliers', 600, fn() =>
+            Supplier::select('id', 'name')->orderBy('name')->get()
+        );
+
+        $supplierLocations = Cache::remember('pp_supplier_locations', 600, fn() =>
+            \App\Models\Procurement\LocationSupplier::select('id', 'name')->get()
+        );
+
+        $departments = Cache::remember('pp_departments', 600, fn() =>
+            Department::select('id', 'name')->orderBy('name')->get()
+        );
+
+        $projects = Cache::remember('pp_projects', 300, fn() =>
+            Project::select('id', 'name')->orderBy('name')->get()
+        );
+
+        $internalProjects = Cache::remember('pp_internal_projects', 600, fn() =>
+            InternalProject::select('id', 'project', 'job', 'department', 'department_id', 'description')
+                ->orderBy('project')
+                ->get()
+        );
+
+        $categories = Cache::remember('pp_categories', 3600, fn() =>
+            Category::select('id', 'name')->orderBy('name')->get()
+        );
+
+        $units = Cache::remember('pp_units', 3600, fn() =>
+            Unit::select('id', 'name')->orderBy('name')->get()
+        );
+
+        return [
+            'jobOrders'          => $jobOrders,
+            'suppliers'          => $suppliers,
+            'supplierLocations'  => $supplierLocations,
+            'departments'        => $departments,
+            'projects'           => $projects,
+            'internal_projects'  => $internalProjects,
+            'categories'         => $categories,
+            'units'              => $units,
+        ];
     }
 }
