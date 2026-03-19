@@ -176,6 +176,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/inventory/export', [InventoryController::class, 'export'])->name('inventory.export');
     Route::post('/inventory/sync-from-lark', [InventoryController::class, 'syncFromLark'])->name('inventory.sync.lark');
     Route::get('/inventory/lark-raw-data', [InventoryController::class, 'getLarkRawData'])->name('inventory.lark.raw');
+    Route::get('/inventory/stock-value', [InventoryController::class, 'stockValue'])->name('inventory.stock-value');
     Route::resource('inventory', InventoryController::class);
     Route::post('/inventory/import', [InventoryController::class, 'import'])->name('inventory.import');
     Route::get('/inventory/detail/{id}', [InventoryController::class, 'detail'])->name('inventory.detail');
@@ -184,6 +185,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Inventory Batches
     Route::get('/inventory-batch', [\App\Http\Controllers\Logistic\InventoryBatchController::class, 'index'])->name('inventory-batch.index');
+    Route::get('/inventory-batch/stock-value', [\App\Http\Controllers\Logistic\InventoryBatchController::class, 'batchStockValue'])->name('inventory-batch.stock-value');
     Route::get('/inventory-batch/by-inventory/{id}', [\App\Http\Controllers\Logistic\InventoryBatchController::class, 'byInventory'])->name('inventory-batch.by-inventory');
 
     // Projects
@@ -218,7 +220,9 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/inventory/{id}/reject', [App\Http\Controllers\Lark\LarkStagingController::class, 'rejectInventory'])->name('inventory.reject');
             Route::post('/inventory/{id}/reset', [App\Http\Controllers\Lark\LarkStagingController::class, 'resetInventory'])->name('inventory.reset');
             Route::post('/inventory/{id}/received-qty', [App\Http\Controllers\Lark\LarkStagingController::class, 'updateReceivedQty'])->name('inventory.update-received-qty');
+            Route::post('/inventory/{id}/update-item', [App\Http\Controllers\Lark\LarkStagingController::class, 'updateItem'])->name('inventory.update-item');
             Route::post('/inventory/{id}/update-name', [App\Http\Controllers\Lark\LarkStagingController::class, 'updateName'])->name('inventory.update-name');
+            Route::post('/inventory/{id}/update-unit', [App\Http\Controllers\Lark\LarkStagingController::class, 'updateUnit'])->name('inventory.update-unit');
             Route::post('/inventory/bulk-approve', [App\Http\Controllers\Lark\LarkStagingController::class, 'bulkApproveInventory'])->name('inventory.bulk-approve');
         });
 
@@ -331,6 +335,10 @@ Route::middleware(['auth'])->group(function () {
 
     // Costings
     Route::get('/costing-report', [ProjectCostingController::class, 'index'])->name('costing.report');
+    Route::get('/costing-report/{project_id}/detail', [ProjectCostingController::class, 'showDetail'])->name('costing.detail');
+    Route::get('/costing-report/{project_id}/detail/material', [ProjectCostingController::class, 'showMaterialDetail'])->name('costing.detail.material');
+    Route::get('/costing-report/{project_id}/detail/workmanship', [ProjectCostingController::class, 'showWorkmanshipDetail'])->name('costing.detail.workmanship');
+    Route::get('/costing-report/{project_id}/detail/freight', [ProjectCostingController::class, 'showFreightDetail'])->name('costing.detail.freight');
     Route::get('/costing-report/{project_id}', [ProjectCostingController::class, 'viewCosting'])->name('costing.view');
     Route::get('/costing-report/export/{project_id}', [ProjectCostingController::class, 'exportCosting'])->name('costing.export');
     Route::get('/costing-report-export-all', [ProjectCostingController::class, 'exportAllProjects'])->name('costing.export.all');
@@ -790,6 +798,4 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/{id}/mark-read', [App\Http\Controllers\Admin\FeatureAnnouncementController::class, 'markAsRead'])->name('mark-read');
             Route::post('/{id}/re-broadcast', [App\Http\Controllers\Admin\FeatureAnnouncementController::class, 'reBroadcast'])->name('re-broadcast');
         });
-
-
 });

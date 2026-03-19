@@ -106,9 +106,17 @@
                         <div class="stat-icon bg-warning bg-opacity-10 text-warning">
                             <i class="bi bi-currency-dollar"></i>
                         </div>
-                        <div>
-                            <div class="fs-4 fw-bold text-warning">{{ number_format($totalStockValue, 2, '.', ',') }}</div>
-                            <div class="text-muted small">Total Stock Value</div>
+                        <div class="flex-grow-1">
+                            <div id="batchStockValueAmount" class="fs-5 fw-bold text-warning">
+                                <span class="spinner-border spinner-border-sm text-warning" role="status"></span>
+                            </div>
+                            <div class="text-muted small d-flex align-items-center gap-1">
+                                Total Stock Value (IDR)
+                                <button type="button" id="btnRefreshBatchStockValue"
+                                    class="btn btn-link btn-sm p-0 ms-1 text-muted" title="Refresh">
+                                    <i class="fas fa-sync-alt" style="font-size:.7rem;"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -128,6 +136,15 @@
                     </select>
                 </div>
                 <div class="col-md-2">
+                    <label class="form-label form-label-sm mb-1">Category</label>
+                    <select id="filter_category" class="form-select form-select-sm select2-category">
+                        <option value="">All Categories</option>
+                        @foreach ($categories as $cat)
+                            <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-2">
                     <label class="form-label form-label-sm mb-1">Source</label>
                     <select id="filter_source" class="form-select form-select-sm">
                         <option value="">All Sources</option>
@@ -136,7 +153,7 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-1">
                     <label class="form-label form-label-sm mb-1">Status</label>
                     <select id="filter_status" class="form-select form-select-sm">
                         <option value="">All</option>
@@ -170,6 +187,7 @@
                                 <th>No</th>
                                 <th>Batch Number</th>
                                 <th>Material</th>
+                                <th>Category</th>
                                 <th>Received Date</th>
                                 <th>Source</th>
                                 <th>Qty In</th>
@@ -198,6 +216,13 @@
                 width: '100%'
             });
 
+            $('#filter_category').select2({
+                theme: 'bootstrap-5',
+                allowClear: true,
+                placeholder: 'All Categories',
+                width: '100%'
+            });
+
             var table = $('#batchTable').DataTable({
                 processing: true,
                 serverSide: true,
@@ -205,6 +230,7 @@
                     url: '{{ route('inventory-batch.index') }}',
                     data: function(d) {
                         d.inventory_id = $('#filter_inventory').val();
+                        d.category_id = $('#filter_category').val();
                         d.source_type = $('#filter_source').val();
                         d.status = $('#filter_status').val();
                         d.date_from = $('#filter_date_from').val();
@@ -225,6 +251,11 @@
                     {
                         data: 'material_name',
                         name: 'inventory.name'
+                    },
+                    {
+                        data: 'category_name',
+                        name: 'inventory.category.name',
+                        orderable: false
                     },
                     {
                         data: 'received_date_fmt',
@@ -275,8 +306,9 @@
             });
 
             // Re-draw on filter change
-            $('#filter_inventory, #filter_source, #filter_status').on('change', function() {
+            $('#filter_inventory, #filter_category, #filter_source, #filter_status').on('change', function() {
                 table.draw();
+                loadBatchStockValue();
             });
             $('#filter_date_from, #filter_date_to').on('change', function() {
                 table.draw();
@@ -284,11 +316,37 @@
 
             // Reset filters
             $('#btn_reset').on('click', function() {
-                $('#filter_inventory').val(null).trigger('change');
+                $('#filter_inventory, #filter_category').val(null).trigger('change');
                 $('#filter_source, #filter_status').val('');
                 $('#filter_date_from, #filter_date_to').val('');
                 table.draw();
+                loadBatchStockValue();
             });
+
+            // ── Batch Stock Value Widget ──────────────────────────────────────
+            function loadBatchStockValue() {
+                var categoryId = $('#filter_category').val();
+                var params = categoryId ? {
+                    category_id: categoryId
+                } : {};
+                $('#batchStockValueAmount').html(
+                    '<span class="spinner-border spinner-border-sm text-warning" role="status"></span>'
+                );
+                $.get('{{ route('inventory-batch.stock-value') }}', params, function(res) {
+                    $('#batchStockValueAmount').text(res.total_idr_formatted);
+                }).fail(function() {
+                    $('#batchStockValueAmount').text('—');
+                });
+            }
+
+            // Load on page open
+            loadBatchStockValue();
+
+            // Refresh button
+            $('#btnRefreshBatchStockValue').on('click', function() {
+                loadBatchStockValue();
+            });
+            // ─────────────────────────────────────────────────────────────────
 
         });
     </script>

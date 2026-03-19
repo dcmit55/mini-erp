@@ -199,7 +199,8 @@
                         </div>
                         @if (in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance', 'admin_procurement', 'admin']))
                             <div class="col-md-2">
-                                <input type="text" id="materialCodeFilter" class="form-control form-control-sm" placeholder="Search Material Code...">
+                                <input type="text" id="materialCodeFilter" class="form-control form-control-sm"
+                                    placeholder="Search Material Code...">
                             </div>
                         @endif
                         <div class="col-md-2">

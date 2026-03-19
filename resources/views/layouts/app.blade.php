@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" data-bs-theme="dark">
 
     <head>
         <meta charset="utf-8">
@@ -46,6 +46,14 @@
 
         <link rel="stylesheet" href="{{ asset('css/custom-app.css') }}">
 
+        <!-- Apply saved theme immediately to prevent flash -->
+        <script>
+            (function() {
+                var t = localStorage.getItem('preferred-theme') || 'dark';
+                document.documentElement.setAttribute('data-bs-theme', t);
+            })();
+        </script>
+
         <!-- Page Specific Styles -->
         @yield('styles')
         @stack('styles')
@@ -53,7 +61,8 @@
 
     <body>
         <div id="app">
-            <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+            <nav id="mainNavbar" class="navbar navbar-expand-lg border-bottom shadow-sm"
+                style="background: var(--bs-body-bg); transition: background-color .2s, border-color .2s;">
                 <div class="container-fluid">
                     <a class="navbar-brand fw-bold" href="{{ url('/') }}">
                         {{ config('app.name', 'DCM-app') }}
@@ -643,7 +652,57 @@
                         </ul>
 
                         <!-- Right Side Of Navbar -->
-                        <ul class="navbar-nav ms-auto">
+                        <ul class="navbar-nav ms-auto align-items-center">
+
+                            {{-- ── Theme Switcher Dropdown ── --}}
+                            <li class="nav-item me-2 dropdown">
+                                <button id="themeToggleBtn"
+                                    class="btn btn-sm px-2 py-1 rounded-3 dropdown-toggle border-0"
+                                    data-bs-toggle="dropdown" aria-expanded="false" title="Switch Theme"
+                                    style="font-size:1rem; line-height:1; transition: background .2s, color .2s;">
+                                    <i id="themeToggleIcon" class="bi bi-circle-half"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow"
+                                    style="min-width:160px; border-radius:.75rem; padding:.4rem .3rem;">
+                                    <li>
+                                        <div class="px-3 py-1 text-muted"
+                                            style="font-size:.7rem; font-weight:600; text-transform:uppercase; letter-spacing:.06em;">
+                                            Appearance
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <button
+                                            class="dropdown-item d-flex align-items-center gap-2 theme-option rounded-2"
+                                            data-theme="light" style="padding:.45rem .75rem;">
+                                            <span
+                                                class="d-flex align-items-center justify-content-center rounded-circle bg-warning bg-opacity-10"
+                                                style="width:26px;height:26px;flex-shrink:0;">
+                                                <i class="bi bi-brightness-high text-warning"
+                                                    style="font-size:.85rem;"></i>
+                                            </span>
+                                            <span class="fw-semibold" style="font-size:.85rem;">Light</span>
+                                            <i
+                                                class="bi bi-check-lg ms-auto theme-check d-none text-success fw-bold"></i>
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button
+                                            class="dropdown-item d-flex align-items-center gap-2 theme-option rounded-2"
+                                            data-theme="dark" style="padding:.45rem .75rem;">
+                                            <span
+                                                class="d-flex align-items-center justify-content-center rounded-circle bg-primary bg-opacity-10"
+                                                style="width:26px;height:26px;flex-shrink:0;">
+                                                <i class="bi bi-moon-stars-fill text-primary"
+                                                    style="font-size:.82rem;"></i>
+                                            </span>
+                                            <span class="fw-semibold" style="font-size:.85rem;">Dark</span>
+                                            <i
+                                                class="bi bi-check-lg ms-auto theme-check d-none text-success fw-bold"></i>
+                                        </button>
+                                    </li>
+                                </ul>
+                            </li>
+
                             @guest
                             @else
                                 <li class="nav-item dropdown">
@@ -711,6 +770,61 @@
         <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
+        <!-- ── Theme Toggle Script ── -->
+        <script>
+            (function() {
+                var html = document.documentElement;
+
+                function applyTheme(theme) {
+                    html.setAttribute('data-bs-theme', theme);
+                    localStorage.setItem('preferred-theme', theme);
+
+                    // Update toggle button icon and style
+                    var icon = document.getElementById('themeToggleIcon');
+                    var btn = document.getElementById('themeToggleBtn');
+                    if (icon) {
+                        icon.className = theme === 'dark' ?
+                            'bi bi-moon-stars-fill' :
+                            'bi bi-brightness-high';
+                    }
+                    if (btn) {
+                        if (theme === 'dark') {
+                            btn.style.color = '#a78bfa'; // soft violet — visible on dark bg
+                        } else {
+                            btn.style.color = '#f59e0b'; // amber — visible on light bg
+                        }
+                    }
+
+                    // Update checkmarks in dropdown
+                    document.querySelectorAll('.theme-option').forEach(function(option) {
+                        var check = option.querySelector('.theme-check');
+                        var isActive = option.dataset.theme === theme;
+                        if (check) {
+                            check.classList.toggle('d-none', !isActive);
+                        }
+                        // Highlight active item row
+                        option.style.background = ''; // reset inline bg
+                        option.style.fontWeight = isActive ? '700' : '';
+                    });
+                }
+
+                // Apply immediately (before DOMContentLoaded) — reads what the anti-flash script set
+                applyTheme(html.getAttribute('data-bs-theme') || 'dark');
+
+                document.addEventListener('DOMContentLoaded', function() {
+                    // Re-sync icons/checkmarks after DOM is ready
+                    applyTheme(html.getAttribute('data-bs-theme') || 'dark');
+
+                    // Wire each dropdown option
+                    document.querySelectorAll('.theme-option').forEach(function(btn) {
+                        btn.addEventListener('click', function() {
+                            applyTheme(btn.dataset.theme);
+                        });
+                    });
+                });
+            })();
+        </script>
+
         <script src="{{ mix('js/app.js') }}"></script>
 
         <!-- Select2 JS -->
@@ -747,7 +861,8 @@
         @yield('scripts')
         @stack('scripts')
 
-        <footer class="bg-light text-center text-lg-start mt-5">
+        <footer class="border-top text-center text-lg-start mt-5"
+            style="background: var(--bs-body-bg); color: var(--bs-body-color);">
             <div class="container-fluid">
                 <div class="row">
                 </div>

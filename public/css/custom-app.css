@@ -305,6 +305,14 @@ td .btn {
     text-align: center;
 }
 
+/* ── Extra-small button utility ── */
+.btn-xs {
+    padding: 0.15rem 0.45rem;
+    font-size: 0.72rem;
+    line-height: 1.4;
+    border-radius: 0.25rem;
+}
+
 .delete-form {
     margin: 0;
     /* Hilangkan margin default pada form */
@@ -437,4 +445,557 @@ footer h5 {
 footer p,
 footer .text-secondary {
     font-size: 0.8rem;
+}
+
+/* ========================================================
+   DARK THEME OVERRIDES  (data-bs-theme="dark" on <html>)
+   Uses Bootstrap CSS variables — no hardcoded colours.
+   ======================================================== */
+
+[data-bs-theme="dark"] html,
+[data-bs-theme="dark"] body {
+    background-color: var(--bs-body-bg);
+    color: var(--bs-body-color);
+}
+
+/* ── Navbar (header bar) — dark mode ── */
+[data-bs-theme="dark"] #mainNavbar {
+    background: var(--bs-body-bg) !important;
+    border-bottom-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-bs-theme="dark"] .navbar-nav .nav-link,
+[data-bs-theme="dark"] .nav-item .dropdown-toggle {
+    color: var(--bs-body-color) !important;
+}
+
+[data-bs-theme="dark"] .navbar-nav .nav-link:hover,
+[data-bs-theme="dark"] .navbar-nav .nav-link:focus,
+[data-bs-theme="dark"] .nav-item .dropdown-toggle:hover {
+    background: linear-gradient(45deg, #8F12FE, #4A25AA);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+[data-bs-theme="dark"] .navbar-toggler {
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+[data-bs-theme="dark"] .navbar-toggler-icon {
+    filter: invert(1);
+}
+
+/* ── Theme toggle button — per-theme tint ── */
+[data-bs-theme="dark"] #themeToggleBtn {
+    color: #a78bfa;
+}
+
+[data-bs-theme="light"] #themeToggleBtn {
+    color: #f59e0b;
+}
+
+/* ── Filter bar (inventory-batch and inventory pages) — dark mode ── */
+[data-bs-theme="dark"] .filter-bar,
+[data-bs-theme="dark"] #filter-form {
+    background: rgba(255, 255, 255, 0.04) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* ── Dropdown menus ── */
+[data-bs-theme="dark"] .dropdown-menu {
+    background: #1e1e2e;
+    border-color: rgba(143, 18, 254, 0.25);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+}
+
+[data-bs-theme="dark"] .dropdown-item {
+    color: var(--bs-body-color);
+}
+
+[data-bs-theme="dark"] .dropdown-item:hover,
+[data-bs-theme="dark"] .dropdown-item.active {
+    background: linear-gradient(45deg, #8F12FE, #4A25AA);
+    color: #fff;
+}
+
+[data-bs-theme="dark"] .dropdown-divider {
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ── Cards ── */
+[data-bs-theme="dark"] .card {
+    background-color: var(--bs-card-bg, #1e1e2e);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-bs-theme="dark"] .card-header,
+[data-bs-theme="dark"] .card-footer {
+    background-color: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* ── Tables ── */
+[data-bs-theme="dark"] .table {
+    --bs-table-bg: transparent;
+    --bs-table-border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-bs-theme="dark"] .table-light,
+[data-bs-theme="dark"] thead.table-light {
+    --bs-table-bg: rgba(255, 255, 255, 0.06);
+    --bs-table-color: var(--bs-body-color);
+}
+
+[data-bs-theme="dark"] .table-hover>tbody>tr:hover>* {
+    --bs-table-accent-bg: rgba(143, 18, 254, 0.1);
+}
+
+/* ── Form controls ── */
+[data-bs-theme="dark"] .form-control,
+[data-bs-theme="dark"] .form-select {
+    background-color: #2a2a3e;
+    border-color: rgba(255, 255, 255, 0.15);
+    color: var(--bs-body-color);
+}
+
+[data-bs-theme="dark"] .form-control:focus,
+[data-bs-theme="dark"] .form-select:focus {
+    background-color: #2a2a3e;
+    border-color: #8F12FE;
+    box-shadow: 0 0 0 0.25rem rgba(143, 18, 254, 0.25);
+    color: var(--bs-body-color);
+}
+
+[data-bs-theme="dark"] .form-control::placeholder {
+    color: rgba(255, 255, 255, 0.35);
+}
+
+/* ── Select2 dark ── */
+[data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-selection {
+    background-color: #2a2a3e;
+    border-color: rgba(255, 255, 255, 0.15);
+    color: var(--bs-body-color);
+}
+
+[data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-dropdown {
+    background-color: #1e1e2e;
+    border-color: rgba(143, 18, 254, 0.3);
+}
+
+[data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-results__option {
+    color: var(--bs-body-color);
+}
+
+[data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-results__option--highlighted {
+    background-color: #8F12FE;
+    color: #fff;
+}
+
+[data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-search__field {
+    background-color: #2a2a3e;
+    color: var(--bs-body-color);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* ── Alert ── */
+[data-bs-theme="dark"] .alert-light {
+    background-color: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: var(--bs-body-color);
+}
+
+[data-bs-theme="dark"] .alert-danger {
+    background-color: rgba(220, 53, 69, 0.2);
+    border-color: rgba(220, 53, 69, 0.35);
+}
+
+/* ── Modals ── */
+[data-bs-theme="dark"] .modal-content {
+    background-color: #1e1e2e;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-bs-theme="dark"] .modal-header,
+[data-bs-theme="dark"] .modal-footer {
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ── Pagination ── */
+[data-bs-theme="dark"] .page-link {
+    background-color: #2a2a3e;
+    border-color: rgba(255, 255, 255, 0.12);
+    color: var(--bs-body-color);
+}
+
+[data-bs-theme="dark"] .page-link:hover {
+    background-color: #3a3a54;
+    color: #fff;
+}
+
+/* ── Toast ── */
+[data-bs-theme="dark"] .toast {
+    background-color: #1e1e2e;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-bs-theme="dark"] .toast-header {
+    background-color: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ── Utility ── */
+[data-bs-theme="dark"] .border-top,
+[data-bs-theme="dark"] .border-bottom {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-bs-theme="dark"] .text-dark {
+    color: var(--bs-body-color) !important;
+}
+
+[data-bs-theme="dark"] .bg-white {
+    background-color: #1e1e2e !important;
+}
+
+[data-bs-theme="dark"] .bg-light {
+    background-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+[data-bs-theme="dark"] .border {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-bs-theme="dark"] hr {
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ── DataTables dark ── */
+[data-bs-theme="dark"] div.dataTables_wrapper div.dataTables_filter input,
+[data-bs-theme="dark"] div.dataTables_wrapper div.dataTables_length select {
+    background-color: #2a2a3e;
+    border-color: rgba(255, 255, 255, 0.15);
+    color: var(--bs-body-color);
+}
+
+[data-bs-theme="dark"] .dataTables_info,
+[data-bs-theme="dark"] .dataTables_length label,
+[data-bs-theme="dark"] .dataTables_filter label {
+    color: var(--bs-body-color);
+}
+
+/* ── SweetAlert2 dark ── */
+[data-bs-theme="dark"] .swal2-popup {
+    background: #1e1e2e;
+    color: var(--bs-body-color);
+}
+
+[data-bs-theme="dark"] .swal2-title,
+[data-bs-theme="dark"] .swal2-content,
+[data-bs-theme="dark"] .swal2-html-container {
+    color: var(--bs-body-color);
+}
+
+/* ── Project Costing Cards (dark) ── */
+[data-bs-theme="dark"] .project-card {
+    background-color: #1e1e2e;
+    border-color: rgba(255, 255, 255, 0.1);
+    color: var(--bs-body-color);
+}
+
+[data-bs-theme="dark"] .project-card:hover {
+    box-shadow: 0 10px 32px rgba(143, 18, 254, 0.35);
+    color: var(--bs-body-color);
+}
+
+[data-bs-theme="dark"] .project-card .stat-row {
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-bs-theme="dark"] .project-card .stat-label {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+[data-bs-theme="dark"] .project-card .stat-value {
+    color: var(--bs-body-color);
+}
+
+[data-bs-theme="dark"] .project-card .card-inner {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+[data-bs-theme="dark"] .info-badge {
+    background: rgba(143, 18, 254, 0.15);
+    color: #b99dff;
+    border-color: rgba(143, 18, 254, 0.3);
+}
+
+[data-bs-theme="dark"] .dept-badge.mascot {
+    background: rgba(255, 193, 7, 0.2);
+    color: #ffc107;
+}
+
+[data-bs-theme="dark"] .dept-badge.costume {
+    background: rgba(13, 202, 240, 0.2);
+    color: #0dcaf0;
+}
+
+[data-bs-theme="dark"] .dept-badge.animatronic {
+    background: rgba(143, 18, 254, 0.25);
+    color: #bf8bff;
+}
+
+[data-bs-theme="dark"] .dept-badge.default {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.7);
+}
+
+[data-bs-theme="dark"] .dept-filter-tabs .nav-link {
+    color: rgba(255, 255, 255, 0.6);
+    border-color: transparent;
+}
+
+[data-bs-theme="dark"] .dept-filter-tabs .nav-link:not(.active):hover {
+    background: rgba(143, 18, 254, 0.15);
+    color: #b99dff;
+    border-color: rgba(143, 18, 254, 0.3);
+}
+
+[data-bs-theme="dark"] .card-actions-btn {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+[data-bs-theme="dark"] .card-actions-btn:hover {
+    background: rgba(143, 18, 254, 0.2);
+    color: #b99dff;
+}
+
+/* ── Costing detail pages (dark) ── */
+[data-bs-theme="dark"] .hero-card,
+[data-bs-theme="dark"] .section-block,
+[data-bs-theme="dark"] .stat-card,
+[data-bs-theme="dark"] .detail-header {
+    background-color: #1e1e2e;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-bs-theme="dark"] .panel-row {
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-bs-theme="dark"] .panel-row .pr-label {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+[data-bs-theme="dark"] .panel-row .pr-val {
+    color: var(--bs-body-color);
+}
+
+[data-bs-theme="dark"] .det-tbl thead th {
+    background-color: rgba(255, 255, 255, 0.06);
+    color: var(--bs-body-color);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-bs-theme="dark"] .det-tbl tbody tr:hover {
+    background: rgba(143, 18, 254, 0.08);
+}
+
+[data-bs-theme="dark"] .det-tbl td,
+[data-bs-theme="dark"] .det-tbl th {
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-bs-theme="dark"] .subtotal-row td {
+    background: rgba(255, 255, 255, 0.05) !important;
+    color: var(--bs-body-color) !important;
+}
+
+[data-bs-theme="dark"] .total-bar {
+    background: linear-gradient(135deg, #1a1a2e 0%, #2d1b69 100%);
+    border-color: rgba(143, 18, 254, 0.3);
+}
+
+[data-bs-theme="dark"] .sb-header {
+    background-color: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* ── Input group, breadcrumb ── */
+[data-bs-theme="dark"] .breadcrumb-item a,
+[data-bs-theme="dark"] .costing-breadcrumb a {
+    color: #b99dff;
+}
+
+[data-bs-theme="dark"] .input-group-text {
+    background-color: #2a2a3e;
+    border-color: rgba(255, 255, 255, 0.15);
+    color: var(--bs-body-color);
+}
+
+/* ── Flatpickr dark ── */
+[data-bs-theme="dark"] .flatpickr-calendar {
+    background: #1e1e2e;
+    border-color: rgba(255, 255, 255, 0.15);
+    color: var(--bs-body-color);
+}
+
+[data-bs-theme="dark"] .flatpickr-day.today {
+    border-color: #8F12FE;
+}
+
+[data-bs-theme="dark"] .flatpickr-day.selected {
+    background: #8F12FE;
+    border-color: #8F12FE;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+   PROCUREMENT MODULE — Dark theme overrides
+   These override the per-page inline styles in procurement views
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Table rows */
+[data-bs-theme="dark"] .table th {
+    background-color: rgba(255, 255, 255, 0.04);
+    color: var(--bs-body-color);
+    border-color: var(--bs-border-color);
+}
+
+[data-bs-theme="dark"] .table td {
+    border-color: var(--bs-border-color);
+    color: var(--bs-body-color);
+}
+
+[data-bs-theme="dark"] .table tbody tr {
+    background-color: transparent;
+}
+
+[data-bs-theme="dark"] .table tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.04);
+}
+
+/* Action buttons */
+[data-bs-theme="dark"] .action-btn {
+    background-color: rgba(255, 255, 255, 0.06);
+    border-color: var(--bs-border-color);
+    color: var(--bs-body-color);
+}
+
+[data-bs-theme="dark"] .action-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Modal header / footer */
+[data-bs-theme="dark"] .modal-header {
+    background-color: rgba(255, 255, 255, 0.04);
+    border-bottom-color: var(--bs-border-color);
+}
+
+[data-bs-theme="dark"] .modal-footer {
+    border-top-color: var(--bs-border-color);
+}
+
+/* Form controls override (procurement uses light border-color inline) */
+[data-bs-theme="dark"] .form-control,
+[data-bs-theme="dark"] .form-select {
+    background-color: var(--bs-body-bg);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: var(--bs-body-color);
+}
+
+[data-bs-theme="dark"] .form-control:focus,
+[data-bs-theme="dark"] .form-select:focus {
+    border-color: #8F12FE;
+    box-shadow: 0 0 0 0.2rem rgba(143, 18, 254, 0.2);
+    background-color: var(--bs-body-bg);
+    color: var(--bs-body-color);
+}
+
+/* Table number chip */
+[data-bs-theme="dark"] .table-number {
+    background-color: rgba(143, 18, 254, 0.15);
+    color: #b99dff;
+}
+
+[data-bs-theme="dark"] tr:hover .table-number {
+    background-color: #8F12FE;
+    color: #fff;
+}
+
+/* Alert overrides for procurement inline styles */
+[data-bs-theme="dark"] .alert-success {
+    background-color: rgba(25, 135, 84, 0.15);
+    border-color: rgba(25, 135, 84, 0.3);
+    color: #75c898;
+}
+
+[data-bs-theme="dark"] .alert-info {
+    background-color: rgba(13, 202, 240, 0.12);
+    border-color: rgba(13, 202, 240, 0.25);
+    color: #6edff6;
+}
+
+[data-bs-theme="dark"] .alert-warning {
+    background-color: rgba(255, 193, 7, 0.12);
+    border-color: rgba(255, 193, 7, 0.25);
+    color: #ffda6a;
+}
+
+[data-bs-theme="dark"] .alert-secondary {
+    background-color: rgba(108, 117, 125, 0.15);
+    border-color: rgba(108, 117, 125, 0.3);
+    color: #adb5bd;
+}
+
+/* btn-outline-secondary hover fix (inline override uses #f1f5f9) */
+[data-bs-theme="dark"] .btn-outline-secondary:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--bs-body-color);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Join/pagination button group (pre_shippings) */
+[data-bs-theme="dark"] .join .btn {
+    background-color: var(--bs-body-bg);
+    border-color: var(--bs-border-color);
+    color: var(--bs-body-color);
+}
+
+[data-bs-theme="dark"] .join .btn-disabled {
+    background-color: rgba(255, 255, 255, 0.04);
+    color: var(--bs-secondary-color);
+}
+
+[data-bs-theme="dark"] .join .btn-active {
+    background-color: #8F12FE;
+    color: #fff;
+}
+
+/* Pre-shippings table status badges */
+[data-bs-theme="dark"] .status-badge-success,
+[data-bs-theme="dark"] .status-received {
+    background-color: rgba(25, 135, 84, 0.2) !important;
+    color: #75c898 !important;
+    border-color: rgba(25, 135, 84, 0.35) !important;
+}
+
+[data-bs-theme="dark"] .status-badge-warning,
+[data-bs-theme="dark"] .status-in-transit {
+    background-color: rgba(255, 193, 7, 0.15) !important;
+    color: #ffda6a !important;
+    border-color: rgba(255, 193, 7, 0.3) !important;
+}
+
+[data-bs-theme="dark"] .status-badge-danger,
+[data-bs-theme="dark"] .status-pending {
+    background-color: rgba(220, 53, 69, 0.15) !important;
+    color: #ea868f !important;
+    border-color: rgba(220, 53, 69, 0.3) !important;
+}
+
+/* Empty state text */
+[data-bs-theme="dark"] .empty-state,
+[data-bs-theme="dark"] .text-gray-400 {
+    color: var(--bs-secondary-color) !important;
 }

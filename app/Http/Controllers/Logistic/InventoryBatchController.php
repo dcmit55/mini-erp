@@ -5,18 +5,33 @@ namespace App\Http\Controllers\Logistic;
 use App\Http\Controllers\Controller;
 use App\Models\Logistic\Inventory;
 use App\Models\Logistic\InventoryBatch;
+use App\Models\Logistic\Category;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Yajra\DataTables\Facades\DataTables;
 
 class InventoryBatchController extends Controller
 {
+    /**
+     * Consistent category badge color — same algorithm as InventoryController.
+     */
+    private function getCategoryBadgeColor(?string $categoryName): string
+    {
+        if (!$categoryName) {
+            return 'bg-secondary';
+        }
+        $colors = ['bg-primary', 'bg-success', 'bg-info', 'bg-warning', 'bg-danger', 'bg-dark', 'bg-secondary', 'bg-purple', 'bg-indigo', 'bg-pink', 'bg-orange', 'bg-teal', 'bg-cyan', 'bg-lime', 'bg-amber', 'bg-rose', 'bg-emerald', 'bg-violet', 'bg-sky'];
+        $hash = crc32(strtolower(trim($categoryName)));
+        return $colors[abs($hash) % count($colors)];
+    }
+
     /**
      * List all batches, optionally filtered by inventory.
      */
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = InventoryBatch::with(['inventory', 'currency'])->whereNull('deleted_at');
+            $query = InventoryBatch::with(['inventory.category', 'currency'])->whereNull('deleted_at');
 
             if ($request->filled('inventory_id')) {
                 $query->where('inventory_id', $request->inventory_id);
@@ -42,10 +57,23 @@ class InventoryBatchController extends Controller
                 $query->whereDate('received_date', '<=', $request->date_to);
             }
 
+            if ($request->filled('category_id')) {
+                $query->whereHas('inventory', function ($q) use ($request) {
+                    $q->where('category_id', $request->category_id);
+                });
+            }
+
             return DataTables::of($query)
                 ->addIndexColumn()
                 ->addColumn('material_name', fn($b) => $b->inventory->name ?? '-')
                 ->addColumn('material_unit', fn($b) => $b->inventory->unit ?? '-')
+                ->addColumn('category_name', function ($b) {
+                    $name = $b->inventory->category->name ?? null;
+                    if (!$name) {
+                        return '<span class="text-muted">-</span>';
+                    }
+                    return '<span class="badge ' . $this->getCategoryBadgeColor($name) . '">' . e($name) . '</span>';
+                })
                 ->addColumn('qty_formatted', function ($b) {
                     $unit = $b->inventory->unit ?? '';
                     return number_format($b->qty, 2) . ' ' . $unit;
@@ -82,16 +110,19 @@ class InventoryBatchController extends Controller
                         'purchase' => ['bg-success', 'Purchase'],
                         'goods_movement' => ['bg-warning text-dark', 'Movement'],
                         'manual' => ['bg-secondary', 'Manual'],
+                        'indo_purchase' => ['bg-purple text-white', 'Indo Purchase'],
+                        'lark' => ['bg-dark', 'Lark'],
                     ];
                     [$cls, $label] = $map[$b->source_type] ?? ['bg-secondary', ucfirst($b->source_type ?? '-')];
                     return '<span class="badge ' . $cls . '">' . $label . '</span>';
                 })
                 ->addColumn('received_date_fmt', fn($b) => $b->received_date ? $b->received_date->format('d M Y') : '-')
-                ->rawColumns(['qty_remaining_formatted', 'status_badge', 'source_badge'])
+                ->rawColumns(['qty_remaining_formatted', 'status_badge', 'source_badge', 'category_name'])
                 ->make(true);
         }
 
         $inventories = Inventory::orderBy('name')->get(['id', 'name', 'unit']);
+        $categories = Category::orderBy('name')->get(['id', 'name']);
 
         // Only show source types that actually exist in the batches table
         $allSourceTypes = [
@@ -101,6 +132,7 @@ class InventoryBatchController extends Controller
             'purchase' => 'Purchase',
             'goods_movement' => 'Goods Movement',
             'manual' => 'Manual',
+            'indo_purchase' => 'Indo Purchase',
         ];
         $existingSources = InventoryBatch::whereNull('deleted_at')->whereNotNull('source_type')->distinct()->pluck('source_type')->toArray();
         $sourceTypes = array_filter($allSourceTypes, fn($key) => in_array($key, $existingSources), ARRAY_FILTER_USE_KEY);
@@ -111,7 +143,27 @@ class InventoryBatchController extends Controller
         $depletedBatches = InventoryBatch::whereNull('deleted_at')->where('qty_remaining', '<=', 0)->count();
         $totalStockValue = InventoryBatch::whereNull('deleted_at')->selectRaw('SUM(qty_remaining * unit_price) as total')->value('total') ?? 0;
 
-        return view('logistic.inventory-batch.index', compact('inventories', 'sourceTypes', 'totalBatches', 'activeBatches', 'depletedBatches', 'totalStockValue'));
+        return view('logistic.inventory-batch.index', compact('inventories', 'categories', 'sourceTypes', 'totalBatches', 'activeBatches', 'depletedBatches', 'totalStockValue'));
+    }
+
+    /**
+     * AJAX endpoint: total stock value for Inventory Batches,
+     * optionally filtered by category.
+     */
+    public function batchStockValue(Request $request)
+    {
+        $query = DB::table('inventory_batches as ib')->join('inventories as i', 'i.id', '=', 'ib.inventory_id')->join('currencies as c', 'c.id', '=', 'ib.currency_id')->whereNull('ib.deleted_at')->whereNull('i.deleted_at')->where('ib.qty_remaining', '>', 0);
+
+        if ($request->filled('category_id')) {
+            $query->where('i.category_id', $request->category_id);
+        }
+
+        $totalIdr = $query->sum(DB::raw('ib.qty_remaining * ib.unit_price * COALESCE(CAST(c.exchange_rate AS DECIMAL(18,4)), 1)'));
+
+        return response()->json([
+            'total_idr' => (float) $totalIdr,
+            'total_idr_formatted' => 'IDR ' . number_format((float) $totalIdr, 0, ',', '.'),
+        ]);
     }
 
     /**
@@ -159,6 +211,8 @@ class InventoryBatchController extends Controller
                         'purchase' => ['bg-success', 'Purchase'],
                         'goods_movement' => ['bg-warning text-dark', 'Movement'],
                         'manual' => ['bg-secondary', 'Manual'],
+                        'indo_purchase' => ['bg-purple text-white', 'Indo Purchase'],
+                        'lark' => ['bg-dark', 'Lark'],
                     ];
                     [$cls, $label] = $map[$b->source_type] ?? ['bg-secondary', ucfirst($b->source_type ?? '-')];
                     return '<span class="badge ' . $cls . '">' . $label . '</span>';

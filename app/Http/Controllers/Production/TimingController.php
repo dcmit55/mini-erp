@@ -727,8 +727,9 @@ class TimingController extends Controller
         $projects = Project::with(['parts', 'departments'])->get();
         $employees = Employee::where('status', 'active')->orderBy('name')->get();
         $departments = Department::orderBy('name')->pluck('name', 'id');
+        $jobOrders = \App\Models\Production\JobOrder::select('id', 'name', 'project_id')->orderBy('name')->get();
 
-        return view('production.timings.edit', compact('timing', 'projects', 'employees', 'departments'));
+        return view('production.timings.edit', compact('timing', 'projects', 'employees', 'departments', 'jobOrders'));
     }
 
     public function update(Request $request, Timing $timing)
@@ -740,6 +741,7 @@ class TimingController extends Controller
         $attributes = [
             'tanggal' => 'Date',
             'project_id' => 'Project',
+            'job_order_id' => 'Job Order',
             'step' => 'Step',
             'parts' => 'Part',
             'employee_id' => 'Employee',
@@ -757,6 +759,7 @@ class TimingController extends Controller
             [
                 'tanggal' => 'required|date',
                 'project_id' => 'required|exists:projects,id',
+                'job_order_id' => 'nullable|exists:job_orders,id',
                 'step' => 'required',
                 'parts' => 'nullable|string',
                 'employee_id' => 'required|exists:employees,id',

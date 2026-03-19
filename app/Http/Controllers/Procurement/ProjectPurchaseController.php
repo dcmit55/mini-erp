@@ -52,8 +52,7 @@ class ProjectPurchaseController extends Controller
             Log::error('Index error: ' . $e->getMessage());
 
             return view('procurement.Project-Purchase.index', [
-                'purchases' => ProjectPurchase::with(['material:id,name', 'department:id,name', 'category:id,name', 'unit:id,name', 'supplier:id,name', 'pic:id,username', 'checker:id,username', 'approver:id,username', 'receiver:id,username', 'project:id,name', 'internalProject:id,project,job,department,department_id', 'jobOrder:id,name'])
-                    ->paginate(20),
+                'purchases' => ProjectPurchase::with(['material:id,name', 'department:id,name', 'category:id,name', 'unit:id,name', 'supplier:id,name', 'pic:id,username', 'checker:id,username', 'approver:id,username', 'receiver:id,username', 'project:id,name', 'internalProject:id,project,job,department,department_id', 'jobOrder:id,name'])->paginate(20),
                 'stats' => [
                     'total' => 0,
                     'total_amount' => 0,
@@ -213,8 +212,8 @@ class ProjectPurchaseController extends Controller
 
             // Get items with same PO number AND same project (different project = different log)
             $poItemsQuery = ProjectPurchase::where('po_number', $purchase->po_number)
-                                ->where('is_current', true)
-                                ->with(['material:id,name', 'category:id,name', 'unit:id,name']);
+                ->where('is_current', true)
+                ->with(['material:id,name', 'category:id,name', 'unit:id,name']);
 
             if ($purchase->project_type === 'client') {
                 $poItemsQuery->where('job_order_id', $purchase->job_order_id);
@@ -401,9 +400,7 @@ class ProjectPurchaseController extends Controller
             $poNumber = $purchase->po_number;
 
             // Get another item in the same PO group (same project) to redirect to after delete
-            $otherItemQuery = ProjectPurchase::where('po_number', $purchase->po_number)
-                                ->where('is_current', true)
-                                ->where('id', '!=', $purchase->id);
+            $otherItemQuery = ProjectPurchase::where('po_number', $purchase->po_number)->where('is_current', true)->where('id', '!=', $purchase->id);
 
             if ($purchase->project_type === 'client') {
                 $otherItemQuery->where('job_order_id', $purchase->job_order_id);
@@ -577,8 +574,7 @@ class ProjectPurchaseController extends Controller
             }
 
             // Get items with same PO number AND same project (different project = different log)
-            $poItemsQuery = ProjectPurchase::where('po_number', $purchase->po_number)
-                                ->where('is_current', true);
+            $poItemsQuery = ProjectPurchase::where('po_number', $purchase->po_number)->where('is_current', true);
 
             if ($purchase->project_type === 'client') {
                 $poItemsQuery->where('job_order_id', $purchase->job_order_id);
@@ -588,8 +584,7 @@ class ProjectPurchaseController extends Controller
 
             $poItems = $poItemsQuery->orderBy('id')->get();
 
-            $revisionsQuery = ProjectPurchase::where('po_number', $purchase->po_number)
-                ->orderBy('created_at', 'desc');
+            $revisionsQuery = ProjectPurchase::where('po_number', $purchase->po_number)->orderBy('created_at', 'desc');
 
             if ($purchase->project_type === 'client') {
                 $revisionsQuery->where('job_order_id', $purchase->job_order_id);
@@ -906,7 +901,7 @@ class ProjectPurchaseController extends Controller
 
             // Ambil semua item dengan PO number yang sama
             $poItems = ProjectPurchase::where('po_number', $purchase->po_number)
-                                ->with(['material:id,name', 'category:id,name', 'unit:id,name'])
+                ->with(['material:id,name', 'category:id,name', 'unit:id,name'])
                 ->orderBy('id')
                 ->get();
 
@@ -949,7 +944,7 @@ class ProjectPurchaseController extends Controller
     {
         try {
             $items = ProjectPurchase::where('po_number', $poNumber)
-                                ->with(['material', 'unit', 'category'])
+                ->with(['material', 'unit', 'category'])
                 ->get();
 
             return response()->json([

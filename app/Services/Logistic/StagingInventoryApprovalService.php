@@ -41,60 +41,74 @@ class StagingInventoryApprovalService
                 throw new \InvalidArgumentException("Received Qty untuk item \"{$staging->name}\" harus diisi sebelum di-approve.");
             }
 
-            // ── 1. Resolve (or create) the inventory record ──────────────────
-            [$inventory, $created] = $this->resolveInventory($staging);
+            try {
+                // ── 1. Resolve (or create) the inventory record ──────────────────
+                [$inventory, $created] = $this->resolveInventory($staging);
 
-            // ── 2. Create batch for the incoming stock ───────────────────────
-            // Uses received_qty (entered by admin), not Lark's quantity
-            $batchId = null;
-            if ((float) $staging->received_qty > 0) {
-                // Lock the batch_number sequence to prevent race conditions
-                // when multiple approvals happen simultaneously
-                DB::select('SELECT GET_LOCK(?, 5) as l', ['inventory_batch_number_lock']);
-                try {
-                    $batchNumber = InventoryBatch::generateBatchNumber($inventory->id);
-                    $batch = InventoryBatch::create([
-                        'batch_number' => $batchNumber,
-                        'inventory_id' => $inventory->id,
-                        'qty' => $staging->received_qty,
-                        'qty_remaining' => $staging->received_qty,
-                        'unit_price' => $staging->price ?? 0,
-                        'currency_id' => $staging->currency_id ?? ($inventory->currency_id ?? 6),
-                        'received_date' => now()->toDateString(),
-                        'source_type' => InventoryBatch::SOURCE_LARK,
-                        'source_id' => $staging->id,
-                    ]);
-                    $batchId = $batch->id;
-                } finally {
-                    DB::select('SELECT RELEASE_LOCK(?)', ['inventory_batch_number_lock']);
+                // ── 2. Create batch for the incoming stock ───────────────────────
+                // Uses received_qty (entered by admin), not Lark's quantity
+                $batchId = null;
+                if ((float) $staging->received_qty > 0) {
+                    // Lock the batch_number sequence to prevent race conditions
+                    // when multiple approvals happen simultaneously
+                    DB::select('SELECT GET_LOCK(?, 5) as l', ['inventory_batch_number_lock']);
+                    try {
+                        $batchNumber = InventoryBatch::generateBatchNumber($inventory->id);
+                        $batch = InventoryBatch::create([
+                            'batch_number' => $batchNumber,
+                            'inventory_id' => $inventory->id,
+                            'qty' => $staging->received_qty,
+                            'qty_remaining' => $staging->received_qty,
+                            'unit_price' => $staging->price ?? 0,
+                            'currency_id' => $staging->currency_id ?? ($inventory->currency_id ?? 6),
+                            'received_date' => now()->toDateString(),
+                            'source_type' => InventoryBatch::SOURCE_LARK,
+                            'source_id' => $staging->id,
+                        ]);
+                        $batchId = $batch->id;
+                    } finally {
+                        DB::select('SELECT RELEASE_LOCK(?)', ['inventory_batch_number_lock']);
+                    }
                 }
+
+                // ── 3. Mark staging as processed + approved + locked ───────────────────────
+                // locked=true prevents Lark sync from overwriting this record in the future
+                $staging->update([
+                    'review_status' => 'approved',
+                    'review_note' => $reviewNote,
+                    'reviewed_by' => $reviewedBy,
+                    'reviewed_at' => now(),
+                    'processed' => true,
+                    'locked' => true,
+                ]);
+
+                Log::info('Staging inventory approved', [
+                    'staging_id' => $staging->id,
+                    'inventory_id' => $inventory->id,
+                    'batch_id' => $batchId,
+                    'created_new' => $created,
+                    'name' => $staging->name,
+                    'material_code' => $staging->material_code,
+                ]);
+
+                return [
+                    'inventory_id' => $inventory->id,
+                    'batch_id' => $batchId,
+                    'created' => $created,
+                ];
+
+            } catch (\Illuminate\Database\QueryException $e) {
+                // Catch UNIQUE constraint violations (e.g. lark_record_id duplicate)
+                // and surface as a user-friendly message instead of a raw SQL error.
+                if ($e->errorInfo[1] === 1062) {
+                    throw new \InvalidArgumentException(
+                        "Data item <strong>{$staging->name}</strong> sudah ada di Inventory Listing. "
+                        . "Tidak dapat di-approve karena akan membuat data duplikat. "
+                        . "Silakan reset item ini dan sesuaikan Material Code / Nama terlebih dahulu."
+                    );
+                }
+                throw $e;
             }
-
-            // ── 3. Mark staging as processed + approved + locked ───────────────────────
-            // locked=true prevents Lark sync from overwriting this record in the future
-            $staging->update([
-                'review_status' => 'approved',
-                'review_note' => $reviewNote,
-                'reviewed_by' => $reviewedBy,
-                'reviewed_at' => now(),
-                'processed' => true,
-                'locked' => true,
-            ]);
-
-            Log::info('Staging inventory approved', [
-                'staging_id' => $staging->id,
-                'inventory_id' => $inventory->id,
-                'batch_id' => $batchId,
-                'created_new' => $created,
-                'name' => $staging->name,
-                'material_code' => $staging->material_code,
-            ]);
-
-            return [
-                'inventory_id' => $inventory->id,
-                'batch_id' => $batchId,
-                'created' => $created,
-            ];
         });
     }
 
@@ -145,8 +159,17 @@ class StagingInventoryApprovalService
                 $inventory->restore();
             }
 
+            $newLarkRecordId = $staging->source_record_ids ?: $staging->lark_record_id;
+
+            // Only update lark_record_id if no OTHER inventory row already owns it
+            $larkIdOwner = $newLarkRecordId
+                ? Inventory::withTrashed()
+                    ->where('lark_record_id', $newLarkRecordId)
+                    ->where('id', '!=', $inventory->id)
+                    ->exists()
+                : false;
+
             $updateData = [
-                'lark_record_id' => $staging->source_record_ids ?: $staging->lark_record_id,
                 'project_lark' => $staging->project_lark,
                 'unit' => $staging->unit ?: ($inventory->unit ?: 'pcs'),
                 'currency_id' => $staging->currency_id ?? ($inventory->currency_id ?? 6),
@@ -156,11 +179,13 @@ class StagingInventoryApprovalService
                 'source' => 'lark',
             ];
 
+            if (!$larkIdOwner && $newLarkRecordId) {
+                $updateData['lark_record_id'] = $newLarkRecordId;
+            }
+
             // Backfill material_code if existing record doesn't have one yet
             if (empty($inventory->material_code)) {
-                $updateData['material_code'] = !empty($staging->material_code)
-                    ? $staging->material_code
-                    : Inventory::generateMaterialCode();
+                $updateData['material_code'] = !empty($staging->material_code) ? $staging->material_code : Inventory::generateMaterialCode();
             }
 
             $inventory->update($updateData);

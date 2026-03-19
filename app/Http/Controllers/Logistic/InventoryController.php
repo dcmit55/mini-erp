@@ -18,6 +18,7 @@ use Illuminate\Http\Request;
 use App\Exports\InventoryExport;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Storage;
 use App\Exports\ImportInventoryTemplate;
@@ -90,6 +91,44 @@ class InventoryController extends Controller
         $projects = Inventory::whereNotNull('project_lark')->distinct()->pluck('project_lark')->sort()->values();
 
         return view('logistic.inventory.index', compact('categories', 'currencies', 'suppliers', 'locations', 'projects'));
+    }
+
+    /**
+     * Return total stock value in IDR, optionally filtered by category.
+     * Used by the stock value widget on the inventory index page.
+     */
+    public function stockValue(Request $request)
+    {
+        $query = DB::table('inventory_batches as ib')->join('inventories as i', 'i.id', '=', 'ib.inventory_id')->join('currencies as c', 'c.id', '=', 'ib.currency_id')->whereNull('ib.deleted_at')->whereNull('i.deleted_at')->where('ib.qty_remaining', '>', 0);
+
+        if ($request->filled('category_id')) {
+            $query->where('i.category_id', $request->category_id);
+        }
+
+        // SUM(qty_remaining * unit_price * exchange_rate)  → all in IDR
+        $totalIdr = $query->sum(DB::raw('ib.qty_remaining * ib.unit_price * COALESCE(CAST(c.exchange_rate AS DECIMAL(18,4)), 1)'));
+
+        // Breakdown by category for the "all" view
+        $breakdown = DB::table('inventory_batches as ib')
+            ->join('inventories as i', 'i.id', '=', 'ib.inventory_id')
+            ->join('currencies as c', 'c.id', '=', 'ib.currency_id')
+            ->leftJoin('categories as cat', 'cat.id', '=', 'i.category_id')
+            ->whereNull('ib.deleted_at')
+            ->whereNull('i.deleted_at')
+            ->where('ib.qty_remaining', '>', 0)
+            ->selectRaw(
+                'COALESCE(cat.name, "Uncategorized") as category_name,
+                         SUM(ib.qty_remaining * ib.unit_price * COALESCE(CAST(c.exchange_rate AS DECIMAL(18,4)), 1)) as total_idr',
+            )
+            ->groupBy('cat.name')
+            ->orderByDesc('total_idr')
+            ->get();
+
+        return response()->json([
+            'total_idr' => (float) $totalIdr,
+            'total_idr_formatted' => 'Rp ' . number_format((float) $totalIdr, 0, ',', '.'),
+            'breakdown' => $breakdown,
+        ]);
     }
 
     public function getDataTablesData(Request $request)

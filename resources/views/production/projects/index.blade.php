@@ -180,12 +180,12 @@
                                             </form>
                                         @endif
 
-                                        {{-- <button type="button" class="btn btn-info btn-sm btn-show-image"
-                                            title="View Image"
+                                        <button type="button" class="btn btn-info btn-sm btn-show-image"
+                                            title="View Project Image"
                                             data-img="{{ $project->img ? asset('storage/' . $project->img) : '' }}"
                                             data-name="{{ $project->name }}">
                                             <i class="bi bi-file-earmark-image"></i>
-                                        </button> --}}
+                                        </button>
                                     </div>
                                 </td>
                             </tr>

@@ -29,10 +29,7 @@ class Inventory extends Model implements Auditable
     public static function generateMaterialCode(): string
     {
         for ($attempt = 0; $attempt < 10; $attempt++) {
-            $maxSeq = static::withTrashed()
-                ->where('material_code', 'regexp', '^MAT-[0-9]+$')
-                ->selectRaw('MAX(CAST(SUBSTRING(material_code, 5) AS UNSIGNED)) as max_seq')
-                ->value('max_seq') ?? 0;
+            $maxSeq = static::withTrashed()->where('material_code', 'regexp', '^MAT-[0-9]+$')->selectRaw('MAX(CAST(SUBSTRING(material_code, 5) AS UNSIGNED)) as max_seq')->value('max_seq') ?? 0;
 
             $candidate = 'MAT-' . str_pad($maxSeq + 1, 4, '0', STR_PAD_LEFT);
 

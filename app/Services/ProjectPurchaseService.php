@@ -1068,7 +1068,7 @@ class ProjectPurchaseService
                         'unit_price' => $purchase->unit_price ?? 0,
                         'currency_id' => $inventory->currency_id,
                         'received_date' => now()->toDateString(),
-                        'source_type' => \App\Models\Logistic\InventoryBatch::SOURCE_GOODS_IN,
+                        'source_type' => \App\Models\Logistic\InventoryBatch::SOURCE_INDO_PURCHASE,
                         'source_id' => $purchase->id,
                     ]);
                     $inventory->updated_at = now();
@@ -1084,13 +1084,13 @@ class ProjectPurchaseService
             } else {
                 $inventoryData = [
                     'name' => $purchase->new_item_name,
-                    'unit_id' => $purchase->unit_id,
-                    'unit' => $unitName,
+                    'unit_id' => $purchase->unit_id, // FK ke tabel units (bukan 'unit' string)
                     'supplier_id' => $purchase->supplier_id,
                     'category_id' => $purchase->category_id,
                     'remark' => $purchase->note,
-                    'created_at' => now(),
-                    'updated_at' => now(),
+                    // 'quantity' dan 'price' sudah tidak ada sebagai kolom di inventories
+                    // (dihapus di migration 2026_03_10_000003). Stock kini di inventory_batches.
+                    // 'unit' (string) juga tidak ada di $fillable Inventory — yang ada 'unit_id' (FK).
                 ];
 
                 $newInventory = Inventory::create($inventoryData);
@@ -1105,8 +1105,8 @@ class ProjectPurchaseService
                         'unit_price' => $purchase->unit_price ?? 0,
                         'currency_id' => $newInventory->currency_id,
                         'received_date' => now()->toDateString(),
-                        'source_type' => \App\Models\Logistic\InventoryBatch::SOURCE_INITIAL_STOCK,
-                        'source_id' => $newInventory->id,
+                        'source_type' => \App\Models\Logistic\InventoryBatch::SOURCE_INDO_PURCHASE,
+                        'source_id' => $purchase->id,
                     ]);
                 }
 

@@ -9,6 +9,8 @@ use App\Models\Lark\LarkSgBtCourierId;
 use App\Models\Lark\LarkSgBtItemTracking;
 use App\Models\Lark\LarkStagingInventory;
 use App\Models\Logistic\Inventory;
+use App\Models\Logistic\Unit;
+use App\Models\Logistic\Category;
 use App\Services\Lark\LarkStagingSyncService;
 use App\Services\Lark\LarkInventoryStagingSyncService;
 use App\Services\Logistic\StagingInventoryApprovalService;
@@ -437,7 +439,9 @@ class LarkStagingController extends Controller
                     return $row->supplier_lark ?: '-';
                 })
                 ->editColumn('order_date', function ($row) {
-                    if (!$row->order_date) return '-';
+                    if (!$row->order_date) {
+                        return '-';
+                    }
                     try {
                         return \Carbon\Carbon::parse($row->order_date)->format('d M Y');
                     } catch (\Exception $e) {
@@ -468,7 +472,9 @@ class LarkStagingController extends Controller
                     return '<div class="input-group input-group-sm" style="min-width:120px;">' . '<input type="number" step="0.01" min="0.01" class="form-control form-control-sm received-qty-input" ' . 'data-id="' . $row->id . '" value="' . $val . '" placeholder="Enter qty" style="max-width:90px;">' . '<button class="btn btn-outline-secondary btn-xs btn-save-received-qty" data-id="' . $row->id . '" title="Save">' . '<i class="bi bi-check-lg"></i></button>' . '</div>';
                 })
                 ->addColumn('review_note_display', function ($row) {
-                    if (empty($row->review_note)) return '-';
+                    if (empty($row->review_note)) {
+                        return '-';
+                    }
                     $note = e($row->review_note);
                     return '<span class="text-truncate d-inline-block" style="max-width:160px;" data-bs-toggle="tooltip" title="' . $note . '">' . $note . '</span>';
                 })
@@ -478,11 +484,11 @@ class LarkStagingController extends Controller
                         $resetBtn = '<button class="btn btn-secondary btn-xs btn-reset me-1" data-id="' . $row->id . '" title="Reset to Pending"><i class="bi bi-arrow-counterclockwise"></i></button>';
                         return '<span class="badge bg-success me-1" title="Approved &amp; Locked"><i class="bi bi-lock-fill"></i></span>' . $resetBtn;
                     }
-                    $editNameBtn = '<button class="btn btn-outline-primary btn-xs btn-edit-name me-1" data-id="' . $row->id . '" data-name="' . e($row->name) . '" title="Edit Nama Item"><i class="bi bi-pencil-fill"></i></button>';
-                    $approveBtn = $row->review_status !== 'approved' ? '<button class="btn btn-success btn-xs btn-approve me-1" data-id="' . $row->id . '" title="Approve &amp; Push to Inventory"><i class="bi bi-check-lg"></i></button>' : '';
-                    $rejectBtn  = $row->review_status !== 'rejected'  ? '<button class="btn btn-danger btn-xs btn-reject me-1" data-id="' . $row->id . '" title="Reject"><i class="bi bi-x-lg"></i></button>' : '';
-                    $resetBtn   = $row->review_status !== 'pending'   ? '<button class="btn btn-secondary btn-xs btn-reset me-1" data-id="' . $row->id . '" title="Reset to Pending"><i class="bi bi-arrow-counterclockwise"></i></button>' : '';
-                    return $editNameBtn . $approveBtn . $rejectBtn . $resetBtn;
+                    $editBtn = '<button class="btn btn-outline-primary btn-sm btn-edit-item me-1" data-id="' . $row->id . '" data-name="' . e($row->name) . '" data-unit="' . e($row->unit) . '" title="Edit Name &amp; Unit" data-bs-toggle="tooltip" data-bs-placement="top"><i class="bi bi-pencil-fill"></i></button>';
+                    $approveBtn = $row->review_status !== 'approved' ? '<button class="btn btn-success btn-sm btn-approve me-1" data-id="' . $row->id . '" title="Approve &amp; Push to Inventory"><i class="bi bi-check-lg"></i></button>' : '';
+                    $rejectBtn = $row->review_status !== 'rejected' ? '<button class="btn btn-danger btn-sm btn-reject me-1" data-id="' . $row->id . '" title="Reject"><i class="bi bi-x-lg"></i></button>' : '';
+                    $resetBtn = $row->review_status !== 'pending' ? '<button class="btn btn-secondary btn-sm btn-reset me-1" data-id="' . $row->id . '" title="Reset to Pending"><i class="bi bi-arrow-counterclockwise"></i></button>' : '';
+                    return $editBtn . $approveBtn . $rejectBtn . $resetBtn;
                 })
                 ->rawColumns(['checkbox', 'name', 'review_note_display', 'review_status_badge', 'received_qty_input', 'actions'])
                 ->make(true);
@@ -496,8 +502,10 @@ class LarkStagingController extends Controller
         ];
 
         $lastSync = LarkStagingInventory::max('last_sync_at');
+        $units = Unit::orderBy('name')->get();
+        $categories = Category::orderBy('name')->get();
 
-        return view('lark.staging.inventory', compact('stats', 'lastSync'));
+        return view('lark.staging.inventory', compact('stats', 'lastSync', 'units', 'categories'));
     }
 
     /**
@@ -580,6 +588,61 @@ class LarkStagingController extends Controller
      * Allows admin to rename before approve so it matches the known inventory name.
      * AJAX endpoint
      */
+    /**
+     * Update both item name and unit in a single combined AJAX call.
+     * Replaces the separate updateName / updateUnit endpoints for the staging inventory edit modal.
+     */
+    public function updateItem(Request $request, int $id)
+    {
+        try {
+            $request->validate([
+                'name' => ['required', 'string', 'max:255'],
+                'unit' => ['required', 'string', 'max:100'],
+            ]);
+
+            $staging = LarkStagingInventory::findOrFail($id);
+
+            if ($staging->locked) {
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => 'Item ini sudah di-approve dan terkunci. Data tidak dapat diubah.',
+                    ],
+                    422,
+                );
+            }
+
+            $staging->update([
+                'name' => trim($request->name),
+                'unit' => trim($request->unit),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Item berhasil diperbarui.',
+                'name' => $staging->name,
+                'unit' => $staging->unit,
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => collect($e->errors())->flatten()->first() ?? 'Validasi gagal.',
+                ],
+                422,
+            );
+        } catch (\Exception $e) {
+            Log::error('Update staging item failed', ['id' => $id, 'error' => $e->getMessage()]);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Gagal menyimpan: ' . $e->getMessage(),
+                ],
+                500,
+            );
+        }
+    }
+
     public function updateName(Request $request, int $id)
     {
         try {
@@ -590,10 +653,13 @@ class LarkStagingController extends Controller
             $staging = LarkStagingInventory::findOrFail($id);
 
             if ($staging->locked) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Item ini sudah di-approve dan terkunci. Nama tidak dapat diubah.',
-                ], 422);
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => 'Item ini sudah di-approve dan terkunci. Nama tidak dapat diubah.',
+                    ],
+                    422,
+                );
             }
 
             $staging->update(['name' => trim($request->name)]);
@@ -604,16 +670,73 @@ class LarkStagingController extends Controller
                 'name' => $staging->name,
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->errors()['name'][0] ?? 'Validasi gagal.',
-            ], 422);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => $e->errors()['name'][0] ?? 'Validasi gagal.',
+                ],
+                422,
+            );
         } catch (\Exception $e) {
             Log::error('Update staging name failed', ['id' => $id, 'error' => $e->getMessage()]);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Gagal menyimpan: ' . $e->getMessage(),
+                ],
+                500,
+            );
+        }
+    }
+
+    /**
+     * Update item unit on a staging record.
+     * Allows admin to change unit before approve so it matches the inventory unit.
+     * AJAX endpoint
+     */
+    public function updateUnit(Request $request, int $id)
+    {
+        try {
+            $request->validate([
+                'unit' => ['required', 'string', 'max:100'],
+            ]);
+
+            $staging = LarkStagingInventory::findOrFail($id);
+
+            if ($staging->locked) {
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => 'Item ini sudah di-approve dan terkunci. Unit tidak dapat diubah.',
+                    ],
+                    422,
+                );
+            }
+
+            $staging->update(['unit' => trim($request->unit)]);
+
             return response()->json([
-                'success' => false,
-                'message' => 'Gagal menyimpan: ' . $e->getMessage(),
-            ], 500);
+                'success' => true,
+                'message' => 'Unit berhasil diperbarui.',
+                'unit' => $staging->unit,
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => $e->errors()['unit'][0] ?? 'Validasi gagal.',
+                ],
+                422,
+            );
+        } catch (\Exception $e) {
+            Log::error('Update staging unit failed', ['id' => $id, 'error' => $e->getMessage()]);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Gagal menyimpan: ' . $e->getMessage(),
+                ],
+                500,
+            );
         }
     }
 
@@ -697,16 +820,14 @@ class LarkStagingController extends Controller
 
             $staging->update([
                 'review_status' => 'pending',
-                'review_note'   => null,
-                'reviewed_by'   => null,
-                'reviewed_at'   => null,
-                'locked'        => false,
-                'processed'     => false,
+                'review_note' => null,
+                'reviewed_by' => null,
+                'reviewed_at' => null,
+                'locked' => false,
+                'processed' => false,
             ]);
 
-            $warning = $wasLocked
-                ? ' <span class="text-warning small">(Catatan: data inventory yang sudah dibuat tidak otomatis dihapus)</span>'
-                : '';
+            $warning = $wasLocked ? ' <span class="text-warning small">(Catatan: data inventory yang sudah dibuat tidak otomatis dihapus)</span>' : '';
 
             return response()->json([
                 'success' => true,

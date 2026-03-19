@@ -43,10 +43,8 @@ class ProjectCostingController extends Controller
         }
 
         // Apply filters
-        if ($request->has('department') && $request->department !== null) {
-            $query->whereHas('departments', function ($q) use ($request) {
-                $q->where('name', $request->department);
-            });
+        if ($request->has('department') && $request->department !== null && $request->department !== '') {
+            $query->where('type_dept', 'LIKE', '%' . $request->department . '%');
         }
 
         // Filter by sales (field may contain comma-separated names)
@@ -79,8 +77,12 @@ class ProjectCostingController extends Controller
             ->orderByDesc('created_at') // Then by created_at
             ->paginate(10);
 
-        // Pass data for filters
-        $departments = Department::orderBy('name')->pluck('name');
+        // Card summaries: UI only — data queries disabled pending column audit
+        $cardSummaries = [];
+
+        // Get unique type_dept values from closed/delivered projects
+        $rawDeptValues = Project::where('stage', 'closed')->where('project_status', 'Delivered')->whereNotNull('type_dept')->where('type_dept', '!=', '')->pluck('type_dept');
+        $departments = $rawDeptValues->flatMap(fn($v) => array_map('trim', explode(',', $v)))->filter()->unique()->sort()->values();
 
         // Get unique individual sales names (field may contain comma-separated values)
         $rawSales = Project::where('stage', 'closed')->where('project_status', 'Delivered')->whereNotNull('sales')->pluck('sales');
@@ -92,7 +94,358 @@ class ProjectCostingController extends Controller
         // Get unique months from deadline for filter dropdown
         $deadlineMonths = Project::where('stage', 'closed')->where('project_status', 'Delivered')->whereNotNull('deadline')->selectRaw('DATE_FORMAT(deadline, "%Y-%m") as month')->distinct()->orderByDesc('month')->pluck('month');
 
-        return view('finance.costing.index', compact('projects', 'departments', 'salesOptions', 'jobOrders', 'deadlineMonths'));
+        return view('finance.costing.index', compact('projects', 'departments', 'salesOptions', 'jobOrders', 'deadlineMonths', 'cardSummaries'));
+    }
+
+    /**
+     * Full-page detail view for a project costing (server-side rendered)
+     */
+    public function showDetail($project_id)
+    {
+        $project = Project::where('id', $project_id)->where('stage', 'closed')->firstOrFail();
+        $project->load(['departments', 'jobOrders.department']);
+
+        // ── Material Usages ──
+        $usages = MaterialUsage::where('project_id', $project_id)
+            ->with(['inventory.currency', 'inventory.unit', 'inventory.batches', 'jobOrder'])
+            ->orderBy('job_order_id')
+            ->get();
+
+        $materialsData = $usages->map(function ($usage) {
+            $inv = $usage->inventory;
+            $unitPrice = $inv->price ?? 0;
+            $domFreight = $inv->unit_domestic_freight_cost ?? 0;
+            $intFreight = $inv->unit_international_freight_cost ?? 0;
+            $totalUnit = $unitPrice + $domFreight + $intFreight;
+            $qty = $usage->used_quantity ?? 0;
+            $currency = $inv->currency ?? (object) ['name' => 'IDR', 'exchange_rate' => 1];
+            $rate = $currency->exchange_rate ?? 1;
+            $totalIDR = $totalUnit * $qty * $rate;
+
+            $unitName = 'N/A';
+            if ($inv->unit_id) {
+                try {
+                    $unitName = $inv->unit?->name ?? 'N/A';
+                } catch (\Exception $e) {
+                    $unitName = $inv->unit ?? 'N/A';
+                }
+            } elseif (!empty($inv->unit)) {
+                $unitName = $inv->unit;
+            }
+
+            $currCode = strtoupper($currency->name ?? 'IDR');
+            $isIntl = in_array($currCode, ['RMB', 'CNY', 'SGD', 'USD', 'EUR', 'GBP']);
+
+            return [
+                'job_order_name' => $usage->jobOrder?->name ?? 'No Job Order',
+                'name' => $inv->name ?? 'N/A',
+                'qty' => $qty,
+                'unit' => $unitName,
+                'unit_price' => $unitPrice,
+                'total_unit_cost' => $totalUnit,
+                'currency' => $currCode,
+                'total_idr' => $totalIDR,
+                'is_intl' => $isIntl,
+                'source' => 'usage', // from stock
+            ];
+        });
+
+        $intlMaterials = $materialsData->where('is_intl', true)->values();
+        $localMaterials = $materialsData->where('is_intl', false)->values();
+        $totalMaterialIDR = $materialsData->sum('total_idr');
+        $usageCostIDR = $materialsData->sum('total_idr'); // all usage = from stock
+
+        // ── DCM Costings (INT'L PO & LOCAL PO) ──
+        $dcmCostings = \App\Models\Finance\DcmCosting::where('project_name', $project->name)->where('is_current', true)->get();
+
+        $intlPoCostings = $dcmCostings->filter(fn($c) => str_contains(strtolower($c->purchase_type ?? ''), 'intl') || str_contains(strtolower($c->purchase_type ?? ''), 'international') || str_contains(strtolower($c->supplier ?? ''), 'sg') || str_contains(strtolower($c->department ?? ''), 'sg'));
+        $localPoCostings = $dcmCostings->filter(fn($c) => !$intlPoCostings->contains('id', $c->id));
+
+        $totalIntlPo = $intlPoCostings->sum('invoice_total');
+        $totalLocalPo = $localPoCostings->sum('invoice_total');
+        $totalPoIDR = $totalIntlPo + $totalLocalPo;
+
+        // ── Labor (Timings) ──
+        $timings = \App\Models\Production\Timing::where('project_id', $project_id)
+            ->where('approval_status', 'approved')
+            ->with(['jobOrder', 'employee'])
+            ->orderBy('start_time')
+            ->get();
+
+        $totalLaborMinutes = $timings->sum('duration_minutes');
+        $totalLaborHours = round($totalLaborMinutes / 60, 2);
+
+        $timingsByJobOrder = $timings
+            ->groupBy('job_order_id')
+            ->map(function ($rows) {
+                $jo = $rows->first()->jobOrder;
+                return [
+                    'job_order_name' => $jo?->name ?? 'No Job Order',
+                    'total_hours' => round($rows->sum('duration_minutes') / 60, 2),
+                    'sessions_count' => $rows->count(),
+                    'rows' => $rows
+                        ->map(
+                            fn($t) => [
+                                'employee' => $t->employee?->name ?? '—',
+                                'role' => $t->employee?->position ?? '—',
+                                'start_time' => $t->start_time ? \Carbon\Carbon::parse($t->start_time)->format('H:i') : '—',
+                                'end_time' => $t->end_time ? \Carbon\Carbon::parse($t->end_time)->format('H:i') : '—',
+                                'hours' => round(($t->duration_minutes ?? 0) / 60, 2),
+                            ],
+                        )
+                        ->values()
+                        ->toArray(),
+                ];
+            })
+            ->values();
+
+        // ── Courier (Freight) ──
+        $courierData = $this->getCourierCosts($project_id);
+        $totalFreightIDR = $courierData['total_idr'] ?? 0;
+
+        // ── Grand total (Actual Project Cost) ──
+        $grandTotal = $totalMaterialIDR + $totalFreightIDR;
+
+        // ── Overhead = from stock usage portion ──
+        $overheadIDR = $usageCostIDR; // material usage from existing stock
+
+        return view('finance.costing.show', compact('project', 'intlMaterials', 'localMaterials', 'totalMaterialIDR', 'usageCostIDR', 'timingsByJobOrder', 'totalLaborHours', 'timings', 'courierData', 'totalFreightIDR', 'dcmCostings', 'totalIntlPo', 'totalLocalPo', 'totalPoIDR', 'grandTotal', 'overheadIDR'));
+    }
+
+    /**
+     * Full Material Cost detail page
+     */
+    public function showMaterialDetail($project_id)
+    {
+        $project = Project::where('id', $project_id)->where('stage', 'closed')->firstOrFail();
+        $project->load(['departments', 'jobOrders']);
+
+        $usages = MaterialUsage::where('project_id', $project_id)
+            ->with(['inventory.currency', 'inventory.unit', 'inventory.batches', 'jobOrder'])
+            ->orderBy('job_order_id')
+            ->get();
+
+        $materialsData = $usages->map(function ($usage) {
+            $inv = $usage->inventory;
+            $unitPrice = $inv->price ?? 0;
+            $domFreight = $inv->unit_domestic_freight_cost ?? 0;
+            $intFreight = $inv->unit_international_freight_cost ?? 0;
+            $totalUnit = $unitPrice + $domFreight + $intFreight;
+            $qty = $usage->used_quantity ?? 0;
+            $currency = $inv->currency ?? (object) ['name' => 'IDR', 'exchange_rate' => 1];
+            $rate = $currency->exchange_rate ?? 1;
+            $totalOrig = $totalUnit * $qty; // in original currency
+            $totalIDR = $totalUnit * $qty * $rate; // converted to IDR
+
+            $unitName = 'N/A';
+            if ($inv->unit_id) {
+                try {
+                    $unitName = $inv->unit?->name ?? 'N/A';
+                } catch (\Exception $e) {
+                    $unitName = $inv->unit ?? 'N/A';
+                }
+            } elseif (!empty($inv->unit)) {
+                $unitName = $inv->unit;
+            }
+
+            $currCode = strtoupper($currency->name ?? 'IDR');
+            $isIntl = in_array($currCode, ['RMB', 'CNY', 'SGD', 'USD', 'EUR', 'GBP']);
+
+            return [
+                'job_order_name' => $usage->jobOrder?->name ?? 'No Job Order',
+                'name' => $inv->name ?? 'N/A',
+                'qty' => $qty,
+                'unit' => $unitName,
+                'unit_price' => $unitPrice,
+                'total_unit_cost' => $totalUnit,
+                'currency' => $currCode,
+                'exchange_rate' => $rate,
+                'total_original' => $totalOrig,
+                'total_idr' => $totalIDR,
+                'is_intl' => $isIntl,
+                'stock_location' => $inv->location ?? ($isIntl ? 'Stock SG' : 'Stock BT'),
+            ];
+        });
+
+        $intlMaterials = $materialsData->where('is_intl', true)->values();
+        $localMaterials = $materialsData->where('is_intl', false)->values();
+        $usageMaterials = $materialsData->values(); // all usage = Material Usage section
+        $totalIntlIDR = $intlMaterials->sum('total_idr');
+        $totalLocalIDR = $localMaterials->sum('total_idr');
+        $totalMaterialIDR = $materialsData->sum('total_idr');
+
+        // Exchange rates: pull from DB once, keyed by currency name
+        $currencyNames = $intlMaterials->pluck('currency')->unique()->filter()->values()->toArray();
+        $exchangeRates = \App\Models\Finance\Currency::whereIn('name', $currencyNames)->pluck('exchange_rate', 'name')->toArray();
+
+        return view('finance.costing.material-detail', compact('project', 'intlMaterials', 'localMaterials', 'usageMaterials', 'totalIntlIDR', 'totalLocalIDR', 'totalMaterialIDR', 'exchangeRates'));
+    }
+
+    /**
+     * Full Workmanship (Timing) detail page
+     */
+    public function showWorkmanshipDetail($project_id)
+    {
+        $project = Project::where('id', $project_id)->where('stage', 'closed')->firstOrFail();
+        $project->load(['departments', 'jobOrders']);
+
+        $timings = \App\Models\Production\Timing::where('project_id', $project_id)
+            ->where('status', 'complete')
+            ->where('approval_status', 'approved')
+            ->with(['jobOrder', 'employee.department'])
+            ->orderBy('tanggal')
+            ->orderBy('start_time')
+            ->get();
+
+        $totalLaborMinutes = $timings->sum('duration_minutes');
+        $totalLaborHours = round($totalLaborMinutes / 60, 2);
+
+        // Per-employee breakdown
+        $byEmployee = $timings
+            ->groupBy('employee_id')
+            ->map(function ($rows) {
+                $emp = $rows->first()->employee;
+                $hrs = round($rows->sum('duration_minutes') / 60, 2);
+                $salary = $emp->salary ?? 0;
+                // Hourly rate: monthly salary / 173 (standard working hours)
+                $hourlyRate = $salary > 0 ? round($salary / 173, 0) : 0;
+                $laborCost = round($hourlyRate * $hrs, 0);
+                return [
+                    'name' => $emp?->name ?? '—',
+                    'position' => $emp?->position ?? '—',
+                    'initials' => strtoupper(substr($emp?->name ?? 'U', 0, 1)),
+                    'hours' => $hrs,
+                    'sessions' => $rows->count(),
+                    'hourly_rate' => $hourlyRate,
+                    'labor_cost' => $laborCost,
+                ];
+            })
+            ->sortByDesc('hours')
+            ->values();
+
+        // Per date work sessions (for timeline)
+        $workSessions = $timings
+            ->groupBy(fn($t) => optional($t->tanggal)->format('d M Y') ?? '-')
+            ->map(function ($rows, $date) {
+                return [
+                    'date' => $date,
+                    'employees' => $rows->map(fn($t) => $t->employee?->name ?? '—')->unique()->values()->toArray(),
+                    'hours' => round($rows->sum('duration_minutes') / 60, 2),
+                    'sessions' => $rows->count(),
+                ];
+            })
+            ->values();
+
+        // Flat timing log rows
+        $timingRows = $timings
+            ->map(
+                fn($t) => [
+                    'employee' => $t->employee?->name ?? '—',
+                    'initials' => strtoupper(substr($t->employee?->name ?? 'U', 0, 1)),
+                    'position' => $t->employee?->position ?? '—',
+                    'date' => optional($t->tanggal)->format('d M Y') ?? '—',
+                    'start_time' => $t->start_time ? \Carbon\Carbon::parse($t->start_time)->format('H:i') : '—',
+                    'end_time' => $t->end_time ? \Carbon\Carbon::parse($t->end_time)->format('H:i') : '—',
+                    'hours' => round(($t->duration_minutes ?? 0) / 60, 2),
+                    'job_order' => $t->jobOrder?->name ?? '—',
+                ],
+            )
+            ->values();
+
+        $totalOperators = $byEmployee->count();
+        $avgHourlyRate = $byEmployee->avg('hourly_rate') ?? 0;
+        $totalLaborCost = $byEmployee->sum('labor_cost');
+
+        // Latest work date
+        $latestDate = $timings->sortByDesc('tanggal')->first()?->tanggal;
+        $latestDateFmt = $latestDate ? $latestDate->format('d M Y') : '—';
+
+        return view('finance.costing.workmanship-detail', compact('project', 'timingRows', 'byEmployee', 'workSessions', 'totalLaborHours', 'totalOperators', 'avgHourlyRate', 'totalLaborCost', 'latestDateFmt'));
+    }
+
+    /**
+     * Full Freight Cost detail page
+     */
+    public function showFreightDetail($project_id)
+    {
+        $project = Project::where('id', $project_id)->where('stage', 'closed')->firstOrFail();
+        $project->load(['departments', 'jobOrders']);
+
+        // SG → BT items
+        $sgBtItems = \App\Models\Lark\LarkSgBtItemTracking::with('courier')->where('project_id', $project_id)->get();
+
+        // BT → SG items
+        $btSgItems = \App\Models\Lark\LarkBtSgItemTracking::with('courier')->where('project_id', $project_id)->get();
+
+        // Build SG → BT shipments grouped by courier
+        $sgBtShipments = $sgBtItems
+            ->whereNotNull('courier_id')
+            ->groupBy('courier_id')
+            ->map(function ($items) {
+                $courier = $items->first()->courier;
+                return [
+                    'courier_name' => $courier->name ?? '—',
+                    'carrier' => $courier->type_movement ?? '—',
+                    'mode' => $courier->type_movement ?? '—',
+                    'tracking' => $courier->lark_record_id ?? '—',
+                    'date' => $courier->date ? $courier->date->format('d M Y') : '—',
+                    'status' => 'Delivered',
+                    'total_idr' => $courier->total_cost ?? 0,
+                    'total_sgd' => $courier->total_cost_sgd ?? 0,
+                    'items' => $items
+                        ->map(
+                            fn($i) => [
+                                'name' => $i->item_name ?? '—',
+                                'qty' => $i->qty ?? 1,
+                                'status' => $i->status ?? 'Delivered',
+                                'sgd_cost' => $i->sgd_cost ?? 0,
+                            ],
+                        )
+                        ->values()
+                        ->toArray(),
+                    'items_count' => $items->count(),
+                ];
+            })
+            ->values();
+
+        // Build BT → SG shipments grouped by courier
+        $btSgShipments = $btSgItems
+            ->whereNotNull('courier_id')
+            ->groupBy('courier_id')
+            ->map(function ($items) {
+                $courier = $items->first()->courier;
+                return [
+                    'courier_name' => $courier->name ?? '—',
+                    'carrier' => $courier->type_movement ?? '—',
+                    'mode' => $courier->type_movement ?? '—',
+                    'tracking' => $courier->lark_record_id ?? '—',
+                    'date' => $courier->date ? $courier->date->format('d M Y') : '—',
+                    'status' => 'In Transit',
+                    'total_idr' => $courier->total_cost ?? 0,
+                    'total_sgd' => $courier->total_cost_sgd ?? 0,
+                    'items' => $items
+                        ->map(
+                            fn($i) => [
+                                'name' => $i->item_name ?? '—',
+                                'qty' => $i->qty ?? 1,
+                                'status' => $i->status ?? 'In Transit',
+                                'sgd_cost' => $i->sgd_cost ?? 0,
+                            ],
+                        )
+                        ->values()
+                        ->toArray(),
+                    'items_count' => $items->count(),
+                ];
+            })
+            ->values();
+
+        $totalSgBtIDR = $sgBtShipments->sum('total_idr');
+        $totalBtSgIDR = $btSgShipments->sum('total_idr');
+        $totalFreightIDR = $totalSgBtIDR + $totalBtSgIDR;
+        $sgBtCount = $sgBtItems->count();
+        $btSgCount = $btSgItems->count();
+
+        return view('finance.costing.freight-detail', compact('project', 'sgBtShipments', 'btSgShipments', 'totalSgBtIDR', 'totalBtSgIDR', 'totalFreightIDR', 'sgBtCount', 'btSgCount'));
     }
 
     public function viewCosting($project_id)
@@ -322,7 +675,7 @@ class ProjectCostingController extends Controller
                         'material_name' => $inventory->name ?? 'N/A',
                         'qty' => $usedQty,
                         'unit' => $unitName,
-                        'currency' => $currency ? $currency->code ?? 'IDR' : 'IDR',
+                        'currency' => $currency ? $currency->name ?? 'IDR' : 'IDR',
                         'unit_price' => $unitPrice,
                         'domestic_freight' => $domesticFreight,
                         'intl_freight' => $internationalFreight,

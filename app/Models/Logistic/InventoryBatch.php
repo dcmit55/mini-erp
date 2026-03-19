@@ -30,6 +30,7 @@ class InventoryBatch extends Model
     const SOURCE_PURCHASE = 'purchase';
     const SOURCE_GOODS_MOVEMENT = 'goods_movement';
     const SOURCE_MANUAL = 'manual';
+    const SOURCE_INDO_PURCHASE = 'indo_purchase';
 
     // ─── Relationships ────────────────────────────────────────────────────────
 

@@ -4,8 +4,8 @@
     <div class="container-fluid py-4">
 
         <!-- Statistics Cards -->
-        <div class="row mb-4">
-            <div class="col-md-3">
+        <div class="row g-3 mb-4">
+            <div class="col-sm-6 col-md-3">
                 <div class="card shadow-sm border-0 h-100">
                     <div class="card-body">
                         <div class="d-flex align-items-center">
@@ -22,7 +22,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-sm-6 col-md-3">
                 <div class="card shadow-sm border-0 h-100">
                     <div class="card-body">
                         <div class="d-flex align-items-center">
@@ -39,7 +39,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-sm-6 col-md-3">
                 <div class="card shadow-sm border-0 h-100">
                     <div class="card-body">
                         <div class="d-flex align-items-center">
@@ -56,7 +56,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-sm-6 col-md-3">
                 <div class="card shadow-sm border-0 h-100">
                     <div class="card-body">
                         <div class="d-flex align-items-center">
@@ -243,6 +243,48 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
                     <button type="button" class="btn btn-primary btn-sm" id="btnConfirmAction">Konfirmasi</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Item Modal (combined name + unit) -->
+    <div class="modal fade" id="editItemModal" tabindex="-1" aria-labelledby="editItemModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editItemModalLabel">
+                        <i class="bi bi-pencil-fill me-2 text-primary"></i>Edit Item
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="editItemId">
+                    <div class="mb-3">
+                        <label for="editItemName" class="form-label fw-semibold">Item Name <span
+                                class="text-danger">*</span></label>
+                        <input type="text" id="editItemName" class="form-control" placeholder="Nama item inventory"
+                            maxlength="255">
+                        <div class="invalid-feedback" id="editItemNameError"></div>
+                    </div>
+                    <div class="mb-1">
+                        <label for="editItemUnit" class="form-label fw-semibold">Unit <span
+                                class="text-danger">*</span></label>
+                        <select id="editItemUnit" class="form-select select2-unit">
+                            <option value="">-- Pilih Unit --</option>
+                            @foreach ($units as $unit)
+                                <option value="{{ $unit->name }}">{{ $unit->name }}</option>
+                            @endforeach
+                        </select>
+                        <div class="invalid-feedback" id="editItemUnitError"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-primary" id="btnSaveEditItem">
+                        <span class="spinner-border spinner-border-sm me-1 d-none" id="editItemSpinner"></span>
+                        <i class="bi bi-floppy-fill me-1" id="editItemSaveIcon"></i>Simpan
+                    </button>
                 </div>
             </div>
         </div>
@@ -706,58 +748,110 @@
             });
 
             // ============================================================
-            // Edit Item Name (inline)
+            // Combined Edit Item Modal (Name + Unit)
             // ============================================================
-            $(document).on('click', '.btn-edit-name', function() {
-                var id = $(this).data('id');
-                var currentName = $(this).data('name');
+            var editItemModal = new bootstrap.Modal(document.getElementById('editItemModal'));
 
-                Swal.fire({
-                    title: 'Edit Nama Item',
-                    html: '<div class="text-start small text-muted mb-2">Nama dari Lark: <strong>' + currentName + '</strong></div>' +
-                          '<input id="swal-name-input" class="swal2-input" value="' + currentName + '" placeholder="Nama item inventory">',
-                    showCancelButton: true,
-                    confirmButtonText: 'Simpan',
-                    cancelButtonText: 'Batal',
-                    confirmButtonColor: '#0d6efd',
-                    didOpen: function() {
-                        var inp = document.getElementById('swal-name-input');
-                        inp.focus();
-                        inp.select();
-                    },
-                    preConfirm: function() {
-                        var val = document.getElementById('swal-name-input').value.trim();
-                        if (!val) {
-                            Swal.showValidationMessage('Nama tidak boleh kosong');
-                            return false;
-                        }
-                        return val;
-                    }
-                }).then(function(result) {
-                    if (!result.isConfirmed) return;
-                    var newName = result.value;
-
-                    $.ajax({
-                        url: '{{ url('lark/staging/inventory') }}/' + id + '/update-name',
-                        method: 'POST',
-                        data: { _token: '{{ csrf_token() }}', name: newName },
-                        success: function(response) {
-                            if (response.success) {
-                                // Update teks di baris tanpa reload full table
-                                var $nameText = $('.staging-name-text[data-id="' + id + '"]');
-                                $nameText.text(response.name);
-                                // Update data-name on the edit button
-                                $('.btn-edit-name[data-id="' + id + '"]').data('name', response.name).attr('data-name', response.name);
-                                Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'Nama item diperbarui.', timer: 1500, showConfirmButton: false });
-                            } else {
-                                Swal.fire('Gagal', response.message, 'error');
-                            }
-                        },
-                        error: function(xhr) {
-                            var msg = xhr.responseJSON ? xhr.responseJSON.message : 'Terjadi kesalahan.';
-                            Swal.fire('Error', msg, 'error');
-                        }
+            // Initialize Select2 for the unit dropdown inside the modal
+            $('#editItemModal').on('shown.bs.modal', function() {
+                if (!$('#editItemUnit').hasClass('select2-hidden-accessible')) {
+                    $('#editItemUnit').select2({
+                        theme: 'bootstrap-5',
+                        dropdownParent: $('#editItemModal'),
+                        placeholder: '-- Pilih Unit --',
+                        allowClear: false,
+                        width: '100%'
                     });
+                }
+                $('#editItemName').trigger('focus');
+            });
+
+            $(document).on('click', '.btn-edit-item', function() {
+                var id = $(this).data('id');
+                var name = $(this).data('name') || '';
+                var unit = $(this).data('unit') || '';
+
+                $('#editItemId').val(id);
+                $('#editItemName').val(name).removeClass('is-invalid');
+                $('#editItemUnit').val(unit).trigger('change').removeClass('is-invalid');
+                $('#editItemNameError').text('');
+                $('#editItemUnitError').text('');
+
+                editItemModal.show();
+            });
+
+            $('#btnSaveEditItem').on('click', function() {
+                var id = $('#editItemId').val();
+                var name = $('#editItemName').val().trim();
+                var unit = $('#editItemUnit').val();
+
+                // Client-side validation
+                var valid = true;
+                if (!name) {
+                    $('#editItemName').addClass('is-invalid');
+                    $('#editItemNameError').text('Nama tidak boleh kosong.');
+                    valid = false;
+                } else {
+                    $('#editItemName').removeClass('is-invalid');
+                }
+                if (!unit) {
+                    $('#editItemUnit').addClass('is-invalid');
+                    $('#editItemUnitError').text('Unit tidak boleh kosong.');
+                    valid = false;
+                } else {
+                    $('#editItemUnit').removeClass('is-invalid');
+                }
+                if (!valid) return;
+
+                var $btn = $(this);
+                var $spinner = $('#editItemSpinner');
+                var $icon = $('#editItemSaveIcon');
+                $btn.prop('disabled', true);
+                $spinner.removeClass('d-none');
+                $icon.addClass('d-none');
+
+                $.ajax({
+                    url: '{{ url('lark/staging/inventory') }}/' + id + '/update-item',
+                    method: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        name: name,
+                        unit: unit
+                    },
+                    success: function(response) {
+                        $btn.prop('disabled', false);
+                        $spinner.addClass('d-none');
+                        $icon.removeClass('d-none');
+
+                        if (response.success) {
+                            editItemModal.hide();
+                            // Update data attributes on the row button
+                            $('.btn-edit-item[data-id="' + id + '"]')
+                                .data('name', response.name).attr('data-name', response.name)
+                                .data('unit', response.unit).attr('data-unit', response.unit);
+                            // Update displayed name text (if rendered directly in table)
+                            $('.staging-name-text[data-id="' + id + '"]').text(response.name);
+                            // Reload table row
+                            $('#stagingInventoryTable').DataTable().ajax.reload(null, false);
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Berhasil!',
+                                text: 'Item berhasil diperbarui.',
+                                timer: 1500,
+                                showConfirmButton: false
+                            });
+                        } else {
+                            Swal.fire('Gagal', response.message, 'error');
+                        }
+                    },
+                    error: function(xhr) {
+                        $btn.prop('disabled', false);
+                        $spinner.addClass('d-none');
+                        $icon.removeClass('d-none');
+                        var msg = xhr.responseJSON ? xhr.responseJSON.message :
+                            'Terjadi kesalahan.';
+                        Swal.fire('Error', msg, 'error');
+                    }
                 });
             });
 
