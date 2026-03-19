@@ -2,27 +2,24 @@
 
 @section('styles')
     <style>
+        /* ── Base ── */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f9;
+        }
+
         /* ── Pagination ── */
         .pagination {
-            --bs-pagination-padding-x: 0.75rem;
-            --bs-pagination-padding-y: 0.375rem;
-            --bs-pagination-color: var(--bs-secondary-color, #6c757d);
+            --bs-pagination-color: #6c5ce7;
             --bs-pagination-bg: var(--bs-body-bg);
-            --bs-pagination-border-width: 1px;
             --bs-pagination-border-color: var(--bs-border-color);
-            --bs-pagination-border-radius: 0.375rem;
             --bs-pagination-hover-color: var(--bs-body-color);
             --bs-pagination-hover-bg: var(--bs-tertiary-bg, #e9ecef);
-            --bs-pagination-hover-border-color: var(--bs-border-color);
-            --bs-pagination-focus-color: var(--bs-body-color);
-            --bs-pagination-focus-bg: var(--bs-tertiary-bg, #e9ecef);
-            --bs-pagination-focus-box-shadow: 0 0 0 0.25rem rgba(143, 18, 254, 0.25);
+            --bs-pagination-focus-color: #6c5ce7;
+            --bs-pagination-focus-box-shadow: 0 0 0 0.25rem rgba(108, 92, 231, 0.25);
             --bs-pagination-active-color: #fff;
-            --bs-pagination-active-bg: #8F12FE;
+            --bs-pagination-active-bg: #6c5ce7;
             --bs-pagination-active-border-color: #4A25AA;
-            --bs-pagination-disabled-color: var(--bs-secondary-color, #6c757d);
-            --bs-pagination-disabled-bg: var(--bs-body-bg);
-            --bs-pagination-disabled-border-color: var(--bs-border-color);
         }
 
         .page-link {
@@ -31,105 +28,142 @@
 
         .page-link:hover {
             transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, .1);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
         }
 
         .page-item.active .page-link {
-            background: linear-gradient(135deg, #8F12FE 0%, #4A25AA 100%);
-            border-color: #8F12FE;
-            box-shadow: 0 2px 4px rgba(143, 18, 254, .3);
+            background: linear-gradient(135deg, #6c5ce7 0%, #4A25AA 100%);
+            border-color: #6c5ce7;
         }
 
-        /* ── Project Cards (compact cost-card style) ── */
+        /* ── Filter bar ── */
+        .filter-bar-card {
+            background: var(--bs-body-bg);
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            border: none;
+        }
+
+        .filter-bar-card .form-select,
+        .filter-bar-card .form-control {
+            background: var(--bs-tertiary-bg, #f8f9fa);
+            border: none;
+            border-radius: 8px;
+        }
+
+        .filter-bar-card .btn-primary {
+            background: linear-gradient(135deg, #6c5ce7 0%, #4A25AA 100%);
+            border: none;
+        }
+
+        /* ── Department tab pills ── */
+        .dept-filter-tabs .nav-link {
+            font-size: .82rem;
+            font-weight: 500;
+            color: #6c757d;
+            border-radius: 20px;
+            padding: .35rem 1.1rem;
+            border: 1px solid #dee2e6;
+            background: var(--bs-body-bg);
+            transition: all .15s;
+        }
+
+        .dept-filter-tabs .nav-link.active {
+            background: linear-gradient(135deg, #6c5ce7 0%, #4A25AA 100%);
+            color: #fff;
+            border-color: #6c5ce7;
+        }
+
+        .dept-filter-tabs .nav-link:not(.active):hover {
+            background: rgba(108, 92, 231, .08);
+            color: #6c5ce7;
+            border-color: rgba(108, 92, 231, .3);
+        }
+
+        /* ── Project cards (horizontal split) ── */
         .project-card {
-            border: 1px solid var(--bs-border-color);
-            border-radius: 14px;
+            border-radius: 20px;
+            border: none;
             overflow: hidden;
-            transition: box-shadow .25s, transform .25s;
-            background: var(--bs-card-bg, var(--bs-body-bg));
-            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+            background: var(--bs-body-bg);
             text-decoration: none;
             color: inherit;
             display: block;
         }
 
         .project-card:hover {
-            box-shadow: 0 6px 22px rgba(74, 37, 170, .18);
-            transform: translateY(-2px);
+            transform: translateY(-5px);
+            box-shadow: 0 12px 32px rgba(108, 92, 231, 0.18);
             color: inherit;
             text-decoration: none;
         }
 
-        /* ── Card header row (dept-badge + name + chevron) ── */
-        .project-card .pc-header {
+        /* ── Card icon/image side ── */
+        .card-image-bg {
+            min-height: 180px;
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            padding: .75rem 1rem .6rem;
-            border-bottom: 1px solid var(--bs-border-color);
-            gap: .5rem;
+            justify-content: center;
+            position: relative;
+            flex-shrink: 0;
         }
 
-        .project-card .pc-title {
-            display: flex;
-            align-items: center;
-            gap: .45rem;
-            font-size: .84rem;
+        .mascot-bg {
+            background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
+        }
+
+        .costume-bg {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+        }
+
+        .animatronic-bg {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .plush-bg {
+            background: linear-gradient(135deg, #f9d423 0%, #ff4e50 100%);
+        }
+
+        .default-bg {
+            background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%);
+        }
+
+        .card-emoji {
+            font-size: 3.5rem;
+        }
+
+        /* ── Card right-side content ── */
+        .pc-content {
+            padding: 1.1rem 1.2rem;
+        }
+
+        .project-title {
+            font-size: .95rem;
             font-weight: 700;
-            min-width: 0;
-        }
-
-        .project-card .pc-title .project-name {
+            line-height: 1.3;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
 
-        /* ── Dept badges ── */
-        .dept-badge {
-            font-size: .62rem;
-            font-weight: 600;
-            padding: .18em .55em;
-            border-radius: 20px;
-            letter-spacing: .02em;
-            flex-shrink: 0;
+        /* ── Section labels ── */
+        .section-label {
+            font-size: 0.68rem;
+            font-weight: 700;
+            color: #9e9e9e;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+            margin-top: 10px;
+            text-transform: uppercase;
         }
 
-        .dept-badge.mascot {
-            background: rgba(255, 193, 7, 0.18);
-            color: #b8860b;
-        }
-
-        .dept-badge.costume {
-            background: rgba(23, 162, 184, 0.15);
-            color: #0c7989;
-        }
-
-        .dept-badge.animatronic {
-            background: rgba(111, 0, 168, 0.12);
-            color: #9c4dcc;
-        }
-
-        .dept-badge.default {
-            background: var(--bs-secondary-bg, #e9ecef);
-            color: var(--bs-secondary-color, #495057);
-        }
-
-        /* ── Card body ── */
-        .project-card .pc-body {
-            padding: .65rem 1rem;
-            font-size: .78rem;
-        }
-
-        /* ── Meta row (sales / deadline / JO) ── */
-        .info-badge {
-            font-size: .62rem;
-            font-weight: 500;
-            padding: .18em .5em;
-            border-radius: 6px;
-            background: rgba(74, 37, 170, .1);
-            color: #7c52d6;
-            border: 1px solid rgba(74, 37, 170, .18);
+        /* ── Dashed divider ── */
+        .dashed {
+            border: none;
+            border-top: 1px dashed var(--bs-border-color);
+            margin: 10px 0;
         }
 
         /* ── Cost rows ── */
@@ -137,8 +171,8 @@
             display: flex;
             justify-content: space-between;
             align-items: baseline;
-            padding: .18rem 0;
-            font-size: .78rem;
+            font-size: .8rem;
+            padding: .1rem 0;
         }
 
         .cost-row .cr-label {
@@ -147,32 +181,25 @@
 
         .cost-row .cr-val {
             font-weight: 600;
-            color: var(--bs-body-color);
-        }
-
-        .cost-row.highlight .cr-label {
-            color: var(--bs-body-color);
-            font-weight: 600;
         }
 
         .cost-row.highlight .cr-val {
-            color: #8F12FE;
+            color: #6c5ce7;
             font-weight: 700;
-            font-size: .82rem;
         }
 
-        /* Profit badge inline */
+        /* ── Profit chip ── */
         .profit-chip {
-            font-size: .63rem;
+            font-size: .62rem;
             font-weight: 700;
-            padding: .13em .45em;
+            padding: .12em .42em;
             border-radius: 20px;
             margin-left: .3rem;
         }
 
         .profit-chip.pos {
-            background: rgba(25, 135, 84, .15);
-            color: #198754;
+            background: rgba(39, 174, 96, .15);
+            color: #27ae60;
         }
 
         .profit-chip.neg {
@@ -180,57 +207,60 @@
             color: #dc3545;
         }
 
-        /* ── PO badge row ── */
-        .po-tag {
-            font-size: .62rem;
+        /* ── PO mini boxes ── */
+        .po-box {
+            flex: 1;
+            text-align: center;
+            padding: .4rem .3rem;
+            border-radius: 8px;
+            font-size: .72rem;
+        }
+
+        .po-box small {
+            display: block;
+            color: #9e9e9e;
+            font-size: .6rem;
             font-weight: 600;
-            padding: .22em .6em;
-            border-radius: 6px;
-            border: 1px solid;
+            letter-spacing: .04em;
         }
 
-        .po-tag.intl {
-            background: rgba(255, 193, 7, .12);
-            border-color: rgba(255, 193, 7, .4);
-            color: #997404;
+        .po-box strong {
+            font-size: .78rem;
         }
 
-        .po-tag.local {
-            background: rgba(23, 162, 184, .1);
-            border-color: rgba(23, 162, 184, .35);
-            color: #0c7989;
+        .po-box.intl {
+            background: rgba(255, 193, 7, .15);
         }
 
-        .po-tag.usage {
-            background: rgba(40, 167, 69, .1);
-            border-color: rgba(40, 167, 69, .35);
-            color: #198754;
+        .po-box.local {
+            background: rgba(40, 167, 69, .12);
         }
 
-        /* Department filter tabs */
-        .dept-filter-tabs .nav-link {
-            font-size: .82rem;
-            font-weight: 500;
-            color: #6c757d;
+        .po-box.usage {
+            background: rgba(13, 202, 240, .12);
+        }
+
+        /* ── Dept badge (icon panel overlay) ── */
+        .dept-badge {
+            font-size: .62rem;
+            font-weight: 700;
+            padding: .2em .55em;
             border-radius: 20px;
-            padding: .35rem 1rem;
-            border: 1px solid transparent;
-            transition: all .15s;
+            flex-shrink: 0;
         }
 
-        .dept-filter-tabs .nav-link.active {
-            background: linear-gradient(135deg, #8F12FE 0%, #4A25AA 100%);
-            color: #fff;
-            border-color: #8F12FE;
+        /* ── Info badge ── */
+        .info-badge {
+            font-size: .62rem;
+            font-weight: 500;
+            padding: .18em .5em;
+            border-radius: 6px;
+            background: rgba(108, 92, 231, .1);
+            color: #6c5ce7;
+            border: 1px solid rgba(108, 92, 231, .18);
         }
 
-        .dept-filter-tabs .nav-link:not(.active):hover {
-            background: rgba(143, 18, 254, .08);
-            color: #8F12FE;
-            border-color: rgba(143, 18, 254, .2);
-        }
-
-        /* Empty state */
+        /* ── Empty state ── */
         .empty-state {
             text-align: center;
             padding: 4rem 1rem;
@@ -241,6 +271,38 @@
             font-size: 3.5rem;
             margin-bottom: 1rem;
         }
+
+        /* ── Dark mode overrides ── */
+        [data-bs-theme="dark"] .filter-bar-card .form-select,
+        [data-bs-theme="dark"] .filter-bar-card .form-control {
+            background: rgba(255, 255, 255, .06);
+            color: var(--bs-body-color);
+        }
+
+        [data-bs-theme="dark"] .dept-filter-tabs .nav-link {
+            border-color: rgba(255, 255, 255, .15);
+            background: transparent;
+        }
+
+        [data-bs-theme="dark"] .mascot-bg {
+            background: linear-gradient(135deg, #6a3093 0%, #2c3e7a 100%);
+        }
+
+        [data-bs-theme="dark"] .costume-bg {
+            background: linear-gradient(135deg, #8b2b35 0%, #6b2060 100%);
+        }
+
+        [data-bs-theme="dark"] .animatronic-bg {
+            background: linear-gradient(135deg, #1a5276 0%, #0e6655 100%);
+        }
+
+        [data-bs-theme="dark"] .plush-bg {
+            background: linear-gradient(135deg, #7d6608 0%, #922b21 100%);
+        }
+
+        [data-bs-theme="dark"] .default-bg {
+            background: linear-gradient(135deg, #1a3a5c 0%, #1b2631 100%);
+        }
     </style>
 @endsection
 
@@ -248,19 +310,17 @@
     <div class="container-fluid mt-4 px-4">
 
         {{-- ── Page header ── --}}
-        <div class="d-flex align-items-center justify-content-between mb-3">
-            <div class="d-flex align-items-center gap-2">
-                <i class="fas fa-file-invoice-dollar gradient-icon" style="font-size:1.5rem;"></i>
-                <h2 class="mb-0" style="font-size:1.3rem;">Project Costing Report</h2>
-                <span class="badge bg-secondary ms-1" style="font-size:.7rem;">
-                    {{ $projects->total() }} project{{ $projects->total() != 1 ? 's' : '' }}
-                </span>
-            </div>
+        <div class="d-flex align-items-center mb-4 gap-3">
+            <div class="bg-white p-2 rounded-3 shadow-sm" style="font-size:1.4rem;">📋</div>
+            <h2 class="fw-bold m-0" style="font-size:1.25rem;">Project Costing Report</h2>
+            <span class="badge rounded-pill text-bg-secondary opacity-75" style="font-size:.7rem;">
+                {{ $projects->total() }} project{{ $projects->total() != 1 ? 's' : '' }}
+            </span>
         </div>
 
         {{-- ── Filter form ── --}}
-        <div class="card shadow-sm rounded mb-3">
-            <div class="card-body py-3">
+        <div class="card filter-bar-card mb-4">
+            <div class="card-body py-3 px-4">
                 <form id="filter-form" method="GET" action="{{ route('costing.report') }}"
                     class="row g-2 align-items-end">
                     <div class="col-lg-3">
@@ -320,12 +380,12 @@
                         </select>
                     </div>
                     <div class="col-lg-1 d-flex gap-1">
-                        <button id="filter-btn" type="submit" class="btn btn-sm btn-primary flex-fill">
+                        <button id="filter-btn" type="submit" class="btn btn-sm btn-primary rounded-pill flex-fill">
                             <span class="spinner-border spinner-border-sm d-none me-1" role="status"></span>
                             <i class="fas fa-search"></i>
                         </button>
                         <a href="{{ route('costing.report') }}"
-                            class="btn btn-sm btn-outline-secondary flex-fill text-center" title="Reset Filters">
+                            class="btn btn-sm btn-outline-secondary border-0 flex-fill text-center" title="Reset Filters">
                             <i class="fas fa-times"></i>
                         </a>
                     </div>
@@ -373,7 +433,7 @@
                 <small>Try adjusting your filters or <a href="{{ route('costing.report') }}">reset</a> them.</small>
             </div>
         @else
-            <div class="row g-3">
+            <div class="row g-4">
                 @foreach ($projects as $project)
                     @php
                         // ── Dept badge ──
@@ -383,12 +443,15 @@
                             str_contains($deptSlug, 'mascot') => 'mascot',
                             str_contains($deptSlug, 'costume') => 'costume',
                             str_contains($deptSlug, 'animatronic') => 'animatronic',
+                            str_contains($deptSlug, 'plush') => 'plush',
                             default => 'default',
                         };
-                        $deptIcon = match (true) {
-                            str_contains($deptSlug, 'mascot') => '⭐',
-                            str_contains($deptSlug, 'costume') => '👗',
-                            str_contains($deptSlug, 'animatronic') => '🤖',
+                        $bgClass = $badgeClass . '-bg';
+                        $deptEmoji = match ($badgeClass) {
+                            'mascot' => '🦊',
+                            'costume' => '👗',
+                            'animatronic' => '🤖',
+                            'plush' => '🧸',
                             default => '🏢',
                         };
 
@@ -398,9 +461,6 @@
                             ? \Carbon\Carbon::parse($project->deadline)->format('d M Y')
                             : '-';
 
-                        // ── Avatar initials ──
-                        $words = array_values(array_filter(explode(' ', $project->name)));
-
                         // ── Summary data from controller ──
                         $summary = $cardSummaries[$project->id] ?? [];
                         $intlPo = $summary['intl_po'] ?? 0;
@@ -408,110 +468,111 @@
                         $usageIdr = $summary['usage_idr'] ?? 0;
                         $totalHours = $summary['total_hours'] ?? 0;
 
-                        // Selling price = INT'L PO + LOCAL PO
-$sellingPrice = $intlPo + $localPo;
-// Actual cost   = material usage from stock (IDR)
-$actualCost = $usageIdr;
-$profit = $sellingPrice - $actualCost;
-$profitPct = $sellingPrice > 0 ? round(($profit / $sellingPrice) * 100, 1) : null;
-$hasData = $sellingPrice > 0 || $actualCost > 0;
+                        $sellingPrice = $intlPo + $localPo;
+                        $actualCost = $usageIdr;
+                        $profit = $sellingPrice - $actualCost;
+                        $profitPct = $sellingPrice > 0 ? round(($profit / $sellingPrice) * 100, 1) : null;
+                        $hasData = $sellingPrice > 0 || $actualCost > 0;
 
-// Format helpers
-$fmt = fn($n) => 'Rp ' . number_format($n, 0, ',', '.');
-$fmtK = function ($n) {
-    if ($n >= 1_000_000) {
-        return 'Rp ' . number_format($n / 1_000_000, 1) . 'M';
-    }
-    if ($n >= 1_000) {
-        return 'Rp ' . number_format($n / 1_000, 0) . 'k';
-    }
-    return 'Rp ' . number_format($n, 0);
+                        $fmt = fn($n) => 'Rp ' . number_format($n, 0, ',', '.');
+                        $fmtK = function ($n) {
+                            if ($n >= 1_000_000) {
+                                return 'Rp ' . number_format($n / 1_000_000, 1) . 'M';
+                            }
+                            if ($n >= 1_000) {
+                                return 'Rp ' . number_format($n / 1_000, 0) . 'k';
+                            }
+                            return 'Rp ' . number_format($n, 0);
                         };
                     @endphp
 
-                    <div class="col-xl-4 col-lg-6 col-md-6">
+                    <div class="col-xl-6 col-lg-12">
                         <a href="{{ route('costing.detail', $project->id) }}" class="project-card">
+                            <div class="row g-0">
 
-                            {{-- ── HEADER: dept badge + name + chevron ── --}}
-                            <div class="pc-header">
-                                <div class="pc-title">
+                                {{-- ── LEFT: coloured icon panel ── --}}
+                                <div class="col-4 col-md-3 card-image-bg {{ $bgClass }}">
                                     @if (!empty($typeDept))
-                                        <span class="dept-badge {{ $badgeClass }}">{{ $deptIcon }}
-                                            {{ $typeDept }}</span>
+                                        <span class="badge bg-white text-dark position-absolute top-0 start-0 m-2"
+                                            style="font-size:.6rem; opacity:.85;">{{ $typeDept }}</span>
                                     @endif
-                                    <span class="project-name" title="{{ $project->name }}">
-                                        {{ \Illuminate\Support\Str::limit($project->name, 38) }}
-                                    </span>
+                                    <span class="card-emoji">{{ $deptEmoji }}</span>
                                     @if (!empty($project->lark_record_id))
-                                        <span title="Lark synced"
-                                            style="color:#22c55e; font-size:.55rem; flex-shrink:0;">●</span>
+                                        <span class="position-absolute bottom-0 end-0 m-2" title="Lark synced"
+                                            style="color:#22c55e; font-size:.7rem;">● Lark</span>
                                     @endif
                                 </div>
-                                <i class="fas fa-chevron-right text-muted" style="font-size:.65rem; flex-shrink:0;"></i>
-                            </div>
 
-                            {{-- ── BODY ── --}}
-                            <div class="pc-body">
+                                {{-- ── RIGHT: detail panel ── --}}
+                                <div class="col-8 col-md-9 pc-content">
 
-                                {{-- Meta: sales, deadline, JO count --}}
-                                <div class="d-flex flex-wrap gap-1 mb-2">
-                                    <span class="info-badge"><i class="fas fa-user me-1"></i>{{ $salesName }}</span>
-                                    <span class="info-badge"><i
-                                            class="far fa-calendar-alt me-1"></i>{{ $deadline }}</span>
-                                    <span class="info-badge"><i class="fas fa-tasks me-1"></i>{{ $jobOrderCount }}
-                                        JO</span>
-                                </div>
+                                    {{-- Title + meta --}}
+                                    <div class="project-title mb-1" title="{{ $project->name }}">
+                                        {{ \Illuminate\Support\Str::limit($project->name, 45) }}
+                                    </div>
+                                    <div class="d-flex flex-wrap gap-1 mb-2">
+                                        <span class="info-badge"><i class="fas fa-user me-1"></i>{{ $salesName }}</span>
+                                        <span class="info-badge"><i
+                                                class="far fa-calendar-alt me-1"></i>{{ $deadline }}</span>
+                                        <span class="info-badge"><i class="fas fa-tasks me-1"></i>{{ $jobOrderCount }}
+                                            JO</span>
+                                    </div>
 
-                                {{-- Cost rows ── Selling / Actual / Profit ── --}}
-                                <div class="cost-row">
-                                    <span class="cr-label">Selling Price</span>
-                                    <span class="cr-val">{{ $hasData ? $fmt($sellingPrice) : '—' }}</span>
-                                </div>
-                                <div class="cost-row">
-                                    <span class="cr-label">Actual Project Cost</span>
-                                    <span class="cr-val">{{ $hasData ? $fmt($actualCost) : '—' }}</span>
-                                </div>
-                                <div class="cost-row highlight">
-                                    <span class="cr-label">Project Profit</span>
-                                    <span class="cr-val">
-                                        @if ($hasData && $sellingPrice > 0)
-                                            {{ $fmt($profit) }}
-                                            @if ($profitPct !== null)
-                                                <span class="profit-chip {{ $profit >= 0 ? 'pos' : 'neg' }}">
-                                                    {{ $profit >= 0 ? '+' : '' }}{{ $profitPct }}%
-                                                </span>
+                                    {{-- ACTUALS section --}}
+                                    <div class="section-label">ACTUALS</div>
+                                    <div class="cost-row">
+                                        <span class="cr-label">Selling Price</span>
+                                        <span class="cr-val">{{ $hasData ? $fmt($sellingPrice) : '—' }}</span>
+                                    </div>
+                                    <div class="cost-row">
+                                        <span class="cr-label">Actual Project Cost</span>
+                                        <span class="cr-val">{{ $hasData ? $fmt($actualCost) : '—' }}</span>
+                                    </div>
+                                    <div class="cost-row highlight">
+                                        <span class="cr-label fw-semibold" style="color:var(--bs-body-color);">Project
+                                            Profit</span>
+                                        <span class="cr-val">
+                                            @if ($hasData && $sellingPrice > 0)
+                                                {{ $fmt($profit) }}
+                                                @if ($profitPct !== null)
+                                                    <span class="profit-chip {{ $profit >= 0 ? 'pos' : 'neg' }}">
+                                                        {{ $profit >= 0 ? '+' : '' }}{{ $profitPct }}%
+                                                    </span>
+                                                @endif
+                                            @else
+                                                —
                                             @endif
-                                        @else
-                                            —
-                                        @endif
-                                    </span>
-                                </div>
+                                        </span>
+                                    </div>
 
-                                {{-- PO tags + Export ── --}}
-                                <div class="d-flex align-items-center gap-1 flex-wrap pt-2 mt-2"
-                                    style="border-top:1px solid var(--bs-border-color);">
-                                    @if ($intlPo > 0)
-                                        <span class="po-tag intl" title="INT'L PO">INT'L PO {{ $fmtK($intlPo) }}</span>
-                                    @endif
-                                    @if ($localPo > 0)
-                                        <span class="po-tag local" title="LOCAL PO">LOCAL PO {{ $fmtK($localPo) }}</span>
-                                    @endif
-                                    @if ($usageIdr > 0)
-                                        <span class="po-tag usage" title="Material Usage from Stock">USAGE
-                                            {{ $fmtK($usageIdr) }}</span>
-                                    @endif
-                                    @if (!$hasData)
-                                        <span class="text-muted" style="font-size:.62rem;">No data yet</span>
-                                    @endif
-                                    <a href="{{ route('costing.export', $project->id) }}"
-                                        class="btn btn-xs btn-outline-success py-0 px-2 ms-auto" style="font-size:.65rem;"
-                                        title="Export Excel"
-                                        onclick="event.stopPropagation(); event.preventDefault(); window.location='{{ route('costing.export', $project->id) }}'">
-                                        <i class="bi bi-file-earmark-excel"></i> Export
-                                    </a>
-                                </div>
+                                    <hr class="dashed">
 
-                            </div>{{-- /pc-body --}}
+                                    {{-- PO breakdown mini-boxes --}}
+                                    <div class="d-flex gap-1 mt-1">
+                                        <div class="po-box intl">
+                                            <small>INT'L PO</small>
+                                            <strong>{{ $intlPo > 0 ? $fmtK($intlPo) : '—' }}</strong>
+                                        </div>
+                                        <div class="po-box local">
+                                            <small>LOCAL PO</small>
+                                            <strong>{{ $localPo > 0 ? $fmtK($localPo) : '—' }}</strong>
+                                        </div>
+                                        <div class="po-box usage">
+                                            <small>USAGE</small>
+                                            <strong>{{ $usageIdr > 0 ? $fmtK($usageIdr) : '—' }}</strong>
+                                        </div>
+                                        <div class="ms-auto d-flex align-items-center">
+                                            <a href="{{ route('costing.export', $project->id) }}"
+                                                class="btn btn-xs btn-outline-success py-0 px-2" style="font-size:.65rem;"
+                                                title="Export Excel"
+                                                onclick="event.stopPropagation(); event.preventDefault(); window.location='{{ route('costing.export', $project->id) }}'">
+                                                <i class="bi bi-file-earmark-excel"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                </div>{{-- /right panel --}}
+                            </div>{{-- /row --}}
                         </a>{{-- /project-card --}}
                     </div>{{-- /col --}}
                 @endforeach
