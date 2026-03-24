@@ -122,47 +122,50 @@ class ProjectCostingController extends Controller
 
         $materialsData = $usages->map(function ($usage) {
             $inv = $usage->inventory;
-            $unitPrice = $inv->price ?? 0;
+
+            // Guard: inventory may be null (orphaned usage row or soft-deleted item)
+            if (!$inv) {
+                return null;
+            }
+
+            $unitPrice  = $inv->price ?? 0;
             $domFreight = $inv->unit_domestic_freight_cost ?? 0;
             $intFreight = $inv->unit_international_freight_cost ?? 0;
-            $totalUnit = $unitPrice + $domFreight + $intFreight;
-            $qty = $usage->used_quantity ?? 0;
-            $currency = $inv->currency ?? (object) ['name' => 'IDR', 'exchange_rate' => 1];
-            $rate = $currency->exchange_rate ?? 1;
-            $totalIDR = $totalUnit * $qty * $rate;
+            $totalUnit  = $unitPrice + $domFreight + $intFreight;
+            $qty        = $usage->used_quantity ?? 0;
+            $currency   = $inv->currency ?? (object) ['name' => 'IDR', 'exchange_rate' => 1];
+            $rate       = $currency->exchange_rate ?? 1;
+            $totalIDR   = $totalUnit * $qty * $rate;
 
+            // Unit name: prefer unit relation, fall back to varchar field
             $unitName = 'N/A';
-            if ($inv->unit_id) {
-                try {
-                    $unitName = $inv->unit?->name ?? 'N/A';
-                } catch (\Exception $e) {
-                    $unitName = $inv->unit ?? 'N/A';
-                }
-            } elseif (!empty($inv->unit)) {
+            if ($inv->unit_id && $inv->unit) {
+                $unitName = $inv->unit->name ?? 'N/A';
+            } elseif (!empty($inv->unit) && is_string($inv->unit)) {
                 $unitName = $inv->unit;
             }
 
             $currCode = strtoupper($currency->name ?? 'IDR');
-            $isIntl = in_array($currCode, ['RMB', 'CNY', 'SGD', 'USD', 'EUR', 'GBP']);
+            $isIntl   = in_array($currCode, ['RMB', 'CNY', 'SGD', 'USD', 'EUR', 'GBP']);
 
             return [
                 'job_order_name' => $usage->jobOrder?->name ?? 'No Job Order',
-                'name' => $inv->name ?? 'N/A',
-                'qty' => $qty,
-                'unit' => $unitName,
-                'unit_price' => $unitPrice,
-                'total_unit_cost' => $totalUnit,
-                'currency' => $currCode,
-                'total_idr' => $totalIDR,
-                'is_intl' => $isIntl,
-                'source' => 'usage', // from stock
+                'name'           => $inv->name ?? 'N/A',
+                'qty'            => $qty,
+                'unit'           => $unitName,
+                'unit_price'     => $unitPrice,
+                'total_unit_cost'=> $totalUnit,
+                'currency'       => $currCode,
+                'total_idr'      => $totalIDR,
+                'is_intl'        => $isIntl,
+                'source'         => 'usage',
             ];
-        });
+        })->filter()->values(); // drop null rows (orphaned usages)
 
-        $intlMaterials = $materialsData->where('is_intl', true)->values();
-        $localMaterials = $materialsData->where('is_intl', false)->values();
+        $intlMaterials    = $materialsData->where('is_intl', true)->values();
+        $localMaterials   = $materialsData->where('is_intl', false)->values();
         $totalMaterialIDR = $materialsData->sum('total_idr');
-        $usageCostIDR = $materialsData->sum('total_idr'); // all usage = from stock
+        $usageCostIDR     = $materialsData->sum('total_idr');
 
         // ── DCM Costings (INT'L PO & LOCAL PO) ──
         $dcmCostings = \App\Models\Finance\DcmCosting::where('project_name', $project->name)->where('is_current', true)->get();
@@ -236,45 +239,48 @@ class ProjectCostingController extends Controller
 
         $materialsData = $usages->map(function ($usage) {
             $inv = $usage->inventory;
-            $unitPrice = $inv->price ?? 0;
+
+            // Guard: inventory may be null (orphaned usage row or soft-deleted item)
+            if (!$inv) {
+                return null;
+            }
+
+            $unitPrice  = $inv->price ?? 0;
             $domFreight = $inv->unit_domestic_freight_cost ?? 0;
             $intFreight = $inv->unit_international_freight_cost ?? 0;
-            $totalUnit = $unitPrice + $domFreight + $intFreight;
-            $qty = $usage->used_quantity ?? 0;
-            $currency = $inv->currency ?? (object) ['name' => 'IDR', 'exchange_rate' => 1];
-            $rate = $currency->exchange_rate ?? 1;
-            $totalOrig = $totalUnit * $qty; // in original currency
-            $totalIDR = $totalUnit * $qty * $rate; // converted to IDR
+            $totalUnit  = $unitPrice + $domFreight + $intFreight;
+            $qty        = $usage->used_quantity ?? 0;
+            $currency   = $inv->currency ?? (object) ['name' => 'IDR', 'exchange_rate' => 1];
+            $rate       = $currency->exchange_rate ?? 1;
+            $totalOrig  = $totalUnit * $qty;
+            $totalIDR   = $totalUnit * $qty * $rate;
 
+            // Unit name: prefer unit relation, fall back to varchar field
             $unitName = 'N/A';
-            if ($inv->unit_id) {
-                try {
-                    $unitName = $inv->unit?->name ?? 'N/A';
-                } catch (\Exception $e) {
-                    $unitName = $inv->unit ?? 'N/A';
-                }
-            } elseif (!empty($inv->unit)) {
+            if ($inv->unit_id && $inv->unit) {
+                $unitName = $inv->unit->name ?? 'N/A';
+            } elseif (!empty($inv->unit) && is_string($inv->unit)) {
                 $unitName = $inv->unit;
             }
 
             $currCode = strtoupper($currency->name ?? 'IDR');
-            $isIntl = in_array($currCode, ['RMB', 'CNY', 'SGD', 'USD', 'EUR', 'GBP']);
+            $isIntl   = in_array($currCode, ['RMB', 'CNY', 'SGD', 'USD', 'EUR', 'GBP']);
 
             return [
-                'job_order_name' => $usage->jobOrder?->name ?? 'No Job Order',
-                'name' => $inv->name ?? 'N/A',
-                'qty' => $qty,
-                'unit' => $unitName,
-                'unit_price' => $unitPrice,
+                'job_order_name'  => $usage->jobOrder?->name ?? 'No Job Order',
+                'name'            => $inv->name ?? 'N/A',
+                'qty'             => $qty,
+                'unit'            => $unitName,
+                'unit_price'      => $unitPrice,
                 'total_unit_cost' => $totalUnit,
-                'currency' => $currCode,
-                'exchange_rate' => $rate,
-                'total_original' => $totalOrig,
-                'total_idr' => $totalIDR,
-                'is_intl' => $isIntl,
-                'stock_location' => $inv->location ?? ($isIntl ? 'Stock SG' : 'Stock BT'),
+                'currency'        => $currCode,
+                'exchange_rate'   => $rate,
+                'total_original'  => $totalOrig,
+                'total_idr'       => $totalIDR,
+                'is_intl'         => $isIntl,
+                'stock_location'  => $inv->location ?? ($isIntl ? 'Stock SG' : 'Stock BT'),
             ];
-        });
+        })->filter()->values(); // drop null rows (orphaned usages)
 
         $intlMaterials = $materialsData->where('is_intl', true)->values();
         $localMaterials = $materialsData->where('is_intl', false)->values();
@@ -493,8 +499,7 @@ class ProjectCostingController extends Controller
                     'total_minutes' => $totalMinutes,
                     'sessions_count' => $timings->count(), // Match frontend variable name
                     'unique_employees' => $timings->pluck('employee.name')->unique()->count(), // Count employees
-                    'employ    ee
-            _names' => $timings->pluck('employee.name')->unique()->values()->toArray(), // List for tooltip
+                    'employee_names' => $timings->pluck('employee.name')->unique()->values()->toArray(), // List for tooltip
                 ];
             })
             ->values();
@@ -503,50 +508,45 @@ class ProjectCostingController extends Controller
         $materials = $usages->map(function ($usage) {
             $inventory = $usage->inventory;
 
-            // RUMUS: Unit Price + Domestic Freight + International Freight
-            $unitPrice = $inventory->price ?? 0;
-            $domesticFreight = $inventory->unit_domestic_freight_cost ?? 0;
+            // Guard: inventory may be null (orphaned usage row or soft-deleted item)
+            if (!$inventory) {
+                return null;
+            }
+
+            $unitPrice           = $inventory->price ?? 0;
+            $domesticFreight     = $inventory->unit_domestic_freight_cost ?? 0;
             $internationalFreight = $inventory->unit_international_freight_cost ?? 0;
-            $totalUnitCost = $unitPrice + $domesticFreight + $internationalFreight;
+            $totalUnitCost       = $unitPrice + $domesticFreight + $internationalFreight;
+            $usedQty             = $usage->used_quantity ?? 0;
 
-            $usedQty = $usage->used_quantity ?? 0;
-
-            // Get unit name - support both old (varchar) and new (relation) data
+            // Unit name: prefer unit relation (FK), fall back to varchar field
             $unitName = 'N/A';
-            if ($inventory->unit_id) {
-                try {
-                    $unitRelation = $inventory->unit;
-                    if ($unitRelation) {
-                        $unitName = $unitRelation->name;
-                    }
-                } catch (\Exception $e) {
-                    $unitName = $inventory->unit ?? 'N/A';
-                }
-            } elseif (!empty($inventory->unit)) {
+            if ($inventory->unit_id && $inventory->unit) {
+                $unitName = $inventory->unit->name ?? 'N/A';
+            } elseif (!empty($inventory->unit) && is_string($inventory->unit)) {
                 $unitName = $inventory->unit;
             }
 
-            $currency = $inventory->currency ?? (object) ['name' => 'N/A', 'exchange_rate' => 1];
+            $currency     = $inventory->currency ?? (object) ['name' => 'IDR', 'exchange_rate' => 1];
             $exchangeRate = $currency->exchange_rate ?? 1;
-
-            $totalCost = $totalUnitCost * $usedQty;
+            $totalCost    = $totalUnitCost * $usedQty;
             $totalCostInIDR = $totalCost * $exchangeRate;
 
             return (object) [
-                'job_order_name' => $usage->jobOrder ? $usage->jobOrder->name : 'No Job Order',
+                'job_order_name' => $usage->jobOrder?->name ?? 'No Job Order',
                 'inventory' => (object) [
-                    'id' => $inventory->id ?? $usage->inventory_id,
-                    'name' => $inventory->name ?? 'N/A',
-                    'unit' => $unitName,
-                    'price' => $unitPrice,
-                    'total_unit_cost' => $totalUnitCost,
-                    'currency' => $currency,
+                    'id'             => $inventory->id ?? $usage->inventory_id,
+                    'name'           => $inventory->name ?? 'N/A',
+                    'unit'           => $unitName,
+                    'price'          => $unitPrice,
+                    'total_unit_cost'=> $totalUnitCost,
+                    'currency'       => $currency,
                 ],
                 'used_quantity' => $usedQty,
-                'total_price' => $totalCost,
-                'total_cost' => $totalCostInIDR,
+                'total_price'   => $totalCost,
+                'total_cost'    => $totalCostInIDR,
             ];
-        });
+        })->filter()->values(); // drop null rows (orphaned usages)
 
         // Hitung grand total dalam IDR
         $grand_total_material_idr = $materials->sum('total_cost');
@@ -590,21 +590,28 @@ class ProjectCostingController extends Controller
             ->get();
 
         $materialRows = $usages->map(function ($usage) {
-            $inv          = $usage->inventory;
-            $unitPrice    = $inv->price ?? 0;
-            $domFreight   = $inv->unit_domestic_freight_cost ?? 0;
-            $intFreight   = $inv->unit_international_freight_cost ?? 0;
-            $totalUnit    = $unitPrice + $domFreight + $intFreight;
-            $qty          = $usage->used_quantity ?? 0;
-            $currency     = $inv->currency ?? (object)['name' => 'IDR', 'exchange_rate' => 1];
-            $rate         = $currency->exchange_rate ?? 1;
-            $totalIdr     = $totalUnit * $qty * $rate;
+            $inv = $usage->inventory;
 
+            // Guard: inventory may be null (orphaned usage row or soft-deleted item)
+            if (!$inv) {
+                return null;
+            }
+
+            $unitPrice  = $inv->price ?? 0;
+            $domFreight = $inv->unit_domestic_freight_cost ?? 0;
+            $intFreight = $inv->unit_international_freight_cost ?? 0;
+            $totalUnit  = $unitPrice + $domFreight + $intFreight;
+            $qty        = $usage->used_quantity ?? 0;
+            $currency   = $inv->currency ?? (object)['name' => 'IDR', 'exchange_rate' => 1];
+            $rate       = $currency->exchange_rate ?? 1;
+            $totalIdr   = $totalUnit * $qty * $rate;
+
+            // Unit name: prefer unit relation, fall back to varchar field
             $unitName = 'N/A';
-            if ($inv->unit_id) {
-                try { $unitName = $inv->unit?->name ?? 'N/A'; } catch (\Exception $e) { $unitName = $inv->unit ?? 'N/A'; }
-            } elseif (!empty($inv->unit)) {
-                $unitName = is_string($inv->unit) ? $inv->unit : ($inv->unit->name ?? 'N/A');
+            if ($inv->unit_id && $inv->unit) {
+                $unitName = $inv->unit->name ?? 'N/A';
+            } elseif (!empty($inv->unit) && is_string($inv->unit)) {
+                $unitName = $inv->unit;
             }
 
             return [
@@ -619,7 +626,7 @@ class ProjectCostingController extends Controller
                 'total_unit_cost'  => $totalUnit,
                 'total_idr'        => $totalIdr,
             ];
-        })->toArray();
+        })->filter()->values()->toArray(); // drop null rows (orphaned usages)
 
         // ── 2. Workmanship Cost rows ─────────────────────────────────────────
         $timings = \App\Models\Production\Timing::where('project_id', $project_id)
