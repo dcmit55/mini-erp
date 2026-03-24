@@ -254,14 +254,15 @@ class MascotTimingController extends Controller
     }
 
     /**
-     * Stop work session with stage selection (1-10)
-     * Stage represents ABSOLUTE position, not cumulative
+     * Stop work session — now requires qty & measurement like Costume timing.
+     * Stage selection is removed; data stored as measurement_type/measurement_value.
      */
     public function stop(Request $request)
     {
         $validated = $request->validate([
-            'timing_id' => 'required|exists:timings,id',
-            'stage' => 'required|integer|min:1|max:10', // Stage 1-10 represents 10%-100%
+            'timing_id'        => 'required|exists:timings,id',
+            'output_qty'       => 'required|numeric|min:1',
+            'measurement_type' => 'required|string|in:qty,pcs,unit,piece,item,set,meter,cm,kg,gram',
         ]);
 
         try {
@@ -282,57 +283,39 @@ class MascotTimingController extends Controller
                 );
             }
 
-            // Get department-specific data
-            $deptSpecificData = $timing->department_specific_data ?? [];
-            $previousProgress = $deptSpecificData['previous_progress'] ?? 0;
-
-            // Calculate ABSOLUTE progress based on stage (stage 2 = 20%, not previous + 10%)
-            $stage = $validated['stage'];
-            $currentProgress = $stage * 10; // Absolute positioning
-            $progressAdded = $currentProgress - $previousProgress; // Calculate increment for display
-
-            // Update department-specific data
-            $deptSpecificData['current_stage'] = $stage;
-            $deptSpecificData['current_progress'] = $currentProgress;
-            $deptSpecificData['progress_added'] = $progressAdded;
-            $deptSpecificData['stage'] = $stage; // Store for next session lookup
-
             // Calculate duration in minutes
             $durationMinutes = 0;
             if ($timing->start_time && $endTime) {
                 try {
                     $today = now()->format('Y-m-d');
                     $start = Carbon::parse($today . ' ' . $timing->start_time);
-                    $end = Carbon::parse($today . ' ' . $endTime);
+                    $end   = Carbon::parse($today . ' ' . $endTime);
                     $durationMinutes = $start->diffInMinutes($end);
                 } catch (\Exception $e) {
                     $durationMinutes = 0;
                 }
             }
 
-            // Update timing record
+            // Update timing record — same pattern as Costume timing
             $timing->update([
-                'end_time' => $endTime,
-                'measurement_type' => 'percentage',
-                'measurement_value' => $currentProgress, // Store absolute progress value
+                'end_time'         => $endTime,
+                'measurement_type' => $validated['measurement_type'],
+                'measurement_value'=> $validated['output_qty'],
                 'duration_minutes' => $durationMinutes,
-                'duration_hours' => round($durationMinutes / 60, 2),
-                'status' => 'complete',
-                'approval_status' => 'pending', // Default to pending approval
-                'department_specific_data' => $deptSpecificData,
+                'duration_hours'   => round($durationMinutes / 60, 2),
+                'status'           => 'complete',
+                'approval_status'  => 'pending',
             ]);
 
             DB::commit();
 
             return response()->json([
-                'success' => true,
-                'message' => "Work session completed. Stage {$stage} reached ({$currentProgress}% progress).",
-                'end_time' => $endTime,
-                'timing_id' => $timing->id,
-                'stage' => $stage,
-                'current_progress' => $currentProgress,
-                'progress_added' => $progressAdded,
+                'success'          => true,
+                'message'          => 'Work session completed. Output: ' . $validated['output_qty'] . ' ' . $validated['measurement_type'],
+                'end_time'         => $endTime,
+                'timing_id'        => $timing->id,
                 'duration_minutes' => $durationMinutes,
+                'duration_hours'   => round($durationMinutes / 60, 2),
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -353,12 +336,12 @@ class MascotTimingController extends Controller
 
     /**
      * Bulk stop multiple mascot timing sessions (from monitor)
-     * Uses the last saved stage for each session; skips sessions with no stage saved.
+     * Sets default qty=1, measurement=pcs for each session.
      */
     public function bulkStop(Request $request)
     {
         $validated = $request->validate([
-            'timing_ids' => 'required|array|min:1',
+            'timing_ids'   => 'required|array|min:1',
             'timing_ids.*' => 'required|exists:timings,id',
         ]);
 
@@ -376,42 +359,28 @@ class MascotTimingController extends Controller
                     continue;
                 }
 
-                $deptData = $timing->department_specific_data ?? [];
-                $currentStage = $deptData['previous_stage'] ?? ($deptData['stage'] ?? 0);
-
-                if ($currentStage < 1) {
-                    // No stage saved yet — skip (cannot determine progress)
-                    $skipped++;
-                    continue;
-                }
-
-                $currentProgress = $currentStage * 10;
                 $durationMinutes = 0;
                 if ($timing->start_time) {
                     try {
                         $today = now()->format('Y-m-d');
                         $start = \Carbon\Carbon::parse($today . ' ' . $timing->start_time);
-                        $end = \Carbon\Carbon::parse($today . ' ' . $endTime);
+                        $end   = \Carbon\Carbon::parse($today . ' ' . $endTime);
                         $durationMinutes = $start->diffInMinutes($end);
                     } catch (\Exception $e) {
                     }
                 }
 
-                $deptData['current_stage'] = $currentStage;
-                $deptData['stage'] = $currentStage;
-                $deptData['current_progress'] = $currentProgress;
-
                 $timing->update([
-                    'end_time' => $endTime,
-                    'measurement_type' => 'percentage',
-                    'measurement_value' => $currentProgress,
+                    'end_time'         => $endTime,
+                    'measurement_type' => 'pcs',
+                    'measurement_value'=> 1,
                     'duration_minutes' => $durationMinutes,
-                    'duration_hours' => round($durationMinutes / 60, 2),
-                    'status' => 'complete',
-                    'approval_status' => 'pending',
-                    'department_specific_data' => $deptData,
+                    'duration_hours'   => round($durationMinutes / 60, 2),
+                    'status'           => 'complete',
+                    'approval_status'  => 'pending',
                 ]);
                 $stopped++;
+            }
             }
             DB::commit();
 

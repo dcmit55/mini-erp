@@ -14,6 +14,7 @@ use App\Models\Lark\LarkSgBtItemTracking;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\ProjectCostingExport;
 use App\Exports\AllProjectsCostingExport;
+use App\Exports\ProjectCostingMultiSheetExport;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Logistic\Inventory;
@@ -69,6 +70,14 @@ class ProjectCostingController extends Controller
         // Filter by deadline month
         if ($request->has('deadline_month') && $request->deadline_month !== null) {
             $query->whereRaw('DATE_FORMAT(deadline, "%Y-%m") = ?', [$request->deadline_month]);
+        }
+
+        // Filter by date range (deadline between date_from and date_to)
+        if ($request->filled('date_from')) {
+            $query->whereDate('deadline', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('deadline', '<=', $request->date_to);
         }
 
         $projects = $query
@@ -574,43 +583,114 @@ class ProjectCostingController extends Controller
         // ❗ Validasi: hanya project closed yang bisa di-export
         $project = Project::where('id', $project_id)->where('stage', 'closed')->firstOrFail();
 
+        // ── 1. Material Cost rows ─────────────────────────────────────────────
         $usages = MaterialUsage::where('project_id', $project_id)
-            ->with(['inventory.currency', 'jobOrder'])
+            ->with(['inventory.currency', 'inventory.unit', 'jobOrder'])
+            ->orderBy('job_order_id')
             ->get();
 
-        // Gunakan rumus yang sama dengan viewCosting()
-        $materials = $usages->map(function ($usage) {
-            $inventory = $usage->inventory;
+        $materialRows = $usages->map(function ($usage) {
+            $inv          = $usage->inventory;
+            $unitPrice    = $inv->price ?? 0;
+            $domFreight   = $inv->unit_domestic_freight_cost ?? 0;
+            $intFreight   = $inv->unit_international_freight_cost ?? 0;
+            $totalUnit    = $unitPrice + $domFreight + $intFreight;
+            $qty          = $usage->used_quantity ?? 0;
+            $currency     = $inv->currency ?? (object)['name' => 'IDR', 'exchange_rate' => 1];
+            $rate         = $currency->exchange_rate ?? 1;
+            $totalIdr     = $totalUnit * $qty * $rate;
 
-            // RUMUS LENGKAP: Unit Price + Domestic Freight + International Freight
-            $unitPrice = $inventory->price ?? 0;
-            $domesticFreight = $inventory->unit_domestic_freight_cost ?? 0;
-            $internationalFreight = $inventory->unit_international_freight_cost ?? 0;
-            $totalUnitCost = $unitPrice + $domesticFreight + $internationalFreight;
-
-            $usedQty = $usage->used_quantity ?? 0;
-            $currency = $inventory->currency ?? (object) ['name' => 'IDR', 'exchange_rate' => 1];
-            $exchangeRate = $currency->exchange_rate ?? 1;
-
-            $totalPrice = $totalUnitCost * $usedQty;
-            $totalCostInIDR = $totalPrice * $exchangeRate;
+            $unitName = 'N/A';
+            if ($inv->unit_id) {
+                try { $unitName = $inv->unit?->name ?? 'N/A'; } catch (\Exception $e) { $unitName = $inv->unit ?? 'N/A'; }
+            } elseif (!empty($inv->unit)) {
+                $unitName = is_string($inv->unit) ? $inv->unit : ($inv->unit->name ?? 'N/A');
+            }
 
             return [
-                'job_order_name' => $usage->jobOrder ? $usage->jobOrder->name : 'No Job Order',
-                'material_name' => $inventory->name ?? 'N/A',
-                'used_quantity' => $usedQty,
-                'unit' => $inventory->unit ?? 'N/A',
-                'unit_price' => $unitPrice,
-                'domestic_freight' => $domesticFreight,
-                'international_freight' => $internationalFreight,
-                'total_unit_cost' => $totalUnitCost,
-                'currency' => $currency->name ?? 'IDR',
-                'total_price' => $totalPrice,
-                'total_cost' => $totalCostInIDR,
+                'job_order_name'   => $usage->jobOrder?->name ?? 'No Job Order',
+                'material_name'    => $inv->name ?? 'N/A',
+                'qty'              => $qty,
+                'unit'             => $unitName,
+                'currency'         => strtoupper($currency->name ?? 'IDR'),
+                'unit_price'       => $unitPrice,
+                'domestic_freight' => $domFreight,
+                'intl_freight'     => $intFreight,
+                'total_unit_cost'  => $totalUnit,
+                'total_idr'        => $totalIdr,
             ];
-        });
+        })->toArray();
 
-        return Excel::download(new ProjectCostingExport($materials, $project->name), 'project_costing_' . str_replace(' ', '_', $project->name) . '_' . now()->format('Y-m-d') . '.xlsx');
+        // ── 2. Workmanship Cost rows ─────────────────────────────────────────
+        $timings = \App\Models\Production\Timing::where('project_id', $project_id)
+            ->where('status', 'complete')
+            ->where('approval_status', 'approved')
+            ->with(['jobOrder', 'employee'])
+            ->orderBy('tanggal')
+            ->orderBy('start_time')
+            ->get();
+
+        $workmanshipRows = $timings->map(function ($t) {
+            $emp        = $t->employee;
+            $hrs        = round(($t->duration_minutes ?? 0) / 60, 2);
+            $salary     = $emp->salary ?? 0;
+            $hourlyRate = $salary > 0 ? round($salary / 173, 0) : 0;
+            $laborCost  = round($hourlyRate * $hrs, 0);
+
+            return [
+                'employee'    => $emp?->name ?? '—',
+                'position'    => $emp?->position ?? '—',
+                'date'        => optional($t->tanggal)->format('d M Y') ?? '—',
+                'start_time'  => $t->start_time ? \Carbon\Carbon::parse($t->start_time)->format('H:i') : '—',
+                'end_time'    => $t->end_time   ? \Carbon\Carbon::parse($t->end_time)->format('H:i')   : '—',
+                'hours'       => $hrs,
+                'job_order'   => $t->jobOrder?->name ?? '—',
+                'step'        => $t->step ?? '—',
+                'hourly_rate' => $hourlyRate,
+                'labor_cost'  => $laborCost,
+            ];
+        })->toArray();
+
+        // ── 3. Freight Cost rows ─────────────────────────────────────────────
+        $courierData  = $this->getCourierCosts($project_id);
+        $freightRows  = $courierData['couriers']->toArray();
+
+        // ── 4. Summary row (single project) ─────────────────────────────────
+        $dcmCostings   = \App\Models\Finance\DcmCosting::where('project_name', $project->name)->where('is_current', true)->get();
+        $intlPoCostings = $dcmCostings->filter(fn($c) =>
+            str_contains(strtolower($c->purchase_type ?? ''), 'intl') ||
+            str_contains(strtolower($c->purchase_type ?? ''), 'international') ||
+            str_contains(strtolower($c->supplier ?? ''), 'sg') ||
+            str_contains(strtolower($c->department ?? ''), 'sg')
+        );
+        $localPoCostings = $dcmCostings->filter(fn($c) => !$intlPoCostings->contains('id', $c->id));
+        $totalIntlPo   = $intlPoCostings->sum('invoice_total');
+        $totalLocalPo  = $localPoCostings->sum('invoice_total');
+        $usageIdr      = collect($materialRows)->sum('total_idr');
+
+        $summaryRows = [[
+            'project_name' => $project->name,
+            'type_dept'    => $project->type_dept ?? '-',
+            'sales'        => $project->sales ?? '-',
+            'deadline'     => $project->deadline ? \Carbon\Carbon::parse($project->deadline)->format('d M Y') : '-',
+            'intl_po'      => $totalIntlPo,
+            'local_po'     => $totalLocalPo,
+            'usage_idr'    => $usageIdr,
+        ]];
+
+        $filename = 'costing_' . \Illuminate\Support\Str::slug($project->name) . '_' . now()->format('Ymd') . '.xlsx';
+
+        return Excel::download(
+            new ProjectCostingMultiSheetExport(
+                $project->name,
+                $summaryRows,
+                $materialRows,
+                $workmanshipRows,
+                $freightRows,
+                ['project' => $project->name]
+            ),
+            $filename
+        );
     }
 
     public function exportAllProjects(Request $request)

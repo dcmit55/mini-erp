@@ -80,184 +80,154 @@
             border-color: rgba(108, 92, 231, .3);
         }
 
-        /* ── Project cards (horizontal split) ── */
+        /* ══ PROJECT CARD — 1 project = 1 card ══ */
         .project-card {
-            border-radius: 20px;
+            border-radius: 18px;
             border: none;
             overflow: hidden;
-            transition: transform 0.2s, box-shadow 0.2s;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-            background: var(--bs-body-bg);
+            transition: transform 0.18s, box-shadow 0.18s;
+            box-shadow: 0 2px 16px rgba(0,0,0,.07);
             text-decoration: none;
             color: inherit;
             display: block;
+            background: #fff;
         }
-
         .project-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 32px rgba(108, 92, 231, 0.18);
+            transform: translateY(-4px);
+            box-shadow: 0 10px 28px rgba(108,92,231,.16);
             color: inherit;
             text-decoration: none;
         }
 
-        /* ── Card icon/image side ── */
-        .card-image-bg {
-            min-height: 180px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        /* ── Coloured top-strip (replaces left panel) ── */
+        .pc-header-strip {
+            padding: .9rem 1rem .75rem;
             position: relative;
-            flex-shrink: 0;
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            min-height: 70px;
         }
+        .mascot-bg      { background: linear-gradient(135deg, #c3b1e1 0%, #8e7cc3 100%); }
+        .costume-bg     { background: linear-gradient(135deg, #ffb1b1 0%, #ff7c7c 100%); }
+        .animatronic-bg { background: linear-gradient(135deg, #80d4f5 0%, #3498db 100%); }
+        .plush-bg       { background: linear-gradient(135deg, #ffe066 0%, #f9a825 100%); }
+        .default-bg     { background: linear-gradient(135deg, #a8edea 0%, #6ab4b0 100%); }
 
-        .mascot-bg {
-            background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
-        }
+        .pc-header-left  { display: flex; flex-direction: column; gap: 4px; }
+        .pc-header-right { font-size: 2.4rem; line-height: 1; opacity: .82; flex-shrink: 0; margin-left: .5rem; }
 
-        .costume-bg {
-            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
-        }
-
-        .animatronic-bg {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        }
-
-        .plush-bg {
-            background: linear-gradient(135deg, #f9d423 0%, #ff4e50 100%);
-        }
-
-        .default-bg {
-            background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%);
-        }
-
-        .card-emoji {
-            font-size: 3.5rem;
-        }
-
-        /* ── Card right-side content ── */
-        .pc-content {
-            padding: 1.1rem 1.2rem;
-        }
-
-        .project-title {
-            font-size: .95rem;
-            font-weight: 700;
-            line-height: 1.3;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        /* ── Section labels ── */
-        .section-label {
+        /* Category badge */
+        .category-badge {
+            display: inline-block;
+            background-color: rgba(255,255,255,.85) !important;
+            color: #333 !important;
+            border-radius: 8px;
+            padding: 3px 9px;
             font-size: 0.68rem;
             font-weight: 700;
-            color: #9e9e9e;
-            letter-spacing: 1px;
+            backdrop-filter: blur(4px);
+        }
+        /* Lark badge */
+        .lark-tag {
+            display: inline-flex;
+            align-items: center;
+            background: rgba(255,255,255,.75);
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 0.65rem;
+            font-weight: 600;
+            width: fit-content;
+        }
+        .lark-tag .dot {
+            height: 6px; width: 6px;
+            background-color: #2ecc71;
+            border-radius: 50%;
+            margin-right: 5px;
+            flex-shrink: 0;
+        }
+        /* Project name row */
+        .pc-name-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .pc-name {
+            font-size: .88rem;
+            font-weight: 700;
+            line-height: 1.35;
+            color: var(--bs-body-color);
+        }
+
+        /* ── Card body (white area below strip) ── */
+        .pc-body {
+            padding: .85rem 1rem .8rem;
+            background: #fff;
+        }
+
+        /* Section titles */
+        .section-title {
+            font-size: 0.65rem;
+            font-weight: 800;
+            color: #a29bfe;
+            letter-spacing: .6px;
             margin-bottom: 6px;
-            margin-top: 10px;
             text-transform: uppercase;
         }
 
-        /* ── Dashed divider ── */
-        .dashed {
+        /* Dashed divider */
+        .dashed-divider {
             border: none;
-            border-top: 1px dashed var(--bs-border-color);
-            margin: 10px 0;
+            border-top: 1px dashed #e0e0e0;
+            margin: 8px 0;
         }
 
-        /* ── Cost rows ── */
-        .cost-row {
+        /* Data rows */
+        .pc-row {
             display: flex;
             justify-content: space-between;
             align-items: baseline;
-            font-size: .8rem;
+            font-size: .78rem;
             padding: .1rem 0;
         }
+        .pc-row .pc-lbl { color: #6c757d; }
+        .pc-row .pc-val { font-weight: 600; }
+        .pc-row.profit  .pc-val { color: #2ecc71; font-weight: 700; }
 
-        .cost-row .cr-label {
-            color: var(--bs-secondary-color, #6c757d);
-        }
-
-        .cost-row .cr-val {
-            font-weight: 600;
-        }
-
-        .cost-row.highlight .cr-val {
-            color: #6c5ce7;
+        /* Profit badge */
+        .profit-badge {
+            display: inline-block;
+            padding: 1px 7px;
+            border-radius: 6px;
+            font-size: 0.68rem;
             font-weight: 700;
         }
+        .profit-badge.pos { background: #e8fbf3; color: #2ecc71; }
+        .profit-badge.neg { background: #fde8e8; color: #e74c3c; }
 
-        /* ── Profit chip ── */
-        .profit-chip {
-            font-size: .62rem;
-            font-weight: 700;
-            padding: .12em .42em;
-            border-radius: 20px;
-            margin-left: .3rem;
+        /* Stats row (INT'L PO / LOCAL PO / USAGE) */
+        .stats-strip {
+            display: flex;
+            gap: 5px;
+            margin-top: 8px;
         }
-
-        .profit-chip.pos {
-            background: rgba(39, 174, 96, .15);
-            color: #27ae60;
-        }
-
-        .profit-chip.neg {
-            background: rgba(220, 53, 69, .15);
-            color: #dc3545;
-        }
-
-        /* ── PO mini boxes ── */
-        .po-box {
+        .stats-box {
             flex: 1;
             text-align: center;
-            padding: .4rem .3rem;
-            border-radius: 8px;
-            font-size: .72rem;
+            padding: 7px 4px;
+            border-radius: 10px;
         }
-
-        .po-box small {
-            display: block;
-            color: #9e9e9e;
-            font-size: .6rem;
-            font-weight: 600;
+        .stats-box .label {
+            font-size: 0.58rem;
+            font-weight: 700;
+            opacity: .65;
+            text-transform: uppercase;
             letter-spacing: .04em;
         }
-
-        .po-box strong {
-            font-size: .78rem;
-        }
-
-        .po-box.intl {
-            background: rgba(255, 193, 7, .15);
-        }
-
-        .po-box.local {
-            background: rgba(40, 167, 69, .12);
-        }
-
-        .po-box.usage {
-            background: rgba(13, 202, 240, .12);
-        }
-
-        /* ── Dept badge (icon panel overlay) ── */
-        .dept-badge {
-            font-size: .62rem;
+        .stats-box .value {
+            font-size: 0.82rem;
             font-weight: 700;
-            padding: .2em .55em;
-            border-radius: 20px;
-            flex-shrink: 0;
-        }
-
-        /* ── Info badge ── */
-        .info-badge {
-            font-size: .62rem;
-            font-weight: 500;
-            padding: .18em .5em;
-            border-radius: 6px;
-            background: rgba(108, 92, 231, .1);
-            color: #6c5ce7;
-            border: 1px solid rgba(108, 92, 231, .18);
+            margin-top: 1px;
         }
 
         /* ── Empty state ── */
@@ -266,43 +236,41 @@
             padding: 4rem 1rem;
             color: var(--bs-secondary-color, #adb5bd);
         }
+        .empty-state i { font-size: 3.5rem; margin-bottom: 1rem; }
 
-        .empty-state i {
-            font-size: 3.5rem;
-            margin-bottom: 1rem;
-        }
-
-        /* ── Dark mode overrides ── */
+        /* ── Dark mode ── */
         [data-bs-theme="dark"] .filter-bar-card .form-select,
         [data-bs-theme="dark"] .filter-bar-card .form-control {
-            background: rgba(255, 255, 255, .06);
+            background: rgba(255,255,255,.06);
             color: var(--bs-body-color);
         }
-
+        [data-bs-theme="dark"] .project-card { background: #1e1e2e; }
+        [data-bs-theme="dark"] .pc-body       { background: #1e1e2e; }
         [data-bs-theme="dark"] .dept-filter-tabs .nav-link {
-            border-color: rgba(255, 255, 255, .15);
+            border-color: rgba(255,255,255,.15);
             background: transparent;
         }
-
-        [data-bs-theme="dark"] .mascot-bg {
-            background: linear-gradient(135deg, #6a3093 0%, #2c3e7a 100%);
+        [data-bs-theme="dark"] .mascot-bg      { background: linear-gradient(135deg, #6a3093 0%, #3d1f6e 100%); }
+        [data-bs-theme="dark"] .costume-bg     { background: linear-gradient(135deg, #8b2b35 0%, #5a1020 100%); }
+        [data-bs-theme="dark"] .animatronic-bg { background: linear-gradient(135deg, #1a5276 0%, #0d3349 100%); }
+        [data-bs-theme="dark"] .plush-bg       { background: linear-gradient(135deg, #7d6608 0%, #4a3b05 100%); }
+        [data-bs-theme="dark"] .default-bg     { background: linear-gradient(135deg, #1a5c57 0%, #0d3330 100%); }
+    </style>
+    {{-- Flatpickr date range picker --}}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <style>
+        /* ── Flatpickr integration tweaks ── */
+        .flatpickr-calendar { font-family: 'Inter', sans-serif; }
+        #deadline-range-picker { background: #fff !important; }
+        #deadline-range-picker:focus { box-shadow: 0 0 0 0.25rem rgba(108,92,231,.25); border-color: #6c5ce7; }
+        .flatpickr-day.inRange,
+        .flatpickr-day.startRange,
+        .flatpickr-day.endRange {
+            background: #6c5ce7 !important;
+            border-color: #6c5ce7 !important;
         }
-
-        [data-bs-theme="dark"] .costume-bg {
-            background: linear-gradient(135deg, #8b2b35 0%, #6b2060 100%);
-        }
-
-        [data-bs-theme="dark"] .animatronic-bg {
-            background: linear-gradient(135deg, #1a5276 0%, #0e6655 100%);
-        }
-
-        [data-bs-theme="dark"] .plush-bg {
-            background: linear-gradient(135deg, #7d6608 0%, #922b21 100%);
-        }
-
-        [data-bs-theme="dark"] .default-bg {
-            background: linear-gradient(135deg, #1a3a5c 0%, #1b2631 100%);
-        }
+        .flatpickr-day.inRange { background: rgba(108,92,231,.15) !important; border-color: transparent !important; color: #333 !important; }
+        .flatpickr-day:hover { background: rgba(108,92,231,.25) !important; }
     </style>
 @endsection
 
@@ -366,18 +334,29 @@
                             @endforeach
                         </select>
                     </div>
+                    {{-- ── Date Range Picker (single input, Traveloka-style) ── --}}
                     <div class="col-lg-2">
-                        <label class="form-label small text-muted mb-1">Deadline Month</label>
-                        <select id="filter-deadline-month" name="deadline_month" class="form-select form-select-sm select2"
-                            data-placeholder="All Months">
-                            <option value="">All Months</option>
-                            @foreach ($deadlineMonths as $month)
-                                <option value="{{ $month }}"
-                                    {{ request('deadline_month') == $month ? 'selected' : '' }}>
-                                    {{ \Carbon\Carbon::parse($month . '-01')->format('F Y') }}
-                                </option>
-                            @endforeach
-                        </select>
+                        <label class="form-label small text-muted mb-1">
+                            <i class="bi bi-calendar-range me-1"></i>Deadline Range
+                        </label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text px-2 text-muted border-end-0 bg-white">
+                                <i class="bi bi-calendar3" style="font-size:.75rem;"></i>
+                            </span>
+                            <input type="text" id="deadline-range-picker" class="form-control form-control-sm border-start-0 ps-0"
+                                placeholder="All dates" readonly
+                                style="cursor:pointer; background:#fff;"
+                                value="{{ request('date_from') && request('date_to') ? request('date_from').' to '.request('date_to') : (request('date_from') ? request('date_from').' to ...' : '') }}">
+                            <input type="hidden" id="input-date-from" name="date_from" value="{{ request('date_from') }}">
+                            <input type="hidden" id="input-date-to" name="date_to" value="{{ request('date_to') }}">
+                        </div>
+                        @if(request('date_from') || request('date_to'))
+                            <small class="text-primary" style="font-size:.65rem;">
+                                {{ request('date_from') ? \Carbon\Carbon::parse(request('date_from'))->format('d M Y') : '…' }}
+                                →
+                                {{ request('date_to')   ? \Carbon\Carbon::parse(request('date_to'))->format('d M Y')   : '…' }}
+                            </small>
+                        @endif
                     </div>
                     <div class="col-lg-1 d-flex gap-1">
                         <button id="filter-btn" type="submit" class="btn btn-sm btn-primary rounded-pill flex-fill">
@@ -486,93 +465,103 @@
                         };
                     @endphp
 
-                    <div class="col-xl-6 col-lg-12">
+                    <div class="col-xl-4 col-lg-6 col-md-6">
                         <a href="{{ route('costing.detail', $project->id) }}" class="project-card">
-                            <div class="row g-0">
 
-                                {{-- ── LEFT: coloured icon panel ── --}}
-                                <div class="col-4 col-md-3 card-image-bg {{ $bgClass }}">
+                            {{-- ── Coloured top strip ── --}}
+                            <div class="pc-header-strip {{ $bgClass }}">
+                                <div class="pc-header-left">
                                     @if (!empty($typeDept))
-                                        <span class="badge bg-white text-dark position-absolute top-0 start-0 m-2"
-                                            style="font-size:.6rem; opacity:.85;">{{ $typeDept }}</span>
+                                        <span class="category-badge">{{ $deptEmoji }} {{ $typeDept }}</span>
                                     @endif
-                                    <span class="card-emoji">{{ $deptEmoji }}</span>
                                     @if (!empty($project->lark_record_id))
-                                        <span class="position-absolute bottom-0 end-0 m-2" title="Lark synced"
-                                            style="color:#22c55e; font-size:.7rem;">● Lark</span>
+                                        <div class="lark-tag mt-1">
+                                            <span class="dot"></span>Lark
+                                        </div>
                                     @endif
                                 </div>
+                                <div class="pc-header-right">{{ $deptEmoji }}</div>
+                            </div>
 
-                                {{-- ── RIGHT: detail panel ── --}}
-                                <div class="col-8 col-md-9 pc-content">
+                            {{-- ── White body ── --}}
+                            <div class="pc-body">
 
-                                    {{-- Title + meta --}}
-                                    <div class="project-title mb-1" title="{{ $project->name }}">
-                                        {{ \Illuminate\Support\Str::limit($project->name, 45) }}
-                                    </div>
-                                    <div class="d-flex flex-wrap gap-1 mb-2">
-                                        <span class="info-badge"><i class="fas fa-user me-1"></i>{{ $salesName }}</span>
-                                        <span class="info-badge"><i
-                                                class="far fa-calendar-alt me-1"></i>{{ $deadline }}</span>
-                                        <span class="info-badge"><i class="fas fa-tasks me-1"></i>{{ $jobOrderCount }}
-                                            JO</span>
-                                    </div>
+                                {{-- Project name --}}
+                                <div class="pc-name-row mb-2">
+                                    <span class="pc-name" title="{{ $project->name }}">
+                                        {{ \Illuminate\Support\Str::limit($project->name, 50) }}
+                                    </span>
+                                    <span class="text-muted ms-2" style="font-size:.8rem;">&rsaquo;</span>
+                                </div>
 
-                                    {{-- ACTUALS section --}}
-                                    <div class="section-label">ACTUALS</div>
-                                    <div class="cost-row">
-                                        <span class="cr-label">Selling Price</span>
-                                        <span class="cr-val">{{ $hasData ? $fmt($sellingPrice) : '—' }}</span>
-                                    </div>
-                                    <div class="cost-row">
-                                        <span class="cr-label">Actual Project Cost</span>
-                                        <span class="cr-val">{{ $hasData ? $fmt($actualCost) : '—' }}</span>
-                                    </div>
-                                    <div class="cost-row highlight">
-                                        <span class="cr-label fw-semibold" style="color:var(--bs-body-color);">Project
-                                            Profit</span>
-                                        <span class="cr-val">
-                                            @if ($hasData && $sellingPrice > 0)
-                                                {{ $fmt($profit) }}
-                                                @if ($profitPct !== null)
-                                                    <span class="profit-chip {{ $profit >= 0 ? 'pos' : 'neg' }}">
-                                                        {{ $profit >= 0 ? '+' : '' }}{{ $profitPct }}%
-                                                    </span>
-                                                @endif
-                                            @else
-                                                —
+                                {{-- ACTUALS --}}
+                                <div class="section-title">ACTUALS</div>
+                                <div class="pc-row">
+                                    <span class="pc-lbl">Selling Price</span>
+                                    <span class="pc-val">{{ $hasData ? $fmt($sellingPrice) : '—' }}</span>
+                                </div>
+                                <div class="pc-row">
+                                    <span class="pc-lbl">Actual Project Cost</span>
+                                    <span class="pc-val">{{ $hasData ? $fmt($actualCost) : '—' }}</span>
+                                </div>
+                                <div class="pc-row profit">
+                                    <span class="pc-lbl fw-semibold" style="color:var(--bs-body-color)">Project Profit</span>
+                                    <span class="pc-val">
+                                        @if ($hasData && $sellingPrice > 0)
+                                            {{ $fmt($profit) }}
+                                            @if ($profitPct !== null)
+                                                <span class="profit-badge ms-1 {{ $profit >= 0 ? 'pos' : 'neg' }}">
+                                                    {{ $profit >= 0 ? '+' : '' }}{{ $profitPct }}%
+                                                </span>
                                             @endif
-                                        </span>
+                                        @else —
+                                        @endif
+                                    </span>
+                                </div>
+
+                                <hr class="dashed-divider">
+
+                                {{-- ESTIMATES --}}
+                                <div class="section-title">ESTIMATES</div>
+                                <div class="pc-row">
+                                    <span class="pc-lbl">Sales / Creator</span>
+                                    <span class="pc-val" style="font-size:.72rem;max-width:55%;text-align:right;">{{ $salesName }}</span>
+                                </div>
+                                <div class="pc-row">
+                                    <span class="pc-lbl">Deadline</span>
+                                    <span class="pc-val">{{ $deadline }}</span>
+                                </div>
+                                <div class="pc-row">
+                                    <span class="pc-lbl">Job Orders</span>
+                                    <span class="pc-val">{{ $jobOrderCount }} JO</span>
+                                </div>
+
+                                {{-- Stats strip + export --}}
+                                <div class="d-flex align-items-center gap-1 mt-2">
+                                    <div class="stats-strip flex-fill mb-0">
+                                        <div class="stats-box bg-warning-subtle text-warning-emphasis">
+                                            <div class="label">INT'L PO</div>
+                                            <div class="value">{{ $intlPo > 0 ? $fmtK($intlPo) : '—' }}</div>
+                                        </div>
+                                        <div class="stats-box bg-success-subtle text-success-emphasis">
+                                            <div class="label">LOCAL PO</div>
+                                            <div class="value">{{ $localPo > 0 ? $fmtK($localPo) : '—' }}</div>
+                                        </div>
+                                        <div class="stats-box bg-primary-subtle text-primary-emphasis">
+                                            <div class="label">USAGE</div>
+                                            <div class="value">{{ $usageIdr > 0 ? $fmtK($usageIdr) : '—' }}</div>
+                                        </div>
                                     </div>
+                                    <a href="{{ route('costing.export', $project->id) }}"
+                                        class="btn btn-xs btn-outline-success flex-shrink-0"
+                                        style="padding:.28rem .45rem;font-size:.65rem;"
+                                        title="Export Excel"
+                                        onclick="event.stopPropagation();event.preventDefault();window.location='{{ route('costing.export', $project->id) }}'">
+                                        <i class="bi bi-file-earmark-excel"></i>
+                                    </a>
+                                </div>
 
-                                    <hr class="dashed">
-
-                                    {{-- PO breakdown mini-boxes --}}
-                                    <div class="d-flex gap-1 mt-1">
-                                        <div class="po-box intl">
-                                            <small>INT'L PO</small>
-                                            <strong>{{ $intlPo > 0 ? $fmtK($intlPo) : '—' }}</strong>
-                                        </div>
-                                        <div class="po-box local">
-                                            <small>LOCAL PO</small>
-                                            <strong>{{ $localPo > 0 ? $fmtK($localPo) : '—' }}</strong>
-                                        </div>
-                                        <div class="po-box usage">
-                                            <small>USAGE</small>
-                                            <strong>{{ $usageIdr > 0 ? $fmtK($usageIdr) : '—' }}</strong>
-                                        </div>
-                                        <div class="ms-auto d-flex align-items-center">
-                                            <a href="{{ route('costing.export', $project->id) }}"
-                                                class="btn btn-xs btn-outline-success py-0 px-2" style="font-size:.65rem;"
-                                                title="Export Excel"
-                                                onclick="event.stopPropagation(); event.preventDefault(); window.location='{{ route('costing.export', $project->id) }}'">
-                                                <i class="bi bi-file-earmark-excel"></i>
-                                            </a>
-                                        </div>
-                                    </div>
-
-                                </div>{{-- /right panel --}}
-                            </div>{{-- /row --}}
+                            </div>{{-- /pc-body --}}
                         </a>{{-- /project-card --}}
                     </div>{{-- /col --}}
                 @endforeach
@@ -729,6 +718,7 @@
     </div>
 @endsection
 @push('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script>
         $(function() {
 
@@ -750,10 +740,45 @@
             });
 
             // Auto-submit ONLY on dropdown filter change (NOT search input)
-            $('#filter-department, #filter-sales, #filter-job-order, #filter-deadline-month').on('change',
-                function() {
-                    $('#filter-form').submit();
-                });
+            $('#filter-department, #filter-sales, #filter-job-order').on('change', function() {
+                $('#filter-form').submit();
+            });
+
+            // ── Flatpickr date range picker ──────────────────────────────────
+            const dateFromVal = $('#input-date-from').val();
+            const dateToVal   = $('#input-date-to').val();
+
+            flatpickr('#deadline-range-picker', {
+                mode        : 'range',
+                dateFormat  : 'Y-m-d',
+                altInput    : false,
+                showMonths  : 2,
+                defaultDate : (dateFromVal && dateToVal)
+                                ? [dateFromVal, dateToVal]
+                                : (dateFromVal ? [dateFromVal] : []),
+                onChange: function(selectedDates) {
+                    if (selectedDates.length === 0) {
+                        $('#input-date-from').val('');
+                        $('#input-date-to').val('');
+                    } else if (selectedDates.length === 1) {
+                        $('#input-date-from').val(flatpickr.formatDate(selectedDates[0], 'Y-m-d'));
+                        $('#input-date-to').val('');
+                    } else {
+                        $('#input-date-from').val(flatpickr.formatDate(selectedDates[0], 'Y-m-d'));
+                        $('#input-date-to').val(flatpickr.formatDate(selectedDates[1], 'Y-m-d'));
+                        // Auto-submit once both dates are chosen
+                        $('#filter-form').submit();
+                    }
+                },
+                onClose: function(selectedDates) {
+                    // If user closes with only 1 date selected, submit with just date_from
+                    if (selectedDates.length === 1) {
+                        $('#input-date-from').val(flatpickr.formatDate(selectedDates[0], 'Y-m-d'));
+                        $('#input-date-to').val('');
+                        $('#filter-form').submit();
+                    }
+                }
+            });
 
         }); // end $(function)
 
