@@ -58,9 +58,9 @@ class EfficiencyDashboardController extends Controller
         $averageEfficiency = min($rawEfficiency, 100);
 
         // Projects with metrics - STANDARDIZED: Use minutes as primary unit
-        // ❗ FILTER: Hanya tampilkan project dengan stage='closed' DAN project_status='Delivered'
+        // FILTER: Hanya tampilkan project dengan project_status='Delivered'
         $projects = Project::select('projects.*')
-            ->where('stage', 'closed')
+            
             ->where('project_status', 'Delivered')
             ->with(['department', 'projectStatus'])
             ->withCount([
@@ -153,7 +153,7 @@ class EfficiencyDashboardController extends Controller
 
         // ❗ Validasi: Project harus closed DAN delivered
         $project = Project::where('id', $projectId)
-            ->where('stage', 'closed')
+            
             ->where('project_status', 'Delivered')
             ->with(['department', 'projectStatus'])
             ->firstOrFail();
@@ -243,13 +243,13 @@ class EfficiencyDashboardController extends Controller
         // ❗ Load job order dengan validasi project harus closed DAN delivered
         $jobOrder = JobOrder::with([
             'project' => function ($query) {
-                $query->where('stage', 'closed')->where('project_status', 'Delivered');
+                $query->where('project_status', 'Delivered');
             },
             'department',
         ])->findOrFail($jobOrderId);
 
         // Jika project tidak memenuhi criteria, throw 404
-        if (!$jobOrder->project || $jobOrder->project->stage !== 'closed' || $jobOrder->project->project_status !== 'Delivered') {
+        if (!$jobOrder->project || $jobOrder->project->project_status !== 'Delivered') {
             abort(404, 'Job Order not found or project not in delivered status');
         }
 

@@ -383,8 +383,8 @@ class MascotTimingController extends Controller
                     'approval_status'  => 'pending',
                 ]);
                 $stopped++;
-            }
-            }
+            } // end foreach
+
             DB::commit();
 
             return response()->json([

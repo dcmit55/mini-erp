@@ -35,8 +35,8 @@ class ProjectCostingController extends Controller
 
     public function index(Request $request)
     {
-        // HANYA SHOW dan ambil project yang stage = 'closed' DAN project_status = 'Delivered'
-        $query = Project::where('stage', 'closed')->where('project_status', 'Delivered');
+        // Rule: tampilkan semua project dengan project_status = 'Delivered' (tanpa filter stage)
+        $query = Project::where('project_status', 'Delivered');
 
         // Search filter
         if ($request->has('search') && $request->search !== null) {
@@ -90,18 +90,18 @@ class ProjectCostingController extends Controller
         $cardSummaries = [];
 
         // Get unique type_dept values from closed/delivered projects
-        $rawDeptValues = Project::where('stage', 'closed')->where('project_status', 'Delivered')->whereNotNull('type_dept')->where('type_dept', '!=', '')->pluck('type_dept');
+        $rawDeptValues = Project::where('project_status', 'Delivered')->whereNotNull('type_dept')->where('type_dept', '!=', '')->pluck('type_dept');
         $departments = $rawDeptValues->flatMap(fn($v) => array_map('trim', explode(',', $v)))->filter()->unique()->sort()->values();
 
         // Get unique individual sales names (field may contain comma-separated values)
-        $rawSales = Project::where('stage', 'closed')->where('project_status', 'Delivered')->whereNotNull('sales')->pluck('sales');
+        $rawSales = Project::where('project_status', 'Delivered')->whereNotNull('sales')->pluck('sales');
         $salesOptions = $rawSales->flatMap(fn($s) => array_map('trim', explode(',', $s)))->filter()->unique()->sort()->values();
 
         // Get all job orders for filter dropdown
         $jobOrders = \App\Models\Production\JobOrder::select('id', 'name')->orderBy('name')->get();
 
         // Get unique months from deadline for filter dropdown
-        $deadlineMonths = Project::where('stage', 'closed')->where('project_status', 'Delivered')->whereNotNull('deadline')->selectRaw('DATE_FORMAT(deadline, "%Y-%m") as month')->distinct()->orderByDesc('month')->pluck('month');
+        $deadlineMonths = Project::where('project_status', 'Delivered')->whereNotNull('deadline')->selectRaw('DATE_FORMAT(deadline, "%Y-%m") as month')->distinct()->orderByDesc('month')->pluck('month');
 
         return view('finance.costing.index', compact('projects', 'departments', 'salesOptions', 'jobOrders', 'deadlineMonths', 'cardSummaries'));
     }
@@ -111,7 +111,7 @@ class ProjectCostingController extends Controller
      */
     public function showDetail($project_id)
     {
-        $project = Project::where('id', $project_id)->where('stage', 'closed')->firstOrFail();
+        $project = Project::where('id', $project_id)->where('project_status', 'Delivered')->firstOrFail();
         $project->load(['departments', 'jobOrders.department']);
 
         // ── Material Usages ──
@@ -229,7 +229,7 @@ class ProjectCostingController extends Controller
      */
     public function showMaterialDetail($project_id)
     {
-        $project = Project::where('id', $project_id)->where('stage', 'closed')->firstOrFail();
+        $project = Project::where('id', $project_id)->where('project_status', 'Delivered')->firstOrFail();
         $project->load(['departments', 'jobOrders']);
 
         $usages = MaterialUsage::where('project_id', $project_id)
@@ -301,7 +301,7 @@ class ProjectCostingController extends Controller
      */
     public function showWorkmanshipDetail($project_id)
     {
-        $project = Project::where('id', $project_id)->where('stage', 'closed')->firstOrFail();
+        $project = Project::where('id', $project_id)->where('project_status', 'Delivered')->firstOrFail();
         $project->load(['departments', 'jobOrders']);
 
         $timings = \App\Models\Production\Timing::where('project_id', $project_id)
@@ -383,7 +383,7 @@ class ProjectCostingController extends Controller
      */
     public function showFreightDetail($project_id)
     {
-        $project = Project::where('id', $project_id)->where('stage', 'closed')->firstOrFail();
+        $project = Project::where('id', $project_id)->where('project_status', 'Delivered')->firstOrFail();
         $project->load(['departments', 'jobOrders']);
 
         // SG → BT items
@@ -465,8 +465,8 @@ class ProjectCostingController extends Controller
 
     public function viewCosting($project_id)
     {
-        // ❗ Validasi: hanya project closed bisa di-view costing
-        $project = Project::where('id', $project_id)->where('stage', 'closed')->firstOrFail();
+        // Hanya project dengan project_status=Delivered yang bisa di-view costing
+        $project = Project::where('id', $project_id)->where('project_status', 'Delivered')->firstOrFail();
 
         // Ambil semua material usage untuk project dengan eager load jobOrder
         $usages = MaterialUsage::where('project_id', $project_id)
@@ -580,8 +580,8 @@ class ProjectCostingController extends Controller
 
     public function exportCosting($project_id)
     {
-        // ❗ Validasi: hanya project closed yang bisa di-export
-        $project = Project::where('id', $project_id)->where('stage', 'closed')->firstOrFail();
+        // Hanya project dengan project_status=Delivered yang bisa di-export
+        $project = Project::where('id', $project_id)->where('project_status', 'Delivered')->firstOrFail();
 
         // ── 1. Material Cost rows ─────────────────────────────────────────────
         $usages = MaterialUsage::where('project_id', $project_id)
@@ -703,8 +703,8 @@ class ProjectCostingController extends Controller
     public function exportAllProjects(Request $request)
     {
         try {
-            // ❗ Hanya export project yang sudah closed
-            $query = Project::where('stage', 'closed');
+            // Export hanya project yang project_status = Delivered
+            $query = Project::where('project_status', 'Delivered');
 
             if ($request->has('department') && $request->department !== null) {
                 $query->whereHas('departments', function ($q) use ($request) {
