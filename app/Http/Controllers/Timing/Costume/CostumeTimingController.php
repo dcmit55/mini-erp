@@ -10,6 +10,7 @@ use App\Models\Production\Project;
 use App\Models\Hr\Employee;
 use App\Models\Hr\Skillset;
 use App\Models\Admin\Department;
+use App\Models\Logistic\Unit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -92,7 +93,9 @@ class CostumeTimingController extends Controller
             ->orderBy('start_time', 'desc')
             ->get();
 
-        return view('timing.costume.index', compact('employees', 'employeesBySkillset', 'jobOrders', 'activeSessions', 'departments', 'positions', 'employeesWithActiveSessions'));
+        $units = Unit::orderBy('name')->get();
+
+        return view('timing.costume.index', compact('employees', 'employeesBySkillset', 'jobOrders', 'activeSessions', 'departments', 'positions', 'employeesWithActiveSessions', 'units'));
     }
 
     /**
@@ -260,7 +263,7 @@ class CostumeTimingController extends Controller
         $validated = $request->validate([
             'timing_id' => 'required|exists:timings,id', // Single timing ID only
             'output_qty' => 'required|numeric|min:0',
-            'measurement_type' => 'required|string|in:qty,pcs,unit,piece,item,set,meter,cm,kg,gram', // Measurement type selection
+            'measurement_type' => 'required|string|max:50', // Measurement type selection
         ]);
 
         try {

@@ -339,24 +339,17 @@
                         <label class="form-label small text-muted mb-1">
                             <i class="bi bi-calendar-range me-1"></i>Deadline Range
                         </label>
-                        <div class="input-group input-group-sm">
-                            <span class="input-group-text px-2 text-muted border-end-0 bg-white">
+                        <div class="position-relative">
+                            <span class="position-absolute top-50 translate-middle-y ps-2 text-muted pe-none" style="z-index:5;">
                                 <i class="bi bi-calendar3" style="font-size:.75rem;"></i>
                             </span>
-                            <input type="text" id="deadline-range-picker" class="form-control form-control-sm border-start-0 ps-0"
+                            <input type="text" id="deadline-range-picker"
+                                class="form-control form-control-sm ps-4"
                                 placeholder="All dates" readonly
-                                style="cursor:pointer; background:#fff;"
-                                value="{{ request('date_from') && request('date_to') ? request('date_from').' to '.request('date_to') : (request('date_from') ? request('date_from').' to ...' : '') }}">
+                                style="cursor:pointer;">
                             <input type="hidden" id="input-date-from" name="date_from" value="{{ request('date_from') }}">
-                            <input type="hidden" id="input-date-to" name="date_to" value="{{ request('date_to') }}">
+                            <input type="hidden" id="input-date-to"   name="date_to"   value="{{ request('date_to') }}">
                         </div>
-                        @if(request('date_from') || request('date_to'))
-                            <small class="text-primary" style="font-size:.65rem;">
-                                {{ request('date_from') ? \Carbon\Carbon::parse(request('date_from'))->format('d M Y') : '…' }}
-                                →
-                                {{ request('date_to')   ? \Carbon\Carbon::parse(request('date_to'))->format('d M Y')   : '…' }}
-                            </small>
-                        @endif
                     </div>
                     <div class="col-lg-1 d-flex gap-1">
                         <button id="filter-btn" type="submit" class="btn btn-sm btn-primary rounded-pill flex-fill">

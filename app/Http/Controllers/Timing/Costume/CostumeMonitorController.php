@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Timing\Costume;
 use App\Http\Controllers\Controller;
 use App\Models\Production\Timing;
 use App\Models\Admin\Department;
+use App\Models\Logistic\Unit;
 use Illuminate\Http\Request;
 
 class CostumeMonitorController extends Controller
@@ -45,7 +46,9 @@ class CostumeMonitorController extends Controller
             return $timing->project->name ?? 'Unknown Project';
         });
 
-        return view('timing.costume.monitor', compact('runningSessions', 'groupedSessions', 'totalRunning', 'totalEmployees', 'costumeDept'));
+        $units = Unit::orderBy('name')->get();
+
+        return view('timing.costume.monitor', compact('runningSessions', 'groupedSessions', 'totalRunning', 'totalEmployees', 'costumeDept', 'units'));
     }
 
     /**

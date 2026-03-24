@@ -8,6 +8,7 @@ use App\Models\Production\JobOrder;
 use App\Models\Hr\Employee;
 use App\Models\Hr\Skillset;
 use App\Models\Admin\Department;
+use App\Models\Logistic\Unit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -67,7 +68,9 @@ class MascotTimingController extends Controller
         // Get positions in mascot dept
         $positions = Employee::where('status', 'active')->where('department_id', $mascotDept->id)->whereNotNull('position')->distinct()->pluck('position')->sort();
 
-        return view('timing.mascot.index', compact('employees', 'employeesBySkillset', 'jobOrders', 'activeSessions', 'mascotDept', 'positions', 'employeesWithActiveSessions'));
+        $units = Unit::orderBy('name')->get();
+
+        return view('timing.mascot.index', compact('employees', 'employeesBySkillset', 'jobOrders', 'activeSessions', 'mascotDept', 'positions', 'employeesWithActiveSessions', 'units'));
     }
 
     // Rename khusus Mascot
@@ -262,7 +265,7 @@ class MascotTimingController extends Controller
         $validated = $request->validate([
             'timing_id'        => 'required|exists:timings,id',
             'output_qty'       => 'required|numeric|min:1',
-            'measurement_type' => 'required|string|in:qty,pcs,unit,piece,item,set,meter,cm,kg,gram',
+            'measurement_type' => 'required|string|max:50',
         ]);
 
         try {

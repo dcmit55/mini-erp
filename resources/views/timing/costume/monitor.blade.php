@@ -211,16 +211,14 @@
                                 <span class="text-danger">*</span>
                             </label>
                             <select class="form-select" id="stop-measurement-type" name="measurement_type" required>
-                                <option value="qty">Qty</option>
-                                <option value="pcs" selected>Pcs</option>
-                                <option value="unit">Unit</option>
-                                <option value="piece">Piece</option>
-                                <option value="item">Item</option>
-                                <option value="set">Set</option>
-                                <option value="meter">Meter</option>
-                                <option value="cm">Cm</option>
-                                <option value="kg">Kg</option>
-                                <option value="gram">Gram</option>
+                                @forelse($units as $unit)
+                                    <option value="{{ strtolower($unit->name) }}"
+                                        {{ strtolower($unit->name) === 'pcs' ? 'selected' : '' }}>
+                                        {{ $unit->name }}
+                                    </option>
+                                @empty
+                                    <option value="pcs" selected>Pcs</option>
+                                @endforelse
                             </select>
                             <small class="text-muted">Select measurement unit for output quantity</small>
                         </div>

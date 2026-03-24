@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Timing\Mascot;
 use App\Http\Controllers\Controller;
 use App\Models\Production\Timing;
 use App\Models\Admin\Department;
+use App\Models\Logistic\Unit;
 use Illuminate\Http\Request;
 
 class MascotMonitorController extends Controller
@@ -45,7 +46,9 @@ class MascotMonitorController extends Controller
             return $timing->project->name ?? 'Unknown Project';
         });
 
-        return view('timing.mascot.monitor', compact('runningSessions', 'groupedSessions', 'totalRunning', 'totalEmployees', 'mascotDept'));
+        $units = Unit::orderBy('name')->get();
+
+        return view('timing.mascot.monitor', compact('runningSessions', 'groupedSessions', 'totalRunning', 'totalEmployees', 'mascotDept', 'units'));
     }
 
     /**
