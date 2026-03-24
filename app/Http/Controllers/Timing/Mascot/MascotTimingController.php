@@ -70,7 +70,14 @@ class MascotTimingController extends Controller
 
         $units = Unit::orderBy('name')->get();
 
-        return view('timing.mascot.index', compact('employees', 'employeesBySkillset', 'jobOrders', 'activeSessions', 'mascotDept', 'positions', 'employeesWithActiveSessions', 'units'));
+        // Job Order stages (statuses) for the Stop modal Stage dropdown
+        $jobOrderStages = JobOrder::whereNull('deleted_at')
+            ->whereNotNull('status')
+            ->distinct()
+            ->orderBy('status')
+            ->pluck('status');
+
+        return view('timing.mascot.index', compact('employees', 'employeesBySkillset', 'jobOrders', 'activeSessions', 'mascotDept', 'positions', 'employeesWithActiveSessions', 'units', 'jobOrderStages'));
     }
 
     // Rename khusus Mascot
@@ -266,6 +273,7 @@ class MascotTimingController extends Controller
             'timing_id'        => 'required|exists:timings,id',
             'output_qty'       => 'required|numeric|min:1',
             'measurement_type' => 'required|string|max:50',
+            'stage'            => 'required|string|max:100',
         ]);
 
         try {
@@ -299,22 +307,29 @@ class MascotTimingController extends Controller
                 }
             }
 
-            // Update timing record — same pattern as Costume timing
+            // Merge stage into department_specific_data
+            $deptData = $timing->department_specific_data ?? [];
+            $deptData['current_stage']    = $validated['stage'];
+            $deptData['stage']            = $validated['stage'];
+            $deptData['current_progress'] = $deptData['current_progress'] ?? 0;
+
+            // Update timing record
             $timing->update([
-                'end_time'         => $endTime,
-                'measurement_type' => $validated['measurement_type'],
-                'measurement_value'=> $validated['output_qty'],
-                'duration_minutes' => $durationMinutes,
-                'duration_hours'   => round($durationMinutes / 60, 2),
-                'status'           => 'complete',
-                'approval_status'  => 'pending',
+                'end_time'                => $endTime,
+                'measurement_type'        => $validated['measurement_type'],
+                'measurement_value'       => $validated['output_qty'],
+                'duration_minutes'        => $durationMinutes,
+                'duration_hours'          => round($durationMinutes / 60, 2),
+                'status'                  => 'complete',
+                'approval_status'         => 'pending',
+                'department_specific_data'=> $deptData,
             ]);
 
             DB::commit();
 
             return response()->json([
                 'success'          => true,
-                'message'          => 'Work session completed. Output: ' . $validated['output_qty'] . ' ' . $validated['measurement_type'],
+                'message'          => 'Work session completed. Stage: ' . $validated['stage'] . ' | Output: ' . $validated['output_qty'] . ' ' . $validated['measurement_type'],
                 'end_time'         => $endTime,
                 'timing_id'        => $timing->id,
                 'duration_minutes' => $durationMinutes,
@@ -492,6 +507,7 @@ class MascotTimingController extends Controller
                 'name' => $jobOrder->name,
                 'project_name' => $jobOrder->project->name ?? 'N/A',
                 'department_name' => $jobOrder->department->name ?? 'N/A',
+                'status' => $jobOrder->status ?? null,
                 'current_stage' => $currentStage,
                 'current_progress' => $currentProgress,
             ],

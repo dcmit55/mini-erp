@@ -386,79 +386,71 @@ class ProjectCostingController extends Controller
         $project = Project::where('id', $project_id)->where('project_status', 'Delivered')->firstOrFail();
         $project->load(['departments', 'jobOrders']);
 
-        // SG → BT items
-        $sgBtItems = \App\Models\Lark\LarkSgBtItemTracking::with('courier')->where('project_id', $project_id)->get();
+        // SG → BT items — ALL records (with or without courier)
+        $sgBtItems = \App\Models\Lark\LarkSgBtItemTracking::with('courier')
+            ->where('project_id', $project_id)
+            ->get();
 
-        // BT → SG items
-        $btSgItems = \App\Models\Lark\LarkBtSgItemTracking::with('courier')->where('project_id', $project_id)->get();
+        // BT → SG items — ALL records (with or without courier)
+        $btSgItems = \App\Models\Lark\LarkBtSgItemTracking::with('courier')
+            ->where('project_id', $project_id)
+            ->get();
 
-        // Build SG → BT shipments grouped by courier
-        $sgBtShipments = $sgBtItems
-            ->whereNotNull('courier_id')
-            ->groupBy('courier_id')
-            ->map(function ($items) {
-                $courier = $items->first()->courier;
-                return [
-                    'courier_name' => $courier->name ?? '—',
-                    'carrier' => $courier->type_movement ?? '—',
-                    'mode' => $courier->type_movement ?? '—',
-                    'tracking' => $courier->lark_record_id ?? '—',
-                    'date' => $courier->date ? $courier->date->format('d M Y') : '—',
-                    'status' => 'Delivered',
-                    'total_idr' => $courier->total_cost ?? 0,
-                    'total_sgd' => $courier->total_cost_sgd ?? 0,
-                    'items' => $items
-                        ->map(
-                            fn($i) => [
-                                'name' => $i->item_name ?? '—',
-                                'qty' => $i->qty ?? 1,
-                                'status' => $i->status ?? 'Delivered',
-                                'sgd_cost' => $i->sgd_cost ?? 0,
-                            ],
-                        )
-                        ->values()
-                        ->toArray(),
-                    'items_count' => $items->count(),
-                ];
-            })
-            ->values();
+        // Build SG → BT shipments
+        // Group items with courier by courier_id; items without courier go to an "Unassigned" group
+        $sgBtGrouped = $sgBtItems->groupBy(fn($i) => $i->courier_id ?? '__none__');
+        $sgBtShipments = $sgBtGrouped->map(function ($items, $key) {
+            $courier = ($key !== '__none__') ? $items->first()->courier : null;
+            return [
+                'courier_name' => $courier->name ?? '—',
+                'carrier'      => $courier->type_movement ?? '—',
+                'mode'         => $courier->type_movement ?? '—',
+                'tracking'     => $courier->lark_record_id ?? '—',
+                'date'         => ($courier && $courier->date) ? $courier->date->format('d M Y') : '—',
+                'status'       => 'Delivered',
+                // Cost from courier record if available, else sum item sgd_cost
+                'total_idr'    => $courier ? ($courier->total_cost ?? 0) : $items->sum(fn($i) => ($i->sgd_cost ?? 0) * 15500),
+                'total_sgd'    => $courier ? ($courier->total_cost_sgd ?? 0) : $items->sum('sgd_cost'),
+                'items'        => $items->map(fn($i) => [
+                    'name'     => $i->item_name ?? '—',
+                    'qty'      => $i->qty ?? 1,
+                    'status'   => $i->status ?? 'Delivered',
+                    'sgd_cost' => $i->sgd_cost ?? 0,
+                ])->values()->toArray(),
+                'items_count'  => $items->count(),
+            ];
+        })->values();
 
-        // Build BT → SG shipments grouped by courier
-        $btSgShipments = $btSgItems
-            ->whereNotNull('courier_id')
-            ->groupBy('courier_id')
-            ->map(function ($items) {
-                $courier = $items->first()->courier;
-                return [
-                    'courier_name' => $courier->name ?? '—',
-                    'carrier' => $courier->type_movement ?? '—',
-                    'mode' => $courier->type_movement ?? '—',
-                    'tracking' => $courier->lark_record_id ?? '—',
-                    'date' => $courier->date ? $courier->date->format('d M Y') : '—',
-                    'status' => 'In Transit',
-                    'total_idr' => $courier->total_cost ?? 0,
-                    'total_sgd' => $courier->total_cost_sgd ?? 0,
-                    'items' => $items
-                        ->map(
-                            fn($i) => [
-                                'name' => $i->item_name ?? '—',
-                                'qty' => $i->qty ?? 1,
-                                'status' => $i->status ?? 'In Transit',
-                                'sgd_cost' => $i->sgd_cost ?? 0,
-                            ],
-                        )
-                        ->values()
-                        ->toArray(),
-                    'items_count' => $items->count(),
-                ];
-            })
-            ->values();
+        // Build BT → SG shipments
+        $btSgGrouped = $btSgItems->groupBy(fn($i) => $i->courier_id ?? '__none__');
+        $btSgShipments = $btSgGrouped->map(function ($items, $key) {
+            $courier = ($key !== '__none__') ? $items->first()->courier : null;
+            return [
+                'courier_name' => $courier->name ?? '—',
+                'carrier'      => $courier->type_movement ?? '—',
+                'mode'         => $courier->type_movement ?? '—',
+                'tracking'     => $courier->lark_record_id ?? '—',
+                'date'         => ($courier && $courier->date) ? $courier->date->format('d M Y') : '—',
+                'status'       => 'In Transit',
+                'total_idr'    => $courier ? ($courier->total_cost ?? 0) : $items->sum(fn($i) => ($i->sgd_cost ?? 0) * 15500),
+                'total_sgd'    => $courier ? ($courier->total_cost_sgd ?? 0) : $items->sum('sgd_cost'),
+                'items'        => $items->map(fn($i) => [
+                    'name'     => $i->item_name ?? '—',
+                    'qty'      => $i->qty ?? 1,
+                    'status'   => $i->status ?? 'In Transit',
+                    'sgd_cost' => $i->sgd_cost ?? 0,
+                ])->values()->toArray(),
+                'items_count'  => $items->count(),
+            ];
+        })->values();
 
-        $totalSgBtIDR = $sgBtShipments->sum('total_idr');
-        $totalBtSgIDR = $btSgShipments->sum('total_idr');
+        // Totals: sum courier total_cost where courier exists,
+        // plus sgd_cost-converted for items without courier
+        $totalSgBtIDR    = $sgBtShipments->sum('total_idr');
+        $totalBtSgIDR    = $btSgShipments->sum('total_idr');
         $totalFreightIDR = $totalSgBtIDR + $totalBtSgIDR;
-        $sgBtCount = $sgBtItems->count();
-        $btSgCount = $btSgItems->count();
+        $sgBtCount       = $sgBtItems->count();
+        $btSgCount       = $btSgItems->count();
 
         return view('finance.costing.freight-detail', compact('project', 'sgBtShipments', 'btSgShipments', 'totalSgBtIDR', 'totalBtSgIDR', 'totalFreightIDR', 'sgBtCount', 'btSgCount'));
     }
@@ -884,47 +876,64 @@ class ProjectCostingController extends Controller
      */
     private function getCourierCosts($projectId)
     {
-        // Get BT-SG items with courier
-        $btSgItems = LarkBtSgItemTracking::with('courier')->where('project_id', $projectId)->whereNotNull('courier_id')->get();
+        // Get ALL BT-SG items (with or without courier)
+        $btSgItems = LarkBtSgItemTracking::with('courier')
+            ->where('project_id', $projectId)
+            ->get();
 
-        // Get SG-BT items with courier
-        $sgBtItems = LarkSgBtItemTracking::with('courier')->where('project_id', $projectId)->whereNotNull('courier_id')->get();
+        // Get ALL SG-BT items (with or without courier)
+        $sgBtItems = LarkSgBtItemTracking::with('courier')
+            ->where('project_id', $projectId)
+            ->get();
 
-        // Group BT-SG by courier
-        $btSgCouriers = $btSgItems->groupBy('courier_id')->map(function ($items, $courierId) {
-            $courier = $items->first()->courier;
-            return [
-                'courier_id' => $courierId,
-                'courier_name' => $courier->name ?? 'Unknown',
-                'direction' => 'BT → SG',
-                'date' => $courier->date ? $courier->date->format('d M Y') : '-',
-                'items_count' => $items->count(),
-                'items' => $items->pluck('item_name')->toArray(),
-                'transport_cost' => $courier->transport_cost ?? 0,
-                'baggage_cost' => $courier->baggage_cost ?? 0,
-                'gst_cost' => $courier->gst_cost ?? 0,
-                'total_idr' => $courier->total_cost ?? 0,
-                'total_sgd' => $courier->total_cost_sgd ?? 0,
-            ];
-        });
+        // Group BT-SG by courier_id (items without courier get key '__none__')
+        $btSgCouriers = $btSgItems->groupBy(fn($i) => $i->courier_id ?? '__none__')
+            ->map(function ($items, $key) {
+                $courier = ($key !== '__none__') ? $items->first()->courier : null;
+                $itemsCost = $items->sum('sgd_cost'); // SGD cost on items
+                $courierTotalIdr = $courier ? ($courier->total_cost ?? 0) : 0;
+                $courierTotalSgd = $courier ? ($courier->total_cost_sgd ?? 0) : 0;
+                // Use courier cost if available, otherwise fall back to sum of item sgd_cost
+                $totalIdr = $courierTotalIdr > 0 ? $courierTotalIdr : round($itemsCost * 15500, 0);
+                $totalSgd = $courierTotalSgd > 0 ? $courierTotalSgd : $itemsCost;
+                return [
+                    'courier_id'     => $key !== '__none__' ? $key : null,
+                    'courier_name'   => $courier->name ?? '—',
+                    'direction'      => 'BT → SG',
+                    'date'           => ($courier && $courier->date) ? $courier->date->format('d M Y') : '—',
+                    'items_count'    => $items->count(),
+                    'items'          => $items->pluck('item_name')->toArray(),
+                    'transport_cost' => $courier->transport_cost ?? 0,
+                    'baggage_cost'   => $courier->baggage_cost ?? 0,
+                    'gst_cost'       => $courier->gst_cost ?? 0,
+                    'total_idr'      => $totalIdr,
+                    'total_sgd'      => $totalSgd,
+                ];
+            });
 
-        // Group SG-BT by courier
-        $sgBtCouriers = $sgBtItems->groupBy('courier_id')->map(function ($items, $courierId) {
-            $courier = $items->first()->courier;
-            return [
-                'courier_id' => $courierId,
-                'courier_name' => $courier->name ?? 'Unknown',
-                'direction' => 'SG → BT',
-                'date' => $courier->date ? $courier->date->format('d M Y') : '-',
-                'items_count' => $items->count(),
-                'items' => $items->pluck('item_name')->toArray(),
-                'transport_cost' => $courier->transport_cost ?? 0,
-                'baggage_cost' => $courier->baggage_cost ?? 0,
-                'gst_cost' => $courier->gst_cost ?? 0,
-                'total_idr' => $courier->total_cost ?? 0,
-                'total_sgd' => $courier->total_cost_sgd ?? 0,
-            ];
-        });
+        // Group SG-BT by courier_id
+        $sgBtCouriers = $sgBtItems->groupBy(fn($i) => $i->courier_id ?? '__none__')
+            ->map(function ($items, $key) {
+                $courier = ($key !== '__none__') ? $items->first()->courier : null;
+                $itemsCost = $items->sum('sgd_cost');
+                $courierTotalIdr = $courier ? ($courier->total_cost ?? 0) : 0;
+                $courierTotalSgd = $courier ? ($courier->total_cost_sgd ?? 0) : 0;
+                $totalIdr = $courierTotalIdr > 0 ? $courierTotalIdr : round($itemsCost * 15500, 0);
+                $totalSgd = $courierTotalSgd > 0 ? $courierTotalSgd : $itemsCost;
+                return [
+                    'courier_id'     => $key !== '__none__' ? $key : null,
+                    'courier_name'   => $courier->name ?? '—',
+                    'direction'      => 'SG → BT',
+                    'date'           => ($courier && $courier->date) ? $courier->date->format('d M Y') : '—',
+                    'items_count'    => $items->count(),
+                    'items'          => $items->pluck('item_name')->toArray(),
+                    'transport_cost' => $courier->transport_cost ?? 0,
+                    'baggage_cost'   => $courier->baggage_cost ?? 0,
+                    'gst_cost'       => $courier->gst_cost ?? 0,
+                    'total_idr'      => $totalIdr,
+                    'total_sgd'      => $totalSgd,
+                ];
+            });
 
         // Combine both directions
         $allCouriers = $btSgCouriers->merge($sgBtCouriers)->values();
@@ -934,13 +943,13 @@ class ProjectCostingController extends Controller
         $totalIdr = $allCouriers->sum('total_idr');
 
         return [
-            'bt_sg_count' => $btSgCouriers->count(),
-            'sg_bt_count' => $sgBtCouriers->count(),
+            'bt_sg_count'    => $btSgCouriers->count(),
+            'sg_bt_count'    => $sgBtCouriers->count(),
             'total_couriers' => $allCouriers->count(),
-            'total_items' => $btSgItems->count() + $sgBtItems->count(),
-            'total_sgd' => round($totalSgd, 2),
-            'total_idr' => round($totalIdr, 0),
-            'couriers' => $allCouriers,
+            'total_items'    => $btSgItems->count() + $sgBtItems->count(),
+            'total_sgd'      => round($totalSgd, 2),
+            'total_idr'      => round($totalIdr, 0),
+            'couriers'       => $allCouriers,
         ];
     }
 }

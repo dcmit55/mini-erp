@@ -200,7 +200,7 @@
         </div>
     </div>
 
-    <!-- Stop Work Modal – Qty & Measurement (same as Costume) -->
+    <!-- Stop Work Modal – Measurement, Qty & Stage -->
     <div class="modal fade" id="stopWorkModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -213,12 +213,26 @@
                         @csrf
                         <div id="stop-session-info" class="alert alert-info mb-3"></div>
 
+                        <!-- Stage -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                Stage <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select select2-stage" id="stop-stage" name="stage" required>
+                                <option value="">— Select Stage —</option>
+                                @foreach($jobOrderStages as $stageOption)
+                                    <option value="{{ $stageOption }}">{{ $stageOption }}</option>
+                                @endforeach
+                            </select>
+                            <small class="text-muted">Select the current production stage for this job order</small>
+                        </div>
+
                         <!-- Measurement Type -->
                         <div class="mb-3">
                             <label class="form-label fw-bold">
                                 Measurement Type <span class="text-danger">*</span>
                             </label>
-                            <select class="form-select" id="stop-measurement-type" name="measurement_type" required>
+                            <select class="form-select select2-measurement" id="stop-measurement-type" name="measurement_type" required>
                                 @forelse($units as $unit)
                                     <option value="{{ strtolower($unit->name) }}"
                                         {{ strtolower($unit->name) === 'pcs' ? 'selected' : '' }}>
@@ -242,6 +256,7 @@
                         </div>
 
                         <input type="hidden" id="stop-timing-id" name="timing_id">
+                        <input type="hidden" id="stop-job-order-id" name="job_order_id">
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -319,6 +334,24 @@
                 placeholder: 'Choose Job Order...',
                 allowClear: true,
                 width: '100%'
+            });
+
+            // Initialize Select2 for Stop modal — Stage
+            $('#stop-stage').select2({
+                theme: 'bootstrap-5',
+                placeholder: '— Select Stage —',
+                allowClear: true,
+                width: '100%',
+                dropdownParent: $('#stopWorkModal')
+            });
+
+            // Initialize Select2 for Stop modal — Measurement Type
+            $('#stop-measurement-type').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Select measurement unit...',
+                allowClear: false,
+                width: '100%',
+                dropdownParent: $('#stopWorkModal')
             });
 
             // Employee text search
@@ -555,21 +588,36 @@
             });
 
             // Stop work button click handler
-            // Stop work button click handler
             $(document).on('click', '.stop-work-btn', function() {
                 const timingId    = $(this).data('timing-id');
                 const employeeName = $(this).data('employee-name');
                 const jobOrder    = $(this).data('job-order');
+                const jobOrderId  = $(this).data('job-order-id');
 
                 $('#stop-timing-id').val(timingId);
+                $('#stop-job-order-id').val(jobOrderId);
                 $('#stop-session-info').html(
                     `<strong>Employee:</strong> ${employeeName}<br>
                      <strong>Job Order:</strong> ${jobOrder}`
                 );
 
                 // Reset fields to defaults
-                $('#stop-measurement-type').val('pcs');
+                $('#stop-stage').val('').trigger('change');
+                $('#stop-measurement-type').val('pcs').trigger('change');
                 $('#stop-output-qty').val(1);
+
+                // Auto-fill Stage from the Job Order's current status
+                if (jobOrderId) {
+                    $.ajax({
+                        url: `/mascot-timing/job-order/${jobOrderId}`,
+                        method: 'GET',
+                        success: function(response) {
+                            if (response.success && response.job_order && response.job_order.status) {
+                                $('#stop-stage').val(response.job_order.status).trigger('change');
+                            }
+                        }
+                    });
+                }
 
                 $('#stopWorkModal').modal('show');
             });
@@ -581,7 +629,12 @@
                 const timingId       = $('#stop-timing-id').val();
                 const outputQty      = parseFloat($('#stop-output-qty').val());
                 const measureType    = $('#stop-measurement-type').val();
+                const stage          = $('#stop-stage').val();
 
+                if (!stage) {
+                    Swal.fire({ icon: 'warning', title: 'Stage Required', text: 'Please select a production stage' });
+                    return;
+                }
                 if (!outputQty || outputQty < 1) {
                     Swal.fire({ icon: 'warning', title: 'Invalid Quantity', text: 'Quantity must be at least 1' });
                     return;
@@ -602,6 +655,7 @@
                         timing_id:        timingId,
                         output_qty:       outputQty,
                         measurement_type: measureType,
+                        stage:            stage,
                     },
                     success: function(response) {
                         if (response.success) {
