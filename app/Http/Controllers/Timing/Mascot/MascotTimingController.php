@@ -70,14 +70,7 @@ class MascotTimingController extends Controller
 
         $units = Unit::orderBy('name')->get();
 
-        // Job Order stages (statuses) for the Stop modal Stage dropdown
-        $jobOrderStages = JobOrder::whereNull('deleted_at')
-            ->whereNotNull('status')
-            ->distinct()
-            ->orderBy('status')
-            ->pluck('status');
-
-        return view('timing.mascot.index', compact('employees', 'employeesBySkillset', 'jobOrders', 'activeSessions', 'mascotDept', 'positions', 'employeesWithActiveSessions', 'units', 'jobOrderStages'));
+        return view('timing.mascot.index', compact('employees', 'employeesBySkillset', 'jobOrders', 'activeSessions', 'mascotDept', 'positions', 'employeesWithActiveSessions', 'units'));
     }
 
     // Rename khusus Mascot
@@ -264,16 +257,15 @@ class MascotTimingController extends Controller
     }
 
     /**
-     * Stop work session — now requires qty & measurement like Costume timing.
-     * Stage selection is removed; data stored as measurement_type/measurement_value.
+     * Stop work session — requires stage (integer 1-10).
+     * Stage 1=Design & Prototyping ... Stage 10=Final QC & Shipping.
+     * Each stage = 10% absolute progress. Stored in department_specific_data.
      */
     public function stop(Request $request)
     {
         $validated = $request->validate([
-            'timing_id'        => 'required|exists:timings,id',
-            'output_qty'       => 'required|numeric|min:1',
-            'measurement_type' => 'required|string|max:50',
-            'stage'            => 'required|string|max:100',
+            'timing_id' => 'required|exists:timings,id',
+            'stage'     => 'required|integer|min:1|max:10', // Stage 1-10: each = 10% progress
         ]);
 
         try {
@@ -307,29 +299,41 @@ class MascotTimingController extends Controller
                 }
             }
 
-            // Merge stage into department_specific_data
-            $deptData = $timing->department_specific_data ?? [];
-            $deptData['current_stage']    = $validated['stage'];
-            $deptData['stage']            = $validated['stage'];
-            $deptData['current_progress'] = $deptData['current_progress'] ?? 0;
+            // Get existing department-specific data
+            $deptSpecificData = $timing->department_specific_data ?? [];
+            $previousProgress = $deptSpecificData['previous_progress'] ?? 0;
+
+            // Absolute progress: stage 2 = 20%, stage 5 = 50%, etc.
+            $stage           = $validated['stage'];
+            $currentProgress = $stage * 10;
+            $progressAdded   = $currentProgress - $previousProgress;
+
+            // Update department-specific data
+            $deptSpecificData['current_stage']    = $stage;
+            $deptSpecificData['current_progress'] = $currentProgress;
+            $deptSpecificData['progress_added']   = $progressAdded;
+            $deptSpecificData['stage']            = $stage;
 
             // Update timing record
             $timing->update([
-                'end_time'                => $endTime,
-                'measurement_type'        => $validated['measurement_type'],
-                'measurement_value'       => $validated['output_qty'],
-                'duration_minutes'        => $durationMinutes,
-                'duration_hours'          => round($durationMinutes / 60, 2),
-                'status'                  => 'complete',
-                'approval_status'         => 'pending',
-                'department_specific_data'=> $deptData,
+                'end_time'                 => $endTime,
+                'measurement_type'         => 'percentage',
+                'measurement_value'        => $currentProgress, // absolute progress %
+                'duration_minutes'         => $durationMinutes,
+                'duration_hours'           => round($durationMinutes / 60, 2),
+                'status'                   => 'complete',
+                'approval_status'          => 'pending',
+                'department_specific_data' => $deptSpecificData,
             ]);
 
             DB::commit();
 
             return response()->json([
                 'success'          => true,
-                'message'          => 'Work session completed. Stage: ' . $validated['stage'] . ' | Output: ' . $validated['output_qty'] . ' ' . $validated['measurement_type'],
+                'message'          => "Work session completed. Stage {$stage} reached ({$currentProgress}% progress).",
+                'stage'            => $stage,
+                'current_progress' => $currentProgress,
+                'progress_added'   => $progressAdded,
                 'end_time'         => $endTime,
                 'timing_id'        => $timing->id,
                 'duration_minutes' => $durationMinutes,
