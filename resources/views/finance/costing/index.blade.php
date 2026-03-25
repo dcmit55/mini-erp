@@ -89,8 +89,10 @@
             box-shadow: 0 2px 16px rgba(0, 0, 0, .07);
             text-decoration: none;
             color: inherit;
-            display: block;
+            display: flex;
+            flex-direction: row;
             background: #fff;
+            min-height: 180px;
         }
 
         .project-card:hover {
@@ -100,48 +102,60 @@
             text-decoration: none;
         }
 
-        /* ── Coloured top-strip (replaces left panel) ── */
-        .pc-header-strip {
-            padding: .9rem 1rem .75rem;
-            position: relative;
-            display: flex;
-            align-items: flex-end;
-            justify-content: space-between;
-            min-height: 70px;
-        }
-
-        .mascot-bg {
-            background: linear-gradient(135deg, #c3b1e1 0%, #8e7cc3 100%);
-        }
-
-        .costume-bg {
-            background: linear-gradient(135deg, #ffb1b1 0%, #ff7c7c 100%);
-        }
-
-        .animatronic-bg {
-            background: linear-gradient(135deg, #80d4f5 0%, #3498db 100%);
-        }
-
-        .plush-bg {
-            background: linear-gradient(135deg, #ffe066 0%, #f9a825 100%);
-        }
-
-        .default-bg {
-            background: linear-gradient(135deg, #a8edea 0%, #6ab4b0 100%);
-        }
-
-        .pc-header-left {
+        /* ── Left photo/icon panel ── */
+        .pc-photo-panel {
+            width: 90px;
+            flex-shrink: 0;
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: .75rem .5rem;
+            position: relative;
         }
 
-        .pc-header-right {
-            font-size: 2.4rem;
+        .mascot-bg   { background: linear-gradient(160deg, #c3b1e1 0%, #8e7cc3 100%); }
+        .costume-bg  { background: linear-gradient(160deg, #ffb1b1 0%, #ff7c7c 100%); }
+        .animatronic-bg { background: linear-gradient(160deg, #80d4f5 0%, #3498db 100%); }
+        .plush-bg    { background: linear-gradient(160deg, #ffe066 0%, #f9a825 100%); }
+        .default-bg  { background: linear-gradient(160deg, #a8edea 0%, #6ab4b0 100%); }
+
+        .pc-photo-icon {
+            font-size: 2.6rem;
             line-height: 1;
-            opacity: .82;
-            flex-shrink: 0;
-            margin-left: .5rem;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,.15));
+        }
+
+        .pc-photo-img {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            object-fit: cover;
+            box-shadow: 0 2px 8px rgba(0,0,0,.18);
+        }
+
+        .pc-photo-placeholder {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            background: rgba(255,255,255,.25);
+            border: 2px dashed rgba(255,255,255,.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255,255,255,.7);
+            font-size: 1.4rem;
+        }
+
+        .pc-photo-dept {
+            font-size: 0.6rem;
+            font-weight: 700;
+            color: rgba(255,255,255,.9);
+            text-align: center;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+            line-height: 1.2;
         }
 
         /* Category badge */
@@ -166,6 +180,7 @@
             font-size: 0.65rem;
             font-weight: 600;
             width: fit-content;
+            color: #333;
         }
 
         .lark-tag .dot {
@@ -191,10 +206,13 @@
             color: var(--bs-body-color);
         }
 
-        /* ── Card body (white area below strip) ── */
+        /* ── Card right body ── */
         .pc-body {
             padding: .85rem 1rem .8rem;
             background: #fff;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
 
         /* Section titles */
@@ -308,6 +326,11 @@
 
         [data-bs-theme="dark"] .pc-body {
             background: #1e1e2e;
+        }
+
+        [data-bs-theme="dark"] .pc-photo-placeholder {
+            background: rgba(255,255,255,.1);
+            border-color: rgba(255,255,255,.25);
         }
 
         [data-bs-theme="dark"] .dept-filter-tabs .nav-link {
@@ -557,30 +580,33 @@
                     <div class="col-xl-4 col-lg-6 col-md-6">
                         <a href="{{ route('costing.detail', $project->id) }}" class="project-card">
 
-                            {{-- ── Coloured top strip ── --}}
-                            <div class="pc-header-strip {{ $bgClass }}">
-                                <div class="pc-header-left">
-                                    @if (!empty($typeDept))
-                                        <span class="category-badge">{{ $deptEmoji }} {{ $typeDept }}</span>
-                                    @endif
-                                    @if (!empty($project->lark_record_id))
-                                        <div class="lark-tag mt-1">
-                                            <span class="dot"></span>Lark
-                                        </div>
-                                    @endif
-                                </div>
-                                <div class="pc-header-right">{{ $deptEmoji }}</div>
+                            {{-- ── Left photo / icon panel ── --}}
+                            <div class="pc-photo-panel {{ $bgClass }}">
+                                @if (!empty($project->photo))
+                                    <img src="{{ asset('storage/' . $project->photo) }}"
+                                        class="pc-photo-img" alt="{{ $project->name }}">
+                                @else
+                                    <div class="pc-photo-placeholder">{{ $deptEmoji }}</div>
+                                @endif
+                                @if (!empty($typeDept))
+                                    <div class="pc-photo-dept">{{ $typeDept }}</div>
+                                @endif
+                                @if (!empty($project->lark_record_id))
+                                    <div class="lark-tag">
+                                        <span class="dot"></span>Lark
+                                    </div>
+                                @endif
                             </div>
 
-                            {{-- ── White body ── --}}
-                            <div class="pc-body">
+                            {{-- ── Right content body ── --}}
+                            <div class="pc-body flex-fill">
 
                                 {{-- Project name --}}
                                 <div class="pc-name-row mb-2">
                                     <span class="pc-name" title="{{ $project->name }}">
-                                        {{ \Illuminate\Support\Str::limit($project->name, 50) }}
+                                        {{ \Illuminate\Support\Str::limit($project->name, 45) }}
                                     </span>
-                                    <span class="text-muted ms-2" style="font-size:.8rem;">&rsaquo;</span>
+                                    <span class="text-muted ms-1" style="font-size:.8rem;">&rsaquo;</span>
                                 </div>
 
                                 {{-- ACTUALS --}}
@@ -594,8 +620,7 @@
                                     <span class="pc-val">{{ $hasData ? $fmt($actualCost) : '—' }}</span>
                                 </div>
                                 <div class="pc-row profit">
-                                    <span class="pc-lbl fw-semibold" style="color:var(--bs-body-color)">Project
-                                        Profit</span>
+                                    <span class="pc-lbl fw-semibold" style="color:var(--bs-body-color)">Project Profit</span>
                                     <span class="pc-val">
                                         @if ($hasData && $sellingPrice > 0)
                                             {{ $fmt($profit) }}
@@ -616,8 +641,7 @@
                                 <div class="section-title">ESTIMATES</div>
                                 <div class="pc-row">
                                     <span class="pc-lbl">Sales / Creator</span>
-                                    <span class="pc-val"
-                                        style="font-size:.72rem;max-width:55%;text-align:right;">{{ $salesName }}</span>
+                                    <span class="pc-val" style="font-size:.72rem;max-width:55%;text-align:right;">{{ $salesName }}</span>
                                 </div>
                                 <div class="pc-row">
                                     <span class="pc-lbl">Deadline</span>

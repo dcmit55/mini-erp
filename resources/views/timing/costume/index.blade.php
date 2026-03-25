@@ -315,6 +315,9 @@
 
 @section('scripts')
     <script>
+        // Units from DB — used in dynamic grouped stop modal
+        const UNITS_OPTIONS = @json($units->map(fn($u) => ['value' => strtolower($u->name), 'label' => $u->name]));
+
         $(document).ready(function() {
             let selectedEmployees = [];
             let selectedJobOrder = null;
@@ -325,6 +328,14 @@
                 placeholder: 'Choose Job Order...',
                 allowClear: true,
                 width: '100%'
+            });
+
+            // Initialize Select2 for stop modal measurement type
+            $('#stop-measurement-type').select2({
+                theme: 'bootstrap-5',
+                dropdownParent: $('#stopWorkModal'),
+                minimumResultsForSearch: Infinity,
+                width: '100%',
             });
 
             // Employee text search
@@ -603,7 +614,11 @@
                             <strong>Job Order:</strong> ${jobOrder}
                         </div>
                     `);
-                    $('#stop-output-qty').val(1).focus();
+                    $('#stop-output-qty').val(1);
+                    // Reset Select2 measurement to pcs default
+                    const pcVal = $('#stop-measurement-type option').filter(function() { return $(this).val() === 'pcs'; }).val()
+                        || $('#stop-measurement-type option:first').val();
+                    $('#stop-measurement-type').val(pcVal).trigger('change');
                     $('#stopWorkModal').modal('show');
                 } else {
                     Swal.fire({
@@ -760,6 +775,10 @@
                     `;
                 });
 
+                const unitOptionsHtml = UNITS_OPTIONS.map(u =>
+                    `<option value="${u.value}"${u.value === 'pcs' ? ' selected' : ''}>${u.label}</option>`
+                ).join('');
+
                 const modalHtml = `
                     <div class="modal fade" id="groupedStopModal" tabindex="-1">
                         <div class="modal-dialog">
@@ -775,13 +794,9 @@
                                     </div>
 
                                     <div class="mb-3">
-                                        <label class="form-label">Measurement Type</label>
+                                        <label class="form-label fw-bold">Measurement Type</label>
                                         <select class="form-select" id="grouped-measurement-type">
-                                            <option value="qty">Quantity (Qty)</option>
-                                            <option value="pcs">Pieces (Pcs)</option>
-                                            <option value="set">Set</option>
-                                            <option value="unit">Unit</option>
-                                            <option value="dozen">Dozen</option>
+                                            ${unitOptionsHtml}
                                         </select>
                                     </div>
 
@@ -806,6 +821,14 @@
                 $('body').append(modalHtml);
                 const modal = new bootstrap.Modal(document.getElementById('groupedStopModal'));
                 modal.show();
+
+                // Init Select2 on the dynamically-inserted measurement select
+                $('#grouped-measurement-type').select2({
+                    theme: 'bootstrap-5',
+                    dropdownParent: $('#groupedStopModal'),
+                    minimumResultsForSearch: Infinity,
+                    width: '100%',
+                });
 
                 // Handle grouped stop confirmation
                 $('#confirm-grouped-stop').off('click').on('click', function() {
