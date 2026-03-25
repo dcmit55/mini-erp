@@ -3,13 +3,14 @@
 @section('styles')
     <style>
         body {
-            background: var(--bs-body-bg);
+            background: #f0f2f9;
         }
 
         /* ── Page Header ── */
         .detail-header {
-            background: var(--bs-card-bg, var(--bs-body-bg));
-            border-bottom: 1px solid var(--bs-border-color);
+            background: var(--bs-card-bg, #fff);
+            border: none;
+            box-shadow: 0 2px 14px rgba(0, 0, 0, .06);
             padding: .85rem 1.5rem;
             display: flex;
             align-items: center;
@@ -17,7 +18,7 @@
             flex-wrap: wrap;
             gap: .75rem;
             margin-bottom: 1.25rem;
-            border-radius: 0 0 12px 12px;
+            border-radius: 16px;
         }
 
         .detail-header .dh-left {
@@ -45,8 +46,8 @@
         }
 
         .badge-linked {
-            background: #ede8ff;
-            color: #4A25AA;
+            background: rgba(108, 92, 231, .1);
+            color: #6c5ce7;
         }
 
         /* ── Summary bar (3 cards) ── */
@@ -58,36 +59,43 @@
         }
 
         .summary-card {
-            background: var(--bs-card-bg, var(--bs-body-bg));
-            border-radius: 12px;
-            border: 1px solid var(--bs-border-color);
+            background: var(--bs-card-bg, #fff);
+            border-radius: 16px;
+            border: none;
+            box-shadow: 0 2px 14px rgba(0, 0, 0, .06);
             padding: 1rem 1.25rem;
             display: flex;
             align-items: center;
             gap: .85rem;
+            transition: transform .15s, box-shadow .15s;
+        }
+
+        .summary-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(108, 92, 231, .1);
         }
 
         .summary-card .sc-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 10px;
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.1rem;
+            font-size: 1.2rem;
             flex-shrink: 0;
         }
 
         .summary-card.intl .sc-icon {
-            background: #fff8e1;
+            background: rgba(244, 164, 0, .12);
         }
 
         .summary-card.local .sc-icon {
-            background: #e0f7fa;
+            background: rgba(23, 162, 184, .12);
         }
 
         .summary-card.usage .sc-icon {
-            background: #e8f5e9;
+            background: rgba(40, 167, 69, .12);
         }
 
         .summary-card .sc-label {
@@ -128,11 +136,17 @@
             background: linear-gradient(90deg, #28a745, #a5d6a7);
         }
 
+        .pct-badge {
+            font-size: 1.1rem;
+            font-weight: 800;
+        }
+
         /* ── Section block ── */
         .section-block {
-            background: var(--bs-card-bg, var(--bs-body-bg));
-            border-radius: 14px;
-            border: 1px solid var(--bs-border-color);
+            background: var(--bs-card-bg, #fff);
+            border-radius: 16px;
+            border: none;
+            box-shadow: 0 2px 14px rgba(0, 0, 0, .06);
             margin-bottom: 1rem;
             overflow: hidden;
         }
@@ -161,7 +175,7 @@
         .section-block .sb-total {
             font-size: .9rem;
             font-weight: 700;
-            color: #4A25AA;
+            color: #6c5ce7;
         }
 
         /* Exchange rate note */
@@ -195,7 +209,7 @@
 
         .det-tbl thead th {
             font-size: .68rem;
-            color: var(--bs-secondary-color, #adb5bd);
+            color: #adb5bd;
             font-weight: 600;
             padding: .45rem .75rem;
             border-bottom: 2px solid var(--bs-border-color);
@@ -214,11 +228,11 @@
         }
 
         .det-tbl tbody tr:hover {
-            background: rgba(143, 18, 254, 0.05);
+            background: rgba(108, 92, 231, 0.04);
         }
 
         .det-tbl .subtotal-row td {
-            background: rgba(143, 18, 254, 0.07);
+            background: rgba(108, 92, 231, 0.06);
             font-weight: 700;
             border-top: 2px solid var(--bs-border-color);
             font-size: .82rem;
@@ -268,8 +282,8 @@
 
         /* ── Footer total bar ── */
         .total-bar {
-            background: linear-gradient(135deg, #1a1433 0%, #2d1b69 100%);
-            border-radius: 14px;
+            background: linear-gradient(135deg, #1a1433 0%, #2d1b69 50%, #4A25AA 100%);
+            border-radius: 16px;
             padding: 1rem 1.5rem;
             display: flex;
             align-items: center;
@@ -277,6 +291,7 @@
             flex-wrap: wrap;
             gap: 1rem;
             margin-top: 1rem;
+            box-shadow: 0 4px 20px rgba(74, 37, 170, .2);
         }
 
         .total-bar .tb-label {
@@ -358,7 +373,7 @@
             <div class="text-end">
                 <div style="font-size:.68rem; color:#6c757d; text-transform:uppercase; letter-spacing:.07em;">Total Material
                     Cost</div>
-                <div style="font-size:1.2rem; font-weight:800; color:#4A25AA;">{{ $fmt($totalMaterialIDR) }}</div>
+                <div style="font-size:1.2rem; font-weight:800; color:#6c5ce7;">{{ $fmt($totalMaterialIDR) }}</div>
             </div>
         </div>
 
@@ -373,7 +388,7 @@
                     <div class="sc-sub">Foreign currency items · RMB, SGD, USD → IDR</div>
                     <div class="progress-bar-line" style="width:{{ min($pctIntl, 100) }}%;"></div>
                 </div>
-                <div style="font-size:1.1rem; font-weight:800; color:#f4a400;">{{ $pctIntl }}%</div>
+                <div class="pct-badge" style="color:#f4a400;">{{ $pctIntl }}%</div>
             </div>
             {{-- Local Purchasing --}}
             <div class="summary-card local">
@@ -384,7 +399,7 @@
                     <div class="sc-sub">IDR items · local vendors in Batam</div>
                     <div class="progress-bar-line" style="width:{{ min($pctLocal, 100) }}%;"></div>
                 </div>
-                <div style="font-size:1.1rem; font-weight:800; color:#17a2b8;">{{ $pctLocal }}%</div>
+                <div class="pct-badge" style="color:#17a2b8;">{{ $pctLocal }}%</div>
             </div>
             {{-- Material Usage --}}
             <div class="summary-card usage">
@@ -395,7 +410,7 @@
                     <div class="sc-sub">Drawn from warehouse stock / inventory</div>
                     <div class="progress-bar-line" style="width:{{ min($pctUsage, 100) }}%;"></div>
                 </div>
-                <div style="font-size:1.1rem; font-weight:800; color:#28a745;">{{ $pctUsage }}%</div>
+                <div class="pct-badge" style="color:#28a745;">{{ $pctUsage }}%</div>
             </div>
         </div>
 
@@ -407,7 +422,7 @@
             <div class="section-block">
                 <div class="sb-header">
                     <div class="sb-title">
-                        <span style="background:#e0f7fa;padding:.3em .5em;border-radius:8px;">🏠</span>
+                        <span style="background:rgba(23,162,184,.12);padding:.3em .5em;border-radius:8px;">🏠</span>
                         <span>Local Purchasing</span>
                         <span class="sb-meta">{{ $localMaterials->count() }} items · all prices in IDR · purchased locally
                             in Batam</span>
@@ -456,7 +471,7 @@
             <div class="section-block">
                 <div class="sb-header">
                     <div class="sb-title">
-                        <span style="background:#e8f5e9;padding:.3em .5em;border-radius:8px;">📦</span>
+                        <span style="background:rgba(40,167,69,.12);padding:.3em .5em;border-radius:8px;">📦</span>
                         <span>Material Usage</span>
                         <span class="sb-meta">Drawn from warehouse inventory · allocated at unit cost</span>
                     </div>

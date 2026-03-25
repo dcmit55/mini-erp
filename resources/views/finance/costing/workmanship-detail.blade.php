@@ -3,13 +3,14 @@
 @section('styles')
     <style>
         body {
-            background: var(--bs-body-bg);
+            background: #f0f2f9;
         }
 
         /* ── Page Header ── */
         .detail-header {
-            background: var(--bs-card-bg, var(--bs-body-bg));
-            border-bottom: 1px solid var(--bs-border-color);
+            background: var(--bs-card-bg, #fff);
+            border: none;
+            box-shadow: 0 2px 14px rgba(0, 0, 0, .06);
             padding: .85rem 1.5rem;
             display: flex;
             align-items: center;
@@ -17,13 +18,13 @@
             flex-wrap: wrap;
             gap: .75rem;
             margin-bottom: 1.25rem;
-            border-radius: 0 0 12px 12px;
+            border-radius: 16px;
         }
 
         .detail-header .dh-title {
             font-size: 1rem;
             font-weight: 700;
-            color: #1a1433;
+            color: var(--bs-body-color);
         }
 
         .detail-header .dh-sub {
@@ -39,8 +40,8 @@
         }
 
         .badge-linked {
-            background: #e8f0fe;
-            color: #1a73e8;
+            background: rgba(108, 92, 231, .1);
+            color: #6c5ce7;
         }
 
         /* ── Stat cards row ── */
@@ -52,10 +53,17 @@
         }
 
         .stat-card {
-            background: var(--bs-card-bg, var(--bs-body-bg));
-            border-radius: 12px;
-            border: 1px solid var(--bs-border-color);
+            background: var(--bs-card-bg, #fff);
+            border-radius: 16px;
+            border: none;
+            box-shadow: 0 2px 14px rgba(0, 0, 0, .06);
             padding: .9rem 1.1rem;
+            transition: transform .15s, box-shadow .15s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(108, 92, 231, .1);
         }
 
         .stat-card .stat-label {
@@ -63,14 +71,14 @@
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: .07em;
-            color: var(--bs-secondary-color, #6c757d);
+            color: #6c757d;
             margin-bottom: .2rem;
         }
 
         .stat-card .stat-val {
             font-size: 1.6rem;
             font-weight: 800;
-            color: #1a1433;
+            color: var(--bs-body-color);
             line-height: 1;
         }
 
@@ -95,13 +103,18 @@
             .side-col {
                 width: 100%;
             }
+
+            .stat-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
         }
 
         /* ── Section block ── */
         .section-block {
-            background: var(--bs-card-bg, var(--bs-body-bg));
-            border-radius: 14px;
-            border: 1px solid var(--bs-border-color);
+            background: var(--bs-card-bg, #fff);
+            border-radius: 16px;
+            border: none;
+            box-shadow: 0 2px 14px rgba(0, 0, 0, .06);
             margin-bottom: 1rem;
             overflow: hidden;
         }
@@ -136,7 +149,7 @@
 
         .det-tbl thead th {
             font-size: .68rem;
-            color: var(--bs-secondary-color, #adb5bd);
+            color: #adb5bd;
             font-weight: 600;
             padding: .45rem .75rem;
             border-bottom: 2px solid var(--bs-border-color);
@@ -154,11 +167,11 @@
         }
 
         .det-tbl tbody tr:hover {
-            background: rgba(143, 18, 254, 0.06);
+            background: rgba(108, 92, 231, 0.04);
         }
 
         .det-tbl .total-row td {
-            background: rgba(143, 18, 254, 0.08);
+            background: rgba(108, 92, 231, 0.06);
             font-weight: 700;
             border-top: 2px solid var(--bs-border-color);
         }
@@ -184,7 +197,7 @@
             color: #fff;
             margin-right: .4rem;
             flex-shrink: 0;
-            background: linear-gradient(135deg, #4A25AA, #8F12FE);
+            background: linear-gradient(135deg, #6c5ce7, #8F12FE);
         }
 
         .emp-name-cell {
@@ -195,17 +208,23 @@
         /* Rate cell */
         .rate-chip {
             font-size: .7rem;
-            color: #4A25AA;
+            color: #6c5ce7;
             font-weight: 600;
         }
 
         /* ── Per-employee side card ── */
         .emp-card {
-            background: var(--bs-card-bg, var(--bs-body-bg));
-            border-radius: 12px;
-            border: 1px solid var(--bs-border-color);
+            background: var(--bs-card-bg, #fff);
+            border-radius: 14px;
+            border: none;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, .05);
             padding: .85rem 1rem;
             margin-bottom: .65rem;
+            transition: transform .15s;
+        }
+
+        .emp-card:hover {
+            transform: translateY(-1px);
         }
 
         .emp-card .ec-name {
@@ -215,7 +234,7 @@
 
         .emp-card .ec-pos {
             font-size: .7rem;
-            color: var(--bs-secondary-color, #6c757d);
+            color: #6c757d;
         }
 
         .emp-card .ec-row {
@@ -233,14 +252,15 @@
         .emp-card .ec-total {
             font-size: .9rem;
             font-weight: 800;
-            color: #8F12FE;
+            color: #6c5ce7;
         }
 
         /* ── Hours summary card ── */
         .hours-summary {
-            background: var(--bs-card-bg, var(--bs-body-bg));
-            border-radius: 12px;
-            border: 1px solid var(--bs-border-color);
+            background: var(--bs-card-bg, #fff);
+            border-radius: 14px;
+            border: none;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, .05);
             padding: .85rem 1rem;
             margin-bottom: .65rem;
         }
@@ -265,9 +285,10 @@
 
         /* ── Work sessions timeline ── */
         .sessions-card {
-            background: var(--bs-card-bg, var(--bs-body-bg));
-            border-radius: 12px;
-            border: 1px solid var(--bs-border-color);
+            background: var(--bs-card-bg, #fff);
+            border-radius: 14px;
+            border: none;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, .05);
             padding: .85rem 1rem;
         }
 
@@ -287,14 +308,14 @@
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            background: #8F12FE;
+            background: linear-gradient(135deg, #6c5ce7, #8F12FE);
             margin-top: .35rem;
             flex-shrink: 0;
         }
 
         .session-meta {
             font-size: .73rem;
-            color: var(--bs-secondary-color, #6c757d);
+            color: #6c757d;
         }
 
         .session-emp {
@@ -305,8 +326,8 @@
 
         /* ── Footer total bar ── */
         .total-bar {
-            background: linear-gradient(135deg, #1a1433 0%, #2d1b69 100%);
-            border-radius: 14px;
+            background: linear-gradient(135deg, #1a1433 0%, #2d1b69 50%, #4A25AA 100%);
+            border-radius: 16px;
             padding: 1rem 1.5rem;
             display: flex;
             align-items: center;
@@ -314,6 +335,7 @@
             flex-wrap: wrap;
             gap: 1rem;
             margin-top: 1rem;
+            box-shadow: 0 4px 20px rgba(74, 37, 170, .2);
         }
 
         .total-bar .tb-label {
@@ -349,6 +371,16 @@
             font-weight: 700;
             color: #fff;
         }
+
+        /* ── Side section label ── */
+        .side-label {
+            font-size: .68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .07em;
+            color: #6c757d;
+            margin-bottom: .5rem;
+        }
     </style>
 @endsection
 
@@ -378,7 +410,7 @@
             <div class="text-end">
                 <div style="font-size:.68rem; color:#6c757d; text-transform:uppercase; letter-spacing:.07em;">Total
                     Workmanship Cost</div>
-                <div style="font-size:1.2rem; font-weight:800; color:#4A25AA;">{{ $fmt($totalLaborCost) }}</div>
+                <div style="font-size:1.2rem; font-weight:800; color:#6c5ce7;">{{ $fmt($totalLaborCost) }}</div>
             </div>
         </div>
 
@@ -418,11 +450,11 @@
                 <div class="section-block">
                     <div class="sb-header">
                         <div class="sb-title">
-                            <span style="background:#e8f0fe;padding:.3em .5em;border-radius:8px;">⏱️</span>
+                            <span style="background:rgba(108,92,231,.1);padding:.3em .5em;border-radius:8px;">⏱️</span>
                             Timing Log
                             <span class="sb-meta">From Timing Module</span>
                         </div>
-                        <div style="font-size:.82rem; font-weight:700; color:#4A25AA;">{{ $fmt($totalLaborCost) }}</div>
+                        <div style="font-size:.82rem; font-weight:700; color:#6c5ce7;">{{ $fmt($totalLaborCost) }}</div>
                     </div>
 
                     <table class="det-tbl">
@@ -453,7 +485,7 @@
                                     </td>
                                     <td class="text-muted fw-semibold" style="font-size:.82rem;">{{ $row['end_time'] }}
                                     </td>
-                                    <td class="text-end fw-bold" style="color:#4A25AA;">{{ $row['hours'] }}</td>
+                                    <td class="text-end fw-bold" style="color:#6c5ce7;">{{ $row['hours'] }}</td>
                                     <td class="text-end">
                                         @php
                                             $emp = $byEmployee->firstWhere('name', $row['employee']);
@@ -485,9 +517,9 @@
 
                     {{-- Footer inside card --}}
                     <div class="d-flex justify-content-between align-items-center px-4 py-2"
-                        style="font-size:.82rem; border-top:1px solid var(--bs-border-color); background:rgba(143,18,254,.05);">
+                        style="font-size:.82rem; border-top:1px solid var(--bs-border-color); background:rgba(108,92,231,.04);">
                         <span class="fw-bold">Total Workmanship Cost</span>
-                        <span style="font-weight:800; color:#8F12FE;">{{ $fmt($totalLaborCost) }}</span>
+                        <span style="font-weight:800; color:#6c5ce7;">{{ $fmt($totalLaborCost) }}</span>
                     </div>
                 </div>
             </div>
@@ -496,10 +528,7 @@
             <div class="side-col">
 
                 {{-- Per-employee cards --}}
-                <div
-                    style="font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:#6c757d; margin-bottom:.5rem;">
-                    Per-Employee Breakdown
-                </div>
+                <div class="side-label">Per-Employee Breakdown</div>
                 @foreach ($byEmployee as $emp)
                     <div class="emp-card">
                         <div class="d-flex align-items-center gap-2 mb-2">
@@ -523,18 +552,15 @@
                 @endforeach
 
                 {{-- Total card --}}
-                <div class="emp-card" style="border-color:rgba(143,18,254,.3);background:rgba(143,18,254,.08);">
+                <div class="emp-card" style="border:1.5px solid rgba(108,92,231,.25);background:rgba(108,92,231,.05);">
                     <div class="ec-row">
                         <span class="text-muted fw-semibold">Total</span>
-                        <span style="font-weight:800; color:#4A25AA;">{{ $fmt($totalLaborCost) }}</span>
+                        <span style="font-weight:800; color:#6c5ce7;">{{ $fmt($totalLaborCost) }}</span>
                     </div>
                 </div>
 
                 {{-- Hours Summary --}}
-                <div
-                    style="font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:#6c757d; margin:.85rem 0 .5rem;">
-                    Hours Summary
-                </div>
+                <div class="side-label" style="margin-top:.85rem;">Hours Summary</div>
                 <div class="hours-summary">
                     @foreach ($byEmployee as $emp)
                         <div class="hs-row">
@@ -554,10 +580,7 @@
 
                 {{-- Work Sessions timeline --}}
                 @if ($workSessions->isNotEmpty())
-                    <div
-                        style="font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:#6c757d; margin:.85rem 0 .5rem;">
-                        Work Session
-                    </div>
+                    <div class="side-label" style="margin-top:.85rem;">Work Session</div>
                     <div class="sessions-card">
                         @foreach ($workSessions as $ws)
                             <div class="session-item">
