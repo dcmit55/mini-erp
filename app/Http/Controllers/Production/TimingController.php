@@ -9,6 +9,7 @@ use App\Models\Production\Project;
 use App\Models\Production\JobOrder;
 use App\Models\Hr\Employee;
 use App\Models\Admin\Department;
+use App\Models\Logistic\Unit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use App\Exports\TimingExport;
@@ -191,7 +192,9 @@ class TimingController extends Controller
         $employees = Employee::where('status', 'active')->orderBy('name')->get();
 
         $departments = Department::orderBy('name')->pluck('name', 'id');
-        return view('production.timings.create', compact('projects', 'employees', 'departments'));
+        $jobOrders = \App\Models\Production\JobOrder::orderBy('name')->get();
+        $units = \App\Models\Logistic\Unit::orderBy('name')->pluck('name');
+        return view('production.timings.create', compact('projects', 'employees', 'departments', 'jobOrders', 'units'));
     }
 
     public function storeMultiple(Request $request)
@@ -206,6 +209,7 @@ class TimingController extends Controller
             $row = $i + 1;
             $attributes["timings.$i.tanggal"] = "Date (row $row)";
             $attributes["timings.$i.project_id"] = "Project (row $row)";
+            $attributes["timings.$i.job_order_id"] = "Job Order (row $row)";
             $attributes["timings.$i.step"] = "Step (row $row)";
             $attributes["timings.$i.parts"] = "Part (row $row)";
             $attributes["timings.$i.employee_id"] = "Employee (row $row)";
@@ -224,14 +228,15 @@ class TimingController extends Controller
                 'timings' => 'required|array',
                 'timings.*.tanggal' => 'required|date',
                 'timings.*.project_id' => 'required|exists:projects,id',
-                'timings.*.step' => 'required',
+                'timings.*.job_order_id' => 'nullable|exists:job_orders,id',
+                'timings.*.step' => 'nullable|string|max:255',
                 'timings.*.parts' => 'nullable|string',
                 'timings.*.employee_id' => 'required|exists:employees,id',
                 'timings.*.start_time' => 'required',
                 'timings.*.end_time' => 'required',
                 'timings.*.duration_minutes' => 'required|integer|min:0',
-                'timings.*.measurement_type' => 'required|in:progress,qty,pcs,unit',
-                'timings.*.measurement_value' => 'required|numeric|min:0',
+                'timings.*.measurement_type' => 'nullable|string|max:50',
+                'timings.*.measurement_value' => 'nullable|numeric|min:0',
                 'timings.*.status' => 'required|in:complete,on progress,pending',
                 'timings.*.remarks' => 'nullable',
             ],
@@ -241,9 +246,6 @@ class TimingController extends Controller
 
         // Validasi custom
         $data = $validator->getData();
-        $projectsWithParts = Project::has('parts')->pluck('id')->toArray();
-        $projectIds = array_column($request->timings, 'project_id');
-        $projects = Project::whereIn('id', $projectIds)->pluck('name', 'id');
 
         foreach ($data['timings'] as $idx => $timing) {
             // Employee harus aktif
@@ -257,13 +259,6 @@ class TimingController extends Controller
                     $validator->errors()->add("timings.$idx.end_time", 'End Time (row ' . ($idx + 1) . ') cannot be earlier than start time.');
                 }
             }
-            // Parts wajib jika project punya parts
-            if (in_array($timing['project_id'], $projectsWithParts)) {
-                if (empty($timing['parts'])) {
-                    $projectName = $projects[$timing['project_id']] ?? 'Unknown';
-                    $validator->errors()->add("timings.$idx.parts", "Part is required for project: <b>$projectName</b>");
-                }
-            }
         }
 
         if ($validator->fails()) {
@@ -272,9 +267,8 @@ class TimingController extends Controller
 
         // Insert ke database
         foreach ($data['timings'] as &$timing) {
-            if (!in_array($timing['project_id'], $projectsWithParts)) {
-                $timing['parts'] = 'No Part';
-            }
+            // Auto-set approval_status to pending for Timing Approval workflow
+            $timing['approval_status'] = 'pending';
             Timing::create($timing);
         }
 

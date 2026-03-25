@@ -834,7 +834,7 @@ class ProjectCostingController extends Controller
         $sgBtItems = LarkSgBtItemTracking::with('courier')->where('project_id', $projectId)->get();
 
         // Group BT-SG by courier_id (items without courier get key '__none__')
-        $btSgCouriers = $btSgItems->groupBy(fn($i) => $i->courier_id ?? '__none__')->map(function ($items, $key) {
+        $btSgCouriers = collect($btSgItems->groupBy(fn($i) => $i->courier_id ?? '__none__')->map(function ($items, $key) {
             $courier = $key !== '__none__' ? $items->first()->courier : null;
             $itemsCost = $items->sum('sgd_cost'); // SGD cost on items
             $courierTotalIdr = $courier ? $courier->total_cost ?? 0 : 0;
@@ -847,18 +847,25 @@ class ProjectCostingController extends Controller
                 'courier_name' => $courier->name ?? '—',
                 'direction' => 'BT → SG',
                 'date' => $courier && $courier->date ? $courier->date->format('d M Y') : '—',
+                'mode' => $courier->mode ?? 'ferry',
+                'tracking' => $courier->tracking_number ?? '—',
                 'items_count' => $items->count(),
-                'items' => $items->pluck('item_name')->toArray(),
+                'items' => $items->map(fn($i) => [
+                    'name' => $i->item_name ?? '—',
+                    'qty' => $i->qty ?? 1,
+                    'status' => $i->status ?? 'pending',
+                    'sgd_cost' => $i->sgd_cost ?? 0,
+                ])->toArray(),
                 'transport_cost' => $courier->transport_cost ?? 0,
                 'baggage_cost' => $courier->baggage_cost ?? 0,
                 'gst_cost' => $courier->gst_cost ?? 0,
                 'total_idr' => $totalIdr,
                 'total_sgd' => $totalSgd,
             ];
-        });
+        })->values());
 
         // Group SG-BT by courier_id
-        $sgBtCouriers = $sgBtItems->groupBy(fn($i) => $i->courier_id ?? '__none__')->map(function ($items, $key) {
+        $sgBtCouriers = collect($sgBtItems->groupBy(fn($i) => $i->courier_id ?? '__none__')->map(function ($items, $key) {
             $courier = $key !== '__none__' ? $items->first()->courier : null;
             $itemsCost = $items->sum('sgd_cost');
             $courierTotalIdr = $courier ? $courier->total_cost ?? 0 : 0;
@@ -870,15 +877,22 @@ class ProjectCostingController extends Controller
                 'courier_name' => $courier->name ?? '—',
                 'direction' => 'SG → BT',
                 'date' => $courier && $courier->date ? $courier->date->format('d M Y') : '—',
+                'mode' => $courier->mode ?? 'ferry',
+                'tracking' => $courier->tracking_number ?? '—',
                 'items_count' => $items->count(),
-                'items' => $items->pluck('item_name')->toArray(),
+                'items' => $items->map(fn($i) => [
+                    'name' => $i->item_name ?? '—',
+                    'qty' => $i->qty ?? 1,
+                    'status' => $i->status ?? 'pending',
+                    'sgd_cost' => $i->sgd_cost ?? 0,
+                ])->toArray(),
                 'transport_cost' => $courier->transport_cost ?? 0,
                 'baggage_cost' => $courier->baggage_cost ?? 0,
                 'gst_cost' => $courier->gst_cost ?? 0,
                 'total_idr' => $totalIdr,
                 'total_sgd' => $totalSgd,
             ];
-        });
+        })->values());
 
         // Combine both directions
         $allCouriers = $btSgCouriers->merge($sgBtCouriers)->values();

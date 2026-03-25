@@ -3,13 +3,14 @@
 @section('styles')
     <style>
         body {
-            background: var(--bs-body-bg);
+            background: #f0f2f9;
         }
 
         /* ── Page Header ── */
         .detail-header {
-            background: var(--bs-card-bg, var(--bs-body-bg));
-            border-bottom: 1px solid var(--bs-border-color);
+            background: var(--bs-card-bg, #fff);
+            border: none;
+            box-shadow: 0 2px 14px rgba(0, 0, 0, .06);
             padding: .85rem 1.5rem;
             display: flex;
             align-items: center;
@@ -17,7 +18,7 @@
             flex-wrap: wrap;
             gap: .75rem;
             margin-bottom: 1.25rem;
-            border-radius: 0 0 12px 12px;
+            border-radius: 16px;
         }
 
         .detail-header .dh-title {
@@ -39,7 +40,7 @@
         }
 
         .badge-linked {
-            background: rgba(255, 193, 7, 0.18);
+            background: rgba(255, 193, 7, 0.15);
             color: #b8860b;
         }
 
@@ -52,13 +53,20 @@
         }
 
         .dir-card {
-            background: var(--bs-card-bg, var(--bs-body-bg));
-            border-radius: 12px;
-            border: 1px solid var(--bs-border-color);
+            background: var(--bs-card-bg, #fff);
+            border-radius: 16px;
+            border: none;
+            box-shadow: 0 2px 14px rgba(0, 0, 0, .06);
             padding: 1rem 1.25rem;
             display: flex;
             align-items: center;
             gap: .85rem;
+            transition: transform .15s, box-shadow .15s;
+        }
+
+        .dir-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(108, 92, 231, .1);
         }
 
         .dir-card .dc-icon {
@@ -80,7 +88,7 @@
         .dir-card .dc-val {
             font-size: 1.25rem;
             font-weight: 800;
-            color: #4A25AA;
+            color: #6c5ce7;
             margin-left: auto;
         }
 
@@ -94,9 +102,10 @@
 
         /* ── Section block ── */
         .section-block {
-            background: var(--bs-card-bg, var(--bs-body-bg));
-            border-radius: 14px;
-            border: 1px solid var(--bs-border-color);
+            background: var(--bs-card-bg, #fff);
+            border-radius: 16px;
+            border: none;
+            box-shadow: 0 2px 14px rgba(0, 0, 0, .06);
             margin-bottom: 1rem;
             overflow: hidden;
         }
@@ -125,7 +134,7 @@
         .section-block .sb-total {
             font-size: .9rem;
             font-weight: 700;
-            color: #4A25AA;
+            color: #6c5ce7;
         }
 
         /* ── Shipment group ── */
@@ -142,10 +151,10 @@
             align-items: center;
             gap: .6rem;
             padding: .55rem 1.25rem;
-            background: rgba(143, 18, 254, 0.07);
+            background: rgba(108, 92, 231, 0.05);
             font-size: .78rem;
             font-weight: 600;
-            color: #8F12FE;
+            color: #6c5ce7;
             border-bottom: 1px solid var(--bs-border-color);
         }
 
@@ -165,7 +174,7 @@
 
         .det-tbl thead th {
             font-size: .68rem;
-            color: var(--bs-secondary-color, #adb5bd);
+            color: #adb5bd;
             font-weight: 600;
             padding: .45rem .75rem;
             border-bottom: 2px solid var(--bs-border-color);
@@ -184,11 +193,11 @@
         }
 
         .det-tbl tbody tr:hover {
-            background: rgba(143, 18, 254, 0.05);
+            background: rgba(108, 92, 231, 0.04);
         }
 
         .det-tbl .subtotal-row td {
-            background: rgba(143, 18, 254, 0.07);
+            background: rgba(108, 92, 231, 0.06);
             font-weight: 700;
             border-top: 2px solid var(--bs-border-color);
         }
@@ -239,20 +248,20 @@
         }
 
         .mode-chip.ferry {
-            background: rgba(25, 118, 210, 0.12);
-            border-color: #1976d2;
+            background: rgba(25, 118, 210, 0.1);
+            border-color: rgba(25, 118, 210, .3);
             color: #1976d2;
         }
 
         .mode-chip.air {
-            background: rgba(198, 40, 40, 0.12);
-            border-color: #c62828;
+            background: rgba(198, 40, 40, 0.1);
+            border-color: rgba(198, 40, 40, .3);
             color: #c62828;
         }
 
         .mode-chip.road {
-            background: rgba(56, 142, 60, 0.12);
-            border-color: #388e3c;
+            background: rgba(56, 142, 60, 0.1);
+            border-color: rgba(56, 142, 60, .3);
             color: #388e3c;
         }
 
@@ -262,21 +271,21 @@
             font-weight: 600;
             padding: .25em .7em;
             border-radius: 20px;
-            background: rgba(74, 37, 170, 0.12);
-            color: #7c5ae8;
-            border: 1px solid rgba(74, 37, 170, 0.3);
+            background: rgba(108, 92, 231, 0.1);
+            color: #6c5ce7;
+            border: 1px solid rgba(108, 92, 231, 0.25);
         }
 
         .courier-pill.bt {
-            background: rgba(245, 127, 23, 0.12);
+            background: rgba(245, 127, 23, 0.1);
             color: #f57f17;
-            border-color: rgba(245, 127, 23, 0.35);
+            border-color: rgba(245, 127, 23, 0.3);
         }
 
         /* ── Footer total bar ── */
         .total-bar {
-            background: linear-gradient(135deg, #1a1433 0%, #2d1b69 100%);
-            border-radius: 14px;
+            background: linear-gradient(135deg, #1a1433 0%, #2d1b69 50%, #4A25AA 100%);
+            border-radius: 16px;
             padding: 1rem 1.5rem;
             display: flex;
             align-items: center;
@@ -284,6 +293,7 @@
             flex-wrap: wrap;
             gap: 1rem;
             margin-top: 1rem;
+            box-shadow: 0 4px 20px rgba(74, 37, 170, .2);
         }
 
         .total-bar .tb-label {
@@ -373,11 +383,10 @@
                 </div>
             </div>
             <div class="text-end">
-                <div
-                    style="font-size:.68rem; color:var(--bs-secondary-color); text-transform:uppercase; letter-spacing:.07em;">
+                <div style="font-size:.68rem; color:#6c757d; text-transform:uppercase; letter-spacing:.07em;">
                     Total Freight
                     Cost</div>
-                <div style="font-size:1.2rem; font-weight:800; color:#8F12FE;">{{ $fmt($totalFreightIDR) }}</div>
+                <div style="font-size:1.2rem; font-weight:800; color:#6c5ce7;">{{ $fmt($totalFreightIDR) }}</div>
             </div>
         </div>
 

@@ -86,7 +86,7 @@
             border: none;
             overflow: hidden;
             transition: transform .18s ease, box-shadow .18s ease;
-            box-shadow: 0 2px 14px rgba(0,0,0,.06);
+            box-shadow: 0 2px 14px rgba(0, 0, 0, .06);
             text-decoration: none;
             color: inherit;
             display: flex;
@@ -97,7 +97,7 @@
 
         .project-card:hover {
             transform: translateY(-3px);
-            box-shadow: 0 8px 28px rgba(108,92,231,.15);
+            box-shadow: 0 8px 28px rgba(108, 92, 231, .15);
             color: inherit;
             text-decoration: none;
         }
@@ -124,11 +124,25 @@
         }
 
         /* Dept gradient backgrounds */
-        .mascot-bg      { background: linear-gradient(145deg, #e0c6ff 0%, #b388ff 50%, #8e6ecf 100%); }
-        .costume-bg     { background: linear-gradient(145deg, #ffe5b4 0%, #ffb347 50%, #ff8c00 100%); }
-        .animatronic-bg { background: linear-gradient(145deg, #b3e5fc 0%, #4fc3f7 50%, #0288d1 100%); }
-        .plush-bg       { background: linear-gradient(145deg, #fff9c4 0%, #fff176 50%, #f9a825 100%); }
-        .default-bg     { background: linear-gradient(145deg, #b2dfdb 0%, #80cbc4 50%, #4db6ac 100%); }
+        .mascot-bg {
+            background: linear-gradient(145deg, #e0c6ff 0%, #b388ff 50%, #8e6ecf 100%);
+        }
+
+        .costume-bg {
+            background: linear-gradient(145deg, #ffe5b4 0%, #ffb347 50%, #ff8c00 100%);
+        }
+
+        .animatronic-bg {
+            background: linear-gradient(145deg, #b3e5fc 0%, #4fc3f7 50%, #0288d1 100%);
+        }
+
+        .plush-bg {
+            background: linear-gradient(145deg, #fff9c4 0%, #fff176 50%, #f9a825 100%);
+        }
+
+        .default-bg {
+            background: linear-gradient(145deg, #b2dfdb 0%, #80cbc4 50%, #4db6ac 100%);
+        }
 
         /* Photo image */
         .pc-photo-img {
@@ -136,8 +150,8 @@
             height: 90px;
             border-radius: 14px;
             object-fit: cover;
-            box-shadow: 0 4px 14px rgba(0,0,0,.2);
-            border: 3px solid rgba(255,255,255,.5);
+            box-shadow: 0 4px 14px rgba(0, 0, 0, .2);
+            border: 3px solid rgba(255, 255, 255, .5);
         }
 
         /* Placeholder when no image */
@@ -145,8 +159,8 @@
             width: 90px;
             height: 90px;
             border-radius: 14px;
-            background: rgba(255,255,255,.35);
-            border: 2px dashed rgba(255,255,255,.65);
+            background: rgba(255, 255, 255, .35);
+            border: 2px dashed rgba(255, 255, 255, .65);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -155,9 +169,10 @@
 
         /* Category badge (sits ABOVE the photo) */
         .pc-cat-badge {
-            order: -1;          /* push to top */
+            order: -1;
+            /* push to top */
             display: inline-block;
-            background: rgba(255,255,255,.9);
+            background: rgba(255, 255, 255, .9);
             color: #333;
             border-radius: 8px;
             padding: 3px 10px;
@@ -165,14 +180,14 @@
             font-weight: 700;
             letter-spacing: .03em;
             backdrop-filter: blur(4px);
-            box-shadow: 0 1px 4px rgba(0,0,0,.1);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, .1);
         }
 
         /* Lark synced badge (bottom of panel) */
         .lark-tag {
             display: inline-flex;
             align-items: center;
-            background: rgba(255,255,255,.8);
+            background: rgba(255, 255, 255, .8);
             padding: 3px 9px;
             border-radius: 20px;
             font-size: .58rem;
@@ -226,7 +241,9 @@
             margin-bottom: 4px;
         }
 
-        .section-title.est { color: #6c757d; }
+        .section-title.est {
+            color: #6c757d;
+        }
 
         /* Dashed divider */
         .dashed-divider {
@@ -244,12 +261,25 @@
             padding: 1.5px 0;
         }
 
-        .pc-row .pc-lbl { color: #6c757d; }
-        .pc-row .pc-val { font-weight: 600; white-space: nowrap; }
+        .pc-row .pc-lbl {
+            color: #6c757d;
+        }
+
+        .pc-row .pc-val {
+            font-weight: 600;
+            white-space: nowrap;
+        }
 
         /* Profit row */
-        .pc-row.profit .pc-lbl { font-weight: 600; color: var(--bs-body-color); }
-        .pc-row.profit .pc-val { font-weight: 700; color: #27ae60; }
+        .pc-row.profit .pc-lbl {
+            font-weight: 600;
+            color: var(--bs-body-color);
+        }
+
+        .pc-row.profit .pc-val {
+            font-weight: 700;
+            color: #27ae60;
+        }
 
         /* Profit % badge */
         .profit-badge {
@@ -261,8 +291,16 @@
             margin-left: 4px;
             vertical-align: middle;
         }
-        .profit-badge.pos { background: #e8fbf3; color: #27ae60; }
-        .profit-badge.neg { background: #fde8e8; color: #e74c3c; }
+
+        .profit-badge.pos {
+            background: #e8fbf3;
+            color: #27ae60;
+        }
+
+        .profit-badge.neg {
+            background: #fde8e8;
+            color: #e74c3c;
+        }
 
         /* ── Stats strip (INT'L PO / LOCAL PO / USAGE) ── */
         .stats-strip {
@@ -299,39 +337,60 @@
             color: var(--bs-secondary-color, #adb5bd);
         }
 
-        .empty-state i { font-size: 3.5rem; margin-bottom: 1rem; }
+        .empty-state i {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+        }
 
         /* ── Dark mode ── */
         [data-bs-theme="dark"] .filter-bar-card .form-select,
         [data-bs-theme="dark"] .filter-bar-card .form-control {
-            background: rgba(255,255,255,.06);
+            background: rgba(255, 255, 255, .06);
             color: var(--bs-body-color);
         }
 
         [data-bs-theme="dark"] .project-card {
             background: #1e1e2e;
-            border: 1px solid rgba(255,255,255,.07);
+            border: 1px solid rgba(255, 255, 255, .07);
         }
 
-        [data-bs-theme="dark"] .pc-body { background: #1e1e2e; }
+        [data-bs-theme="dark"] .pc-body {
+            background: #1e1e2e;
+        }
 
         [data-bs-theme="dark"] .pc-photo-placeholder {
-            background: rgba(255,255,255,.1);
-            border-color: rgba(255,255,255,.25);
+            background: rgba(255, 255, 255, .1);
+            border-color: rgba(255, 255, 255, .25);
         }
 
-        [data-bs-theme="dark"] .dashed-divider { border-color: rgba(255,255,255,.1); }
+        [data-bs-theme="dark"] .dashed-divider {
+            border-color: rgba(255, 255, 255, .1);
+        }
 
         [data-bs-theme="dark"] .dept-filter-tabs .nav-link {
-            border-color: rgba(255,255,255,.15);
+            border-color: rgba(255, 255, 255, .15);
             background: transparent;
         }
 
-        [data-bs-theme="dark"] .mascot-bg      { background: linear-gradient(145deg, #6a3093 0%, #3d1f6e 100%); }
-        [data-bs-theme="dark"] .costume-bg     { background: linear-gradient(145deg, #8b4513 0%, #5a2d0c 100%); }
-        [data-bs-theme="dark"] .animatronic-bg { background: linear-gradient(145deg, #1a5276 0%, #0d3349 100%); }
-        [data-bs-theme="dark"] .plush-bg       { background: linear-gradient(145deg, #7d6608 0%, #4a3b05 100%); }
-        [data-bs-theme="dark"] .default-bg     { background: linear-gradient(145deg, #1a5c57 0%, #0d3330 100%); }
+        [data-bs-theme="dark"] .mascot-bg {
+            background: linear-gradient(145deg, #6a3093 0%, #3d1f6e 100%);
+        }
+
+        [data-bs-theme="dark"] .costume-bg {
+            background: linear-gradient(145deg, #8b4513 0%, #5a2d0c 100%);
+        }
+
+        [data-bs-theme="dark"] .animatronic-bg {
+            background: linear-gradient(145deg, #1a5276 0%, #0d3349 100%);
+        }
+
+        [data-bs-theme="dark"] .plush-bg {
+            background: linear-gradient(145deg, #7d6608 0%, #4a3b05 100%);
+        }
+
+        [data-bs-theme="dark"] .default-bg {
+            background: linear-gradient(145deg, #1a5c57 0%, #0d3330 100%);
+        }
     </style>
     {{-- Flatpickr date range picker --}}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -343,11 +402,19 @@
 
         #deadline-range-picker {
             background: #fff !important;
+            border: 1.5px solid #ced4da !important;
+            border-radius: 8px !important;
         }
 
         #deadline-range-picker:focus {
             box-shadow: 0 0 0 0.25rem rgba(108, 92, 231, .25);
-            border-color: #6c5ce7;
+            border-color: #6c5ce7 !important;
+        }
+
+        a[href="{{ route('costing.report') }}"].btn-outline-secondary,
+        .btn-reset-filter {
+            border: 1.5px solid #adb5bd !important;
+            border-radius: 8px !important;
         }
 
         .flatpickr-day.inRange,
@@ -454,7 +521,7 @@
                             <i class="fas fa-search"></i>
                         </button>
                         <a href="{{ route('costing.report') }}"
-                            class="btn btn-sm btn-outline-secondary border-0 flex-fill text-center" title="Reset Filters">
+                            class="btn btn-sm btn-outline-secondary btn-reset-filter flex-fill text-center" title="Reset Filters">
                             <i class="fas fa-times"></i>
                         </a>
                     </div>
@@ -571,8 +638,8 @@
 
                                     {{-- Photo or placeholder (center) --}}
                                     @if (!empty($project->photo))
-                                        <img src="{{ asset('storage/' . $project->photo) }}"
-                                             class="pc-photo-img" alt="{{ $project->name }}">
+                                        <img src="{{ asset('storage/' . $project->photo) }}" class="pc-photo-img"
+                                            alt="{{ $project->name }}">
                                     @else
                                         <div class="pc-photo-placeholder">{{ $deptEmoji }}</div>
                                     @endif
@@ -599,36 +666,8 @@
                                 {{-- ── ACTUALS ── --}}
                                 <div class="section-title">ACTUALS</div>
                                 <div class="pc-row">
-                                    <span class="pc-lbl">Selling Price</span>
-                                    <span class="pc-val">{{ $hasData ? $fmt($sellingPrice) : '—' }}</span>
-                                </div>
-                                <div class="pc-row">
                                     <span class="pc-lbl">Actual Project Cost</span>
                                     <span class="pc-val">{{ $hasData ? $fmt($actualCost) : '—' }}</span>
-                                </div>
-                                <div class="pc-row profit">
-                                    <span class="pc-lbl">Project Profit</span>
-                                    <span class="pc-val">
-                                        @if ($hasData && $sellingPrice > 0)
-                                            {{ $fmt($profit) }}
-                                            @if ($profitPct !== null)
-                                                <span class="profit-badge {{ $profit >= 0 ? 'pos' : 'neg' }}">
-                                                    {{ $profit >= 0 ? '+' : '' }}{{ $profitPct }}%
-                                                </span>
-                                            @endif
-                                        @else
-                                            —
-                                        @endif
-                                    </span>
-                                </div>
-
-                                <hr class="dashed-divider">
-
-                                {{-- ── ESTIMATES ── --}}
-                                <div class="section-title est">ESTIMATES</div>
-                                <div class="pc-row">
-                                    <span class="pc-lbl">Quoted Price</span>
-                                    <span class="pc-val">{{ $hasData ? $fmt($sellingPrice) : '—' }}</span>
                                 </div>
                                 <div class="pc-row">
                                     <span class="pc-lbl">Estimated Cost</span>
@@ -636,6 +675,10 @@
                                 </div>
                                 <div class="pc-row">
                                     <span class="pc-lbl">Total Project Time</span>
+                                    <span class="pc-val">{{ $totalHours > 0 ? $totalHours . ' hrs' : '—' }}</span>
+                                </div>
+                                <div class="pc-row">
+                                    <span class="pc-lbl">Total Timing Cost</span>
                                     <span class="pc-val">{{ $totalHours > 0 ? $totalHours . ' hrs' : '—' }}</span>
                                 </div>
 
