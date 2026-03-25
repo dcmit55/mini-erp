@@ -80,223 +80,203 @@
             border-color: rgba(108, 92, 231, .3);
         }
 
-        /* ══ PROJECT CARD — 1 project = 1 card ══ */
+        /* ══ PROJECT CARD ══ */
         .project-card {
-            border-radius: 18px;
-            border: none;
+            border-radius: 16px;
+            border: 1px solid rgba(0,0,0,.06);
             overflow: hidden;
             transition: transform 0.18s, box-shadow 0.18s;
-            box-shadow: 0 2px 16px rgba(0, 0, 0, .07);
+            box-shadow: 0 2px 12px rgba(0,0,0,.06);
             text-decoration: none;
             color: inherit;
             display: flex;
             flex-direction: row;
             background: #fff;
-            min-height: 180px;
         }
 
         .project-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 10px 28px rgba(108, 92, 231, .16);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(108,92,231,.14);
             color: inherit;
             text-decoration: none;
         }
 
-        /* ── Left photo/icon panel ── */
+        /* ── Left: square photo panel ── */
         .pc-photo-panel {
-            width: 90px;
+            width: 130px;
+            min-width: 130px;
             flex-shrink: 0;
+            position: relative;
+            overflow: hidden;
+            align-self: stretch;   /* stretch to full card height */
+        }
+
+        /* Inner fills the whole panel */
+        .pc-photo-panel-inner {
+            position: absolute;
+            inset: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            gap: 6px;
             padding: .75rem .5rem;
-            position: relative;
         }
 
-        .mascot-bg   { background: linear-gradient(160deg, #c3b1e1 0%, #8e7cc3 100%); }
-        .costume-bg  { background: linear-gradient(160deg, #ffb1b1 0%, #ff7c7c 100%); }
+        /* Dept gradient backgrounds */
+        .mascot-bg      { background: linear-gradient(160deg, #d4bbf5 0%, #9b72cf 100%); }
+        .costume-bg     { background: linear-gradient(160deg, #ffc3c3 0%, #ff7c7c 100%); }
         .animatronic-bg { background: linear-gradient(160deg, #80d4f5 0%, #3498db 100%); }
-        .plush-bg    { background: linear-gradient(160deg, #ffe066 0%, #f9a825 100%); }
-        .default-bg  { background: linear-gradient(160deg, #a8edea 0%, #6ab4b0 100%); }
-
-        .pc-photo-icon {
-            font-size: 2.6rem;
-            line-height: 1;
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,.15));
-        }
+        .plush-bg       { background: linear-gradient(160deg, #ffe066 0%, #f9a825 100%); }
+        .default-bg     { background: linear-gradient(160deg, #a8edea 0%, #6ab4b0 100%); }
 
         .pc-photo-img {
-            width: 60px;
-            height: 60px;
+            width: 80px;
+            height: 80px;
             border-radius: 12px;
             object-fit: cover;
-            box-shadow: 0 2px 8px rgba(0,0,0,.18);
+            box-shadow: 0 3px 10px rgba(0,0,0,.22);
         }
 
         .pc-photo-placeholder {
-            width: 60px;
-            height: 60px;
+            width: 80px;
+            height: 80px;
             border-radius: 12px;
-            background: rgba(255,255,255,.25);
-            border: 2px dashed rgba(255,255,255,.5);
+            background: rgba(255,255,255,.3);
+            border: 2px dashed rgba(255,255,255,.6);
             display: flex;
             align-items: center;
             justify-content: center;
-            color: rgba(255,255,255,.7);
-            font-size: 1.4rem;
+            font-size: 2rem;
         }
 
-        .pc-photo-dept {
-            font-size: 0.6rem;
-            font-weight: 700;
-            color: rgba(255,255,255,.9);
-            text-align: center;
-            letter-spacing: .04em;
-            text-transform: uppercase;
-            line-height: 1.2;
-        }
-
-        /* Category badge */
-        .category-badge {
+        /* Category badge inside photo panel */
+        .pc-cat-badge {
             display: inline-block;
-            background-color: rgba(255, 255, 255, .85) !important;
-            color: #333 !important;
-            border-radius: 8px;
-            padding: 3px 9px;
-            font-size: 0.68rem;
+            background: rgba(255,255,255,.88);
+            color: #333;
+            border-radius: 20px;
+            padding: 2px 10px;
+            font-size: 0.62rem;
             font-weight: 700;
+            letter-spacing: .03em;
             backdrop-filter: blur(4px);
         }
 
-        /* Lark badge */
+        /* Lark dot badge */
         .lark-tag {
             display: inline-flex;
             align-items: center;
-            background: rgba(255, 255, 255, .75);
-            padding: 2px 8px;
+            background: rgba(255,255,255,.75);
+            padding: 2px 7px;
             border-radius: 20px;
-            font-size: 0.65rem;
+            font-size: 0.6rem;
             font-weight: 600;
-            width: fit-content;
             color: #333;
+            gap: 4px;
         }
 
         .lark-tag .dot {
             height: 6px;
             width: 6px;
-            background-color: #2ecc71;
+            background: #2ecc71;
             border-radius: 50%;
-            margin-right: 5px;
             flex-shrink: 0;
         }
 
-        /* Project name row */
-        .pc-name-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-        }
-
-        .pc-name {
-            font-size: .88rem;
-            font-weight: 700;
-            line-height: 1.35;
-            color: var(--bs-body-color);
-        }
-
-        /* ── Card right body ── */
+        /* ── Right: content body ── */
         .pc-body {
-            padding: .85rem 1rem .8rem;
-            background: #fff;
+            flex: 1;
+            min-width: 0;
+            padding: .8rem 1rem .75rem;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+            background: #fff;
         }
 
-        /* Section titles */
+        /* Project name */
+        .pc-name {
+            font-size: .85rem;
+            font-weight: 700;
+            line-height: 1.35;
+            color: var(--bs-body-color);
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        /* Section label */
         .section-title {
-            font-size: 0.65rem;
+            font-size: 0.62rem;
             font-weight: 800;
             color: #a29bfe;
             letter-spacing: .6px;
-            margin-bottom: 6px;
             text-transform: uppercase;
+            margin-bottom: 3px;
         }
 
         /* Dashed divider */
         .dashed-divider {
             border: none;
-            border-top: 1px dashed #e0e0e0;
-            margin: 8px 0;
+            border-top: 1px dashed #e5e5e5;
+            margin: 6px 0;
         }
 
-        /* Data rows */
+        /* Data row */
         .pc-row {
             display: flex;
             justify-content: space-between;
             align-items: baseline;
-            font-size: .78rem;
-            padding: .1rem 0;
+            font-size: .74rem;
+            padding: 1px 0;
         }
 
-        .pc-row .pc-lbl {
-            color: #6c757d;
-        }
+        .pc-row .pc-lbl { color: #6c757d; }
+        .pc-row .pc-val { font-weight: 600; }
 
-        .pc-row .pc-val {
-            font-weight: 600;
-        }
+        /* Profit row */
+        .pc-row.profit .pc-lbl { font-weight: 600; color: var(--bs-body-color); }
+        .pc-row.profit .pc-val { font-weight: 700; color: #27ae60; }
 
-        .pc-row.profit .pc-val {
-            color: #2ecc71;
-            font-weight: 700;
-        }
-
-        /* Profit badge */
+        /* Profit % badge */
         .profit-badge {
             display: inline-block;
-            padding: 1px 7px;
-            border-radius: 6px;
-            font-size: 0.68rem;
+            padding: 1px 6px;
+            border-radius: 5px;
+            font-size: 0.62rem;
             font-weight: 700;
+            margin-left: 3px;
+            vertical-align: middle;
         }
+        .profit-badge.pos { background: #e8fbf3; color: #27ae60; }
+        .profit-badge.neg { background: #fde8e8; color: #e74c3c; }
 
-        .profit-badge.pos {
-            background: #e8fbf3;
-            color: #2ecc71;
-        }
-
-        .profit-badge.neg {
-            background: #fde8e8;
-            color: #e74c3c;
-        }
-
-        /* Stats row (INT'L PO / LOCAL PO / USAGE) */
+        /* Stats strip */
         .stats-strip {
             display: flex;
-            gap: 5px;
-            margin-top: 8px;
+            gap: 4px;
+            margin-top: 7px;
         }
 
         .stats-box {
             flex: 1;
             text-align: center;
-            padding: 7px 4px;
-            border-radius: 10px;
+            padding: 6px 3px;
+            border-radius: 9px;
         }
 
         .stats-box .label {
-            font-size: 0.58rem;
+            font-size: 0.55rem;
             font-weight: 700;
-            opacity: .65;
+            opacity: .6;
             text-transform: uppercase;
             letter-spacing: .04em;
         }
 
         .stats-box .value {
-            font-size: 0.82rem;
+            font-size: 0.78rem;
             font-weight: 700;
             margin-top: 1px;
         }
@@ -308,55 +288,39 @@
             color: var(--bs-secondary-color, #adb5bd);
         }
 
-        .empty-state i {
-            font-size: 3.5rem;
-            margin-bottom: 1rem;
-        }
+        .empty-state i { font-size: 3.5rem; margin-bottom: 1rem; }
 
         /* ── Dark mode ── */
         [data-bs-theme="dark"] .filter-bar-card .form-select,
         [data-bs-theme="dark"] .filter-bar-card .form-control {
-            background: rgba(255, 255, 255, .06);
+            background: rgba(255,255,255,.06);
             color: var(--bs-body-color);
         }
 
         [data-bs-theme="dark"] .project-card {
             background: #1e1e2e;
+            border-color: rgba(255,255,255,.07);
         }
 
-        [data-bs-theme="dark"] .pc-body {
-            background: #1e1e2e;
-        }
+        [data-bs-theme="dark"] .pc-body       { background: #1e1e2e; }
 
         [data-bs-theme="dark"] .pc-photo-placeholder {
             background: rgba(255,255,255,.1);
             border-color: rgba(255,255,255,.25);
         }
 
+        [data-bs-theme="dark"] .dashed-divider { border-color: rgba(255,255,255,.1); }
+
         [data-bs-theme="dark"] .dept-filter-tabs .nav-link {
-            border-color: rgba(255, 255, 255, .15);
+            border-color: rgba(255,255,255,.15);
             background: transparent;
         }
 
-        [data-bs-theme="dark"] .mascot-bg {
-            background: linear-gradient(135deg, #6a3093 0%, #3d1f6e 100%);
-        }
-
-        [data-bs-theme="dark"] .costume-bg {
-            background: linear-gradient(135deg, #8b2b35 0%, #5a1020 100%);
-        }
-
-        [data-bs-theme="dark"] .animatronic-bg {
-            background: linear-gradient(135deg, #1a5276 0%, #0d3349 100%);
-        }
-
-        [data-bs-theme="dark"] .plush-bg {
-            background: linear-gradient(135deg, #7d6608 0%, #4a3b05 100%);
-        }
-
-        [data-bs-theme="dark"] .default-bg {
-            background: linear-gradient(135deg, #1a5c57 0%, #0d3330 100%);
-        }
+        [data-bs-theme="dark"] .mascot-bg      { background: linear-gradient(160deg, #6a3093 0%, #3d1f6e 100%); }
+        [data-bs-theme="dark"] .costume-bg     { background: linear-gradient(160deg, #8b2b35 0%, #5a1020 100%); }
+        [data-bs-theme="dark"] .animatronic-bg { background: linear-gradient(160deg, #1a5276 0%, #0d3349 100%); }
+        [data-bs-theme="dark"] .plush-bg       { background: linear-gradient(160deg, #7d6608 0%, #4a3b05 100%); }
+        [data-bs-theme="dark"] .default-bg     { background: linear-gradient(160deg, #1a5c57 0%, #0d3330 100%); }
     </style>
     {{-- Flatpickr date range picker --}}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -580,36 +544,41 @@
                     <div class="col-xl-4 col-lg-6 col-md-6">
                         <a href="{{ route('costing.detail', $project->id) }}" class="project-card">
 
-                            {{-- ── Left photo / icon panel ── --}}
+                            {{-- ══ LEFT: square photo panel ══ --}}
                             <div class="pc-photo-panel {{ $bgClass }}">
-                                @if (!empty($project->photo))
-                                    <img src="{{ asset('storage/' . $project->photo) }}"
-                                        class="pc-photo-img" alt="{{ $project->name }}">
-                                @else
-                                    <div class="pc-photo-placeholder">{{ $deptEmoji }}</div>
-                                @endif
-                                @if (!empty($typeDept))
-                                    <div class="pc-photo-dept">{{ $typeDept }}</div>
-                                @endif
-                                @if (!empty($project->lark_record_id))
-                                    <div class="lark-tag">
-                                        <span class="dot"></span>Lark
-                                    </div>
-                                @endif
+                                <div class="pc-photo-panel-inner">
+                                    {{-- Photo or placeholder --}}
+                                    @if (!empty($project->photo))
+                                        <img src="{{ asset('storage/' . $project->photo) }}"
+                                             class="pc-photo-img" alt="{{ $project->name }}">
+                                    @else
+                                        <div class="pc-photo-placeholder">{{ $deptEmoji }}</div>
+                                    @endif
+
+                                    {{-- Category badge --}}
+                                    @if (!empty($typeDept))
+                                        <span class="pc-cat-badge">{{ $typeDept }}</span>
+                                    @endif
+
+                                    {{-- Lark badge --}}
+                                    @if (!empty($project->lark_record_id))
+                                        <span class="lark-tag"><span class="dot"></span>Lark</span>
+                                    @endif
+                                </div>
                             </div>
 
-                            {{-- ── Right content body ── --}}
-                            <div class="pc-body flex-fill">
+                            {{-- ══ RIGHT: content body ══ --}}
+                            <div class="pc-body">
 
-                                {{-- Project name --}}
-                                <div class="pc-name-row mb-2">
+                                {{-- ── Header: project name + chevron ── --}}
+                                <div class="d-flex justify-content-between align-items-start mb-2">
                                     <span class="pc-name" title="{{ $project->name }}">
-                                        {{ \Illuminate\Support\Str::limit($project->name, 45) }}
+                                        {{ \Illuminate\Support\Str::limit($project->name, 50) }}
                                     </span>
-                                    <span class="text-muted ms-1" style="font-size:.8rem;">&rsaquo;</span>
+                                    <i class="fas fa-chevron-right text-muted ms-2 mt-1" style="font-size:.62rem;flex-shrink:0;opacity:.5;"></i>
                                 </div>
 
-                                {{-- ACTUALS --}}
+                                {{-- ── ACTUALS ── --}}
                                 <div class="section-title">ACTUALS</div>
                                 <div class="pc-row">
                                     <span class="pc-lbl">Selling Price</span>
@@ -620,12 +589,12 @@
                                     <span class="pc-val">{{ $hasData ? $fmt($actualCost) : '—' }}</span>
                                 </div>
                                 <div class="pc-row profit">
-                                    <span class="pc-lbl fw-semibold" style="color:var(--bs-body-color)">Project Profit</span>
+                                    <span class="pc-lbl">Project Profit</span>
                                     <span class="pc-val">
                                         @if ($hasData && $sellingPrice > 0)
                                             {{ $fmt($profit) }}
                                             @if ($profitPct !== null)
-                                                <span class="profit-badge ms-1 {{ $profit >= 0 ? 'pos' : 'neg' }}">
+                                                <span class="profit-badge {{ $profit >= 0 ? 'pos' : 'neg' }}">
                                                     {{ $profit >= 0 ? '+' : '' }}{{ $profitPct }}%
                                                 </span>
                                             @endif
@@ -637,24 +606,26 @@
 
                                 <hr class="dashed-divider">
 
-                                {{-- ESTIMATES --}}
+                                {{-- ── ESTIMATES ── --}}
                                 <div class="section-title">ESTIMATES</div>
                                 <div class="pc-row">
-                                    <span class="pc-lbl">Sales / Creator</span>
-                                    <span class="pc-val" style="font-size:.72rem;max-width:55%;text-align:right;">{{ $salesName }}</span>
+                                    <span class="pc-lbl">Quoted Price</span>
+                                    <span class="pc-val">{{ $hasData ? $fmt($sellingPrice) : '—' }}</span>
                                 </div>
                                 <div class="pc-row">
-                                    <span class="pc-lbl">Deadline</span>
-                                    <span class="pc-val">{{ $deadline }}</span>
+                                    <span class="pc-lbl">Estimated Cost</span>
+                                    <span class="pc-val">{{ $hasData ? $fmt($actualCost) : '—' }}</span>
                                 </div>
+                                @if ($totalHours > 0)
                                 <div class="pc-row">
-                                    <span class="pc-lbl">Job Orders</span>
-                                    <span class="pc-val">{{ $jobOrderCount }} JO</span>
+                                    <span class="pc-lbl">Total Project Time</span>
+                                    <span class="pc-val">{{ $totalHours }} hrs</span>
                                 </div>
+                                @endif
 
-                                {{-- Stats strip + export --}}
+                                {{-- ── Stats strip + Export button ── --}}
                                 <div class="d-flex align-items-center gap-1 mt-2">
-                                    <div class="stats-strip flex-fill mb-0">
+                                    <div class="stats-strip flex-fill" style="margin-top:0;">
                                         <div class="stats-box bg-warning-subtle text-warning-emphasis">
                                             <div class="label">INT'L PO</div>
                                             <div class="value">{{ $intlPo > 0 ? $fmtK($intlPo) : '—' }}</div>
@@ -669,9 +640,10 @@
                                         </div>
                                     </div>
                                     <a href="{{ route('costing.export', $project->id) }}"
-                                        class="btn btn-xs btn-outline-success flex-shrink-0"
-                                        style="padding:.28rem .45rem;font-size:.65rem;" title="Export Excel"
-                                        onclick="event.stopPropagation();event.preventDefault();window.location='{{ route('costing.export', $project->id) }}'">
+                                       class="btn btn-outline-success flex-shrink-0"
+                                       style="padding:.28rem .45rem;font-size:.65rem;border-radius:8px;"
+                                       title="Export Excel"
+                                       onclick="event.stopPropagation();event.preventDefault();window.location='{{ route('costing.export', $project->id) }}'">
                                         <i class="bi bi-file-earmark-excel"></i>
                                     </a>
                                 </div>
