@@ -67,8 +67,9 @@
 
                                 {{-- Skillset Filter Buttons --}}
                                 <div class="mb-2 d-flex gap-1 flex-wrap">
-                                    <button type="button" class="btn btn-warning btn-xs skillset-filter active" data-skillset="all">All</button>
-                                    @foreach($employeesBySkillset as $group)
+                                    <button type="button" class="btn btn-warning btn-xs skillset-filter active"
+                                        data-skillset="all">All</button>
+                                    @foreach ($employeesBySkillset as $group)
                                         <button type="button" class="btn btn-outline-warning btn-xs skillset-filter"
                                             data-skillset="{{ $group['skillset_id'] ?? 'none' }}">
                                             {{ $group['label'] }}
@@ -77,13 +78,14 @@
                                 </div>
 
                                 <div id="employee-cards">
-                                    @if($employees->isEmpty())
+                                    @if ($employees->isEmpty())
                                         <div class="alert alert-warning">
-                                            No active mascot employees found. Please add employees to mascot department first.
+                                            No active mascot employees found. Please add employees to mascot department
+                                            first.
                                         </div>
                                     @else
                                         <div class="row g-2">
-                                            @foreach($employees as $employee)
+                                            @foreach ($employees as $employee)
                                                 <div class="col-md-4 col-sm-6 employee-card-wrapper"
                                                     data-skillset-ids=",{{ $employee->skillsets->pluck('id')->implode(',') }},"
                                                     data-department-id="{{ $employee->department_id }}"
@@ -94,14 +96,15 @@
                                                         style="cursor: pointer; transition: all 0.3s;">
                                                         <div class="card-body text-center p-2">
                                                             <div class="form-check position-absolute top-0 end-0 m-1">
-                                                                <input class="form-check-input employee-checkbox" type="checkbox"
-                                                                    name="employees[]" value="{{ $employee->id }}"
+                                                                <input class="form-check-input employee-checkbox"
+                                                                    type="checkbox" name="employees[]"
+                                                                    value="{{ $employee->id }}"
                                                                     id="emp-{{ $employee->id }}">
                                                             </div>
                                                             @if ($employee->photo)
                                                                 <img src="{{ asset('storage/' . $employee->photo) }}"
-                                                                    class="rounded-circle mb-1 border" width="44" height="44"
-                                                                    style="object-fit: cover;">
+                                                                    class="rounded-circle mb-1 border" width="44"
+                                                                    height="44" style="object-fit: cover;">
                                                             @else
                                                                 <div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center mb-1"
                                                                     style="width: 44px; height: 44px;">
@@ -221,7 +224,8 @@
                             <label class="form-label fw-bold">
                                 Select Stage Completed <span class="text-danger">*</span>
                             </label>
-                            <select class="form-select form-select-lg select2-stage" id="stop-stage" name="stage" required>
+                            <select class="form-select form-select-lg select2-stage" id="stop-stage" name="stage"
+                                required>
                                 <option value="">Choose stage...</option>
                                 <option value="1">Design &amp; Prototyping</option>
                                 <option value="2">Structure Approval</option>
@@ -241,20 +245,24 @@
                         <div class="mb-3">
                             <div class="alert alert-success mb-0">
                                 <strong>Previous Progress:</strong> <span id="previous-progress-display">0</span>%<br>
-                                <strong>Will be updated to:</strong> <span id="current-progress-display" class="text-primary fw-bold">0</span>%
+                                <strong>Will be updated to:</strong> <span id="current-progress-display"
+                                    class="text-primary fw-bold">0</span>%
                             </div>
                         </div>
 
                         <!-- Output Qty + Measurement Type -->
                         <div class="row g-2">
                             <div class="col-6">
-                                <label class="form-label fw-bold small">Output Qty <span class="text-danger">*</span></label>
+                                <label class="form-label fw-bold small">Output Qty <span
+                                        class="text-danger">*</span></label>
                                 <input type="number" class="form-control form-control-sm" id="stop-output-qty"
                                     name="output_qty" min="0" step="0.1" value="1" required>
                             </div>
                             <div class="col-6">
-                                <label class="form-label fw-bold small">Measurement Type <span class="text-danger">*</span></label>
-                                <select class="form-select form-select-sm select2-unit" id="stop-measurement-type" name="measurement_type" required>
+                                <label class="form-label fw-bold small">Measurement Type <span
+                                        class="text-danger">*</span></label>
+                                <select class="form-select form-select-sm select2-unit" id="stop-measurement-type"
+                                    name="measurement_type" required>
                                     @forelse($units as $unit)
                                         <option value="{{ strtolower($unit->name) }}"
                                             {{ strtolower($unit->name) === 'pcs' ? 'selected' : '' }}>
@@ -281,7 +289,10 @@
 
 @section('styles')
     <style>
-        .btn-xs { padding: 0.15rem 0.5rem; font-size: 0.72rem; }
+        .btn-xs {
+            padding: 0.15rem 0.5rem;
+            font-size: 0.72rem;
+        }
 
         /* Gradient icon */
         .gradient-icon {
@@ -400,11 +411,12 @@
 
                 $('.employee-card-wrapper').each(function() {
                     const skillsetIds = $(this).attr('data-skillset-ids') || ',';
-                    const empName     = ($(this).attr('data-name') || '');
+                    const empName = ($(this).attr('data-name') || '');
 
                     let show = true;
-                    if (activeSkillset !== 'all' && !skillsetIds.includes(',' + activeSkillset + ',')) show = false;
-                    if (searchTerm && !empName.includes(searchTerm))                                   show = false;
+                    if (activeSkillset !== 'all' && !skillsetIds.includes(',' + activeSkillset + ','))
+                        show = false;
+                    if (searchTerm && !empName.includes(searchTerm)) show = false;
 
                     if (show) {
                         $(this).show();
@@ -416,8 +428,8 @@
                 });
 
                 $('#filtered-count').html(
-                    (activeSkillset !== 'all' || searchTerm)
-                        ? `<span class="badge bg-info">${visibleCount} shown</span>` : ''
+                    (activeSkillset !== 'all' || searchTerm) ?
+                    `<span class="badge bg-info">${visibleCount} shown</span>` : ''
                 );
             }
 
@@ -597,10 +609,10 @@
 
             // Stop work button click handler
             $(document).on('click', '.stop-work-btn', function() {
-                const timingId       = $(this).data('timing-id');
-                const employeeName   = $(this).data('employee-name');
-                const jobOrder       = $(this).data('job-order');
-                const jobOrderId     = $(this).data('job-order-id');
+                const timingId = $(this).data('timing-id');
+                const employeeName = $(this).data('employee-name');
+                const jobOrder = $(this).data('job-order');
+                const jobOrderId = $(this).data('job-order-id');
                 const previousProgress = parseInt($(this).data('previous-progress')) || 0;
 
                 $('#stop-timing-id').val(timingId);
@@ -667,31 +679,40 @@
                 e.preventDefault();
 
                 const timingId = $('#stop-timing-id').val();
-                const stage    = parseInt($('#stop-stage').val());
+                const stage = parseInt($('#stop-stage').val());
                 const outputQty = parseFloat($('#stop-output-qty').val());
                 const measurementType = $('#stop-measurement-type').val();
 
                 if (!stage || stage < 1 || stage > 10) {
-                    Swal.fire({ icon: 'warning', title: 'Stage Required', text: 'Please select a stage (1–10)' });
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Stage Required',
+                        text: 'Please select a stage (1–10)'
+                    });
                     return;
                 }
 
                 if (isNaN(outputQty) || outputQty < 0) {
-                    Swal.fire({ icon: 'warning', title: 'Invalid Quantity', text: 'Please enter a valid output quantity' });
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Invalid Quantity',
+                        text: 'Please enter a valid output quantity'
+                    });
                     return;
                 }
 
                 const submitBtn = $('#stop-submit-btn');
-                submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
+                submitBtn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
 
                 $.ajax({
                     url: '{{ route('mascot-timing.stop') }}',
                     method: 'POST',
                     data: {
                         _token: '{{ csrf_token() }}',
-                        timing_id:        timingId,
-                        stage:            stage,
-                        output_qty:       outputQty,
+                        timing_id: timingId,
+                        stage: stage,
+                        output_qty: outputQty,
                         measurement_type: measurementType,
                     },
                     success: function(response) {
@@ -722,12 +743,19 @@
                         }
                     },
                     error: function(xhr) {
-                        const message = xhr.responseJSON?.message || 'Failed to complete work session.';
-                        Swal.fire({ icon: 'error', title: 'Error', text: message });
-                        submitBtn.prop('disabled', false).html('<i class="bi bi-stop-circle me-1"></i>Stop & Save');
+                        const message = xhr.responseJSON?.message ||
+                            'Failed to complete work session.';
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: message
+                        });
+                        submitBtn.prop('disabled', false).html(
+                            '<i class="bi bi-stop-circle me-1"></i>Stop & Save');
                     },
                     complete: function() {
-                        submitBtn.prop('disabled', false).html('<i class="bi bi-stop-circle me-1"></i>Stop & Save');
+                        submitBtn.prop('disabled', false).html(
+                            '<i class="bi bi-stop-circle me-1"></i>Stop & Save');
                     }
                 });
             });

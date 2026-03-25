@@ -21,64 +21,28 @@ class CostingMaterialSheet implements FromArray, WithHeadings, WithStyles, WithT
 
     public function __construct(array $rows, string $projectName)
     {
-        $this->rows        = $rows;
+        $this->rows = $rows;
         $this->projectName = $projectName;
     }
 
     public function array(): array
     {
         $data = [];
-        $no   = 1;
+        $no = 1;
 
         foreach ($this->rows as $r) {
-            $data[] = [
-                $no++,
-                $r['job_order_name'],
-                $r['material_name'],
-                $r['qty'],
-                $r['unit'],
-                $r['currency'],
-                $r['unit_price'],
-                $r['domestic_freight'],
-                $r['intl_freight'],
-                $r['total_unit_cost'],
-                $r['total_idr'],
-            ];
+            $data[] = [$no++, $r['job_order_name'], $r['material_name'], $r['qty'], $r['unit'], $r['currency'], $r['unit_price'], $r['domestic_freight'], $r['intl_freight'], $r['total_unit_cost'], $r['total_idr']];
         }
 
         // Total row
-        $data[] = [
-            '',
-            '',
-            'TOTAL MATERIAL COST',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            array_sum(array_column($this->rows, 'total_idr')),
-        ];
+        $data[] = ['', '', 'TOTAL MATERIAL COST', '', '', '', '', '', '', '', array_sum(array_column($this->rows, 'total_idr'))];
 
         return $data;
     }
 
     public function headings(): array
     {
-        return [
-            'No',
-            'Job Order',
-            'Material Name',
-            'Qty',
-            'Unit',
-            'Currency',
-            'Unit Price',
-            'Domestic Freight',
-            'Intl Freight',
-            'Total Unit Cost',
-            'Total Cost (Rp)',
-        ];
+        return ['No', 'Job Order', 'Material Name', 'Qty', 'Unit', 'Currency', 'Unit Price', 'Domestic Freight', 'Intl Freight', 'Total Unit Cost', 'Total Cost (Rp)'];
     }
 
     public function styles(Worksheet $sheet): array
@@ -100,12 +64,16 @@ class CostingMaterialSheet implements FromArray, WithHeadings, WithStyles, WithT
         // Currency format for unit_price, freights, total columns
         $dataLast = $last - 1;
         foreach (['G', 'H', 'I', 'J'] as $col) {
-            $sheet->getStyle("{$col}2:{$col}{$dataLast}")
-                  ->getNumberFormat()->setFormatCode('#,##0.00');
+            $sheet
+                ->getStyle("{$col}2:{$col}{$dataLast}")
+                ->getNumberFormat()
+                ->setFormatCode('#,##0.00');
         }
         foreach (['K'] as $col) {
-            $sheet->getStyle("{$col}2:{$col}{$last}")
-                  ->getNumberFormat()->setFormatCode('"Rp "#,##0');
+            $sheet
+                ->getStyle("{$col}2:{$col}{$last}")
+                ->getNumberFormat()
+                ->setFormatCode('"Rp "#,##0');
         }
 
         $sheet->getStyle("A1:K{$last}")->applyFromArray([

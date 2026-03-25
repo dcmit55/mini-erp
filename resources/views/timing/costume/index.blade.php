@@ -71,10 +71,11 @@
                                     </div>
                                 </div>
 
-{{-- Skillset Filter Buttons --}}
+                                {{-- Skillset Filter Buttons --}}
                                 <div class="mb-2 d-flex gap-1 flex-wrap">
-                                    <button type="button" class="btn btn-secondary btn-xs skillset-filter active" data-skillset="all">All</button>
-                                    @foreach($employeesBySkillset as $group)
+                                    <button type="button" class="btn btn-secondary btn-xs skillset-filter active"
+                                        data-skillset="all">All</button>
+                                    @foreach ($employeesBySkillset as $group)
                                         <button type="button" class="btn btn-outline-secondary btn-xs skillset-filter"
                                             data-skillset="{{ $group['skillset_id'] ?? 'none' }}">
                                             {{ $group['label'] }}
@@ -83,13 +84,13 @@
                                 </div>
 
                                 <div id="employee-cards">
-                                    @if($employees->isEmpty())
+                                    @if ($employees->isEmpty())
                                         <div class="alert alert-warning">
                                             No active employees found. Please add employees first.
                                         </div>
                                     @else
                                         <div class="row g-2">
-                                            @foreach($employees as $employee)
+                                            @foreach ($employees as $employee)
                                                 <div class="col-md-4 col-sm-6 employee-card-wrapper"
                                                     data-skillset-ids=",{{ $employee->skillsets->pluck('id')->implode(',') }},"
                                                     data-department-id="{{ $employee->department_id }}"
@@ -100,14 +101,15 @@
                                                         style="cursor: pointer; transition: all 0.3s;">
                                                         <div class="card-body text-center p-2">
                                                             <div class="form-check position-absolute top-0 end-0 m-1">
-                                                                <input class="form-check-input employee-checkbox" type="checkbox"
-                                                                    name="employees[]" value="{{ $employee->id }}"
+                                                                <input class="form-check-input employee-checkbox"
+                                                                    type="checkbox" name="employees[]"
+                                                                    value="{{ $employee->id }}"
                                                                     id="emp-{{ $employee->id }}">
                                                             </div>
                                                             @if ($employee->photo)
                                                                 <img src="{{ asset('storage/' . $employee->photo) }}"
-                                                                    class="rounded-circle mb-1 border" width="44" height="44"
-                                                                    style="object-fit: cover;">
+                                                                    class="rounded-circle mb-1 border" width="44"
+                                                                    height="44" style="object-fit: cover;">
                                                             @else
                                                                 <div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center mb-1"
                                                                     style="width: 44px; height: 44px;">
@@ -199,7 +201,8 @@
             <!-- Right Column: Active Sessions -->
             <div class="col-lg-5">
                 <div class="card shadow-sm border-0">
-                    <div class="card-header bg-gradient-costume text-white d-flex justify-content-between align-items-center">
+                    <div
+                        class="card-header bg-gradient-costume text-white d-flex justify-content-between align-items-center">
                         <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Active Sessions</h5>
                         <button class="btn btn-sm btn-light" onclick="location.reload()">
                             <i class="bi bi-arrow-clockwise"></i>
@@ -267,7 +270,10 @@
     </div>
 
     <style>
-        .btn-xs { padding: 0.15rem 0.5rem; font-size: 0.72rem; }
+        .btn-xs {
+            padding: 0.15rem 0.5rem;
+            font-size: 0.72rem;
+        }
 
         .gradient-icon {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -399,21 +405,22 @@
             // Filter function
             function filterEmployees() {
                 const deptFilter = $('#filter-department').val();
-                const posFilter  = $('#filter-position').val();
+                const posFilter = $('#filter-position').val();
                 const searchTerm = ($('#employee-search').val() || '').toLowerCase().trim();
                 let visibleCount = 0;
 
                 $('.employee-card-wrapper').each(function() {
                     const skillsetIds = $(this).attr('data-skillset-ids') || ',';
-                    const deptId      = $(this).data('department-id');
-                    const position    = $(this).data('position');
-                    const empName     = ($(this).data('name') || '');
+                    const deptId = $(this).data('department-id');
+                    const position = $(this).data('position');
+                    const empName = ($(this).data('name') || '');
 
                     let show = true;
-                    if (activeSkillset !== 'all' && !skillsetIds.includes(',' + activeSkillset + ',')) show = false;
-                    if (deptFilter && deptId != deptFilter)                                            show = false;
-                    if (posFilter  && position != posFilter)                                           show = false;
-                    if (searchTerm && !empName.includes(searchTerm))                                   show = false;
+                    if (activeSkillset !== 'all' && !skillsetIds.includes(',' + activeSkillset + ','))
+                        show = false;
+                    if (deptFilter && deptId != deptFilter) show = false;
+                    if (posFilter && position != posFilter) show = false;
+                    if (searchTerm && !empName.includes(searchTerm)) show = false;
 
                     if (show) {
                         $(this).show();
@@ -425,8 +432,8 @@
                 });
 
                 $('#filtered-count').html(
-                    (deptFilter || posFilter || activeSkillset !== 'all' || searchTerm)
-                        ? `<span class="badge bg-info">${visibleCount} shown</span>` : ''
+                    (deptFilter || posFilter || activeSkillset !== 'all' || searchTerm) ?
+                    `<span class="badge bg-info">${visibleCount} shown</span>` : ''
                 );
             }
 
@@ -616,8 +623,10 @@
                     `);
                     $('#stop-output-qty').val(1);
                     // Reset Select2 measurement to pcs default
-                    const pcVal = $('#stop-measurement-type option').filter(function() { return $(this).val() === 'pcs'; }).val()
-                        || $('#stop-measurement-type option:first').val();
+                    const pcVal = $('#stop-measurement-type option').filter(function() {
+                            return $(this).val() === 'pcs';
+                        }).val() ||
+                        $('#stop-measurement-type option:first').val();
                     $('#stop-measurement-type').val(pcVal).trigger('change');
                     $('#stopWorkModal').modal('show');
                 } else {

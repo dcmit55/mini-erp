@@ -21,13 +21,13 @@ class CostingFreightSheet implements FromArray, WithHeadings, WithStyles, WithTi
 
     public function __construct(array $rows, string $projectName)
     {
-        $this->rows        = $rows;
+        $this->rows = $rows;
         $this->projectName = $projectName;
     }
 
     // Track row metadata so styles() can colour section headers
     protected array $sectionHeaderRows = [];
-    protected array $subtotalRows      = [];
+    protected array $subtotalRows = [];
 
     public function array(): array
     {
@@ -41,11 +41,14 @@ class CostingFreightSheet implements FromArray, WithHeadings, WithStyles, WithTi
 
         $rowNum = 1; // data row counter (1-based within this array, header added later in registerEvents)
 
-        foreach ([
-            'BT → SG (Batam to Singapore)' => $btSg,
-            'SG → BT (Singapore to Batam)' => $sgBt,
-            'Other Directions'             => $other,
-        ] as $sectionTitle => $rows) {
+        foreach (
+            [
+                'BT → SG (Batam to Singapore)' => $btSg,
+                'SG → BT (Singapore to Batam)' => $sgBt,
+                'Other Directions' => $other,
+            ]
+            as $sectionTitle => $rows
+        ) {
             if (empty($rows)) {
                 continue;
             }
@@ -57,26 +60,16 @@ class CostingFreightSheet implements FromArray, WithHeadings, WithStyles, WithTi
 
             $no = 1;
             $subTransport = 0;
-            $subBaggage   = 0;
-            $subGst       = 0;
-            $subTotal     = 0;
+            $subBaggage = 0;
+            $subGst = 0;
+            $subTotal = 0;
 
             foreach ($rows as $r) {
-                $data[] = [
-                    $no++,
-                    $r['courier_name'],
-                    $r['direction'],
-                    $r['date'],
-                    $r['items_count'],
-                    $r['transport_cost'],
-                    $r['baggage_cost'],
-                    $r['gst_cost'],
-                    $r['total_idr'],
-                ];
+                $data[] = [$no++, $r['courier_name'], $r['direction'], $r['date'], $r['items_count'], $r['transport_cost'], $r['baggage_cost'], $r['gst_cost'], $r['total_idr']];
                 $subTransport += $r['transport_cost'];
-                $subBaggage   += $r['baggage_cost'];
-                $subGst       += $r['gst_cost'];
-                $subTotal     += $r['total_idr'];
+                $subBaggage += $r['baggage_cost'];
+                $subGst += $r['gst_cost'];
+                $subTotal += $r['total_idr'];
                 $rowNum++;
             }
 
@@ -92,38 +85,22 @@ class CostingFreightSheet implements FromArray, WithHeadings, WithStyles, WithTi
 
         // Grand total
         $this->subtotalRows[] = $rowNum;
-        $data[] = [
-            '', 'GRAND TOTAL', '', '', '',
-            array_sum(array_column($this->rows, 'transport_cost')),
-            array_sum(array_column($this->rows, 'baggage_cost')),
-            array_sum(array_column($this->rows, 'gst_cost')),
-            array_sum(array_column($this->rows, 'total_idr')),
-        ];
+        $data[] = ['', 'GRAND TOTAL', '', '', '', array_sum(array_column($this->rows, 'transport_cost')), array_sum(array_column($this->rows, 'baggage_cost')), array_sum(array_column($this->rows, 'gst_cost')), array_sum(array_column($this->rows, 'total_idr'))];
 
         return $data;
     }
 
     public function headings(): array
     {
-        return [
-            'No',
-            'Courier',
-            'Direction',
-            'Date',
-            'Items',
-            'Transport (Rp)',
-            'Baggage (Rp)',
-            'GST (Rp)',
-            'Total Cost (Rp)',
-        ];
+        return ['No', 'Courier', 'Direction', 'Date', 'Items', 'Transport (Rp)', 'Baggage (Rp)', 'GST (Rp)', 'Total Cost (Rp)'];
     }
 
     public function styles(Worksheet $sheet): array
     {
         // Column header row (row 1)
         $sheet->getStyle('A1:I1')->applyFromArray([
-            'font'      => ['bold' => true, 'color' => ['rgb' => 'FFFFFF'], 'size' => 11],
-            'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'C55A11']],
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF'], 'size' => 11],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'C55A11']],
             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
         ]);
 
@@ -135,7 +112,10 @@ class CostingFreightSheet implements FromArray, WithHeadings, WithStyles, WithTi
                 'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'ED7D31']],
             ]);
             $sheet->mergeCells("A{$excelRow}:I{$excelRow}");
-            $sheet->getStyle("A{$excelRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+            $sheet
+                ->getStyle("A{$excelRow}")
+                ->getAlignment()
+                ->setHorizontal(Alignment::HORIZONTAL_LEFT);
         }
 
         // Subtotal rows
@@ -151,8 +131,10 @@ class CostingFreightSheet implements FromArray, WithHeadings, WithStyles, WithTi
         // Currency format on all data rows
         $totalDataRows = count($this->array()) + 2; // rough last row
         foreach (['F', 'G', 'H', 'I'] as $col) {
-            $sheet->getStyle("{$col}2:{$col}{$totalDataRows}")
-                  ->getNumberFormat()->setFormatCode('"Rp "#,##0');
+            $sheet
+                ->getStyle("{$col}2:{$col}{$totalDataRows}")
+                ->getNumberFormat()
+                ->setFormatCode('"Rp "#,##0');
         }
 
         $sheet->getStyle("A1:I{$totalDataRows}")->applyFromArray([

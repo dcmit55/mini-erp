@@ -112,29 +112,30 @@ class CostumeTimingController extends Controller
         $skillsets = Skillset::where('is_active', true)
             ->whereIn('name', $allowedSkillsets)
             ->whereHas('employees', fn($q) => $q->whereIn('employees.id', $employeeIds))
-            ->with(['employees' => fn($q) => $q
-                ->whereIn('employees.id', $employeeIds)
-                ->orderBy('name')
-            ])
+            ->with(['employees' => fn($q) => $q->whereIn('employees.id', $employeeIds)->orderBy('name')])
             ->orderBy('name')
             ->get();
 
-        $groups = $skillsets->map(fn($skillset) => [
-            'skillset_id' => $skillset->id,
-            'label'       => $skillset->name,
-            'employees'   => $skillset->employees->map(fn($emp) => [
-                'employee' => $employeeMap->get($emp->id) ?? $emp,
-            ]),
-        ]);
+        $groups = $skillsets->map(
+            fn($skillset) => [
+                'skillset_id' => $skillset->id,
+                'label' => $skillset->name,
+                'employees' => $skillset->employees->map(
+                    fn($emp) => [
+                        'employee' => $employeeMap->get($emp->id) ?? $emp,
+                    ],
+                ),
+            ],
+        );
 
         $assignedIds = $skillsets->flatMap(fn($s) => $s->employees->pluck('id'))->unique();
-        $unassigned  = $employees->whereNotIn('id', $assignedIds);
+        $unassigned = $employees->whereNotIn('id', $assignedIds);
 
         if ($unassigned->isNotEmpty()) {
             $groups->push([
                 'skillset_id' => null,
-                'label'       => 'Other',
-                'employees'   => $unassigned->map(fn($emp) => ['employee' => $emp]),
+                'label' => 'Other',
+                'employees' => $unassigned->map(fn($emp) => ['employee' => $emp]),
             ]);
         }
 
@@ -341,10 +342,10 @@ class CostumeTimingController extends Controller
     public function bulkStop(Request $request)
     {
         $validated = $request->validate([
-            'timing_ids'       => 'required|array|min:1',
-            'timing_ids.*'     => 'required|exists:timings,id',
+            'timing_ids' => 'required|array|min:1',
+            'timing_ids.*' => 'required|exists:timings,id',
             'measurement_type' => 'required|string|max:50',
-            'output_qty'       => 'required|numeric|min:0',
+            'output_qty' => 'required|numeric|min:0',
         ]);
 
         $endTime = now()->format('H:i:s');

@@ -104,9 +104,12 @@
                                                         <i class="bi bi-person text-white" style="font-size:0.55rem;"></i>
                                                     </div>
                                                 @endif
-                                                <div><span class="badge bg-success" style="font-size:0.57rem;">RUNNING</span></div>
-                                                <div class="fw-semibold mt-1 lh-sm" style="font-size:0.65rem;">{{ $session->employee->name ?? 'Unknown' }}</div>
-                                                <div class="text-muted" style="font-size:0.58rem;">{{ $session->employee->position ?? 'N/A' }}</div>
+                                                <div><span class="badge bg-success"
+                                                        style="font-size:0.57rem;">RUNNING</span></div>
+                                                <div class="fw-semibold mt-1 lh-sm" style="font-size:0.65rem;">
+                                                    {{ $session->employee->name ?? 'Unknown' }}</div>
+                                                <div class="text-muted" style="font-size:0.58rem;">
+                                                    {{ $session->employee->position ?? 'N/A' }}</div>
                                             </div>
 
                                             <!-- Timer -->
@@ -126,26 +129,44 @@
                                                     $deadlineWarning = null;
                                                     if ($totalMinutes > 0 && $session->start_time) {
                                                         try {
-                                                            $startDateTime = \Carbon\Carbon::parse(date('Y-m-d') . ' ' . $session->start_time);
-                                                            $deadlineTime = $startDateTime->addMinutes($totalMinutes)->format('H:i');
-                                                            $minutesRemaining = \Carbon\Carbon::now()->diffInMinutes(\Carbon\Carbon::parse(date('Y-m-d') . ' ' . $deadlineTime), false);
-                                                            if ($minutesRemaining < 0) $deadlineWarning = 'exceeded';
-                                                            elseif ($minutesRemaining <= 15) $deadlineWarning = 'critical';
-                                                            elseif ($minutesRemaining <= 30) $deadlineWarning = 'warning';
-                                                        } catch (\Exception $e) { $deadlineTime = null; }
+                                                            $startDateTime = \Carbon\Carbon::parse(
+                                                                date('Y-m-d') . ' ' . $session->start_time,
+                                                            );
+                                                            $deadlineTime = $startDateTime
+                                                                ->addMinutes($totalMinutes)
+                                                                ->format('H:i');
+                                                            $minutesRemaining = \Carbon\Carbon::now()->diffInMinutes(
+                                                                \Carbon\Carbon::parse(
+                                                                    date('Y-m-d') . ' ' . $deadlineTime,
+                                                                ),
+                                                                false,
+                                                            );
+                                                            if ($minutesRemaining < 0) {
+                                                                $deadlineWarning = 'exceeded';
+                                                            } elseif ($minutesRemaining <= 15) {
+                                                                $deadlineWarning = 'critical';
+                                                            } elseif ($minutesRemaining <= 30) {
+                                                                $deadlineWarning = 'warning';
+                                                            }
+                                                        } catch (\Exception $e) {
+                                                            $deadlineTime = null;
+                                                        }
                                                     }
                                                 @endphp
-                                                <div class="mb-1 text-truncate" title="{{ $session->jobOrder->name ?? 'N/A' }}">
+                                                <div class="mb-1 text-truncate"
+                                                    title="{{ $session->jobOrder->name ?? 'N/A' }}">
                                                     <strong>{{ $session->jobOrder->name ?? 'N/A' }}</strong>
                                                 </div>
                                                 <div class="mb-1 text-truncate">
                                                     <span class="text-muted">Task:</span> {{ $session->step }}
                                                 </div>
-                                                <div class="text-muted"><i class="bi bi-clock"></i> {{ $session->start_time }}</div>
+                                                <div class="text-muted"><i class="bi bi-clock"></i>
+                                                    {{ $session->start_time }}</div>
                                                 @if ($deadlineTime)
                                                     <div class="mt-1">
                                                         <i class="bi bi-calendar-x"></i>
-                                                        <strong class="{{ $deadlineWarning === 'exceeded' ? 'text-danger' : ($deadlineWarning === 'critical' ? 'text-warning' : '') }}">{{ $deadlineTime }}</strong>
+                                                        <strong
+                                                            class="{{ $deadlineWarning === 'exceeded' ? 'text-danger' : ($deadlineWarning === 'critical' ? 'text-warning' : '') }}">{{ $deadlineTime }}</strong>
                                                         @if ($deadlineWarning === 'exceeded')
                                                             <span class="badge bg-danger ms-1">OVERDUE</span>
                                                         @elseif ($deadlineWarning === 'critical')
@@ -201,8 +222,10 @@
                         @csrf
                         <div id="bulk-stop-info" class="alert alert-warning py-1 px-2 mb-2 small"></div>
                         <div class="mb-2">
-                            <label class="form-label small fw-bold mb-1">Measurement Type <span class="text-danger">*</span></label>
-                            <select class="form-select form-select-sm" id="bulk-measurement-type" name="measurement_type" required>
+                            <label class="form-label small fw-bold mb-1">Measurement Type <span
+                                    class="text-danger">*</span></label>
+                            <select class="form-select form-select-sm" id="bulk-measurement-type" name="measurement_type"
+                                required>
                                 @forelse($units as $unit)
                                     <option value="{{ strtolower($unit->name) }}"
                                         {{ strtolower($unit->name) === 'pcs' ? 'selected' : '' }}>
@@ -214,7 +237,8 @@
                             </select>
                         </div>
                         <div class="mb-2">
-                            <label class="form-label small fw-bold mb-1">Output Qty (per session) <span class="text-danger">*</span></label>
+                            <label class="form-label small fw-bold mb-1">Output Qty (per session) <span
+                                    class="text-danger">*</span></label>
                             <input type="number" class="form-control form-control-sm" id="bulk-output-qty"
                                 name="output_qty" min="0" step="0.1" value="1" required>
                             <small class="text-muted" style="font-size:.68rem;">Applied to all selected sessions</small>
@@ -247,8 +271,10 @@
                         <div id="stop-session-info" class="alert alert-info py-1 px-2 mb-2 small"></div>
 
                         <div class="mb-2">
-                            <label class="form-label small fw-bold mb-1">Measurement Type <span class="text-danger">*</span></label>
-                            <select class="form-select form-select-sm" id="stop-measurement-type" name="measurement_type" required>
+                            <label class="form-label small fw-bold mb-1">Measurement Type <span
+                                    class="text-danger">*</span></label>
+                            <select class="form-select form-select-sm" id="stop-measurement-type" name="measurement_type"
+                                required>
                                 @forelse($units as $unit)
                                     <option value="{{ strtolower($unit->name) }}"
                                         {{ strtolower($unit->name) === 'pcs' ? 'selected' : '' }}>
@@ -261,7 +287,8 @@
                         </div>
 
                         <div class="mb-2">
-                            <label class="form-label small fw-bold mb-1">Output Quantity <span class="text-danger">*</span></label>
+                            <label class="form-label small fw-bold mb-1">Output Quantity <span
+                                    class="text-danger">*</span></label>
                             <input type="number" class="form-control form-control-sm" id="stop-output-qty"
                                 name="output_qty" min="1" step="0.1" value="1" required>
                             <small class="text-muted" style="font-size:.68rem;">Minimum 1</small>
@@ -299,7 +326,10 @@
         }
 
         @media (min-width: 768px) {
-            .session-col { flex: 0 0 14.28%; max-width: 14.28%; }
+            .session-col {
+                flex: 0 0 14.28%;
+                max-width: 14.28%;
+            }
         }
     </style>
 @endsection
@@ -429,7 +459,8 @@
 
                 // Store ids on form data
                 $('#bulk-stop-form').data('timing-ids', ids);
-                $('#bulk-stop-info').html(`Stopping <strong>${ids.length}</strong> session(s). Choose measurement for all:`);
+                $('#bulk-stop-info').html(
+                    `Stopping <strong>${ids.length}</strong> session(s). Choose measurement for all:`);
                 // Reset defaults
                 const defaultUnit = $('#bulk-measurement-type option').filter(function() {
                     return $(this).val() === 'pcs';
@@ -449,7 +480,8 @@
                 const outputQty = parseFloat($('#bulk-output-qty').val());
 
                 const submitBtn = $('#bulk-stop-submit-btn');
-                submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Stopping...');
+                submitBtn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm me-1"></span>Stopping...');
 
                 $.ajax({
                     url: '{{ route('mascot-timing.bulk-stop') }}',
@@ -472,7 +504,11 @@
                             });
                             setTimeout(() => location.reload(), 2100);
                         } else {
-                            Swal.fire({ icon: 'error', title: 'Error', text: r.message });
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: r.message
+                            });
                         }
                     },
                     error: function(xhr) {
@@ -484,16 +520,17 @@
                         });
                     },
                     complete: function() {
-                        submitBtn.prop('disabled', false).html('<i class="bi bi-stop-circle me-1"></i>Stop All');
+                        submitBtn.prop('disabled', false).html(
+                            '<i class="bi bi-stop-circle me-1"></i>Stop All');
                     }
                 });
             });
 
             // Stop work button click handler
             $(document).on('click', '.stop-work-btn', function() {
-                const timingId    = $(this).data('timing-id');
+                const timingId = $(this).data('timing-id');
                 const employeeName = $(this).data('employee-name');
-                const jobOrder    = $(this).data('job-order');
+                const jobOrder = $(this).data('job-order');
 
                 $('#stop-timing-id').val(timingId);
                 $('#stop-session-info').html(
@@ -516,25 +553,30 @@
             $('#stop-work-form').on('submit', function(e) {
                 e.preventDefault();
 
-                const timingId    = $('#stop-timing-id').val();
-                const outputQty   = parseFloat($('#stop-output-qty').val());
+                const timingId = $('#stop-timing-id').val();
+                const outputQty = parseFloat($('#stop-output-qty').val());
                 const measureType = $('#stop-measurement-type').val();
 
                 if (!outputQty || outputQty < 1) {
-                    Swal.fire({ icon: 'warning', title: 'Invalid Quantity', text: 'Quantity must be at least 1' });
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Invalid Quantity',
+                        text: 'Quantity must be at least 1'
+                    });
                     return;
                 }
 
                 const submitBtn = $('#stop-submit-btn');
-                submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
+                submitBtn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
 
                 $.ajax({
                     url: '{{ route('mascot-timing.stop') }}',
                     method: 'POST',
                     data: {
                         _token: '{{ csrf_token() }}',
-                        timing_id:        timingId,
-                        output_qty:       outputQty,
+                        timing_id: timingId,
+                        output_qty: outputQty,
                         measurement_type: measureType,
                     },
                     success: function(response) {
@@ -547,17 +589,26 @@
                                 timer: 2000,
                                 showConfirmButton: false
                             });
-                            $(`#session-${timingId}`).fadeOut(300, function() { $(this).remove(); });
+                            $(`#session-${timingId}`).fadeOut(300, function() {
+                                $(this).remove();
+                            });
                             setTimeout(() => location.reload(), 2100);
                         }
                     },
                     error: function(xhr) {
-                        const message = xhr.responseJSON?.message || 'Failed to complete work session.';
-                        Swal.fire({ icon: 'error', title: 'Error', text: message });
-                        submitBtn.prop('disabled', false).html('<i class="bi bi-stop-circle me-1"></i>Stop & Save');
+                        const message = xhr.responseJSON?.message ||
+                            'Failed to complete work session.';
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: message
+                        });
+                        submitBtn.prop('disabled', false).html(
+                            '<i class="bi bi-stop-circle me-1"></i>Stop & Save');
                     },
                     complete: function() {
-                        submitBtn.prop('disabled', false).html('<i class="bi bi-stop-circle me-1"></i>Stop & Save');
+                        submitBtn.prop('disabled', false).html(
+                            '<i class="bi bi-stop-circle me-1"></i>Stop & Save');
                     }
                 });
             });

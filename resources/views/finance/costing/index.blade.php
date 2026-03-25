@@ -80,38 +80,38 @@
             border-color: rgba(108, 92, 231, .3);
         }
 
-        /* ══ PROJECT CARD ══ */
+        /* ══ PROJECT CARD — 1 project = 1 card ══ */
         .project-card {
-            border-radius: 16px;
-            border: 1px solid rgba(0,0,0,.06);
+            border-radius: 18px;
+            border: none;
             overflow: hidden;
-            transition: transform 0.18s, box-shadow 0.18s;
-            box-shadow: 0 2px 12px rgba(0,0,0,.06);
+            transition: transform .18s ease, box-shadow .18s ease;
+            box-shadow: 0 2px 14px rgba(0,0,0,.06);
             text-decoration: none;
             color: inherit;
             display: flex;
             flex-direction: row;
             background: #fff;
+            min-height: 0;
         }
 
         .project-card:hover {
             transform: translateY(-3px);
-            box-shadow: 0 8px 24px rgba(108,92,231,.14);
+            box-shadow: 0 8px 28px rgba(108,92,231,.15);
             color: inherit;
             text-decoration: none;
         }
 
-        /* ── Left: square photo panel ── */
+        /* ── Left: photo panel (fixed width, stretches to card height) ── */
         .pc-photo-panel {
-            width: 130px;
-            min-width: 130px;
+            width: 155px;
+            min-width: 155px;
             flex-shrink: 0;
             position: relative;
             overflow: hidden;
-            align-self: stretch;   /* stretch to full card height */
+            align-self: stretch;
         }
 
-        /* Inner fills the whole panel */
         .pc-photo-panel-inner {
             position: absolute;
             inset: 0;
@@ -119,61 +119,70 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 6px;
-            padding: .75rem .5rem;
+            gap: 8px;
+            padding: .85rem .6rem;
         }
 
         /* Dept gradient backgrounds */
-        .mascot-bg      { background: linear-gradient(160deg, #d4bbf5 0%, #9b72cf 100%); }
-        .costume-bg     { background: linear-gradient(160deg, #ffc3c3 0%, #ff7c7c 100%); }
-        .animatronic-bg { background: linear-gradient(160deg, #80d4f5 0%, #3498db 100%); }
-        .plush-bg       { background: linear-gradient(160deg, #ffe066 0%, #f9a825 100%); }
-        .default-bg     { background: linear-gradient(160deg, #a8edea 0%, #6ab4b0 100%); }
+        .mascot-bg      { background: linear-gradient(145deg, #e0c6ff 0%, #b388ff 50%, #8e6ecf 100%); }
+        .costume-bg     { background: linear-gradient(145deg, #ffe5b4 0%, #ffb347 50%, #ff8c00 100%); }
+        .animatronic-bg { background: linear-gradient(145deg, #b3e5fc 0%, #4fc3f7 50%, #0288d1 100%); }
+        .plush-bg       { background: linear-gradient(145deg, #fff9c4 0%, #fff176 50%, #f9a825 100%); }
+        .default-bg     { background: linear-gradient(145deg, #b2dfdb 0%, #80cbc4 50%, #4db6ac 100%); }
 
+        /* Photo image */
         .pc-photo-img {
-            width: 80px;
-            height: 80px;
-            border-radius: 12px;
+            width: 90px;
+            height: 90px;
+            border-radius: 14px;
             object-fit: cover;
-            box-shadow: 0 3px 10px rgba(0,0,0,.22);
+            box-shadow: 0 4px 14px rgba(0,0,0,.2);
+            border: 3px solid rgba(255,255,255,.5);
         }
 
+        /* Placeholder when no image */
         .pc-photo-placeholder {
-            width: 80px;
-            height: 80px;
-            border-radius: 12px;
-            background: rgba(255,255,255,.3);
-            border: 2px dashed rgba(255,255,255,.6);
+            width: 90px;
+            height: 90px;
+            border-radius: 14px;
+            background: rgba(255,255,255,.35);
+            border: 2px dashed rgba(255,255,255,.65);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 2rem;
+            font-size: 2.4rem;
         }
 
-        /* Category badge inside photo panel */
+        /* Category badge (sits ABOVE the photo) */
         .pc-cat-badge {
+            order: -1;          /* push to top */
             display: inline-block;
-            background: rgba(255,255,255,.88);
+            background: rgba(255,255,255,.9);
             color: #333;
-            border-radius: 20px;
-            padding: 2px 10px;
-            font-size: 0.62rem;
+            border-radius: 8px;
+            padding: 3px 10px;
+            font-size: .63rem;
             font-weight: 700;
             letter-spacing: .03em;
             backdrop-filter: blur(4px);
+            box-shadow: 0 1px 4px rgba(0,0,0,.1);
         }
 
-        /* Lark dot badge */
+        /* Lark synced badge (bottom of panel) */
         .lark-tag {
             display: inline-flex;
             align-items: center;
-            background: rgba(255,255,255,.75);
-            padding: 2px 7px;
+            background: rgba(255,255,255,.8);
+            padding: 3px 9px;
             border-radius: 20px;
-            font-size: 0.6rem;
+            font-size: .58rem;
             font-weight: 600;
-            color: #333;
-            gap: 4px;
+            color: #444;
+            gap: 5px;
+            white-space: nowrap;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .lark-tag .dot {
@@ -188,7 +197,7 @@
         .pc-body {
             flex: 1;
             min-width: 0;
-            padding: .8rem 1rem .75rem;
+            padding: .9rem 1.15rem .85rem;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
@@ -197,9 +206,9 @@
 
         /* Project name */
         .pc-name {
-            font-size: .85rem;
+            font-size: .92rem;
             font-weight: 700;
-            line-height: 1.35;
+            line-height: 1.3;
             color: var(--bs-body-color);
             overflow: hidden;
             display: -webkit-box;
@@ -207,21 +216,23 @@
             -webkit-box-orient: vertical;
         }
 
-        /* Section label */
+        /* Section label (ACTUALS / ESTIMATES) */
         .section-title {
-            font-size: 0.62rem;
+            font-size: .6rem;
             font-weight: 800;
             color: #a29bfe;
-            letter-spacing: .6px;
+            letter-spacing: .7px;
             text-transform: uppercase;
-            margin-bottom: 3px;
+            margin-bottom: 4px;
         }
+
+        .section-title.est { color: #6c757d; }
 
         /* Dashed divider */
         .dashed-divider {
             border: none;
             border-top: 1px dashed #e5e5e5;
-            margin: 6px 0;
+            margin: 7px 0;
         }
 
         /* Data row */
@@ -229,12 +240,12 @@
             display: flex;
             justify-content: space-between;
             align-items: baseline;
-            font-size: .74rem;
-            padding: 1px 0;
+            font-size: .76rem;
+            padding: 1.5px 0;
         }
 
         .pc-row .pc-lbl { color: #6c757d; }
-        .pc-row .pc-val { font-weight: 600; }
+        .pc-row .pc-val { font-weight: 600; white-space: nowrap; }
 
         /* Profit row */
         .pc-row.profit .pc-lbl { font-weight: 600; color: var(--bs-body-color); }
@@ -243,40 +254,40 @@
         /* Profit % badge */
         .profit-badge {
             display: inline-block;
-            padding: 1px 6px;
-            border-radius: 5px;
-            font-size: 0.62rem;
+            padding: 2px 7px;
+            border-radius: 6px;
+            font-size: .63rem;
             font-weight: 700;
-            margin-left: 3px;
+            margin-left: 4px;
             vertical-align: middle;
         }
         .profit-badge.pos { background: #e8fbf3; color: #27ae60; }
         .profit-badge.neg { background: #fde8e8; color: #e74c3c; }
 
-        /* Stats strip */
+        /* ── Stats strip (INT'L PO / LOCAL PO / USAGE) ── */
         .stats-strip {
             display: flex;
-            gap: 4px;
-            margin-top: 7px;
+            gap: 5px;
+            margin-top: 8px;
         }
 
         .stats-box {
             flex: 1;
             text-align: center;
-            padding: 6px 3px;
-            border-radius: 9px;
+            padding: 7px 4px;
+            border-radius: 10px;
         }
 
         .stats-box .label {
-            font-size: 0.55rem;
+            font-size: .55rem;
             font-weight: 700;
-            opacity: .6;
+            opacity: .65;
             text-transform: uppercase;
             letter-spacing: .04em;
         }
 
         .stats-box .value {
-            font-size: 0.78rem;
+            font-size: .8rem;
             font-weight: 700;
             margin-top: 1px;
         }
@@ -299,10 +310,10 @@
 
         [data-bs-theme="dark"] .project-card {
             background: #1e1e2e;
-            border-color: rgba(255,255,255,.07);
+            border: 1px solid rgba(255,255,255,.07);
         }
 
-        [data-bs-theme="dark"] .pc-body       { background: #1e1e2e; }
+        [data-bs-theme="dark"] .pc-body { background: #1e1e2e; }
 
         [data-bs-theme="dark"] .pc-photo-placeholder {
             background: rgba(255,255,255,.1);
@@ -316,11 +327,11 @@
             background: transparent;
         }
 
-        [data-bs-theme="dark"] .mascot-bg      { background: linear-gradient(160deg, #6a3093 0%, #3d1f6e 100%); }
-        [data-bs-theme="dark"] .costume-bg     { background: linear-gradient(160deg, #8b2b35 0%, #5a1020 100%); }
-        [data-bs-theme="dark"] .animatronic-bg { background: linear-gradient(160deg, #1a5276 0%, #0d3349 100%); }
-        [data-bs-theme="dark"] .plush-bg       { background: linear-gradient(160deg, #7d6608 0%, #4a3b05 100%); }
-        [data-bs-theme="dark"] .default-bg     { background: linear-gradient(160deg, #1a5c57 0%, #0d3330 100%); }
+        [data-bs-theme="dark"] .mascot-bg      { background: linear-gradient(145deg, #6a3093 0%, #3d1f6e 100%); }
+        [data-bs-theme="dark"] .costume-bg     { background: linear-gradient(145deg, #8b4513 0%, #5a2d0c 100%); }
+        [data-bs-theme="dark"] .animatronic-bg { background: linear-gradient(145deg, #1a5276 0%, #0d3349 100%); }
+        [data-bs-theme="dark"] .plush-bg       { background: linear-gradient(145deg, #7d6608 0%, #4a3b05 100%); }
+        [data-bs-theme="dark"] .default-bg     { background: linear-gradient(145deg, #1a5c57 0%, #0d3330 100%); }
     </style>
     {{-- Flatpickr date range picker --}}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -362,11 +373,14 @@
     <div class="container-fluid mt-4 px-4">
 
         {{-- ── Page header ── --}}
-        <div class="d-flex align-items-center mb-4 gap-3">
+        <div class="d-flex align-items-center mb-4 gap-3 flex-wrap">
             <div class="bg-white p-2 rounded-3 shadow-sm" style="font-size:1.4rem;">📋</div>
             <h2 class="fw-bold m-0" style="font-size:1.25rem;">Project Costing Report</h2>
             <span class="badge rounded-pill text-bg-secondary opacity-75" style="font-size:.7rem;">
                 {{ $projects->total() }} project{{ $projects->total() != 1 ? 's' : '' }}
+            </span>
+            <span class="ms-auto text-muted" style="font-size:.68rem;">
+                <i class="fas fa-sync-alt me-1 opacity-50"></i>Lark photos synced · dept-specific source
             </span>
         </div>
 
@@ -504,11 +518,14 @@
                         $bgClass = $badgeClass . '-bg';
                         $deptEmoji = match ($badgeClass) {
                             'mascot' => '🦊',
-                            'costume' => '👗',
+                            'costume' => '⚔️',
                             'animatronic' => '🤖',
                             'plush' => '🧸',
                             default => '🏢',
                         };
+
+                        // Lark folder label
+                        $larkFolder = !empty($typeDept) ? "Lark · {$typeDept} Folder" : 'Lark';
 
                         $jobOrderCount = $project->jobOrders->count();
                         $salesName = $project->sales ?? '-';
@@ -541,13 +558,18 @@
                         };
                     @endphp
 
-                    <div class="col-xl-4 col-lg-6 col-md-6">
+                    <div class="col-xl-6 col-lg-6 col-md-12">
                         <a href="{{ route('costing.detail', $project->id) }}" class="project-card">
 
-                            {{-- ══ LEFT: square photo panel ══ --}}
+                            {{-- ══ LEFT: photo panel ══ --}}
                             <div class="pc-photo-panel {{ $bgClass }}">
                                 <div class="pc-photo-panel-inner">
-                                    {{-- Photo or placeholder --}}
+                                    {{-- Category badge (top) --}}
+                                    @if (!empty($typeDept))
+                                        <span class="pc-cat-badge">{{ $typeDept }}</span>
+                                    @endif
+
+                                    {{-- Photo or placeholder (center) --}}
                                     @if (!empty($project->photo))
                                         <img src="{{ asset('storage/' . $project->photo) }}"
                                              class="pc-photo-img" alt="{{ $project->name }}">
@@ -555,14 +577,11 @@
                                         <div class="pc-photo-placeholder">{{ $deptEmoji }}</div>
                                     @endif
 
-                                    {{-- Category badge --}}
-                                    @if (!empty($typeDept))
-                                        <span class="pc-cat-badge">{{ $typeDept }}</span>
-                                    @endif
-
-                                    {{-- Lark badge --}}
+                                    {{-- Lark badge (bottom) --}}
                                     @if (!empty($project->lark_record_id))
-                                        <span class="lark-tag"><span class="dot"></span>Lark</span>
+                                        <span class="lark-tag">
+                                            <span class="dot"></span>{{ $larkFolder }}
+                                        </span>
                                     @endif
                                 </div>
                             </div>
@@ -570,12 +589,11 @@
                             {{-- ══ RIGHT: content body ══ --}}
                             <div class="pc-body">
 
-                                {{-- ── Header: project name + chevron ── --}}
-                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                {{-- Project name --}}
+                                <div class="mb-2">
                                     <span class="pc-name" title="{{ $project->name }}">
-                                        {{ \Illuminate\Support\Str::limit($project->name, 50) }}
+                                        {{ $project->name }}
                                     </span>
-                                    <i class="fas fa-chevron-right text-muted ms-2 mt-1" style="font-size:.62rem;flex-shrink:0;opacity:.5;"></i>
                                 </div>
 
                                 {{-- ── ACTUALS ── --}}
@@ -607,7 +625,7 @@
                                 <hr class="dashed-divider">
 
                                 {{-- ── ESTIMATES ── --}}
-                                <div class="section-title">ESTIMATES</div>
+                                <div class="section-title est">ESTIMATES</div>
                                 <div class="pc-row">
                                     <span class="pc-lbl">Quoted Price</span>
                                     <span class="pc-val">{{ $hasData ? $fmt($sellingPrice) : '—' }}</span>
@@ -616,36 +634,25 @@
                                     <span class="pc-lbl">Estimated Cost</span>
                                     <span class="pc-val">{{ $hasData ? $fmt($actualCost) : '—' }}</span>
                                 </div>
-                                @if ($totalHours > 0)
                                 <div class="pc-row">
                                     <span class="pc-lbl">Total Project Time</span>
-                                    <span class="pc-val">{{ $totalHours }} hrs</span>
+                                    <span class="pc-val">{{ $totalHours > 0 ? $totalHours . ' hrs' : '—' }}</span>
                                 </div>
-                                @endif
 
-                                {{-- ── Stats strip + Export button ── --}}
-                                <div class="d-flex align-items-center gap-1 mt-2">
-                                    <div class="stats-strip flex-fill" style="margin-top:0;">
-                                        <div class="stats-box bg-warning-subtle text-warning-emphasis">
-                                            <div class="label">INT'L PO</div>
-                                            <div class="value">{{ $intlPo > 0 ? $fmtK($intlPo) : '—' }}</div>
-                                        </div>
-                                        <div class="stats-box bg-success-subtle text-success-emphasis">
-                                            <div class="label">LOCAL PO</div>
-                                            <div class="value">{{ $localPo > 0 ? $fmtK($localPo) : '—' }}</div>
-                                        </div>
-                                        <div class="stats-box bg-primary-subtle text-primary-emphasis">
-                                            <div class="label">USAGE</div>
-                                            <div class="value">{{ $usageIdr > 0 ? $fmtK($usageIdr) : '—' }}</div>
-                                        </div>
+                                {{-- ── Stats strip ── --}}
+                                <div class="stats-strip">
+                                    <div class="stats-box bg-warning-subtle text-warning-emphasis">
+                                        <div class="label">INT'L PO</div>
+                                        <div class="value">{{ $intlPo > 0 ? $fmtK($intlPo) : '—' }}</div>
                                     </div>
-                                    <a href="{{ route('costing.export', $project->id) }}"
-                                       class="btn btn-outline-success flex-shrink-0"
-                                       style="padding:.28rem .45rem;font-size:.65rem;border-radius:8px;"
-                                       title="Export Excel"
-                                       onclick="event.stopPropagation();event.preventDefault();window.location='{{ route('costing.export', $project->id) }}'">
-                                        <i class="bi bi-file-earmark-excel"></i>
-                                    </a>
+                                    <div class="stats-box bg-success-subtle text-success-emphasis">
+                                        <div class="label">LOCAL PO</div>
+                                        <div class="value">{{ $localPo > 0 ? $fmtK($localPo) : '—' }}</div>
+                                    </div>
+                                    <div class="stats-box bg-primary-subtle text-primary-emphasis">
+                                        <div class="label">USAGE</div>
+                                        <div class="value">{{ $usageIdr > 0 ? $fmtK($usageIdr) : '—' }}</div>
+                                    </div>
                                 </div>
 
                             </div>{{-- /pc-body --}}

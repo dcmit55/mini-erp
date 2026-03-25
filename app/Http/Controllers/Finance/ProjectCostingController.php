@@ -120,52 +120,55 @@ class ProjectCostingController extends Controller
             ->orderBy('job_order_id')
             ->get();
 
-        $materialsData = $usages->map(function ($usage) {
-            $inv = $usage->inventory;
+        $materialsData = $usages
+            ->map(function ($usage) {
+                $inv = $usage->inventory;
 
-            // Guard: inventory may be null (orphaned usage row or soft-deleted item)
-            if (!$inv) {
-                return null;
-            }
+                // Guard: inventory may be null (orphaned usage row or soft-deleted item)
+                if (!$inv) {
+                    return null;
+                }
 
-            $unitPrice  = $inv->price ?? 0;
-            $domFreight = $inv->unit_domestic_freight_cost ?? 0;
-            $intFreight = $inv->unit_international_freight_cost ?? 0;
-            $totalUnit  = $unitPrice + $domFreight + $intFreight;
-            $qty        = $usage->used_quantity ?? 0;
-            $currency   = $inv->currency ?? (object) ['name' => 'IDR', 'exchange_rate' => 1];
-            $rate       = $currency->exchange_rate ?? 1;
-            $totalIDR   = $totalUnit * $qty * $rate;
+                $unitPrice = $inv->price ?? 0;
+                $domFreight = $inv->unit_domestic_freight_cost ?? 0;
+                $intFreight = $inv->unit_international_freight_cost ?? 0;
+                $totalUnit = $unitPrice + $domFreight + $intFreight;
+                $qty = $usage->used_quantity ?? 0;
+                $currency = $inv->currency ?? (object) ['name' => 'IDR', 'exchange_rate' => 1];
+                $rate = $currency->exchange_rate ?? 1;
+                $totalIDR = $totalUnit * $qty * $rate;
 
-            // Unit name: prefer unit relation, fall back to varchar field
-            $unitName = 'N/A';
-            if ($inv->unit_id && $inv->unit) {
-                $unitName = $inv->unit->name ?? 'N/A';
-            } elseif (!empty($inv->unit) && is_string($inv->unit)) {
-                $unitName = $inv->unit;
-            }
+                // Unit name: prefer unit relation, fall back to varchar field
+                $unitName = 'N/A';
+                if ($inv->unit_id && $inv->unit) {
+                    $unitName = $inv->unit->name ?? 'N/A';
+                } elseif (!empty($inv->unit) && is_string($inv->unit)) {
+                    $unitName = $inv->unit;
+                }
 
-            $currCode = strtoupper($currency->name ?? 'IDR');
-            $isIntl   = in_array($currCode, ['RMB', 'CNY', 'SGD', 'USD', 'EUR', 'GBP']);
+                $currCode = strtoupper($currency->name ?? 'IDR');
+                $isIntl = in_array($currCode, ['RMB', 'CNY', 'SGD', 'USD', 'EUR', 'GBP']);
 
-            return [
-                'job_order_name' => $usage->jobOrder?->name ?? 'No Job Order',
-                'name'           => $inv->name ?? 'N/A',
-                'qty'            => $qty,
-                'unit'           => $unitName,
-                'unit_price'     => $unitPrice,
-                'total_unit_cost'=> $totalUnit,
-                'currency'       => $currCode,
-                'total_idr'      => $totalIDR,
-                'is_intl'        => $isIntl,
-                'source'         => 'usage',
-            ];
-        })->filter()->values(); // drop null rows (orphaned usages)
+                return [
+                    'job_order_name' => $usage->jobOrder?->name ?? 'No Job Order',
+                    'name' => $inv->name ?? 'N/A',
+                    'qty' => $qty,
+                    'unit' => $unitName,
+                    'unit_price' => $unitPrice,
+                    'total_unit_cost' => $totalUnit,
+                    'currency' => $currCode,
+                    'total_idr' => $totalIDR,
+                    'is_intl' => $isIntl,
+                    'source' => 'usage',
+                ];
+            })
+            ->filter()
+            ->values(); // drop null rows (orphaned usages)
 
-        $intlMaterials    = $materialsData->where('is_intl', true)->values();
-        $localMaterials   = $materialsData->where('is_intl', false)->values();
+        $intlMaterials = $materialsData->where('is_intl', true)->values();
+        $localMaterials = $materialsData->where('is_intl', false)->values();
         $totalMaterialIDR = $materialsData->sum('total_idr');
-        $usageCostIDR     = $materialsData->sum('total_idr');
+        $usageCostIDR = $materialsData->sum('total_idr');
 
         // ── DCM Costings (INT'L PO & LOCAL PO) ──
         $dcmCostings = \App\Models\Finance\DcmCosting::where('project_name', $project->name)->where('is_current', true)->get();
@@ -237,50 +240,53 @@ class ProjectCostingController extends Controller
             ->orderBy('job_order_id')
             ->get();
 
-        $materialsData = $usages->map(function ($usage) {
-            $inv = $usage->inventory;
+        $materialsData = $usages
+            ->map(function ($usage) {
+                $inv = $usage->inventory;
 
-            // Guard: inventory may be null (orphaned usage row or soft-deleted item)
-            if (!$inv) {
-                return null;
-            }
+                // Guard: inventory may be null (orphaned usage row or soft-deleted item)
+                if (!$inv) {
+                    return null;
+                }
 
-            $unitPrice  = $inv->price ?? 0;
-            $domFreight = $inv->unit_domestic_freight_cost ?? 0;
-            $intFreight = $inv->unit_international_freight_cost ?? 0;
-            $totalUnit  = $unitPrice + $domFreight + $intFreight;
-            $qty        = $usage->used_quantity ?? 0;
-            $currency   = $inv->currency ?? (object) ['name' => 'IDR', 'exchange_rate' => 1];
-            $rate       = $currency->exchange_rate ?? 1;
-            $totalOrig  = $totalUnit * $qty;
-            $totalIDR   = $totalUnit * $qty * $rate;
+                $unitPrice = $inv->price ?? 0;
+                $domFreight = $inv->unit_domestic_freight_cost ?? 0;
+                $intFreight = $inv->unit_international_freight_cost ?? 0;
+                $totalUnit = $unitPrice + $domFreight + $intFreight;
+                $qty = $usage->used_quantity ?? 0;
+                $currency = $inv->currency ?? (object) ['name' => 'IDR', 'exchange_rate' => 1];
+                $rate = $currency->exchange_rate ?? 1;
+                $totalOrig = $totalUnit * $qty;
+                $totalIDR = $totalUnit * $qty * $rate;
 
-            // Unit name: prefer unit relation, fall back to varchar field
-            $unitName = 'N/A';
-            if ($inv->unit_id && $inv->unit) {
-                $unitName = $inv->unit->name ?? 'N/A';
-            } elseif (!empty($inv->unit) && is_string($inv->unit)) {
-                $unitName = $inv->unit;
-            }
+                // Unit name: prefer unit relation, fall back to varchar field
+                $unitName = 'N/A';
+                if ($inv->unit_id && $inv->unit) {
+                    $unitName = $inv->unit->name ?? 'N/A';
+                } elseif (!empty($inv->unit) && is_string($inv->unit)) {
+                    $unitName = $inv->unit;
+                }
 
-            $currCode = strtoupper($currency->name ?? 'IDR');
-            $isIntl   = in_array($currCode, ['RMB', 'CNY', 'SGD', 'USD', 'EUR', 'GBP']);
+                $currCode = strtoupper($currency->name ?? 'IDR');
+                $isIntl = in_array($currCode, ['RMB', 'CNY', 'SGD', 'USD', 'EUR', 'GBP']);
 
-            return [
-                'job_order_name'  => $usage->jobOrder?->name ?? 'No Job Order',
-                'name'            => $inv->name ?? 'N/A',
-                'qty'             => $qty,
-                'unit'            => $unitName,
-                'unit_price'      => $unitPrice,
-                'total_unit_cost' => $totalUnit,
-                'currency'        => $currCode,
-                'exchange_rate'   => $rate,
-                'total_original'  => $totalOrig,
-                'total_idr'       => $totalIDR,
-                'is_intl'         => $isIntl,
-                'stock_location'  => $inv->location ?? ($isIntl ? 'Stock SG' : 'Stock BT'),
-            ];
-        })->filter()->values(); // drop null rows (orphaned usages)
+                return [
+                    'job_order_name' => $usage->jobOrder?->name ?? 'No Job Order',
+                    'name' => $inv->name ?? 'N/A',
+                    'qty' => $qty,
+                    'unit' => $unitName,
+                    'unit_price' => $unitPrice,
+                    'total_unit_cost' => $totalUnit,
+                    'currency' => $currCode,
+                    'exchange_rate' => $rate,
+                    'total_original' => $totalOrig,
+                    'total_idr' => $totalIDR,
+                    'is_intl' => $isIntl,
+                    'stock_location' => $inv->location ?? ($isIntl ? 'Stock SG' : 'Stock BT'),
+                ];
+            })
+            ->filter()
+            ->values(); // drop null rows (orphaned usages)
 
         $intlMaterials = $materialsData->where('is_intl', true)->values();
         $localMaterials = $materialsData->where('is_intl', false)->values();
@@ -391,15 +397,15 @@ class ProjectCostingController extends Controller
         $courierData = $this->getCourierCosts($project_id);
 
         // Split the combined couriers list into the two directions for the view
-        $allCouriers  = $courierData['couriers'];
+        $allCouriers = $courierData['couriers'];
         $sgBtShipments = $allCouriers->where('direction', 'SG → BT')->values();
         $btSgShipments = $allCouriers->where('direction', 'BT → SG')->values();
 
-        $totalSgBtIDR    = $sgBtShipments->sum('total_idr');
-        $totalBtSgIDR    = $btSgShipments->sum('total_idr');
+        $totalSgBtIDR = $sgBtShipments->sum('total_idr');
+        $totalBtSgIDR = $btSgShipments->sum('total_idr');
         $totalFreightIDR = $courierData['total_idr'];
-        $sgBtCount       = $courierData['sg_bt_count'];
-        $btSgCount       = $courierData['bt_sg_count'];
+        $sgBtCount = $courierData['sg_bt_count'];
+        $btSgCount = $courierData['bt_sg_count'];
 
         return view('finance.costing.freight-detail', compact('project', 'sgBtShipments', 'btSgShipments', 'totalSgBtIDR', 'totalBtSgIDR', 'totalFreightIDR', 'sgBtCount', 'btSgCount', 'courierData'));
     }
@@ -446,48 +452,51 @@ class ProjectCostingController extends Controller
             ->values();
 
         // Hitung total biaya per material dengan rumus baru dan konversi ke IDR
-        $materials = $usages->map(function ($usage) {
-            $inventory = $usage->inventory;
+        $materials = $usages
+            ->map(function ($usage) {
+                $inventory = $usage->inventory;
 
-            // Guard: inventory may be null (orphaned usage row or soft-deleted item)
-            if (!$inventory) {
-                return null;
-            }
+                // Guard: inventory may be null (orphaned usage row or soft-deleted item)
+                if (!$inventory) {
+                    return null;
+                }
 
-            $unitPrice           = $inventory->price ?? 0;
-            $domesticFreight     = $inventory->unit_domestic_freight_cost ?? 0;
-            $internationalFreight = $inventory->unit_international_freight_cost ?? 0;
-            $totalUnitCost       = $unitPrice + $domesticFreight + $internationalFreight;
-            $usedQty             = $usage->used_quantity ?? 0;
+                $unitPrice = $inventory->price ?? 0;
+                $domesticFreight = $inventory->unit_domestic_freight_cost ?? 0;
+                $internationalFreight = $inventory->unit_international_freight_cost ?? 0;
+                $totalUnitCost = $unitPrice + $domesticFreight + $internationalFreight;
+                $usedQty = $usage->used_quantity ?? 0;
 
-            // Unit name: prefer unit relation (FK), fall back to varchar field
-            $unitName = 'N/A';
-            if ($inventory->unit_id && $inventory->unit) {
-                $unitName = $inventory->unit->name ?? 'N/A';
-            } elseif (!empty($inventory->unit) && is_string($inventory->unit)) {
-                $unitName = $inventory->unit;
-            }
+                // Unit name: prefer unit relation (FK), fall back to varchar field
+                $unitName = 'N/A';
+                if ($inventory->unit_id && $inventory->unit) {
+                    $unitName = $inventory->unit->name ?? 'N/A';
+                } elseif (!empty($inventory->unit) && is_string($inventory->unit)) {
+                    $unitName = $inventory->unit;
+                }
 
-            $currency     = $inventory->currency ?? (object) ['name' => 'IDR', 'exchange_rate' => 1];
-            $exchangeRate = $currency->exchange_rate ?? 1;
-            $totalCost    = $totalUnitCost * $usedQty;
-            $totalCostInIDR = $totalCost * $exchangeRate;
+                $currency = $inventory->currency ?? (object) ['name' => 'IDR', 'exchange_rate' => 1];
+                $exchangeRate = $currency->exchange_rate ?? 1;
+                $totalCost = $totalUnitCost * $usedQty;
+                $totalCostInIDR = $totalCost * $exchangeRate;
 
-            return (object) [
-                'job_order_name' => $usage->jobOrder?->name ?? 'No Job Order',
-                'inventory' => (object) [
-                    'id'             => $inventory->id ?? $usage->inventory_id,
-                    'name'           => $inventory->name ?? 'N/A',
-                    'unit'           => $unitName,
-                    'price'          => $unitPrice,
-                    'total_unit_cost'=> $totalUnitCost,
-                    'currency'       => $currency,
-                ],
-                'used_quantity' => $usedQty,
-                'total_price'   => $totalCost,
-                'total_cost'    => $totalCostInIDR,
-            ];
-        })->filter()->values(); // drop null rows (orphaned usages)
+                return (object) [
+                    'job_order_name' => $usage->jobOrder?->name ?? 'No Job Order',
+                    'inventory' => (object) [
+                        'id' => $inventory->id ?? $usage->inventory_id,
+                        'name' => $inventory->name ?? 'N/A',
+                        'unit' => $unitName,
+                        'price' => $unitPrice,
+                        'total_unit_cost' => $totalUnitCost,
+                        'currency' => $currency,
+                    ],
+                    'used_quantity' => $usedQty,
+                    'total_price' => $totalCost,
+                    'total_cost' => $totalCostInIDR,
+                ];
+            })
+            ->filter()
+            ->values(); // drop null rows (orphaned usages)
 
         // Hitung grand total dalam IDR
         $grand_total_material_idr = $materials->sum('total_cost');
@@ -530,44 +539,48 @@ class ProjectCostingController extends Controller
             ->orderBy('job_order_id')
             ->get();
 
-        $materialRows = $usages->map(function ($usage) {
-            $inv = $usage->inventory;
+        $materialRows = $usages
+            ->map(function ($usage) {
+                $inv = $usage->inventory;
 
-            // Guard: inventory may be null (orphaned usage row or soft-deleted item)
-            if (!$inv) {
-                return null;
-            }
+                // Guard: inventory may be null (orphaned usage row or soft-deleted item)
+                if (!$inv) {
+                    return null;
+                }
 
-            $unitPrice  = $inv->price ?? 0;
-            $domFreight = $inv->unit_domestic_freight_cost ?? 0;
-            $intFreight = $inv->unit_international_freight_cost ?? 0;
-            $totalUnit  = $unitPrice + $domFreight + $intFreight;
-            $qty        = $usage->used_quantity ?? 0;
-            $currency   = $inv->currency ?? (object)['name' => 'IDR', 'exchange_rate' => 1];
-            $rate       = $currency->exchange_rate ?? 1;
-            $totalIdr   = $totalUnit * $qty * $rate;
+                $unitPrice = $inv->price ?? 0;
+                $domFreight = $inv->unit_domestic_freight_cost ?? 0;
+                $intFreight = $inv->unit_international_freight_cost ?? 0;
+                $totalUnit = $unitPrice + $domFreight + $intFreight;
+                $qty = $usage->used_quantity ?? 0;
+                $currency = $inv->currency ?? (object) ['name' => 'IDR', 'exchange_rate' => 1];
+                $rate = $currency->exchange_rate ?? 1;
+                $totalIdr = $totalUnit * $qty * $rate;
 
-            // Unit name: prefer unit relation, fall back to varchar field
-            $unitName = 'N/A';
-            if ($inv->unit_id && $inv->unit) {
-                $unitName = $inv->unit->name ?? 'N/A';
-            } elseif (!empty($inv->unit) && is_string($inv->unit)) {
-                $unitName = $inv->unit;
-            }
+                // Unit name: prefer unit relation, fall back to varchar field
+                $unitName = 'N/A';
+                if ($inv->unit_id && $inv->unit) {
+                    $unitName = $inv->unit->name ?? 'N/A';
+                } elseif (!empty($inv->unit) && is_string($inv->unit)) {
+                    $unitName = $inv->unit;
+                }
 
-            return [
-                'job_order_name'   => $usage->jobOrder?->name ?? 'No Job Order',
-                'material_name'    => $inv->name ?? 'N/A',
-                'qty'              => $qty,
-                'unit'             => $unitName,
-                'currency'         => strtoupper($currency->name ?? 'IDR'),
-                'unit_price'       => $unitPrice,
-                'domestic_freight' => $domFreight,
-                'intl_freight'     => $intFreight,
-                'total_unit_cost'  => $totalUnit,
-                'total_idr'        => $totalIdr,
-            ];
-        })->filter()->values()->toArray(); // drop null rows (orphaned usages)
+                return [
+                    'job_order_name' => $usage->jobOrder?->name ?? 'No Job Order',
+                    'material_name' => $inv->name ?? 'N/A',
+                    'qty' => $qty,
+                    'unit' => $unitName,
+                    'currency' => strtoupper($currency->name ?? 'IDR'),
+                    'unit_price' => $unitPrice,
+                    'domestic_freight' => $domFreight,
+                    'intl_freight' => $intFreight,
+                    'total_unit_cost' => $totalUnit,
+                    'total_idr' => $totalIdr,
+                ];
+            })
+            ->filter()
+            ->values()
+            ->toArray(); // drop null rows (orphaned usages)
 
         // ── 2. Workmanship Cost rows ─────────────────────────────────────────
         $timings = \App\Models\Production\Timing::where('project_id', $project_id)
@@ -578,67 +591,56 @@ class ProjectCostingController extends Controller
             ->orderBy('start_time')
             ->get();
 
-        $workmanshipRows = $timings->map(function ($t) {
-            $emp        = $t->employee;
-            $hrs        = round(($t->duration_minutes ?? 0) / 60, 2);
-            $salary     = $emp->salary ?? 0;
-            $hourlyRate = $salary > 0 ? round($salary / 173, 0) : 0;
-            $laborCost  = round($hourlyRate * $hrs, 0);
+        $workmanshipRows = $timings
+            ->map(function ($t) {
+                $emp = $t->employee;
+                $hrs = round(($t->duration_minutes ?? 0) / 60, 2);
+                $salary = $emp->salary ?? 0;
+                $hourlyRate = $salary > 0 ? round($salary / 173, 0) : 0;
+                $laborCost = round($hourlyRate * $hrs, 0);
 
-            return [
-                'employee'    => $emp?->name ?? '—',
-                'position'    => $emp?->position ?? '—',
-                'date'        => optional($t->tanggal)->format('d M Y') ?? '—',
-                'start_time'  => $t->start_time ? \Carbon\Carbon::parse($t->start_time)->format('H:i') : '—',
-                'end_time'    => $t->end_time   ? \Carbon\Carbon::parse($t->end_time)->format('H:i')   : '—',
-                'hours'       => $hrs,
-                'job_order'   => $t->jobOrder?->name ?? '—',
-                'step'        => $t->step ?? '—',
-                'hourly_rate' => $hourlyRate,
-                'labor_cost'  => $laborCost,
-            ];
-        })->toArray();
+                return [
+                    'employee' => $emp?->name ?? '—',
+                    'position' => $emp?->position ?? '—',
+                    'date' => optional($t->tanggal)->format('d M Y') ?? '—',
+                    'start_time' => $t->start_time ? \Carbon\Carbon::parse($t->start_time)->format('H:i') : '—',
+                    'end_time' => $t->end_time ? \Carbon\Carbon::parse($t->end_time)->format('H:i') : '—',
+                    'hours' => $hrs,
+                    'job_order' => $t->jobOrder?->name ?? '—',
+                    'step' => $t->step ?? '—',
+                    'hourly_rate' => $hourlyRate,
+                    'labor_cost' => $laborCost,
+                ];
+            })
+            ->toArray();
 
         // ── 3. Freight Cost rows ─────────────────────────────────────────────
-        $courierData  = $this->getCourierCosts($project_id);
-        $freightRows  = $courierData['couriers']->toArray();
+        $courierData = $this->getCourierCosts($project_id);
+        $freightRows = $courierData['couriers']->toArray();
 
         // ── 4. Summary row (single project) ─────────────────────────────────
-        $dcmCostings   = \App\Models\Finance\DcmCosting::where('project_name', $project->name)->where('is_current', true)->get();
-        $intlPoCostings = $dcmCostings->filter(fn($c) =>
-            str_contains(strtolower($c->purchase_type ?? ''), 'intl') ||
-            str_contains(strtolower($c->purchase_type ?? ''), 'international') ||
-            str_contains(strtolower($c->supplier ?? ''), 'sg') ||
-            str_contains(strtolower($c->department ?? ''), 'sg')
-        );
+        $dcmCostings = \App\Models\Finance\DcmCosting::where('project_name', $project->name)->where('is_current', true)->get();
+        $intlPoCostings = $dcmCostings->filter(fn($c) => str_contains(strtolower($c->purchase_type ?? ''), 'intl') || str_contains(strtolower($c->purchase_type ?? ''), 'international') || str_contains(strtolower($c->supplier ?? ''), 'sg') || str_contains(strtolower($c->department ?? ''), 'sg'));
         $localPoCostings = $dcmCostings->filter(fn($c) => !$intlPoCostings->contains('id', $c->id));
-        $totalIntlPo   = $intlPoCostings->sum('invoice_total');
-        $totalLocalPo  = $localPoCostings->sum('invoice_total');
-        $usageIdr      = collect($materialRows)->sum('total_idr');
+        $totalIntlPo = $intlPoCostings->sum('invoice_total');
+        $totalLocalPo = $localPoCostings->sum('invoice_total');
+        $usageIdr = collect($materialRows)->sum('total_idr');
 
-        $summaryRows = [[
-            'project_name' => $project->name,
-            'type_dept'    => $project->type_dept ?? '-',
-            'sales'        => $project->sales ?? '-',
-            'deadline'     => $project->deadline ? \Carbon\Carbon::parse($project->deadline)->format('d M Y') : '-',
-            'intl_po'      => $totalIntlPo,
-            'local_po'     => $totalLocalPo,
-            'usage_idr'    => $usageIdr,
-        ]];
+        $summaryRows = [
+            [
+                'project_name' => $project->name,
+                'type_dept' => $project->type_dept ?? '-',
+                'sales' => $project->sales ?? '-',
+                'deadline' => $project->deadline ? \Carbon\Carbon::parse($project->deadline)->format('d M Y') : '-',
+                'intl_po' => $totalIntlPo,
+                'local_po' => $totalLocalPo,
+                'usage_idr' => $usageIdr,
+            ],
+        ];
 
         $filename = 'costing_' . \Illuminate\Support\Str::slug($project->name) . '_' . now()->format('Ymd') . '.xlsx';
 
-        return Excel::download(
-            new ProjectCostingMultiSheetExport(
-                $project->name,
-                $summaryRows,
-                $materialRows,
-                $workmanshipRows,
-                $freightRows,
-                ['project' => $project->name]
-            ),
-            $filename
-        );
+        return Excel::download(new ProjectCostingMultiSheetExport($project->name, $summaryRows, $materialRows, $workmanshipRows, $freightRows, ['project' => $project->name]), $filename);
     }
 
     public function exportAllProjects(Request $request)
@@ -826,63 +828,57 @@ class ProjectCostingController extends Controller
     private function getCourierCosts($projectId)
     {
         // Get ALL BT-SG items (with or without courier)
-        $btSgItems = LarkBtSgItemTracking::with('courier')
-            ->where('project_id', $projectId)
-            ->get();
+        $btSgItems = LarkBtSgItemTracking::with('courier')->where('project_id', $projectId)->get();
 
         // Get ALL SG-BT items (with or without courier)
-        $sgBtItems = LarkSgBtItemTracking::with('courier')
-            ->where('project_id', $projectId)
-            ->get();
+        $sgBtItems = LarkSgBtItemTracking::with('courier')->where('project_id', $projectId)->get();
 
         // Group BT-SG by courier_id (items without courier get key '__none__')
-        $btSgCouriers = $btSgItems->groupBy(fn($i) => $i->courier_id ?? '__none__')
-            ->map(function ($items, $key) {
-                $courier = ($key !== '__none__') ? $items->first()->courier : null;
-                $itemsCost = $items->sum('sgd_cost'); // SGD cost on items
-                $courierTotalIdr = $courier ? ($courier->total_cost ?? 0) : 0;
-                $courierTotalSgd = $courier ? ($courier->total_cost_sgd ?? 0) : 0;
-                // Use courier cost if available, otherwise fall back to sum of item sgd_cost
-                $totalIdr = $courierTotalIdr > 0 ? $courierTotalIdr : round($itemsCost * 15500, 0);
-                $totalSgd = $courierTotalSgd > 0 ? $courierTotalSgd : $itemsCost;
-                return [
-                    'courier_id'     => $key !== '__none__' ? $key : null,
-                    'courier_name'   => $courier->name ?? '—',
-                    'direction'      => 'BT → SG',
-                    'date'           => ($courier && $courier->date) ? $courier->date->format('d M Y') : '—',
-                    'items_count'    => $items->count(),
-                    'items'          => $items->pluck('item_name')->toArray(),
-                    'transport_cost' => $courier->transport_cost ?? 0,
-                    'baggage_cost'   => $courier->baggage_cost ?? 0,
-                    'gst_cost'       => $courier->gst_cost ?? 0,
-                    'total_idr'      => $totalIdr,
-                    'total_sgd'      => $totalSgd,
-                ];
-            });
+        $btSgCouriers = $btSgItems->groupBy(fn($i) => $i->courier_id ?? '__none__')->map(function ($items, $key) {
+            $courier = $key !== '__none__' ? $items->first()->courier : null;
+            $itemsCost = $items->sum('sgd_cost'); // SGD cost on items
+            $courierTotalIdr = $courier ? $courier->total_cost ?? 0 : 0;
+            $courierTotalSgd = $courier ? $courier->total_cost_sgd ?? 0 : 0;
+            // Use courier cost if available, otherwise fall back to sum of item sgd_cost
+            $totalIdr = $courierTotalIdr > 0 ? $courierTotalIdr : round($itemsCost * 15500, 0);
+            $totalSgd = $courierTotalSgd > 0 ? $courierTotalSgd : $itemsCost;
+            return [
+                'courier_id' => $key !== '__none__' ? $key : null,
+                'courier_name' => $courier->name ?? '—',
+                'direction' => 'BT → SG',
+                'date' => $courier && $courier->date ? $courier->date->format('d M Y') : '—',
+                'items_count' => $items->count(),
+                'items' => $items->pluck('item_name')->toArray(),
+                'transport_cost' => $courier->transport_cost ?? 0,
+                'baggage_cost' => $courier->baggage_cost ?? 0,
+                'gst_cost' => $courier->gst_cost ?? 0,
+                'total_idr' => $totalIdr,
+                'total_sgd' => $totalSgd,
+            ];
+        });
 
         // Group SG-BT by courier_id
-        $sgBtCouriers = $sgBtItems->groupBy(fn($i) => $i->courier_id ?? '__none__')
-            ->map(function ($items, $key) {
-                $courier = ($key !== '__none__') ? $items->first()->courier : null;
-                $itemsCost = $items->sum('sgd_cost');
-                $courierTotalIdr = $courier ? ($courier->total_cost ?? 0) : 0;
-                $courierTotalSgd = $courier ? ($courier->total_cost_sgd ?? 0) : 0;
-                $totalIdr = $courierTotalIdr > 0 ? $courierTotalIdr : round($itemsCost * 15500, 0);
-                $totalSgd = $courierTotalSgd > 0 ? $courierTotalSgd : $itemsCost;
-                return [
-                    'courier_id'     => $key !== '__none__' ? $key : null,
-                    'courier_name'   => $courier->name ?? '—',
-                    'direction'      => 'SG → BT',
-                    'date'           => ($courier && $courier->date) ? $courier->date->format('d M Y') : '—',
-                    'items_count'    => $items->count(),
-                    'items'          => $items->pluck('item_name')->toArray(),
-                    'transport_cost' => $courier->transport_cost ?? 0,
-                    'baggage_cost'   => $courier->baggage_cost ?? 0,
-                    'gst_cost'       => $courier->gst_cost ?? 0,
-                    'total_idr'      => $totalIdr,
-                    'total_sgd'      => $totalSgd,
-                ];
-            });
+        $sgBtCouriers = $sgBtItems->groupBy(fn($i) => $i->courier_id ?? '__none__')->map(function ($items, $key) {
+            $courier = $key !== '__none__' ? $items->first()->courier : null;
+            $itemsCost = $items->sum('sgd_cost');
+            $courierTotalIdr = $courier ? $courier->total_cost ?? 0 : 0;
+            $courierTotalSgd = $courier ? $courier->total_cost_sgd ?? 0 : 0;
+            $totalIdr = $courierTotalIdr > 0 ? $courierTotalIdr : round($itemsCost * 15500, 0);
+            $totalSgd = $courierTotalSgd > 0 ? $courierTotalSgd : $itemsCost;
+            return [
+                'courier_id' => $key !== '__none__' ? $key : null,
+                'courier_name' => $courier->name ?? '—',
+                'direction' => 'SG → BT',
+                'date' => $courier && $courier->date ? $courier->date->format('d M Y') : '—',
+                'items_count' => $items->count(),
+                'items' => $items->pluck('item_name')->toArray(),
+                'transport_cost' => $courier->transport_cost ?? 0,
+                'baggage_cost' => $courier->baggage_cost ?? 0,
+                'gst_cost' => $courier->gst_cost ?? 0,
+                'total_idr' => $totalIdr,
+                'total_sgd' => $totalSgd,
+            ];
+        });
 
         // Combine both directions
         $allCouriers = $btSgCouriers->merge($sgBtCouriers)->values();
@@ -892,13 +888,13 @@ class ProjectCostingController extends Controller
         $totalIdr = $allCouriers->sum('total_idr');
 
         return [
-            'bt_sg_count'    => $btSgCouriers->count(),
-            'sg_bt_count'    => $sgBtCouriers->count(),
+            'bt_sg_count' => $btSgCouriers->count(),
+            'sg_bt_count' => $sgBtCouriers->count(),
             'total_couriers' => $allCouriers->count(),
-            'total_items'    => $btSgItems->count() + $sgBtItems->count(),
-            'total_sgd'      => round($totalSgd, 2),
-            'total_idr'      => round($totalIdr, 0),
-            'couriers'       => $allCouriers,
+            'total_items' => $btSgItems->count() + $sgBtItems->count(),
+            'total_sgd' => round($totalSgd, 2),
+            'total_idr' => round($totalIdr, 0),
+            'couriers' => $allCouriers,
         ];
     }
 }

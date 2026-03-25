@@ -22,68 +22,46 @@ class CostingSummarySheet implements FromArray, WithHeadings, WithStyles, WithTi
 
     public function __construct(array $rows, array $filters = [])
     {
-        $this->rows    = $rows;
+        $this->rows = $rows;
         $this->filters = $filters;
     }
 
     public function array(): array
     {
         $data = [];
-        $no   = 1;
+        $no = 1;
 
         foreach ($this->rows as $r) {
             $data[] = [
                 $no++,
                 $r['project_name'],
-                $r['type_dept']   ?? '-',
-                $r['sales']       ?? '-',
-                $r['deadline']    ?? '-',
+                $r['type_dept'] ?? '-',
+                $r['sales'] ?? '-',
+                $r['deadline'] ?? '-',
                 $r['intl_po'],
                 $r['local_po'],
                 $r['usage_idr'],
-                $r['intl_po'] + $r['local_po'],         // selling price
-                $r['usage_idr'],                        // actual cost
-                ($r['intl_po'] + $r['local_po']) - $r['usage_idr'], // profit
+                $r['intl_po'] + $r['local_po'], // selling price
+                $r['usage_idr'], // actual cost
+                $r['intl_po'] + $r['local_po'] - $r['usage_idr'], // profit
             ];
         }
 
         // Grand total row
-        $totalIntlPo   = array_sum(array_column($this->rows, 'intl_po'));
-        $totalLocalPo  = array_sum(array_column($this->rows, 'local_po'));
-        $totalUsage    = array_sum(array_column($this->rows, 'usage_idr'));
-        $totalSelling  = $totalIntlPo + $totalLocalPo;
-        $totalProfit   = $totalSelling - $totalUsage;
+        $totalIntlPo = array_sum(array_column($this->rows, 'intl_po'));
+        $totalLocalPo = array_sum(array_column($this->rows, 'local_po'));
+        $totalUsage = array_sum(array_column($this->rows, 'usage_idr'));
+        $totalSelling = $totalIntlPo + $totalLocalPo;
+        $totalProfit = $totalSelling - $totalUsage;
 
-        $data[] = [
-            '',
-            'GRAND TOTAL',
-            '', '', '',
-            $totalIntlPo,
-            $totalLocalPo,
-            $totalUsage,
-            $totalSelling,
-            $totalUsage,
-            $totalProfit,
-        ];
+        $data[] = ['', 'GRAND TOTAL', '', '', '', $totalIntlPo, $totalLocalPo, $totalUsage, $totalSelling, $totalUsage, $totalProfit];
 
         return $data;
     }
 
     public function headings(): array
     {
-        return [
-            'No',
-            'Project Name',
-            'Type / Dept',
-            'Sales / Creator',
-            'Deadline',
-            'INT\'L PO (Rp)',
-            'LOCAL PO (Rp)',
-            'Material Usage (Rp)',
-            'Selling Price (Rp)',
-            'Actual Cost (Rp)',
-            'Profit (Rp)',
-        ];
+        return ['No', 'Project Name', 'Type / Dept', 'Sales / Creator', 'Deadline', 'INT\'L PO (Rp)', 'LOCAL PO (Rp)', 'Material Usage (Rp)', 'Selling Price (Rp)', 'Actual Cost (Rp)', 'Profit (Rp)'];
     }
 
     public function styles(Worksheet $sheet): array
@@ -108,18 +86,25 @@ class CostingSummarySheet implements FromArray, WithHeadings, WithStyles, WithTi
         // Currency format for numeric columns (F-K), skip header and total
         $dataLast = $last - 1;
         foreach (['F', 'G', 'H', 'I', 'J', 'K'] as $col) {
-            $sheet->getStyle("{$col}2:{$col}{$dataLast}")
-                  ->getNumberFormat()->setFormatCode('"Rp "#,##0');
-            $sheet->getStyle("{$col}{$last}")
-                  ->getNumberFormat()->setFormatCode('"Rp "#,##0');
+            $sheet
+                ->getStyle("{$col}2:{$col}{$dataLast}")
+                ->getNumberFormat()
+                ->setFormatCode('"Rp "#,##0');
+            $sheet
+                ->getStyle("{$col}{$last}")
+                ->getNumberFormat()
+                ->setFormatCode('"Rp "#,##0');
         }
 
         // Alternating row colour for data rows
         for ($i = 2; $i <= $dataLast; $i++) {
             if ($i % 2 === 0) {
-                $sheet->getStyle("A{$i}:K{$i}")
-                      ->getFill()->setFillType(Fill::FILL_SOLID)
-                      ->getStartColor()->setRGB('F2F2F2');
+                $sheet
+                    ->getStyle("A{$i}:K{$i}")
+                    ->getFill()
+                    ->setFillType(Fill::FILL_SOLID)
+                    ->getStartColor()
+                    ->setRGB('F2F2F2');
             }
         }
 
@@ -155,7 +140,7 @@ class CostingSummarySheet implements FromArray, WithHeadings, WithStyles, WithTi
 
     public function registerEvents(): array
     {
-        $filters  = $this->filters;
+        $filters = $this->filters;
         $rowCount = count($this->rows);
 
         return [
@@ -166,7 +151,7 @@ class CostingSummarySheet implements FromArray, WithHeadings, WithStyles, WithTi
                 $sheet->freezePane('A2');
 
                 // Auto-filter
-                $sheet->setAutoFilter("A1:K1");
+                $sheet->setAutoFilter('A1:K1');
 
                 // Insert 3 info rows at top, shift data down
                 $sheet->insertNewRowBefore(1, 3);
@@ -176,10 +161,18 @@ class CostingSummarySheet implements FromArray, WithHeadings, WithStyles, WithTi
 
                 $filterText = 'Filters: ';
                 $parts = [];
-                if (!empty($filters['department'])) $parts[] = 'Dept: ' . $filters['department'];
-                if (!empty($filters['sales']))       $parts[] = 'Sales: ' . $filters['sales'];
-                if (!empty($filters['date_from']))   $parts[] = 'From: ' . $filters['date_from'];
-                if (!empty($filters['date_to']))     $parts[] = 'To: ' . $filters['date_to'];
+                if (!empty($filters['department'])) {
+                    $parts[] = 'Dept: ' . $filters['department'];
+                }
+                if (!empty($filters['sales'])) {
+                    $parts[] = 'Sales: ' . $filters['sales'];
+                }
+                if (!empty($filters['date_from'])) {
+                    $parts[] = 'From: ' . $filters['date_from'];
+                }
+                if (!empty($filters['date_to'])) {
+                    $parts[] = 'To: ' . $filters['date_to'];
+                }
                 $filterText .= empty($parts) ? 'All Projects' : implode(' | ', $parts);
 
                 $sheet->setCellValue('A2', $filterText);

@@ -76,7 +76,7 @@ class MascotTimingController extends Controller
     // Rename khusus Mascot
     private const SKILLSET_LABELS = [
         45 => 'Inflatable',
-        3  => 'FRP',
+        3 => 'FRP',
     ];
 
     /**
@@ -89,29 +89,30 @@ class MascotTimingController extends Controller
 
         $skillsets = Skillset::where('is_active', true)
             ->whereHas('employees', fn($q) => $q->whereIn('employees.id', $employeeIds))
-            ->with(['employees' => fn($q) => $q
-                ->whereIn('employees.id', $employeeIds)
-                ->orderBy('name')
-            ])
+            ->with(['employees' => fn($q) => $q->whereIn('employees.id', $employeeIds)->orderBy('name')])
             ->orderBy('name')
             ->get();
 
-        $groups = $skillsets->map(fn($skillset) => [
-            'skillset_id' => $skillset->id,
-            'label'       => self::SKILLSET_LABELS[$skillset->id] ?? $skillset->name,
-            'employees'   => $skillset->employees->map(fn($emp) => [
-                'employee' => $employeeMap->get($emp->id) ?? $emp,
-            ]),
-        ]);
+        $groups = $skillsets->map(
+            fn($skillset) => [
+                'skillset_id' => $skillset->id,
+                'label' => self::SKILLSET_LABELS[$skillset->id] ?? $skillset->name,
+                'employees' => $skillset->employees->map(
+                    fn($emp) => [
+                        'employee' => $employeeMap->get($emp->id) ?? $emp,
+                    ],
+                ),
+            ],
+        );
 
         $assignedIds = $skillsets->flatMap(fn($s) => $s->employees->pluck('id'))->unique();
-        $unassigned  = $employees->whereNotIn('id', $assignedIds);
+        $unassigned = $employees->whereNotIn('id', $assignedIds);
 
         if ($unassigned->isNotEmpty()) {
             $groups->push([
                 'skillset_id' => null,
-                'label'       => 'Other',
-                'employees'   => $unassigned->map(fn($emp) => ['employee' => $emp]),
+                'label' => 'Other',
+                'employees' => $unassigned->map(fn($emp) => ['employee' => $emp]),
             ]);
         }
 
@@ -264,9 +265,9 @@ class MascotTimingController extends Controller
     public function stop(Request $request)
     {
         $validated = $request->validate([
-            'timing_id'        => 'required|exists:timings,id',
-            'stage'            => 'required|integer|min:1|max:10', // Stage 1-10: each = 10% progress
-            'output_qty'       => 'required|numeric|min:0',
+            'timing_id' => 'required|exists:timings,id',
+            'stage' => 'required|integer|min:1|max:10', // Stage 1-10: each = 10% progress
+            'output_qty' => 'required|numeric|min:0',
             'measurement_type' => 'required|string|max:50',
         ]);
 
@@ -294,7 +295,7 @@ class MascotTimingController extends Controller
                 try {
                     $today = now()->format('Y-m-d');
                     $start = Carbon::parse($today . ' ' . $timing->start_time);
-                    $end   = Carbon::parse($today . ' ' . $endTime);
+                    $end = Carbon::parse($today . ' ' . $endTime);
                     $durationMinutes = $start->diffInMinutes($end);
                 } catch (\Exception $e) {
                     $durationMinutes = 0;
@@ -306,40 +307,40 @@ class MascotTimingController extends Controller
             $previousProgress = $deptSpecificData['previous_progress'] ?? 0;
 
             // Absolute progress: stage 2 = 20%, stage 5 = 50%, etc.
-            $stage           = $validated['stage'];
+            $stage = $validated['stage'];
             $currentProgress = $stage * 10;
-            $progressAdded   = $currentProgress - $previousProgress;
+            $progressAdded = $currentProgress - $previousProgress;
 
             // Update department-specific data
-            $deptSpecificData['current_stage']    = $stage;
+            $deptSpecificData['current_stage'] = $stage;
             $deptSpecificData['current_progress'] = $currentProgress;
-            $deptSpecificData['progress_added']   = $progressAdded;
-            $deptSpecificData['stage']            = $stage;
+            $deptSpecificData['progress_added'] = $progressAdded;
+            $deptSpecificData['stage'] = $stage;
 
             // Update timing record
             $timing->update([
-                'end_time'                 => $endTime,
-                'measurement_type'         => $validated['measurement_type'],
-                'measurement_value'        => $validated['output_qty'],
-                'duration_minutes'         => $durationMinutes,
-                'duration_hours'           => round($durationMinutes / 60, 2),
-                'status'                   => 'complete',
-                'approval_status'          => 'pending',
+                'end_time' => $endTime,
+                'measurement_type' => $validated['measurement_type'],
+                'measurement_value' => $validated['output_qty'],
+                'duration_minutes' => $durationMinutes,
+                'duration_hours' => round($durationMinutes / 60, 2),
+                'status' => 'complete',
+                'approval_status' => 'pending',
                 'department_specific_data' => $deptSpecificData,
             ]);
 
             DB::commit();
 
             return response()->json([
-                'success'          => true,
-                'message'          => "Work session completed. Stage {$stage} reached ({$currentProgress}% progress).",
-                'stage'            => $stage,
+                'success' => true,
+                'message' => "Work session completed. Stage {$stage} reached ({$currentProgress}% progress).",
+                'stage' => $stage,
                 'current_progress' => $currentProgress,
-                'progress_added'   => $progressAdded,
-                'end_time'         => $endTime,
-                'timing_id'        => $timing->id,
+                'progress_added' => $progressAdded,
+                'end_time' => $endTime,
+                'timing_id' => $timing->id,
                 'duration_minutes' => $durationMinutes,
-                'duration_hours'   => round($durationMinutes / 60, 2),
+                'duration_hours' => round($durationMinutes / 60, 2),
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -365,10 +366,10 @@ class MascotTimingController extends Controller
     public function bulkStop(Request $request)
     {
         $validated = $request->validate([
-            'timing_ids'   => 'required|array|min:1',
+            'timing_ids' => 'required|array|min:1',
             'timing_ids.*' => 'required|exists:timings,id',
             'measurement_type' => 'required|string|max:50',
-            'output_qty'       => 'required|numeric|min:0',
+            'output_qty' => 'required|numeric|min:0',
         ]);
 
         $endTime = now()->format('H:i:s');
@@ -390,20 +391,20 @@ class MascotTimingController extends Controller
                     try {
                         $today = now()->format('Y-m-d');
                         $start = \Carbon\Carbon::parse($today . ' ' . $timing->start_time);
-                        $end   = \Carbon\Carbon::parse($today . ' ' . $endTime);
+                        $end = \Carbon\Carbon::parse($today . ' ' . $endTime);
                         $durationMinutes = $start->diffInMinutes($end);
                     } catch (\Exception $e) {
                     }
                 }
 
                 $timing->update([
-                    'end_time'         => $endTime,
+                    'end_time' => $endTime,
                     'measurement_type' => $validated['measurement_type'],
-                    'measurement_value'=> $validated['output_qty'],
+                    'measurement_value' => $validated['output_qty'],
                     'duration_minutes' => $durationMinutes,
-                    'duration_hours'   => round($durationMinutes / 60, 2),
-                    'status'           => 'complete',
-                    'approval_status'  => 'pending',
+                    'duration_hours' => round($durationMinutes / 60, 2),
+                    'status' => 'complete',
+                    'approval_status' => 'pending',
                 ]);
                 $stopped++;
             } // end foreach

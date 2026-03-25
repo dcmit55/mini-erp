@@ -60,7 +60,7 @@ class EfficiencyDashboardController extends Controller
         // Projects with metrics - STANDARDIZED: Use minutes as primary unit
         // FILTER: Hanya tampilkan project dengan project_status='Delivered'
         $projects = Project::select('projects.*')
-            
+
             ->where('project_status', 'Delivered')
             ->with(['department', 'projectStatus'])
             ->withCount([
@@ -153,7 +153,7 @@ class EfficiencyDashboardController extends Controller
 
         // ❗ Validasi: Project harus closed DAN delivered
         $project = Project::where('id', $projectId)
-            
+
             ->where('project_status', 'Delivered')
             ->with(['department', 'projectStatus'])
             ->firstOrFail();

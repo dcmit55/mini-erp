@@ -21,59 +21,30 @@ class CostingWorkmanshipSheet implements FromArray, WithHeadings, WithStyles, Wi
 
     public function __construct(array $rows, string $projectName)
     {
-        $this->rows        = $rows;
+        $this->rows = $rows;
         $this->projectName = $projectName;
     }
 
     public function array(): array
     {
         $data = [];
-        $no   = 1;
+        $no = 1;
 
         foreach ($this->rows as $r) {
-            $data[] = [
-                $no++,
-                $r['employee'],
-                $r['position'],
-                $r['date'],
-                $r['start_time'],
-                $r['end_time'],
-                $r['hours'],
-                $r['job_order'],
-                $r['step']        ?? '-',
-                $r['hourly_rate'] ?? 0,
-                $r['labor_cost']  ?? 0,
-            ];
+            $data[] = [$no++, $r['employee'], $r['position'], $r['date'], $r['start_time'], $r['end_time'], $r['hours'], $r['job_order'], $r['step'] ?? '-', $r['hourly_rate'] ?? 0, $r['labor_cost'] ?? 0];
         }
 
         $totalHours = array_sum(array_column($this->rows, 'hours'));
-        $totalCost  = array_sum(array_column($this->rows, 'labor_cost'));
+        $totalCost = array_sum(array_column($this->rows, 'labor_cost'));
 
-        $data[] = [
-            '', 'TOTAL', '', '', '', '',
-            $totalHours,
-            '', '', '',
-            $totalCost,
-        ];
+        $data[] = ['', 'TOTAL', '', '', '', '', $totalHours, '', '', '', $totalCost];
 
         return $data;
     }
 
     public function headings(): array
     {
-        return [
-            'No',
-            'Employee',
-            'Position',
-            'Date',
-            'Start',
-            'End',
-            'Hours',
-            'Job Order',
-            'Step / Task',
-            'Hourly Rate (Rp)',
-            'Labor Cost (Rp)',
-        ];
+        return ['No', 'Employee', 'Position', 'Date', 'Start', 'End', 'Hours', 'Job Order', 'Step / Task', 'Hourly Rate (Rp)', 'Labor Cost (Rp)'];
     }
 
     public function styles(Worksheet $sheet): array
@@ -94,11 +65,15 @@ class CostingWorkmanshipSheet implements FromArray, WithHeadings, WithStyles, Wi
 
         $dataLast = $last - 1;
         foreach (['J', 'K'] as $col) {
-            $sheet->getStyle("{$col}2:{$col}{$last}")
-                  ->getNumberFormat()->setFormatCode('"Rp "#,##0');
+            $sheet
+                ->getStyle("{$col}2:{$col}{$last}")
+                ->getNumberFormat()
+                ->setFormatCode('"Rp "#,##0');
         }
-        $sheet->getStyle("G2:G{$last}")
-              ->getNumberFormat()->setFormatCode('0.00');
+        $sheet
+            ->getStyle("G2:G{$last}")
+            ->getNumberFormat()
+            ->setFormatCode('0.00');
 
         $sheet->getStyle("A1:K{$last}")->applyFromArray([
             'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => 'CCCCCC']]],
