@@ -264,8 +264,10 @@ class MascotTimingController extends Controller
     public function stop(Request $request)
     {
         $validated = $request->validate([
-            'timing_id' => 'required|exists:timings,id',
-            'stage'     => 'required|integer|min:1|max:10', // Stage 1-10: each = 10% progress
+            'timing_id'        => 'required|exists:timings,id',
+            'stage'            => 'required|integer|min:1|max:10', // Stage 1-10: each = 10% progress
+            'output_qty'       => 'required|numeric|min:0',
+            'measurement_type' => 'required|string|max:50',
         ]);
 
         try {
@@ -317,8 +319,8 @@ class MascotTimingController extends Controller
             // Update timing record
             $timing->update([
                 'end_time'                 => $endTime,
-                'measurement_type'         => 'percentage',
-                'measurement_value'        => $currentProgress, // absolute progress %
+                'measurement_type'         => $validated['measurement_type'],
+                'measurement_value'        => $validated['output_qty'],
                 'duration_minutes'         => $durationMinutes,
                 'duration_hours'           => round($durationMinutes / 60, 2),
                 'status'                   => 'complete',
@@ -365,6 +367,8 @@ class MascotTimingController extends Controller
         $validated = $request->validate([
             'timing_ids'   => 'required|array|min:1',
             'timing_ids.*' => 'required|exists:timings,id',
+            'measurement_type' => 'required|string|max:50',
+            'output_qty'       => 'required|numeric|min:0',
         ]);
 
         $endTime = now()->format('H:i:s');
@@ -394,8 +398,8 @@ class MascotTimingController extends Controller
 
                 $timing->update([
                     'end_time'         => $endTime,
-                    'measurement_type' => 'pcs',
-                    'measurement_value'=> 1,
+                    'measurement_type' => $validated['measurement_type'],
+                    'measurement_value'=> $validated['output_qty'],
                     'duration_minutes' => $durationMinutes,
                     'duration_hours'   => round($durationMinutes / 60, 2),
                     'status'           => 'complete',

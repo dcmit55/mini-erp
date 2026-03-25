@@ -192,6 +192,49 @@
         @endif
     </div>
 
+    <!-- Bulk Stop Modal -->
+    <div class="modal fade" id="bulkStopModal" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white py-2">
+                    <h6 class="modal-title mb-0"><i class="bi bi-stop-circle me-1"></i>Bulk Stop Sessions</h6>
+                    <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="bulk-stop-form">
+                    <div class="modal-body py-2 px-3">
+                        @csrf
+                        <div id="bulk-stop-info" class="alert alert-warning py-1 px-2 mb-2 small"></div>
+                        <div class="mb-2">
+                            <label class="form-label small fw-bold mb-1">Measurement Type <span class="text-danger">*</span></label>
+                            <select class="form-select form-select-sm" id="bulk-measurement-type" name="measurement_type" required>
+                                @forelse($units as $unit)
+                                    <option value="{{ strtolower($unit->name) }}"
+                                        {{ strtolower($unit->name) === 'pcs' ? 'selected' : '' }}>
+                                        {{ $unit->name }}
+                                    </option>
+                                @empty
+                                    <option value="pcs" selected>Pcs</option>
+                                @endforelse
+                            </select>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small fw-bold mb-1">Output Qty (per session) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control form-control-sm" id="bulk-output-qty"
+                                name="output_qty" min="0" step="0.1" value="1" required>
+                            <small class="text-muted" style="font-size:.68rem;">Applied to all selected sessions</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer py-2">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger btn-sm" id="bulk-stop-submit-btn">
+                            <i class="bi bi-stop-circle me-1"></i>Stop All
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Stop Work Modal -->
     <div class="modal fade" id="stopWorkModal" tabindex="-1">
         <div class="modal-dialog">
@@ -378,51 +421,85 @@
                 });
                 if (ids.length === 0) return;
 
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Bulk Stop ' + ids.length + ' session(s)?',
-                    text: 'All selected sessions will be stopped with output qty = 1.',
-                    showCancelButton: true,
-                    confirmButtonColor: '#dc3545',
-                    confirmButtonText: '<i class="bi bi-stop-circle"></i> Stop All',
-                    cancelButtonText: 'Cancel'
-                }).then(function(result) {
-                    if (!result.isConfirmed) return;
-                    $.ajax({
-                        url: '{{ route('costume-timing.bulk-stop') }}',
-                        method: 'POST',
-                        data: {
-                            _token: '{{ csrf_token() }}',
-                            timing_ids: ids
-                        },
-                        success: function(r) {
-                            if (r.success) {
-                                Swal.fire({
-                                    icon: 'success',
-                                    title: 'Done!',
-                                    text: r.message,
-                                    timer: 2000,
-                                    showConfirmButton: false
-                                });
-                                setTimeout(() => location.reload(), 2100);
-                            } else {
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'Error',
-                                    text: r.message
-                                });
-                            }
-                        },
-                        error: function(xhr) {
+                // Store ids on hidden input for form submit
+                $('#bulk-stop-form').data('timing-ids', ids);
+                $('#bulk-stop-info').html(`Stopping <strong>${ids.length}</strong> session(s). Choose measurement for all:`);
+                // Reset defaults
+                const defaultUnit = $('#bulk-measurement-type option').filter(function() {
+                    return $(this).val() === 'pcs';
+                }).val() || $('#bulk-measurement-type option:first').val();
+                $('#bulk-measurement-type').val(defaultUnit).trigger('change');
+                $('#bulk-output-qty').val(1);
+                $('#bulkStopModal').modal('show');
+            });
+
+            // Bulk stop form submit
+            $('#bulk-stop-form').on('submit', function(e) {
+                e.preventDefault();
+                const ids = $(this).data('timing-ids') || [];
+                if (ids.length === 0) return;
+
+                const measurementType = $('#bulk-measurement-type').val();
+                const outputQty = parseFloat($('#bulk-output-qty').val());
+
+                if (!outputQty && outputQty !== 0) {
+                    Swal.fire({ icon: 'warning', title: 'Invalid Quantity', text: 'Please enter a valid output quantity' });
+                    return;
+                }
+
+                const submitBtn = $('#bulk-stop-submit-btn');
+                submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Stopping...');
+
+                $.ajax({
+                    url: '{{ route('costume-timing.bulk-stop') }}',
+                    method: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        timing_ids: ids,
+                        measurement_type: measurementType,
+                        output_qty: outputQty,
+                    },
+                    success: function(r) {
+                        $('#bulkStopModal').modal('hide');
+                        if (r.success) {
                             Swal.fire({
-                                icon: 'error',
-                                title: 'Error',
-                                text: xhr.responseJSON?.message ||
-                                    'Bulk stop failed.'
+                                icon: 'success',
+                                title: 'Done!',
+                                text: r.message,
+                                timer: 2000,
+                                showConfirmButton: false
                             });
+                            setTimeout(() => location.reload(), 2100);
+                        } else {
+                            Swal.fire({ icon: 'error', title: 'Error', text: r.message });
                         }
-                    });
+                    },
+                    error: function(xhr) {
+                        $('#bulkStopModal').modal('hide');
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: xhr.responseJSON?.message || 'Bulk stop failed.'
+                        });
+                    },
+                    complete: function() {
+                        submitBtn.prop('disabled', false).html('<i class="bi bi-stop-circle me-1"></i>Stop All');
+                    }
                 });
+            });
+
+            // Init Select2 for measurement type in bulk-stop modal
+            $('#bulk-measurement-type').select2({
+                theme: 'bootstrap-5',
+                dropdownParent: $('#bulkStopModal'),
+                minimumResultsForSearch: Infinity,
+            });
+
+            // Init Select2 for measurement type in stop modal
+            $('#stop-measurement-type').select2({
+                theme: 'bootstrap-5',
+                dropdownParent: $('#stopWorkModal'),
+                minimumResultsForSearch: Infinity,
             });
 
             // Stop work handler
@@ -437,7 +514,12 @@
                         <strong>Employee:</strong> ${employeeName}<br>
                         <strong>Job Order:</strong> ${jobOrder}
                     `);
-                    $('#stop-output-qty').val(1).focus();
+                    $('#stop-output-qty').val(1);
+                    // Reset Select2 to default (pcs)
+                    const defaultUnit = $('#stop-measurement-type option').filter(function() {
+                        return $(this).val() === 'pcs';
+                    }).val() || $('#stop-measurement-type option:first').val();
+                    $('#stop-measurement-type').val(defaultUnit).trigger('change');
                     $('#stopWorkModal').modal('show');
                 } else {
                     Swal.fire({

@@ -86,15 +86,16 @@
             border: none;
             overflow: hidden;
             transition: transform 0.18s, box-shadow 0.18s;
-            box-shadow: 0 2px 16px rgba(0,0,0,.07);
+            box-shadow: 0 2px 16px rgba(0, 0, 0, .07);
             text-decoration: none;
             color: inherit;
             display: block;
             background: #fff;
         }
+
         .project-card:hover {
             transform: translateY(-4px);
-            box-shadow: 0 10px 28px rgba(108,92,231,.16);
+            box-shadow: 0 10px 28px rgba(108, 92, 231, .16);
             color: inherit;
             text-decoration: none;
         }
@@ -108,19 +109,45 @@
             justify-content: space-between;
             min-height: 70px;
         }
-        .mascot-bg      { background: linear-gradient(135deg, #c3b1e1 0%, #8e7cc3 100%); }
-        .costume-bg     { background: linear-gradient(135deg, #ffb1b1 0%, #ff7c7c 100%); }
-        .animatronic-bg { background: linear-gradient(135deg, #80d4f5 0%, #3498db 100%); }
-        .plush-bg       { background: linear-gradient(135deg, #ffe066 0%, #f9a825 100%); }
-        .default-bg     { background: linear-gradient(135deg, #a8edea 0%, #6ab4b0 100%); }
 
-        .pc-header-left  { display: flex; flex-direction: column; gap: 4px; }
-        .pc-header-right { font-size: 2.4rem; line-height: 1; opacity: .82; flex-shrink: 0; margin-left: .5rem; }
+        .mascot-bg {
+            background: linear-gradient(135deg, #c3b1e1 0%, #8e7cc3 100%);
+        }
+
+        .costume-bg {
+            background: linear-gradient(135deg, #ffb1b1 0%, #ff7c7c 100%);
+        }
+
+        .animatronic-bg {
+            background: linear-gradient(135deg, #80d4f5 0%, #3498db 100%);
+        }
+
+        .plush-bg {
+            background: linear-gradient(135deg, #ffe066 0%, #f9a825 100%);
+        }
+
+        .default-bg {
+            background: linear-gradient(135deg, #a8edea 0%, #6ab4b0 100%);
+        }
+
+        .pc-header-left {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .pc-header-right {
+            font-size: 2.4rem;
+            line-height: 1;
+            opacity: .82;
+            flex-shrink: 0;
+            margin-left: .5rem;
+        }
 
         /* Category badge */
         .category-badge {
             display: inline-block;
-            background-color: rgba(255,255,255,.85) !important;
+            background-color: rgba(255, 255, 255, .85) !important;
             color: #333 !important;
             border-radius: 8px;
             padding: 3px 9px;
@@ -128,30 +155,35 @@
             font-weight: 700;
             backdrop-filter: blur(4px);
         }
+
         /* Lark badge */
         .lark-tag {
             display: inline-flex;
             align-items: center;
-            background: rgba(255,255,255,.75);
+            background: rgba(255, 255, 255, .75);
             padding: 2px 8px;
             border-radius: 20px;
             font-size: 0.65rem;
             font-weight: 600;
             width: fit-content;
         }
+
         .lark-tag .dot {
-            height: 6px; width: 6px;
+            height: 6px;
+            width: 6px;
             background-color: #2ecc71;
             border-radius: 50%;
             margin-right: 5px;
             flex-shrink: 0;
         }
+
         /* Project name row */
         .pc-name-row {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
         }
+
         .pc-name {
             font-size: .88rem;
             font-weight: 700;
@@ -190,9 +222,19 @@
             font-size: .78rem;
             padding: .1rem 0;
         }
-        .pc-row .pc-lbl { color: #6c757d; }
-        .pc-row .pc-val { font-weight: 600; }
-        .pc-row.profit  .pc-val { color: #2ecc71; font-weight: 700; }
+
+        .pc-row .pc-lbl {
+            color: #6c757d;
+        }
+
+        .pc-row .pc-val {
+            font-weight: 600;
+        }
+
+        .pc-row.profit .pc-val {
+            color: #2ecc71;
+            font-weight: 700;
+        }
 
         /* Profit badge */
         .profit-badge {
@@ -202,8 +244,16 @@
             font-size: 0.68rem;
             font-weight: 700;
         }
-        .profit-badge.pos { background: #e8fbf3; color: #2ecc71; }
-        .profit-badge.neg { background: #fde8e8; color: #e74c3c; }
+
+        .profit-badge.pos {
+            background: #e8fbf3;
+            color: #2ecc71;
+        }
+
+        .profit-badge.neg {
+            background: #fde8e8;
+            color: #e74c3c;
+        }
 
         /* Stats row (INT'L PO / LOCAL PO / USAGE) */
         .stats-strip {
@@ -211,12 +261,14 @@
             gap: 5px;
             margin-top: 8px;
         }
+
         .stats-box {
             flex: 1;
             text-align: center;
             padding: 7px 4px;
             border-radius: 10px;
         }
+
         .stats-box .label {
             font-size: 0.58rem;
             font-weight: 700;
@@ -224,6 +276,7 @@
             text-transform: uppercase;
             letter-spacing: .04em;
         }
+
         .stats-box .value {
             font-size: 0.82rem;
             font-weight: 700;
@@ -236,41 +289,85 @@
             padding: 4rem 1rem;
             color: var(--bs-secondary-color, #adb5bd);
         }
-        .empty-state i { font-size: 3.5rem; margin-bottom: 1rem; }
+
+        .empty-state i {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+        }
 
         /* ── Dark mode ── */
         [data-bs-theme="dark"] .filter-bar-card .form-select,
         [data-bs-theme="dark"] .filter-bar-card .form-control {
-            background: rgba(255,255,255,.06);
+            background: rgba(255, 255, 255, .06);
             color: var(--bs-body-color);
         }
-        [data-bs-theme="dark"] .project-card { background: #1e1e2e; }
-        [data-bs-theme="dark"] .pc-body       { background: #1e1e2e; }
+
+        [data-bs-theme="dark"] .project-card {
+            background: #1e1e2e;
+        }
+
+        [data-bs-theme="dark"] .pc-body {
+            background: #1e1e2e;
+        }
+
         [data-bs-theme="dark"] .dept-filter-tabs .nav-link {
-            border-color: rgba(255,255,255,.15);
+            border-color: rgba(255, 255, 255, .15);
             background: transparent;
         }
-        [data-bs-theme="dark"] .mascot-bg      { background: linear-gradient(135deg, #6a3093 0%, #3d1f6e 100%); }
-        [data-bs-theme="dark"] .costume-bg     { background: linear-gradient(135deg, #8b2b35 0%, #5a1020 100%); }
-        [data-bs-theme="dark"] .animatronic-bg { background: linear-gradient(135deg, #1a5276 0%, #0d3349 100%); }
-        [data-bs-theme="dark"] .plush-bg       { background: linear-gradient(135deg, #7d6608 0%, #4a3b05 100%); }
-        [data-bs-theme="dark"] .default-bg     { background: linear-gradient(135deg, #1a5c57 0%, #0d3330 100%); }
+
+        [data-bs-theme="dark"] .mascot-bg {
+            background: linear-gradient(135deg, #6a3093 0%, #3d1f6e 100%);
+        }
+
+        [data-bs-theme="dark"] .costume-bg {
+            background: linear-gradient(135deg, #8b2b35 0%, #5a1020 100%);
+        }
+
+        [data-bs-theme="dark"] .animatronic-bg {
+            background: linear-gradient(135deg, #1a5276 0%, #0d3349 100%);
+        }
+
+        [data-bs-theme="dark"] .plush-bg {
+            background: linear-gradient(135deg, #7d6608 0%, #4a3b05 100%);
+        }
+
+        [data-bs-theme="dark"] .default-bg {
+            background: linear-gradient(135deg, #1a5c57 0%, #0d3330 100%);
+        }
     </style>
     {{-- Flatpickr date range picker --}}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <style>
         /* ── Flatpickr integration tweaks ── */
-        .flatpickr-calendar { font-family: 'Inter', sans-serif; }
-        #deadline-range-picker { background: #fff !important; }
-        #deadline-range-picker:focus { box-shadow: 0 0 0 0.25rem rgba(108,92,231,.25); border-color: #6c5ce7; }
+        .flatpickr-calendar {
+            font-family: 'Inter', sans-serif;
+        }
+
+        #deadline-range-picker {
+            background: #fff !important;
+        }
+
+        #deadline-range-picker:focus {
+            box-shadow: 0 0 0 0.25rem rgba(108, 92, 231, .25);
+            border-color: #6c5ce7;
+        }
+
         .flatpickr-day.inRange,
         .flatpickr-day.startRange,
         .flatpickr-day.endRange {
             background: #6c5ce7 !important;
             border-color: #6c5ce7 !important;
         }
-        .flatpickr-day.inRange { background: rgba(108,92,231,.15) !important; border-color: transparent !important; color: #333 !important; }
-        .flatpickr-day:hover { background: rgba(108,92,231,.25) !important; }
+
+        .flatpickr-day.inRange {
+            background: rgba(108, 92, 231, .15) !important;
+            border-color: transparent !important;
+            color: #333 !important;
+        }
+
+        .flatpickr-day:hover {
+            background: rgba(108, 92, 231, .25) !important;
+        }
     </style>
 @endsection
 
@@ -334,21 +431,20 @@
                             @endforeach
                         </select>
                     </div>
-                    {{-- ── Date Range Picker (single input, Traveloka-style) ── --}}
+                    {{-- ── Date Range Picker (single input) ── --}}
                     <div class="col-lg-2">
                         <label class="form-label small text-muted mb-1">
-                            <i class="bi bi-calendar-range me-1"></i>Deadline Range
+                            Deadline Range
                         </label>
                         <div class="position-relative">
-                            <span class="position-absolute top-50 translate-middle-y ps-2 text-muted pe-none" style="z-index:5;">
-                                <i class="bi bi-calendar3" style="font-size:.75rem;"></i>
+                            <span class="position-absolute top-50 translate-middle-y ps-2 text-muted pe-none"
+                                style="z-index:5;">
+                                <i class="" style="font-size:.75rem;"></i>
                             </span>
-                            <input type="text" id="deadline-range-picker"
-                                class="form-control form-control-sm ps-4"
-                                placeholder="All dates" readonly
-                                style="cursor:pointer;">
+                            <input type="text" id="deadline-range-picker" class="form-control form-control-sm ps-4"
+                                placeholder="All dates" readonly style="cursor:pointer;">
                             <input type="hidden" id="input-date-from" name="date_from" value="{{ request('date_from') }}">
-                            <input type="hidden" id="input-date-to"   name="date_to"   value="{{ request('date_to') }}">
+                            <input type="hidden" id="input-date-to" name="date_to" value="{{ request('date_to') }}">
                         </div>
                     </div>
                     <div class="col-lg-1 d-flex gap-1">
@@ -498,7 +594,8 @@
                                     <span class="pc-val">{{ $hasData ? $fmt($actualCost) : '—' }}</span>
                                 </div>
                                 <div class="pc-row profit">
-                                    <span class="pc-lbl fw-semibold" style="color:var(--bs-body-color)">Project Profit</span>
+                                    <span class="pc-lbl fw-semibold" style="color:var(--bs-body-color)">Project
+                                        Profit</span>
                                     <span class="pc-val">
                                         @if ($hasData && $sellingPrice > 0)
                                             {{ $fmt($profit) }}
@@ -507,7 +604,8 @@
                                                     {{ $profit >= 0 ? '+' : '' }}{{ $profitPct }}%
                                                 </span>
                                             @endif
-                                        @else —
+                                        @else
+                                            —
                                         @endif
                                     </span>
                                 </div>
@@ -518,7 +616,8 @@
                                 <div class="section-title">ESTIMATES</div>
                                 <div class="pc-row">
                                     <span class="pc-lbl">Sales / Creator</span>
-                                    <span class="pc-val" style="font-size:.72rem;max-width:55%;text-align:right;">{{ $salesName }}</span>
+                                    <span class="pc-val"
+                                        style="font-size:.72rem;max-width:55%;text-align:right;">{{ $salesName }}</span>
                                 </div>
                                 <div class="pc-row">
                                     <span class="pc-lbl">Deadline</span>
@@ -547,8 +646,7 @@
                                     </div>
                                     <a href="{{ route('costing.export', $project->id) }}"
                                         class="btn btn-xs btn-outline-success flex-shrink-0"
-                                        style="padding:.28rem .45rem;font-size:.65rem;"
-                                        title="Export Excel"
+                                        style="padding:.28rem .45rem;font-size:.65rem;" title="Export Excel"
                                         onclick="event.stopPropagation();event.preventDefault();window.location='{{ route('costing.export', $project->id) }}'">
                                         <i class="bi bi-file-earmark-excel"></i>
                                     </a>
@@ -739,16 +837,16 @@
 
             // ── Flatpickr date range picker ──────────────────────────────────
             const dateFromVal = $('#input-date-from').val();
-            const dateToVal   = $('#input-date-to').val();
+            const dateToVal = $('#input-date-to').val();
 
             flatpickr('#deadline-range-picker', {
-                mode        : 'range',
-                dateFormat  : 'Y-m-d',
-                altInput    : false,
-                showMonths  : 2,
-                defaultDate : (dateFromVal && dateToVal)
-                                ? [dateFromVal, dateToVal]
-                                : (dateFromVal ? [dateFromVal] : []),
+                mode: 'range',
+                dateFormat: 'Y-m-d',
+                altInput: false,
+                showMonths: 2,
+                defaultDate: (dateFromVal && dateToVal) ? [dateFromVal, dateToVal] : (dateFromVal ? [
+                    dateFromVal
+                ] : []),
                 onChange: function(selectedDates) {
                     if (selectedDates.length === 0) {
                         $('#input-date-from').val('');

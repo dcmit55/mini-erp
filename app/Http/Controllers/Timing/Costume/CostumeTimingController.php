@@ -341,8 +341,10 @@ class CostumeTimingController extends Controller
     public function bulkStop(Request $request)
     {
         $validated = $request->validate([
-            'timing_ids' => 'required|array|min:1',
-            'timing_ids.*' => 'required|exists:timings,id',
+            'timing_ids'       => 'required|array|min:1',
+            'timing_ids.*'     => 'required|exists:timings,id',
+            'measurement_type' => 'required|string|max:50',
+            'output_qty'       => 'required|numeric|min:0',
         ]);
 
         $endTime = now()->format('H:i:s');
@@ -373,8 +375,8 @@ class CostumeTimingController extends Controller
 
                 $timing->update([
                     'end_time' => $endTime,
-                    'measurement_type' => 'pcs',
-                    'measurement_value' => 1,
+                    'measurement_type' => $validated['measurement_type'],
+                    'measurement_value' => $validated['output_qty'],
                     'duration_minutes' => $durationMinutes,
                     'duration_hours' => round($durationMinutes / 60, 2),
                     'status' => 'complete',

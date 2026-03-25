@@ -244,6 +244,28 @@
                                 <strong>Will be updated to:</strong> <span id="current-progress-display" class="text-primary fw-bold">0</span>%
                             </div>
                         </div>
+
+                        <!-- Output Qty + Measurement Type -->
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="form-label fw-bold small">Output Qty <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control form-control-sm" id="stop-output-qty"
+                                    name="output_qty" min="0" step="0.1" value="1" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label fw-bold small">Measurement Type <span class="text-danger">*</span></label>
+                                <select class="form-select form-select-sm select2-unit" id="stop-measurement-type" name="measurement_type" required>
+                                    @forelse($units as $unit)
+                                        <option value="{{ strtolower($unit->name) }}"
+                                            {{ strtolower($unit->name) === 'pcs' ? 'selected' : '' }}>
+                                            {{ $unit->name }}
+                                        </option>
+                                    @empty
+                                        <option value="pcs" selected>Pcs</option>
+                                    @endforelse
+                                </select>
+                            </div>
+                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -328,6 +350,14 @@
                 theme: 'bootstrap-5',
                 placeholder: 'Choose stage...',
                 allowClear: true,
+                width: '100%',
+                dropdownParent: $('#stopWorkModal')
+            });
+
+            // Initialize Select2 for Stop modal — Unit
+            $('#stop-measurement-type').select2({
+                theme: 'bootstrap-5',
+                minimumResultsForSearch: Infinity,
                 width: '100%',
                 dropdownParent: $('#stopWorkModal')
             });
@@ -622,6 +652,13 @@
                     $('#current-progress-display').text(stage * 10);
                 });
 
+                // Reset qty + unit defaults
+                $('#stop-output-qty').val(1);
+                const defaultUnit = $('#stop-measurement-type option').filter(function() {
+                    return $(this).val() === 'pcs';
+                }).val() || $('#stop-measurement-type option:first').val();
+                $('#stop-measurement-type').val(defaultUnit).trigger('change');
+
                 $('#stopWorkModal').modal('show');
             });
 
@@ -631,9 +668,16 @@
 
                 const timingId = $('#stop-timing-id').val();
                 const stage    = parseInt($('#stop-stage').val());
+                const outputQty = parseFloat($('#stop-output-qty').val());
+                const measurementType = $('#stop-measurement-type').val();
 
                 if (!stage || stage < 1 || stage > 10) {
                     Swal.fire({ icon: 'warning', title: 'Stage Required', text: 'Please select a stage (1–10)' });
+                    return;
+                }
+
+                if (isNaN(outputQty) || outputQty < 0) {
+                    Swal.fire({ icon: 'warning', title: 'Invalid Quantity', text: 'Please enter a valid output quantity' });
                     return;
                 }
 
@@ -645,8 +689,10 @@
                     method: 'POST',
                     data: {
                         _token: '{{ csrf_token() }}',
-                        timing_id: timingId,
-                        stage:     stage,
+                        timing_id:        timingId,
+                        stage:            stage,
+                        output_qty:       outputQty,
+                        measurement_type: measurementType,
                     },
                     success: function(response) {
                         if (response.success) {
