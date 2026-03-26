@@ -42,6 +42,7 @@ class JobOrderTransformer
             'department_id' => $this->normalizePrimaryDepartmentId($dto->departmentsArray), // FK lookup - first dept only
             'delivery_date' => $this->parseDeliveryDate($dto->deliveryDateRaw), // Parse date from Lark
             'status' => $this->normalizeStatus($dto->statusRaw), // Job status from Lark
+            'final_image' => $this->normalizeFinalImage($dto->finalImageRaw), // Final image URL(s) from Lark
             'created_by' => 'Sync from Lark',
             'last_sync_at' => now(),
             // Return array of department IDs for pivot sync (handled separately)
@@ -313,6 +314,24 @@ class JobOrderTransformer
         ]);
 
         return null;
+    }
+
+    /**
+     * Normalize final image URL(s) from Lark attachment field
+     *
+     * Lark attachment fields return comma-separated URL(s) after extractField() processing.
+     * We store them as-is for flexibility (single or multiple images).
+     *
+     * @param string|null $value Raw URL string from Lark (may be comma-separated)
+     * @return string|null Cleaned URL string or null
+     */
+    private function normalizeFinalImage(?string $value): ?string
+    {
+        if (empty($value) || trim($value) === '') {
+            return null;
+        }
+
+        return trim($value);
     }
 
     /**

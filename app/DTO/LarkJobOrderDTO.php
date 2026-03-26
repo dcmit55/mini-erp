@@ -18,6 +18,7 @@ class LarkJobOrderDTO extends BaseLarkDTO
     public readonly ?array $departmentsArray; // Array of department names
     public readonly ?string $deliveryDateRaw; // Delivery date from Lark (YYYY-MM-DD or Unix timestamp)
     public readonly ?string $statusRaw; // Job status from Lark
+    public readonly ?string $finalImageRaw; // Final Image (Before Delivery) attachment URL(s) from Lark
 
     /**
      * Field mapping dari internal key → Lark field_name
@@ -44,6 +45,7 @@ class LarkJobOrderDTO extends BaseLarkDTO
         'job_orders.department_lark' => 'Dept-in-charge',
         'job_orders.delivery_date' => 'Delivery Date', // Format: YYYY-MM-DD or Unix timestamp
         'job_orders.status' => 'Job Status', // Status from Lark (e.g., "Preparing", "Delivered")
+        'job_orders.final_image' => 'Final Image (Before Delivery)', // Attachment field
     ];
 
     /**
@@ -73,6 +75,9 @@ class LarkJobOrderDTO extends BaseLarkDTO
 
         // Extract job status from Lark
         $this->statusRaw = $this->extractField($fields, 'job_orders.status');
+
+        // Extract final image URL(s) from Lark attachment field
+        $this->finalImageRaw = $this->extractField($fields, 'job_orders.final_image');
     }
 
     /**
@@ -130,6 +135,7 @@ class LarkJobOrderDTO extends BaseLarkDTO
             'department_raw' => $this->departmentRaw,
             'departments_array' => $this->departmentsArray,
             'delivery_date_raw' => $this->deliveryDateRaw,
+            'final_image_raw' => $this->finalImageRaw,
         ];
     }
 }
