@@ -108,8 +108,7 @@
                                         <td data-label="Part">
                                             <input type="text" name="timings[{{ $i }}][parts]"
                                                 class="form-control form-control-sm{{ $errors->has("timings.$i.parts") ? ' is-invalid' : '' }}"
-                                                placeholder="Optional"
-                                                value="{{ old("timings.$i.parts") }}">
+                                                placeholder="Optional" value="{{ old("timings.$i.parts") }}">
                                         </td>
                                         {{-- Employee --}}
                                         <td data-label="Employee">

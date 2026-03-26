@@ -521,7 +521,8 @@
                             <i class="fas fa-search"></i>
                         </button>
                         <a href="{{ route('costing.report') }}"
-                            class="btn btn-sm btn-outline-secondary btn-reset-filter flex-fill text-center" title="Reset Filters">
+                            class="btn btn-sm btn-outline-secondary btn-reset-filter flex-fill text-center"
+                            title="Reset Filters">
                             <i class="fas fa-times"></i>
                         </a>
                     </div>

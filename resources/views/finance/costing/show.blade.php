@@ -912,7 +912,7 @@
                                         @foreach ($sgBt as $c)
                                             @foreach ($c['items'] ?? [] as $item)
                                                 <tr>
-                                                    <td>{{ is_array($item) ? ($item['name'] ?? '—') : $item }}</td>
+                                                    <td>{{ is_array($item) ? $item['name'] ?? '—' : $item }}</td>
                                                     <td class="text-end text-muted">—</td>
                                                     <td class="text-muted">{{ $c['courier_name'] ?? '—' }}</td>
                                                 </tr>
@@ -945,7 +945,7 @@
                                         @foreach ($btSg as $c)
                                             @foreach ($c['items'] ?? [] as $item)
                                                 <tr>
-                                                    <td>{{ is_array($item) ? ($item['name'] ?? '—') : $item }}</td>
+                                                    <td>{{ is_array($item) ? $item['name'] ?? '—' : $item }}</td>
                                                     <td class="text-end text-muted">—</td>
                                                     <td class="text-muted">{{ $c['courier_name'] ?? '—' }}</td>
                                                 </tr>
