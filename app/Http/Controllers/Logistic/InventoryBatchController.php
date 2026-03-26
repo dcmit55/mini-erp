@@ -63,6 +63,8 @@ class InventoryBatchController extends Controller
                 });
             }
 
+            $query->orderBy('created_at', 'desc');
+
             return DataTables::of($query)
                 ->addIndexColumn()
                 ->addColumn('material_name', fn($b) => $b->inventory->name ?? '-')
@@ -174,7 +176,8 @@ class InventoryBatchController extends Controller
         $inventory = Inventory::findOrFail($inventoryId);
 
         if ($request->ajax()) {
-            $query = InventoryBatch::with('currency')->where('inventory_id', $inventoryId)->whereNull('deleted_at');
+            $query = InventoryBatch::with('currency')->where('inventory_id', $inventoryId)->whereNull('deleted_at')
+                ->orderBy('created_at', 'desc');
 
             return DataTables::of($query)
                 ->addIndexColumn()

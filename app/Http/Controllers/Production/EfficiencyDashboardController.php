@@ -7,6 +7,7 @@ use App\Models\Production\Project;
 use App\Models\Production\JobOrder;
 use App\Models\Production\Timing;
 use App\Models\Hr\Employee;
+use App\Models\Admin\Department;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -25,43 +26,44 @@ class EfficiencyDashboardController extends Controller
     {
         $startDate = $request->input('start_date', now()->startOfMonth()->format('Y-m-d'));
         $endDate = $request->input('end_date', now()->format('Y-m-d'));
+        $departmentId = $request->input('department_id');
+
+        $departments = Department::orderBy('name')->get(['id', 'name']);
 
         // Summary cards
         $totalProjects = Project::whereHas('timings', function ($query) use ($startDate, $endDate) {
             $query->whereBetween('tanggal', [$startDate, $endDate])->where('approval_status', 'approved');
-        })->count();
+        })
+        ->when($departmentId, fn($q) => $q->where('department_id', $departmentId))
+        ->count();
 
         // STANDARDIZED: All calculations use MINUTES as primary unit
-        $totalMinutes = Timing::whereBetween('tanggal', [$startDate, $endDate])
+        $timingBaseQuery = Timing::whereBetween('tanggal', [$startDate, $endDate])
             ->where('approval_status', 'approved')
-            ->whereNotNull('duration_minutes')
-            ->sum('duration_minutes');
+            ->when($departmentId, function ($q) use ($departmentId) {
+                $q->whereHas('jobOrder.project', fn($p) => $p->where('department_id', $departmentId));
+            });
+
+        $totalMinutes = (clone $timingBaseQuery)->whereNotNull('duration_minutes')->sum('duration_minutes');
 
         // Convert to hours for display (derived value)
         $totalHours = round($totalMinutes / 60, 2);
 
-        $totalOutput = Timing::whereBetween('tanggal', [$startDate, $endDate])
-            ->where('approval_status', 'approved')
-            ->whereNotNull('measurement_value')
-            ->sum('measurement_value');
+        $totalOutput = (clone $timingBaseQuery)->whereNotNull('measurement_value')->sum('measurement_value');
 
         // Total unique employees across all projects
-        $totalEmployees = Timing::whereBetween('tanggal', [$startDate, $endDate])
-            ->where('approval_status', 'approved')
-            ->distinct('employee_id')
-            ->count('employee_id');
-
-        // Average efficiency as percentage: (Total Output / Total Minutes) * 60
+        $totalEmployees = (clone $timingBaseQuery)->distinct('employee_id')->count('employee_id');        // Average efficiency as percentage: (Total Output / Total Minutes) * 60
         // This represents output per hour (normalized to 60 minutes)
         // Cap at 100% maximum for realistic productivity tracking
         $rawEfficiency = $totalMinutes > 0 ? round(($totalOutput / $totalMinutes) * 60, 2) : 0;
         $averageEfficiency = min($rawEfficiency, 100);
 
-        // Projects with metrics - STANDARDIZED: Use minutes as primary unit
-        // FILTER: Hanya tampilkan project dengan project_status='Delivered'
+        // Projects with metrics - STANDARDIZED: Use minutes as primary unit    
+        // FILTER: Hanya tampilkan project dengan project_status='Delivered'    
         $projects = Project::select('projects.*')
 
             ->where('project_status', 'Delivered')
+            ->when($departmentId, fn($q) => $q->where('department_id', $departmentId))
             ->with(['department', 'projectStatus'])
             ->withCount([
                 'timings as sessions_count' => function ($query) use ($startDate, $endDate) {
@@ -140,7 +142,7 @@ class EfficiencyDashboardController extends Controller
             });
         });
 
-        return view('efficiency.index', compact('projects', 'totalProjects', 'totalHours', 'totalOutput', 'totalEmployees', 'averageEfficiency', 'startDate', 'endDate'));
+        return view('efficiency.index', compact('projects', 'totalProjects', 'totalHours', 'totalOutput', 'totalEmployees', 'averageEfficiency', 'startDate', 'endDate', 'departments', 'departmentId'));
     }
 
     /**

@@ -391,6 +391,71 @@
         [data-bs-theme="dark"] .default-bg {
             background: linear-gradient(145deg, #1a5c57 0%, #0d3330 100%);
         }
+
+        /* ══ HOVER IMAGE PREVIEW POPUP ══ */
+        .pc-card-wrapper {
+            position: relative;
+        }
+
+        .pc-img-preview {
+            display: none;
+            position: absolute;
+            z-index: 999;
+            left: 50%;
+            bottom: calc(100% + 10px);
+            transform: translateX(-50%);
+            width: 200px;
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, .22);
+            border: 2px solid rgba(108, 92, 231, .25);
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .pc-img-preview img {
+            width: 100%;
+            height: 160px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .pc-img-preview .pc-preview-placeholder {
+            width: 100%;
+            height: 160px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3.5rem;
+            background: linear-gradient(145deg, #e0c6ff 0%, #b388ff 100%);
+        }
+
+        .pc-img-preview .pc-preview-label {
+            padding: 8px 10px;
+            font-size: .72rem;
+            font-weight: 600;
+            color: #333;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            border-top: 1px solid rgba(0,0,0,.07);
+            background: #fafafa;
+        }
+
+        .pc-card-wrapper:hover .pc-img-preview {
+            display: block;
+        }
+
+        [data-bs-theme="dark"] .pc-img-preview {
+            background: #2d2d2d;
+            border-color: rgba(108, 92, 231, .4);
+        }
+
+        [data-bs-theme="dark"] .pc-img-preview .pc-preview-label {
+            background: #1e1e1e;
+            color: #e0e0e0;
+        }
     </style>
     {{-- Flatpickr date range picker --}}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -627,6 +692,17 @@
                     @endphp
 
                     <div class="col-xl-6 col-lg-6 col-md-12">
+                        <div class="pc-card-wrapper">
+                            {{-- ══ HOVER IMAGE PREVIEW ══ --}}
+                            <div class="pc-img-preview">
+                                @if (!empty($project->photo))
+                                    <img src="{{ asset('storage/' . $project->photo) }}" alt="{{ $project->name }}">
+                                @else
+                                    <div class="pc-preview-placeholder">{{ $deptEmoji }}</div>
+                                @endif
+                                <div class="pc-preview-label" title="{{ $project->name }}">{{ $project->name }}</div>
+                            </div>
+
                         <a href="{{ route('costing.detail', $project->id) }}" class="project-card">
 
                             {{-- ══ LEFT: photo panel ══ --}}
@@ -701,6 +777,7 @@
 
                             </div>{{-- /pc-body --}}
                         </a>{{-- /project-card --}}
+                        </div>{{-- /pc-card-wrapper --}}
                     </div>{{-- /col --}}
                 @endforeach
             </div>{{-- /row --}}

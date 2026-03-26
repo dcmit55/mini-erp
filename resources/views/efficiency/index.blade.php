@@ -30,17 +30,28 @@
                 <div class="card shadow-sm">
                     <div class="card-body">
                         <form method="GET" action="{{ route('efficiency.index') }}" class="row g-3 align-items-end">
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <label class="form-label fw-bold">Start Date</label>
                                 <input type="date" name="start_date" class="form-control" value="{{ $startDate }}"
                                     required>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <label class="form-label fw-bold">End Date</label>
                                 <input type="date" name="end_date" class="form-control" value="{{ $endDate }}"
                                     required>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">Department</label>
+                                <select name="department_id" class="form-select">
+                                    <option value="">— All Departments —</option>
+                                    @foreach ($departments as $dept)
+                                        <option value="{{ $dept->id }}" {{ $departmentId == $dept->id ? 'selected' : '' }}>
+                                            {{ $dept->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-3">
                                 <button type="submit" class="btn btn-primary w-100">
                                     <i class="bi bi-funnel me-1"></i>Filter
                                 </button>
