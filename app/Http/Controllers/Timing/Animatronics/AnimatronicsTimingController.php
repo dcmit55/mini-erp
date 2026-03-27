@@ -44,10 +44,10 @@ class AnimatronicsTimingController extends Controller
 
         // Get Mascot + Animatronics department IDs (shared workload between these departments)
         $sharedDepts = Department::where(function ($q) {
-            $q->where('name', 'LIKE', '%mascot%')
-                ->orWhere('name', 'LIKE', '%animatronic%')
-                ->orWhere('name', 'LIKE', '%animation%');
-        })->pluck('id')->toArray();
+            $q->where('name', 'LIKE', '%mascot%')->orWhere('name', 'LIKE', '%animatronic%')->orWhere('name', 'LIKE', '%animation%');
+        })
+            ->pluck('id')
+            ->toArray();
 
         // Job Orders: filter by Mascot/Animatronics department (via pivot or direct) + status != Delivered
         $jobOrders = JobOrder::with(['project', 'department'])
@@ -56,10 +56,9 @@ class AnimatronicsTimingController extends Controller
                 $q->whereNull('status')->orWhere('status', '!=', 'Delivered');
             })
             ->where(function ($q) use ($sharedDepts) {
-                $q->whereIn('department_id', $sharedDepts)
-                    ->orWhereHas('departments', function ($dq) use ($sharedDepts) {
-                        $dq->whereIn('departments.id', $sharedDepts);
-                    });
+                $q->whereIn('department_id', $sharedDepts)->orWhereHas('departments', function ($dq) use ($sharedDepts) {
+                    $dq->whereIn('departments.id', $sharedDepts);
+                });
             })
             ->orderBy('created_at', 'desc')
             ->get();

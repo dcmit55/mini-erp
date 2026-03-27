@@ -55,10 +55,9 @@ class CostumeTimingController extends Controller
                     $q->whereNull('status')->orWhere('status', '!=', 'Delivered');
                 })
                 ->where(function ($q) use ($costumeDeptIds) {
-                    $q->whereIn('department_id', $costumeDeptIds)
-                        ->orWhereHas('departments', function ($dq) use ($costumeDeptIds) {
-                            $dq->whereIn('departments.id', $costumeDeptIds);
-                        });
+                    $q->whereIn('department_id', $costumeDeptIds)->orWhereHas('departments', function ($dq) use ($costumeDeptIds) {
+                        $dq->whereIn('departments.id', $costumeDeptIds);
+                    });
                 })
                 ->orderBy('created_at', 'desc')
                 ->get();
