@@ -29,8 +29,8 @@
                             <thead class="table-light">
                                 <tr>
                                     <th style="width:7%;">Date <span class="text-danger">*</span></th>
-                                    <th style="width:10%;">Project <span class="text-danger">*</span></th>
                                     <th style="width:9%;">Job Order</th>
+                                    <th style="width:10%;">Project <span class="text-danger">*</span></th>
                                     <th style="width:7%;">Department</th>
                                     <th style="width:9%;">Step</th>
                                     <th style="width:7%;">Part</th>
@@ -57,21 +57,6 @@
                                                 class="form-control form-control-sm" required
                                                 value="{{ old("timings.$i.tanggal") }}">
                                         </td>
-                                        {{-- Project --}}
-                                        <td data-label="Project">
-                                            <select name="timings[{{ $i }}][project_id]"
-                                                class="form-select form-select-sm select2 project-select" required>
-                                                <option value="">Select Project</option>
-                                                @foreach ($projects as $project)
-                                                    <option value="{{ $project->id }}"
-                                                        data-department="{{ $project->departments->pluck('name')->implode(', ') }}"
-                                                        data-parts='@json($project->parts->pluck('part_name'))'
-                                                        {{ old("timings.$i.project_id") == $project->id ? 'selected' : '' }}>
-                                                        {{ $project->name }}
-                                                    </option>
-                                                @endforeach
-                                            </select>
-                                        </td>
                                         {{-- Job Order --}}
                                         <td data-label="Job Order">
                                             <select name="timings[{{ $i }}][job_order_id]"
@@ -82,6 +67,21 @@
                                                         data-project="{{ $jo->project_id ?? '' }}"
                                                         {{ old("timings.$i.job_order_id") == $jo->id ? 'selected' : '' }}>
                                                         {{ $jo->name }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        </td>
+                                        {{-- Project (auto-filled from Job Order, or manual) --}}
+                                        <td data-label="Project">
+                                            <select name="timings[{{ $i }}][project_id]"
+                                                class="form-select form-select-sm select2 project-select" required>
+                                                <option value="">Select Project</option>
+                                                @foreach ($projects as $project)
+                                                    <option value="{{ $project->id }}"
+                                                        data-department="{{ $project->departments->pluck('name')->implode(', ') }}"
+                                                        data-parts='@json($project->parts->pluck('part_name'))'
+                                                        {{ old("timings.$i.project_id") == $project->id ? 'selected' : '' }}>
+                                                        {{ $project->name }}
                                                     </option>
                                                 @endforeach
                                             </select>
@@ -437,6 +437,17 @@
             $(document).on('click', '.btn-remove-row', function() {
                 if ($('.timing-row').length > 1) {
                     $(this).closest('tr').remove();
+                }
+            });
+
+            // Job Order change: auto-fill project-select from data-project attribute
+            $(document).on('change', '.job-order-select', function() {
+                let $row = $(this).closest('tr');
+                let projectId = $(this).find(':selected').data('project');
+
+                if (projectId) {
+                    let $projectSelect = $row.find('.project-select');
+                    $projectSelect.val(projectId).trigger('change');
                 }
             });
 
