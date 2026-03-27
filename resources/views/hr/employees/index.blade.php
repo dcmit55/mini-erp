@@ -49,6 +49,11 @@
                     <!-- Right: action buttons -->
                     @if (auth()->user()->canModifyData())
                     <div class="ms-auto d-flex gap-2 flex-shrink-0">
+                        <a href="{{ route('employees.export', ['status' => request('status', 'all')]) }}"
+                            class="btn btn-sm btn-outline-success rounded-2 px-3">
+                            <i class="bi bi-file-earmark-excel me-1"></i>
+                            <span class="d-none d-sm-inline">Export Excel</span>
+                        </a>
                         <button type="button" class="btn btn-sm btn-outline-purple rounded-2 px-3"
                             data-bs-toggle="modal" data-bs-target="#importEmployeeModal">
                             <i class="bi bi-upload me-1"></i>

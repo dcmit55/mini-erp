@@ -361,6 +361,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Employees — route statis harus SEBELUM resource agar tidak kalah dengan {employee}
     Route::get('/employees/search', [EmployeeController::class, 'search'])->name('employees.search');
+    Route::get('/employees/export', [EmployeeController::class, 'export'])->name('employees.export');
     Route::post('/employees/check-employee-no', [EmployeeController::class, 'checkEmployeeNo'])->name('employees.check-employee-no');
     Route::post('/employees/check-ktp', [EmployeeController::class, 'checkKtpId'])->name('employees.check-ktp');
     Route::resource('employees', EmployeeController::class);

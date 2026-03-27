@@ -13,6 +13,8 @@ use App\Models\Hr\Skillset;
 use App\Models\Hr\EmployeeDocument;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use App\Exports\EmployeeExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class EmployeeController extends Controller
 {
@@ -44,6 +46,14 @@ class EmployeeController extends Controller
             ->get();
 
         return view('hr.employees.index', compact('employees'));
+    }
+
+    public function export(Request $request)
+    {
+        $status   = $request->input('status', 'all');
+        $filename = 'employees_' . ($status === 'all' ? 'all' : $status) . '_' . now()->format('Ymd') . '.xlsx';
+
+        return Excel::download(new EmployeeExport($status), $filename);
     }
 
     public function create()
