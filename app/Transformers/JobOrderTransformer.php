@@ -5,7 +5,10 @@ namespace App\Transformers;
 use App\DTO\LarkJobOrderDTO;
 use App\Models\Production\Project;
 use App\Models\Admin\Department;
+use App\Services\Lark\LarkApiClient;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 /**
  * Job Order Transformer
@@ -17,13 +20,12 @@ use Illuminate\Support\Facades\Log;
  * - Konversi tipe data
  * - Lookup foreign keys (project_id, department_id)
  * - Validasi business rules
- *
- * DILARANG:
- * - Database operation (kecuali lookup read-only)
- * - API calls
+ * - Download attachment via LarkApiClient (authenticated)
  */
 class JobOrderTransformer
 {
+    public function __construct(private readonly LarkApiClient $apiClient) {}
+
     /**
      * Transform Lark DTO to database-ready array
      *
@@ -42,7 +44,7 @@ class JobOrderTransformer
             'department_id' => $this->normalizePrimaryDepartmentId($dto->departmentsArray), // FK lookup - first dept only
             'delivery_date' => $this->parseDeliveryDate($dto->deliveryDateRaw), // Parse date from Lark
             'status' => $this->normalizeStatus($dto->statusRaw), // Job status from Lark
-            'final_image' => $this->normalizeFinalImage($dto->finalImageRaw), // Final image URL(s) from Lark
+            'final_image' => $this->normalizeFinalImage($dto->finalImageRaw), // Download image to storage
             'created_by' => 'Sync from Lark',
             'last_sync_at' => now(),
             // Return array of department IDs for pivot sync (handled separately)
@@ -317,21 +319,81 @@ class JobOrderTransformer
     }
 
     /**
-     * Normalize final image URL(s) from Lark attachment field
+     * Normalize final image from Lark attachment — downloads to local storage
      *
-     * Lark attachment fields return comma-separated URL(s) after extractField() processing.
-     * We store them as-is for flexibility (single or multiple images).
+     * Lark attachment URLs require authentication and expire.
+     * Following InventoryTransformer pattern: download & save to storage/public.
      *
-     * @param string|null $value Raw URL string from Lark (may be comma-separated)
-     * @return string|null Cleaned URL string or null
+     * @param array|null $attachments Raw attachment array from Lark
+     * @return string|null Local storage path (e.g. "job_order_images/lark_xxx.jpg") or null
      */
-    private function normalizeFinalImage(?string $value): ?string
+    private function normalizeFinalImage(?array $attachments): ?string
     {
-        if (empty($value) || trim($value) === '') {
+        if (empty($attachments) || !is_array($attachments)) {
             return null;
         }
 
-        return trim($value);
+        // Get first attachment
+        $firstAttachment = $attachments[0] ?? null;
+        if (!$firstAttachment || !is_array($firstAttachment)) {
+            return null;
+        }
+
+        // Prefer 'url' over 'tmp_url'
+        $larkUrl = $firstAttachment['url'] ?? ($firstAttachment['tmp_url'] ?? null);
+
+        if (empty($larkUrl) || !is_string($larkUrl)) {
+            Log::warning('Job Order final_image: attachment has no valid URL', [
+                'attachment' => $firstAttachment,
+            ]);
+            return null;
+        }
+
+        try {
+            $response = $this->apiClient->downloadMedia($larkUrl);
+
+            if (!$response || !$response->successful()) {
+                Log::error('Job Order final_image: failed to download from Lark (check Authorization)', [
+                    'url' => $larkUrl,
+                    'status' => $response?->status(),
+                ]);
+                return null;
+            }
+
+            $extension = $this->getExtensionFromUrl($larkUrl) ?? 'jpg';
+            $filename = 'lark_' . Str::random(40) . '.' . $extension;
+            $path = 'job_order_images/' . $filename;
+
+            Storage::disk('public')->put($path, $response->body());
+
+            Log::info('Job Order final_image downloaded successfully', [
+                'lark_url' => $larkUrl,
+                'local_path' => $path,
+            ]);
+
+            return $path;
+        } catch (\Exception $e) {
+            Log::error('Job Order final_image: error during download', [
+                'url' => $larkUrl,
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Extract file extension from URL
+     */
+    private function getExtensionFromUrl(string $url): ?string
+    {
+        $urlPath = parse_url($url, PHP_URL_PATH);
+        if ($urlPath) {
+            $ext = pathinfo($urlPath, PATHINFO_EXTENSION);
+            if ($ext && in_array(strtolower($ext), ['jpg', 'jpeg', 'png', 'gif', 'webp'])) {
+                return strtolower($ext);
+            }
+        }
+        return 'jpg';
     }
 
     /**

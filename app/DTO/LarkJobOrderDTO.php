@@ -18,7 +18,7 @@ class LarkJobOrderDTO extends BaseLarkDTO
     public readonly ?array $departmentsArray; // Array of department names
     public readonly ?string $deliveryDateRaw; // Delivery date from Lark (YYYY-MM-DD or Unix timestamp)
     public readonly ?string $statusRaw; // Job status from Lark
-    public readonly ?string $finalImageRaw; // Final Image (Before Delivery) attachment URL(s) from Lark
+    public readonly ?array $finalImageRaw; // Final Image (Before Delivery) raw attachment array from Lark
 
     /**
      * Field mapping dari internal key → Lark field_name
@@ -76,8 +76,8 @@ class LarkJobOrderDTO extends BaseLarkDTO
         // Extract job status from Lark
         $this->statusRaw = $this->extractField($fields, 'job_orders.status');
 
-        // Extract final image URL(s) from Lark attachment field
-        $this->finalImageRaw = $this->extractField($fields, 'job_orders.final_image');
+        // Extract final image as raw array (attachment) — needs download in transformer
+        $this->finalImageRaw = $this->extractArrayField($fields, 'job_orders.final_image');
     }
 
     /**
@@ -135,7 +135,7 @@ class LarkJobOrderDTO extends BaseLarkDTO
             'department_raw' => $this->departmentRaw,
             'departments_array' => $this->departmentsArray,
             'delivery_date_raw' => $this->deliveryDateRaw,
-            'final_image_raw' => $this->finalImageRaw,
+            'final_image_raw' => is_array($this->finalImageRaw) ? count($this->finalImageRaw) . ' attachment(s)' : null,
         ];
     }
 }

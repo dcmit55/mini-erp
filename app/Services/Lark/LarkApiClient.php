@@ -136,6 +136,26 @@ class LarkApiClient
     }
 
     /**
+     * Download media/attachment from Lark Drive API with proper auth
+     *
+     * Lark attachment URL format:
+     * https://open.larksuite.com/open-apis/drive/v1/medias/{fileToken}/download?extra=...
+     *
+     * Memerlukan Authorization: Bearer <tenant_access_token>
+     *
+     * @param string $url Full download URL dari Lark attachment
+     * @return \Illuminate\Http\Client\Response|null
+     */
+    public function downloadMedia(string $url): ?\Illuminate\Http\Client\Response
+    {
+        $token = $this->getAccessToken();
+
+        $response = Http::withToken($token)->timeout(30)->get($url);
+
+        return $response;
+    }
+
+    /**
      * Get raw response untuk debugging
      */
     public function fetchRawResponse(string $appToken, string $tableId, ?string $viewId = null, string $fieldKey = 'name'): array
