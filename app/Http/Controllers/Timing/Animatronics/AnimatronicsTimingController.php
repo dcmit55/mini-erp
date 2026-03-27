@@ -42,12 +42,24 @@ class AnimatronicsTimingController extends Controller
         // Get active animatronics employees (exclude those with active sessions)
         $employees = Employee::where('status', 'active')->where('department_id', $animatronicsDept->id)->whereNotIn('id', $employeesWithActiveSessions)->with('department')->orderBy('name')->get();
 
-        // Get ALL job orders (tidak filter by department, karena dept lain bisa dikerjakan animatronics)
-        // Only show active job orders (exclude Delivered)
+        // Get Mascot + Animatronics department IDs (shared workload between these departments)
+        $sharedDepts = Department::where(function ($q) {
+            $q->where('name', 'LIKE', '%mascot%')
+                ->orWhere('name', 'LIKE', '%animatronic%')
+                ->orWhere('name', 'LIKE', '%animation%');
+        })->pluck('id')->toArray();
+
+        // Job Orders: filter by Mascot/Animatronics department (via pivot or direct) + status != Delivered
         $jobOrders = JobOrder::with(['project', 'department'])
             ->whereNull('deleted_at')
             ->where(function ($q) {
-                $q->whereNull('status')->orWhere('status', 'not like', '%deliver%');
+                $q->whereNull('status')->orWhere('status', '!=', 'Delivered');
+            })
+            ->where(function ($q) use ($sharedDepts) {
+                $q->whereIn('department_id', $sharedDepts)
+                    ->orWhereHas('departments', function ($dq) use ($sharedDepts) {
+                        $dq->whereIn('departments.id', $sharedDepts);
+                    });
             })
             ->orderBy('created_at', 'desc')
             ->get();

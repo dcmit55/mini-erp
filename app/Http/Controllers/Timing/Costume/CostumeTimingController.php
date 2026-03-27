@@ -48,11 +48,17 @@ class CostumeTimingController extends Controller
                 ->orderBy('name')
                 ->get();
 
+            // Job Orders: filter by department (via pivot or direct) + status != Delivered
             $jobOrders = JobOrder::with(['project', 'department'])
-                ->whereIn('department_id', $costumeDeptIds)
                 ->whereNull('deleted_at')
                 ->where(function ($q) {
-                    $q->whereNull('status')->orWhere('status', 'not like', '%deliver%');
+                    $q->whereNull('status')->orWhere('status', '!=', 'Delivered');
+                })
+                ->where(function ($q) use ($costumeDeptIds) {
+                    $q->whereIn('department_id', $costumeDeptIds)
+                        ->orWhereHas('departments', function ($dq) use ($costumeDeptIds) {
+                            $dq->whereIn('departments.id', $costumeDeptIds);
+                        });
                 })
                 ->orderBy('created_at', 'desc')
                 ->get();
@@ -66,7 +72,7 @@ class CostumeTimingController extends Controller
             $jobOrders = JobOrder::with(['project', 'department'])
                 ->whereNull('deleted_at')
                 ->where(function ($q) {
-                    $q->whereNull('status')->orWhere('status', 'not like', '%deliver%');
+                    $q->whereNull('status')->orWhere('status', '!=', 'Delivered');
                 })
                 ->orderBy('created_at', 'desc')
                 ->get();
