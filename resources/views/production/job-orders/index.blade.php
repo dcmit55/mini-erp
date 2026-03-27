@@ -336,6 +336,30 @@
                     }
                 });
             }
+
+            // Final image preview — follows Client Projects pattern
+            $(document).on('click', '.btn-show-image', function() {
+                const imgSrc = $(this).data('img');
+                const imgName = $(this).data('name');
+                if (imgSrc) {
+                    Fancybox.show([{
+                        src: imgSrc,
+                        type: "image",
+                        caption: imgName,
+                        downloadSrc: imgSrc,
+                    }], {
+                        Toolbar: {
+                            display: ["zoom", "fullscreen", "download", "close"],
+                        },
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Oops...',
+                        text: 'No image available!'
+                    });
+                }
+            });
         });
 
         function debounce(func, wait) {

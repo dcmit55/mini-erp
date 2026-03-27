@@ -135,6 +135,25 @@ class JobOrderController extends Controller
                 ->addColumn('actions', function ($jo) {
                     $actions = '<div class="btn-group btn-group-sm" role="group">';
 
+                    // Final image preview button (only if final_image exists)
+                    // Rendered outside btn-group with ms-1 spacing to visually separate from CRUD actions
+                    if (!empty($jo->final_image)) {
+                        $imgUrl = asset('storage/' . $jo->final_image);
+                        $actions .=
+                            '</div>' .
+                            '<button type="button" class="btn btn-sm btn-outline-info ms-1 btn-show-image"
+                                title="View Final Image"
+                                data-img="' .
+                            e($imgUrl) .
+                            '"
+                                data-name="' .
+                            e($jo->name) .
+                            '">
+                                <i class="bi bi-file-earmark-image"></i>
+                            </button>' .
+                            '<div class="btn-group btn-group-sm" role="group">';
+                    }
+
                     // View button
                     $actions .=
                         '<a href="' .
