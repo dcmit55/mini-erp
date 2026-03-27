@@ -140,6 +140,14 @@ class JobOrderTransformer
         // Cari department berdasarkan nama (case-insensitive)
         $department = Department::whereRaw('LOWER(name) = ?', [strtolower($departmentName)])->first();
 
+        // Fallback: strip common Lark prefix (e.g. "DCM Costume" -> "Costume")
+        if (!$department) {
+            $stripped = preg_replace('/^DCM\s+/i', '', $departmentName);
+            if (strtolower($stripped) !== strtolower($departmentName)) {
+                $department = Department::whereRaw('LOWER(name) = ?', [strtolower($stripped)])->first();
+            }
+        }
+
         if (!$department) {
             Log::warning('Job Order sync: Department not found in database', [
                 'lark_department_name' => $departmentName,
@@ -193,6 +201,14 @@ class JobOrderTransformer
 
             // Lookup department by name (case-insensitive)
             $department = Department::whereRaw('LOWER(name) = ?', [strtolower($deptName)])->first();
+
+            // Fallback: strip common Lark prefix (e.g. "DCM Costume" -> "Costume")
+            if (!$department) {
+                $stripped = preg_replace('/^DCM\s+/i', '', $deptName);
+                if (strtolower($stripped) !== strtolower($deptName)) {
+                    $department = Department::whereRaw('LOWER(name) = ?', [strtolower($stripped)])->first();
+                }
+            }
 
             if ($department) {
                 $departmentIds[] = $department->id;
