@@ -133,30 +133,27 @@ class JobOrderController extends Controller
                     return '<span class="text-muted">' . $displayText . '</span>';
                 })
                 ->addColumn('actions', function ($jo) {
-                    // Row 1: View Detail + Image Preview (if exists)
-                    $imgUrl   = !empty($jo->final_image) ? e(asset('storage/' . $jo->final_image)) : '';
-                    $imgName  = e($jo->name);
+                    $imgUrl  = !empty($jo->final_image) ? e(asset('storage/' . $jo->final_image)) : '';
+                    $imgName = e($jo->name);
 
-                    $row1  = '<div class="btn-group btn-group-sm d-flex mb-1" role="group">';
-                    $row1 .= '<a href="' . route('job-orders.show', $jo->id) . '" class="btn btn-sm btn-info" title="Detail"><i class="bi bi-eye"></i></a>';
+                    $btnStyle = 'width:100%;padding:3px 0;font-size:12px;border-radius:4px;';
+
+                    // Image button: active or disabled
                     if (!empty($jo->final_image)) {
-                        $row1 .= '<button type="button" class="btn btn-sm btn-outline-info btn-show-image" title="View Final Image" data-img="' . $imgUrl . '" data-name="' . $imgName . '"><i class="bi bi-file-earmark-image"></i></button>';
+                        $imgBtn = '<button type="button" class="btn btn-sm btn-outline-info btn-show-image" style="' . $btnStyle . '" title="View Final Image" data-img="' . $imgUrl . '" data-name="' . $imgName . '"><i class="bi bi-file-earmark-image"></i></button>';
                     } else {
-                        $row1 .= '<button type="button" class="btn btn-sm btn-outline-secondary" title="No image" disabled><i class="bi bi-file-earmark-image"></i></button>';
+                        $imgBtn = '<button type="button" class="btn btn-sm btn-outline-secondary" style="' . $btnStyle . '" title="No image" disabled><i class="bi bi-file-earmark-image"></i></button>';
                     }
-                    $row1 .= '</div>';
 
-                    // Row 2: Edit + Delete
-                    $row2  = '<div class="btn-group btn-group-sm d-flex" role="group">';
-                    $row2 .= '<a href="' . route('job-orders.edit', $jo->id) . '" class="btn btn-sm btn-warning" title="Edit"><i class="bi bi-pencil"></i></a>';
-                    $row2 .= '<form action="' . route('job-orders.destroy', $jo->id) . '" method="POST" class="d-inline">'
-                           . csrf_field()
-                           . method_field('DELETE')
-                           . '<button type="button" class="btn btn-sm btn-danger btn-delete" title="Delete"><i class="bi bi-trash3"></i></button>'
-                           . '</form>';
-                    $row2 .= '</div>';
-
-                    return '<div style="min-width:80px;">' . $row1 . $row2 . '</div>';
+                    return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;min-width:70px;">'
+                         . '<a href="' . route('job-orders.show', $jo->id) . '" class="btn btn-sm btn-outline-info" style="' . $btnStyle . '" title="Detail"><i class="bi bi-eye"></i></a>'
+                         . $imgBtn
+                         . '<a href="' . route('job-orders.edit', $jo->id) . '" class="btn btn-sm btn-outline-warning" style="' . $btnStyle . '" title="Edit"><i class="bi bi-pencil"></i></a>'
+                         . '<form action="' . route('job-orders.destroy', $jo->id) . '" method="POST" style="display:contents;">'
+                             . csrf_field() . method_field('DELETE')
+                             . '<button type="button" class="btn btn-sm btn-outline-danger btn-delete" style="' . $btnStyle . '" title="Delete"><i class="bi bi-trash3"></i></button>'
+                         . '</form>'
+                         . '</div>';
                 })
                 ->rawColumns(['description', 'notes', 'countdown_display', 'department_name', 'actions'])
                 ->make(true);
