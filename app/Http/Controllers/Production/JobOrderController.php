@@ -133,61 +133,30 @@ class JobOrderController extends Controller
                     return '<span class="text-muted">' . $displayText . '</span>';
                 })
                 ->addColumn('actions', function ($jo) {
-                    $actions = '<div class="btn-group btn-group-sm" role="group">';
+                    // Row 1: View Detail + Image Preview (if exists)
+                    $imgUrl   = !empty($jo->final_image) ? e(asset('storage/' . $jo->final_image)) : '';
+                    $imgName  = e($jo->name);
 
-                    // Final image preview button (only if final_image exists)
-                    // Rendered outside btn-group with ms-1 spacing to visually separate from CRUD actions
+                    $row1  = '<div class="btn-group btn-group-sm d-flex mb-1" role="group">';
+                    $row1 .= '<a href="' . route('job-orders.show', $jo->id) . '" class="btn btn-sm btn-info" title="Detail"><i class="bi bi-eye"></i></a>';
                     if (!empty($jo->final_image)) {
-                        $imgUrl = asset('storage/' . $jo->final_image);
-                        $actions .=
-                            '</div>' .
-                            '<button type="button" class="btn btn-sm btn-outline-info ms-1 btn-show-image"
-                                title="View Final Image"
-                                data-img="' .
-                            e($imgUrl) .
-                            '"
-                                data-name="' .
-                            e($jo->name) .
-                            '">
-                                <i class="bi bi-file-earmark-image"></i>
-                            </button>' .
-                            '<div class="btn-group btn-group-sm" role="group">';
+                        $row1 .= '<button type="button" class="btn btn-sm btn-outline-info btn-show-image" title="View Final Image" data-img="' . $imgUrl . '" data-name="' . $imgName . '"><i class="bi bi-file-earmark-image"></i></button>';
+                    } else {
+                        $row1 .= '<button type="button" class="btn btn-sm btn-outline-secondary" title="No image" disabled><i class="bi bi-file-earmark-image"></i></button>';
                     }
+                    $row1 .= '</div>';
 
-                    // View button
-                    $actions .=
-                        '<a href="' .
-                        route('job-orders.show', $jo->id) .
-                        '" class="btn btn-sm btn-info" title="View">
-                                    <i class="bi bi-eye"></i>
-                                </a>';
+                    // Row 2: Edit + Delete
+                    $row2  = '<div class="btn-group btn-group-sm d-flex" role="group">';
+                    $row2 .= '<a href="' . route('job-orders.edit', $jo->id) . '" class="btn btn-sm btn-warning" title="Edit"><i class="bi bi-pencil"></i></a>';
+                    $row2 .= '<form action="' . route('job-orders.destroy', $jo->id) . '" method="POST" class="d-inline">'
+                           . csrf_field()
+                           . method_field('DELETE')
+                           . '<button type="button" class="btn btn-sm btn-danger btn-delete" title="Delete"><i class="bi bi-trash3"></i></button>'
+                           . '</form>';
+                    $row2 .= '</div>';
 
-                    // Edit button
-                    $actions .=
-                        '<a href="' .
-                        route('job-orders.edit', $jo->id) .
-                        '" class="btn btn-sm btn-warning" title="Edit">
-                                    <i class="bi bi-pencil"></i>
-                                </a>';
-
-                    // Delete button
-                    $actions .=
-                        '<form action="' .
-                        route('job-orders.destroy', $jo->id) .
-                        '" method="POST" class="d-inline">
-                                    ' .
-                        csrf_field() .
-                        '
-                                    ' .
-                        method_field('DELETE') .
-                        '
-                                    <button type="button" class="btn btn-sm btn-danger btn-delete" title="Delete">
-                                        <i class="bi bi-trash3"></i>
-                                    </button>
-                                </form>';
-
-                    $actions .= '</div>';
-                    return $actions;
+                    return '<div style="min-width:80px;">' . $row1 . $row2 . '</div>';
                 })
                 ->rawColumns(['description', 'notes', 'countdown_display', 'department_name', 'actions'])
                 ->make(true);
