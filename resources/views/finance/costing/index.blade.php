@@ -439,7 +439,7 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            border-top: 1px solid rgba(0,0,0,.07);
+            border-top: 1px solid rgba(0, 0, 0, .07);
             background: #fafafa;
         }
 
@@ -703,80 +703,80 @@
                                 <div class="pc-preview-label" title="{{ $project->name }}">{{ $project->name }}</div>
                             </div>
 
-                        <a href="{{ route('costing.detail', $project->id) }}" class="project-card">
+                            <a href="{{ route('costing.detail', $project->id) }}" class="project-card">
 
-                            {{-- ══ LEFT: photo panel ══ --}}
-                            <div class="pc-photo-panel {{ $bgClass }}">
-                                <div class="pc-photo-panel-inner">
-                                    {{-- Category badge (top) --}}
-                                    @if (!empty($typeDept))
-                                        <span class="pc-cat-badge">{{ $typeDept }}</span>
-                                    @endif
+                                {{-- ══ LEFT: photo panel ══ --}}
+                                <div class="pc-photo-panel {{ $bgClass }}">
+                                    <div class="pc-photo-panel-inner">
+                                        {{-- Category badge (top) --}}
+                                        @if (!empty($typeDept))
+                                            <span class="pc-cat-badge">{{ $typeDept }}</span>
+                                        @endif
 
-                                    {{-- Photo or placeholder (center) --}}
-                                    @if (!empty($project->photo))
-                                        <img src="{{ asset('storage/' . $project->photo) }}" class="pc-photo-img"
-                                            alt="{{ $project->name }}">
-                                    @else
-                                        <div class="pc-photo-placeholder">{{ $deptEmoji }}</div>
-                                    @endif
+                                        {{-- Photo or placeholder (center) --}}
+                                        @if (!empty($project->photo))
+                                            <img src="{{ asset('storage/' . $project->photo) }}" class="pc-photo-img"
+                                                alt="{{ $project->name }}">
+                                        @else
+                                            <div class="pc-photo-placeholder">{{ $deptEmoji }}</div>
+                                        @endif
 
-                                    {{-- Lark badge (bottom) --}}
-                                    @if (!empty($project->lark_record_id))
-                                        <span class="lark-tag">
-                                            <span class="dot"></span>{{ $larkFolder }}
+                                        {{-- Lark badge (bottom) --}}
+                                        @if (!empty($project->lark_record_id))
+                                            <span class="lark-tag">
+                                                <span class="dot"></span>{{ $larkFolder }}
+                                            </span>
+                                        @endif
+                                    </div>
+                                </div>
+
+                                {{-- ══ RIGHT: content body ══ --}}
+                                <div class="pc-body">
+
+                                    {{-- Project name --}}
+                                    <div class="mb-2">
+                                        <span class="pc-name" title="{{ $project->name }}">
+                                            {{ $project->name }}
                                         </span>
-                                    @endif
-                                </div>
-                            </div>
-
-                            {{-- ══ RIGHT: content body ══ --}}
-                            <div class="pc-body">
-
-                                {{-- Project name --}}
-                                <div class="mb-2">
-                                    <span class="pc-name" title="{{ $project->name }}">
-                                        {{ $project->name }}
-                                    </span>
-                                </div>
-
-                                {{-- ── ACTUALS ── --}}
-                                <div class="section-title">ACTUALS</div>
-                                <div class="pc-row">
-                                    <span class="pc-lbl">Actual Project Cost</span>
-                                    <span class="pc-val">{{ $hasData ? $fmt($actualCost) : '—' }}</span>
-                                </div>
-                                <div class="pc-row">
-                                    <span class="pc-lbl">Estimated Cost</span>
-                                    <span class="pc-val">{{ $hasData ? $fmt($actualCost) : '—' }}</span>
-                                </div>
-                                <div class="pc-row">
-                                    <span class="pc-lbl">Total Project Time</span>
-                                    <span class="pc-val">{{ $totalHours > 0 ? $totalHours . ' hrs' : '—' }}</span>
-                                </div>
-                                <div class="pc-row">
-                                    <span class="pc-lbl">Total Timing Cost</span>
-                                    <span class="pc-val">{{ $totalHours > 0 ? $totalHours . ' hrs' : '—' }}</span>
-                                </div>
-
-                                {{-- ── Stats strip ── --}}
-                                <div class="stats-strip">
-                                    <div class="stats-box bg-warning-subtle text-warning-emphasis">
-                                        <div class="label">INT'L PO</div>
-                                        <div class="value">{{ $intlPo > 0 ? $fmtK($intlPo) : '—' }}</div>
                                     </div>
-                                    <div class="stats-box bg-success-subtle text-success-emphasis">
-                                        <div class="label">LOCAL PO</div>
-                                        <div class="value">{{ $localPo > 0 ? $fmtK($localPo) : '—' }}</div>
-                                    </div>
-                                    <div class="stats-box bg-primary-subtle text-primary-emphasis">
-                                        <div class="label">USAGE</div>
-                                        <div class="value">{{ $usageIdr > 0 ? $fmtK($usageIdr) : '—' }}</div>
-                                    </div>
-                                </div>
 
-                            </div>{{-- /pc-body --}}
-                        </a>{{-- /project-card --}}
+                                    {{-- ── ACTUALS ── --}}
+                                    <div class="section-title">ACTUALS</div>
+                                    <div class="pc-row">
+                                        <span class="pc-lbl">Actual Project Cost</span>
+                                        <span class="pc-val">{{ $hasData ? $fmt($actualCost) : '—' }}</span>
+                                    </div>
+                                    <div class="pc-row">
+                                        <span class="pc-lbl">Estimated Cost</span>
+                                        <span class="pc-val">{{ $hasData ? $fmt($actualCost) : '—' }}</span>
+                                    </div>
+                                    <div class="pc-row">
+                                        <span class="pc-lbl">Total Project Time</span>
+                                        <span class="pc-val">{{ $totalHours > 0 ? $totalHours . ' hrs' : '—' }}</span>
+                                    </div>
+                                    <div class="pc-row">
+                                        <span class="pc-lbl">Total Timing Cost</span>
+                                        <span class="pc-val">{{ $totalHours > 0 ? $totalHours . ' hrs' : '—' }}</span>
+                                    </div>
+
+                                    {{-- ── Stats strip ── --}}
+                                    <div class="stats-strip">
+                                        <div class="stats-box bg-warning-subtle text-warning-emphasis">
+                                            <div class="label">INT'L PO</div>
+                                            <div class="value">{{ $intlPo > 0 ? $fmtK($intlPo) : '—' }}</div>
+                                        </div>
+                                        <div class="stats-box bg-success-subtle text-success-emphasis">
+                                            <div class="label">LOCAL PO</div>
+                                            <div class="value">{{ $localPo > 0 ? $fmtK($localPo) : '—' }}</div>
+                                        </div>
+                                        <div class="stats-box bg-primary-subtle text-primary-emphasis">
+                                            <div class="label">USAGE</div>
+                                            <div class="value">{{ $usageIdr > 0 ? $fmtK($usageIdr) : '—' }}</div>
+                                        </div>
+                                    </div>
+
+                                </div>{{-- /pc-body --}}
+                            </a>{{-- /project-card --}}
                         </div>{{-- /pc-card-wrapper --}}
                     </div>{{-- /col --}}
                 @endforeach

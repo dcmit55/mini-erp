@@ -34,8 +34,8 @@ class EfficiencyDashboardController extends Controller
         $totalProjects = Project::whereHas('timings', function ($query) use ($startDate, $endDate) {
             $query->whereBetween('tanggal', [$startDate, $endDate])->where('approval_status', 'approved');
         })
-        ->when($departmentId, fn($q) => $q->where('department_id', $departmentId))
-        ->count();
+            ->when($departmentId, fn($q) => $q->where('department_id', $departmentId))
+            ->count();
 
         // STANDARDIZED: All calculations use MINUTES as primary unit
         $timingBaseQuery = Timing::whereBetween('tanggal', [$startDate, $endDate])
@@ -52,14 +52,14 @@ class EfficiencyDashboardController extends Controller
         $totalOutput = (clone $timingBaseQuery)->whereNotNull('measurement_value')->sum('measurement_value');
 
         // Total unique employees across all projects
-        $totalEmployees = (clone $timingBaseQuery)->distinct('employee_id')->count('employee_id');        // Average efficiency as percentage: (Total Output / Total Minutes) * 60
+        $totalEmployees = (clone $timingBaseQuery)->distinct('employee_id')->count('employee_id'); // Average efficiency as percentage: (Total Output / Total Minutes) * 60
         // This represents output per hour (normalized to 60 minutes)
         // Cap at 100% maximum for realistic productivity tracking
         $rawEfficiency = $totalMinutes > 0 ? round(($totalOutput / $totalMinutes) * 60, 2) : 0;
         $averageEfficiency = min($rawEfficiency, 100);
 
-        // Projects with metrics - STANDARDIZED: Use minutes as primary unit    
-        // FILTER: Hanya tampilkan project dengan project_status='Delivered'    
+        // Projects with metrics - STANDARDIZED: Use minutes as primary unit
+        // FILTER: Hanya tampilkan project dengan project_status='Delivered'
         $projects = Project::select('projects.*')
 
             ->where('project_status', 'Delivered')

@@ -45,7 +45,8 @@
                                 <select name="department_id" id="filter-department" class="form-select">
                                     <option value="">— All Departments —</option>
                                     @foreach ($departments as $dept)
-                                        <option value="{{ $dept->id }}" {{ $departmentId == $dept->id ? 'selected' : '' }}>
+                                        <option value="{{ $dept->id }}"
+                                            {{ $departmentId == $dept->id ? 'selected' : '' }}>
                                             {{ $dept->name }}
                                         </option>
                                     @endforeach
@@ -342,12 +343,12 @@
                 allowClear: true,
                 placeholder: '— All Departments —',
                 width: '100%',
-            }).on('select2:open', function () {
-                setTimeout(function () {
+            }).on('select2:open', function() {
+                setTimeout(function() {
                     var searchField = document.querySelector('.select2-search__field');
                     if (searchField) searchField.focus();
                 }, 100);
-            }).on('change', function () {
+            }).on('change', function() {
                 // Auto-submit form when department changes
                 $(this).closest('form').submit();
             });
