@@ -147,8 +147,8 @@ class Inventory extends Model implements Auditable
         $totalRemaining = $batches->sum('qty_remaining');
 
         if ($totalRemaining <= 0) {
-            // Fall back to latest unit_price recorded for this inventory
-            return (float) ($this->batches()->whereNull('deleted_at')->orderByDesc('received_date')->orderByDesc('id')->value('unit_price') ?? 0);
+            // Fall back to latest unit_price recorded for this inventory (include soft-deleted/depleted batches)
+            return (float) ($this->batches()->withTrashed()->orderByDesc('received_date')->orderByDesc('id')->value('unit_price') ?? 0);
         }
 
         $weightedSum = $batches->sum(fn($b) => (float) $b->qty_remaining * (float) $b->unit_price);

@@ -220,7 +220,9 @@ class InventoryBatchController extends Controller
                     return '<span class="badge ' . $cls . '">' . $label . '</span>';
                 })
                 ->addColumn('received_date_fmt', fn($b) => $b->received_date ? $b->received_date->format('d M Y') : '-')
-                ->rawColumns(['qty_remaining_formatted', 'status_badge', 'source_badge'])
+                ->addColumn('notes_display', fn($b) => $b->notes ? e($b->notes) : '<span class="text-muted">—</span>')
+                ->addColumn('input_date', fn($b) => $b->created_at ? $b->created_at->format('d M Y H:i') : '-')
+                ->rawColumns(['qty_remaining_formatted', 'status_badge', 'source_badge', 'notes_display'])
                 ->make(true);
         }
 

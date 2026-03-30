@@ -12,7 +12,7 @@ class InventoryBatch extends Model
 
     protected $table = 'inventory_batches';
 
-    protected $fillable = ['batch_number', 'inventory_id', 'qty', 'qty_remaining', 'unit_price', 'currency_id', 'received_date', 'source_type', 'source_id'];
+    protected $fillable = ['batch_number', 'inventory_id', 'qty', 'qty_remaining', 'unit_price', 'currency_id', 'received_date', 'source_type', 'source_id', 'notes'];
 
     protected $casts = [
         'qty' => 'decimal:4',
@@ -95,6 +95,16 @@ class InventoryBatch extends Model
 
         // Absolute fallback: timestamp-based unique number
         return 'BATCH-' . date('ymdHis');
+    }
+
+    /**
+     * Generate a unique batch number for INIT (manual stock entry) batches.
+     * Format: INIT-{inventoryId}-{YmdHis}
+     * Distinguished from BATCH-xxxx numbers so INIT entries are clearly identifiable.
+     */
+    public static function generateInitBatchNumber(int $inventoryId): string
+    {
+        return 'INIT-' . $inventoryId . '-' . date('YmdHis');
     }
 
     /**

@@ -78,12 +78,14 @@
                                 <th>Batch Number</th>
                                 <th>Received Date</th>
                                 <th>Source</th>
+                                <th>Notes</th>
                                 <th>Qty In</th>
                                 <th>Qty Remaining</th>
                                 <th>Consumption</th>
                                 <th>Unit Price</th>
                                 <th>Stock Value</th>
                                 <th>Status</th>
+                                <th>Input Date</th>
                             </tr>
                         </thead>
                     </table>
@@ -121,6 +123,13 @@
                         data: 'source_badge',
                         name: 'source_type',
                         orderable: false
+                    },
+                    {
+                        data: 'notes_display',
+                        name: 'notes',
+                        orderable: false,
+                        className: 'text-muted small',
+                        width: '200px'
                     },
                     {
                         data: 'qty_formatted',
@@ -166,6 +175,11 @@
                         name: 'status_badge',
                         orderable: false,
                         className: 'text-center'
+                    },
+                    {
+                        data: 'input_date',
+                        name: 'created_at',
+                        className: 'text-muted small text-nowrap'
                     },
                 ],
                 order: [

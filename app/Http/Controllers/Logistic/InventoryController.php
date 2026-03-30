@@ -661,12 +661,6 @@ class InventoryController extends Controller
             'img' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
-        $inventory->update(
-            array_merge($validated, [
-                'remark' => $validated['remark'], // Simpan remark asli tanpa tag tambahan
-            ]),
-        );
-
         // Update data inventory
         $inventory->name = $request->name;
         $inventory->category_id = $request->category_id;
@@ -679,19 +673,20 @@ class InventoryController extends Controller
         $inventory->location_id = $request->location_id;
         $inventory->remark = $request->remark;
 
-        // Sync opening stock batch: update INIT batch or create one if missing
-        $initBatch = $inventory->batches()->where('source_type', 'initial_stock')->first();
+        // Always create a new INIT batch on each stock update to preserve full history.
+        // This means each manual edit of qty/price becomes a traceable batch record.
         $newQty = (float) $request->quantity;
         $newPrice = (float) ($request->price ?? 0);
-        if ($initBatch) {
-            $consumed = (float) $initBatch->qty - (float) $initBatch->qty_remaining;
-            $initBatch->qty = $newQty;
-            $initBatch->qty_remaining = max(0, $newQty - $consumed);
-            $initBatch->unit_price = $newPrice;
-            $initBatch->save();
-        } elseif ($newQty > 0) {
+
+        // Get the last INIT batch price for comparison (detect actual price change)
+        $currentPrice = (float) ($inventory->batches()
+            ->where('source_type', \App\Models\Logistic\InventoryBatch::SOURCE_INITIAL_STOCK)
+            ->orderByDesc('id')->value('unit_price') ?? 0);
+
+        // Create new INIT batch when qty > 0 or price has changed
+        if ($newQty > 0 || ($newPrice > 0 && $newPrice !== $currentPrice)) {
             \App\Models\Logistic\InventoryBatch::create([
-                'batch_number' => \App\Models\Logistic\InventoryBatch::generateBatchNumber($inventory->id),
+                'batch_number' => \App\Models\Logistic\InventoryBatch::generateInitBatchNumber($inventory->id),
                 'inventory_id' => $inventory->id,
                 'qty' => $newQty,
                 'qty_remaining' => $newQty,
@@ -700,6 +695,7 @@ class InventoryController extends Controller
                 'received_date' => now()->toDateString(),
                 'source_type' => \App\Models\Logistic\InventoryBatch::SOURCE_INITIAL_STOCK,
                 'source_id' => $inventory->id,
+                'notes' => 'Stock update via Edit Inventory — ' . now()->format('d M Y H:i'),
             ]);
         }
 
