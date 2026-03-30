@@ -235,12 +235,21 @@ class DailyAttendanceService
 
     public function mapLeaveTypeToStatus(string $type): string
     {
-        return [
-            'ANNUAL'    => 'Annual Leave',
-            'MATERNITY' => 'Maternity Leave',
-            'WEDDING'   => 'Wedding Leave',
-            'SONWED'    => "Son's Wedding Leave",
-        ][$type] ?? 'Excused';
+        return match(strtoupper($type)) {
+            'ANNUAL'               => 'Annual Leave',
+            'SICK', 'MENSTRUATION' => 'Sick Leave',
+            'MATERNITY'            => 'Maternity Leave',
+            'PATERNITY'            => 'Paternity Leave',
+            'WEDDING', 'SONWED'    => 'Wedding Leave',
+            'BIRTHCHILD'           => 'Birth Leave',
+            'DEATH', 'DEATH_2'     => 'Bereavement Leave',
+            'BAPTISM'              => 'Child Event Leave',
+            'HAJJ'                 => 'Hajj Leave',
+            'UNPAID'               => 'Unpaid Leave',
+            'EARLY_LEAVE'          => 'Early Leave',
+            'PERMISSION_OUT'       => 'Permission Out',
+            default                => 'Excused',
+        };
     }
 
     // ─── Helper: hitung potongan, lembur, dll. ───────────────────────────────

@@ -10,7 +10,7 @@ class LeaveRequest extends Model implements AuditableContract
 {
     use \OwenIt\Auditing\Auditable;
 
-    protected $fillable = ['employee_id', 'start_date', 'end_date', 'duration', 'type', 'reason', 'mc_document', 'doctor_letter', 'approval_dept', 'approval_1', 'approval_2'];
+    protected $fillable = ['employee_id', 'start_date', 'end_date', 'leave_time_from', 'leave_time_to', 'duration', 'type', 'reason', 'mc_document', 'doctor_letter', 'approval_dept', 'approval_1', 'approval_2'];
 
     // Role → Department(s) mapping untuk Level 1 (dept approvals)
     // Value bisa string (single) atau array (multiple departments)
@@ -40,7 +40,7 @@ class LeaveRequest extends Model implements AuditableContract
     /**
      * Leave types that skip dept (Level 1) approval
      */
-    public const SKIP_DEPT_APPROVAL_TYPES = ['SICK', 'MENSTRUATION'];
+    public const SKIP_DEPT_APPROVAL_TYPES = ['SICK', 'MENSTRUATION', 'EARLY_LEAVE', 'PERMISSION_OUT'];
 
     /**
      * Flattened list of all departments that require dept-level approval.
@@ -97,7 +97,7 @@ class LeaveRequest extends Model implements AuditableContract
      */
     public function shouldDeductLeaveBalance(): bool
     {
-        $nonDeductingTypes = ['MENSTRUATION', 'SICK', 'HAJJ', 'PATERNITY'];
+        $nonDeductingTypes = ['MENSTRUATION', 'SICK', 'HAJJ', 'PATERNITY', 'EARLY_LEAVE', 'PERMISSION_OUT'];
         if (in_array(strtoupper($this->type), $nonDeductingTypes)) {
             return false;
         }
@@ -123,6 +123,8 @@ class LeaveRequest extends Model implements AuditableContract
             'BAPTISM'      => 'success',
             'HAJJ'         => 'success',
             'UNPAID'       => 'dark',
+            'EARLY_LEAVE'    => 'warning',
+            'PERMISSION_OUT' => 'warning',
         ];
         return $map[strtoupper($type)] ?? 'secondary';
     }
@@ -148,7 +150,7 @@ class LeaveRequest extends Model implements AuditableContract
         }
 
         // Fallback jika gagal query
-        return ['ANNUAL', 'MATERNITY', 'WEDDING', 'SONWED', 'BIRTHCHILD', 'UNPAID', 'DEATH', 'DEATH_2', 'BAPTISM', 'SICK', 'MENSTRUATION', 'HAJJ', 'PATERNITY'];
+        return ['ANNUAL', 'MATERNITY', 'WEDDING', 'SONWED', 'BIRTHCHILD', 'UNPAID', 'DEATH', 'DEATH_2', 'BAPTISM', 'SICK', 'MENSTRUATION', 'HAJJ', 'PATERNITY', 'EARLY_LEAVE', 'PERMISSION_OUT'];
     }
 
     /**
@@ -170,6 +172,8 @@ class LeaveRequest extends Model implements AuditableContract
             'MENSTRUATION' => 'Menstruation Leave',
             'HAJJ' => 'Hajj / Umrah Leave',
             'PATERNITY' => 'Paternity Leave (2 days)',
+            'EARLY_LEAVE'    => 'Early Leave (Izin Pulang Cepat)',
+            'PERMISSION_OUT' => 'Permission Out (Izin Keluar Sementara)',
         ];
     }
 

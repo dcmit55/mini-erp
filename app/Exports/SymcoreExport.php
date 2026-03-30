@@ -56,7 +56,7 @@ class SymcoreExport implements FromArray, WithStyles, WithEvents
                     CASE WHEN late_minutes > 60 THEN late_minutes / 60.0 ELSE 0 END +
                     CASE WHEN early_leave_minutes > 0 THEN early_leave_minutes / 60.0 ELSE 0 END
                 ) as leave_hours'),
-                \DB::raw('SUM(CASE WHEN status = "absent" THEN 1 ELSE 0 END) as absence_days')
+                \DB::raw('SUM(CASE WHEN status = "Alpha" THEN 1 ELSE 0 END) as absence_days')
             )
             ->groupBy('employee_id')
             ->get()

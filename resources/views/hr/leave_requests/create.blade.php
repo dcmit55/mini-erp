@@ -133,6 +133,29 @@
             </div>
         </div>
 
+        {{-- Section: Waktu Izin Keluar (EARLY_LEAVE / PERMISSION_OUT) --}}
+        <div id="early-leave-time-section" class="card border-0 shadow-sm rounded-3 mb-3 d-none">
+            <div class="card-body p-4">
+                <div class="mb-3">
+                    <span class="fw-semibold small text-uppercase text-muted" style="letter-spacing:.05em;">Waktu Izin Keluar</span>
+                </div>
+                <div class="row g-3">
+                    <div class="col-12 col-sm-6">
+                        <label class="form-label small fw-medium mb-1">Jam Keluar <span class="text-danger">*</span></label>
+                        <input type="time" name="leave_time_from" id="leave_time_from"
+                               class="form-control form-control-sm"
+                               value="{{ old('leave_time_from') }}">
+                    </div>
+                    <div class="col-12 col-sm-6 d-none" id="leave_time_to_col">
+                        <label class="form-label small fw-medium mb-1">Jam Kembali <span class="text-danger">*</span></label>
+                        <input type="time" name="leave_time_to" id="leave_time_to"
+                               class="form-control form-control-sm"
+                               value="{{ old('leave_time_to') }}">
+                    </div>
+                </div>
+            </div>
+        </div>
+
         {{-- Section: MC Upload (SICK only) --}}
         <div id="mc-upload-section" class="card border-0 shadow-sm rounded-3 mb-3 d-none">
             <div class="card-body p-4">
@@ -152,15 +175,10 @@
                 <div class="mb-3">
                     <span class="fw-semibold small text-uppercase text-muted" style="letter-spacing:.05em;">Surat Keterangan Dokter</span>
                 </div>
-                <div id="menstruation-info-standing" class="alert alert-success small d-none">
-                    <i class="fas fa-check-circle me-1"></i> Karyawan ini sudah memiliki persetujuan tetap untuk menstruation leave. Tidak perlu upload dokumen.
-                </div>
-                <div id="menstruation-upload-area">
-                    <label class="form-label small fw-medium">Upload Surat Dokter <span class="text-danger">*</span></label>
-                    <input type="file" name="doctor_letter" id="doctor_letter" class="form-control form-control-sm"
-                           accept=".pdf,.jpg,.jpeg,.png">
-                    <div class="text-muted small mt-1">Surat keterangan bahwa karyawan mengalami sakit saat haid. PDF, JPG, PNG &mdash; maks. 5MB</div>
-                </div>
+                <label class="form-label small fw-medium">Upload Surat Dokter <span class="text-danger">*</span></label>
+                <input type="file" name="doctor_letter" id="doctor_letter" class="form-control form-control-sm"
+                       accept=".pdf,.jpg,.jpeg,.png">
+                <div class="text-muted small mt-1">Surat keterangan bahwa karyawan mengalami sakit saat haid. PDF, JPG, PNG &mdash; maks. 5MB</div>
             </div>
         </div>
 
@@ -270,11 +288,6 @@ $(document).ready(function () {
             $('#employee-info').addClass('d-none');
         }
         updateBalanceDisplay();
-        // Re-check menstruation standing when employee changes
-        const currentType = $('input[name="type"]:checked').val();
-        if (currentType === 'MENSTRUATION') {
-            checkMenstruationStanding();
-        }
     });
 
     // ── Tipe cuti: fixed-day types ───────────────────────────────────────────
@@ -290,36 +303,32 @@ $(document).ready(function () {
     };
 
     function updateDocumentSections(type) {
-        const $mcSection  = $('#mc-upload-section');
-        const $drSection  = $('#doctor-letter-section');
-        const $standing   = $('#menstruation-info-standing');
-        const $uploadArea = $('#menstruation-upload-area');
-
         if (type === 'SICK') {
-            $mcSection.removeClass('d-none');
+            $('#mc-upload-section').removeClass('d-none');
         } else {
-            $mcSection.addClass('d-none');
+            $('#mc-upload-section').addClass('d-none');
             $('#mc_document').val('');
         }
 
         if (type === 'MENSTRUATION') {
-            $drSection.removeClass('d-none');
-            checkMenstruationStanding();
+            $('#doctor-letter-section').removeClass('d-none');
         } else {
-            $drSection.addClass('d-none');
+            $('#doctor-letter-section').addClass('d-none');
             $('#doctor_letter').val('');
         }
-    }
 
-    function checkMenstruationStanding() {
-        const opt = document.getElementById('employee_id').options[document.getElementById('employee_id').selectedIndex];
-        const approved = opt ? opt.getAttribute('data-menstruation-approved') : '0';
-        if (approved === '1') {
-            $('#menstruation-info-standing').removeClass('d-none');
-            $('#menstruation-upload-area').addClass('d-none');
+        if (type === 'EARLY_LEAVE' || type === 'PERMISSION_OUT') {
+            $('#early-leave-time-section').removeClass('d-none');
+            if (type === 'PERMISSION_OUT') {
+                $('#leave_time_to_col').removeClass('d-none');
+            } else {
+                $('#leave_time_to_col').addClass('d-none');
+                $('#leave_time_to').val('');
+            }
         } else {
-            $('#menstruation-info-standing').addClass('d-none');
-            $('#menstruation-upload-area').removeClass('d-none');
+            $('#early-leave-time-section').addClass('d-none');
+            $('#leave_time_from').val('');
+            $('#leave_time_to').val('');
         }
     }
 

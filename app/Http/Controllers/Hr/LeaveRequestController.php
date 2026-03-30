@@ -13,7 +13,10 @@ use App\Models\Admin\Department;
 use Illuminate\Support\Facades\DB;
 use App\Models\Hr\ApprovalMatrix;
 use App\Models\Hr\ApprovalTransaction;
+use App\Models\Hr\DailyAttendance;
 use App\Services\ApprovalService;
+use App\Services\DailyAttendanceService;
+use Carbon\Carbon;
 
 class LeaveRequestController extends Controller
 {
@@ -153,17 +156,19 @@ class LeaveRequestController extends Controller
         if ($leaveTypeInput === 'SICK') {
             $fileRules['mc_document'] = 'required|file|mimes:pdf,jpg,jpeg,png|max:5120';
         }
-        if ($leaveTypeInput === 'MENSTRUATION' && !$employee->menstruation_leave_approved) {
+        if ($leaveTypeInput === 'MENSTRUATION') {
             $fileRules['doctor_letter'] = 'required|file|mimes:pdf,jpg,jpeg,png|max:5120';
         }
 
         $request->validate(array_merge([
-            'employee_id' => 'required|exists:employees,id',
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after_or_equal:start_date',
-            'type' => 'required|string',
-            'reason' => 'nullable|string',
-            'duration' => 'required|numeric|min:0.01|max:999.99',
+            'employee_id'     => 'required|exists:employees,id',
+            'start_date'      => 'required|date',
+            'end_date'        => 'required|date|after_or_equal:start_date',
+            'type'            => 'required|string',
+            'reason'          => 'nullable|string',
+            'duration'        => 'required|numeric|min:0.01|max:999.99',
+            'leave_time_from' => 'nullable|date_format:H:i',
+            'leave_time_to'   => ($leaveTypeInput === 'PERMISSION_OUT' ? 'required' : 'nullable') . '|date_format:H:i|after:leave_time_from',
         ], $fileRules));
 
         // Auto-calculate end_date for fixed-day leave types
@@ -177,6 +182,7 @@ class LeaveRequestController extends Controller
         ];
 
         $leaveType = strtoupper($request->type);
+
         if (isset($fixedDayTypes[$leaveType])) {
             // Auto-calculate end_date based on start_date + fixed duration
             $startDate = new \DateTime($request->start_date);
@@ -224,7 +230,7 @@ class LeaveRequestController extends Controller
                 ]);
             }
 
-            if ($leaveTypeInput === 'MENSTRUATION' && !$employee->menstruation_leave_approved && $request->hasFile('doctor_letter')) {
+            if ($leaveTypeInput === 'MENSTRUATION' && $request->hasFile('doctor_letter')) {
                 $file = $request->file('doctor_letter');
                 $doctorLetterData = json_encode([
                     'name' => $file->getClientOriginalName(),
@@ -242,17 +248,19 @@ class LeaveRequestController extends Controller
             $approvalDept = $skipsDept ? 'approved' : 'pending';
 
             $leave = LeaveRequest::create([
-                'employee_id'   => $request->employee_id,
-                'start_date'    => $request->start_date,
-                'end_date'      => $request->end_date,
-                'type'          => $request->type,
-                'duration'      => $request->duration,
-                'reason'        => $request->reason,
-                'mc_document'   => $mcDocumentData,
-                'doctor_letter' => $doctorLetterData,
-                'approval_dept' => $approvalDept,
-                'approval_1'    => 'pending',
-                'approval_2'    => 'pending',
+                'employee_id'     => $request->employee_id,
+                'start_date'      => $request->start_date,
+                'end_date'        => $request->end_date,
+                'leave_time_from' => in_array($leaveTypeInput, ['EARLY_LEAVE', 'PERMISSION_OUT']) ? $request->leave_time_from : null,
+                'leave_time_to'   => in_array($leaveTypeInput, ['EARLY_LEAVE', 'PERMISSION_OUT']) ? $request->leave_time_to : null,
+                'type'            => $request->type,
+                'duration'        => $request->duration,
+                'reason'          => $request->reason,
+                'mc_document'     => $mcDocumentData,
+                'doctor_letter'   => $doctorLetterData,
+                'approval_dept'   => $approvalDept,
+                'approval_1'      => 'pending',
+                'approval_2'      => 'pending',
             ]);
 
             // Inisiasi audit trail di approval_transactions (jika matrix sudah dikonfigurasi)
@@ -322,12 +330,14 @@ class LeaveRequestController extends Controller
         }
 
         $request->validate([
-            'employee_id' => 'required|exists:employees,id',
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after_or_equal:start_date',
-            'type' => 'required|string',
-            'reason' => 'nullable|string',
-            'duration' => 'required|numeric|min:0.01|max:999.99',
+            'employee_id'     => 'required|exists:employees,id',
+            'start_date'      => 'required|date',
+            'end_date'        => 'required|date|after_or_equal:start_date',
+            'type'            => 'required|string',
+            'reason'          => 'nullable|string',
+            'duration'        => 'required|numeric|min:0.01|max:999.99',
+            'leave_time_from' => 'nullable|date_format:H:i',
+            'leave_time_to'   => 'nullable|date_format:H:i|after:leave_time_from',
         ]);
 
         $leave = LeaveRequest::findOrFail($id);
@@ -341,13 +351,15 @@ class LeaveRequestController extends Controller
         $approvalDept = $skipsDept ? 'approved' : ($leave->approval_dept ?? 'pending');
 
         $leave->update([
-            'employee_id'   => $request->employee_id,
-            'start_date'    => $request->start_date,
-            'end_date'      => $request->end_date,
-            'type'          => $request->type,
-            'duration'      => $request->duration,
-            'reason'        => $request->reason,
-            'approval_dept' => $approvalDept,
+            'employee_id'     => $request->employee_id,
+            'start_date'      => $request->start_date,
+            'end_date'        => $request->end_date,
+            'leave_time_from' => in_array(strtoupper($request->type), ['EARLY_LEAVE', 'PERMISSION_OUT']) ? $request->leave_time_from : null,
+            'leave_time_to'   => in_array(strtoupper($request->type), ['EARLY_LEAVE', 'PERMISSION_OUT']) ? $request->leave_time_to : null,
+            'type'            => $request->type,
+            'duration'        => $request->duration,
+            'reason'          => $request->reason,
+            'approval_dept'   => $approvalDept,
         ]);
 
         return redirect()->route('leave_requests.index')->with('success', 'Leave request updated!');
@@ -459,20 +471,6 @@ class LeaveRequestController extends Controller
             $message = 'Approval updated successfully!';
             $balanceInfo = null;
 
-            // If both approved and type is MENSTRUATION, grant standing approval to employee
-            if ($bothApproved && $wasNotBothApproved && $leave->type === 'MENSTRUATION') {
-                $menstruationEmployee = $leave->employee;
-                if ($menstruationEmployee && !$menstruationEmployee->menstruation_leave_approved) {
-                    $menstruationEmployee->menstruation_leave_approved = true;
-                    $menstruationEmployee->menstruation_leave_approved_at = now();
-                    $menstruationEmployee->save();
-                    \Log::info('Menstruation standing approval granted', [
-                        'employee_id' => $menstruationEmployee->id,
-                        'leave_id' => $leave->id,
-                    ]);
-                }
-            }
-
             // Deduct balance if both approved
             if ($bothApproved && $wasNotBothApproved && $isAnnualLeave) {
                 $employee = $leave->employee;
@@ -506,6 +504,7 @@ class LeaveRequestController extends Controller
             }
 
             // Check if approval was revoked
+            $wasFullyApproved   = $previousApprovalDept === 'approved' && $previousApproval1 === 'approved' && $previousApproval2 === 'approved';
             $approvalRevoked = (($previousApproval1 === 'approved' && $request->has('approval_1') && $request->approval_1 !== 'approved') || ($previousApproval2 === 'approved' && $request->has('approval_2') && $request->approval_2 !== 'approved')) && $isAnnualLeave;
 
             if ($approvalRevoked && ($previousApproval1 === 'approved' && $previousApproval2 === 'approved')) {
@@ -519,6 +518,15 @@ class LeaveRequestController extends Controller
                     'restored' => number_format($leave->duration, 1),
                     'new_balance' => number_format($employee->saldo_cuti, 1),
                 ];
+            }
+
+            // Sync daily_attendances status berdasarkan approval leave
+            if ($bothApproved && $wasNotBothApproved) {
+                // Leave baru saja fully approved → update daily attendance
+                $this->syncDailyAttendanceForLeave($leave, 'approved');
+            } elseif ($wasFullyApproved && !$leave->isFullyApproved()) {
+                // Leave sebelumnya fully approved, sekarang di-revoke → kembalikan ke Alpha
+                $this->syncDailyAttendanceForLeave($leave, 'revoked');
             }
 
             DB::commit();
@@ -812,5 +820,72 @@ class LeaveRequestController extends Controller
         return redirect()
             ->route('leave_requests.index')
             ->with('success', "Leave request for <b>{$employeeName}</b> deleted successfully!");
+    }
+
+    /**
+     * Sync status daily_attendances berdasarkan leave request yang approved/revoked.
+     * Hanya update record yang tidak memiliki clock_in (karyawan memang tidak masuk).
+     */
+    private function syncDailyAttendanceForLeave(LeaveRequest $leave, string $action): void
+    {
+        $dates = [];
+        $start = Carbon::parse($leave->start_date);
+        $end   = Carbon::parse($leave->end_date);
+
+        for ($d = $start->copy(); $d->lte($end); $d->addDay()) {
+            $dates[] = $d->toDateString();
+        }
+
+        if (empty($dates)) {
+            return;
+        }
+
+        if ($action === 'approved') {
+            $status = app(DailyAttendanceService::class)->mapLeaveTypeToStatus($leave->type);
+
+            $query = DailyAttendance::where('employee_id', $leave->employee_id)
+                ->whereIn('date', $dates);
+
+            // EARLY_LEAVE & PERMISSION_OUT: karyawan tetap masuk → update meski ada clock_in
+            // Tipe lain: hanya update jika karyawan tidak hadir (clock_in NULL)
+            if (!in_array($leave->type, ['EARLY_LEAVE', 'PERMISSION_OUT'])) {
+                $query->whereNull('clock_in');
+            }
+
+            $query->update([
+                'status'     => $status,
+                'remarks'    => $leave->reason ?: null,
+                'updated_by' => auth()->id(),
+            ]);
+
+            \Log::info('Daily attendance synced for approved leave', [
+                'leave_id'    => $leave->id,
+                'employee_id' => $leave->employee_id,
+                'dates'       => $dates,
+                'status'      => $status,
+            ]);
+        } elseif ($action === 'revoked') {
+            $query = DailyAttendance::where('employee_id', $leave->employee_id)
+                ->whereIn('date', $dates);
+
+            if (!in_array($leave->type, ['EARLY_LEAVE', 'PERMISSION_OUT'])) {
+                $query->whereNull('clock_in');
+            }
+
+            // Kembalikan ke status sebelumnya berdasarkan ada/tidaknya clock_in
+            $query->each(function (DailyAttendance $att) {
+                $att->update([
+                    'status'     => $att->clock_in ? 'Present' : 'Alpha',
+                    'remarks'    => null,
+                    'updated_by' => auth()->id(),
+                ]);
+            });
+
+            \Log::info('Daily attendance reverted for revoked leave', [
+                'leave_id'    => $leave->id,
+                'employee_id' => $leave->employee_id,
+                'dates'       => $dates,
+            ]);
+        }
     }
 }
