@@ -457,22 +457,31 @@
             color: #e0e0e0;
         }
 
-        /* ── JO Final Images Carousel ── */
+        /* ── JO Final Images Carousel (left photo panel) ── */
         .pc-jo-carousel {
-            border-radius: 8px;
+            position: absolute;
+            inset: 0;
+            border-radius: 0;
             overflow: hidden;
+            z-index: 2;
+        }
+
+        .pc-jo-carousel .carousel-inner,
+        .pc-jo-carousel .carousel-item {
+            height: 100%;
         }
 
         .pc-jo-carousel-img {
-            height: 120px;
+            width: 100%;
+            height: 100%;
             object-fit: cover;
-            border-radius: 8px;
+            display: block;
         }
 
         .pc-jo-carousel .carousel-control-prev,
         .pc-jo-carousel .carousel-control-next {
-            width: 24px;
-            opacity: 0.7;
+            width: 28px;
+            opacity: 0.75;
         }
     </style>
     {{-- Flatpickr date range picker --}}
@@ -725,18 +734,56 @@
 
                                 {{-- ══ LEFT: photo panel ══ --}}
                                 <div class="pc-photo-panel {{ $bgClass }}">
-                                    <div class="pc-photo-panel-inner">
+                                    @php
+                                        $joImages = $project->jobOrders
+                                            ->pluck('final_image')
+                                            ->filter()
+                                            ->values();
+                                        $carouselId = 'joCarousel-' . $project->id;
+                                    @endphp
+
+                                    {{-- JO images fill the panel when available --}}
+                                    @if ($joImages->count() > 0)
+                                        <div id="{{ $carouselId }}" class="carousel slide pc-jo-carousel"
+                                            data-bs-ride="carousel" data-bs-interval="3000">
+                                            <div class="carousel-inner">
+                                                @foreach ($joImages as $idx => $img)
+                                                    <div class="carousel-item {{ $idx === 0 ? 'active' : '' }}">
+                                                        <img src="{{ asset('storage/' . $img) }}"
+                                                            class="pc-jo-carousel-img"
+                                                            alt="JO Image {{ $idx + 1 }}">
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                            @if ($joImages->count() > 1)
+                                                <button class="carousel-control-prev" type="button"
+                                                    data-bs-target="#{{ $carouselId }}" data-bs-slide="prev">
+                                                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                                    <span class="visually-hidden">Previous</span>
+                                                </button>
+                                                <button class="carousel-control-next" type="button"
+                                                    data-bs-target="#{{ $carouselId }}" data-bs-slide="next">
+                                                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                                    <span class="visually-hidden">Next</span>
+                                                </button>
+                                            @endif
+                                        </div>
+                                    @endif
+
+                                    <div class="pc-photo-panel-inner" style="{{ $joImages->count() > 0 ? 'z-index:1;' : '' }}">
                                         {{-- Category badge (top) --}}
                                         @if (!empty($typeDept))
                                             <span class="pc-cat-badge">{{ $typeDept }}</span>
                                         @endif
 
-                                        {{-- Photo or placeholder (center) --}}
-                                        @if (!empty($project->photo))
-                                            <img src="{{ asset('storage/' . $project->photo) }}" class="pc-photo-img"
-                                                alt="{{ $project->name }}">
-                                        @else
-                                            <div class="pc-photo-placeholder">{{ $deptEmoji }}</div>
+                                        {{-- Show project photo / emoji only if no JO images --}}
+                                        @if ($joImages->count() === 0)
+                                            @if (!empty($project->photo))
+                                                <img src="{{ asset('storage/' . $project->photo) }}" class="pc-photo-img"
+                                                    alt="{{ $project->name }}">
+                                            @else
+                                                <div class="pc-photo-placeholder">{{ $deptEmoji }}</div>
+                                            @endif
                                         @endif
 
                                         {{-- Lark badge (bottom) --}}
@@ -757,41 +804,6 @@
                                             {{ $project->name }}
                                         </span>
                                     </div>
-
-                                    {{-- ── JO Final Images Carousel ── --}}
-                                    @php
-                                        $joImages = $project->jobOrders
-                                            ->pluck('final_image')
-                                            ->filter()
-                                            ->values();
-                                        $carouselId = 'joCarousel-' . $project->id;
-                                    @endphp
-                                    @if ($joImages->count() > 0)
-                                        <div id="{{ $carouselId }}" class="carousel slide pc-jo-carousel mb-2"
-                                            data-bs-ride="carousel" data-bs-interval="3000">
-                                            <div class="carousel-inner">
-                                                @foreach ($joImages as $idx => $img)
-                                                    <div class="carousel-item {{ $idx === 0 ? 'active' : '' }}">
-                                                        <img src="{{ asset('storage/' . $img) }}"
-                                                            class="d-block w-100 pc-jo-carousel-img"
-                                                            alt="JO Image {{ $idx + 1 }}">
-                                                    </div>
-                                                @endforeach
-                                            </div>
-                                            @if ($joImages->count() > 1)
-                                                <button class="carousel-control-prev" type="button"
-                                                    data-bs-target="#{{ $carouselId }}" data-bs-slide="prev">
-                                                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                                                    <span class="visually-hidden">Previous</span>
-                                                </button>
-                                                <button class="carousel-control-next" type="button"
-                                                    data-bs-target="#{{ $carouselId }}" data-bs-slide="next">
-                                                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                                                    <span class="visually-hidden">Next</span>
-                                                </button>
-                                            @endif
-                                        </div>
-                                    @endif
 
                                     {{-- ── ACTUALS ── --}}
                                     <div class="section-title">ACTUALS</div>
