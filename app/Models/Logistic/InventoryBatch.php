@@ -98,13 +98,27 @@ class InventoryBatch extends Model
     }
 
     /**
-     * Generate a unique batch number for INIT (manual stock entry) batches.
-     * Format: INIT-{inventoryId}-{YmdHis}
-     * Distinguished from BATCH-xxxx numbers so INIT entries are clearly identifiable.
+     * Generate a sequential INIT batch number for a specific inventory item.
+     * Format: INIT-XXX  (e.g. INIT-001, INIT-002, …, INIT-291, INIT-292)
+     * Sequence is scoped PER inventory (source_type = initial_stock only).
+     *
+     * Examples:
+     *   No prior INIT batches  → INIT-001
+     *   Last was INIT-291      → INIT-292
      */
     public static function generateInitBatchNumber(int $inventoryId): string
     {
-        return 'INIT-' . $inventoryId . '-' . date('YmdHis');
+        // Find the highest numeric suffix among INIT-xxx batches for this inventory
+        $last = static::withTrashed()
+            ->where('inventory_id', $inventoryId)
+            ->where('source_type', self::SOURCE_INITIAL_STOCK)
+            ->where('batch_number', 'regexp', '^INIT-[0-9]+$')
+            ->selectRaw('MAX(CAST(SUBSTRING(batch_number, 6) AS UNSIGNED)) as max_seq')
+            ->value('max_seq') ?? 0;
+
+        $next = (int) $last + 1;
+
+        return 'INIT-' . str_pad($next, 3, '0', STR_PAD_LEFT);
     }
 
     /**
