@@ -110,10 +110,7 @@ class InventoryBatch extends Model
     public static function generateInitBatchNumber(int $inventoryId = 0): string
     {
         // Find the highest numeric suffix among ALL INIT-xxx batches globally
-        $last = static::withTrashed()
-            ->where('batch_number', 'regexp', '^INIT-[0-9]+$')
-            ->selectRaw('MAX(CAST(SUBSTRING(batch_number, 6) AS UNSIGNED)) as max_seq')
-            ->value('max_seq') ?? 0;
+        $last = static::withTrashed()->where('batch_number', 'regexp', '^INIT-[0-9]+$')->selectRaw('MAX(CAST(SUBSTRING(batch_number, 6) AS UNSIGNED)) as max_seq')->value('max_seq') ?? 0;
 
         $next = (int) $last + 1;
 

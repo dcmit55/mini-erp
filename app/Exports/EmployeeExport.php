@@ -39,61 +39,23 @@ class EmployeeExport implements FromCollection, WithHeadings, WithMapping, WithS
 
     public function headings(): array
     {
-        return [
-            'No.',
-            'Employee No.',
-            'Name',
-            'Department',
-            'Position',
-            'Employment Type',
-            'Gender',
-            'Citizenship',
-            'Place of Birth',
-            'Date of Birth',
-            'Email',
-            'Phone',
-            'Address',
-            'KTP ID',
-            'Hire Date',
-            'Contract End Date',
-            'Status',
-            'Notes',
-        ];
+        return ['No.', 'Employee No.', 'Name', 'Department', 'Position', 'Employment Type', 'Gender', 'Citizenship', 'Place of Birth', 'Date of Birth', 'Email', 'Phone', 'Address', 'KTP ID', 'Hire Date', 'Contract End Date', 'Status', 'Notes'];
     }
 
     public function map($employee): array
     {
         $this->rowNum++;
 
-        return [
-            $this->rowNum,
-            $employee->employee_no,
-            $employee->name,
-            $employee->department?->name ?? '-',
-            $employee->position ?? '-',
-            $employee->employment_type ?? '-',
-            $employee->gender ?? '-',
-            $employee->citizenship ?? '-',
-            $employee->place_of_birth ?? '-',
-            $employee->date_of_birth ? \Carbon\Carbon::parse($employee->date_of_birth)->format('Y-m-d') : '-',
-            $employee->email ?? '-',
-            $employee->phone ?? '-',
-            $employee->address ?? '-',
-            $employee->ktp_id ?? '-',
-            $employee->hire_date ? \Carbon\Carbon::parse($employee->hire_date)->format('Y-m-d') : '-',
-            $employee->contract_end_date ? \Carbon\Carbon::parse($employee->contract_end_date)->format('Y-m-d') : '-',
-            ucfirst($employee->status ?? '-'),
-            $employee->notes ?? '-',
-        ];
+        return [$this->rowNum, $employee->employee_no, $employee->name, $employee->department?->name ?? '-', $employee->position ?? '-', $employee->employment_type ?? '-', $employee->gender ?? '-', $employee->citizenship ?? '-', $employee->place_of_birth ?? '-', $employee->date_of_birth ? \Carbon\Carbon::parse($employee->date_of_birth)->format('Y-m-d') : '-', $employee->email ?? '-', $employee->phone ?? '-', $employee->address ?? '-', $employee->ktp_id ?? '-', $employee->hire_date ? \Carbon\Carbon::parse($employee->hire_date)->format('Y-m-d') : '-', $employee->contract_end_date ? \Carbon\Carbon::parse($employee->contract_end_date)->format('Y-m-d') : '-', ucfirst($employee->status ?? '-'), $employee->notes ?? '-'];
     }
 
     public function styles(Worksheet $sheet)
     {
         return [
             1 => [
-                'font'      => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
-                'fill'      => [
-                    'fillType'   => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                'fill' => [
+                    'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
                     'startColor' => ['rgb' => '4472C4'],
                 ],
                 'alignment' => ['horizontal' => 'center', 'vertical' => 'center'],

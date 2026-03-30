@@ -5,10 +5,10 @@
         <div class="card shadow-sm border-0 mb-4">
             <div class="card-body">
                 @php
-                    $activeCount     = $employees->where('status', 'active')->count();
-                    $inactiveCount   = $employees->where('status', 'inactive')->count();
+                    $activeCount = $employees->where('status', 'active')->count();
+                    $inactiveCount = $employees->where('status', 'inactive')->count();
                     $terminatedCount = $employees->where('status', 'terminated')->count();
-                    $allCount        = $employees->count();
+                    $allCount = $employees->count();
                 @endphp
 
                 <!-- Header -->
@@ -18,53 +18,59 @@
                         <button type="button" class="btn btn-sm rounded-2 px-3 emp-status-tab active-tab btn-purple"
                             data-status="" id="tab-all">
                             <i class="fas fa-users me-1"></i> All
-                            <span class="tab-badge ms-1" style="font-size:0.65rem;font-weight:600;">{{ $allCount }}</span>
+                            <span class="tab-badge ms-1"
+                                style="font-size:0.65rem;font-weight:600;">{{ $allCount }}</span>
                         </button>
                         <button type="button" class="btn btn-sm rounded-2 px-3 emp-status-tab btn-outline-purple"
                             data-status="active" id="tab-active">
                             <i class="fas fa-user-check me-1"></i> Active
-                            <span class="tab-badge ms-1" style="font-size:0.65rem;font-weight:600;">{{ $activeCount }}</span>
+                            <span class="tab-badge ms-1"
+                                style="font-size:0.65rem;font-weight:600;">{{ $activeCount }}</span>
                         </button>
                         <button type="button" class="btn btn-sm rounded-2 px-3 emp-status-tab btn-outline-purple"
                             data-status="inactive" id="tab-inactive">
                             <i class="fas fa-user-clock me-1"></i> Inactive
-                            <span class="tab-badge ms-1" style="font-size:0.65rem;font-weight:600;">{{ $inactiveCount }}</span>
+                            <span class="tab-badge ms-1"
+                                style="font-size:0.65rem;font-weight:600;">{{ $inactiveCount }}</span>
                         </button>
-                        @if($terminatedCount > 0)
-                        <button type="button" class="btn btn-sm rounded-2 px-3 emp-status-tab btn-outline-purple"
-                            data-status="terminated" id="tab-terminated">
-                            <i class="fas fa-user-times me-1"></i> Terminated
-                            <span class="tab-badge ms-1" style="font-size:0.65rem;font-weight:600;">{{ $terminatedCount }}</span>
-                        </button>
+                        @if ($terminatedCount > 0)
+                            <button type="button" class="btn btn-sm rounded-2 px-3 emp-status-tab btn-outline-purple"
+                                data-status="terminated" id="tab-terminated">
+                                <i class="fas fa-user-times me-1"></i> Terminated
+                                <span class="tab-badge ms-1"
+                                    style="font-size:0.65rem;font-weight:600;">{{ $terminatedCount }}</span>
+                            </button>
                         @endif
                     </div>
 
                     <!-- Center: Title -->
-                    <div class="position-absolute start-50 translate-middle-x text-center d-none d-lg-block" style="pointer-events:none;">
-                        <h5 class="fw-semibold mb-0" style="background:linear-gradient(135deg,#8F12FE,#4A25AA);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
+                    <div class="position-absolute start-50 translate-middle-x text-center d-none d-lg-block"
+                        style="pointer-events:none;">
+                        <h5 class="fw-semibold mb-0"
+                            style="background:linear-gradient(135deg,#8F12FE,#4A25AA);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
                             Employees Management
                         </h5>
                     </div>
 
                     <!-- Right: action buttons -->
                     @if (auth()->user()->canModifyData())
-                    <div class="ms-auto d-flex gap-2 flex-shrink-0">
-                        <a href="{{ route('employees.export', ['status' => request('status', 'all')]) }}"
-                            class="btn btn-sm btn-outline-success rounded-2 px-3">
-                            <i class="bi bi-file-earmark-excel me-1"></i>
-                            <span class="d-none d-sm-inline">Export Excel</span>
-                        </a>
-                        <button type="button" class="btn btn-sm btn-outline-purple rounded-2 px-3"
-                            data-bs-toggle="modal" data-bs-target="#importEmployeeModal">
-                            <i class="bi bi-upload me-1"></i>
-                            <span class="d-none d-sm-inline">Import Excel</span>
-                        </button>
-                        <a href="{{ route('employees.create') }}" class="btn btn-sm btn-purple rounded-2 px-3">
-                            <i class="bi bi-plus-circle me-1"></i>
-                            <span class="d-none d-sm-inline">Add Employee</span>
-                            <span class="d-sm-none">Add</span>
-                        </a>
-                    </div>
+                        <div class="ms-auto d-flex gap-2 flex-shrink-0">
+                            <a href="{{ route('employees.export', ['status' => request('status', 'all')]) }}"
+                                class="btn btn-sm btn-outline-success rounded-2 px-3">
+                                <i class="bi bi-file-earmark-excel me-1"></i>
+                                <span class="d-none d-sm-inline">Export Excel</span>
+                            </a>
+                            <button type="button" class="btn btn-sm btn-outline-purple rounded-2 px-3"
+                                data-bs-toggle="modal" data-bs-target="#importEmployeeModal">
+                                <i class="bi bi-upload me-1"></i>
+                                <span class="d-none d-sm-inline">Import Excel</span>
+                            </button>
+                            <a href="{{ route('employees.create') }}" class="btn btn-sm btn-purple rounded-2 px-3">
+                                <i class="bi bi-plus-circle me-1"></i>
+                                <span class="d-none d-sm-inline">Add Employee</span>
+                                <span class="d-sm-none">Add</span>
+                            </a>
+                        </div>
                     @endif
                 </div>
 
@@ -413,29 +419,37 @@
             border-color: #8F12FE;
             color: #fff;
         }
-        .btn-purple:hover, .btn-purple:focus {
+
+        .btn-purple:hover,
+        .btn-purple:focus {
             background: linear-gradient(135deg, #7a0fe0 0%, #3b1e8e 100%);
             border-color: #7a0fe0;
             color: #fff;
         }
+
         .btn-outline-purple {
             border: 1px solid #8F12FE;
             color: #8F12FE;
             background: transparent;
         }
-        .btn-outline-purple:hover, .btn-outline-purple:focus {
-            background: rgba(143,18,254,0.08);
+
+        .btn-outline-purple:hover,
+        .btn-outline-purple:focus {
+            background: rgba(143, 18, 254, 0.08);
             color: #4A25AA;
             border-color: #4A25AA;
         }
+
         .emp-status-tab.active-tab {
             background: linear-gradient(135deg, #8F12FE 0%, #4A25AA 100%);
             border-color: #8F12FE;
             color: #fff;
         }
+
         .emp-status-tab.active-tab .tab-badge {
-            color: rgba(255,255,255,0.85);
+            color: rgba(255, 255, 255, 0.85);
         }
+
         .emp-status-tab:not(.active-tab) .tab-badge {
             color: #8F12FE;
         }
@@ -765,7 +779,7 @@
                 // Bangun regex gabungan empType + status dengan word-boundary
                 let patterns = [];
                 if (empType) patterns.push('\\b' + empType + '\\b');
-                if (status)  patterns.push('\\b' + status + '\\b');
+                if (status) patterns.push('\\b' + status + '\\b');
 
                 if (patterns.length > 0) {
                     table.column(8).search(patterns.join('(?=.*?)'), true, false, true).draw(false);

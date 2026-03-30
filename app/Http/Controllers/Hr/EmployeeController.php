@@ -51,7 +51,7 @@ class EmployeeController extends Controller
 
     public function export(Request $request)
     {
-        $status   = $request->input('status', 'all');
+        $status = $request->input('status', 'all');
         $filename = 'employees_' . ($status === 'all' ? 'all' : $status) . '_' . now()->format('Ymd') . '.xlsx';
 
         return Excel::download(new EmployeeExport($status), $filename);
@@ -467,13 +467,12 @@ class EmployeeController extends Controller
      */
     public function search(Request $request)
     {
-        $q     = trim($request->input('q', ''));
+        $q = trim($request->input('q', ''));
         $limit = min((int) $request->input('limit', 10), 50);
 
         $employees = Employee::where('status', 'active')
             ->where(function ($query) use ($q) {
-                $query->where('name', 'like', "%{$q}%")
-                      ->orWhere('employee_no', 'like', "%{$q}%");
+                $query->where('name', 'like', "%{$q}%")->orWhere('employee_no', 'like', "%{$q}%");
             })
             ->orderBy('name')
             ->limit($limit)

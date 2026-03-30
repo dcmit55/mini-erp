@@ -679,9 +679,7 @@ class InventoryController extends Controller
         $newPrice = (float) ($request->price ?? 0);
 
         // Get the last INIT batch price for comparison (detect actual price change)
-        $currentPrice = (float) ($inventory->batches()
-            ->where('source_type', \App\Models\Logistic\InventoryBatch::SOURCE_INITIAL_STOCK)
-            ->orderByDesc('id')->value('unit_price') ?? 0);
+        $currentPrice = (float) ($inventory->batches()->where('source_type', \App\Models\Logistic\InventoryBatch::SOURCE_INITIAL_STOCK)->orderByDesc('id')->value('unit_price') ?? 0);
 
         // Create new INIT batch when qty > 0 or price has changed
         if ($newQty > 0 || ($newPrice > 0 && $newPrice !== $currentPrice)) {
