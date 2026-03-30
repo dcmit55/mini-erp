@@ -98,20 +98,19 @@ class InventoryBatch extends Model
     }
 
     /**
-     * Generate a sequential INIT batch number for a specific inventory item.
-     * Format: INIT-XXX  (e.g. INIT-001, INIT-002, …, INIT-291, INIT-292)
-     * Sequence is scoped PER inventory (source_type = initial_stock only).
+     * Generate a globally sequential INIT batch number.
+     * Format: INIT-XXX  (e.g. INIT-001, INIT-292)
+     * Sequence is GLOBAL across all inventories — always continues from the
+     * highest existing INIT number in the entire table (including soft-deleted).
      *
      * Examples:
-     *   No prior INIT batches  → INIT-001
-     *   Last was INIT-291      → INIT-292
+     *   No prior INIT batches anywhere → INIT-001
+     *   Highest existing is INIT-291   → INIT-292
      */
-    public static function generateInitBatchNumber(int $inventoryId): string
+    public static function generateInitBatchNumber(int $inventoryId = 0): string
     {
-        // Find the highest numeric suffix among INIT-xxx batches for this inventory
+        // Find the highest numeric suffix among ALL INIT-xxx batches globally
         $last = static::withTrashed()
-            ->where('inventory_id', $inventoryId)
-            ->where('source_type', self::SOURCE_INITIAL_STOCK)
             ->where('batch_number', 'regexp', '^INIT-[0-9]+$')
             ->selectRaw('MAX(CAST(SUBSTRING(batch_number, 6) AS UNSIGNED)) as max_seq')
             ->value('max_seq') ?? 0;
