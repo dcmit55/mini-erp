@@ -483,6 +483,25 @@
             width: 28px;
             opacity: 0.75;
         }
+
+        /* JO name label overlaid at bottom-center of each slide */
+        .pc-jo-slide-label {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0,0,0,.72) 0%, transparent 100%);
+            color: #fff;
+            font-size: .62rem;
+            font-weight: 600;
+            text-align: center;
+            padding: 14px 6px 5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            pointer-events: none;
+            z-index: 5;
+        }
     </style>
     {{-- Flatpickr date range picker --}}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -722,7 +741,10 @@
                         <div class="pc-card-wrapper">
                             {{-- ══ HOVER IMAGE PREVIEW ══ --}}
                             <div class="pc-img-preview">
-                                @if (!empty($project->photo))
+                                @if ($joWithImages->count() > 0)
+                                    {{-- JO images: JS will swap src to active carousel slide --}}
+                                    <img class="pc-popup-img" src="{{ asset('storage/' . $firstJoImg) }}" alt="{{ $project->name }}">
+                                @elseif (!empty($project->photo))
                                     <img src="{{ asset('storage/' . $project->photo) }}" alt="{{ $project->name }}">
                                 @else
                                     <div class="pc-preview-placeholder">{{ $deptEmoji }}</div>
@@ -735,27 +757,30 @@
                                 {{-- ══ LEFT: photo panel ══ --}}
                                 <div class="pc-photo-panel {{ $bgClass }}">
                                     @php
-                                        $joImages = $project->jobOrders
-                                            ->pluck('final_image')
-                                            ->filter()
+                                        $joWithImages = $project->jobOrders
+                                            ->filter(fn($jo) => !empty($jo->final_image))
                                             ->values();
                                         $carouselId = 'joCarousel-' . $project->id;
+                                        $firstJoImg = $joWithImages->first()?->final_image;
                                     @endphp
 
                                     {{-- JO images fill the panel when available --}}
-                                    @if ($joImages->count() > 0)
+                                    @if ($joWithImages->count() > 0)
                                         <div id="{{ $carouselId }}" class="carousel slide pc-jo-carousel"
                                             data-bs-ride="carousel" data-bs-interval="3000">
                                             <div class="carousel-inner">
-                                                @foreach ($joImages as $idx => $img)
-                                                    <div class="carousel-item {{ $idx === 0 ? 'active' : '' }}">
-                                                        <img src="{{ asset('storage/' . $img) }}"
+                                                @foreach ($joWithImages as $idx => $jo)
+                                                    <div class="carousel-item {{ $idx === 0 ? 'active' : '' }}"
+                                                        data-jo-img="{{ asset('storage/' . $jo->final_image) }}"
+                                                        data-jo-name="{{ e($jo->name) }}">
+                                                        <img src="{{ asset('storage/' . $jo->final_image) }}"
                                                             class="pc-jo-carousel-img"
-                                                            alt="JO Image {{ $idx + 1 }}">
+                                                            alt="{{ e($jo->name) }}">
+                                                        <div class="pc-jo-slide-label">{{ $jo->name }}</div>
                                                     </div>
                                                 @endforeach
                                             </div>
-                                            @if ($joImages->count() > 1)
+                                            @if ($joWithImages->count() > 1)
                                                 <button class="carousel-control-prev" type="button"
                                                     data-bs-target="#{{ $carouselId }}" data-bs-slide="prev">
                                                     <span class="carousel-control-prev-icon" aria-hidden="true"></span>
@@ -770,14 +795,14 @@
                                         </div>
                                     @endif
 
-                                    <div class="pc-photo-panel-inner" style="{{ $joImages->count() > 0 ? 'z-index:1;' : '' }}">
+                                    <div class="pc-photo-panel-inner" style="{{ $joWithImages->count() > 0 ? 'z-index:1;' : '' }}">
                                         {{-- Category badge (top) --}}
                                         @if (!empty($typeDept))
                                             <span class="pc-cat-badge">{{ $typeDept }}</span>
                                         @endif
 
                                         {{-- Show project photo / emoji only if no JO images --}}
-                                        @if ($joImages->count() === 0)
+                                        @if ($joWithImages->count() === 0)
                                             @if (!empty($project->photo))
                                                 <img src="{{ asset('storage/' . $project->photo) }}" class="pc-photo-img"
                                                     alt="{{ $project->name }}">
@@ -1061,6 +1086,21 @@
             });
 
         }); // end $(function)
+
+        // ── Sync hover popup image with active carousel slide ────────────────
+        // When a JO carousel slides, update the popup img src to match
+        document.querySelectorAll('.pc-jo-carousel').forEach(function(carousel) {
+            carousel.addEventListener('slide.bs.carousel', function(e) {
+                var wrapper = carousel.closest('.pc-card-wrapper');
+                var popupImg = wrapper ? wrapper.querySelector('.pc-popup-img') : null;
+                if (!popupImg) return;
+
+                var nextSlide = carousel.querySelectorAll('.carousel-item')[e.to];
+                if (nextSlide) {
+                    popupImg.src = nextSlide.dataset.joImg;
+                }
+            });
+        });
 
         function formatCurrency(value) {
             return new Intl.NumberFormat('id-ID', {
