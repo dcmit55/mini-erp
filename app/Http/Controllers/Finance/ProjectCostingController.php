@@ -18,6 +18,7 @@ use App\Exports\ProjectCostingMultiSheetExport;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Logistic\Inventory;
+use App\Models\Hr\OvertimeRequest;
 
 class ProjectCostingController extends Controller
 {
@@ -303,7 +304,11 @@ class ProjectCostingController extends Controller
     }
 
     /**
-     * Full Workmanship (Timing) detail page
+     * Full Workmanship (Timing) detail page — with OT cost integration.
+     *
+     * For each timing session, we check whether the employee has an approved/submitted
+     * OT request on the same date. If the session overlaps with the OT window, the
+     * overlapping portion is costed at the effective OT rate; the rest at normal rate.
      */
     public function showWorkmanshipDetail($project_id)
     {
@@ -318,70 +323,187 @@ class ProjectCostingController extends Controller
             ->orderBy('start_time')
             ->get();
 
-        $totalLaborMinutes = $timings->sum('duration_minutes');
-        $totalLaborHours = round($totalLaborMinutes / 60, 2);
+        // ── Load approved OT requests — scoped to this project's employees, dates, and job orders ──
+        $employeeIds      = $timings->pluck('employee_id')->unique()->values()->toArray();
+        $projectJobOrdIds = $timings->pluck('job_order_id')->filter()->unique()->values()->toArray();
+        $timingDates      = $timings->pluck('tanggal')->filter()->map(fn($d) => $d->format('Y-m-d'));
+        $minDate          = $timingDates->min();
+        $maxDate          = $timingDates->max();
 
-        // Per-employee breakdown
+        $otRequests = OvertimeRequest::whereIn('employee_id', $employeeIds)
+            ->whereIn('status', ['approved', 'submitted'])
+            // Only OT dates that overlap with this project's work period
+            ->when($minDate, fn($q) => $q->whereDate('start_time', '>=', $minDate))
+            ->when($maxDate, fn($q) => $q->whereDate('start_time', '<=', $maxDate))
+            // Only OT linked to this project's job orders (or OT with no job order set)
+            ->where(function ($q) use ($projectJobOrdIds) {
+                $q->whereNull('job_order_id');
+                if (!empty($projectJobOrdIds)) {
+                    $q->orWhereIn('job_order_id', $projectJobOrdIds);
+                }
+            })
+            ->with('payDetail')
+            ->get()
+            ->groupBy(fn($ot) => $ot->employee_id . '_' . $ot->start_time->toDateString());
+
+        // ── Helper: compute cost for one timing session with OT overlap ───────
+        $computeCost = function (\App\Models\Production\Timing $t, int $hourlyRate) use ($otRequests): array {
+            $date    = optional($t->tanggal)->format('Y-m-d') ?? '';
+            $key     = $t->employee_id . '_' . $date;
+            $netMins = max(0, ($t->duration_minutes ?? 0) - ($t->break_deducted_minutes ?? 0));
+
+            $normalMins = $netMins;
+            $otMins     = 0;
+            $otRate     = 0;
+            $otCode     = null;
+
+            $otReq = $otRequests->get($key)?->first();
+            if ($otReq && $t->start_time && $t->end_time && $date) {
+                $timingStart  = \Carbon\Carbon::parse($date . ' ' . $t->start_time);
+                $timingEnd    = \Carbon\Carbon::parse($date . ' ' . $t->end_time);
+                $otStart      = $otReq->start_time;  // already Carbon from cast
+                $otEnd        = $otReq->end_time;
+
+                $overlapStart = $timingStart->max($otStart);
+                $overlapEnd   = $timingEnd->min($otEnd);
+
+                if ($overlapEnd->gt($overlapStart)) {
+                    $otMins     = min($overlapEnd->diffInMinutes($overlapStart), $netMins);
+                    $normalMins = max(0, $netMins - $otMins);
+                    $otCode     = $otReq->ot_code;
+
+                    // Effective OT rate: use actual pay detail if available, else estimate
+                    if ($otReq->payDetail && ($otReq->net_hours ?? 0) > 0) {
+                        $otRate = $otReq->payDetail->total_pay / $otReq->net_hours;
+                    } else {
+                        // Estimated average multiplier per Depnaker rules:
+                        // Normal Day:       1h@1.5x + rest@2x  ≈ 1.75x average
+                        // Sunday / Holiday: 7h@2x + 1h@3x + rest@4x ≈ 2.2x average
+                        $otRate = $otReq->ot_code === 'Normal Day'
+                            ? $hourlyRate * 1.75
+                            : $hourlyRate * 2.2;
+                    }
+                }
+            }
+
+            $normalHrs  = round($normalMins / 60, 2);
+            $otHrs      = round($otMins / 60, 2);
+            $normalCost = round($hourlyRate * $normalHrs, 0);
+            $otCost     = round($otRate * $otHrs, 0);
+
+            return [
+                'normal_mins'  => $normalMins,
+                'ot_mins'      => $otMins,
+                'normal_hours' => $normalHrs,
+                'ot_hours'     => $otHrs,
+                'ot_rate'      => round($otRate, 0),
+                'normal_cost'  => $normalCost,
+                'ot_cost'      => $otCost,
+                'total_cost'   => $normalCost + $otCost,
+                'has_ot'       => $otMins > 0,
+                'ot_code'      => $otCode,
+            ];
+        };
+
+        // ── Per-employee breakdown ────────────────────────────────────────────
         $byEmployee = $timings
             ->groupBy('employee_id')
-            ->map(function ($rows) {
-                $emp = $rows->first()->employee;
-                $hrs = round($rows->sum('duration_minutes') / 60, 2);
-                $salary = $emp->salary ?? 0;
-                // Hourly rate: monthly salary / 173 (standard working hours)
+            ->map(function ($rows) use ($computeCost) {
+                $emp        = $rows->first()->employee;
+                $salary     = $emp->salary ?? 0;
                 $hourlyRate = $salary > 0 ? round($salary / 173, 0) : 0;
-                $laborCost = round($hourlyRate * $hrs, 0);
+
+                $totalNormalMins = 0;
+                $totalOtMins     = 0;
+                $totalNormalCost = 0;
+                $totalOtCost     = 0;
+
+                foreach ($rows as $t) {
+                    $c = $computeCost($t, $hourlyRate);
+                    $totalNormalMins += $c['normal_mins'];
+                    $totalOtMins     += $c['ot_mins'];
+                    $totalNormalCost += $c['normal_cost'];
+                    $totalOtCost     += $c['ot_cost'];
+                }
+
+                $totalHrs = round(($totalNormalMins + $totalOtMins) / 60, 2);
+
                 return [
-                    'name' => $emp?->name ?? '—',
-                    'position' => $emp?->position ?? '—',
-                    'initials' => strtoupper(substr($emp?->name ?? 'U', 0, 1)),
-                    'hours' => $hrs,
-                    'sessions' => $rows->count(),
-                    'hourly_rate' => $hourlyRate,
-                    'labor_cost' => $laborCost,
+                    'employee_id'  => $emp?->id,
+                    'name'         => $emp?->name ?? '—',
+                    'position'     => $emp?->position ?? '—',
+                    'initials'     => strtoupper(substr($emp?->name ?? 'U', 0, 1)),
+                    'hours'        => $totalHrs,
+                    'normal_hours' => round($totalNormalMins / 60, 2),
+                    'ot_hours'     => round($totalOtMins / 60, 2),
+                    'sessions'     => $rows->count(),
+                    'hourly_rate'  => $hourlyRate,
+                    'normal_cost'  => $totalNormalCost,
+                    'ot_cost'      => $totalOtCost,
+                    'labor_cost'   => $totalNormalCost + $totalOtCost,
                 ];
             })
             ->sortByDesc('hours')
             ->values();
 
-        // Per date work sessions (for timeline)
+        // ── Per-date work sessions (timeline) ─────────────────────────────────
         $workSessions = $timings
             ->groupBy(fn($t) => optional($t->tanggal)->format('d M Y') ?? '-')
             ->map(function ($rows, $date) {
                 return [
-                    'date' => $date,
+                    'date'      => $date,
                     'employees' => $rows->map(fn($t) => $t->employee?->name ?? '—')->unique()->values()->toArray(),
-                    'hours' => round($rows->sum('duration_minutes') / 60, 2),
-                    'sessions' => $rows->count(),
+                    'hours'     => round($rows->sum(fn($t) => max(0, ($t->duration_minutes ?? 0) - ($t->break_deducted_minutes ?? 0))) / 60, 2),
+                    'sessions'  => $rows->count(),
                 ];
             })
             ->values();
 
-        // Flat timing log rows
+        // ── Flat timing log rows ──────────────────────────────────────────────
         $timingRows = $timings
-            ->map(
-                fn($t) => [
-                    'employee' => $t->employee?->name ?? '—',
-                    'initials' => strtoupper(substr($t->employee?->name ?? 'U', 0, 1)),
-                    'position' => $t->employee?->position ?? '—',
-                    'date' => optional($t->tanggal)->format('d M Y') ?? '—',
-                    'start_time' => $t->start_time ? \Carbon\Carbon::parse($t->start_time)->format('H:i') : '—',
-                    'end_time' => $t->end_time ? \Carbon\Carbon::parse($t->end_time)->format('H:i') : '—',
-                    'hours' => round(($t->duration_minutes ?? 0) / 60, 2),
-                    'job_order' => $t->jobOrder?->name ?? '—',
-                ],
-            )
+            ->map(function ($t) use ($byEmployee, $computeCost) {
+                $emp        = $byEmployee->firstWhere('employee_id', $t->employee_id);
+                $hourlyRate = $emp['hourly_rate'] ?? 0;
+                $c          = $computeCost($t, $hourlyRate);
+
+                return [
+                    'employee'     => $t->employee?->name ?? '—',
+                    'initials'     => strtoupper(substr($t->employee?->name ?? 'U', 0, 1)),
+                    'position'     => $t->employee?->position ?? '—',
+                    'date'         => optional($t->tanggal)->format('d M Y') ?? '—',
+                    'start_time'   => $t->start_time ? \Carbon\Carbon::parse($t->start_time)->format('H:i') : '—',
+                    'end_time'     => $t->end_time   ? \Carbon\Carbon::parse($t->end_time)->format('H:i')   : '—',
+                    'hours'        => round($c['normal_hours'] + $c['ot_hours'], 2),
+                    'normal_hours' => $c['normal_hours'],
+                    'ot_hours'     => $c['ot_hours'],
+                    'ot_rate'      => $c['ot_rate'],
+                    'has_ot'       => $c['has_ot'],
+                    'ot_code'      => $c['ot_code'],
+                    'break_mins'   => $t->break_deducted_minutes ?? 0,
+                    'normal_cost'  => $c['normal_cost'],
+                    'ot_cost'      => $c['ot_cost'],
+                    'total_cost'   => $c['total_cost'],
+                    'job_order'    => $t->jobOrder?->name ?? '—',
+                ];
+            })
             ->values();
 
-        $totalOperators = $byEmployee->count();
-        $avgHourlyRate = $byEmployee->avg('hourly_rate') ?? 0;
-        $totalLaborCost = $byEmployee->sum('labor_cost');
+        $totalLaborMinutes = $timings->sum(fn($t) => max(0, ($t->duration_minutes ?? 0) - ($t->break_deducted_minutes ?? 0)));
+        $totalLaborHours   = round($totalLaborMinutes / 60, 2);
+        $totalOperators    = $byEmployee->count();
+        $avgHourlyRate     = $byEmployee->avg('hourly_rate') ?? 0;
+        $totalLaborCost    = $byEmployee->sum('labor_cost');
+        $totalNormalCost   = $byEmployee->sum('normal_cost');
+        $totalOtCost       = $byEmployee->sum('ot_cost');
 
-        // Latest work date
-        $latestDate = $timings->sortByDesc('tanggal')->first()?->tanggal;
+        $latestDate    = $timings->sortByDesc('tanggal')->first()?->tanggal;
         $latestDateFmt = $latestDate ? $latestDate->format('d M Y') : '—';
 
-        return view('finance.costing.workmanship-detail', compact('project', 'timingRows', 'byEmployee', 'workSessions', 'totalLaborHours', 'totalOperators', 'avgHourlyRate', 'totalLaborCost', 'latestDateFmt'));
+        return view('finance.costing.workmanship-detail', compact(
+            'project', 'timingRows', 'byEmployee', 'workSessions',
+            'totalLaborHours', 'totalOperators', 'avgHourlyRate',
+            'totalLaborCost', 'totalNormalCost', 'totalOtCost', 'latestDateFmt'
+        ));
     }
 
     /**

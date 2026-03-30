@@ -81,6 +81,22 @@
             </div>
         </div>
 
+        <!-- Clocked-In Employees (fingerprint scan today, no active session) -->
+        <div id="clocked-in-panel" class="card shadow-sm border-0 mb-4" style="display:none; border-left:4px solid #fda085 !important;">
+            <div class="card-header d-flex align-items-center justify-content-between py-2"
+                style="background:linear-gradient(135deg,#f6d365 0%,#fda085 100%);">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="fas fa-fingerprint text-white"></i>
+                    <span class="fw-bold text-white" style="font-size:.88rem;">Hadir — Belum Ada Sesi</span>
+                    <span class="badge bg-white text-dark ms-1" id="clocked-in-count" style="font-size:.73rem;">0</span>
+                </div>
+                <small class="text-white opacity-75" style="font-size:.7rem;">Sudah clock-in via fingerprint · belum start timing</small>
+            </div>
+            <div class="card-body py-2 px-3">
+                <div id="clocked-in-list" class="d-flex flex-wrap gap-2"></div>
+            </div>
+        </div>
+
         <!-- Session Cards -->
         @if ($runningSessions->count() > 0)
             @foreach ($groupedSessions as $projectName => $sessions)
@@ -464,8 +480,43 @@
                 }, 500);
             });
 
+            // Clocked-in feed: employees who scanned fingerprint today but have no active session
+            function loadClockedIn() {
+                $.ajax({
+                    url: '{{ route('animatronics-timing.monitor.clocked-in') }}',
+                    method: 'GET',
+                    success: function(r) {
+                        if (!r.success) return;
+                        $('#clocked-in-count').text(r.count || 0);
+                        const panel = $('#clocked-in-panel');
+                        const list  = $('#clocked-in-list');
+                        if (r.count > 0) {
+                            let html = '';
+                            r.employees.forEach(function(emp) {
+                                const av = emp.photo
+                                    ? `<img src="/storage/${emp.photo}" class="rounded-circle" width="32" height="32" style="object-fit:cover;">`
+                                    : `<div class="rounded-circle d-inline-flex align-items-center justify-content-center fw-bold text-white flex-shrink-0" style="width:32px;height:32px;background:linear-gradient(135deg,#f6d365,#fda085);font-size:.72rem;">${emp.initials}</div>`;
+                                html += `<div class="d-flex align-items-center gap-2 p-2 rounded" style="background:rgba(0,0,0,.03);border:1px solid rgba(0,0,0,.07);">
+                                    ${av}
+                                    <div>
+                                        <div class="fw-semibold" style="font-size:.78rem;line-height:1.2;">${emp.name}</div>
+                                        <div class="text-muted" style="font-size:.67rem;"><i class="fas fa-fingerprint me-1" style="color:#fda085;"></i>${emp.clock_in} · ${emp.position}</div>
+                                    </div>
+                                </div>`;
+                            });
+                            list.html(html);
+                            panel.show();
+                        } else {
+                            panel.hide();
+                        }
+                    }
+                });
+            }
+
+            loadClockedIn();
             startDurationTimers();
             setInterval(refreshData, 30000);
+            setInterval(loadClockedIn, 30000);
 
             // Bulk stop handler
             $(document).on('change', '.session-checkbox', function() {
@@ -546,4 +597,6 @@
             });
         });
     </script>
+    @include('timing.partials.detail-modal')
+    @include('timing.partials.break-heartbeat')
 @endsection

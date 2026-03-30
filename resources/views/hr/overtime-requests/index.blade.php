@@ -220,7 +220,7 @@
                                             <span class="text-muted">{{ $req->department->name ?? '-' }}</span>
                                         </td>
                                         <td class="d-none d-xl-table-cell">
-                                            <span class="fw-medium">{{ $req->jobOrder->name ?? '-' }}</span>
+                                            <span>{{ $req->jobOrder->name ?? '-' }}</span>
                                         </td>
                                         <td>
                                             <span class="badge bg-light text-dark px-2 py-1 rounded-pill">
@@ -239,7 +239,7 @@
                                             <span class="text-muted">{{ $req->start_time->format('d/m H:i') }} - {{ $req->end_time->format('H:i') }}</span>
                                         </td>
                                         <td class="text-end">
-                                            <span class="fw-medium">{{ $req->net_hours_formatted }}</span>
+                                            <small>{{ $req->net_hours_formatted }}</small>
                                         </td>
                                         <td>
                                             @php
@@ -284,8 +284,8 @@
                                                     <i class="fas fa-eye"></i>
                                                 </a>
 
-                                                <!-- Edit Button (only for draft) -->
-                                                @if($req->status == 'draft')
+                                                <!-- Edit Button (not for rejected) -->
+                                                @if($req->status !== 'rejected')
                                                 <a href="{{ route('overtime-requests.edit', $req->uid) }}"
                                                    class="btn btn-sm btn-outline-primary border-0 px-2 action-btn"
                                                    data-bs-toggle="tooltip" title="Edit">
@@ -308,18 +308,6 @@
                                                 </form>
                                                 @endif
 
-                                                <!-- Submit Button (for draft) -->
-                                                @if($req->status == 'draft')
-                                                <form action="{{ route('overtime-requests.submit', $req->uid) }}" 
-                                                      method="POST" class="d-inline">
-                                                    @csrf
-                                                    <button type="submit" 
-                                                            class="btn btn-sm btn-outline-success border-0 px-2 action-btn"
-                                                            data-bs-toggle="tooltip" title="Submit for Approval">
-                                                        <i class="fas fa-paper-plane"></i>
-                                                    </button>
-                                                </form>
-                                                @endif
                                             </div>
                                         </td>
                                     </tr>
@@ -480,6 +468,7 @@
         vertical-align: middle;
         border-bottom: 1px solid #f1f5f9;
         white-space: nowrap;
+        font-size: 0.8rem;
     }
 
     .table tbody tr {

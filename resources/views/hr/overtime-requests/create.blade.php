@@ -48,33 +48,56 @@
                             <h6 class="fw-medium text-dark mb-2">
                                 <i class="fas fa-user me-2 text-primary"></i>Employee Information
                             </h6>
-                            
-                            <div class="row g-2">
-                                <div class="col-md-8 mb-2">
-                                    <label for="employee_id" class="form-label small text-dark">Employee <span class="text-danger">*</span></label>
-                                    <select class="form-select border-1 rounded-2 py-2 px-3 @error('employee_id') is-invalid @enderror" 
-                                            id="employee_id" 
-                                            name="employee_id"
-                                            required>
-                                        <option value="">Select Employee</option>
-                                        @foreach($employees as $employee)
-                                            <option value="{{ $employee->id }}" data-employee-no="{{ $employee->employee_no }}" {{ old('employee_id') == $employee->id ? 'selected' : '' }}>
-                                                {{ $employee->name }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    @error('employee_id')
-                                        <div class="invalid-feedback small">{{ $message }}</div>
-                                    @enderror
+
+                            @if($errors->has('employee_id') || $errors->has('employee_id.*'))
+                                <div class="alert alert-danger border-0 py-2 px-3 small mb-2">
+                                    @foreach($errors->get('employee_id') as $msg)<div>{{ $msg }}</div>@endforeach
+                                    @foreach($errors->get('employee_id.*') as $msg)<div>{{ $msg }}</div>@endforeach
                                 </div>
-                                <div class="col-md-4 mb-2">
-                                    <label for="employee_no_display" class="form-label small text-dark">Employee Number</label>
-                                    <input type="text" 
-                                           class="form-control border-1 rounded-2 py-2 px-3 bg-light" 
-                                           id="employee_no_display" 
-                                           readonly
-                                           placeholder="Auto filled">
+                            @endif
+
+                            <!-- Header -->
+                            <div class="row g-2 mb-1">
+                                <div class="col-md-8">
+                                    <span class="form-label small text-dark mb-0">Employee <span class="text-danger">*</span></span>
                                 </div>
+                                <div class="col-md-4">
+                                    <span class="form-label small text-dark mb-0">Employee No</span>
+                                </div>
+                            </div>
+
+                            <!-- Rows -->
+                            <div id="employee-rows">
+                                @php $oldEmployees = old('employee_id', [null]); @endphp
+                                @foreach($oldEmployees as $oldEmpId)
+                                <div class="employee-row row g-2 mb-2 align-items-center">
+                                    <div class="col-md-8">
+                                        <select name="employee_id[]" class="employee-select form-select border-1 rounded-2" required>
+                                            <option value="">Select employee...</option>
+                                            @foreach($employees as $employee)
+                                                <option value="{{ $employee->id }}"
+                                                    data-employee-no="{{ $employee->employee_no }}"
+                                                    {{ $oldEmpId == $employee->id ? 'selected' : '' }}>
+                                                    {{ $employee->name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4 d-flex align-items-center gap-2">
+                                        <input type="text" class="employee-no-display form-control border-1 rounded-2 bg-light fw-medium flex-grow-1"
+                                               readonly placeholder="—">
+                                        <button type="button" class="btn btn-sm btn-light remove-row border text-danger flex-shrink-0" title="Remove" style="width:38px;height:38px;padding:0;">
+                                            <i class="fas fa-times" style="font-size:0.75rem;"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                @endforeach
+                            </div>
+
+                            <div class="mt-2">
+                                <button type="button" id="add-employee-row" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-plus me-1"></i> Add Employee
+                                </button>
                             </div>
                         </div>
 
@@ -195,6 +218,7 @@
 
 <style>
     .form-control, .form-select { border-color: #e2e8f0; font-size: 0.9rem; height: 42px; }
+    .form-control-sm, .form-select-sm { height: 36px !important; font-size: 0.875rem; }
     .form-control:focus, .form-select:focus { border-color: #4f46e5; box-shadow: 0 0 0 0.2rem rgba(79, 70, 229, 0.1); }
     .form-control.is-invalid, .form-select.is-invalid { border-color: #dc2626; }
     .form-label.small { font-size: 0.85rem; margin-bottom: 0.25rem; font-weight: 500; color: #374151; }
@@ -210,35 +234,94 @@
     .row.g-2 > [class^="col-"] { margin-bottom: 0.5rem; }
     small.text-muted { font-size: 0.8rem; margin-top: 0.25rem; display: block; }
     textarea.form-control { height: auto; min-height: 80px; }
+
+    /* Employee rows */
+    #employee-rows .employee-row:last-child { margin-bottom: 0 !important; }
+    .employee-no-display { font-size: 0.85rem; letter-spacing: 0.03em; }
+    .remove-row:hover { background-color: #fee2e2 !important; border-color: #fca5a5 !important; }
 </style>
 
 @push('scripts')
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const employeeSelect = document.getElementById('employee_id');
-    const employeeNoDisplay = document.getElementById('employee_no_display');
-    const jobOrderSelect = document.getElementById('job_order_id');
-    const projectDisplay = document.getElementById('project_display');
+$(function() {
+    // Employee data map for auto-fill
+    const employeeData = @json($employees->map(fn($e) => ['id' => $e->id, 'name' => $e->name, 'employee_no' => $e->employee_no])->values());
 
-    function updateEmployeeNo() {
-        const selected = employeeSelect.options[employeeSelect.selectedIndex];
-        employeeNoDisplay.value = selected?.getAttribute('data-employee-no') || '';
+    function buildEmployeeOptions() {
+        let opts = '<option value="">Select Employee</option>';
+        employeeData.forEach(function(emp) {
+            opts += `<option value="${emp.id}" data-employee-no="${emp.employee_no}">${emp.name}</option>`;
+        });
+        return opts;
     }
 
-    function updateProject() {
-        const selected = jobOrderSelect.options[jobOrderSelect.selectedIndex];
-        if (selected?.value) {
-            const department = selected.getAttribute('data-department');
-            projectDisplay.value = department || '-';
-        } else {
-            projectDisplay.value = '';
+    function initSelect2Row(row) {
+        const $select = $(row).find('.employee-select');
+        $select.select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Search employee...',
+            allowClear: true,
+            width: '100%',
+        });
+        $select.on('change', function() {
+            const empNo = $(this).find('option:selected').data('employee-no') || '';
+            $(this).closest('.employee-row').find('.employee-no-display').val(empNo);
+        });
+        // Fill employee_no for pre-selected (old() values)
+        const empNo = $select.find('option:selected').data('employee-no') || '';
+        $(row).find('.employee-no-display').val(empNo);
+    }
+
+    function updateRemoveButtons() {
+        const count = $('#employee-rows .employee-row').length;
+        $('.remove-row').prop('disabled', count === 1);
+    }
+
+    // Init existing rows
+    $('#employee-rows .employee-row').each(function() {
+        initSelect2Row(this);
+    });
+    updateRemoveButtons();
+
+    // Add row
+    $('#add-employee-row').on('click', function() {
+        const html = `
+            <div class="employee-row row g-2 mb-2 align-items-center">
+                <div class="col-md-8">
+                    <select name="employee_id[]" class="employee-select form-select border-1 rounded-2" required>
+                        ${buildEmployeeOptions()}
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex align-items-center gap-2">
+                    <input type="text" class="employee-no-display form-control border-1 rounded-2 bg-light fw-medium flex-grow-1"
+                           readonly placeholder="—">
+                    <button type="button" class="btn btn-sm btn-light remove-row border text-danger flex-shrink-0" title="Remove" style="width:38px;height:38px;padding:0;">
+                        <i class="fas fa-times" style="font-size:0.75rem;"></i>
+                    </button>
+                </div>
+            </div>`;
+        const $row = $(html);
+        $('#employee-rows').append($row);
+        initSelect2Row($row[0]);
+        updateRemoveButtons();
+    });
+
+    // Remove row
+    $(document).on('click', '.remove-row', function() {
+        if ($('#employee-rows .employee-row').length > 1) {
+            const $row = $(this).closest('.employee-row');
+            $row.find('.employee-select').select2('destroy');
+            $row.remove();
+            updateRemoveButtons();
         }
+    });
+
+    // Job order department display
+    function updateProject() {
+        const selected = $('#job_order_id option:selected');
+        $('#project_display').val(selected.val() ? (selected.data('department') || '-') : '');
     }
-
-    employeeSelect.addEventListener('change', updateEmployeeNo);
-    jobOrderSelect.addEventListener('change', updateProject);
-
-    updateEmployeeNo();
+    $('#job_order_id').on('change', updateProject);
     updateProject();
 
     setTimeout(() => {

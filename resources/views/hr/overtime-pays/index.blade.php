@@ -7,14 +7,22 @@
     <div class="row justify-content-center">
         <div class="col-12">
             <!-- Header -->
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <div>
-                    <h5 class="text-dark mb-1 mt-2">Overtime Pay Calculations</h5>
-                    <p class="text-muted small mb-0">List of calculated overtime payments</p>
-                </div>
-                <div class="d-flex gap-2">
-                    <a href="{{ route('overtime-requests.index') }}" class="btn btn-outline-secondary btn-sm rounded-2 px-3">
-                        <i class="fas fa-arrow-left me-1"></i> Back
+            <div class="position-relative d-flex align-items-center mb-3" style="min-height:52px;">
+                <!-- Left: sub-nav tabs -->
+                <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                    <a href="{{ route('overtime-pays.index') }}" class="btn btn-primary btn-sm rounded-2 px-3">
+                        <i class="fas fa-calculator me-1"></i> Overtime Pay
+                    </a>
+                    @php
+                        $otNotPassedCount = \App\Models\Hr\OvertimeRequest::where('status', 'approved')->where('is_passed', false)->count();
+                    @endphp
+                    <a href="{{ route('overtime-requests.attendance-comparison') }}" class="btn btn-outline-secondary btn-sm rounded-2 px-3 position-relative">
+                        <i class="fas fa-chart-bar me-1"></i> OT vs Attendance
+                        @if($otNotPassedCount > 0)
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size:0.6rem;min-width:1.4em;padding:.25em .45em;">
+                                {{ $otNotPassedCount > 99 ? '99+' : $otNotPassedCount }}
+                            </span>
+                        @endif
                     </a>
                 </div>
             </div>
@@ -29,7 +37,7 @@
                                     <i class="fas fa-money-bill-wave text-primary"></i>
                                 </div>
                                 <div>
-                                    <h6 class="text-muted small mb-1">Total Amount</h6>
+                                    <h6 class="text-muted small mb-1">Total Amount (This Month)</h6>
                                     <h4 class="mb-0 text-primary">Rp {{ number_format($totalAmount, 0, ',', '.') }}</h4>
                                 </div>
                             </div>
@@ -97,15 +105,15 @@
                         <table class="table table-hover mb-0">
                             <thead class="bg-light">
                                 <tr>
-                                    <th class="border-0 small text-dark fw-medium px-3 py-2">No</th>
-                                    <th class="border-0 small text-dark fw-medium px-3 py-2">Employee</th>
-                                    <th class="border-0 small text-dark fw-medium px-3 py-2">OT Date</th>
-                                    <th class="border-0 small text-dark fw-medium px-3 py-2">OT Code</th>
-                                    <th class="border-0 small text-dark fw-medium px-3 py-2">Net Hours</th>
-                                    <th class="border-0 small text-dark fw-medium px-3 py-2">Hourly Rate</th>
-                                    <th class="border-0 small text-dark fw-medium px-3 py-2 text-end">Total Pay</th>
-                                    <th class="border-0 small text-dark fw-medium px-3 py-2">Calculated At</th>
-                                    <th class="border-0 small text-dark fw-medium px-3 py-2 text-center">Actions</th>
+                                    <th class="border-0 small text-muted fw-normal px-3 py-2">No</th>
+                                    <th class="border-0 small text-muted fw-normal px-3 py-2">Employee</th>
+                                    <th class="border-0 small text-muted fw-normal px-3 py-2">OT Date</th>
+                                    <th class="border-0 small text-muted fw-normal px-3 py-2">OT Code</th>
+                                    <th class="border-0 small text-muted fw-normal px-3 py-2">Net Hours</th>
+                                    <th class="border-0 small text-muted fw-normal px-3 py-2">Hourly Rate</th>
+                                    <th class="border-0 small text-muted fw-normal px-3 py-2 text-end">Total Pay</th>
+                                    <th class="border-0 small text-muted fw-normal px-3 py-2">Calculated At</th>
+                                    <th class="border-0 small text-muted fw-normal px-3 py-2 text-center">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -167,7 +175,28 @@
 </div>
 
 <style>
-    .badge { font-weight: 500; }
-    .table td { vertical-align: middle; }
+    .table th {
+        font-weight: 600;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #64748b;
+        padding: 1rem 0.75rem;
+        border-bottom: 2px solid #e2e8f0;
+        white-space: nowrap;
+    }
+    .table td {
+        padding: 1rem 0.75rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #f1f5f9;
+        white-space: nowrap;
+        font-size: 0.8rem;
+    }
+    .table tbody tr:hover { background-color: #f8fafc; }
+    .badge.bg-light {
+        background-color: #f8fafc !important;
+        border: 1px solid #e2e8f0 !important;
+        color: #374151 !important;
+    }
 </style>
 @endsection

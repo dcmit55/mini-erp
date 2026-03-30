@@ -17,7 +17,7 @@ use Illuminate\Support\Str;
  *   B12 : 10:00–22:00 | WNA | break 12:00–13:00, 18:00–18:30 | detect 09:30–12:00
  *
  * DCM Costume (department_id = 1):
- *   C8  : 08:00–16:00 | WNI | break 12:00–13:00              | detect 07:00–09:30
+ *   C8  : 08:00–16:00 | WNI | break 11:30–12:00              | detect 07:00–09:30
  */
 class SessionShiftSeeder extends Seeder
 {
@@ -34,7 +34,7 @@ class SessionShiftSeeder extends Seeder
             ['department_id' => 2, 'type_of_shift' => 'B12', 'start_time' => '10:00:00', 'end_time' => '22:00:00', 'break_start' => '12:00:00', 'break_end' => '13:00:00', 'break2_start' => '18:00:00', 'break2_end' => '18:30:00', 'for_wna' => true,  'detect_from' => '09:30:00', 'detect_until' => '12:00:00'],
 
             // DCM Costume
-            ['department_id' => 1, 'type_of_shift' => 'C8',  'start_time' => '08:00:00', 'end_time' => '16:00:00', 'break_start' => '12:00:00', 'break_end' => '13:00:00', 'break2_start' => null,        'break2_end' => null,        'for_wna' => false, 'detect_from' => '07:00:00', 'detect_until' => '09:30:00'],
+            ['department_id' => 1, 'type_of_shift' => 'C8',  'start_time' => '08:00:00', 'end_time' => '16:00:00', 'break_start' => '11:30:00', 'break_end' => '12:00:00', 'break2_start' => null,        'break2_end' => null,        'for_wna' => false, 'detect_from' => '07:00:00', 'detect_until' => '09:30:00'],
         ];
 
         foreach ($data as $shift) {

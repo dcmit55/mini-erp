@@ -69,11 +69,18 @@ class FingerspotController extends Controller
     public function showRegisterForm()
     {
         $employees = Employee::where('status', 'active')
+            ->with('department')
             ->orderBy('name')
-            ->get(['id', 'employee_no', 'name']);
-            
+            ->get()
+            ->map(function ($emp) {
+                $emp->device_pin = $this->pinFromEmployeeNo($emp->employee_no);
+                return $emp;
+            });
+
+        $departments     = \App\Models\Admin\Department::orderBy('name')->get(['id', 'name']);
         $defaultDeviceId = config('fingerspot.device_id', '');
-        return view('hr.fingerspot.register-employee', compact('defaultDeviceId', 'employees'));
+
+        return view('hr.fingerspot.register-employee', compact('defaultDeviceId', 'employees', 'departments'));
     }
 
     public function showBiometricForm()
@@ -173,7 +180,10 @@ class FingerspotController extends Controller
             $emp->on_device            = !is_null($emp->device_registered_at);
             $emp->total_scans          = $stats?->total_scans ?? 0;
             $emp->last_scan            = $stats?->last_scan   ?? null;
-            $emp->biometric_registered = ($emp->total_scans > 0);
+            // biometric_registered: true jika sudah pernah scan (ada di fingerprint_logs)
+            // ATAU sudah pernah tercatat biometric_enrolled_at.
+            // Fingerspot API tidak menyediakan endpoint cek status biometric secara langsung.
+            $emp->biometric_registered = !is_null($emp->biometric_enrolled_at) || ($emp->total_scans > 0);
             return $emp;
         };
 
@@ -289,7 +299,10 @@ class FingerspotController extends Controller
             ->whereNull('device_registered_at')
             ->get();
         foreach ($marked as $emp) {
-            $emp->update(['device_registered_at' => now()]);
+            $emp->update([
+                'device_registered_at'  => now(),
+                'biometric_enrolled_at' => now(),
+            ]);
         }
 
         // Hapus tanda untuk yang sudah tidak ada di mesin
@@ -297,7 +310,7 @@ class FingerspotController extends Controller
             ->whereNotIn('employee_no', $deviceEmployeeNos)
             ->get();
         foreach ($cleared as $emp) {
-            $emp->update(['device_registered_at' => null]);
+            $emp->update(['device_registered_at' => null, 'biometric_enrolled_at' => null]);
         }
 
         Log::info('reconcileDevicePins', [
@@ -308,6 +321,86 @@ class FingerspotController extends Controller
         ]);
 
         return [$marked->count(), $cleared->count()];
+    }
+
+    public function showBulkRegisterForm(Request $request)
+    {
+        $defaultDeviceId = config('fingerspot.device_id', '');
+
+        $departments = \App\Models\Admin\Department::orderBy('name')->get(['id', 'name']);
+
+        $query = Employee::where('status', 'active')
+            ->with('department')
+            ->orderBy('name');
+
+        if ($request->filled('search')) {
+            $s = $request->search;
+            $query->where(fn($q) => $q->where('name', 'like', "%{$s}%")->orWhere('employee_no', 'like', "%{$s}%"));
+        }
+
+        if ($request->filled('department_id')) {
+            $query->where('department_id', $request->department_id);
+        }
+
+        if ($request->input('filter') === 'not_registered') {
+            $query->whereNull('device_registered_at');
+        } elseif ($request->input('filter') === 'registered') {
+            $query->whereNotNull('device_registered_at');
+        }
+
+        $employees = $query->get()->map(function ($emp) {
+            $emp->device_pin = $this->pinFromEmployeeNo($emp->employee_no);
+            return $emp;
+        });
+
+        return view('hr.fingerspot.bulk-register', compact('defaultDeviceId', 'employees', 'departments'));
+    }
+
+    public function bulkRegisterEmployees(Request $request)
+    {
+        $request->validate([
+            'employee_ids'   => 'required|array|min:1',
+            'employee_ids.*' => 'integer|exists:employees,id',
+            'privilege'      => 'required|in:1,2,3',
+        ]);
+
+        $deviceId  = config('fingerspot.device_id');
+        if (!$deviceId) {
+            return back()->with('error', 'Device ID tidak dikonfigurasi.');
+        }
+
+        $employees = Employee::whereIn('id', $request->employee_ids)->get();
+        $success   = 0;
+        $failed    = [];
+
+        foreach ($employees as $emp) {
+            $pin = $this->pinFromEmployeeNo($emp->employee_no);
+            try {
+                $this->fingerspot->setUserinfo($deviceId, [
+                    'pin'       => $pin,
+                    'name'      => $emp->name,
+                    'privilege' => (int) $request->privilege,
+                    'password'  => '',
+                    'rfid'      => '',
+                    'template'  => '',
+                ]);
+                $emp->update(['device_registered_at' => now()]);
+                $success++;
+            } catch (\Exception $e) {
+                $failed[] = $emp->name;
+                Log::warning("bulkRegister: gagal register {$emp->name} (PIN {$pin}): " . $e->getMessage());
+            }
+        }
+
+        Cache::forget('fingerspot_stats');
+
+        $msg = "{$success} karyawan berhasil didaftarkan ke device.";
+        if (!empty($failed)) {
+            $msg .= ' Gagal: ' . implode(', ', $failed) . '.';
+            return back()->with('warning', $msg);
+        }
+
+        return back()->with('success', $msg);
     }
 
     public function showDeleteForm(Request $request)
@@ -390,6 +483,17 @@ class FingerspotController extends Controller
             ? Carbon::parse($request->end_date)
             : Carbon::today();
 
+        // Terapkan batas minimum tanggal (FINGERSPOT_SYNC_VALID_FROM di .env).
+        // Berguna ketika data lama di cloud Fingerspot tidak bisa dihapus via API
+        // dan kita ingin mengabaikannya setelah reset database.
+        $syncValidFrom = config('fingerspot.sync_valid_from');
+        if ($syncValidFrom) {
+            $validFrom = Carbon::parse($syncValidFrom);
+            if ($startDate->lt($validFrom)) {
+                $startDate = $validFrom;
+            }
+        }
+
         try {
             $saved         = 0;
             $duplicates    = 0;
@@ -443,9 +547,16 @@ class FingerspotController extends Controller
                         continue;
                     }
 
-                    // Hanya set device_registered_at untuk scan BARU (bukan historis/duplikat)
+                    // Hanya set field registrasi untuk scan BARU (bukan historis/duplikat)
+                    $updates = [];
                     if (is_null($employee->device_registered_at)) {
-                        $employee->update(['device_registered_at' => now()]);
+                        $updates['device_registered_at'] = now();
+                    }
+                    if (is_null($employee->biometric_enrolled_at)) {
+                        $updates['biometric_enrolled_at'] = now();
+                    }
+                    if (!empty($updates)) {
+                        $employee->update($updates);
                     }
 
                     $date = $scanCarbon->format('Y-m-d');
@@ -629,6 +740,47 @@ class FingerspotController extends Controller
         } catch (\Exception $e) {
             return back()->with('error', 'Registration failed: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Reset device_registered_at (dan biometric_enrolled_at) di database saja,
+     * tanpa memanggil API mesin. Berguna saat mesin direset/dikosongkan dan
+     * data di database tidak sinkron dengan kondisi mesin.
+     */
+    public function resetDeviceStatus(Request $request)
+    {
+        $request->validate([
+            'employee_id'   => 'nullable|integer|exists:employees,id',
+            'mark_enrolled' => 'nullable|boolean',
+        ]);
+
+        $markEnrolled = $request->boolean('mark_enrolled');
+
+        if ($request->filled('employee_id')) {
+            $employee = Employee::findOrFail($request->employee_id);
+
+            if ($markEnrolled) {
+                // Tandai manual sebagai sudah terdaftar di mesin + punya biometric
+                $employee->update([
+                    'device_registered_at' => $employee->device_registered_at ?? now(),
+                    'biometric_enrolled_at' => $employee->biometric_enrolled_at ?? now(),
+                ]);
+                Cache::forget('fingerspot_stats');
+                return back()->with('success', "{$employee->name} ditandai sudah terdaftar di mesin.");
+            }
+
+            // Reset / unregister dari sisi DB
+            $employee->update(['device_registered_at' => null, 'biometric_enrolled_at' => null]);
+            Cache::forget('fingerspot_stats');
+            return back()->with('success', "Status device {$employee->name} berhasil direset.");
+        }
+
+        // Reset semua karyawan
+        Employee::whereNotNull('device_registered_at')
+            ->update(['device_registered_at' => null, 'biometric_enrolled_at' => null]);
+        Cache::forget('fingerspot_stats');
+
+        return back()->with('success', 'Status device semua karyawan berhasil direset.');
     }
 
     public function deleteEmployee(Request $request)

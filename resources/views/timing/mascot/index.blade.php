@@ -5,8 +5,7 @@
         <!-- Header -->
         <div class="d-flex flex-column flex-lg-row align-items-lg-center gap-2 mb-4">
             <div class="d-flex align-items-center">
-                <i class="fas fa-mask gradient-icon me-2" style="font-size: 1.8rem;"></i>
-                <h2 class="mb-0" style="font-size:1.5rem;">🎭 Mascot Timing - Stage Progress Tracking</h2>
+                <h2 class="mb-0 fw-semibold" style="font-size:1.4rem;">Mascot Timing</h2>
             </div>
             <div class="ms-lg-auto d-flex gap-2">
                 <a href="{{ route('mascot-timing.monitor') }}" class="btn btn-primary btn-sm">
@@ -86,12 +85,19 @@
                                     @else
                                         <div class="row g-2">
                                             @foreach ($employees as $employee)
+                                                @php $frozenInfo = $frozenSessionsByEmployee[$employee->id] ?? null; @endphp
                                                 <div class="col-md-4 col-sm-6 employee-card-wrapper"
                                                     data-skillset-ids=",{{ $employee->skillsets->pluck('id')->implode(',') }},"
                                                     data-department-id="{{ $employee->department_id }}"
                                                     data-position="{{ $employee->position }}"
-                                                    data-name="{{ strtolower($employee->name) }}">
-                                                    <div class="card employee-card h-100 border-2"
+                                                    data-name="{{ strtolower($employee->name) }}"
+                                                    @if($frozenInfo)
+                                                        data-has-paused="true"
+                                                        data-paused-job-order="{{ $frozenInfo['job_order_name'] }}"
+                                                        data-paused-duration="{{ $frozenInfo['frozen_duration'] }}"
+                                                        data-paused-timing-id="{{ $frozenInfo['timing_id'] }}"
+                                                    @endif>
+                                                    <div class="card employee-card h-100 border-2 {{ $frozenInfo ? 'border-warning' : '' }}"
                                                         data-employee-id="{{ $employee->id }}"
                                                         style="cursor: pointer; transition: all 0.3s;">
                                                         <div class="card-body text-center p-2">
@@ -101,6 +107,11 @@
                                                                     value="{{ $employee->id }}"
                                                                     id="emp-{{ $employee->id }}">
                                                             </div>
+                                                            @if ($frozenInfo)
+                                                                <span class="position-absolute top-0 start-0 m-1 badge bg-warning text-dark" style="font-size:0.6rem;">
+                                                                    <i class="bi bi-pause-circle"></i> PAUSED
+                                                                </span>
+                                                            @endif
                                                             @if ($employee->photo)
                                                                 <img src="{{ asset('storage/' . $employee->photo) }}"
                                                                     class="rounded-circle mb-1 border" width="44"
@@ -112,6 +123,11 @@
                                                                 </div>
                                                             @endif
                                                             <h6 class="mb-0 small lh-sm">{{ $employee->name }}</h6>
+                                                            @if ($frozenInfo)
+                                                                <div class="text-warning" style="font-size:0.65rem;">
+                                                                    <i class="bi bi-clock-history"></i> {{ $frozenInfo['frozen_duration'] }}
+                                                                </div>
+                                                            @endif
                                                         </div>
                                                     </div>
                                                 </div>
@@ -344,6 +360,9 @@
 
 @section('scripts')
     <script>
+        // Frozen sessions by employee_id — used for paused-session warnings
+        let frozenSessionsByEmployee = @json($frozenSessionsByEmployee);
+
         $(document).ready(function() {
             let selectedEmployees = [];
             let selectedJobOrder = null;
@@ -552,6 +571,40 @@
                     return;
                 }
 
+                // Check if any selected employees have a paused session
+                const pausedWarnings = [];
+                selectedEmployees.forEach(empId => {
+                    const wrapper = $(`.employee-card-wrapper[data-has-paused="true"]`).filter(function() {
+                        return $(this).find('.employee-checkbox').val() == empId;
+                    });
+                    if (wrapper.length) {
+                        const jobOrder = wrapper.data('paused-job-order');
+                        const duration = wrapper.data('paused-duration');
+                        const empName = wrapper.find('h6').text().trim();
+                        pausedWarnings.push(`<li><strong>${empName}</strong> — masih ada sesi PAUSED: <em>${jobOrder}</em> (${duration})</li>`);
+                    }
+                });
+
+                if (pausedWarnings.length > 0) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Ada Sesi yang Sedang Dipause!',
+                        html: `Karyawan berikut masih memiliki sesi yang dipause:<ul class="text-start mt-2">${pausedWarnings.join('')}</ul>Tetap mulai sesi baru?`,
+                        showCancelButton: true,
+                        confirmButtonColor: '#198754',
+                        confirmButtonText: 'Ya, Mulai Sesi Baru',
+                        cancelButtonText: 'Batal',
+                    }).then(result => {
+                        if (result.isConfirmed) doMascotStartSession();
+                    });
+                    return;
+                }
+
+                doMascotStartSession();
+            });
+
+            function doMascotStartSession() {
+                const task = $('#task-input').val().trim();
                 const btn = $('#start-work-btn');
                 btn.prop('disabled', true).html(
                     '<span class="spinner-border spinner-border-sm me-2"></span>Starting...');
@@ -575,6 +628,13 @@
                                 showConfirmButton: false
                             });
 
+                            // Remove started employees from the available list immediately
+                            response.timings.forEach(function(timing) {
+                                $(`.employee-card[data-employee-id="${timing.employee_id}"]`)
+                                    .closest('.employee-card-wrapper')
+                                    .fadeOut(300, function() { $(this).remove(); });
+                            });
+
                             // Reset form
                             $('#mascot-timer-form')[0].reset();
                             $('.employee-card').removeClass('selected');
@@ -584,8 +644,9 @@
                             selectedEmployees = [];
                             selectedJobOrder = null;
 
-                            // Reload active sessions
+                            // Reload active sessions and employee list
                             loadActiveSessions();
+                            loadAvailableEmployees();
                             updateStartButton();
                         }
                     },
@@ -605,7 +666,7 @@
                         updateStartButton();
                     }
                 });
-            });
+            }
 
             // Stop work button click handler
             $(document).on('click', '.stop-work-btn', function() {
@@ -613,14 +674,23 @@
                 const employeeName = $(this).data('employee-name');
                 const jobOrder = $(this).data('job-order');
                 const jobOrderId = $(this).data('job-order-id');
+                const employeeId = $(this).data('employee-id');
                 const previousProgress = parseInt($(this).data('previous-progress')) || 0;
 
                 $('#stop-timing-id').val(timingId);
                 $('#stop-job-order-id').val(jobOrderId);
-                $('#stop-session-info').html(
-                    `<strong>Employee:</strong> ${employeeName}<br>
-                     <strong>Job Order:</strong> ${jobOrder}`
-                );
+                $('#stop-work-form').data('current-employee-id', employeeId);
+
+                let sessionInfoHtml = `<strong>Employee:</strong> ${employeeName}<br><strong>Job Order:</strong> ${jobOrder}`;
+                if (employeeId && frozenSessionsByEmployee[employeeId]) {
+                    const frozen = frozenSessionsByEmployee[employeeId];
+                    sessionInfoHtml += `<div class="alert alert-warning mt-2 mb-0 py-2">
+                        <i class="bi bi-pause-circle me-1"></i>
+                        <strong>Perhatian:</strong> ${employeeName} masih memiliki sesi yang sedang <strong>PAUSE</strong>:<br>
+                        <span class="small">Job Order: <em>${frozen.job_order_name}</em> &mdash; durasi tersimpan: ${frozen.frozen_duration}</span>
+                    </div>`;
+                }
+                $('#stop-session-info').html(sessionInfoHtml);
 
                 // Show previous progress
                 $('#previous-progress-display').text(previousProgress);
@@ -679,6 +749,7 @@
                 e.preventDefault();
 
                 const timingId = $('#stop-timing-id').val();
+                const stoppingEmployeeId = $('#stop-work-form').data('current-employee-id');
                 const stage = parseInt($('#stop-stage').val());
                 const outputQty = parseFloat($('#stop-output-qty').val());
                 const measurementType = $('#stop-measurement-type').val();
@@ -718,28 +789,35 @@
                     success: function(response) {
                         if (response.success) {
                             $('#stopWorkModal').modal('hide');
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Work Completed!',
-                                text: response.message,
-                                timer: 2000,
-                                showConfirmButton: false
-                            });
 
-                            $(`#session-card-${timingId}`).fadeOut(300, function() {
-                                $(this).remove();
-                                if ($('.session-card').length === 0) {
-                                    $('#active-sessions-container').html(`
-                                        <div class="text-center text-muted py-5">
-                                            <i class="fas fa-mask" style="font-size: 3rem;"></i>
-                                            <p class="mt-3 mb-0">No active mascot sessions</p>
-                                            <small>Start a new session to track mascot production</small>
-                                        </div>
-                                    `);
-                                }
-                            });
+                            const frozen = stoppingEmployeeId ? frozenSessionsByEmployee[stoppingEmployeeId] : null;
+                            if (frozen) {
+                                Swal.fire({
+                                    icon: 'info',
+                                    title: 'Pekerjaan Selesai!',
+                                    html: `${response.message}<br><br>
+                                        <div class="alert alert-warning text-start mb-0 py-2">
+                                            <i class="bi bi-pause-circle me-1"></i>
+                                            <strong>Pengingat:</strong> Karyawan ini masih memiliki sesi yang sedang <strong>PAUSE</strong>:<br>
+                                            <span class="small">Job Order: <em>${frozen.job_order_name}</em> &mdash; durasi tersimpan: ${frozen.frozen_duration}</span><br>
+                                            <span class="small text-muted">Jangan lupa untuk melanjutkan atau menyelesaikan sesi tersebut.</span>
+                                        </div>`,
+                                    confirmButtonText: 'OK, Mengerti',
+                                    confirmButtonColor: '#198754',
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Work Completed!',
+                                    text: response.message,
+                                    timer: 2000,
+                                    showConfirmButton: false
+                                });
+                            }
 
-                            setTimeout(() => location.reload(), 2000);
+                            $(`#session-card-${timingId}`).fadeOut(300, function() { $(this).remove(); });
+                            loadActiveSessions();
+                            loadAvailableEmployees();
                         }
                     },
                     error: function(xhr) {
@@ -791,8 +869,248 @@
                 location.reload();
             });
 
+            // ── Freeze / Unfreeze handlers ────────────────────────────────────
+            $(document).on('click', '.freeze-work-btn', function() {
+                const timingId = $(this).data('timing-id');
+                const empName = $(this).data('employee-name');
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Pause Session?',
+                    html: `Timer for <strong>${empName}</strong> will be paused.`,
+                    showCancelButton: true,
+                    confirmButtonColor: '#ffc107',
+                    confirmButtonText: '<i class="bi bi-pause-circle"></i> Pause',
+                    cancelButtonText: 'Cancel'
+                }).then(result => {
+                    if (!result.isConfirmed) return;
+                    $.ajax({
+                        url: '{{ route('mascot-timing.freeze') }}',
+                        method: 'POST',
+                        data: { _token: '{{ csrf_token() }}', timing_id: timingId },
+                        success: function(r) {
+                            if (r.success) {
+                                loadActiveSessions();
+                                loadAvailableEmployees();
+                                Swal.fire({ icon: 'success', title: 'Paused!', text: r.message, timer: 1800, showConfirmButton: false });
+                            } else {
+                                Swal.fire({ icon: 'error', title: 'Error', text: r.message });
+                            }
+                        },
+                        error: function(xhr) {
+                            Swal.fire({ icon: 'error', title: 'Error', text: xhr.responseJSON?.message || 'Failed to pause.' });
+                        }
+                    });
+                });
+            });
+
+            $(document).on('click', '.unfreeze-work-btn', function() {
+                const timingId = $(this).data('timing-id');
+                const empName = $(this).data('employee-name');
+                Swal.fire({
+                    icon: 'question',
+                    title: 'Continue Session?',
+                    html: `Timer for <strong>${empName}</strong> will continue from where it was paused.`,
+                    showCancelButton: true,
+                    confirmButtonColor: '#198754',
+                    confirmButtonText: '<i class="bi bi-play-circle"></i> Continue',
+                    cancelButtonText: 'Cancel'
+                }).then(result => {
+                    if (!result.isConfirmed) return;
+                    $.ajax({
+                        url: '{{ route('mascot-timing.unfreeze') }}',
+                        method: 'POST',
+                        data: { _token: '{{ csrf_token() }}', timing_id: timingId },
+                        success: function(r) {
+                            if (r.success) {
+                                loadActiveSessions();
+                                loadAvailableEmployees();
+                                Swal.fire({ icon: 'success', title: r.auto_froze ? 'Switched!' : 'Continued!', text: r.message, timer: 2500, showConfirmButton: false });
+                            } else {
+                                Swal.fire({ icon: 'error', title: 'Error', text: r.message });
+                            }
+                        },
+                        error: function(xhr) {
+                            Swal.fire({ icon: 'error', title: 'Error', text: xhr.responseJSON?.message || 'Failed to continue.' });
+                        }
+                    });
+                });
+            });
+            // ─────────────────────────────────────────────────────────────────
+
+            // ── Auto-refresh active sessions (triggers break service) ──────────
+            function loadActiveSessions() {
+                $.ajax({
+                    url: '{{ route('mascot-timing.active-sessions') }}',
+                    method: 'GET',
+                    success: function(response) {
+                        if (!response.success) return;
+                        updateActiveSessionsDisplay(response.sessions);
+                    }
+                });
+            }
+
+            function updateActiveSessionsDisplay(sessions) {
+                const container = $('#active-sessions-container');
+                if (sessions.length === 0) {
+                    container.html(`
+                        <div class="text-center text-muted py-5">
+                            <i class="fas fa-mask" style="font-size: 3rem;"></i>
+                            <p class="mt-3 mb-0">No active mascot sessions</p>
+                            <small>Start a new session to track mascot production</small>
+                        </div>
+                    `);
+                    startDurationTimers();
+                    return;
+                }
+
+                let html = '';
+                sessions.forEach(session => {
+                    const isFrozen = session.is_frozen || false;
+                    const isAutoBreak = session.auto_break_paused || false;
+                    const photo = session.employee_photo
+                        ? `<img src="/storage/${session.employee_photo}" class="rounded-circle me-2" width="40" height="40" style="object-fit: cover;">`
+                        : `<div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center me-2" style="width:40px;height:40px;"><i class="bi bi-person text-white"></i></div>`;
+
+                    const statusBadge = isFrozen
+                        ? `<span class="badge bg-warning text-dark me-1"><i class="bi bi-pause-circle"></i> PAUSED${isAutoBreak ? ' (BREAK)' : ''}</span>`
+                        : `<span class="badge bg-success me-1">RUNNING</span>`;
+
+                    const durationHtml = isFrozen
+                        ? `<span class="fs-5 fw-bold text-warning">${session.frozen_duration || '00:00:00'}</span>`
+                        : `<span class="duration-display fs-5 fw-bold text-success" data-start-time="${session.start_time}" data-session-id="${session.id}">00:00:00</span>`;
+
+                    const cardBorder = isFrozen ? 'border-warning border-2' : '';
+
+                    const actionBtns = isFrozen
+                        ? `<div class="d-grid">
+                               <button class="btn btn-success btn-sm unfreeze-work-btn"
+                                   data-timing-id="${session.id}"
+                                   data-employee-name="${session.employee_name}">
+                                   <i class="bi bi-play-circle me-1"></i>Continue
+                               </button>
+                           </div>`
+                        : `<div class="d-flex gap-2">
+                               <button class="btn btn-warning btn-sm freeze-work-btn flex-shrink-0"
+                                   data-timing-id="${session.id}"
+                                   data-employee-name="${session.employee_name}">
+                                   <i class="bi bi-pause-circle me-1"></i>Pause
+                               </button>
+                               <button class="btn btn-danger btn-sm stop-work-btn flex-grow-1"
+                                   data-timing-id="${session.id}"
+                                   data-employee-name="${session.employee_name}"
+                                   data-job-order="${session.job_order_name}"
+                                   data-job-order-id="${session.job_order_id}"
+                                   data-previous-progress="${session.previous_progress || 0}">
+                                   <i class="bi bi-stop-circle me-1"></i>STOP & SELECT STAGE
+                               </button>
+                           </div>`;
+
+                    html += `
+                        <div class="card session-card mb-3 ${cardBorder}" id="session-card-${session.id}" data-session-id="${session.id}">
+                            <div class="card-body p-3">
+                                <div class="d-flex align-items-center mb-2">
+                                    ${photo}
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-0">${statusBadge}${session.employee_name}</h6>
+                                        <small class="text-muted">${session.employee_position || 'N/A'}</small>
+                                    </div>
+                                    ${durationHtml}
+                                </div>
+                                <div class="border-top pt-2 mb-2">
+                                    <div class="row g-2 small">
+                                        <div class="col-12">
+                                            <strong>Job Order:</strong> ${session.job_order_name}<br>
+                                            <strong>Project:</strong> ${session.project_name}
+                                        </div>
+                                        <div class="col-12"><strong>Task:</strong> ${session.task}</div>
+                                        <div class="col-12"><strong>Previous Progress:</strong> ${session.previous_progress || 0}%</div>
+                                        <div class="col-12"><small class="text-muted"><i class="bi bi-clock"></i> Started: ${session.start_time}</small></div>
+                                    </div>
+                                </div>
+                                ${actionBtns}
+                            </div>
+                        </div>`;
+                });
+
+                container.html(html);
+                startDurationTimers();
+            }
+
+            // Poll every 30 seconds — also triggers TimingBreakService on server
+            setInterval(loadActiveSessions, 30000);
+            // ─────────────────────────────────────────────────────────────────
+
             // Start duration timers on page load
             startDurationTimers();
+
+            // ── Available-employees helpers ───────────────────────────────────
+            function loadAvailableEmployees() {
+                $.ajax({
+                    url: '{{ route('mascot-timing.available-employees') }}',
+                    method: 'GET',
+                    success: function(r) {
+                        if (r.success) {
+                            frozenSessionsByEmployee = r.frozen_sessions_by_employee || {};
+                            updateEmployeeListDisplay(r.employees);
+                        }
+                    }
+                });
+            }
+
+            function updateEmployeeListDisplay(employees) {
+                selectedEmployees = [];
+                updateStartButton();
+
+                if (!employees || employees.length === 0) {
+                    $('#employee-cards').html('<div class="alert alert-info">No available employees at this time.</div>');
+                    return;
+                }
+
+                let html = '<div class="row g-2">';
+                employees.forEach(function(emp) {
+                    const frozen = emp.frozen_info;
+                    const skillsetIds = emp.skillset_ids && emp.skillset_ids.length ? ',' + emp.skillset_ids.join(',') + ',' : ',';
+                    const borderClass = frozen ? 'border-warning' : '';
+                    const pausedAttrs = frozen
+                        ? `data-has-paused="true" data-paused-job-order="${frozen.job_order_name}" data-paused-duration="${frozen.frozen_duration}" data-paused-timing-id="${frozen.timing_id}"`
+                        : '';
+                    const pausedBadge = frozen
+                        ? `<span class="position-absolute top-0 start-0 m-1 badge bg-warning text-dark" style="font-size:0.6rem;"><i class="bi bi-pause-circle"></i> PAUSED</span>`
+                        : '';
+                    const pausedDur = frozen
+                        ? `<div class="text-warning" style="font-size:0.65rem;"><i class="bi bi-clock-history"></i> ${frozen.frozen_duration}</div>`
+                        : '';
+                    const photoHtml = emp.photo
+                        ? `<img src="/storage/${emp.photo}" class="rounded-circle mb-1 border" width="44" height="44" style="object-fit:cover;">`
+                        : `<div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center mb-1" style="width:44px;height:44px;"><i class="bi bi-person text-white"></i></div>`;
+
+                    html += `
+                        <div class="col-md-4 col-sm-6 employee-card-wrapper"
+                            data-skillset-ids="${skillsetIds}"
+                            data-department-id="${emp.department_id}"
+                            data-position="${emp.position || ''}"
+                            data-name="${emp.name.toLowerCase()}"
+                            ${pausedAttrs}>
+                            <div class="card employee-card h-100 border-2 ${borderClass}" data-employee-id="${emp.id}" style="cursor:pointer;transition:all 0.3s;">
+                                <div class="card-body text-center p-2">
+                                    <div class="form-check position-absolute top-0 end-0 m-1">
+                                        <input class="form-check-input employee-checkbox" type="checkbox" name="employees[]" value="${emp.id}" id="emp-${emp.id}">
+                                    </div>
+                                    ${pausedBadge}
+                                    ${photoHtml}
+                                    <h6 class="mb-0 small lh-sm">${emp.name}</h6>
+                                    ${pausedDur}
+                                </div>
+                            </div>
+                        </div>`;
+                });
+                html += '</div>';
+                $('#employee-cards').html(html);
+                filterEmployees();
+            }
+            // ─────────────────────────────────────────────────────────────────
         });
     </script>
+    @include('timing.partials.detail-modal')
+    @include('timing.partials.break-heartbeat')
 @endsection

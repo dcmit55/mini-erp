@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Hr;
 use App\Http\Controllers\Controller;
 use App\Services\FingerspotService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
 use App\Models\Hr\Employee;
@@ -58,12 +59,9 @@ class EmployeeController extends Controller
 
     public function create()
     {
-        $departments = Department::orderBy('name')->get();
-        $documentTypes = EmployeeDocument::getDocumentTypes();
+        [$departments, $skillsets, $skillCategories, $proficiencyOptions] = $this->getFormData();
+        $documentTypes   = EmployeeDocument::getDocumentTypes();
         $employmentTypes = Employee::getEmploymentTypeOptions();
-        $skillsets = Skillset::active()->orderBy('name')->get();
-        $skillCategories = Skillset::getCategoryOptions();
-        $proficiencyOptions = Skillset::getProficiencyOptions();
 
         return view('hr.employees.create', compact('departments', 'documentTypes', 'employmentTypes', 'skillsets', 'skillCategories', 'proficiencyOptions'));
     }
@@ -254,15 +252,27 @@ class EmployeeController extends Controller
 
     public function edit(Employee $employee)
     {
-        $departments = Department::orderBy('name')->get();
-        $documentTypes = EmployeeDocument::getDocumentTypes();
+        [$departments, $skillsets, $skillCategories, $proficiencyOptions] = $this->getFormData();
+        $documentTypes   = EmployeeDocument::getDocumentTypes();
         $employmentTypes = Employee::getEmploymentTypeOptions();
-        $skillsets = Skillset::active()->orderBy('name')->get();
-        $skillCategories = Skillset::getCategoryOptions();
-        $proficiencyOptions = Skillset::getProficiencyOptions();
-        $employee->load('documents', 'skillsets'); // load skillsets
+        $employee->load('documents', 'skillsets');
 
         return view('hr.employees.edit', compact('employee', 'departments', 'documentTypes', 'employmentTypes', 'skillsets', 'skillCategories', 'proficiencyOptions'));
+    }
+
+    /** Shared form data — cached 10 menit karena jarang berubah */
+    private function getFormData(): array
+    {
+        $departments = Cache::remember('form_departments', 600,
+            fn() => Department::orderBy('name')->get());
+
+        $skillsets = Cache::remember('form_skillsets', 600,
+            fn() => Skillset::active()->select(['id', 'name', 'category'])->orderBy('name')->get());
+
+        $skillCategories    = Skillset::getCategoryOptions();
+        $proficiencyOptions = Skillset::getProficiencyOptions();
+
+        return [$departments, $skillsets, $skillCategories, $proficiencyOptions];
     }
 
     public function update(Request $request, Employee $employee)

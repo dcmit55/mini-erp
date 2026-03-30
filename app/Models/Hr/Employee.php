@@ -11,7 +11,7 @@ use App\Models\Hr\EmployeeWorkPolicy;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
-use Illuminate\Support\Str; // <-- TAMBAHKAN untuk generate UUID
+use Illuminate\Support\Str; 
 
 class Employee extends Model implements AuditableContract
 {
@@ -22,7 +22,8 @@ class Employee extends Model implements AuditableContract
         'department_id', 'email', 'phone', 'address', 'gender', 'ktp_id',
         'place_of_birth', 'date_of_birth', 'rekening', 'hire_date',
         'contract_end_date', 'salary', 'saldo_cuti', 'status', 'notes',
-        'username', 'uid', 'device_registered_at',
+        'username', 'uid', 'device_registered_at', 'biometric_enrolled_at',
+        'menstruation_leave_approved', 'menstruation_leave_approved_at',
     ];
 
     protected $casts = [
@@ -32,6 +33,8 @@ class Employee extends Model implements AuditableContract
         'salary' => 'decimal:2',
         'saldo_cuti' => 'decimal:2',
         'device_registered_at' => 'datetime',
+        'biometric_enrolled_at' => 'datetime',
+        'menstruation_leave_approved_at' => 'datetime',
     ];
 
     protected $auditInclude = [

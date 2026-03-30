@@ -150,11 +150,11 @@
                             <input type="date" name="end_date" class="form-control border-1 rounded-2 py-2 px-3" value="{{ request('end_date') }}">
                         </div>
                         <div class="col-md-2 d-flex align-items-end">
-                            <div class="d-flex gap-1 w-100">
-                                <button type="submit" class="btn btn-primary rounded-2 px-3 w-100">
+                            <div class="d-flex gap-1">
+                                <button type="submit" class="btn btn-primary btn-sm rounded-2 px-2">
                                     <i class="fas fa-filter"></i>
                                 </button>
-                                <a href="{{ route('overtime-requests.director-approvals') }}" class="btn btn-outline-secondary rounded-2 px-3">
+                                <a href="{{ route('overtime-requests.director-approvals') }}" class="btn btn-outline-secondary btn-sm rounded-2 px-2">
                                     <i class="fas fa-sync-alt"></i>
                                 </a>
                             </div>
@@ -168,18 +168,17 @@
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover mb-0">
-                            <thead class="bg-light">
+                            <thead class="table-light">
                                 <tr>
-                                    <th class="border-0 small text-dark fw-medium px-3 py-2 text-center">No</th>
-                                    <th class="border-0 small text-dark fw-medium px-3 py-2">Employee</th>
-                                    <th class="border-0 small text-dark fw-medium px-3 py-2">Department</th>
-                                    <th class="border-0 small text-dark fw-medium px-3 py-2">Project</th>
-                                    <th class="border-0 small text-dark fw-medium px-3 py-2">OT Code</th>
-                                    <th class="border-0 small text-dark fw-medium px-3 py-2">Start</th>
-                                    <th class="border-0 small text-dark fw-medium px-3 py-2">End</th>
-                                    <th class="border-0 small text-dark fw-medium px-3 py-2 text-end">Net Hours</th>
-                                    <th class="border-0 small text-dark fw-medium px-3 py-2">Days</th>
-                                    <th class="border-0 small text-dark fw-medium px-3 py-2 text-end">Actions</th>
+                                    <th class="border-0 ps-4 text-center" width="50">No</th>
+                                    <th class="border-0">Employee</th>
+                                    <th class="border-0">Department</th>
+                                    <th class="border-0">Project</th>
+                                    <th class="border-0">OT</th>
+                                    <th class="border-0">Time</th>
+                                    <th class="border-0 text-end">Net</th>
+                                    <th class="border-0">Days</th>
+                                    <th class="border-0 text-center">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -193,29 +192,40 @@
                                     @else
                                     @php $startNumber = ($overtimeRequests->currentPage() - 1) * $overtimeRequests->perPage() + 1; @endphp
                                     @foreach($overtimeRequests as $index => $req)
-                                    <tr>
-                                        <td class="px-3 py-2 text-center text-muted">{{ $startNumber + $index }}</td>
-                                        <td class="px-3 py-2">
-                                            <span class="fw-medium">{{ $req->employee->name ?? '-' }}</span>
+                                    <tr class="align-middle">
+                                        <td class="ps-4 text-center">
+                                            <span class="text-muted">{{ $startNumber + $index }}</span>
                                         </td>
-                                        <td class="px-3 py-2">
-                                            {{ $req->department->name ?? '-' }}
+                                        <td>
+                                            <span>{{ $req->employee->name ?? '-' }}</span>
                                         </td>
-                                        <td class="px-3 py-2">{{ $req->jobOrder->name ?? '-' }}</td>
-                                        <td class="px-3 py-2">
-                                            <span class="badge bg-light text-dark px-2 py-1">{{ $req->ot_code }}</span>
+                                        <td>
+                                            <span class="text-muted">{{ $req->department->name ?? '-' }}</span>
                                         </td>
-                                        <td class="px-3 py-2">{{ $req->start_time->format('d/m H:i') }}</td>
-                                        <td class="px-3 py-2">{{ $req->end_time->format('d/m H:i') }}</td>
-                                        <td class="px-3 py-2 text-end">{{ number_format($req->net_hours, 2) }}</td>
-                                        <td class="px-3 py-2">
-                                            @php $daysPending = $req->created_at->diffInDays(now()); @endphp
-                                            <span class="badge bg-{{ $daysPending > 7 ? 'danger' : ($daysPending > 3 ? 'warning' : 'success') }} bg-opacity-10 text-{{ $daysPending > 7 ? 'danger' : ($daysPending > 3 ? 'warning' : 'success') }} border border-{{ $daysPending > 7 ? 'danger' : ($daysPending > 3 ? 'warning' : 'success') }} border-opacity-25 rounded-2 px-2 py-1">
-                                                {{ $daysPending }} days
+                                        <td>{{ $req->jobOrder->name ?? '-' }}</td>
+                                        <td>
+                                            <span class="badge bg-light text-dark px-2 py-1 rounded-pill">
+                                                @if($req->ot_code == 'Normal Day') ND
+                                                @elseif($req->ot_code == 'Sunday') SUN
+                                                @elseif($req->ot_code == 'Public Holiday') PH
+                                                @else {{ $req->ot_code }}
+                                                @endif
                                             </span>
                                         </td>
-                                        <td class="px-3 py-2 text-end">
-                                            <div class="d-flex gap-1 justify-content-end">
+                                        <td>
+                                            <span class="text-muted">{{ $req->start_time->format('d/m H:i') }} - {{ $req->end_time->format('H:i') }}</span>
+                                        </td>
+                                        <td class="text-end">
+                                            <small>{{ $req->net_hours_formatted }}</small>
+                                        </td>
+                                        <td>
+                                            @php $daysPending = $req->created_at->diffInDays(now()); @endphp
+                                            <span class="badge bg-{{ $daysPending > 7 ? 'danger' : ($daysPending > 3 ? 'warning' : 'success') }} bg-opacity-10 text-{{ $daysPending > 7 ? 'danger' : ($daysPending > 3 ? 'warning' : 'success') }} border border-{{ $daysPending > 7 ? 'danger' : ($daysPending > 3 ? 'warning' : 'success') }} border-opacity-25 rounded-2 px-2 py-1">
+                                                {{ $daysPending }}d
+                                            </span>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="d-flex gap-1 justify-content-center">
                                                 <a href="{{ route('overtime-requests.show', $req) }}" class="btn btn-outline-info btn-sm rounded-2 px-2 py-1" title="View">
                                                     <i class="fas fa-eye"></i>
                                                 </a>
@@ -302,8 +312,28 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <style>
-    .badge { font-weight: 500; }
-    .table td { vertical-align: middle; }
-    .btn-sm.rounded-2 { border-radius: 0.5rem; }
+    .table th {
+        font-weight: 600;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #64748b;
+        padding: 1rem 0.75rem;
+        border-bottom: 2px solid #e2e8f0;
+        white-space: nowrap;
+    }
+    .table td {
+        padding: 1rem 0.75rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #f1f5f9;
+        white-space: nowrap;
+        font-size: 0.8rem;
+    }
+    .table tbody tr:hover { background-color: #f8fafc; }
+    .badge.bg-light {
+        background-color: #f8fafc !important;
+        border: 1px solid #e2e8f0 !important;
+        color: #374151 !important;
+    }
 </style>
 @endsection

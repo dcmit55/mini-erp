@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Timing\Animatronics;
 use App\Http\Controllers\Controller;
 use App\Models\Production\Timing;
 use App\Models\Admin\Department;
+use App\Models\Hr\AttendanceLog;
+use App\Services\Timing\TimingBreakService;
 use Illuminate\Http\Request;
 
 class AnimatronicsMonitorController extends Controller
@@ -61,10 +63,53 @@ class AnimatronicsMonitorController extends Controller
     }
 
     /**
+     * Get employees who clocked in today but have no active timing session (for monitor feed)
+     */
+    public function getClockedIn()
+    {
+        $dept = Department::where('name', 'LIKE', '%animatronic%')
+            ->orWhere('name', 'LIKE', '%animation%')->first();
+
+        if (!$dept) {
+            return response()->json(['success' => true, 'employees' => [], 'count' => 0]);
+        }
+
+        $activeEmployeeIds = Timing::whereIn('status', ['on progress', 'frozen', 'paused'])
+            ->today()
+            ->pluck('employee_id')
+            ->toArray();
+
+        $employees = AttendanceLog::whereDate('date', today())
+            ->whereNotNull('clock_in')
+            ->whereHas('employee', fn($q) => $q
+                ->where('department_id', $dept->id)
+                ->whereNotIn('id', $activeEmployeeIds))
+            ->with('employee')
+            ->orderBy('clock_in')
+            ->get()
+            ->map(fn($log) => [
+                'id'       => $log->employee->id,
+                'name'     => $log->employee->name,
+                'position' => $log->employee->position ?? '—',
+                'photo'    => $log->employee->photo,
+                'clock_in' => optional($log->clock_in)->format('H:i'),
+                'initials' => strtoupper(substr($log->employee->name, 0, 1)),
+            ]);
+
+        return response()->json([
+            'success'   => true,
+            'employees' => $employees,
+            'count'     => $employees->count(),
+        ]);
+    }
+
+    /**
      * Get running & frozen sessions via AJAX for auto-refresh
      */
-    public function getRunning()
+    public function getRunning(TimingBreakService $breakService)
     {
+        $breakService->run();
+
         $animatronicsDept = Department::where('name', 'LIKE', '%animatronic%')
             ->orWhere('name', 'LIKE', '%animation%')->first();
 

@@ -10,11 +10,12 @@ class ApprovalMatrixSeeder extends Seeder
     /**
      * Struktur approval perusahaan:
      *
-     *  LEAVE    Level 1 → admin_hr   (HR)
-     *           Level 2 → director   (Director)
+     *  LEAVE    Level 1 → admin_mascot  (Dept Admin — delegate: admin_logistic, admin_costume)
+     *           Level 2 → admin_hr      (HR)
+     *           Level 3 → director      (Director — delegate: admin_hr)
      *
-     *  OVERTIME Level 1 → admin_hr   (HR)
-     *           Level 2 → director   (Director)
+     *  OVERTIME Level 1 → admin_hr      (HR)
+     *           Level 2 → director      (Director — delegate: admin_hr)
      *
      * Menggunakan updateOrCreate agar aman dijalankan berulang kali.
      * Role disesuaikan dengan nilai users.role yang ada di sistem.
@@ -23,16 +24,18 @@ class ApprovalMatrixSeeder extends Seeder
     {
         $matrix = [
             // LEAVE
-            // Level 1: HR approve utama
-            ['module' => 'leave',    'level' => 1, 'role' => 'admin_hr', 'delegate_roles' => null],
-            // Level 2: Director approve utama, admin_hr bisa menggantikan jika director berhalangan
-            ['module' => 'leave',    'level' => 2, 'role' => 'director', 'delegate_roles' => ['admin_hr']],
+            // Level 1: Dept admin approve per department
+            ['module' => 'leave',    'level' => 1, 'role' => 'admin_mascot', 'delegate_roles' => ['admin_logistic', 'admin_costume']],
+            // Level 2: HR approve
+            ['module' => 'leave',    'level' => 2, 'role' => 'admin_hr',     'delegate_roles' => null],
+            // Level 3: Director approve, admin_hr bisa menggantikan jika director berhalangan
+            ['module' => 'leave',    'level' => 3, 'role' => 'director',     'delegate_roles' => ['admin_hr']],
 
             // OVERTIME
             // Level 1: HR approve utama
-            ['module' => 'overtime', 'level' => 1, 'role' => 'admin_hr', 'delegate_roles' => null],
+            ['module' => 'overtime', 'level' => 1, 'role' => 'admin_hr',     'delegate_roles' => null],
             // Level 2: Director approve utama, admin_hr bisa menggantikan jika director berhalangan
-            ['module' => 'overtime', 'level' => 2, 'role' => 'director', 'delegate_roles' => ['admin_hr']],
+            ['module' => 'overtime', 'level' => 2, 'role' => 'director',     'delegate_roles' => ['admin_hr']],
         ];
 
         foreach ($matrix as $entry) {

@@ -4,13 +4,10 @@
 
 @section('content')
 <div class="container-fluid py-3">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="mb-0">Overtime Pay Detail #{{ $payDetail->id }}</h5>
-        <div>
-            <a href="{{ route('overtime-pays.index') }}" class="btn btn-outline-secondary btn-sm rounded-2 px-3">
-                <i class="fas fa-arrow-left me-1"></i> Back
-            </a>
-        </div>
+    <div class="mb-3">
+        <a href="{{ route('overtime-pays.index') }}" class="btn btn-outline-secondary btn-sm rounded-2 px-3">
+            <i class="fas fa-arrow-left me-1"></i> Back
+        </a>
     </div>
 
     <div class="row">

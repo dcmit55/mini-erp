@@ -23,12 +23,12 @@
 
         <!-- Statistics Cards -->
         <div class="row g-3 mb-4">
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <div class="card shadow-sm border-0 bg-primary text-white">
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
-                                <h6 class="mb-1">Total Running Sessions</h6>
+                                <h6 class="mb-1">Running</h6>
                                 <h2 class="mb-0" id="total-running">{{ $totalRunning }}</h2>
                                 <small>{{ $costumeDept->name ?? 'Costume Department' }}</small>
                             </div>
@@ -37,7 +37,21 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-4">
+                <div class="card shadow-sm border-0 bg-info text-dark">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">Paused</h6>
+                                <h2 class="mb-0" id="total-frozen">{{ $totalFrozen }}</h2>
+                                <small>Timer paused</small>
+                            </div>
+                            <i class="bi bi-pause-circle fa-3x opacity-50" style="font-size:2.5rem;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
                 <div class="card shadow-sm border-0 bg-success text-white">
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-center">
@@ -50,6 +64,22 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Clocked-In Employees (fingerprint scan today, no active session) -->
+        <div id="clocked-in-panel" class="card shadow-sm border-0 mb-4" style="display:none; border-left:4px solid #fda085 !important;">
+            <div class="card-header d-flex align-items-center justify-content-between py-2"
+                style="background:linear-gradient(135deg,#f6d365 0%,#fda085 100%);">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="fas fa-fingerprint text-white"></i>
+                    <span class="fw-bold text-white" style="font-size:.88rem;">Hadir — Belum Ada Sesi</span>
+                    <span class="badge bg-white text-dark ms-1" id="clocked-in-count" style="font-size:.73rem;">0</span>
+                </div>
+                <small class="text-white opacity-75" style="font-size:.7rem;">Sudah clock-in via fingerprint · belum start timing</small>
+            </div>
+            <div class="card-body py-2 px-3">
+                <div id="clocked-in-list" class="d-flex flex-wrap gap-2"></div>
             </div>
         </div>
 
@@ -80,8 +110,13 @@
                     <div class="card-body">
                         <div class="row g-2">
                             @foreach ($sessions as $session)
+                                @php
+                                    $deptData = $session->department_specific_data ?? [];
+                                    $isFrozen = $session->isFrozen();
+                                    $isAutoBreak = !empty($deptData['auto_break_paused']);
+                                @endphp
                                 <div class="col-4 col-md-2 session-col">
-                                    <div class="card border session-card h-100" id="session-{{ $session->id }}">
+                                    <div class="card {{ $isFrozen ? 'border border-2 border-info' : 'border' }} session-card h-100" id="session-{{ $session->id }}">
                                         <div class="card-body p-1 d-flex flex-column">
                                             <!-- Checkbox -->
                                             <div class="form-check mb-2">
@@ -105,8 +140,15 @@
                                                         <i class="bi bi-person text-white" style="font-size:0.55rem;"></i>
                                                     </div>
                                                 @endif
-                                                <div><span class="badge bg-success"
-                                                        style="font-size:0.57rem;">RUNNING</span></div>
+                                                <div>
+                                                    @if ($isFrozen)
+                                                        <span class="badge bg-info text-dark" style="font-size:0.57rem;">
+                                                            <i class="bi bi-pause-circle me-1"></i>PAUSED{{ $isAutoBreak ? ' (BREAK)' : '' }}
+                                                        </span>
+                                                    @else
+                                                        <span class="badge bg-success" style="font-size:0.57rem;">RUNNING</span>
+                                                    @endif
+                                                </div>
                                                 <div class="fw-semibold mt-1 lh-sm" style="font-size:0.65rem;">
                                                     {{ $session->employee->name ?? 'Unknown' }}</div>
                                                 <div class="text-muted" style="font-size:0.58rem;">
@@ -115,11 +157,19 @@
 
                                             <!-- Timer -->
                                             <div class="text-center mb-1 py-1 bg-light rounded">
-                                                <span class="duration-display fw-bold text-success"
-                                                    style="font-family:'Courier New',monospace;font-size:0.76rem;"
-                                                    data-start-time="{{ $session->start_time }}">
-                                                    {{ $session->duration }}
-                                                </span>
+                                                @if ($isFrozen)
+                                                    <span class="fw-bold text-info"
+                                                        style="font-family:'Courier New',monospace;font-size:0.76rem;">
+                                                        {{ $deptData['frozen_duration'] ?? '00:00:00' }}
+                                                    </span>
+                                                    <br><small class="text-muted" style="font-size:0.55rem;">&#9208; Paused</small>
+                                                @else
+                                                    <span class="duration-display fw-bold text-success"
+                                                        style="font-family:'Courier New',monospace;font-size:0.76rem;"
+                                                        data-start-time="{{ $session->start_time }}">
+                                                        {{ $session->duration }}
+                                                    </span>
+                                                @endif
                                             </div>
 
                                             <!-- Info -->
@@ -182,14 +232,29 @@
                                                 @endif
                                             </div>
 
-                                            <!-- Stop Button (always at bottom) -->
+                                            <!-- Action Buttons (always at bottom) -->
                                             <div class="mt-auto pt-2">
-                                                <button class="btn btn-danger btn-sm w-100 stop-work-btn"
-                                                    data-timing-id="{{ $session->id }}"
-                                                    data-employee-name="{{ $session->employee->name }}"
-                                                    data-job-order="{{ $session->jobOrder->name ?? 'N/A' }}">
-                                                    <i class="bi bi-stop-circle me-1"></i>STOP
-                                                </button>
+                                                @if ($isFrozen)
+                                                    <button class="btn btn-success btn-sm w-100 unfreeze-btn"
+                                                        data-timing-id="{{ $session->id }}"
+                                                        data-employee-name="{{ $session->employee->name }}">
+                                                        <i class="bi bi-play-circle me-1"></i>RESUME
+                                                    </button>
+                                                @else
+                                                    <div class="d-flex gap-1">
+                                                        <button class="btn btn-info btn-sm flex-grow-1 freeze-btn"
+                                                            data-timing-id="{{ $session->id }}"
+                                                            data-employee-name="{{ $session->employee->name }}">
+                                                            <i class="bi bi-pause-circle me-1"></i>PAUSE
+                                                        </button>
+                                                        <button class="btn btn-danger btn-sm flex-grow-1 stop-work-btn"
+                                                            data-timing-id="{{ $session->id }}"
+                                                            data-employee-name="{{ $session->employee->name }}"
+                                                            data-job-order="{{ $session->jobOrder->name ?? 'N/A' }}">
+                                                            <i class="bi bi-stop-circle me-1"></i>STOP
+                                                        </button>
+                                                    </div>
+                                                @endif
                                             </div>
                                         </div>
                                     </div>
@@ -387,12 +452,14 @@
                     success: function(response) {
                         if (response.success) {
                             // Update statistics
-                            $('#total-running').text(response.statistics.total_running);
-                            $('#total-employees').text(response.statistics.total_employees);
+                            $('#total-running').text(response.statistics.total_running || 0);
+                            $('#total-frozen').text(response.statistics.total_frozen || 0);
+                            $('#total-employees').text(response.statistics.total_employees || 0);
 
-                            // Reload if session count changes significantly
-                            if (response.statistics.total_running === 0 && $('.session-card').length >
-                                0) {
+                            // Reload if session count changes
+                            const cardCount = $('.session-card').length;
+                            const newCount = (response.statistics.total_running || 0) + (response.statistics.total_frozen || 0);
+                            if (cardCount !== newCount) {
                                 location.reload();
                             }
                         }
@@ -411,11 +478,46 @@
                 }, 500);
             });
 
+            // Clocked-in feed: employees who scanned fingerprint today but have no active session
+            function loadClockedIn() {
+                $.ajax({
+                    url: '{{ route('costume-timing.monitor.clocked-in') }}',
+                    method: 'GET',
+                    success: function(r) {
+                        if (!r.success) return;
+                        $('#clocked-in-count').text(r.count || 0);
+                        const panel = $('#clocked-in-panel');
+                        const list  = $('#clocked-in-list');
+                        if (r.count > 0) {
+                            let html = '';
+                            r.employees.forEach(function(emp) {
+                                const av = emp.photo
+                                    ? `<img src="/storage/${emp.photo}" class="rounded-circle" width="32" height="32" style="object-fit:cover;">`
+                                    : `<div class="rounded-circle d-inline-flex align-items-center justify-content-center fw-bold text-white flex-shrink-0" style="width:32px;height:32px;background:linear-gradient(135deg,#f6d365,#fda085);font-size:.72rem;">${emp.initials}</div>`;
+                                html += `<div class="d-flex align-items-center gap-2 p-2 rounded" style="background:rgba(0,0,0,.03);border:1px solid rgba(0,0,0,.07);">
+                                    ${av}
+                                    <div>
+                                        <div class="fw-semibold" style="font-size:.78rem;line-height:1.2;">${emp.name}</div>
+                                        <div class="text-muted" style="font-size:.67rem;"><i class="fas fa-fingerprint me-1" style="color:#fda085;"></i>${emp.clock_in} · ${emp.position}</div>
+                                    </div>
+                                </div>`;
+                            });
+                            list.html(html);
+                            panel.show();
+                        } else {
+                            panel.hide();
+                        }
+                    }
+                });
+            }
+
             // Start timers
+            loadClockedIn();
             startDurationTimers();
 
             // Auto-refresh every 30 seconds
             setInterval(refreshData, 30000);
+            setInterval(loadClockedIn, 30000);
 
             // Bulk stop handler
             $(document).on('change', '.session-checkbox', function() {
@@ -540,6 +642,72 @@
                 minimumResultsForSearch: Infinity,
             });
 
+            // Freeze (pause) handler
+            $(document).on('click', '.freeze-btn', function() {
+                const timingId = $(this).data('timing-id');
+                const empName = $(this).data('employee-name');
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Pause Session?',
+                    html: 'Timer for <strong>' + empName + '</strong> will be paused.',
+                    showCancelButton: true,
+                    confirmButtonColor: '#0dcaf0',
+                    confirmButtonText: '<i class="bi bi-pause-circle"></i> Pause',
+                    cancelButtonText: 'Cancel'
+                }).then(function(result) {
+                    if (!result.isConfirmed) return;
+                    $.ajax({
+                        url: '{{ route('costume-timing.freeze') }}',
+                        method: 'POST',
+                        data: { _token: '{{ csrf_token() }}', timing_id: timingId },
+                        success: function(r) {
+                            if (r.success) {
+                                Swal.fire({ icon: 'success', title: 'Paused!', text: r.message, timer: 1800, showConfirmButton: false });
+                                setTimeout(function() { location.reload(); }, 1900);
+                            } else {
+                                Swal.fire({ icon: 'error', title: 'Error', text: r.message });
+                            }
+                        },
+                        error: function(xhr) {
+                            Swal.fire({ icon: 'error', title: 'Error', text: xhr.responseJSON?.message || 'Failed to pause.' });
+                        }
+                    });
+                });
+            });
+
+            // Unfreeze (resume) handler
+            $(document).on('click', '.unfreeze-btn', function() {
+                const timingId = $(this).data('timing-id');
+                const empName = $(this).data('employee-name');
+                Swal.fire({
+                    icon: 'question',
+                    title: 'Resume Session?',
+                    html: 'Timer for <strong>' + empName + '</strong> will resume from where it was paused.',
+                    showCancelButton: true,
+                    confirmButtonColor: '#198754',
+                    confirmButtonText: '<i class="bi bi-play-circle"></i> Resume',
+                    cancelButtonText: 'Cancel'
+                }).then(function(result) {
+                    if (!result.isConfirmed) return;
+                    $.ajax({
+                        url: '{{ route('costume-timing.unfreeze') }}',
+                        method: 'POST',
+                        data: { _token: '{{ csrf_token() }}', timing_id: timingId },
+                        success: function(r) {
+                            if (r.success) {
+                                Swal.fire({ icon: 'success', title: 'Resumed!', text: r.message, timer: 1800, showConfirmButton: false });
+                                setTimeout(function() { location.reload(); }, 1900);
+                            } else {
+                                Swal.fire({ icon: 'error', title: 'Error', text: r.message });
+                            }
+                        },
+                        error: function(xhr) {
+                            Swal.fire({ icon: 'error', title: 'Error', text: xhr.responseJSON?.message || 'Failed to resume.' });
+                        }
+                    });
+                });
+            });
+
             // Stop work handler
             $(document).on('click', '.stop-work-btn', function() {
                 const timingId = $(this).data('timing-id');
@@ -630,4 +798,6 @@
             });
         });
     </script>
+    @include('timing.partials.detail-modal')
+    @include('timing.partials.break-heartbeat')
 @endsection

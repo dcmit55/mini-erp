@@ -9,6 +9,7 @@ use App\Models\Admin\Department;
 use App\Models\Production\JobOrder;
 use App\Models\Admin\User;
 use App\Models\Hr\AttendanceLog;
+use App\Models\Hr\DailyAttendance;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
@@ -98,7 +99,8 @@ class OvertimeRequestController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'employee_id'   => 'required|exists:employees,id',
+            'employee_id'   => 'required|array|min:1',
+            'employee_id.*' => 'exists:employees,id',
             'job_order_id'  => [
                 'required',
                 'exists:job_orders,id',
@@ -115,8 +117,8 @@ class OvertimeRequestController extends Controller
             'end_time'      => 'required|date|after:start_time',
         ]);
 
-        $start = Carbon::parse($validated['start_time']);
-        $end = Carbon::parse($validated['end_time']);
+        $start      = Carbon::parse($validated['start_time']);
+        $end        = Carbon::parse($validated['end_time']);
         $totalHours = $end->diffInMinutes($start) / 60;
 
         $breakDeduction = 0;
@@ -125,27 +127,38 @@ class OvertimeRequestController extends Controller
         }
         $netHours = $totalHours - $breakDeduction;
 
-        $jobOrder = JobOrder::find($validated['job_order_id']);
-        $departmentId = $jobOrder->department_id; // sudah dipastikan tidak null oleh validasi
+        $jobOrder     = JobOrder::find($validated['job_order_id']);
+        $departmentId = $jobOrder->department_id;
 
-        $overtimeRequest = OvertimeRequest::create([
-            'uid'             => (string) Str::uuid(),
-            'employee_id'     => $validated['employee_id'],
-            'department_id'   => $departmentId,
-            'job_order_id'    => $validated['job_order_id'],
-            'reason'          => $validated['reason'],
-            'ot_code'         => $validated['ot_code'],
-            'start_time'      => $validated['start_time'],
-            'end_time'        => $validated['end_time'],
-            'total_hours'     => $totalHours,
-            'break_deduction' => $breakDeduction,
-            'net_hours'       => $netHours,
-            'status'          => 'draft',
-            'is_passed'       => false,
-        ]);
+        $hasMatrix = ApprovalMatrix::where('module', 'overtime')->exists();
 
-        return redirect()->route('overtime-requests.show', $overtimeRequest)
-                         ->with('success', 'Overtime request created successfully.');
+        foreach ($validated['employee_id'] as $employeeId) {
+            $ot = OvertimeRequest::create([
+                'uid'                      => (string) Str::uuid(),
+                'employee_id'              => $employeeId,
+                'department_id'            => $departmentId,
+                'job_order_id'             => $validated['job_order_id'],
+                'reason'                   => $validated['reason'],
+                'ot_code'                  => $validated['ot_code'],
+                'start_time'               => $validated['start_time'],
+                'end_time'                 => $validated['end_time'],
+                'total_hours'              => $totalHours,
+                'break_deduction'          => $breakDeduction,
+                'net_hours'                => $netHours,
+                'status'                   => 'submitted',
+                'hr_approval_status'       => 'pending',
+                'director_approval_status' => 'pending',
+                'is_passed'                => false,
+            ]);
+
+            if ($hasMatrix) {
+                $this->approvalService->initiate('overtime', $ot->id);
+            }
+        }
+
+        $count = count($validated['employee_id']);
+        return redirect()->route('overtime-requests.index')
+                         ->with('success', "Overtime request created for {$count} employee(s).");
     }
 
     /**
@@ -162,9 +175,9 @@ class OvertimeRequestController extends Controller
      */
     public function edit(OvertimeRequest $overtimeRequest)
     {
-        if ($overtimeRequest->status !== 'draft') {
+        if ($overtimeRequest->status === 'rejected') {
             return redirect()->route('overtime-requests.show', $overtimeRequest)
-                             ->with('error', 'Cannot edit non-draft request.');
+                             ->with('error', 'Cannot edit a rejected request.');
         }
 
         $employees = Employee::all();
@@ -177,9 +190,9 @@ class OvertimeRequestController extends Controller
      */
     public function update(Request $request, OvertimeRequest $overtimeRequest)
     {
-        if ($overtimeRequest->status !== 'draft') {
+        if ($overtimeRequest->status === 'rejected') {
             return redirect()->route('overtime-requests.show', $overtimeRequest)
-                             ->with('error', 'Cannot edit non-draft request.');
+                             ->with('error', 'Cannot edit a rejected request.');
         }
 
         $validated = $request->validate([
@@ -213,6 +226,8 @@ class OvertimeRequestController extends Controller
         $jobOrder = JobOrder::find($validated['job_order_id']);
         $departmentId = $jobOrder->department_id; // sudah dipastikan tidak null
 
+        $hrWasApproved = $overtimeRequest->hr_approval_status === 'approved';
+
         $overtimeRequest->update([
             'employee_id'     => $validated['employee_id'],
             'department_id'   => $departmentId,
@@ -225,6 +240,19 @@ class OvertimeRequestController extends Controller
             'break_deduction' => $breakDeduction,
             'net_hours'       => $netHours,
         ]);
+
+        // Jika HR sudah approve sebelum edit → reset approval HR & flag untuk notice
+        if ($hrWasApproved) {
+            $overtimeRequest->hr_approval_status       = null;
+            $overtimeRequest->hr_approved_by           = null;
+            $overtimeRequest->hr_approved_at           = null;
+            $overtimeRequest->director_approval_status = null;
+            $overtimeRequest->director_approved_by     = null;
+            $overtimeRequest->director_approved_at     = null;
+            $overtimeRequest->edited_after_hr_approval = true;
+            $overtimeRequest->status                   = 'submitted';
+            $overtimeRequest->save();
+        }
 
         return redirect()->route('overtime-requests.show', $overtimeRequest)
                          ->with('success', 'Overtime request updated successfully.');
@@ -284,9 +312,10 @@ class OvertimeRequestController extends Controller
         }
 
         $newStatus = $request->action === 'approve' ? 'approved' : 'rejected';
-        $overtimeRequest->hr_approval_status = $newStatus;
-        $overtimeRequest->hr_approved_by     = $user->id;
-        $overtimeRequest->hr_approved_at     = now();
+        $overtimeRequest->hr_approval_status       = $newStatus;
+        $overtimeRequest->hr_approved_by           = $user->id;
+        $overtimeRequest->hr_approved_at           = now();
+        $overtimeRequest->edited_after_hr_approval = false;
 
         $overtimeRequest->updateOverallStatus();
         $overtimeRequest->save();
@@ -389,8 +418,11 @@ class OvertimeRequestController extends Controller
         }
 
         $query = OvertimeRequest::with(['employee', 'department', 'jobOrder', 'hrApprover', 'directorApprover'])
-                    ->where('status', 'submitted')
-                    ->where('hr_approval_status', 'pending');
+                    ->whereIn('status', ['submitted', 'draft'])
+                    ->where(function ($q) {
+                        $q->where('hr_approval_status', 'pending')
+                          ->orWhereNull('hr_approval_status');
+                    });
 
         if ($request->filled('employee_id')) {
             $query->where('employee_id', $request->employee_id);
@@ -411,18 +443,19 @@ class OvertimeRequestController extends Controller
         $departments = Department::select('id', 'name')->get();
 
         $stats = [
-            'total_pending' => OvertimeRequest::where('status', 'submitted')
-                                ->where('hr_approval_status', 'pending')->count(),
+            'total_pending' => OvertimeRequest::whereIn('status', ['submitted', 'draft'])
+                                ->where(function ($q) { $q->where('hr_approval_status', 'pending')->orWhereNull('hr_approval_status'); })
+                                ->count(),
             'this_month' => OvertimeRequest::whereMonth('created_at', now()->month)
                                 ->whereYear('created_at', now()->year)->count(),
-            'total_hours' => OvertimeRequest::where('status', 'submitted')
-                                ->where('hr_approval_status', 'pending')
+            'total_hours' => OvertimeRequest::whereIn('status', ['submitted', 'draft'])
+                                ->where(function ($q) { $q->where('hr_approval_status', 'pending')->orWhereNull('hr_approval_status'); })
                                 ->sum('net_hours'),
             'avg_days' => 0,
         ];
 
-        $directorPendingCount = OvertimeRequest::where('status', 'submitted')
-                                ->where('director_approval_status', 'pending')
+        $directorPendingCount = OvertimeRequest::whereIn('status', ['submitted', 'draft'])
+                                ->where(function ($q) { $q->where('director_approval_status', 'pending')->orWhereNull('director_approval_status'); })
                                 ->count();
 
         return view('hr.overtime-requests.hr-approvals', compact('overtimeRequests', 'employees', 'departments', 'stats', 'directorPendingCount'));
@@ -444,8 +477,11 @@ class OvertimeRequestController extends Controller
         }
 
         $query = OvertimeRequest::with(['employee', 'department', 'jobOrder', 'hrApprover', 'directorApprover'])
-                    ->where('status', 'submitted')
-                    ->where('director_approval_status', 'pending');
+                    ->whereIn('status', ['submitted', 'draft'])
+                    ->where(function ($q) {
+                        $q->where('director_approval_status', 'pending')
+                          ->orWhereNull('director_approval_status');
+                    });
 
         if ($request->filled('employee_id')) {
             $query->where('employee_id', $request->employee_id);
@@ -466,13 +502,13 @@ class OvertimeRequestController extends Controller
         $departments = Department::select('id', 'name')->get();
 
         $stats = [
-            'total_pending' => OvertimeRequest::where('status', 'submitted')
-                                ->where('director_approval_status', 'pending')
+            'total_pending' => OvertimeRequest::whereIn('status', ['submitted', 'draft'])
+                                ->where(function ($q) { $q->where('director_approval_status', 'pending')->orWhereNull('director_approval_status'); })
                                 ->count(),
             'this_month' => OvertimeRequest::whereMonth('created_at', now()->month)
                                 ->whereYear('created_at', now()->year)->count(),
-            'total_hours' => OvertimeRequest::where('status', 'submitted')
-                                ->where('director_approval_status', 'pending')
+            'total_hours' => OvertimeRequest::whereIn('status', ['submitted', 'draft'])
+                                ->where(function ($q) { $q->where('director_approval_status', 'pending')->orWhereNull('director_approval_status'); })
                                 ->sum('net_hours'),
             'avg_days' => 0,
         ];
@@ -493,13 +529,19 @@ class OvertimeRequestController extends Controller
             abort(403);
         }
 
-        $query = OvertimeRequest::with(['employee', 'jobOrder', 'department']);
+        $query = OvertimeRequest::with(['employee', 'jobOrder', 'department'])
+                    ->where('status', 'approved')
+                    ->where('hr_approval_status', 'approved')
+                    ->where('director_approval_status', 'approved');
 
         if ($request->filled('employee_id')) {
             $query->where('employee_id', $request->employee_id);
         }
         if ($request->filled('start_date') && $request->filled('end_date')) {
             $query->whereBetween('start_time', [$request->start_date, $request->end_date . ' 23:59:59']);
+        }
+        if ($request->has('passed') && $request->passed !== '') {
+            $query->where('is_passed', (bool) $request->passed);
         }
 
         $overtimeRequests = $query->latest()->paginate(20);
@@ -550,6 +592,55 @@ class OvertimeRequestController extends Controller
         $employees = Employee::select('id', 'name')->get();
 
         return view('hr.overtime-requests.attendance-comparison', compact('overtimeRequests', 'employees', 'stats'));
+    }
+
+    /**
+     * Update clock_in / clock_out di daily_attendances dari halaman OT comparison
+     */
+    public function updateAttendance(Request $request, OvertimeRequest $overtimeRequest)
+    {
+        if (!in_array(auth()->user()->role, ['hr', 'admin_hr', 'super_admin'])) {
+            abort(403);
+        }
+
+        $request->validate([
+            'clock_in'  => 'nullable|date_format:H:i',
+            'clock_out' => 'nullable|date_format:H:i',
+        ]);
+
+        $date       = $overtimeRequest->start_time->toDateString();
+        $employeeId = $overtimeRequest->employee_id;
+
+        $daily = DailyAttendance::firstOrNew([
+            'employee_id' => $employeeId,
+            'date'        => $date,
+        ]);
+
+        if ($request->filled('clock_in'))  $daily->clock_in  = $request->clock_in;
+        if ($request->filled('clock_out')) $daily->clock_out = $request->clock_out;
+
+        // Recalculate total_hours if both present
+        if ($daily->clock_in && $daily->clock_out) {
+            $in  = Carbon::parse($daily->clock_in);
+            $out = Carbon::parse($daily->clock_out);
+            $daily->total_hours = round($out->diffInMinutes($in) / 60, 2);
+        }
+
+        $daily->updated_by = auth()->id();
+        $daily->save();
+
+        // Also sync attendance_logs for consistency
+        $log = AttendanceLog::where('employee_id', $employeeId)->whereDate('date', $date)->first();
+        if ($log) {
+            if ($request->filled('clock_in'))  $log->clock_in  = $request->clock_in;
+            if ($request->filled('clock_out')) $log->clock_out = $request->clock_out;
+            if ($log->clock_in && $log->clock_out) {
+                $log->total_hours = round(Carbon::parse($log->clock_out)->diffInMinutes(Carbon::parse($log->clock_in)) / 60, 2);
+            }
+            $log->save();
+        }
+
+        return back()->with('success', "Attendance updated for {$overtimeRequest->employee->name} on {$date}.");
     }
 
     /**

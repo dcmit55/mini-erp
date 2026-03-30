@@ -32,6 +32,7 @@ use App\Http\Controllers\Timing\Animatronics\AnimatronicsMonitorController;
 use App\Http\Controllers\Timing\Mascot\MascotTimingController;
 use App\Http\Controllers\Timing\Mascot\MascotMonitorController;
 use App\Http\Controllers\Timing\TimingMonitorController;
+use App\Http\Controllers\Timing\TimingDetailController;
 use App\Http\Controllers\Finance\FinalProjectSummaryController;
 use App\Http\Controllers\Admin\DepartmentController;
 use App\Http\Controllers\Procurement\SupplierController;
@@ -63,6 +64,7 @@ use App\Http\Controllers\Hr\EmployeeWorkPolicyImportController;
 use App\Http\Controllers\Hr\FingerprintLogController;
 use App\Http\Controllers\Hr\FingerspotController;
 use App\Http\Controllers\Hr\SessionShiftController;
+use App\Http\Controllers\Hr\SymcoreExportController;
 
 /*
 |--------------------------------------------------------------------------
@@ -382,7 +384,12 @@ Route::middleware(['auth'])->group(function () {
     Route::get('leave_requests/{id}/edit', [LeaveRequestController::class, 'edit'])->name('leave_requests.edit');
     Route::put('leave_requests/{id}', [LeaveRequestController::class, 'update'])->name('leave_requests.update');
     Route::delete('leave_requests/{id}', [LeaveRequestController::class, 'destroy'])->name('leave_requests.destroy');
+    Route::get('leave_requests/{id}', [LeaveRequestController::class, 'show'])->name('leave_requests.show');
+    Route::get('leave_requests/{id}/document/{type}', [LeaveRequestController::class, 'serveDocument'])->name('leave_requests.document');
     Route::post('leave_requests/{id}/approval', [LeaveRequestController::class, 'updateApproval'])->name('leave_requests.updateApproval');
+    Route::get('leave-approvals/dept', [LeaveRequestController::class, 'deptLeaveApprovals'])->name('leave_requests.dept-approvals');
+    Route::get('leave-approvals/hr', [LeaveRequestController::class, 'hrLeaveApprovals'])->name('leave_requests.hr-approvals');
+    Route::get('leave-approvals/director', [LeaveRequestController::class, 'directorLeaveApprovals'])->name('leave_requests.director-approvals');
 
     //Timming
     Route::resource('timings', TimingController::class);
@@ -412,12 +419,16 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/', [CostumeTimingController::class, 'index'])->name('index');
             Route::post('/start', [CostumeTimingController::class, 'start'])->name('start');
             Route::post('/stop', [CostumeTimingController::class, 'stop'])->name('stop');
+            Route::post('/freeze', [CostumeTimingController::class, 'freeze'])->name('freeze');
+            Route::post('/unfreeze', [CostumeTimingController::class, 'unfreeze'])->name('unfreeze');
             Route::get('/active-sessions', [CostumeTimingController::class, 'getActiveSessions'])->name('active-sessions');
+            Route::get('/available-employees', [CostumeTimingController::class, 'getAvailableEmployees'])->name('available-employees');
             Route::post('/get-sessions-info', [CostumeTimingController::class, 'getSessionsInfo'])->name('get-sessions-info');
             Route::get('/job-order/{jobOrderId}', [CostumeTimingController::class, 'getJobOrderInfo'])->name('job-order-info');
             // Costume Monitor
             Route::get('/monitor', [CostumeMonitorController::class, 'index'])->name('monitor');
             Route::get('/monitor/running', [CostumeMonitorController::class, 'getRunning'])->name('monitor.running');
+            Route::get('/monitor/clocked-in', [CostumeMonitorController::class, 'getClockedIn'])->name('monitor.clocked-in');
             Route::post('/bulk-stop', [CostumeTimingController::class, 'bulkStop'])->name('bulk-stop');
         });
 
@@ -433,9 +444,11 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/unfreeze', [AnimatronicsTimingController::class, 'unfreeze'])->name('unfreeze');
             Route::post('/quick-job-order', [AnimatronicsTimingController::class, 'quickStoreJobOrder'])->name('quick-job-order');
             Route::get('/active-sessions', [AnimatronicsTimingController::class, 'getActiveSessions'])->name('active-sessions');
+            Route::get('/available-employees', [AnimatronicsTimingController::class, 'getAvailableEmployees'])->name('available-employees');
             // Animatronics Monitor
             Route::get('/monitor', [AnimatronicsMonitorController::class, 'index'])->name('monitor');
             Route::get('/monitor/running', [AnimatronicsMonitorController::class, 'getRunning'])->name('monitor.running');
+            Route::get('/monitor/clocked-in', [AnimatronicsMonitorController::class, 'getClockedIn'])->name('monitor.clocked-in');
             Route::post('/bulk-stop', [AnimatronicsTimingController::class, 'bulkStop'])->name('bulk-stop');
         });
 
@@ -446,13 +459,23 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/', [MascotTimingController::class, 'index'])->name('index');
             Route::post('/start', [MascotTimingController::class, 'start'])->name('start');
             Route::post('/stop', [MascotTimingController::class, 'stop'])->name('stop');
+            Route::post('/freeze', [MascotTimingController::class, 'freeze'])->name('freeze');
+            Route::post('/unfreeze', [MascotTimingController::class, 'unfreeze'])->name('unfreeze');
             Route::get('/active-sessions', [MascotTimingController::class, 'getActiveSessions'])->name('active-sessions');
+            Route::get('/available-employees', [MascotTimingController::class, 'getAvailableEmployees'])->name('available-employees');
             Route::get('/job-order/{jobOrderId}', [MascotTimingController::class, 'getJobOrderInfo'])->name('job-order-info');
             // Mascot Monitor
             Route::get('/monitor', [MascotMonitorController::class, 'index'])->name('monitor');
             Route::get('/monitor/running', [MascotMonitorController::class, 'getRunning'])->name('monitor.running');
+            Route::get('/monitor/clocked-in', [MascotMonitorController::class, 'getClockedIn'])->name('monitor.clocked-in');
             Route::post('/bulk-stop', [MascotTimingController::class, 'bulkStop'])->name('bulk-stop');
         });
+
+    // Timing Session Detail - Shared detail page for any timing session
+    Route::get('/timing/heartbeat', [TimingDetailController::class, 'heartbeat'])->name('timing.heartbeat');
+    Route::get('/timing/{id}/detail', [TimingDetailController::class, 'show'])->name('timing.detail.show');
+    Route::get('/timing/{id}/detail-partial', [TimingDetailController::class, 'showPartial'])->name('timing.detail.partial');
+    Route::get('/timing/{id}/live-stats', [TimingDetailController::class, 'liveStats'])->name('timing.detail.live-stats');
 
     // Timing Monitor - Real-time Running Sessions Dashboard (All Departments)
     Route::prefix('timing-monitor')
@@ -660,6 +683,7 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/sync', [FingerspotController::class, 'showSyncForm'])->name('sync.form');
             Route::get('/employee-list', [FingerspotController::class, 'showEmployeeList'])->name('employee-list.form');
             Route::get('/register-employee', [FingerspotController::class, 'showRegisterForm'])->name('register-employee.form');
+            Route::get('/bulk-register', [FingerspotController::class, 'showBulkRegisterForm'])->name('bulk-register.form');
             Route::get('/register-biometric', [FingerspotController::class, 'showBiometricForm'])->name('register-biometric.form');
             Route::get('/delete-employee', [FingerspotController::class, 'showDeleteForm'])->name('delete-employee.form');
             Route::get('/device-info', [FingerspotController::class, 'showDeviceInfoForm'])->name('device-info.form');
@@ -669,6 +693,7 @@ Route::middleware(['auth'])->group(function () {
             // Proses form (POST)
             Route::post('/sync', [FingerspotController::class, 'syncAttendance'])->name('sync');
             Route::post('/register-employee', [FingerspotController::class, 'registerEmployee'])->name('register-employee');
+            Route::post('/bulk-register', [FingerspotController::class, 'bulkRegisterEmployees'])->name('bulk-register');
             Route::post('/register-biometric', [FingerspotController::class, 'registerBiometric'])->name('register-biometric');
             Route::post('/delete-employee', [FingerspotController::class, 'deleteEmployee'])->name('delete-employee');
             Route::post('/reset-device-status', [FingerspotController::class, 'resetDeviceStatus'])->name('reset-device-status');
@@ -683,6 +708,7 @@ Route::middleware(['auth'])->group(function () {
         }); // Attendance Logs
     // Session Shifts CRUD
     Route::resource('session-shifts', SessionShiftController::class)->except(['show']);
+    Route::patch('session-shifts/{session_shift}/clear-break2', [SessionShiftController::class, 'clearBreak2'])->name('session-shifts.clear-break2');
 
     Route::get('/attendance-logs', [AttendanceLogController::class, 'index'])->name('attendance-logs.index');
     Route::post('/attendance-logs/import', [AttendanceLogController::class, 'storeImport'])->name('attendance-logs.import.store');
@@ -690,6 +716,10 @@ Route::middleware(['auth'])->group(function () {
         return redirect()->route('attendance-logs.index')->with('info', 'Halaman import telah dipindahkan. Gunakan tombol "Import Excel" di halaman ini.');
     })->name('attendance-logs.import.redirect');
     Route::get('/attendance-logs/export', [AttendanceLogController::class, 'export'])->name('attendance-logs.export');
+
+    // Symcore Export
+    Route::get('/symcore-export', [SymcoreExportController::class, 'index'])->name('symcore-export.index');
+    Route::get('/symcore-export/download', [SymcoreExportController::class, 'export'])->name('symcore-export.export');
     Route::put('/{employeeId}/{date}', [AttendanceLogController::class, 'update'])->name('attendance-logs.update');
 
     // ===== ROUTES OVERTIME REQUESTS =====
@@ -702,6 +732,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('overtime-requests/{overtime_request}/approve-hr', [OvertimeRequestController::class, 'approveHr'])->name('overtime-requests.approve-hr');
     Route::post('overtime-requests/{overtime_request}/approve-director', [OvertimeRequestController::class, 'approveDirector'])->name('overtime-requests.approve-director');
     Route::post('overtime-requests/{overtime_request}/toggle-pass', [OvertimeRequestController::class, 'togglePass'])->name('overtime-requests.toggle-pass');
+    Route::post('overtime-requests/{overtime_request}/update-attendance', [OvertimeRequestController::class, 'updateAttendance'])->name('overtime-requests.update-attendance');
     Route::get('overtime-requests/{overtime_request}/calculate-pay', [OvertimeRequestController::class, 'calculatePay'])->name('overtime-requests.calculate-pay');
 
     // Resource route
@@ -712,6 +743,8 @@ Route::middleware(['auth'])->group(function () {
         ->name('overtime-pays.')
         ->group(function () {
             Route::get('/', [OvertimePayController::class, 'index'])->name('index');
+            Route::get('/create', [OvertimePayController::class, 'create'])->name('create');
+            Route::post('/', [OvertimePayController::class, 'store'])->name('store');
             Route::get('/{id}', [OvertimePayController::class, 'show'])->name('show');
             Route::delete('/{id}', [OvertimePayController::class, 'destroy'])->name('destroy');
         });

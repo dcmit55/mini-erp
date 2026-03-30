@@ -5,8 +5,7 @@
         <!-- Header -->
         <div class="d-flex flex-column flex-lg-row align-items-lg-center gap-2 mb-4">
             <div class="d-flex align-items-center">
-                <i class="fas fa-robot gradient-icon me-2" style="font-size: 1.8rem;"></i>
-                <h2 class="mb-0" style="font-size:1.5rem;">Animatronics Timing - Production Tracking</h2>
+                <h2 class="mb-0 fw-semibold" style="font-size:1.4rem;">Animatronics Timing</h2>
             </div>
             <div class="ms-lg-auto d-flex gap-2">
                 <a href="{{ route('animatronics-timing.monitor') }}" class="btn btn-primary btn-sm">
@@ -739,18 +738,8 @@
                             trackingMode = 'timer';
                             $('#mode-timer').prop('checked', true);
 
-                            // REAL-TIME DISPLAY: Add new session cards immediately
-                            if (response.timings && response.timings.length > 0) {
-                                response.timings.forEach(timing => {
-                                    addSessionCard(timing);
-                                });
-                                // Start duration timers for new cards
-                                startDurationTimers();
-                            } else {
-                                // Fallback: reload active sessions
-                                loadActiveSessions();
-                            }
-
+                            loadActiveSessions();
+                            loadAvailableEmployees();
                             updateStartButton();
                         }
                     },
@@ -969,27 +958,10 @@
                                 showConfirmButton: false
                             });
 
-                            // Remove the specific card (fade out animation)
                             const cardId = response.timing_id || timingId;
-                            $(`#session-card-${cardId}`).fadeOut(300, function() {
-                                $(this).remove();
-
-                                // Check if any sessions left
-                                if ($('.session-card').length === 0) {
-                                    $('#active-sessions-container').html(`
-                                        <div class="text-center text-muted py-5">
-                                            <i class="bi bi-clock-history" style="font-size: 3rem;"></i>
-                                            <p class="mt-3 mb-0">No active work sessions</p>
-                                            <small>Start a new session to track production time</small>
-                                        </div>
-                                    `);
-                                }
-                            });
-
-                            // Reload page after delay to refresh employee list
-                            setTimeout(() => {
-                                window.location.reload();
-                            }, 2000);
+                            $(`#session-card-${cardId}`).fadeOut(300, function() { $(this).remove(); });
+                            loadActiveSessions();
+                            loadAvailableEmployees();
                         }
                     },
                     error: function(xhr) {
@@ -1107,6 +1079,7 @@
                         success: function(response) {
                             if (response.success) {
                                 loadActiveSessions();
+                                loadAvailableEmployees();
                                 Swal.fire({
                                     icon: 'success',
                                     title: 'Paused!',
@@ -1157,11 +1130,12 @@
                         success: function(response) {
                             if (response.success) {
                                 loadActiveSessions();
+                                loadAvailableEmployees();
                                 Swal.fire({
                                     icon: 'success',
-                                    title: 'Continued!',
+                                    title: response.auto_froze ? 'Switched!' : 'Continued!',
                                     text: response.message,
-                                    timer: 1800,
+                                    timer: 2500,
                                     showConfirmButton: false
                                 });
                             } else {
@@ -1423,6 +1397,68 @@
 
             // Start duration timers on page load
             startDurationTimers();
+
+            // ── Available-employees helpers ───────────────────────────────────
+            function loadAvailableEmployees() {
+                $.ajax({
+                    url: '{{ route('animatronics-timing.available-employees') }}',
+                    method: 'GET',
+                    success: function(r) {
+                        if (r.success) {
+                            updateEmployeeListDisplay(r.employees);
+                        }
+                    }
+                });
+            }
+
+            function updateEmployeeListDisplay(employees) {
+                selectedEmployees = [];
+                updateStartButton();
+
+                if (!employees || employees.length === 0) {
+                    $('#employee-cards').html('<div class="alert alert-info">No available employees at this time.</div>');
+                    return;
+                }
+
+                let html = '<div class="row g-2">';
+                employees.forEach(function(emp) {
+                    const frozen = emp.frozen_info;
+                    const borderClass = frozen ? 'border-warning' : '';
+                    const pausedBadge = frozen
+                        ? `<span class="position-absolute top-0 start-0 m-1 badge bg-warning text-dark" style="font-size:0.6rem;"><i class="bi bi-pause-circle"></i> PAUSED</span>`
+                        : '';
+                    const pausedDur = frozen
+                        ? `<div class="text-warning" style="font-size:0.65rem;"><i class="bi bi-clock-history"></i> ${frozen.frozen_duration}</div>`
+                        : '';
+                    const photoHtml = emp.photo
+                        ? `<img src="/storage/${emp.photo}" class="rounded-circle mb-1 border" width="44" height="44" style="object-fit:cover;">`
+                        : `<div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center mb-1" style="width:44px;height:44px;"><i class="bi bi-person text-white"></i></div>`;
+
+                    html += `
+                        <div class="col-md-4 col-sm-6 employee-card-wrapper"
+                            data-department-id="${emp.department_id}"
+                            data-position="${emp.position || ''}"
+                            data-name="${emp.name.toLowerCase()}">
+                            <div class="card employee-card h-100 border-2 ${borderClass}" data-employee-id="${emp.id}" style="cursor:pointer;transition:all 0.3s;">
+                                <div class="card-body text-center p-2">
+                                    <div class="form-check position-absolute top-0 end-0 m-1">
+                                        <input class="form-check-input employee-checkbox" type="checkbox" name="employees[]" value="${emp.id}" id="emp-${emp.id}">
+                                    </div>
+                                    ${pausedBadge}
+                                    ${photoHtml}
+                                    <h6 class="mb-0 small lh-sm">${emp.name}</h6>
+                                    ${pausedDur}
+                                </div>
+                            </div>
+                        </div>`;
+                });
+                html += '</div>';
+                $('#employee-cards').html(html);
+                filterEmployees();
+            }
+            // ─────────────────────────────────────────────────────────────────
         });
     </script>
+    @include('timing.partials.detail-modal')
+    @include('timing.partials.break-heartbeat')
 @endsection

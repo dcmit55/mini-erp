@@ -179,7 +179,7 @@
                                         </span>
                                     @else
                                         <span class="badge bg-soft-warning text-warning px-2 py-1">
-                                            <i class="fas fa-exclamation-circle me-1"></i>Belum daftar biometric
+                                            <i class="fas fa-exclamation-circle me-1"></i>Not Enrolled
                                         </span>
                                     @endif
                                 </td>
@@ -203,20 +203,46 @@
                                 <td class="text-center">
                                     <div class="d-flex gap-1 justify-content-center">
                                         @if(!$employee->on_device)
-                                            {{-- Register to Device --}}
+                                            {{-- Register to Device via API --}}
                                             <a href="{{ route('fingerspot.register-employee.form') }}?pin={{ $employee->device_pin }}&name={{ urlencode($employee->name) }}"
                                                class="btn btn-sm btn-outline-primary border-0 px-2 py-1 action-btn"
                                                data-bs-toggle="tooltip" title="Register to Device">
                                                 <i class="fas fa-plus-circle"></i>
                                             </a>
+                                            {{-- Mark as On Device + Biometric (manual, no API call) --}}
+                                            <form action="{{ route('fingerspot.reset-device-status') }}" method="POST" class="d-inline"
+                                                  onsubmit="return confirm('Mark {{ addslashes($employee->name) }} as registered on device?')">
+                                                @csrf
+                                                <input type="hidden" name="employee_id" value="{{ $employee->id }}">
+                                                <input type="hidden" name="mark_enrolled" value="1">
+                                                <button type="submit"
+                                                        class="btn btn-sm btn-outline-success border-0 px-2 py-1 action-btn"
+                                                        data-bs-toggle="tooltip" title="Mark as On Device (manual)">
+                                                    <i class="fas fa-check-circle"></i>
+                                                </button>
+                                            </form>
                                         @else
-                                            {{-- Register Biometric --}}
+                                            {{-- Register Biometric via API --}}
                                             <a href="{{ route('fingerspot.register-biometric.form') }}"
                                                class="btn btn-sm btn-outline-primary border-0 px-2 py-1 action-btn"
                                                data-bs-toggle="tooltip" title="Register Biometric">
                                                 <i class="fas fa-fingerprint"></i>
                                             </a>
-                                            {{-- Remove from Device --}}
+                                            @if(!$employee->biometric_registered)
+                                                {{-- Mark Biometric as Enrolled (manual, no API call) --}}
+                                                <form action="{{ route('fingerspot.reset-device-status') }}" method="POST" class="d-inline"
+                                                      onsubmit="return confirm('Mark {{ addslashes($employee->name) }} biometric as enrolled?')">
+                                                    @csrf
+                                                    <input type="hidden" name="employee_id" value="{{ $employee->id }}">
+                                                    <input type="hidden" name="mark_enrolled" value="1">
+                                                    <button type="submit"
+                                                            class="btn btn-sm btn-outline-success border-0 px-2 py-1 action-btn"
+                                                            data-bs-toggle="tooltip" title="Mark Biometric as Enrolled (manual)">
+                                                        <i class="fas fa-check-circle"></i>
+                                                    </button>
+                                                </form>
+                                            @endif
+                                            {{-- Remove from Device via API --}}
                                             <form action="{{ route('fingerspot.delete-employee') }}" method="POST" class="d-inline"
                                                   onsubmit="return confirm('Remove {{ addslashes($employee->name) }} (PIN: {{ $employee->device_pin }}) from device?')">
                                                 @csrf
@@ -224,8 +250,19 @@
                                                 <input type="hidden" name="pin" value="{{ $employee->device_pin }}">
                                                 <button type="submit"
                                                         class="btn btn-sm btn-outline-danger border-0 px-2 py-1 action-btn"
-                                                        data-bs-toggle="tooltip" title="Remove from Device">
+                                                        data-bs-toggle="tooltip" title="Remove from Device (via API)">
                                                     <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                            {{-- Unlink from DB only (no API call) --}}
+                                            <form action="{{ route('fingerspot.reset-device-status') }}" method="POST" class="d-inline"
+                                                  onsubmit="return confirm('Unlink {{ addslashes($employee->name) }} from device in database only (does not remove from machine)?')">
+                                                @csrf
+                                                <input type="hidden" name="employee_id" value="{{ $employee->id }}">
+                                                <button type="submit"
+                                                        class="btn btn-sm btn-outline-warning border-0 px-2 py-1 action-btn"
+                                                        data-bs-toggle="tooltip" title="Unlink from DB only (does not remove from machine)">
+                                                    <i class="fas fa-unlink"></i>
                                                 </button>
                                             </form>
                                         @endif

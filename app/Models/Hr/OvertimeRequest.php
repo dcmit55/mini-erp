@@ -34,7 +34,7 @@ class OvertimeRequest extends Model
         'total_hours', 'break_deduction', 'net_hours',
         'hr_approval_status', 'hr_approved_by', 'hr_approved_at',
         'director_approval_status', 'director_approved_by', 'director_approved_at',
-        'status', 'is_passed'
+        'status', 'is_passed', 'edited_after_hr_approval'
     ];
 
     protected $casts = [
@@ -45,7 +45,8 @@ class OvertimeRequest extends Model
         'total_hours' => 'decimal:2',
         'break_deduction' => 'decimal:2',
         'net_hours' => 'decimal:2',
-        'is_passed' => 'boolean',
+        'is_passed'                  => 'boolean',
+        'edited_after_hr_approval'   => 'boolean',
     ];
 
     public function employee()
@@ -78,6 +79,14 @@ class OvertimeRequest extends Model
         return $this->hasOne(\App\Models\Hr\OvertimePayDetail::class, 'overtime_request_id');
     }
 
+    public function getAttendanceAttribute()
+    {
+        if (!$this->start_time || !$this->employee_id) return null;
+        return \App\Models\Hr\DailyAttendance::where('employee_id', $this->employee_id)
+            ->whereDate('date', $this->start_time->toDateString())
+            ->first();
+    }
+
     public function getNetHoursFormattedAttribute()
     {
         $hours = floor($this->net_hours);
@@ -86,7 +95,7 @@ class OvertimeRequest extends Model
             $hours += 1;
             $minutes = 0;
         }
-        return $hours . ' jam' . ($minutes > 0 ? ' ' . $minutes . ' menit' : '');
+        return $hours . 'h' . ($minutes > 0 ? ' ' . $minutes . 'm' : '');
     }
 
     public function calculateAndSavePayDetail()

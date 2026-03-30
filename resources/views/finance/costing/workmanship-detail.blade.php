@@ -44,6 +44,25 @@
             color: #6c5ce7;
         }
 
+        /* ── OT badge ── */
+        .ot-badge {
+            font-size: .62rem;
+            font-weight: 700;
+            padding: .18em .55em;
+            border-radius: 6px;
+            background: rgba(255, 159, 67, .15);
+            color: #e67e22;
+            border: 1px solid rgba(230, 126, 34, .3);
+            vertical-align: middle;
+            margin-left: .3rem;
+        }
+
+        .ot-cost-chip {
+            font-size: .68rem;
+            color: #e67e22;
+            font-weight: 600;
+        }
+
         /* ── Stat cards row ── */
         .stat-row {
             display: grid;
@@ -386,8 +405,9 @@
 
 @section('content')
     @php
-        $fmt = fn($n) => 'Rp ' . number_format($n, 0, ',', '.');
+        $fmt     = fn($n) => 'Rp ' . number_format($n, 0, ',', '.');
         $avgRate = $totalOperators > 0 ? round($avgHourlyRate) : 0;
+        $hasAnyOt = $timingRows->contains('has_ot', true);
     @endphp
 
     <div class="container-fluid px-4 py-3">
@@ -428,17 +448,19 @@
             <div class="stat-card">
                 <div class="stat-label">Total Hours Worked</div>
                 <div class="stat-val">{{ $totalLaborHours }}</div>
-                <div class="stat-sub">across all operators</div>
+                <div class="stat-sub">Latest: {{ $latestDateFmt }}</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Avg Rate / Hour</div>
-                <div class="stat-val">{{ $fmt($avgRate) }}</div>
-                <div class="stat-sub">Weighted average</div>
+                <div class="stat-label">Regular Cost</div>
+                <div class="stat-val" style="font-size:1.3rem;">{{ $fmt($totalNormalCost) }}</div>
+                <div class="stat-sub">Base rate · avg {{ $fmt($avgRate) }}/hr</div>
             </div>
-            <div class="stat-card">
-                <div class="stat-label">Work Date</div>
-                <div class="stat-val" style="font-size:1rem;">{{ $latestDateFmt }}</div>
-                <div class="stat-sub">Latest session</div>
+            <div class="stat-card" style="{{ $totalOtCost > 0 ? 'border-left:3px solid #e67e22;' : '' }}">
+                <div class="stat-label" style="{{ $totalOtCost > 0 ? 'color:#e67e22;' : '' }}">OT Cost</div>
+                <div class="stat-val" style="font-size:1.3rem; {{ $totalOtCost > 0 ? 'color:#e67e22;' : 'color:#adb5bd;' }}">
+                    {{ $totalOtCost > 0 ? $fmt($totalOtCost) : '—' }}
+                </div>
+                <div class="stat-sub">{{ $totalOtCost > 0 ? 'Included in total cost' : 'No OT sessions' }}</div>
             </div>
         </div>
 
@@ -461,42 +483,71 @@
                         <thead>
                             <tr>
                                 <th style="padding-left:1.25rem;">Employee</th>
-                                <th>Check-In</th>
-                                <th>Check-Out</th>
-                                <th class="text-end">Hours</th>
+                                <th>Start</th>
+                                <th>End</th>
+                                <th class="text-end">Reg hrs</th>
+                                @if ($hasAnyOt)
+                                    <th class="text-end" style="color:#e67e22;">OT hrs</th>
+                                @endif
                                 <th class="text-end">Rate / hr</th>
+                                <th class="text-end">Total Cost</th>
                             </tr>
                         </thead>
                         <tbody>
                             @forelse($timingRows as $row)
+                                @php
+                                    $emp  = $byEmployee->firstWhere('name', $row['employee']);
+                                    $rate = $emp['hourly_rate'] ?? 0;
+                                @endphp
                                 <tr>
                                     <td style="padding-left:1.25rem;">
                                         <div class="emp-name-cell">
                                             <span class="emp-avatar">{{ $row['initials'] }}</span>
                                             <div>
-                                                <div class="fw-semibold" style="font-size:.8rem;">{{ $row['employee'] }}
+                                                <div class="fw-semibold" style="font-size:.8rem;">
+                                                    {{ $row['employee'] }}
+                                                    @if ($row['has_ot'])
+                                                        <span class="ot-badge">OT</span>
+                                                    @endif
                                                 </div>
-                                                <div class="text-muted" style="font-size:.68rem;">{{ $row['position'] }} ·
-                                                    {{ $row['date'] }}</div>
+                                                <div class="text-muted" style="font-size:.68rem;">{{ $row['position'] }} · {{ $row['date'] }}</div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td class="text-muted fw-semibold" style="font-size:.82rem;">{{ $row['start_time'] }}
+                                    <td class="text-muted fw-semibold" style="font-size:.82rem;">{{ $row['start_time'] }}</td>
+                                    <td class="text-muted fw-semibold" style="font-size:.82rem;">{{ $row['end_time'] }}</td>
+                                    <td class="text-end fw-bold" style="color:#6c5ce7;">
+                                        {{ $row['normal_hours'] }}
+                                        @if ($row['normal_cost'] > 0)
+                                            <div style="font-size:.65rem; color:#6c757d; font-weight:400;">{{ $fmt($row['normal_cost']) }}</div>
+                                        @endif
                                     </td>
-                                    <td class="text-muted fw-semibold" style="font-size:.82rem;">{{ $row['end_time'] }}
-                                    </td>
-                                    <td class="text-end fw-bold" style="color:#6c5ce7;">{{ $row['hours'] }}</td>
+                                    @if ($hasAnyOt)
+                                        <td class="text-end">
+                                            @if ($row['ot_hours'] > 0)
+                                                <span class="fw-bold" style="color:#e67e22;">{{ $row['ot_hours'] }}</span>
+                                                <div class="ot-cost-chip">{{ $fmt($row['ot_cost']) }}</div>
+                                                @if ($row['ot_code'])
+                                                    <div style="font-size:.62rem; color:#adb5bd;">{{ $row['ot_code'] }}</div>
+                                                @endif
+                                            @else
+                                                <span class="text-muted">—</span>
+                                            @endif
+                                        </td>
+                                    @endif
                                     <td class="text-end">
-                                        @php
-                                            $emp = $byEmployee->firstWhere('name', $row['employee']);
-                                            $rate = $emp['hourly_rate'] ?? 0;
-                                        @endphp
                                         <span class="rate-chip">{{ $rate > 0 ? $fmt($rate) : '—' }}</span>
+                                        @if ($row['has_ot'] && $row['ot_rate'] > 0)
+                                            <div class="ot-cost-chip">OT {{ $fmt($row['ot_rate']) }}</div>
+                                        @endif
+                                    </td>
+                                    <td class="text-end fw-bold" style="font-size:.82rem;">
+                                        {{ $row['total_cost'] > 0 ? $fmt($row['total_cost']) : '—' }}
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="text-center text-muted py-4">
+                                    <td colspan="{{ $hasAnyOt ? 7 : 6 }}" class="text-center text-muted py-4">
                                         <i class="fas fa-clock me-1"></i>No approved timing data
                                     </td>
                                 </tr>
@@ -504,12 +555,13 @@
 
                             @if ($timingRows->isNotEmpty())
                                 <tr class="total-row">
-                                    <td colspan="2" style="padding-left:1.25rem;">Total — {{ $totalOperators }}
-                                        operators</td>
-                                    <td></td>
-                                    <td class="text-end">{{ $totalLaborHours }} hrs</td>
-                                    <td class="text-end" style="font-size:.8rem; color:#6c757d;">avg {{ $fmt($avgRate) }}
-                                    </td>
+                                    <td colspan="3" style="padding-left:1.25rem;">Total — {{ $totalOperators }} operators</td>
+                                    <td class="text-end">{{ $byEmployee->sum('normal_hours') }} hrs</td>
+                                    @if ($hasAnyOt)
+                                        <td class="text-end" style="color:#e67e22;">{{ $byEmployee->sum('ot_hours') }} hrs</td>
+                                    @endif
+                                    <td class="text-end" style="font-size:.8rem; color:#6c757d;">avg {{ $fmt($avgRate) }}</td>
+                                    <td class="text-end">{{ $fmt($totalLaborCost) }}</td>
                                 </tr>
                             @endif
                         </tbody>
@@ -541,9 +593,25 @@
                             <div class="ms-auto ec-total">{{ $fmt($emp['labor_cost']) }}</div>
                         </div>
                         <div class="ec-row">
-                            <span class="text-muted">Hours</span>
-                            <span class="fw-semibold">{{ $emp['hours'] }} hrs</span>
+                            <span class="text-muted">Reg Hours</span>
+                            <span class="fw-semibold">{{ $emp['normal_hours'] }} hrs</span>
                         </div>
+                        @if ($emp['ot_hours'] > 0)
+                            <div class="ec-row">
+                                <span style="color:#e67e22;">OT Hours</span>
+                                <span class="fw-semibold" style="color:#e67e22;">{{ $emp['ot_hours'] }} hrs</span>
+                            </div>
+                        @endif
+                        <div class="ec-row">
+                            <span class="text-muted">Reg Cost</span>
+                            <span>{{ $emp['hourly_rate'] > 0 ? $fmt($emp['normal_cost']) : '—' }}</span>
+                        </div>
+                        @if ($emp['ot_cost'] > 0)
+                            <div class="ec-row">
+                                <span style="color:#e67e22;">OT Cost</span>
+                                <span style="color:#e67e22; font-weight:600;">{{ $fmt($emp['ot_cost']) }}</span>
+                            </div>
+                        @endif
                         <div class="ec-row">
                             <span class="text-muted">Rate/hr</span>
                             <span>{{ $emp['hourly_rate'] > 0 ? $fmt($emp['hourly_rate']) : '—' }}</span>
@@ -602,13 +670,23 @@
             <div>
                 <div class="tb-label">Total Workmanship Cost — All Operators</div>
                 <div class="tb-val">{{ $fmt($totalLaborCost) }}</div>
+                @if ($totalOtCost > 0)
+                    <div style="font-size:.72rem; color:#f39c12; margin-top:.2rem;">
+                        Regular {{ $fmt($totalNormalCost) }} + OT {{ $fmt($totalOtCost) }}
+                    </div>
+                @endif
             </div>
             <div class="tb-breakdown">
                 @foreach ($byEmployee as $emp)
                     <div class="tbi">
                         <div class="tbi-label">{{ strtoupper($emp['name']) }}</div>
                         <div class="tbi-val">{{ $fmt($emp['labor_cost']) }}</div>
-                        <div style="font-size:.63rem; color:#a0a0c0;">{{ $emp['hours'] }} hrs</div>
+                        <div style="font-size:.63rem; color:#a0a0c0;">
+                            {{ $emp['hours'] }} hrs
+                            @if ($emp['ot_hours'] > 0)
+                                · <span style="color:#f39c12;">{{ $emp['ot_hours'] }}h OT</span>
+                            @endif
+                        </div>
                     </div>
                 @endforeach
             </div>

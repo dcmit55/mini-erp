@@ -66,7 +66,11 @@ class ProjectPurchaseService
                         })
                         ->orWhereHas('internalProject', function ($q) use ($search) {
                             $q->where('job', 'like', "%{$search}%")->orWhere('project', 'like', "%{$search}%");
-                        });
+                        })
+                        ->orWhereHas('material', function ($q) use ($search) {
+                            $q->where('name', 'like', "%{$search}%");
+                        })
+                        ->orWhere('new_item_name', 'like', "%{$search}%");
                 });
             }
 

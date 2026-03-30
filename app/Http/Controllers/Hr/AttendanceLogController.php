@@ -8,6 +8,7 @@ use App\Models\Hr\Employee;
 use App\Models\Hr\AttendanceLog;
 use App\Models\Hr\DailyAttendance;
 use App\Models\Hr\LeaveRequest;
+use App\Models\Hr\SessionShift;
 use App\Imports\AttendancesImport;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Auth;
@@ -59,98 +60,125 @@ class AttendanceLogController extends Controller
                 return Carbon::parse($d);
             }, $datesWithData);
         }
-        elseif ($request->filled('start_date') && $request->filled('end_date')) {
+        elseif ($request->filled('start_date')) {
             $startDate = Carbon::parse($request->start_date);
-            $endDate = Carbon::parse($request->end_date);
+            $endDate   = $request->filled('end_date') ? Carbon::parse($request->end_date) : $startDate->copy();
             $dates = [];
             for ($d = $startDate->copy(); $d->lte($endDate); $d->addDay()) {
                 $dates[] = $d->copy();
             }
         }
         else {
-            $date = $request->filled('date') ? Carbon::parse($request->date) : Carbon::today();
-            $dates = [$date];
+            $dates = [Carbon::today()];
         }
 
-        $attendances = collect();
+        // ── Batch-load semua data yang dibutuhkan (hindari N+1) ──────────────────
+        $employeeIds = $employees->pluck('id')->toArray();
+        $dateStrs    = array_map(fn($d) => $d->format('Y-m-d'), $dates);
+        $minDate     = min($dateStrs);
+        $maxDate     = max($dateStrs);
+
+        // 1 query: semua daily_attendances untuk employee+tanggal yang relevan
+        $dailiesMap = DailyAttendance::whereIn('employee_id', $employeeIds)
+            ->whereBetween('date', [$minDate, $maxDate])
+            ->with('sessionShift')
+            ->get()
+            ->groupBy(fn($d) => $d->employee_id . '_' . $d->date->format('Y-m-d'));
+
+        // 1 query: semua attendance_logs
+        $logsMap = AttendanceLog::whereIn('employee_id', $employeeIds)
+            ->whereBetween('date', [$minDate, $maxDate])
+            ->get()
+            ->groupBy(fn($l) => $l->employee_id . '_' . Carbon::parse($l->date)->format('Y-m-d'));
+
+        // 1 query: semua cuti yang approved dalam rentang tanggal
+        $leavesMap = LeaveRequest::whereIn('employee_id', $employeeIds)
+            ->where('start_date', '<=', $maxDate)
+            ->where('end_date', '>=', $minDate)
+            ->where('approval_1', 'approved')
+            ->where('approval_2', 'approved')
+            ->get()
+            ->groupBy('employee_id');
+
+        $attendanceService = app(DailyAttendanceService::class);
+        $attendances       = collect();
 
         foreach ($dates as $currentDate) {
             $dateStr = $currentDate->format('Y-m-d');
 
             foreach ($employees as $employee) {
-                $daily = DailyAttendance::where('employee_id', $employee->id)
-                    ->where('date', $dateStr)
-                    ->first();
+                $key   = $employee->id . '_' . $dateStr;
+                $daily = $dailiesMap->get($key)?->first();
 
                 if ($daily) {
                     $attendances->push((object)[
-                        'employee' => $employee,
-                        'date' => $currentDate,
-                        'clock_in' => $daily->clock_in ? Carbon::parse($daily->clock_in) : null,
-                        'clock_out' => $daily->clock_out ? Carbon::parse($daily->clock_out) : null,
-                        'total_hours' => $daily->total_hours,
-                        'status' => $daily->status,
-                        'remarks' => $daily->remarks,
+                        'employee'     => $employee,
+                        'date'         => $currentDate,
+                        'clock_in'     => $daily->clock_in  ? Carbon::parse($daily->clock_in)  : null,
+                        'clock_out'    => $daily->clock_out ? Carbon::parse($daily->clock_out) : null,
+                        'total_hours'  => $daily->total_hours,
+                        'status'       => $daily->status,
+                        'remarks'      => $daily->remarks,
                         'is_corrected' => true,
-                        'daily_id' => $daily->id,
+                        'daily_id'     => $daily->id,
+                        'session_shift'=> $daily->sessionShift,
                     ]);
                 } else {
-                    $logs = AttendanceLog::where('employee_id', $employee->id)
-                        ->whereDate('date', $dateStr)
-                        ->orderBy('clock_in')
-                        ->get();
+                    $employeeLogs = $logsMap->get($key, collect());
 
-                    if ($logs->isNotEmpty()) {
-                        $clockIn = $logs->min('clock_in');
-                        $clockOut = $logs->max('clock_out');
-
-                        // Tentukan status dan remarks
-                        $status = app(DailyAttendanceService::class)->determineStatus($employee, $currentDate, $clockIn, $clockOut);
-                        $remarks = null;
+                    if ($employeeLogs->isNotEmpty()) {
+                        $clockIn  = $employeeLogs->min('clock_in');
+                        $clockOut = $employeeLogs->max('clock_out');
+                        $status   = $attendanceService->determineStatus($employee, $currentDate, $clockIn, $clockOut);
+                        $remarks  = null;
 
                         if (!$clockIn && $clockOut) {
-                            // Hanya clock out
                             $remarks = 'Missing clock in';
                         } elseif ($clockIn && !$clockOut) {
-                            // Hanya clock in
                             $remarks = 'Missing clock out';
                         }
 
-                        $totalHours = $clockIn && $clockOut ? $this->calculateHours($clockIn, $clockOut) : null;
+                        $totalHours   = $clockIn && $clockOut ? $this->calculateHours($clockIn, $clockOut) : null;
+                        $sessionShift = null;
+                        if ($clockIn && $employee->department_id) {
+                            $sessionShift = SessionShift::detectFromClockIn(
+                                $employee->department_id,
+                                Carbon::parse($clockIn)->format('H:i:s'),
+                                $employee->citizenship === 'WNA'
+                            );
+                        }
 
                         $attendances->push((object)[
-                            'employee' => $employee,
-                            'date' => $currentDate,
-                            'clock_in' => $clockIn ? Carbon::parse($clockIn) : null,
-                            'clock_out' => $clockOut ? Carbon::parse($clockOut) : null,
-                            'total_hours' => $totalHours,
-                            'status' => $status,
-                            'remarks' => $remarks,
-                            'is_corrected' => false,
-                            'daily_id' => null,
+                            'employee'      => $employee,
+                            'date'          => $currentDate,
+                            'clock_in'      => $clockIn  ? Carbon::parse($clockIn)  : null,
+                            'clock_out'     => $clockOut ? Carbon::parse($clockOut) : null,
+                            'total_hours'   => $totalHours,
+                            'status'        => $status,
+                            'remarks'       => $remarks,
+                            'is_corrected'  => false,
+                            'daily_id'      => null,
+                            'session_shift' => $sessionShift,
                         ]);
                     } else {
-                        // Tidak ada log sama sekali, cek cuti
-                        $leave = LeaveRequest::where('employee_id', $employee->id)
-                            ->where('start_date', '<=', $dateStr)
-                            ->where('end_date', '>=', $dateStr)
-                            ->where('approval_1', 'approved')
-                            ->where('approval_2', 'approved')
-                            ->first();
+                        // Tidak ada log sama sekali, cek cuti dari cache
+                        $leave = ($leavesMap->get($employee->id) ?? collect())
+                            ->first(fn($l) => $l->start_date <= $dateStr && $l->end_date >= $dateStr);
 
-                        $status = $leave ? app(DailyAttendanceService::class)->mapLeaveTypeToStatus($leave->type) : 'Alpha';
+                        $status  = $leave ? $attendanceService->mapLeaveTypeToStatus($leave->type) : 'Alpha';
                         $remarks = $leave ? $leave->reason : null;
 
                         $attendances->push((object)[
-                            'employee' => $employee,
-                            'date' => $currentDate,
-                            'clock_in' => null,
-                            'clock_out' => null,
-                            'total_hours' => null,
-                            'status' => $status,
-                            'remarks' => $remarks,
-                            'is_corrected' => false,
-                            'daily_id' => null,
+                            'employee'      => $employee,
+                            'date'          => $currentDate,
+                            'clock_in'      => null,
+                            'clock_out'     => null,
+                            'total_hours'   => null,
+                            'status'        => $status,
+                            'remarks'       => $remarks,
+                            'is_corrected'  => false,
+                            'daily_id'      => null,
+                            'session_shift' => null,
                         ]);
                     }
                 }

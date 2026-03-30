@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\FingerprintLog;
 use App\Models\Hr\Employee;
+use App\Models\Production\Timing;
 use App\Services\AttendanceReconcileService;
 use App\Services\DailyAttendanceService;
 use Carbon\Carbon;
@@ -108,9 +109,41 @@ class WebhookController extends Controller
             ]);
         }
 
+        // ── Tap-type: 0=IN, 1=OUT, 2=Break-OUT, 3=Break-IN, 4=OT-IN, 5=OT-OUT ──
+        $tapStatus = (int) ($request->input('status') ?? $request->input('tap_type') ?? -1);
+
+        // Clock-IN → auto-stop any unfinished timings from previous days
+        if ($tapStatus === 0) {
+            $this->autoStopPreviousDayTimings($employee);
+        }
+
+        // Clock-OUT → auto-stop today's active timings
+        if ($tapStatus === 1) {
+            $this->autoStopTodayTimings($employee, $scanCarbon);
+        }
+
         // Auto-set device_registered_at jika belum ada (pertama kali scan masuk webhook)
+        $updates = [];
+
         if (is_null($employee->device_registered_at)) {
-            $employee->update(['device_registered_at' => now()]);
+            $updates['device_registered_at'] = now();
+        }
+
+        // Set biometric_enrolled_at jika scan menggunakan biometric:
+        // verify: 1=finger, 4=face, 6=vein
+        $verify = (int) ($request->input('verify') ?? $request->input('verification') ?? -1);
+        $isBiometricScan = in_array($verify, [1, 4, 6]);
+
+        if ($isBiometricScan && is_null($employee->biometric_enrolled_at)) {
+            $updates['biometric_enrolled_at'] = now();
+            Log::info('Webhook: biometric_enrolled_at set', [
+                'employee' => $employee->employee_no,
+                'verify'   => $verify,
+            ]);
+        }
+
+        if (!empty($updates)) {
+            $employee->update($updates);
         }
 
         // ── Rekonsiliasi attendance_logs ───────────────────────────────────────
@@ -125,9 +158,9 @@ class WebhookController extends Controller
             ]);
         }
 
-        // ── Regenerate daily_attendances ───────────────────────────────────────
+        // ── Regenerate daily_attendances (hanya untuk employee ini, bukan semua) ─
         try {
-            app(DailyAttendanceService::class)->generateForDate(Carbon::parse($date));
+            app(DailyAttendanceService::class)->generateForEmployee($employee, Carbon::parse($date));
         } catch (\Exception $e) {
             Log::error('Webhook: regenerate daily_attendances gagal: ' . $e->getMessage());
         }
@@ -152,6 +185,89 @@ class WebhookController extends Controller
     }
 
     /**
+     * Clock-IN detected: auto-stop any timing from previous days that was never stopped.
+     * Applies end_time = 23:59:59 on the timing's date as a graceful close.
+     */
+    private function autoStopPreviousDayTimings(Employee $employee): void
+    {
+        $timings = Timing::where('employee_id', $employee->id)
+            ->whereDate('tanggal', '<', today())
+            ->whereIn('status', ['on progress', 'frozen'])
+            ->whereNull('end_time')
+            ->get();
+
+        foreach ($timings as $timing) {
+            $endTime  = '23:59:59';
+            $stoppedAt = Carbon::parse($timing->tanggal->format('Y-m-d') . ' ' . $endTime);
+            $start    = Carbon::parse($timing->tanggal->format('Y-m-d') . ' ' . $timing->start_time);
+
+            $deptData                    = $timing->department_specific_data ?? [];
+            $deptData['auto_stopped']    = 'next_day_clock_in';
+            $deptData['auto_stopped_at'] = now()->toDateTimeString();
+
+            $timing->end_time                 = $endTime;
+            $timing->stopped_at               = $stoppedAt;
+            $timing->stop_reason              = 'Auto-stopped: employee clocked in next day without prior clock-out';
+            $timing->status                   = 'complete';
+            $timing->duration_minutes         = max(0, $start->diffInMinutes($stoppedAt));
+            $timing->department_specific_data = $deptData;
+            $timing->save();
+        }
+
+        if ($timings->count() > 0) {
+            Log::info("Webhook: auto-stopped {$timings->count()} previous-day timing(s) for {$employee->name} (clock-in next day)");
+        }
+    }
+
+    /**
+     * Clock-OUT detected: auto-stop today's active timings using the clock-out time.
+     */
+    private function autoStopTodayTimings(Employee $employee, Carbon $clockOutTime): void
+    {
+        $endTime  = $clockOutTime->format('H:i:s');
+        $endDate  = $clockOutTime->toDateString();
+        $prevDate = $clockOutTime->copy()->subDay()->toDateString();
+
+        // Include previous day to handle overnight / 24-hour shifts (Mascot can work past midnight)
+        $timings = Timing::where('employee_id', $employee->id)
+            ->whereIn('tanggal', [$endDate, $prevDate])
+            ->whereIn('status', ['on progress', 'frozen'])
+            ->whereNull('end_time')
+            ->get();
+
+        foreach ($timings as $timing) {
+            // Use the session's own date for start time (not clock-out date) — overnight-safe
+            $sessionDate = $timing->tanggal instanceof \Carbon\Carbon
+                ? $timing->tanggal->format('Y-m-d')
+                : $timing->tanggal;
+            $start     = Carbon::parse($sessionDate . ' ' . $timing->start_time);
+            $stoppedAt = Carbon::parse($endDate . ' ' . $endTime);
+            // Guard: if clock-out somehow before start (bad data), skip
+            if ($stoppedAt->lte($start)) {
+                continue;
+            }
+            $gross = $start->diffInMinutes($stoppedAt);
+            $net   = max(0, $gross - ($timing->total_paused_minutes ?? 0));
+
+            $deptData                    = $timing->department_specific_data ?? [];
+            $deptData['auto_stopped']    = 'clock_out';
+            $deptData['auto_stopped_at'] = now()->toDateTimeString();
+
+            $timing->end_time                 = $endTime;
+            $timing->stopped_at               = $stoppedAt;
+            $timing->stop_reason              = 'Auto-stopped: employee clocked out';
+            $timing->status                   = 'complete';
+            $timing->duration_minutes         = $net;
+            $timing->department_specific_data = $deptData;
+            $timing->save();
+        }
+
+        if ($timings->count() > 0) {
+            Log::info("Webhook: auto-stopped {$timings->count()} timing(s) for {$employee->name} on clock-out at {$endTime}");
+        }
+    }
+
+    /**
      * Proses respons get_all_pin dari mesin.
      * Dipanggil dari handle() ketika trans_id cocok dengan cache sync.
      */
@@ -165,13 +281,23 @@ class WebhookController extends Controller
             ?? $request->input('pins')
             ?? [];
 
-        if (empty($rawData) || !is_array($rawData)) {
-            Log::info('Webhook get_all_pin: no PIN data', [
+        // Jika device mengirim data tapi kosong (mesin memang belum ada user),
+        // tetap lanjut reconcile agar device_registered_at dibersihkan dari semua karyawan.
+        // Jika field data tidak ada sama sekali di request, kemungkinan format webhook berbeda.
+        $hasDataField = $request->has('data') || $request->has('pin_list') || $request->has('pins');
+
+        if (!$hasDataField) {
+            Log::info('Webhook get_all_pin: field data tidak ditemukan di payload', [
                 'trans_id' => $transId,
                 'fields'   => array_keys($request->all()),
             ]);
             Cache::forget($cacheKey);
             return response()->json(['success' => true, 'marked' => 0, 'cleared' => 0]);
+        }
+
+        // $rawData bisa kosong [] jika memang tidak ada user di mesin — tetap lanjut
+        if (!is_array($rawData)) {
+            $rawData = [];
         }
 
         // Bangun set employee_no yang benar-benar ada di mesin saat ini
@@ -188,17 +314,26 @@ class WebhookController extends Controller
             ->toArray();
 
         // Tandai sebagai terdaftar di device (device → sistem)
-        $marked = Employee::whereIn('employee_no', $deviceEmployeeNos)
-            ->whereNull('device_registered_at')
-            ->get();
-        foreach ($marked as $employee) {
-            $employee->update(['device_registered_at' => now()]);
+        $marked = collect();
+        if (!empty($deviceEmployeeNos)) {
+            $marked = Employee::whereIn('employee_no', $deviceEmployeeNos)
+                ->whereNull('device_registered_at')
+                ->get();
+            foreach ($marked as $employee) {
+                $employee->update([
+                    'device_registered_at'  => now(),
+                    'biometric_enrolled_at' => now(),
+                ]);
+            }
         }
 
-        // Hapus tanda registrasi untuk yang sudah tidak ada di mesin (mesin → sistem)
-        $cleared = Employee::whereNotNull('device_registered_at')
-            ->whereNotIn('employee_no', $deviceEmployeeNos)
-            ->get();
+        // Hapus tanda registrasi untuk yang sudah tidak ada di mesin.
+        // Jika $deviceEmployeeNos kosong (mesin kosong), bersihkan semua.
+        $clearQuery = Employee::whereNotNull('device_registered_at');
+        if (!empty($deviceEmployeeNos)) {
+            $clearQuery->whereNotIn('employee_no', $deviceEmployeeNos);
+        }
+        $cleared = $clearQuery->get();
         foreach ($cleared as $employee) {
             $employee->update(['device_registered_at' => null]);
         }

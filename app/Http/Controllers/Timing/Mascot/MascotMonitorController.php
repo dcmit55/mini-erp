@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Timing\Mascot;
 use App\Http\Controllers\Controller;
 use App\Models\Production\Timing;
 use App\Models\Admin\Department;
+use App\Models\Hr\AttendanceLog;
 use App\Models\Logistic\Unit;
+use App\Services\Timing\TimingBreakService;
 use Illuminate\Http\Request;
 
 class MascotMonitorController extends Controller
@@ -27,8 +29,8 @@ class MascotMonitorController extends Controller
             return redirect()->route('mascot-timing.index')->with('error', 'Mascot department not found.');
         }
 
-        // Get all running sessions for mascot department
-        $runningSessions = Timing::running()
+        // Get all running + frozen sessions for mascot department
+        $runningSessions = Timing::whereIn('status', ['on progress', 'frozen'])
             ->today()
             ->whereHas('employee', function ($query) use ($mascotDept) {
                 $query->where('department_id', $mascotDept->id);
@@ -38,7 +40,8 @@ class MascotMonitorController extends Controller
             ->get();
 
         // Calculate statistics
-        $totalRunning = $runningSessions->count();
+        $totalRunning = $runningSessions->where('status', 'on progress')->count();
+        $totalFrozen = $runningSessions->where('status', 'frozen')->count();
         $totalEmployees = $runningSessions->unique('employee_id')->count();
 
         // Group by project for better organization
@@ -48,14 +51,56 @@ class MascotMonitorController extends Controller
 
         $units = Unit::orderBy('name')->get();
 
-        return view('timing.mascot.monitor', compact('runningSessions', 'groupedSessions', 'totalRunning', 'totalEmployees', 'mascotDept', 'units'));
+        return view('timing.mascot.monitor', compact('runningSessions', 'groupedSessions', 'totalRunning', 'totalFrozen', 'totalEmployees', 'mascotDept', 'units'));
+    }
+
+    /**
+     * Get employees who clocked in today but have no active timing session (for monitor feed)
+     */
+    public function getClockedIn()
+    {
+        $dept = Department::where('name', 'LIKE', '%mascot%')->first();
+
+        if (!$dept) {
+            return response()->json(['success' => true, 'employees' => [], 'count' => 0]);
+        }
+
+        $activeEmployeeIds = Timing::whereIn('status', ['on progress', 'frozen', 'paused'])
+            ->today()
+            ->pluck('employee_id')
+            ->toArray();
+
+        $employees = AttendanceLog::whereDate('date', today())
+            ->whereNotNull('clock_in')
+            ->whereHas('employee', fn($q) => $q
+                ->where('department_id', $dept->id)
+                ->whereNotIn('id', $activeEmployeeIds))
+            ->with('employee')
+            ->orderBy('clock_in')
+            ->get()
+            ->map(fn($log) => [
+                'id'       => $log->employee->id,
+                'name'     => $log->employee->name,
+                'position' => $log->employee->position ?? '—',
+                'photo'    => $log->employee->photo,
+                'clock_in' => optional($log->clock_in)->format('H:i'),
+                'initials' => strtoupper(substr($log->employee->name, 0, 1)),
+            ]);
+
+        return response()->json([
+            'success'   => true,
+            'employees' => $employees,
+            'count'     => $employees->count(),
+        ]);
     }
 
     /**
      * Get running sessions via AJAX for auto-refresh
      */
-    public function getRunning()
+    public function getRunning(TimingBreakService $breakService)
     {
+        $breakService->run();
+
         // Get mascot department
         $mascotDept = Department::where('name', 'LIKE', '%mascot%')->first();
 
@@ -69,7 +114,7 @@ class MascotMonitorController extends Controller
             );
         }
 
-        $runningSessions = Timing::running()
+        $runningSessions = Timing::whereIn('status', ['on progress', 'frozen'])
             ->today()
             ->whereHas('employee', function ($query) use ($mascotDept) {
                 $query->where('department_id', $mascotDept->id);
@@ -81,9 +126,9 @@ class MascotMonitorController extends Controller
         return response()->json([
             'success' => true,
             'sessions' => $runningSessions->map(function ($timing) {
-                // Get department specific data
                 $deptData = $timing->department_specific_data ?? [];
                 $trackingMode = $deptData['tracking_mode'] ?? 'progress';
+                $isFrozen = $timing->isFrozen();
 
                 return [
                     'id' => $timing->id,
@@ -96,14 +141,20 @@ class MascotMonitorController extends Controller
                     'step' => $timing->step,
                     'parts' => $timing->parts,
                     'start_time' => $timing->start_time,
-                    'duration' => $timing->getDurationAttribute(),
+                    'is_frozen' => $isFrozen,
+                    'auto_break_paused' => !empty($deptData['auto_break_paused']),
+                    'frozen_duration' => $isFrozen ? ($deptData['frozen_duration'] ?? '00:00:00') : null,
+                    'duration' => $isFrozen
+                        ? ($deptData['frozen_duration'] ?? '00:00:00')
+                        : $timing->getDurationAttribute(),
                     'tracking_mode' => $trackingMode,
                     'current_progress' => $deptData['current_progress'] ?? 0,
                     'stage' => $deptData['stage'] ?? 0,
                 ];
             }),
             'statistics' => [
-                'total_running' => $runningSessions->count(),
+                'total_running' => $runningSessions->where('status', 'on progress')->count(),
+                'total_frozen' => $runningSessions->where('status', 'frozen')->count(),
                 'total_employees' => $runningSessions->unique('employee_id')->count(),
             ],
         ]);

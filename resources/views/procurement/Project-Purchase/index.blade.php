@@ -21,6 +21,7 @@
         padding: 1rem 0.75rem;
         vertical-align: middle;
         border-bottom: 1px solid #f1f5f9;
+        font-size: 0.8rem;
     }
 
     .table tbody tr {
@@ -582,10 +583,10 @@
                                             @endif
                                         </td>
                                         <td class="text-end">
-                                            <span class="fw-medium">{{ number_format($groupInfo['total_quantity']) }}</span>
+                                            <span>{{ number_format($groupInfo['total_quantity']) }}</span>
                                         </td>
                                         <td class="text-end">
-                                            <span class="fw-semibold">Rp {{ number_format($groupInfo['total_amount'], 0) }}</span>
+                                            <span>Rp {{ number_format($groupInfo['total_amount'], 0) }}</span>
                                         </td>
                                         <td>
                                             <span class="badge {{ $purchase->status_badge_class }} px-3 py-1 rounded-pill">

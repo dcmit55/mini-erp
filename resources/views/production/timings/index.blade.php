@@ -66,9 +66,31 @@
                 @endif
 
                 <form method="GET" class="row g-2 align-items-end mb-3">
-                    <div class="col-md-4">
-                        <label class="form-label mb-1">Search</label>
-                        <input type="text" name="search" value="{{ request('search') }}" class="form-control"
+                    {{-- Date / Month radio toggle --}}
+                    <div class="col-12 col-md-auto">
+                        <div class="d-flex align-items-center gap-3 border rounded px-3 py-2 bg-light" style="height:38px;">
+                            <div class="form-check form-check-inline mb-0">
+                                <input class="form-check-input" type="radio" name="date_mode" id="dm-date" value="date"
+                                    {{ request('date_mode','date') === 'date' ? 'checked' : '' }}>
+                                <label class="form-check-label small" for="dm-date">Date</label>
+                            </div>
+                            <div class="form-check form-check-inline mb-0">
+                                <input class="form-check-input" type="radio" name="date_mode" id="dm-month" value="month"
+                                    {{ request('date_mode') === 'month' ? 'checked' : '' }}>
+                                <label class="form-check-label small" for="dm-month">Month</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-auto" id="date-input-wrap" style="{{ request('date_mode','date') === 'date' ? '' : 'display:none!important' }}">
+                        <input type="date" name="filter_date" value="{{ request('filter_date') }}"
+                            class="form-control form-control-sm" style="min-width:130px;">
+                    </div>
+                    <div class="col-6 col-md-auto" id="month-input-wrap" style="{{ request('date_mode') === 'month' ? '' : 'display:none!important' }}">
+                        <input type="month" name="filter_month" value="{{ request('filter_month') }}"
+                            class="form-control form-control-sm" style="min-width:130px;">
+                    </div>
+                    <div class="col-md-3">
+                        <input type="text" name="search" value="{{ request('search') }}" class="form-control form-control-sm"
                             placeholder="Search step, remarks...">
                     </div>
                     <div class="col-md-2">
@@ -611,31 +633,44 @@
             // Inisialisasi DataTables
             dt = $('#timing-table').DataTable(dtConfig);
 
+            // Radio toggle: show date or month input
+            $('input[name="date_mode"]').on('change', function() {
+                const mode = $(this).val();
+                if (mode === 'date') {
+                    $('#date-input-wrap').show();
+                    $('#month-input-wrap').hide();
+                    $('input[name="filter_month"]').val('');
+                } else {
+                    $('#month-input-wrap').show();
+                    $('#date-input-wrap').hide();
+                    $('input[name="filter_date"]').val('');
+                }
+                triggerSearch();
+            });
+
             // AJAX search & filter dengan debounce dan update URL
             let debounceTimer;
-            $('input[name="search"], select[name="project_id"], select[name="job_order_id"], select[name="department"], select[name="employee_id"]')
-                .on('input change', function() {
-                    updateQueryString(); // update URL setiap filter berubah
-                    clearTimeout(debounceTimer);
-                    debounceTimer = setTimeout(function() {
-                        let state = dt.state ? dt.state.loaded() : null;
+            function triggerSearch() {
+                updateQueryString();
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(function() {
+                    let state = dt.state ? dt.state.loaded() : null;
+                    let search      = $('input[name="search"]').val();
+                    let project_id  = $('select[name="project_id"]').val();
+                    let job_order_id = $('select[name="job_order_id"]').val();
+                    let department  = $('select[name="department"]').val();
+                    let employee_id = $('select[name="employee_id"]').val();
+                    let date_mode   = $('input[name="date_mode"]:checked').val();
+                    let filter_date = date_mode === 'date' ? $('input[name="filter_date"]').val() : '';
+                    let filter_month = date_mode === 'month' ? $('input[name="filter_month"]').val() : '';
 
-                        let search = $('input[name="search"]').val();
-                        let project_id = $('select[name="project_id"]').val();
-                        let job_order_id = $('select[name="job_order_id"]').val();
-                        let department = $('select[name="department"]').val();
-                        let employee_id = $('select[name="employee_id"]').val();
-
-                        $.ajax({
-                            url: "{{ route('timings.ajax_search') }}",
-                            method: 'POST',
-                            data: {
-                                search: search,
-                                project_id: project_id,
-                                job_order_id: job_order_id,
-                                department: department,
-                                employee_id: employee_id,
-                            },
+                    $.ajax({
+                        url: "{{ route('timings.ajax_search') }}",
+                        method: 'POST',
+                        data: {
+                            search, project_id, job_order_id, department, employee_id,
+                            filter_date, filter_month,
+                        },
                             success: function(res) {
                                 $('#timing-error-alert').addClass('d-none').text('');
                                 try {
@@ -676,7 +711,10 @@
                             }
                         });
                     }, 400); // 400ms debounce
-                });
+            }
+
+            $('input[name="search"], select[name="project_id"], select[name="job_order_id"], select[name="department"], select[name="employee_id"], input[name="filter_date"], input[name="filter_month"]')
+                .on('input change', function() { triggerSearch(); });
 
             $('#export-btn').on('click', function() {
                 // Ambil filter dari form

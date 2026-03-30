@@ -65,6 +65,12 @@ class TimingController extends Controller
         if ($request->filled('employee_id')) {
             $query->where('employee_id', $request->employee_id);
         }
+        if ($request->filled('filter_date')) {
+            $query->whereDate('tanggal', $request->filter_date);
+        } elseif ($request->filled('filter_month')) {
+            [$y, $m] = explode('-', $request->filter_month);
+            $query->whereYear('tanggal', $y)->whereMonth('tanggal', $m);
+        }
 
         // Sort by newest first: created_at DESC, then start_time DESC for same-day entries
         $timings = $query->orderByDesc('created_at')->orderByDesc('start_time')->get();

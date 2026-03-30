@@ -74,6 +74,24 @@ class Kernel extends ConsoleKernel
             ->onFailure(fn() => \Log::error('hr:sync-fingerspot gagal'));
         // ────────────────────────────────────────────────────────────────────
 
+        // ─── Auto Break Pause/Resume Timing (setiap menit) ──────────────────
+        $schedule->command('timing:auto-break-pause')
+            ->everyMinute()
+            ->timezone('Asia/Jakarta')
+            ->withoutOverlapping(1)
+            ->onFailure(fn() => \Log::error('timing:auto-break-pause gagal'));
+        // ────────────────────────────────────────────────────────────────────
+
+        // ─── Auto Stop Timing saat Clock-Out (setiap 5 menit, safety net) ───
+        // Safety net jika webhook fingerspot tidak terkirim (jaringan, downtime).
+        // Primary trigger: WebhookController::autoStopTodayTimings() saat tap OUT.
+        $schedule->command('timing:auto-stop-clockout')
+            ->everyFiveMinutes()
+            ->timezone('Asia/Jakarta')
+            ->withoutOverlapping(4)
+            ->onFailure(fn() => \Log::error('timing:auto-stop-clockout gagal'));
+        // ────────────────────────────────────────────────────────────────────
+
     }
 
     /**

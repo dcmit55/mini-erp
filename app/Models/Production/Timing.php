@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use App\Models\Production\Project;
 use App\Models\Production\JobOrder;
 use App\Models\Hr\Employee;
+use App\Models\Hr\SessionShift;
 use App\Helpers\TimeHelper;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
@@ -13,17 +14,30 @@ class Timing extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['tanggal', 'job_order_id', 'project_id', 'step', 'parts', 'employee_id', 'start_time', 'end_time', 'duration_minutes', 'measurement_type', 'measurement_value', 'duration_hours', 'status', 'approval_status', 'approved_by', 'approved_at', 'rejection_reason', 'remarks', 'department_specific_data', 'photo'];
+    protected $fillable = [
+        'tanggal', 'job_order_id', 'project_id', 'step', 'parts', 'employee_id',
+        'start_time', 'end_time', 'duration_minutes', 'measurement_type',
+        'measurement_value', 'duration_hours', 'status', 'approval_status',
+        'approved_by', 'approved_at', 'rejection_reason', 'remarks',
+        'department_specific_data', 'photo',
+        // New lifecycle fields
+        'session_shift_id', 'started_at', 'paused_at', 'stopped_at',
+        'total_paused_minutes', 'break_deducted_minutes', 'pause_reason', 'stop_reason',
+        'pause_log',
+    ];
 
-    /**
-     * Cast department_specific_data as array for easy access
-     */
     protected $casts = [
         'department_specific_data' => 'array',
-        'tanggal' => 'date',
-        'measurement_value' => 'decimal:2',
-        'duration_hours' => 'decimal:2',
-        'duration_minutes' => 'integer',
+        'pause_log'                => 'array',
+        'tanggal'                  => 'date',
+        'measurement_value'        => 'decimal:2',
+        'duration_hours'           => 'decimal:2',
+        'duration_minutes'         => 'integer',
+        'total_paused_minutes'     => 'integer',
+        'break_deducted_minutes'   => 'integer',
+        'started_at'               => 'datetime',
+        'paused_at'                => 'datetime',
+        'stopped_at'               => 'datetime',
     ];
 
     // ============================================
@@ -330,5 +344,71 @@ class Timing extends Model
     public function approver()
     {
         return $this->belongsTo(\App\Models\Admin\User::class, 'approved_by');
+    }
+
+    public function sessionShift()
+    {
+        return $this->belongsTo(SessionShift::class, 'session_shift_id');
+    }
+
+    // ============================================
+    // STATUS HELPERS (new lifecycle fields)
+    // ============================================
+
+    /** Currently running (not paused, not stopped) */
+    public function isRunning(): bool
+    {
+        return in_array($this->status, ['on progress', 'running']) && is_null($this->end_time);
+    }
+
+    /** Paused (auto-break or manual) — still open, not yet stopped */
+    public function isCurrentlyPaused(): bool
+    {
+        return in_array($this->status, ['paused', 'frozen']) && is_null($this->end_time);
+    }
+
+    /** Fully stopped / complete */
+    public function isStopped(): bool
+    {
+        return in_array($this->status, ['complete', 'stopped']) || !is_null($this->end_time);
+    }
+
+    /** Auto-paused by the break scheduler (has auto_break_paused marker) */
+    public function isAutoBreakPaused(): bool
+    {
+        return $this->isCurrentlyPaused()
+            && !empty(($this->department_specific_data ?? [])['auto_break_paused']);
+    }
+
+    /**
+     * Net active minutes = total elapsed minutes minus all paused time.
+     * Uses started_at / stopped_at when available, falls back to start_time / end_time.
+     */
+    public function getNetActiveMinutesAttribute(): int
+    {
+        $start = $this->started_at
+            ?? (\Carbon\Carbon::parse($this->tanggal->format('Y-m-d') . ' ' . $this->start_time));
+        $end = $this->stopped_at
+            ?? ($this->end_time ? \Carbon\Carbon::parse($this->tanggal->format('Y-m-d') . ' ' . $this->end_time) : now());
+
+        $gross  = max(0, $start->diffInMinutes($end));
+        $paused = $this->total_paused_minutes ?? 0;
+
+        return max(0, $gross - $paused);
+    }
+
+    // ── Additional scopes ─────────────────────────────────────────────────────
+
+    /** Active sessions: running OR auto-break-frozen (no end_time) */
+    public function scopeActive($query)
+    {
+        return $query->whereIn('status', ['on progress', 'running', 'frozen', 'paused'])
+            ->whereNull('end_time');
+    }
+
+    /** Scope: only stopped/complete sessions */
+    public function scopeStopped($query)
+    {
+        return $query->whereIn('status', ['complete', 'stopped']);
     }
 }

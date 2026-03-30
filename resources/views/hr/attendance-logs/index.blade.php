@@ -28,10 +28,12 @@
                     <form method="GET" action="{{ route('attendance-logs.index') }}">
                         <div class="row g-2 align-items-center">
                             <div class="col-md-2">
-                                <input type="date" name="start_date" class="form-control form-control-sm" value="{{ request('start_date') }}" placeholder="Start date">
+                                <label class="form-label mb-1" style="font-size:0.75rem;color:#6b7280;">Date / Start Date</label>
+                                <input type="date" name="start_date" class="form-control form-control-sm" value="{{ request('start_date') }}">
                             </div>
                             <div class="col-md-2">
-                                <input type="date" name="end_date" class="form-control form-control-sm" value="{{ request('end_date') }}" placeholder="End date">
+                                <label class="form-label mb-1" style="font-size:0.75rem;color:#6b7280;">End Date <span class="text-muted">(optional)</span></label>
+                                <input type="date" name="end_date" class="form-control form-control-sm" value="{{ request('end_date') }}">
                             </div>
                             <div class="col-md-2">
                                 <select name="employee_id" class="form-select form-select-sm">
@@ -113,6 +115,7 @@
                                     <th class="border-0">Date</th>
                                     <th class="border-0">NIK</th>
                                     <th class="border-0">Name</th>
+                                    <th class="border-0">Shift</th>
                                     <th class="border-0">Clock In</th>
                                     <th class="border-0">Clock Out</th>
                                     <th class="border-0">Hours</th>
@@ -132,6 +135,18 @@
                                         <td>{{ $item->date->format('d/m/Y') }}</td>
                                         <td>{{ $item->employee->employee_no }}</td>
                                         <td>{{ $item->employee->name }}</td>
+                                        <td>
+                                            @if($item->session_shift)
+                                                <span class="badge bg-soft-primary text-primary px-2 py-1 fw-semibold"
+                                                      title="{{ $item->session_shift->start_time }} – {{ $item->session_shift->end_time }}">
+                                                    {{ $item->session_shift->type_of_shift }}
+                                                </span>
+                                            @elseif($item->clock_in)
+                                                <span class="text-muted small">Undetected</span>
+                                            @else
+                                                <span class="text-muted">—</span>
+                                            @endif
+                                        </td>
                                         <td>{{ $item->clock_in ? $item->clock_in->format('H:i') : '-' }}</td>
                                         <td>{{ $item->clock_out ? $item->clock_out->format('H:i') : '-' }}</td>
                                         <td>{{ $item->total_hours ? number_format($item->total_hours, 2) : '-' }}</td>
