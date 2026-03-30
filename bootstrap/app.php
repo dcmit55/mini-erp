@@ -46,6 +46,13 @@ return Application::configure(basePath: dirname(__DIR__))
             ->timezone('Asia/Jakarta')
             ->withoutOverlapping(1)
             ->onFailure(fn() => \Log::error('timing:auto-break-pause gagal'));
+
+        // Auto-stop timing saat karyawan clock-out (setiap 5 menit, safety net)
+        $schedule->command('timing:auto-stop-clockout')
+            ->everyFiveMinutes()
+            ->timezone('Asia/Jakarta')
+            ->withoutOverlapping(4)
+            ->onFailure(fn() => \Log::error('timing:auto-stop-clockout gagal'));
     })
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
