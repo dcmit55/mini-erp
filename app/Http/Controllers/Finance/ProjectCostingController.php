@@ -82,7 +82,12 @@ class ProjectCostingController extends Controller
         }
 
         $projects = $query
-            ->with(['departments', 'jobOrders.materialRequests', 'jobOrders.department'])
+            ->with([
+                'departments',
+                'jobOrders' => fn($q) => $q->select('id', 'project_id', 'name', 'department_id', 'final_image'),
+                'jobOrders.materialRequests',
+                'jobOrders.department',
+            ])
             ->orderByDesc('deadline') // Sort by deadline descending
             ->orderByDesc('created_at') // Then by created_at
             ->paginate(10);

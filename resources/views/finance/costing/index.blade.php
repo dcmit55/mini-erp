@@ -456,6 +456,24 @@
             background: #1e1e1e;
             color: #e0e0e0;
         }
+
+        /* ── JO Final Images Carousel ── */
+        .pc-jo-carousel {
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .pc-jo-carousel-img {
+            height: 120px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+
+        .pc-jo-carousel .carousel-control-prev,
+        .pc-jo-carousel .carousel-control-next {
+            width: 24px;
+            opacity: 0.7;
+        }
     </style>
     {{-- Flatpickr date range picker --}}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -739,6 +757,41 @@
                                             {{ $project->name }}
                                         </span>
                                     </div>
+
+                                    {{-- ── JO Final Images Carousel ── --}}
+                                    @php
+                                        $joImages = $project->jobOrders
+                                            ->pluck('final_image')
+                                            ->filter()
+                                            ->values();
+                                        $carouselId = 'joCarousel-' . $project->id;
+                                    @endphp
+                                    @if ($joImages->count() > 0)
+                                        <div id="{{ $carouselId }}" class="carousel slide pc-jo-carousel mb-2"
+                                            data-bs-ride="carousel" data-bs-interval="3000">
+                                            <div class="carousel-inner">
+                                                @foreach ($joImages as $idx => $img)
+                                                    <div class="carousel-item {{ $idx === 0 ? 'active' : '' }}">
+                                                        <img src="{{ asset('storage/' . $img) }}"
+                                                            class="d-block w-100 pc-jo-carousel-img"
+                                                            alt="JO Image {{ $idx + 1 }}">
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                            @if ($joImages->count() > 1)
+                                                <button class="carousel-control-prev" type="button"
+                                                    data-bs-target="#{{ $carouselId }}" data-bs-slide="prev">
+                                                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                                    <span class="visually-hidden">Previous</span>
+                                                </button>
+                                                <button class="carousel-control-next" type="button"
+                                                    data-bs-target="#{{ $carouselId }}" data-bs-slide="next">
+                                                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                                    <span class="visually-hidden">Next</span>
+                                                </button>
+                                            @endif
+                                        </div>
+                                    @endif
 
                                     {{-- ── ACTUALS ── --}}
                                     <div class="section-title">ACTUALS</div>

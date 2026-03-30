@@ -44,7 +44,7 @@ class InventoryTransformer
             'supplier_lark' => $this->normalizeSupplierLark($dto->supplierLarkRaw),
             'order_date' => $this->normalizeOrderDate($dto->orderDateRaw),
             'pic' => $dto->picRaw ? substr(trim($dto->picRaw), 0, 255) : null,
-            'international_waybill' => $dto->internationalWaybillRaw ? substr(trim($dto->internationalWaybillRaw), 0, 255) : null,
+            'international_waybill' => $dto->domesticDestWaybillRaw ? substr(trim($dto->domesticDestWaybillRaw), 0, 255) : null,
             'img' => $this->normalizeImageUrl($dto->itemPhotoRaw),
             'last_sync_at' => now(),
         ];
