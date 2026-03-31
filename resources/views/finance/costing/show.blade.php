@@ -562,17 +562,14 @@
                     }
 
                     // JO images for carousel
-                    $heroJoImages = $project->jobOrders
-                        ->filter(fn($jo) => !empty($jo->final_image))
-                        ->values();
+                    $heroJoImages = $project->jobOrders->filter(fn($jo) => !empty($jo->final_image))->values();
                 @endphp
                 <div class="hero-photo-panel" style="{{ $heroJoImages->count() > 0 ? 'padding:0; overflow:hidden;' : '' }}">
                     @if ($heroJoImages->count() > 0)
                         {{-- Hidden Fancybox gallery anchors (semua JO images) --}}
                         <div style="display:none;" aria-hidden="true">
                             @foreach ($heroJoImages as $idx => $jo)
-                                <a href="{{ asset('storage/' . $jo->final_image) }}"
-                                    data-fancybox="hero-jo-gallery"
+                                <a href="{{ asset('storage/' . $jo->final_image) }}" data-fancybox="hero-jo-gallery"
                                     data-caption="{{ e($jo->name) }} — {{ e($project->name) }}"
                                     id="heroGalleryAnchor{{ $idx }}"></a>
                             @endforeach
@@ -584,15 +581,13 @@
                             <div class="carousel-inner" style="height:100%;">
                                 @foreach ($heroJoImages as $idx => $jo)
                                     <div class="carousel-item {{ $idx === 0 ? 'active' : '' }}"
-                                        data-gallery-index="{{ $idx }}"
-                                        style="height:100%; cursor:zoom-in;">
-                                        <img src="{{ asset('storage/' . $jo->final_image) }}"
-                                            alt="{{ e($jo->name) }}"
-                                            class="hero-carousel-img"
-                                            data-gallery-index="{{ $idx }}"
+                                        data-gallery-index="{{ $idx }}" style="height:100%; cursor:zoom-in;">
+                                        <img src="{{ asset('storage/' . $jo->final_image) }}" alt="{{ e($jo->name) }}"
+                                            class="hero-carousel-img" data-gallery-index="{{ $idx }}"
                                             style="width:100%; height:100%; object-fit:contain; background:#111; display:block; cursor:zoom-in;">
                                         {{-- JO name overlay --}}
-                                        <div style="position:absolute; bottom:0; left:0; right:0;
+                                        <div
+                                            style="position:absolute; bottom:0; left:0; right:0;
                                             background: linear-gradient(to top, rgba(0,0,0,.75) 0%, transparent 100%);
                                             color:#fff; font-size:.65rem; font-weight:600; text-align:center;
                                             padding:18px 8px 7px; white-space:nowrap; overflow:hidden;
@@ -600,7 +595,8 @@
                                             {{ $jo->name }}
                                         </div>
                                         {{-- Zoom hint overlay --}}
-                                        <div style="position:absolute; top:8px; right:8px; background:rgba(0,0,0,.45);
+                                        <div
+                                            style="position:absolute; top:8px; right:8px; background:rgba(0,0,0,.45);
                                             color:#fff; border-radius:6px; padding:3px 8px; font-size:.65rem;
                                             pointer-events:none; display:flex; align-items:center; gap:4px;">
                                             <i class="bi bi-zoom-in"></i>
@@ -622,7 +618,8 @@
                                 {{-- Slide counter badge --}}
                                 <div style="position:absolute; top:8px; left:8px; background:rgba(0,0,0,.55);
                                     color:#fff; font-size:.62rem; font-weight:700; padding:2px 8px;
-                                    border-radius:10px; pointer-events:none;" id="heroJoCounter">
+                                    border-radius:10px; pointer-events:none;"
+                                    id="heroJoCounter">
                                     1 / {{ $heroJoImages->count() }}
                                 </div>
                             @endif
@@ -639,9 +636,11 @@
                         </div>
                         {{-- Dept chip overlay --}}
                         <div style="position:absolute; bottom:34px; right:8px; pointer-events:none; z-index:10;">
-                            <span style="font-size:.6rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em;
+                            <span
+                                style="font-size:.6rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em;
                                 color:rgba(255,255,255,.85); background:rgba(0,0,0,.42); padding:.2em .6em;
-                                border-radius:8px;">{{ $deptIcon }} {{ ucfirst($firstDept ?: 'Project') }}</span>
+                                border-radius:8px;">{{ $deptIcon }}
+                                {{ ucfirst($firstDept ?: 'Project') }}</span>
                         </div>
                     @else
                         {{-- Fallback: project image or initials --}}
@@ -1097,21 +1096,21 @@
 @push('scripts')
     <script>
         // ── Hero JO Carousel: update slide counter ──────────────────────────
-        (function () {
+        (function() {
             var heroCarousel = document.getElementById('heroJoCarousel');
             if (!heroCarousel) return;
 
             var counter = document.getElementById('heroJoCounter');
             var total = heroCarousel.querySelectorAll('.carousel-item').length;
 
-            heroCarousel.addEventListener('slid.bs.carousel', function (e) {
+            heroCarousel.addEventListener('slid.bs.carousel', function(e) {
                 if (counter) {
                     counter.textContent = (e.to + 1) + ' / ' + total;
                 }
             });
 
             // Klik pada foto (carousel-item img) → buka Fancybox mulai dari slide yg aktif
-            heroCarousel.addEventListener('click', function (e) {
+            heroCarousel.addEventListener('click', function(e) {
                 var img = e.target.closest('.hero-carousel-img');
                 if (!img) return;
                 var idx = parseInt(img.dataset.galleryIndex || 0);
@@ -1121,7 +1120,7 @@
             // Tombol "View All Photos"
             var btnAll = document.getElementById('btnViewAllPhotos');
             if (btnAll) {
-                btnAll.addEventListener('click', function (e) {
+                btnAll.addEventListener('click', function(e) {
                     e.stopPropagation();
                     // Buka dari slide yang sedang aktif
                     var activeItem = heroCarousel.querySelector('.carousel-item.active');
@@ -1134,7 +1133,7 @@
                 var anchors = document.querySelectorAll('[data-fancybox="hero-jo-gallery"]');
                 if (!anchors.length) return;
                 var items = [];
-                anchors.forEach(function (a) {
+                anchors.forEach(function(a) {
                     items.push({
                         src: a.href,
                         type: 'image',

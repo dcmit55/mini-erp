@@ -406,7 +406,7 @@
             z-index: 20;
             background: rgba(0, 0, 0, .52);
             color: #fff;
-            border: 1.5px solid rgba(255,255,255,.35);
+            border: 1.5px solid rgba(255, 255, 255, .35);
             border-radius: 20px;
             padding: 3px 12px;
             font-size: .68rem;
@@ -836,17 +836,14 @@
                                 </div>
                                 {{-- Clickable button on photo panel --}}
                                 <button type="button" class="pc-view-photos-btn btn-open-gallery"
-                                    data-project-id="{{ $project->id }}"
-                                    data-total="{{ $joWithImages->count() }}">
+                                    data-project-id="{{ $project->id }}" data-total="{{ $joWithImages->count() }}">
                                     <i class="bi bi-images"></i>
                                     {{ $joWithImages->count() }} Photo{{ $joWithImages->count() > 1 ? 's' : '' }}
                                 </button>
                             @elseif (!empty($project->photo))
                                 {{-- Single project photo --}}
-                                <a href="{{ asset('storage/' . $project->photo) }}"
-                                    data-fancybox
-                                    data-caption="{{ e($project->name) }}"
-                                    class="pc-view-photos-btn">
+                                <a href="{{ asset('storage/' . $project->photo) }}" data-fancybox
+                                    data-caption="{{ e($project->name) }}" class="pc-view-photos-btn">
                                     <i class="bi bi-image"></i> View Photo
                                 </a>
                             @endif
@@ -1072,7 +1069,7 @@
         }); // end $(function)
 
         // ── Fancybox: buka gallery saat tombol "View Photos" diklik ─────────
-        $(document).on('click', '.btn-open-gallery', function (e) {
+        $(document).on('click', '.btn-open-gallery', function(e) {
             e.preventDefault();
             e.stopPropagation();
             var projectId = $(this).data('project-id');
@@ -1081,7 +1078,7 @@
             if (!anchors.length) return;
 
             var items = [];
-            anchors.forEach(function (a) {
+            anchors.forEach(function(a) {
                 items.push({
                     src: a.href,
                     type: 'image',
