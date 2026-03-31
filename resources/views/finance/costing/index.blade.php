@@ -92,7 +92,7 @@
             display: flex;
             flex-direction: row;
             background: #fff;
-            min-height: 0;
+            min-height: 170px;
         }
 
         .project-card:hover {
@@ -102,10 +102,10 @@
             text-decoration: none;
         }
 
-        /* ── Left: photo panel (fixed width, stretches to card height) ── */
+        /* ── Left: photo panel (fixed width, stretches full card height) ── */
         .pc-photo-panel {
-            width: 155px;
-            min-width: 155px;
+            width: 175px;
+            min-width: 175px;
             flex-shrink: 0;
             position: relative;
             overflow: hidden;
@@ -146,8 +146,8 @@
 
         /* Photo image */
         .pc-photo-img {
-            width: 90px;
-            height: 90px;
+            width: 130px;
+            height: 130px;
             border-radius: 14px;
             object-fit: cover;
             box-shadow: 0 4px 14px rgba(0, 0, 0, .2);
@@ -156,15 +156,15 @@
 
         /* Placeholder when no image */
         .pc-photo-placeholder {
-            width: 90px;
-            height: 90px;
+            width: 130px;
+            height: 130px;
             border-radius: 14px;
             background: rgba(255, 255, 255, .35);
             border: 2px dashed rgba(255, 255, 255, .65);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 2.4rem;
+            font-size: 3rem;
         }
 
         /* Category badge (sits ABOVE the photo) */
@@ -392,69 +392,39 @@
             background: linear-gradient(145deg, #1a5c57 0%, #0d3330 100%);
         }
 
-        /* ══ HOVER IMAGE PREVIEW POPUP ══ */
+        /* ── Card wrapper ── */
         .pc-card-wrapper {
             position: relative;
         }
 
-        .pc-img-preview {
-            display: none;
+        /* ── View Photos button (Fancybox trigger) overlaid on photo panel ── */
+        .pc-view-photos-btn {
             position: absolute;
-            z-index: 999;
+            bottom: 8px;
             left: 50%;
-            bottom: calc(100% + 10px);
             transform: translateX(-50%);
-            width: 200px;
-            background: #fff;
-            border-radius: 14px;
-            box-shadow: 0 12px 40px rgba(0, 0, 0, .22);
-            border: 2px solid rgba(108, 92, 231, .25);
-            overflow: hidden;
-            pointer-events: none;
-        }
-
-        .pc-img-preview img {
-            width: 100%;
-            height: 160px;
-            object-fit: cover;
-            display: block;
-        }
-
-        .pc-img-preview .pc-preview-placeholder {
-            width: 100%;
-            height: 160px;
+            z-index: 20;
+            background: rgba(0, 0, 0, .52);
+            color: #fff;
+            border: 1.5px solid rgba(255,255,255,.35);
+            border-radius: 20px;
+            padding: 3px 12px;
+            font-size: .68rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
             display: flex;
             align-items: center;
-            justify-content: center;
-            font-size: 3.5rem;
-            background: linear-gradient(145deg, #e0c6ff 0%, #b388ff 100%);
+            gap: 5px;
+            transition: background .15s, border-color .15s;
+            backdrop-filter: blur(6px);
+            text-decoration: none;
         }
 
-        .pc-img-preview .pc-preview-label {
-            padding: 8px 10px;
-            font-size: .72rem;
-            font-weight: 600;
-            color: #333;
-            text-align: center;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            border-top: 1px solid rgba(0, 0, 0, .07);
-            background: #fafafa;
-        }
-
-        .pc-card-wrapper:hover .pc-img-preview {
-            display: block;
-        }
-
-        [data-bs-theme="dark"] .pc-img-preview {
-            background: #2d2d2d;
-            border-color: rgba(108, 92, 231, .4);
-        }
-
-        [data-bs-theme="dark"] .pc-img-preview .pc-preview-label {
-            background: #1e1e1e;
-            color: #e0e0e0;
+        .pc-view-photos-btn:hover {
+            background: rgba(108, 92, 231, .85);
+            border-color: rgba(108, 92, 231, .7);
+            color: #fff;
         }
 
         /* ── JO Final Images Carousel (left photo panel) ── */
@@ -490,7 +460,7 @@
             bottom: 0;
             left: 0;
             right: 0;
-            background: linear-gradient(to top, rgba(0,0,0,.72) 0%, transparent 100%);
+            background: linear-gradient(to top, rgba(0, 0, 0, .72) 0%, transparent 100%);
             color: #fff;
             font-size: .62rem;
             font-weight: 600;
@@ -735,36 +705,21 @@
                             }
                             return 'Rp ' . number_format($n, 0);
                         };
+
+                        // JO images — must be defined here so hover popup can use it above the panel
+                        $joWithImages = $project->jobOrders->filter(fn($jo) => !empty($jo->final_image))->values();
+                        $carouselId = 'joCarousel-' . $project->id;
+                        $firstJoImg = $joWithImages->first()?->final_image;
                     @endphp
 
-                    <div class="col-xl-6 col-lg-6 col-md-12">
+                    <div class="col-xl-4 col-lg-6 col-md-12 col-sm-12">
                         <div class="pc-card-wrapper">
-                            {{-- ══ HOVER IMAGE PREVIEW ══ --}}
-                            <div class="pc-img-preview">
-                                @if ($joWithImages->count() > 0)
-                                    {{-- JO images: JS will swap src to active carousel slide --}}
-                                    <img class="pc-popup-img" src="{{ asset('storage/' . $firstJoImg) }}" alt="{{ $project->name }}">
-                                @elseif (!empty($project->photo))
-                                    <img src="{{ asset('storage/' . $project->photo) }}" alt="{{ $project->name }}">
-                                @else
-                                    <div class="pc-preview-placeholder">{{ $deptEmoji }}</div>
-                                @endif
-                                <div class="pc-preview-label" title="{{ $project->name }}">{{ $project->name }}</div>
-                            </div>
 
                             <a href="{{ route('costing.detail', $project->id) }}" class="project-card">
 
-                                {{-- ══ LEFT: photo panel ══ --}}
+                                {{-- ══ LEFT: photo panel (click to open Fancybox) ══ --}}
                                 <div class="pc-photo-panel {{ $bgClass }}">
-                                    @php
-                                        $joWithImages = $project->jobOrders
-                                            ->filter(fn($jo) => !empty($jo->final_image))
-                                            ->values();
-                                        $carouselId = 'joCarousel-' . $project->id;
-                                        $firstJoImg = $joWithImages->first()?->final_image;
-                                    @endphp
-
-                                    {{-- JO images fill the panel when available --}}
+                                    {{-- JO images carousel fills the panel when available --}}
                                     @if ($joWithImages->count() > 0)
                                         <div id="{{ $carouselId }}" class="carousel slide pc-jo-carousel"
                                             data-bs-ride="carousel" data-bs-interval="3000">
@@ -774,8 +729,7 @@
                                                         data-jo-img="{{ asset('storage/' . $jo->final_image) }}"
                                                         data-jo-name="{{ e($jo->name) }}">
                                                         <img src="{{ asset('storage/' . $jo->final_image) }}"
-                                                            class="pc-jo-carousel-img"
-                                                            alt="{{ e($jo->name) }}">
+                                                            class="pc-jo-carousel-img" alt="{{ e($jo->name) }}">
                                                         <div class="pc-jo-slide-label">{{ $jo->name }}</div>
                                                     </div>
                                                 @endforeach
@@ -795,7 +749,8 @@
                                         </div>
                                     @endif
 
-                                    <div class="pc-photo-panel-inner" style="{{ $joWithImages->count() > 0 ? 'z-index:1;' : '' }}">
+                                    <div class="pc-photo-panel-inner"
+                                        style="{{ $joWithImages->count() > 0 ? 'z-index:1;' : '' }}">
                                         {{-- Category badge (top) --}}
                                         @if (!empty($typeDept))
                                             <span class="pc-cat-badge">{{ $typeDept }}</span>
@@ -867,6 +822,35 @@
 
                                 </div>{{-- /pc-body --}}
                             </a>{{-- /project-card --}}
+
+                            {{-- ══ VIEW PHOTOS BUTTON + Hidden Fancybox gallery links ══ --}}
+                            @if ($joWithImages->count() > 0)
+                                {{-- Hidden gallery anchors for Fancybox (data-fancybox group per project) --}}
+                                <div style="display:none;" aria-hidden="true">
+                                    @foreach ($joWithImages as $idx => $jo)
+                                        <a href="{{ asset('storage/' . $jo->final_image) }}"
+                                            data-fancybox="costing-gallery-{{ $project->id }}"
+                                            data-caption="{{ e($jo->name) }} — {{ e($project->name) }}"
+                                            class="pc-gallery-anchor"></a>
+                                    @endforeach
+                                </div>
+                                {{-- Clickable button on photo panel --}}
+                                <button type="button" class="pc-view-photos-btn btn-open-gallery"
+                                    data-project-id="{{ $project->id }}"
+                                    data-total="{{ $joWithImages->count() }}">
+                                    <i class="bi bi-images"></i>
+                                    {{ $joWithImages->count() }} Photo{{ $joWithImages->count() > 1 ? 's' : '' }}
+                                </button>
+                            @elseif (!empty($project->photo))
+                                {{-- Single project photo --}}
+                                <a href="{{ asset('storage/' . $project->photo) }}"
+                                    data-fancybox
+                                    data-caption="{{ e($project->name) }}"
+                                    class="pc-view-photos-btn">
+                                    <i class="bi bi-image"></i> View Photo
+                                </a>
+                            @endif
+
                         </div>{{-- /pc-card-wrapper --}}
                     </div>{{-- /col --}}
                 @endforeach
@@ -1087,20 +1071,35 @@
 
         }); // end $(function)
 
-        // ── Sync hover popup image with active carousel slide ────────────────
-        // When a JO carousel slides, update the popup img src to match
-        document.querySelectorAll('.pc-jo-carousel').forEach(function(carousel) {
-            carousel.addEventListener('slide.bs.carousel', function(e) {
-                var wrapper = carousel.closest('.pc-card-wrapper');
-                var popupImg = wrapper ? wrapper.querySelector('.pc-popup-img') : null;
-                if (!popupImg) return;
+        // ── Fancybox: buka gallery saat tombol "View Photos" diklik ─────────
+        $(document).on('click', '.btn-open-gallery', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var projectId = $(this).data('project-id');
+            // Kumpulkan semua anchor dari group gallery project ini
+            var anchors = document.querySelectorAll('[data-fancybox="costing-gallery-' + projectId + '"]');
+            if (!anchors.length) return;
 
-                var nextSlide = carousel.querySelectorAll('.carousel-item')[e.to];
-                if (nextSlide) {
-                    popupImg.src = nextSlide.dataset.joImg;
-                }
+            var items = [];
+            anchors.forEach(function (a) {
+                items.push({
+                    src: a.href,
+                    type: 'image',
+                    caption: a.dataset.caption || '',
+                    downloadSrc: a.href,
+                });
+            });
+
+            Fancybox.show(items, {
+                startIndex: 0,
+                Toolbar: {
+                    display: ['zoom', 'fullscreen', 'download', 'close'],
+                },
             });
         });
+
+        // ── Sync carousel: popup removed; no popup sync needed ───────────────
+        // (carousel tetap auto-slide untuk visual, tombol gallery untuk lihat foto)
 
         function formatCurrency(value) {
             return new Intl.NumberFormat('id-ID', {
