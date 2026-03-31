@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands\Timing;
 
+use App\Models\FingerprintLog;
 use App\Models\Hr\AttendanceLog;
 use App\Models\Hr\DailyAttendance;
 use App\Models\Production\Timing;
@@ -54,17 +55,39 @@ class AutoStopClockoutTimingCommand extends Command
             $clockOutRecord = null;
             $clockOutDate   = null;
 
+            // Derive employee PIN from employee_no (e.g. "DCM-0012" → "0012")
+            $employeeNo  = $timing->employee->employee_no ?? '';
+            $employeePin = ltrim(str_replace('DCM-', '', $employeeNo), '');
+
             foreach ($checkDates as $checkDate) {
+                // 1. AttendanceLog (sudah direkonsiliasi)
                 $val = AttendanceLog::where('employee_id', $employeeId)
                     ->whereDate('date', $checkDate)
                     ->whereNotNull('clock_out')
                     ->value('clock_out');
+
+                // 2. DailyAttendance (sudah digenerate)
                 if (!$val) {
                     $val = DailyAttendance::where('employee_id', $employeeId)
                         ->whereDate('date', $checkDate)
                         ->whereNotNull('clock_out')
                         ->value('clock_out');
                 }
+
+                // 3. FingerprintLog langsung (fallback jika reconcile belum/gagal jalan)
+                if (!$val && $employeePin !== '') {
+                    $fpLog = FingerprintLog::whereDate('event_time', $checkDate)
+                        ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(payload, '$.pin')) = ?", [$employeePin])
+                        ->whereRaw("CAST(JSON_UNQUOTE(JSON_EXTRACT(payload, '$.status')) AS UNSIGNED) = 1")
+                        ->orderByDesc('event_time')
+                        ->first();
+
+                    if ($fpLog) {
+                        $val = $fpLog->event_time->format('H:i:s');
+                        Log::info("timing:auto-stop-clockout: using FingerprintLog fallback for employee {$employeeNo} on {$checkDate}");
+                    }
+                }
+
                 if ($val) {
                     $clockOutRecord = $val;
                     $clockOutDate   = $checkDate;

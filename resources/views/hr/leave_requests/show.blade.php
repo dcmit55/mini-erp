@@ -55,6 +55,20 @@
                             <div class="text-muted small mb-1">End Date</div>
                             <div class="fw-medium">{{ $leave->end_date ? $leave->end_date->format('d M Y') : '-' }}</div>
                         </div>
+                        @if(in_array($leave->type, ['EARLY_LEAVE', 'PERMISSION_OUT']))
+                        <div class="col-sm-6">
+                            <div class="text-muted small mb-1">Jam Keluar</div>
+                            <div class="fw-medium">
+                                {{ $leave->leave_time_from ? \Carbon\Carbon::parse($leave->leave_time_from)->format('H:i') : '-' }}
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="text-muted small mb-1">Jam Kembali</div>
+                            <div class="fw-medium">
+                                {{ $leave->leave_time_to ? \Carbon\Carbon::parse($leave->leave_time_to)->format('H:i') : 'Sampai pulang' }}
+                            </div>
+                        </div>
+                        @endif
                         @if($leave->reason)
                         <div class="col-12">
                             <div class="text-muted small mb-1">Reason</div>
