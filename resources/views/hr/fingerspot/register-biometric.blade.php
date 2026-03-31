@@ -78,20 +78,15 @@
                             <label for="employee_select" class="form-label fw-semibold text-dark">
                                 Employee <span class="text-danger">*</span>
                             </label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-0">
-                                    <i class="fas fa-user text-primary"></i>
-                                </span>
-                                <select class="form-select border-0 bg-light"
-                                        id="employee_select" required>
-                                    <option value="">-- Select Employee --</option>
-                                    @foreach($employees as $emp)
-                                        <option value="{{ $emp->device_pin }}" data-name="{{ $emp->name }}" {{ old('pin') == $emp->device_pin ? 'selected' : '' }}>
-                                            {{ $emp->employee_no }} — {{ $emp->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
+                            <select class="form-select select2-employee"
+                                    id="employee_select" required>
+                                <option value="">-- Select Employee --</option>
+                                @foreach($employees as $emp)
+                                    <option value="{{ $emp->device_pin }}" data-name="{{ $emp->name }}" {{ old('pin') == $emp->device_pin ? 'selected' : '' }}>
+                                        {{ $emp->employee_no }} — {{ $emp->name }}
+                                    </option>
+                                @endforeach
+                            </select>
                         </div>
 
                         {{-- PIN (auto-filled, hidden) --}}
@@ -196,14 +191,24 @@
 
 @push('scripts')
 <script>
-document.getElementById('employee_select').addEventListener('change', function () {
-    document.getElementById('pin').value = this.value;
+$(function () {
+    $('.select2-employee').select2({
+        theme: 'bootstrap-5',
+        placeholder: '-- Cari atau pilih karyawan --',
+        allowClear: true,
+        width: '100%',
+    });
+
+    // Sync PIN saat employee dipilih
+    $('#employee_select').on('change', function () {
+        $('#pin').val(this.value);
+    });
+
+    // Isi PIN jika ada old value
+    if ($('#employee_select').val()) {
+        $('#pin').val($('#employee_select').val());
+    }
 });
-// Trigger on page load if old value exists
-(function () {
-    var sel = document.getElementById('employee_select');
-    if (sel.value) document.getElementById('pin').value = sel.value;
-})();
 </script>
 @endpush
 
@@ -270,6 +275,12 @@ document.getElementById('employee_select').addEventListener('change', function (
     .form-control:focus, .form-select:focus {
         box-shadow: none;
         border-color: #86b7fe;
+    }
+
+    /* Select2 tweaks */
+    .select2-container--bootstrap-5 .select2-selection {
+        border-radius: 0.375rem;
+        min-height: calc(1.5em + 0.75rem + 2px);
     }
     
     .input-group-text {

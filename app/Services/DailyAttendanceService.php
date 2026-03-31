@@ -45,6 +45,15 @@ class DailyAttendanceService
     {
         $date = Carbon::parse($dateStr);
 
+        // Jika record sudah diedit manual (is_locked), pipeline tidak boleh menimpa
+        $existing = DailyAttendance::where('employee_id', $employee->id)
+            ->where('date', $dateStr)
+            ->first();
+        if ($existing && $existing->is_locked) {
+            Log::info("Skipping auto-sync for {$employee->name} on {$dateStr} — record is locked (manual edit).");
+            return;
+        }
+
         $logs = AttendanceLog::where('employee_id', $employee->id)
             ->whereDate('date', $dateStr)
             ->orderBy('clock_in')
@@ -196,39 +205,43 @@ class DailyAttendanceService
             return 'Present';
         }
 
-        // If a session shift is detected, use its start_time as the reference (fixed shift departments)
+        // ── Tentukan Late/Present berdasarkan clock_in ───────────────────────
+        $baseStatus = 'Present';
+
         if ($shift) {
             $standardStart     = $shift->start_time;
             $clockInTime       = Carbon::parse($clockIn)->setDate($date->year, $date->month, $date->day);
             $standardStartTime = Carbon::parse($standardStart)->setDate($date->year, $date->month, $date->day);
             $lateSeconds       = $clockInTime->diffInSeconds($standardStartTime, false) * -1;
-            if ($lateSeconds <= 0) {
-                return 'Present';
+            $baseStatus        = ($lateSeconds > 239) ? 'Late' : 'Present';
+        } else {
+            $policy = $employee->workPolicy;
+            if ($policy) {
+                $dayOfWeek    = strtolower($date->format('l'));
+                [$standardStart] = $this->getStandardTimes($policy, $dayOfWeek);
+
+                if ($standardStart && trim($standardStart) !== '00:00:00') {
+                    $clockInTime       = Carbon::parse($clockIn)->setDate($date->year, $date->month, $date->day);
+                    $standardStartTime = Carbon::parse($standardStart)->setDate($date->year, $date->month, $date->day);
+                    $lateSeconds       = $clockInTime->diffInSeconds($standardStartTime, false) * -1;
+                    $baseStatus        = ($lateSeconds > 239) ? 'Late' : 'Present';
+                }
             }
-            return $lateSeconds <= 239 ? 'Present' : 'Late'; // toleransi 3 menit 59 detik, 08:04:00 sudah Late
         }
 
-        $policy = $employee->workPolicy;
-        if (!$policy) {
-            return 'Present';
+        // ── Deteksi Early Leave: clock_out lebih awal dari jam pulang shift ──
+        // Hanya berlaku jika ada data clock_out DAN shift diketahui
+        if ($clockOut && $shift && $shift->end_time) {
+            $clockOutTime    = Carbon::parse($clockOut)->setDate($date->year, $date->month, $date->day);
+            $standardEndTime = Carbon::parse($shift->end_time)->setDate($date->year, $date->month, $date->day);
+
+            // Toleransi 5 menit: pulang sebelum 5 menit dari jam pulang masih dianggap Present
+            if ($clockOutTime->lt($standardEndTime->copy()->subMinutes(5))) {
+                return 'Early Leave';
+            }
         }
 
-        $dayOfWeek = strtolower($date->format('l'));
-        [$standardStart] = $this->getStandardTimes($policy, $dayOfWeek);
-
-        if (!$standardStart || trim($standardStart) === '00:00:00') {
-            return 'Present';
-        }
-
-        $clockInTime       = Carbon::parse($clockIn)->setDate($date->year, $date->month, $date->day);
-        $standardStartTime = Carbon::parse($standardStart)->setDate($date->year, $date->month, $date->day);
-
-        // Toleransi keterlambatan: <= 4 menit masih dianggap Present
-        $lateSeconds = $clockInTime->diffInSeconds($standardStartTime, false) * -1;
-        if ($lateSeconds <= 0) {
-            return 'Present';
-        }
-        return $lateSeconds <= 239 ? 'Present' : 'Late'; // toleransi 3 menit 59 detik, 08:04:00 sudah Late // 240 detik = 4 menit tepat
+        return $baseStatus;
     }
 
     // ─── Helper: peta jenis cuti → status ────────────────────────────────────

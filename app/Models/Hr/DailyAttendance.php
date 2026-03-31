@@ -41,6 +41,7 @@ class DailyAttendance extends Model
         'remarks',
         'created_by',
         'updated_by',
+        'is_locked',
         'uid',
         'session_shift_id',
     ];

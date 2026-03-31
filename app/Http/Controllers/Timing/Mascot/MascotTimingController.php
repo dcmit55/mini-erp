@@ -38,9 +38,10 @@ class MascotTimingController extends Controller
             return redirect()->route('dashboard')->with('error', 'Mascot department not found. Please contact administrator.');
         }
 
-        // Only show employees who have clocked in today
+        // Only show employees who have clocked in today and NOT yet clocked out
         $clockedInToday = AttendanceLog::whereDate('date', today())
             ->whereNotNull('clock_in')
+            ->whereNull('clock_out')
             ->pluck('employee_id')
             ->toArray();
 
@@ -211,14 +212,16 @@ class MascotTimingController extends Controller
                     );
                 }
 
-                // Employee must have clocked in today (via AttendanceLog OR DailyAttendance)
+                // Employee must have clocked in today and NOT yet clocked out
                 $hasClockedIn = AttendanceLog::where('employee_id', $employeeId)
                     ->whereDate('date', $today)
                     ->whereNotNull('clock_in')
+                    ->whereNull('clock_out')
                     ->exists()
                     || DailyAttendance::where('employee_id', $employeeId)
                     ->whereDate('date', $today)
                     ->whereNotNull('clock_in')
+                    ->whereNull('clock_out')
                     ->exists();
 
                 if (!$hasClockedIn) {
@@ -759,6 +762,7 @@ class MascotTimingController extends Controller
 
         $clockedInToday = AttendanceLog::whereDate('date', today())
             ->whereNotNull('clock_in')
+            ->whereNull('clock_out')
             ->pluck('employee_id')
             ->toArray();
 

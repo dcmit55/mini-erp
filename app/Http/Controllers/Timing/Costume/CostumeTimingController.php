@@ -42,9 +42,10 @@ class CostumeTimingController extends Controller
         // Keep single dept for backward compat (used in active session filter)
         $costumeDept = $costumeDepts->first();
 
-        // Only show employees who have clocked in today
+        // Only show employees who have clocked in today and NOT yet clocked out
         $clockedInToday = AttendanceLog::whereDate('date', today())
             ->whereNotNull('clock_in')
+            ->whereNull('clock_out')
             ->pluck('employee_id')
             ->toArray();
 

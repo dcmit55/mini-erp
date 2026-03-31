@@ -40,9 +40,10 @@ class AnimatronicsTimingController extends Controller
             return redirect()->route('costume-timing.index')->with('error', 'Animatronics department not found. Please use costume timing.');
         }
 
-        // Only show employees who have clocked in today
+        // Only show employees who have clocked in today and NOT yet clocked out
         $clockedInToday = AttendanceLog::whereDate('date', today())
             ->whereNotNull('clock_in')
+            ->whereNull('clock_out')
             ->pluck('employee_id')
             ->toArray();
 
@@ -151,14 +152,16 @@ class AnimatronicsTimingController extends Controller
                     );
                 }
 
-                // Employee must have clocked in today (via AttendanceLog OR DailyAttendance)
+                // Employee must have clocked in today and NOT yet clocked out
                 $hasClockedIn = AttendanceLog::where('employee_id', $employeeId)
                     ->whereDate('date', $today)
                     ->whereNotNull('clock_in')
+                    ->whereNull('clock_out')
                     ->exists()
                     || DailyAttendance::where('employee_id', $employeeId)
                     ->whereDate('date', $today)
                     ->whereNotNull('clock_in')
+                    ->whereNull('clock_out')
                     ->exists();
 
                 if (!$hasClockedIn) {
@@ -849,6 +852,7 @@ class AnimatronicsTimingController extends Controller
 
         $clockedInToday = AttendanceLog::whereDate('date', today())
             ->whereNotNull('clock_in')
+            ->whereNull('clock_out')
             ->pluck('employee_id')
             ->toArray();
 

@@ -3,7 +3,10 @@
 namespace App\Exports;
 
 use App\Models\Hr\DailyAttendance;
-use Maatwebsite\Excel\Concerns\FromQuery;
+use App\Models\Hr\Employee;
+use Carbon\Carbon;
+use Carbon\CarbonPeriod;
+use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
@@ -14,7 +17,7 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 
 class DailyAttendanceExport implements
-    FromQuery,
+    FromCollection,
     WithHeadings,
     WithMapping,
     ShouldAutoSize,
@@ -42,16 +45,40 @@ class DailyAttendanceExport implements
 
     // ── Data ────────────────────────────────────────────────────────────────────
 
-    public function query()
+    public function collection()
     {
-        return DailyAttendance::with(['employee.department'])
+        // Load semua karyawan aktif (filter dept/employee jika ada)
+        $employees = Employee::with('department')
+            ->where('status', 'active')
+            ->when($this->departmentId, fn($q) => $q->where('department_id', $this->departmentId))
+            ->when($this->employeeId,   fn($q) => $q->where('id', $this->employeeId))
+            ->orderBy('department_id')
+            ->orderBy('name')
+            ->get();
+
+        // Load semua record attendance dalam range, key by "employee_id_date"
+        $records = DailyAttendance::with(['employee.department'])
             ->whereBetween('date', [$this->startDate, $this->endDate])
-            ->when($this->departmentId, function ($q) {
-                $q->whereHas('employee', fn($e) => $e->where('department_id', $this->departmentId));
-            })
-            ->when($this->employeeId, fn($q) => $q->where('employee_id', $this->employeeId))
-            ->orderBy('date')
-            ->orderBy('employee_id');
+            ->when($this->departmentId, fn($q) => $q->whereHas('employee', fn($e) => $e->where('department_id', $this->departmentId)))
+            ->when($this->employeeId,   fn($q) => $q->where('employee_id', $this->employeeId))
+            ->get()
+            ->keyBy(fn($r) => $r->employee_id . '_' . Carbon::parse($r->date)->format('Y-m-d'));
+
+        // Buat baris: setiap tanggal × setiap karyawan
+        $rows = collect();
+        foreach (CarbonPeriod::create($this->startDate, $this->endDate) as $date) {
+            $dateStr = $date->format('Y-m-d');
+            foreach ($employees as $employee) {
+                $record = $records->get($employee->id . '_' . $dateStr);
+                $rows->push([
+                    'employee' => $employee,
+                    'date'     => $date->copy(),
+                    'record'   => $record,
+                ]);
+            }
+        }
+
+        return $rows;
     }
 
     // ── Header ──────────────────────────────────────────────────────────────────
@@ -84,25 +111,28 @@ class DailyAttendanceExport implements
     public function map($row): array
     {
         $this->rowNo++;
+        $employee = $row['employee'];
+        $date     = $row['date'];
+        $rec      = $row['record'];
 
         return [
             $this->rowNo,
-            $row->employee?->employee_no      ?? '-',
-            $row->employee?->name             ?? '-',
-            $row->employee?->department?->name ?? '-',
-            $row->date?->format('Y-m-d')      ?? '-',
-            $row->date?->format('l')           ?? '-',
-            $row->clock_in  ? \Carbon\Carbon::parse($row->clock_in)->format('H:i:s')  : '-',
-            $row->clock_out ? \Carbon\Carbon::parse($row->clock_out)->format('H:i:s') : '-',
-            $row->total_hours            ?? 0,
-            $row->status                 ?? '-',
-            $row->late_minutes           ?? 0,
-            $row->late_deduction         ?? 0,
-            $row->early_leave_minutes    ?? 0,
-            $row->early_leave_deduction  ?? 0,
-            $row->overtime_minutes       ?? 0,
-            $row->overtime_pay           ?? 0,
-            $row->remarks                ?? '',
+            $employee->employee_no                ?? '-',
+            $employee->name                       ?? '-',
+            $employee->department?->name          ?? '-',
+            $date->format('Y-m-d'),
+            $date->format('l'),
+            $rec && $rec->clock_in  ? Carbon::parse($rec->clock_in)->format('H:i:s')  : '-',
+            $rec && $rec->clock_out ? Carbon::parse($rec->clock_out)->format('H:i:s') : '-',
+            $rec ? ($rec->total_hours           ?? 0) : 0,
+            $rec ? ($rec->status                ?? '-') : 'ABSENT',
+            $rec ? ($rec->late_minutes          ?? 0) : 0,
+            $rec ? ($rec->late_deduction        ?? 0) : 0,
+            $rec ? ($rec->early_leave_minutes   ?? 0) : 0,
+            $rec ? ($rec->early_leave_deduction ?? 0) : 0,
+            $rec ? ($rec->overtime_minutes      ?? 0) : 0,
+            $rec ? ($rec->overtime_pay          ?? 0) : 0,
+            $rec ? ($rec->remarks               ?? '') : '',
         ];
     }
 
@@ -116,7 +146,6 @@ class DailyAttendanceExport implements
     public function styles(Worksheet $sheet): array
     {
         return [
-            // Header bold + background abu
             1 => [
                 'font'    => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF']],
                 'fill'    => [
@@ -131,9 +160,9 @@ class DailyAttendanceExport implements
     public function columnFormats(): array
     {
         return [
-            'L' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1, // Late Deduction
-            'N' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1, // Early Leave Deduction
-            'P' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1, // Overtime Pay
+            'L' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1,
+            'N' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1,
+            'P' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1,
         ];
     }
 }

@@ -872,10 +872,26 @@ class LeaveRequestController extends Controller
                 $query->whereNull('clock_in');
             }
 
-            // Kembalikan ke status sebelumnya berdasarkan ada/tidaknya clock_in
-            $query->each(function (DailyAttendance $att) {
+            // Kembalikan ke status sebelumnya berdasarkan clock_in & clock_out vs shift
+            $query->with('sessionShift')->each(function (DailyAttendance $att) {
+                if (! $att->clock_in) {
+                    $revertStatus = 'Alpha';
+                } elseif ($att->clock_out && $att->sessionShift && $att->sessionShift->end_time) {
+                    // Cek apakah clock_out masih lebih awal dari jam pulang shift
+                    $clockOutTime    = \Carbon\Carbon::parse($att->clock_out)
+                        ->setDate($att->date->year, $att->date->month, $att->date->day);
+                    $standardEndTime = \Carbon\Carbon::parse($att->sessionShift->end_time)
+                        ->setDate($att->date->year, $att->date->month, $att->date->day);
+
+                    $revertStatus = $clockOutTime->lt($standardEndTime->copy()->subMinutes(5))
+                        ? 'Early Leave'
+                        : 'Present';
+                } else {
+                    $revertStatus = 'Present';
+                }
+
                 $att->update([
-                    'status'     => $att->clock_in ? 'Present' : 'Alpha',
+                    'status'     => $revertStatus,
                     'remarks'    => null,
                     'updated_by' => auth()->id(),
                 ]);

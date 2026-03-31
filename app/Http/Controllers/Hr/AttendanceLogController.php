@@ -247,17 +247,51 @@ class AttendanceLogController extends Controller
             'remarks' => 'nullable|string',
         ]);
 
-        $employee = Employee::findOrFail($employeeId);
+        $employee = Employee::with('department')->findOrFail($employeeId);
         $date = Carbon::parse($date);
+
+        // Untuk status Present/Late, recalculate otomatis berdasarkan clock_in baru.
+        // Status cuti/excused/alpha tetap dari form (pilihan manual admin).
+        $leaveStatuses = ['Excused', 'Sick Leave', 'Annual Leave', 'Alpha'];
+        if (in_array($request->status, $leaveStatuses)) {
+            $finalStatus = $request->status;
+        } else {
+            $attendanceService = app(DailyAttendanceService::class);
+
+            // Deteksi shift berdasarkan clock_in supaya status akurat
+            $shift = null;
+            if ($request->clock_in && $employee->department_id) {
+                $shift = \App\Models\Hr\SessionShift::detectFromClockIn(
+                    $employee->department_id,
+                    \Carbon\Carbon::createFromFormat('H:i', $request->clock_in)->format('H:i:s'),
+                    (bool) $employee->is_wna
+                );
+            }
+
+            $finalStatus = $attendanceService->determineStatus(
+                $employee,
+                $date,
+                $request->clock_in,
+                $request->clock_out,
+                $shift
+            );
+        }
+
+        // Recalculate remarks: hapus "Missing clock out/in" jika sudah diisi manual
+        $remarks = $request->remarks;
+        if ($request->clock_in && $request->clock_out) {
+            $remarks = $remarks ?: null; // bersihkan auto-remarks jika sudah lengkap
+        }
 
         $attendance = DailyAttendance::updateOrCreate(
             ['employee_id' => $employeeId, 'date' => $date->format('Y-m-d')],
             [
-                'clock_in' => $request->clock_in,
-                'clock_out' => $request->clock_out,
-                'status' => $request->status,
-                'remarks' => $request->remarks,
+                'clock_in'   => $request->clock_in,
+                'clock_out'  => $request->clock_out,
+                'status'     => $finalStatus,
+                'remarks'    => $remarks,
                 'updated_by' => Auth::id(),
+                'is_locked'  => true,
             ]
         );
 
