@@ -537,6 +537,7 @@
 
         // Cost percentages
         $matPct = $grandTotal > 0 ? round(($totalMaterialIDR / $grandTotal) * 100, 1) : 0;
+        $workPct = $grandTotal > 0 ? round(($totalWorkmanshipIDR / $grandTotal) * 100, 1) : 0;
         $freightPct = $grandTotal > 0 ? round(($totalFreightIDR / $grandTotal) * 100, 1) : 0;
     @endphp
 
@@ -747,6 +748,10 @@
                                 <span class="ipr-val">{{ $fmt($totalMaterialIDR) }}</span>
                             </div>
                             <div class="ip-row">
+                                <span class="ipr-label">Workmanship Cost</span>
+                                <span class="ipr-val">{{ $fmt($totalWorkmanshipIDR) }}</span>
+                            </div>
+                            <div class="ip-row">
                                 <span class="ipr-label">Freight Cost</span>
                                 <span class="ipr-val">{{ $fmt($totalFreightIDR) }}</span>
                             </div>
@@ -831,10 +836,12 @@
 
                         {{-- INTERNATIONAL PURCHASING --}}
                         @if ($intlMaterials->isNotEmpty())
-                            <div class="sub-section">
+                            <div class="sub-section" style="cursor:pointer;user-select:none;" onclick="$(this).next('.collapse-section').slideToggle(200); $(this).find('.toggle-icon').toggleClass('fa-chevron-down fa-chevron-up');">
                                 <span style="color:#f4a400;font-size:.65rem;">🌐</span>
                                 International Purchasing
+                                <i class="fas fa-chevron-down toggle-icon ms-auto float-end" style="font-size:.6rem;color:#999;"></i>
                             </div>
+                            <div class="collapse-section" style="display:none;">
                             <table class="cost-tbl">
                                 <thead>
                                     <tr>
@@ -863,14 +870,17 @@
                                     </tr>
                                 </tbody>
                             </table>
+                            </div>{{-- /collapse-section intl --}}
                         @endif
 
                         {{-- LOCAL PURCHASING --}}
                         @if ($localMaterials->isNotEmpty())
-                            <div class="sub-section">
+                            <div class="sub-section" style="cursor:pointer;user-select:none;" onclick="$(this).next('.collapse-section').slideToggle(200); $(this).find('.toggle-icon').toggleClass('fa-chevron-down fa-chevron-up');">
                                 <span style="color:#17a2b8;font-size:.65rem;">🏠</span>
                                 Local Purchasing
+                                <i class="fas fa-chevron-down toggle-icon ms-auto float-end" style="font-size:.6rem;color:#999;"></i>
                             </div>
+                            <div class="collapse-section" style="display:none;">
                             <table class="cost-tbl">
                                 <thead>
                                     <tr>
@@ -898,6 +908,7 @@
                                     </tr>
                                 </tbody>
                             </table>
+                            </div>{{-- /collapse-section local --}}
                         @endif
 
                         @if ($intlMaterials->isEmpty() && $localMaterials->isEmpty())
@@ -927,9 +938,10 @@
                                 Workmanship Cost
                                 <i class="fas fa-external-link-alt ms-1" style="font-size:.65rem; color:#6c5ce7;"></i>
                             </a>
-                            <span class="text-muted fw-normal" style="font-size:.68rem;">(Timing Module)</span>
+                            <span class="cc-pct">{{ $workPct }}%</span>
                         </div>
-                        <div class="cc-total">{{ $totalLaborHours }} hrs</div>
+                        <div class="cc-total">{{ $fmt($totalWorkmanshipIDR) }}</div>
+                        <div class="text-muted" style="font-size:.7rem;">{{ $totalLaborHours }} hrs</div>
                     </div>
                     <div class="cc-body">
 
@@ -981,8 +993,9 @@
                         <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top fw-bold"
                             style="font-size:.82rem;">
                             <span>Total Workmanship</span>
-                            <span class="text-body fw-bold">{{ $totalLaborHours }} hrs</span>
+                            <span class="text-body fw-bold">{{ $fmt($totalWorkmanshipIDR) }}</span>
                         </div>
+                        <div class="text-end text-muted" style="font-size:.7rem;">{{ $totalLaborHours }} hrs</div>
                     </div>
                 </div>
             </div>
@@ -1102,7 +1115,8 @@
                 </div>
                 <div class="gt-item">
                     <div class="gti-label">WORKMANSHIP</div>
-                    <div class="gti-val">{{ $totalLaborHours }} hrs</div>
+                    <div class="gti-val">{{ $fmt($totalWorkmanshipIDR) }}</div>
+                    <div class="text-muted" style="font-size:.6rem;">{{ $totalLaborHours }} hrs</div>
                 </div>
                 <div class="gt-item">
                     <div class="gti-label">FREIGHT</div>

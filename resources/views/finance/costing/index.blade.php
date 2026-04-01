@@ -689,11 +689,14 @@
                         $usageIdr = $summary['usage_idr'] ?? 0;
                         $totalHours = $summary['total_hours'] ?? 0;
                         $materialCost = $summary['material_cost'] ?? 0;
+                        $workmanshipCost = $summary['workmanship_cost'] ?? 0;
                         $freightCost = $summary['freight_cost'] ?? 0;
 
-                        // actual_project_cost = material + freight (workmanship in hrs only)
-                        $actualCost = $summary['actual_project_cost'] ?? ($materialCost + $freightCost);
-                        $hasData = $actualCost > 0 || $totalHours > 0;
+                        $sellingPrice = $intlPo + $localPo;
+                        $actualCost = $summary['actual_project_cost'] ?? 0;
+                        $profit = $sellingPrice - $actualCost;
+                        $profitPct = $sellingPrice > 0 ? round(($profit / $sellingPrice) * 100, 1) : null;
+                        $hasData = $sellingPrice > 0 || $actualCost > 0;
 
                         $fmt = fn($n) => 'Rp ' . number_format($n, 0, ',', '.');
                         $fmtK = function ($n) {
@@ -791,17 +794,22 @@
                                         <span class="pc-lbl">Actual Project Cost</span>
                                         <span class="pc-val">{{ $hasData ? $fmt($actualCost) : '—' }}</span>
                                     </div>
-                                    <div class="pc-row">
-                                        <span class="pc-lbl">Total Project Time</span>
-                                        <span class="pc-val">{{ $totalHours > 0 ? $totalHours . ' hrs' : '—' }}</span>
-                                    </div>
+
                                     <div class="pc-row">
                                         <span class="pc-lbl">Material Cost</span>
-                                        <span class="pc-val">{{ $materialCost > 0 ? $fmtK($materialCost) : '—' }}</span>
+                                        <span class="pc-val">{{ $materialCost > 0 ? $fmt($materialCost) : '—' }}</span>
+                                    </div>
+                                    <div class="pc-row">
+                                        <span class="pc-lbl">Workmanship Cost</span>
+                                        <span class="pc-val">{{ $workmanshipCost > 0 ? $fmt($workmanshipCost) : '—' }}</span>
                                     </div>
                                     <div class="pc-row">
                                         <span class="pc-lbl">Freight Cost</span>
-                                        <span class="pc-val">{{ $freightCost > 0 ? $fmtK($freightCost) : '—' }}</span>
+                                        <span class="pc-val">{{ $freightCost > 0 ? $fmt($freightCost) : '—' }}</span>
+                                    </div>
+                                    <div class="pc-row">
+                                        <span class="pc-lbl">Total Project Time</span>
+                                        <span class="pc-val">{{ $totalHours > 0 ? $totalHours . ' hrs' : '—' }}</span>
                                     </div>
 
                                     {{-- ── Stats strip ── --}}
