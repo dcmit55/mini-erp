@@ -62,6 +62,7 @@
                                 <option value="admin_procurement">Admin Procurement</option>
                                 <option value="admin_hr">Admin HR</option>
                                 <option value="admin">Admin</option>
+                                <option value="timing">Admin Timing</option>
                                 <option value="general">General</option>
                             </select>
                             @error('role')

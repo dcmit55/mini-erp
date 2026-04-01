@@ -3,9 +3,18 @@
 namespace App\Models\Production;
 
 use Illuminate\Database\Eloquent\Model;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
-class JobOrder extends Model
+class JobOrder extends Model implements AuditableContract
 {
+    use \OwenIt\Auditing\Auditable;
+
+    protected $auditInclude = [
+        'project_id', 'department_id', 'name', 'description',
+        'start_date', 'end_date', 'delivery_date', 'status',
+        'source_by', 'notes', 'actual_start_date', 'actual_end_date',
+        'final_image',
+    ];
     protected $table = 'job_orders';
 
     public $incrementing = false;

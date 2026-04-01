@@ -8,12 +8,21 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
-class DcmCosting extends Model
+class DcmCosting extends Model implements AuditableContract
 {
-    use SoftDeletes;
+    use SoftDeletes, \OwenIt\Auditing\Auditable;
 
     protected $table = 'dcm_costings';
+
+    protected $auditInclude = [
+        'po_number', 'date', 'purchase_type', 'item_name', 'quantity',
+        'unit_price', 'total_price', 'freight', 'invoice_total',
+        'department', 'project_type', 'project_name', 'job_order',
+        'supplier', 'resi_number', 'status', 'item_status',
+        'finance_notes', 'approved_at', 'purchase_id',
+    ];
 
     protected $fillable = [
         'uid',

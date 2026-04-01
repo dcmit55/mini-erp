@@ -87,8 +87,74 @@ class ProjectCostingController extends Controller
             ->orderByDesc('created_at') // Then by created_at
             ->paginate(10);
 
-        // Card summaries: UI only — data queries disabled pending column audit
+        // Card summaries: calculate actual_project_cost and total_project_time per project
+        $projectIds = $projects->pluck('id')->toArray();
         $cardSummaries = [];
+
+        if (!empty($projectIds)) {
+            // Material cost: sum of (unit_price + freights) * qty * exchange_rate per project
+            $usagesByProject = \App\Models\Logistic\MaterialUsage::whereIn('project_id', $projectIds)
+                ->with(['inventory.currency'])
+                ->get()
+                ->groupBy('project_id');
+
+            // Timing (workmanship): sum duration_minutes per project
+            $timingsByProject = \App\Models\Production\Timing::whereIn('project_id', $projectIds)
+                ->where('approval_status', 'approved')
+                ->selectRaw('project_id, SUM(duration_minutes) as total_minutes')
+                ->groupBy('project_id')
+                ->pluck('total_minutes', 'project_id');
+
+            // DCM Costings (PO): sum invoice_total per project_name
+            $projectNames = \App\Models\Production\Project::whereIn('id', $projectIds)->pluck('name', 'id');
+            $dcmByProjectName = \App\Models\Finance\DcmCosting::whereIn('project_name', $projectNames->values())
+                ->where('is_current', true)
+                ->get()
+                ->groupBy('project_name');
+
+            foreach ($projectIds as $pid) {
+                // Material cost
+                $materialIDR = 0;
+                foreach (($usagesByProject[$pid] ?? collect()) as $usage) {
+                    $inv = $usage->inventory;
+                    if (!$inv) continue;
+                    $rate = $inv->currency->exchange_rate ?? 1;
+                    $unitCost = ($inv->price ?? 0) + ($inv->unit_domestic_freight_cost ?? 0) + ($inv->unit_international_freight_cost ?? 0);
+                    $materialIDR += $unitCost * ($usage->used_quantity ?? 0) * $rate;
+                }
+
+                // Freight cost via getCourierCosts (lightweight: use DCM freight sum)
+                $pName = $projectNames[$pid] ?? null;
+                $dcmRows = $pName ? ($dcmByProjectName[$pName] ?? collect()) : collect();
+                $freightIDR = $dcmRows->sum('freight') ?? 0;
+
+                // Workmanship: total minutes → hours
+                $totalMinutes = $timingsByProject[$pid] ?? 0;
+                $totalHours = round($totalMinutes / 60, 2);
+
+                // Actual Project Cost = material + freight (workmanship in hrs, not IDR yet)
+                $actualCost = $materialIDR + $freightIDR;
+
+                // INT'L PO & LOCAL PO
+                $intlRows = $dcmRows->filter(fn($c) =>
+                    str_contains(strtolower($c->purchase_type ?? ''), 'intl') ||
+                    str_contains(strtolower($c->purchase_type ?? ''), 'international') ||
+                    str_contains(strtolower($c->supplier ?? ''), 'sg') ||
+                    str_contains(strtolower($c->department ?? ''), 'sg')
+                );
+                $localRows = $dcmRows->filter(fn($c) => !$intlRows->contains('id', $c->id));
+
+                $cardSummaries[$pid] = [
+                    'actual_project_cost' => $actualCost,
+                    'material_cost'       => $materialIDR,
+                    'freight_cost'        => $freightIDR,
+                    'total_hours'         => $totalHours,
+                    'intl_po'             => $intlRows->sum('invoice_total'),
+                    'local_po'            => $localRows->sum('invoice_total'),
+                    'usage_idr'           => $materialIDR,
+                ];
+            }
+        }
 
         // Get unique type_dept values from closed/delivered projects
         $rawDeptValues = Project::where('project_status', 'Delivered')->whereNotNull('type_dept')->where('type_dept', '!=', '')->pluck('type_dept');
@@ -219,8 +285,9 @@ class ProjectCostingController extends Controller
         $courierData = $this->getCourierCosts($project_id);
         $totalFreightIDR = $courierData['total_idr'] ?? 0;
 
-        // ── Grand total (Actual Project Cost) ──
+        // ── Grand total (Actual Project Cost = Material + Freight + Workmanship) ──
         $grandTotal = $totalMaterialIDR + $totalFreightIDR;
+        // Note: workmanship is tracked in hours, not IDR cost yet; grand total reflects PO-based costs
 
         // ── Overhead = from stock usage portion ──
         $overheadIDR = $usageCostIDR; // material usage from existing stock

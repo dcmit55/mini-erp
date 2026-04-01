@@ -6,10 +6,15 @@ use App\Models\Logistic\Inventory;
 use App\Models\Production\Project;
 use App\Models\Production\JobOrder;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
-class MaterialUsage extends Model
+class MaterialUsage extends Model implements AuditableContract
 {
-    use SoftDeletes;
+    use SoftDeletes, \OwenIt\Auditing\Auditable;
+
+    protected $auditInclude = [
+        'inventory_id', 'project_id', 'job_order_id', 'used_quantity',
+    ];
 
     protected $fillable = ['inventory_id', 'project_id', 'job_order_id', 'used_quantity'];
 

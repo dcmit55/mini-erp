@@ -303,7 +303,7 @@
 
         a.dept-badge:hover {
             opacity: .80;
-            box-shadow: 0 2px 8px rgba(0,0,0,.12);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .12);
         }
 
         /* ── 3 Cost cards ── */
@@ -546,10 +546,14 @@
         <nav class="costing-breadcrumb mb-3 d-flex align-items-center gap-1">
             <a href="{{ route('costing.report') }}">All Departments</a>
             <span>/</span>
-            @foreach ($deptNames as $dn)
-                <a href="{{ route('costing.report', ['department' => $dn]) }}">{{ ucfirst($dn) }}</a>
-                <span>/</span>
-            @endforeach
+            @if($project->type_dept)
+                @foreach(array_map('trim', explode(',', $project->type_dept)) as $td)
+                    @if(!empty($td))
+                        <a href="{{ route('costing.report') }}?department={{ urlencode($td) }}">{{ ucfirst($td) }}</a>
+                        <span>/</span>
+                    @endif
+                @endforeach
+            @endif
             <span class="text-dark fw-semibold">{{ \Illuminate\Support\Str::limit($project->name, 45) }}</span>
             <span class="ms-auto text-muted" style="font-size:.72rem;">
                 <i class="fas fa-circle text-success me-1" style="font-size:.45rem;"></i>
@@ -701,11 +705,10 @@
                             <div class="hero-title">{{ $project->name }}</div>
                             <div class="hero-meta">
                                 <i class="fas fa-user me-1"></i>
-                                @if($salesName !== '-')
+                                @if ($salesName !== '-')
                                     <a href="{{ route('costing.report', ['sales' => $salesName]) }}"
-                                       class="text-decoration-none"
-                                       style="color:inherit;"
-                                       title="Filter by sales: {{ $salesName }}">{{ $salesName }}</a>
+                                        class="text-decoration-none" style="color:inherit;"
+                                        title="Filter by sales: {{ $salesName }}">{{ $salesName }}</a>
                                 @else
                                     {{ $salesName }}
                                 @endif
