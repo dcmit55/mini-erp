@@ -141,11 +141,11 @@
                     <div class="ms-lg-auto">
                         <div class="d-flex flex-wrap gap-2 align-items-center justify-content-lg-end">
                             @if (auth()->user()->isLogisticAdmin() || auth()->user()->isReadOnlyAdmin())
-                                <a href="{{ route('inventory.create') }}" class="btn btn-primary btn-sm">
+                                {{-- <a href="{{ route('inventory.create') }}" class="btn btn-primary btn-sm">
                                     <i class="bi bi-plus-circle me-1"></i>
                                     <span class="d-none d-sm-inline">Create Inventory</span>
                                     <span class="d-sm-none">Add</span>
-                                </a>
+                                </a> --}}
                                 <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal"
                                     data-bs-target="#importModal">
                                     <i class="bi bi-filetype-xls me-1"></i> Import

@@ -331,6 +331,7 @@
                                         'admin_hr',
                                         'admin',
                                         'general',
+                                        'timing',
                                     ]))
                                     @php
                                         $deptLeavePendingCount = 0;
@@ -408,6 +409,7 @@
                                         'admin_animatronic',
                                         'admin_hr',
                                         'admin',
+                                        'timing',
                                     ]))
                                     <li class="nav-item dropdown">
                                         <a class="nav-link dropdown-toggle {{ request()->is('costume-timing*') || request()->is('animatronics-timing*') || request()->is('mascot-timing*') || request()->is('timing-monitor*') ? 'active' : '' }}"
@@ -622,6 +624,32 @@
                                                     <a class="dropdown-item {{ request()->routeIs('session-shifts.*') ? 'active' : '' }}"
                                                         href="{{ route('session-shifts.index') }}">
                                                         <i class="fas fa-layer-group me-2"></i>Session Shifts
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </li>
+                                    @endif
+
+                                    {{-- HR Menu untuk role 'timing' (akses terbatas: Employees & Timing Data) --}}
+                                    @if (auth()->user()->role === 'timing')
+                                        <li class="nav-item dropdown">
+                                            <a class="nav-link dropdown-toggle {{ request()->is('employees*') || request()->routeIs('timings.*') ? 'active' : '' }}"
+                                                href="#" id="hrTimingDropdown" role="button" data-bs-toggle="dropdown"
+                                                aria-expanded="false">
+                                                <i></i>HR
+                                            </a>
+                                            <ul class="dropdown-menu" aria-labelledby="hrTimingDropdown">
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('employees*') ? 'active' : '' }}"
+                                                        href="{{ route('employees.index') }}">
+                                                        <i class="fas fa-user-tie me-2"></i>Employees
+                                                    </a>
+                                                </li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('timings*') ? 'active' : '' }}"
+                                                        href="{{ route('timings.index') }}">
+                                                        <i class="fas fa-stopwatch me-2"></i>Timing Data
                                                     </a>
                                                 </li>
                                             </ul>

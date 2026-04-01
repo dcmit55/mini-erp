@@ -5,9 +5,17 @@ namespace App\Models\Hr;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use App\Models\Admin\Department;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
-class SessionShift extends Model
+class SessionShift extends Model implements AuditableContract
 {
+    use \OwenIt\Auditing\Auditable;
+
+    protected $auditInclude = [
+        'department_id', 'type_of_shift', 'start_time', 'end_time',
+        'break_start', 'break_end', 'is_active',
+    ];
+
     protected $table = 'session_shifts';
 
     protected $fillable = [

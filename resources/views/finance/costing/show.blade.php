@@ -295,6 +295,17 @@
             color: var(--bs-secondary-color, #495057);
         }
 
+        a.dept-badge {
+            text-decoration: none;
+            cursor: pointer;
+            transition: opacity .15s, box-shadow .15s;
+        }
+
+        a.dept-badge:hover {
+            opacity: .80;
+            box-shadow: 0 2px 8px rgba(0,0,0,.12);
+        }
+
         /* ── 3 Cost cards ── */
         .cost-card {
             background: var(--bs-card-bg, #fff);
@@ -681,13 +692,23 @@
                                             default => '🏢',
                                         };
                                     @endphp
-                                    <span class="dept-badge {{ $bc }}">{{ $di }}
-                                        {{ ucfirst($dn) }}</span>
+                                    <a href="{{ route('costing.report', ['department' => $dn]) }}"
+                                        class="dept-badge {{ $bc }}"
+                                        title="Filter by {{ ucfirst($dn) }}">{{ $di }}
+                                        {{ ucfirst($dn) }}</a>
                                 @endforeach
                             </div>
                             <div class="hero-title">{{ $project->name }}</div>
                             <div class="hero-meta">
-                                <i class="fas fa-user me-1"></i>{{ $salesName }}
+                                <i class="fas fa-user me-1"></i>
+                                @if($salesName !== '-')
+                                    <a href="{{ route('costing.report', ['sales' => $salesName]) }}"
+                                       class="text-decoration-none"
+                                       style="color:inherit;"
+                                       title="Filter by sales: {{ $salesName }}">{{ $salesName }}</a>
+                                @else
+                                    {{ $salesName }}
+                                @endif
                                 <span class="mx-2">·</span>
                                 <i class="far fa-calendar me-1"></i>Deadline: {{ $deadline }}
                                 <span class="mx-2">·</span>

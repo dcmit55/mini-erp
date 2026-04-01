@@ -7,10 +7,16 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
-class OvertimeRequest extends Model
+class OvertimeRequest extends Model implements AuditableContract
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, \OwenIt\Auditing\Auditable;
+
+    protected $auditInclude = [
+        'employee_id', 'tanggal', 'start_time', 'end_time', 'reason',
+        'status', 'hr_approval_status', 'director_approval_status',
+    ];
 
     public function getRouteKeyName(): string
     {

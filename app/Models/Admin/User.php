@@ -56,6 +56,14 @@ class User extends Authenticatable implements AuditableContract
     }
 
     /**
+     * Check if user is Timing role (only Production Timing & HR access)
+     */
+    public function isTimingRole()
+    {
+        return $this->role === 'timing';
+    }
+
+    /**
      * Check if user is read-only admin
      */
     public function isReadOnlyAdmin()
@@ -68,7 +76,7 @@ class User extends Authenticatable implements AuditableContract
      */
     public function canModifyData()
     {
-        return !$this->isReadOnlyAdmin();
+        return !$this->isReadOnlyAdmin() && !$this->isTimingRole();
     }
 
     public function isRequestOwner($username)
