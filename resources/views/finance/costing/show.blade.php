@@ -199,17 +199,17 @@
         }
 
         /* ── Overhead bar ── */
-        .overhead-bar {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            padding: .6rem 1rem;
-            border-radius: 10px;
-            background: rgba(108, 92, 231, .06);
-            border: 1px solid rgba(108, 92, 231, .12);
-            margin-top: .75rem;
-            font-size: .78rem;
-        }
+        /* .overhead-bar {
+                        display: flex;
+                        align-items: center;
+                        gap: 1rem;
+                        padding: .6rem 1rem;
+                        border-radius: 10px;
+                        background: rgba(108, 92, 231, .06);
+                        border: 1px solid rgba(108, 92, 231, .12);
+                        margin-top: .75rem;
+                        font-size: .78rem;
+                    } */
 
         .overhead-bar .ob-chip {
             background: rgba(108, 92, 231, .12);
@@ -533,7 +533,7 @@
         $laborTotal = $totalLaborHours;
 
         // Overhead = usage cost from stock
-        $overheadIDR = $usageCostIDR ?? 0;
+        // $overheadIDR = $usageCostIDR ?? 0;
 
         // Cost percentages
         $matPct = $grandTotal > 0 ? round(($totalMaterialIDR / $grandTotal) * 100, 1) : 0;
@@ -780,11 +780,11 @@
                     </div>
 
                     {{-- Overhead bar --}}
-                    <div class="overhead-bar">
+                    {{-- <div class="overhead-bar">
                         <span class="ob-chip">OVERHEAD</span>
                         <span class="text-muted">Usage from stock / inventory</span>
                         <span class="fw-bold ms-auto">{{ $fmt($overheadIDR) }}</span>
-                    </div>
+                    </div> --}}
 
                     {{-- PO badges + Actions --}}
                     <div class="hero-actions">
@@ -1126,10 +1126,10 @@
                     <div class="gti-label">FREIGHT</div>
                     <div class="gti-val">{{ $fmt($totalFreightIDR) }}</div>
                 </div>
-                <div class="gt-item">
+                {{-- <div class="gt-item">
                     <div class="gti-label">OVERHEAD</div>
                     <div class="gti-val">{{ $fmt($overheadIDR) }}</div>
-                </div>
+                </div> --}}
             </div>
         </div>
 
