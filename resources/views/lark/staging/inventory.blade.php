@@ -236,7 +236,7 @@
                 <div class="modal-body">
                     <div id="noteModalReceivedQtyReminder" class="alert alert-warning py-2 small d-none mb-2">
                         <i class="bi bi-exclamation-triangle-fill me-1"></i>
-                        Pastikan <strong>Received Qty</strong> sudah diisi sebelum Approve.
+                        Pastikan <strong>Received Qty</strong> dan <strong>Price</strong> sudah diisi sebelum Approve.
                     </div>
                     <textarea id="noteInput" class="form-control" rows="3" placeholder="Tambahkan catatan review..."></textarea>
                 </div>
@@ -267,7 +267,7 @@
                             maxlength="255">
                         <div class="invalid-feedback" id="editItemNameError"></div>
                     </div>
-                    <div class="mb-1">
+                    <div class="mb-3">
                         <label for="editItemUnit" class="form-label fw-semibold">Unit <span
                                 class="text-danger">*</span></label>
                         <select id="editItemUnit" class="form-select select2-unit">
@@ -277,6 +277,17 @@
                             @endforeach
                         </select>
                         <div class="invalid-feedback" id="editItemUnitError"></div>
+                    </div>
+                    <div class="mb-1">
+                        <label for="editItemPrice" class="form-label fw-semibold">Price (RMB)</label>
+                        <div class="input-group">
+                            <span class="input-group-text">&yen;</span>
+                            <input type="number" id="editItemPrice" class="form-control" placeholder="0.00"
+                                min="0" step="0.01">
+                        </div>
+                        <div class="form-text text-muted">Wajib diisi sebelum Approve. Kosongkan jika belum diketahui.
+                        </div>
+                        <div class="invalid-feedback d-block" id="editItemPriceError"></div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -770,12 +781,15 @@
                 var id = $(this).data('id');
                 var name = $(this).data('name') || '';
                 var unit = $(this).data('unit') || '';
+                var price = $(this).data('price') || '';
 
                 $('#editItemId').val(id);
                 $('#editItemName').val(name).removeClass('is-invalid');
                 $('#editItemUnit').val(unit).trigger('change').removeClass('is-invalid');
+                $('#editItemPrice').val(price).removeClass('is-invalid');
                 $('#editItemNameError').text('');
                 $('#editItemUnitError').text('');
+                $('#editItemPriceError').text('');
 
                 editItemModal.show();
             });
@@ -816,7 +830,8 @@
                     data: {
                         _token: '{{ csrf_token() }}',
                         name: name,
-                        unit: unit
+                        unit: unit,
+                        price: $('#editItemPrice').val()
                     },
                     success: function(response) {
                         $btn.prop('disabled', false);
@@ -828,7 +843,9 @@
                             // Update data attributes on the row button
                             $('.btn-edit-item[data-id="' + id + '"]')
                                 .data('name', response.name).attr('data-name', response.name)
-                                .data('unit', response.unit).attr('data-unit', response.unit);
+                                .data('unit', response.unit).attr('data-unit', response.unit)
+                                .data('price', response.price).attr('data-price', response
+                                    .price);
                             // Update displayed name text (if rendered directly in table)
                             $('.staging-name-text[data-id="' + id + '"]').text(response.name);
                             // Reload table row
@@ -857,6 +874,8 @@
 
             // Initialize tooltips
             $('[data-bs-toggle="tooltip"]').tooltip();
+
+
         });
     </script>
 @endpush

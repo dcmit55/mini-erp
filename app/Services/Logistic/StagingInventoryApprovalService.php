@@ -41,6 +41,11 @@ class StagingInventoryApprovalService
                 throw new \InvalidArgumentException("Received Qty untuk item \"{$staging->name}\" harus diisi sebelum di-approve.");
             }
 
+            // ── 0b. Validate price ────────────────────────────────────────────
+            if (is_null($staging->price) || (float) $staging->price <= 0) {
+                throw new \InvalidArgumentException("Price untuk item \"{$staging->name}\" harus diisi (lebih dari 0) sebelum di-approve.");
+            }
+
             try {
                 // ── 1. Resolve (or create) the inventory record ──────────────────
                 [$inventory, $created] = $this->resolveInventory($staging);

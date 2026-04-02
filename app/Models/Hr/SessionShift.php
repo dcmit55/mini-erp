@@ -11,25 +11,15 @@ class SessionShift extends Model implements AuditableContract
 {
     use \OwenIt\Auditing\Auditable;
 
-    protected $auditInclude = [
-        'department_id', 'type_of_shift', 'start_time', 'end_time',
-        'break_start', 'break_end', 'is_active',
-    ];
+    protected $auditInclude = ['department_id', 'type_of_shift', 'start_time', 'end_time', 'break_start', 'break_end', 'is_active'];
 
     protected $table = 'session_shifts';
 
-    protected $fillable = [
-        'uid', 'department_id', 'type_of_shift',
-        'start_time', 'end_time',
-        'break_start', 'break_end',
-        'break2_start', 'break2_end',
-        'for_wna', 'detect_from', 'detect_until',
-        'is_active',
-    ];
+    protected $fillable = ['uid', 'department_id', 'type_of_shift', 'start_time', 'end_time', 'break_start', 'break_end', 'break2_start', 'break2_end', 'for_wna', 'detect_from', 'detect_until', 'is_active'];
 
     protected $casts = [
         'is_active' => 'boolean',
-        'for_wna'   => 'boolean',
+        'for_wna' => 'boolean',
     ];
 
     protected static function boot()
@@ -66,21 +56,11 @@ class SessionShift extends Model implements AuditableContract
         $time = strlen($clockInTime) === 5 ? $clockInTime . ':00' : $clockInTime;
 
         // 1. Cari shift spesifik untuk department ini
-        $shift = self::where('department_id', $departmentId)
-            ->where('is_active', true)
-            ->where('for_wna', $isWna)
-            ->where('detect_from', '<=', $time)
-            ->where('detect_until', '>', $time)
-            ->first();
+        $shift = self::where('department_id', $departmentId)->where('is_active', true)->where('for_wna', $isWna)->where('detect_from', '<=', $time)->where('detect_until', '>', $time)->first();
 
         // 2. Fallback ke shift default (department_id = NULL)
-        if (! $shift) {
-            $shift = self::whereNull('department_id')
-                ->where('is_active', true)
-                ->where('for_wna', $isWna)
-                ->where('detect_from', '<=', $time)
-                ->where('detect_until', '>', $time)
-                ->first();
+        if (!$shift) {
+            $shift = self::whereNull('department_id')->where('is_active', true)->where('for_wna', $isWna)->where('detect_from', '<=', $time)->where('detect_until', '>', $time)->first();
         }
 
         return $shift;

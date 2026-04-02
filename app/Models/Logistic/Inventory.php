@@ -142,7 +142,8 @@ class Inventory extends Model implements Auditable
      */
     public function getPriceAttribute(): float
     {
-        $batches = $this->batches()->whereNull('deleted_at')->where('qty_remaining', '>', 0)->get();
+        // Use in-memory collection when batches are already eager-loaded (avoids N+1)
+        $batches = $this->relationLoaded('batches') ? $this->batches->filter(fn($b) => is_null($b->deleted_at) && (float) $b->qty_remaining > 0) : $this->batches()->whereNull('deleted_at')->where('qty_remaining', '>', 0)->get();
 
         $totalRemaining = $batches->sum('qty_remaining');
 

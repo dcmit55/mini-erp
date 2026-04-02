@@ -12,9 +12,7 @@ class MaterialUsage extends Model implements AuditableContract
 {
     use SoftDeletes, \OwenIt\Auditing\Auditable;
 
-    protected $auditInclude = [
-        'inventory_id', 'project_id', 'job_order_id', 'used_quantity',
-    ];
+    protected $auditInclude = ['inventory_id', 'project_id', 'job_order_id', 'used_quantity'];
 
     protected $fillable = ['inventory_id', 'project_id', 'job_order_id', 'used_quantity'];
 

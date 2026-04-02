@@ -801,7 +801,8 @@
                                     </div>
                                     <div class="pc-row">
                                         <span class="pc-lbl">Workmanship Cost</span>
-                                        <span class="pc-val">{{ $workmanshipCost > 0 ? $fmt($workmanshipCost) : '—' }}</span>
+                                        <span
+                                            class="pc-val">{{ $workmanshipCost > 0 ? $fmt($workmanshipCost) : '—' }}</span>
                                     </div>
                                     <div class="pc-row">
                                         <span class="pc-lbl">Freight Cost</span>

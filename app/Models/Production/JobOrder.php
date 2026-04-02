@@ -3,18 +3,14 @@
 namespace App\Models\Production;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
 class JobOrder extends Model implements AuditableContract
 {
     use \OwenIt\Auditing\Auditable;
 
-    protected $auditInclude = [
-        'project_id', 'department_id', 'name', 'description',
-        'start_date', 'end_date', 'delivery_date', 'status',
-        'source_by', 'notes', 'actual_start_date', 'actual_end_date',
-        'final_image',
-    ];
+    protected $auditInclude = ['project_id', 'department_id', 'name', 'description', 'start_date', 'end_date', 'delivery_date', 'status', 'source_by', 'notes', 'actual_start_date', 'actual_end_date', 'final_image'];
     protected $table = 'job_orders';
 
     public $incrementing = false;
@@ -184,5 +180,28 @@ class JobOrder extends Model implements AuditableContract
     public function isDelivered(): bool
     {
         return $this->status && strtolower($this->status) === 'delivered';
+    }
+
+    /**
+     * Accessor: returns public URL for final_image if the file actually exists on disk.
+     * Returns null if final_image is not set or the file is missing.
+     */
+    public function getFinalImageUrlAttribute(): ?string
+    {
+        if (empty($this->final_image)) {
+            return null;
+        }
+        if (!Storage::disk('public')->exists($this->final_image)) {
+            return null;
+        }
+        return asset('storage/' . $this->final_image);
+    }
+
+    /**
+     * Returns true if final_image is set AND the file exists on disk.
+     */
+    public function hasFinalImage(): bool
+    {
+        return !empty($this->final_image) && Storage::disk('public')->exists($this->final_image);
     }
 }

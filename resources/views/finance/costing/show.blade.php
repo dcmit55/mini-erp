@@ -547,9 +547,9 @@
         <nav class="costing-breadcrumb mb-3 d-flex align-items-center gap-1">
             <a href="{{ route('costing.report') }}">All Departments</a>
             <span>/</span>
-            @if($project->type_dept)
-                @foreach(array_map('trim', explode(',', $project->type_dept)) as $td)
-                    @if(!empty($td))
+            @if ($project->type_dept)
+                @foreach (array_map('trim', explode(',', $project->type_dept)) as $td)
+                    @if (!empty($td))
                         <a href="{{ route('costing.report') }}?department={{ urlencode($td) }}">{{ ucfirst($td) }}</a>
                         <span>/</span>
                     @endif
@@ -578,14 +578,14 @@
                     }
 
                     // JO images for carousel
-                    $heroJoImages = $project->jobOrders->filter(fn($jo) => !empty($jo->final_image))->values();
+                    $heroJoImages = $project->jobOrders->filter(fn($jo) => $jo->hasFinalImage())->values();
                 @endphp
                 <div class="hero-photo-panel" style="{{ $heroJoImages->count() > 0 ? 'padding:0; overflow:hidden;' : '' }}">
                     @if ($heroJoImages->count() > 0)
                         {{-- Hidden Fancybox gallery anchors (semua JO images) --}}
                         <div style="display:none;" aria-hidden="true">
                             @foreach ($heroJoImages as $idx => $jo)
-                                <a href="{{ asset('storage/' . $jo->final_image) }}" data-fancybox="hero-jo-gallery"
+                                <a href="{{ $jo->final_image_url }}" data-fancybox="hero-jo-gallery"
                                     data-caption="{{ e($jo->name) }} — {{ e($project->name) }}"
                                     id="heroGalleryAnchor{{ $idx }}"></a>
                             @endforeach
@@ -598,7 +598,7 @@
                                 @foreach ($heroJoImages as $idx => $jo)
                                     <div class="carousel-item {{ $idx === 0 ? 'active' : '' }}"
                                         data-gallery-index="{{ $idx }}" style="height:100%; cursor:zoom-in;">
-                                        <img src="{{ asset('storage/' . $jo->final_image) }}" alt="{{ e($jo->name) }}"
+                                        <img src="{{ $jo->final_image_url }}" alt="{{ e($jo->name) }}"
                                             class="hero-carousel-img" data-gallery-index="{{ $idx }}"
                                             style="width:100%; height:100%; object-fit:contain; background:#111; display:block; cursor:zoom-in;">
                                         {{-- JO name overlay --}}
@@ -836,79 +836,80 @@
 
                         {{-- INTERNATIONAL PURCHASING --}}
                         @if ($intlMaterials->isNotEmpty())
-                            <div class="sub-section" style="cursor:pointer;user-select:none;" onclick="$(this).next('.collapse-section').slideToggle(200); $(this).find('.toggle-icon').toggleClass('fa-chevron-down fa-chevron-up');">
+                            <div class="sub-section">
                                 <span style="color:#f4a400;font-size:.65rem;">🌐</span>
                                 International Purchasing
-                                <i class="fas fa-chevron-down toggle-icon ms-auto float-end" style="font-size:.6rem;color:#999;"></i>
                             </div>
-                            <div class="collapse-section" style="display:none;">
-                            <table class="cost-tbl">
-                                <thead>
-                                    <tr>
-                                        <th>Material</th>
-                                        <th class="text-end">Qty</th>
-                                        <th class="text-end">Unit Price</th>
-                                        <th class="text-end">Total (IDR)</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach ($intlMaterials as $m)
+                            <div>
+                                <table class="cost-tbl">
+                                    <thead>
                                         <tr>
-                                            <td>{{ $m['name'] }}</td>
-                                            <td class="text-end text-muted">{{ number_format($m['qty'], 2) }}
-                                                {{ $m['unit'] }}</td>
-                                            <td class="text-end text-muted">
-                                                {{ number_format($m['unit_price'], 0, ',', '.') }} {{ $m['currency'] }}
-                                            </td>
-                                            <td class="text-end">Rp {{ number_format($m['total_idr'], 0, ',', '.') }}</td>
+                                            <th>Material</th>
+                                            <th class="text-end">Qty</th>
+                                            <th class="text-end">Unit Price</th>
+                                            <th class="text-end">Total (IDR)</th>
                                         </tr>
-                                    @endforeach
-                                    <tr class="subtotal-row">
-                                        <td colspan="3">Subtotal Int'l</td>
-                                        <td class="text-end">Rp
-                                            {{ number_format($intlMaterials->sum('total_idr'), 0, ',', '.') }}</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                            </div>{{-- /collapse-section intl --}}
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($intlMaterials as $m)
+                                            <tr>
+                                                <td>{{ $m['name'] }}</td>
+                                                <td class="text-end text-muted">{{ number_format($m['qty'], 2) }}
+                                                    {{ $m['unit'] }}</td>
+                                                <td class="text-end text-muted">
+                                                    {{ number_format($m['unit_price'], 0, ',', '.') }}
+                                                    {{ $m['currency'] }}
+                                                </td>
+                                                <td class="text-end">Rp {{ number_format($m['total_idr'], 0, ',', '.') }}
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                        <tr class="subtotal-row">
+                                            <td colspan="3">Subtotal Int'l</td>
+                                            <td class="text-end">Rp
+                                                {{ number_format($intlMaterials->sum('total_idr'), 0, ',', '.') }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         @endif
 
                         {{-- LOCAL PURCHASING --}}
                         @if ($localMaterials->isNotEmpty())
-                            <div class="sub-section" style="cursor:pointer;user-select:none;" onclick="$(this).next('.collapse-section').slideToggle(200); $(this).find('.toggle-icon').toggleClass('fa-chevron-down fa-chevron-up');">
+                            <div class="sub-section">
                                 <span style="color:#17a2b8;font-size:.65rem;">🏠</span>
                                 Local Purchasing
-                                <i class="fas fa-chevron-down toggle-icon ms-auto float-end" style="font-size:.6rem;color:#999;"></i>
                             </div>
-                            <div class="collapse-section" style="display:none;">
-                            <table class="cost-tbl">
-                                <thead>
-                                    <tr>
-                                        <th>Material</th>
-                                        <th class="text-end">Qty</th>
-                                        <th class="text-end">Unit Price</th>
-                                        <th class="text-end">Total (IDR)</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach ($localMaterials as $m)
+                            <div>
+                                <table class="cost-tbl">
+                                    {{-- <thead>
                                         <tr>
-                                            <td>{{ $m['name'] }}</td>
-                                            <td class="text-end text-muted">{{ number_format($m['qty'], 2) }}
-                                                {{ $m['unit'] }}</td>
-                                            <td class="text-end text-muted">Rp
-                                                {{ number_format($m['unit_price'], 0, ',', '.') }}</td>
-                                            <td class="text-end">Rp {{ number_format($m['total_idr'], 0, ',', '.') }}</td>
+                                            <th>Material</th>
+                                            <th class="text-end">Qty</th>
+                                            <th class="text-end">Unit Price</th>
+                                            <th class="text-end">Total (IDR)</th>
                                         </tr>
-                                    @endforeach
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($localMaterials as $m)
+                                            <tr>
+                                                <td>{{ $m['name'] }}</td>
+                                                <td class="text-end text-muted">{{ number_format($m['qty'], 2) }}
+                                                    {{ $m['unit'] }}</td>
+                                                <td class="text-end text-muted">Rp
+                                                    {{ number_format($m['unit_price'], 0, ',', '.') }}</td>
+                                                <td class="text-end">Rp {{ number_format($m['total_idr'], 0, ',', '.') }}
+                                                </td>
+                                            </tr>
+                                        @endforeach --}}
                                     <tr class="subtotal-row">
                                         <td colspan="3">Subtotal Local</td>
                                         <td class="text-end">Rp
                                             {{ number_format($localMaterials->sum('total_idr'), 0, ',', '.') }}</td>
                                     </tr>
-                                </tbody>
-                            </table>
-                            </div>{{-- /collapse-section local --}}
+                                    </tbody>
+                                </table>
+                            </div>
                         @endif
 
                         @if ($intlMaterials->isEmpty() && $localMaterials->isEmpty())
@@ -950,44 +951,43 @@
                                 <span style="color:#dc3545;font-size:.65rem;">⏱️</span>
                                 Timing Apron Cost
                             </div>
-                            @foreach ($timingsByJobOrder as $joGroup)
-                                <div class="timing-group-header">
-                                    <i class="fas fa-tasks me-1"></i>{{ $joGroup['job_order_name'] }}
-                                    <span class="ms-auto float-end text-muted fw-normal"
-                                        style="font-size:.68rem;">{{ $joGroup['total_hours'] }} hrs ·
-                                        {{ $joGroup['sessions_count'] }} sessions</span>
-                                </div>
-                                <table class="cost-tbl">
-                                    <thead>
-                                        <tr>
-                                            <th>Employee</th>
-                                            <th>Role</th>
-                                            <th>In</th>
-                                            <th>Out</th>
-                                            <th class="text-end">Hours</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach ($joGroup['rows'] as $row)
+                            <div>
+                                @foreach ($timingsByJobOrder as $joGroup)
+                                    <div class="timing-group-header">
+                                        <i class="fas fa-tasks me-1"></i>{{ $joGroup['job_order_name'] }}
+                                        <span class="ms-auto float-end text-muted fw-normal"
+                                            style="font-size:.68rem;">{{ $joGroup['total_hours'] }} hrs ·
+                                            {{ $joGroup['sessions_count'] }} sessions</span>
+                                    </div>
+                                    <table class="cost-tbl">
+                                        <thead>
                                             <tr>
-                                                <td>{{ $row['employee'] }}</td>
-                                                <td class="text-muted">{{ $row['role'] }}</td>
-                                                <td class="text-muted">{{ $row['start_time'] }}</td>
-                                                <td class="text-muted">{{ $row['end_time'] }}</td>
-                                                <td class="text-end fw-semibold">{{ $row['hours'] }}</td>
+                                                <th>Employee</th>
+                                                <th>Role</th>
+                                                <th>In</th>
+                                                <th>Out</th>
+                                                <th class="text-end">Hours</th>
                                             </tr>
-                                        @endforeach
-                                        <tr class="subtotal-row">
-                                            <td colspan="4">Total Hours</td>
-                                            <td class="text-end">{{ $joGroup['total_hours'] }}</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            @endforeach
-                        @else
-                            <div class="text-center text-muted py-3" style="font-size:.8rem;">
-                                <i class="fas fa-clock me-1"></i>No approved timing data
+                                        </thead>
+                                        <tbody>
+                                            @foreach ($joGroup['rows'] as $row)
+                                                <tr>
+                                                    <td>{{ $row['employee'] }}</td>
+                                                    <td class="text-muted">{{ $row['role'] }}</td>
+                                                    <td class="text-muted">{{ $row['start_time'] }}</td>
+                                                    <td class="text-muted">{{ $row['end_time'] }}</td>
+                                                    <td class="text-end fw-semibold">{{ $row['hours'] }}</td>
+                                                </tr>
+                                            @endforeach
+                                            <tr class="subtotal-row">
+                                                <td colspan="4">Total Hours</td>
+                                                <td class="text-end">{{ $joGroup['total_hours'] }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                @endforeach
                             </div>
+                        @else
                         @endif
 
                         <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top fw-bold"
@@ -1026,31 +1026,33 @@
                                 <div class="sub-section">
                                     <span style="font-size:.65rem;">🇸🇬→🇮🇩</span> SG → BT
                                 </div>
-                                <table class="cost-tbl">
-                                    <thead>
-                                        <tr>
-                                            <th>Shipment</th>
-                                            <th class="text-end">Cost</th>
-                                            <th>Carrier</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach ($sgBt as $c)
-                                            @foreach ($c['items'] ?? [] as $item)
-                                                <tr>
-                                                    <td>{{ is_array($item) ? $item['name'] ?? '—' : $item }}</td>
-                                                    <td class="text-end text-muted">—</td>
-                                                    <td class="text-muted">{{ $c['courier_name'] ?? '—' }}</td>
-                                                </tr>
+                                <div>
+                                    <table class="cost-tbl">
+                                        <thead>
+                                            <tr>
+                                                <th>Shipment</th>
+                                                <th class="text-end">Cost</th>
+                                                <th>Carrier</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach ($sgBt as $c)
+                                                @foreach ($c['items'] ?? [] as $item)
+                                                    <tr>
+                                                        <td>{{ is_array($item) ? $item['name'] ?? '—' : $item }}</td>
+                                                        <td class="text-end text-muted">—</td>
+                                                        <td class="text-muted">{{ $c['courier_name'] ?? '—' }}</td>
+                                                    </tr>
+                                                @endforeach
                                             @endforeach
-                                        @endforeach
-                                        <tr class="subtotal-row">
-                                            <td colspan="1">Subtotal SG → BT</td>
-                                            <td class="text-end" colspan="2">Rp
-                                                {{ number_format($sgBt->sum('total_idr'), 0, ',', '.') }}</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                                            <tr class="subtotal-row">
+                                                <td colspan="1">Subtotal SG → BT</td>
+                                                <td class="text-end" colspan="2">Rp
+                                                    {{ number_format($sgBt->sum('total_idr'), 0, ',', '.') }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
                             @endif
 
                             {{-- BT → SG --}}
@@ -1059,31 +1061,33 @@
                                 <div class="sub-section">
                                     <span style="font-size:.65rem;">🇮🇩→🇸🇬</span> BT → SG
                                 </div>
-                                <table class="cost-tbl">
-                                    <thead>
-                                        <tr>
-                                            <th>Shipment</th>
-                                            <th class="text-end">Cost</th>
-                                            <th>Carrier</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach ($btSg as $c)
-                                            @foreach ($c['items'] ?? [] as $item)
-                                                <tr>
-                                                    <td>{{ is_array($item) ? $item['name'] ?? '—' : $item }}</td>
-                                                    <td class="text-end text-muted">—</td>
-                                                    <td class="text-muted">{{ $c['courier_name'] ?? '—' }}</td>
-                                                </tr>
+                                <div>
+                                    <table class="cost-tbl">
+                                        <thead>
+                                            <tr>
+                                                <th>Shipment</th>
+                                                <th class="text-end">Cost</th>
+                                                <th>Carrier</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach ($btSg as $c)
+                                                @foreach ($c['items'] ?? [] as $item)
+                                                    <tr>
+                                                        <td>{{ is_array($item) ? $item['name'] ?? '—' : $item }}</td>
+                                                        <td class="text-end text-muted">—</td>
+                                                        <td class="text-muted">{{ $c['courier_name'] ?? '—' }}</td>
+                                                    </tr>
+                                                @endforeach
                                             @endforeach
-                                        @endforeach
-                                        <tr class="subtotal-row">
-                                            <td colspan="1">Subtotal BT → SG</td>
-                                            <td class="text-end" colspan="2">Rp
-                                                {{ number_format($btSg->sum('total_idr'), 0, ',', '.') }}</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                                            <tr class="subtotal-row">
+                                                <td colspan="1">Subtotal BT → SG</td>
+                                                <td class="text-end" colspan="2">Rp
+                                                    {{ number_format($btSg->sum('total_idr'), 0, ',', '.') }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
                             @endif
                         @else
                             <div class="text-center text-muted py-3" style="font-size:.8rem;">

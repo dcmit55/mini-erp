@@ -196,6 +196,12 @@
                                                 </a>
                                             </li>
                                             <li>
+                                                <a class="dropdown-item {{ request()->is('stock-adjustments*') ? 'active' : '' }}"
+                                                    href="{{ route('stock-adjustments.index') }}">
+                                                    <i class="bi bi-sliders me-2"></i>Stock Adjustment
+                                                </a>
+                                            </li>
+                                            <li>
                                                 <a class="dropdown-item {{ request()->is('material_requests*') ? 'active' : '' }}"
                                                     href="{{ route('material_requests.index') }}">
                                                     <i class="fas fa-clipboard-list me-2"></i>Material Request
@@ -335,15 +341,33 @@
                                     ]))
                                     @php
                                         $deptLeavePendingCount = 0;
-                                        if (in_array(auth()->user()->role, ['admin_mascot', 'admin_logistic', 'admin_costume', 'admin_animatronic', 'super_admin', 'admin'])) {
+                                        if (
+                                            in_array(auth()->user()->role, [
+                                                'admin_mascot',
+                                                'admin_logistic',
+                                                'admin_costume',
+                                                'admin_animatronic',
+                                                'super_admin',
+                                                'admin',
+                                            ])
+                                        ) {
                                             $deptRole = auth()->user()->role;
-                                            $deptMap  = \App\Models\Hr\LeaveRequest::DEPT_ROLE_MAP;
+                                            $deptMap = \App\Models\Hr\LeaveRequest::DEPT_ROLE_MAP;
                                             if (isset($deptMap[$deptRole])) {
-                                                $deptLeavePendingCount = \App\Models\Hr\LeaveRequest::where('approval_dept', 'pending')
-                                                    ->whereHas('employee.department', fn($q) => $q->whereIn('name', (array) $deptMap[$deptRole]))
+                                                $deptLeavePendingCount = \App\Models\Hr\LeaveRequest::where(
+                                                    'approval_dept',
+                                                    'pending',
+                                                )
+                                                    ->whereHas(
+                                                        'employee.department',
+                                                        fn($q) => $q->whereIn('name', (array) $deptMap[$deptRole]),
+                                                    )
                                                     ->count();
                                             } elseif (in_array($deptRole, ['super_admin', 'admin'])) {
-                                                $deptLeavePendingCount = \App\Models\Hr\LeaveRequest::where('approval_dept', 'pending')->count();
+                                                $deptLeavePendingCount = \App\Models\Hr\LeaveRequest::where(
+                                                    'approval_dept',
+                                                    'pending',
+                                                )->count();
                                             }
                                         }
                                     @endphp
@@ -385,17 +409,27 @@
                                                     <i class="fas fa-hourglass-half me-2"></i>Overtime Requests
                                                 </a>
                                             </li>
-                                            @if(in_array(auth()->user()->role, ['admin_mascot', 'admin_logistic', 'admin_costume', 'admin_animatronic', 'super_admin', 'admin']))
-                                            <li><hr class="dropdown-divider"></li>
-                                            <li>
-                                                <a class="dropdown-item {{ request()->routeIs('leave_requests.dept-approvals') ? 'active' : '' }}"
-                                                    href="{{ route('leave_requests.dept-approvals') }}">
-                                                    <i class="fas fa-calendar-check me-2"></i>Leave Approvals
-                                                    @if($deptLeavePendingCount > 0)
-                                                        <span class="badge bg-danger rounded-pill ms-1" style="font-size:0.6rem;">{{ $deptLeavePendingCount > 99 ? '99+' : $deptLeavePendingCount }}</span>
-                                                    @endif
-                                                </a>
-                                            </li>
+                                            @if (in_array(auth()->user()->role, [
+                                                    'admin_mascot',
+                                                    'admin_logistic',
+                                                    'admin_costume',
+                                                    'admin_animatronic',
+                                                    'super_admin',
+                                                    'admin',
+                                                ]))
+                                                <li>
+                                                    <hr class="dropdown-divider">
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->routeIs('leave_requests.dept-approvals') ? 'active' : '' }}"
+                                                        href="{{ route('leave_requests.dept-approvals') }}">
+                                                        <i class="fas fa-calendar-check me-2"></i>Leave Approvals
+                                                        @if ($deptLeavePendingCount > 0)
+                                                            <span class="badge bg-danger rounded-pill ms-1"
+                                                                style="font-size:0.6rem;">{{ $deptLeavePendingCount > 99 ? '99+' : $deptLeavePendingCount }}</span>
+                                                        @endif
+                                                    </a>
+                                                </li>
                                             @endif
                                         </ul>
                                     </li>
@@ -515,14 +549,34 @@
                                 @auth
                                     @if (in_array(auth()->user()->role, ['super_admin', 'admin_hr', 'admin']))
                                         @php
-                                            $hrOvertimePendingCount = \App\Models\Hr\OvertimeRequest::whereIn('status', ['submitted', 'draft'])
-                                                ->where(function ($q) { $q->where('hr_approval_status', 'pending')->orWhereNull('hr_approval_status'); })
+                                            $hrOvertimePendingCount = \App\Models\Hr\OvertimeRequest::whereIn(
+                                                'status',
+                                                ['submitted', 'draft'],
+                                            )
+                                                ->where(function ($q) {
+                                                    $q->where('hr_approval_status', 'pending')->orWhereNull(
+                                                        'hr_approval_status',
+                                                    );
+                                                })
                                                 ->count();
-                                            $directorOvertimePendingCount = \App\Models\Hr\OvertimeRequest::whereIn('status', ['submitted', 'draft'])
-                                                ->where(function ($q) { $q->where('director_approval_status', 'pending')->orWhereNull('director_approval_status'); })
+                                            $directorOvertimePendingCount = \App\Models\Hr\OvertimeRequest::whereIn(
+                                                'status',
+                                                ['submitted', 'draft'],
+                                            )
+                                                ->where(function ($q) {
+                                                    $q->where('director_approval_status', 'pending')->orWhereNull(
+                                                        'director_approval_status',
+                                                    );
+                                                })
                                                 ->count();
-                                            $hrLeavePendingCount = \App\Models\Hr\LeaveRequest::where('approval_1', 'pending')->count();
-                                            $directorLeavePendingCount = \App\Models\Hr\LeaveRequest::where('approval_2', 'pending')->count();
+                                            $hrLeavePendingCount = \App\Models\Hr\LeaveRequest::where(
+                                                'approval_1',
+                                                'pending',
+                                            )->count();
+                                            $directorLeavePendingCount = \App\Models\Hr\LeaveRequest::where(
+                                                'approval_2',
+                                                'pending',
+                                            )->count();
                                         @endphp
                                         <li class="nav-item dropdown">
                                             <a class="nav-link dropdown-toggle {{ request()->is('employees*') || request()->routeIs('leave_requests.index') || request()->is('attendance*') || request()->routeIs('employee-work-policies.*') || request()->routeIs('timings.*') || request()->routeIs('attendance-logs.*') || request()->routeIs('overtime-requests.*') || request()->routeIs('overtime-pays.*') || request()->routeIs('fingerspot.*') || request()->routeIs('session-shifts.*') ? 'active' : '' }}"
@@ -552,14 +606,17 @@
                                                 </li>
 
                                                 {{-- Approvals --}}
-                                                <li><hr class="dropdown-divider"></li>
+                                                <li>
+                                                    <hr class="dropdown-divider">
+                                                </li>
                                                 <li>
                                                     @php $totalLeavePending = ($hrLeavePendingCount ?? 0) + ($directorLeavePendingCount ?? 0); @endphp
                                                     <a class="dropdown-item d-flex align-items-center justify-content-between {{ request()->routeIs('leave_requests.hr-approvals', 'leave_requests.director-approvals') ? 'active' : '' }}"
                                                         href="{{ route('leave_requests.hr-approvals') }}">
                                                         <span><i class="fas fa-user-check me-2"></i>Leave Approvals</span>
-                                                        @if($totalLeavePending > 0)
-                                                            <span class="badge bg-danger rounded-pill ms-2" style="font-size:0.65rem;">
+                                                        @if ($totalLeavePending > 0)
+                                                            <span class="badge bg-danger rounded-pill ms-2"
+                                                                style="font-size:0.65rem;">
                                                                 {{ $totalLeavePending > 99 ? '99+' : $totalLeavePending }}
                                                             </span>
                                                         @endif
@@ -569,17 +626,26 @@
                                                     @php $totalOvertimePending = ($hrOvertimePendingCount ?? 0) + ($directorOvertimePendingCount ?? 0); @endphp
                                                     <a class="dropdown-item d-flex align-items-center justify-content-between {{ request()->routeIs('overtime-requests.hr-approvals', 'overtime-requests.director-approvals') ? 'active' : '' }}"
                                                         href="{{ route('overtime-requests.hr-approvals') }}">
-                                                        <span><i class="fas fa-user-check me-2"></i>Overtime Approvals</span>
-                                                        @if($totalOvertimePending > 0)
-                                                            <span class="badge bg-danger rounded-pill ms-2" style="font-size:0.65rem;">
+                                                        <span><i class="fas fa-user-check me-2"></i>Overtime
+                                                            Approvals</span>
+                                                        @if ($totalOvertimePending > 0)
+                                                            <span class="badge bg-danger rounded-pill ms-2"
+                                                                style="font-size:0.65rem;">
                                                                 {{ $totalOvertimePending > 99 ? '99+' : $totalOvertimePending }}
                                                             </span>
                                                         @endif
                                                     </a>
                                                 </li>
                                                 @php
-                                                    $directorMatrix = \App\Models\Hr\ApprovalMatrix::where('module', 'overtime')->where('level', 2)->first();
-                                                    $directorAllowedRoles = $directorMatrix ? $directorMatrix->getAllowedRoles() : ['director', 'admin_hr'];
+                                                    $directorMatrix = \App\Models\Hr\ApprovalMatrix::where(
+                                                        'module',
+                                                        'overtime',
+                                                    )
+                                                        ->where('level', 2)
+                                                        ->first();
+                                                    $directorAllowedRoles = $directorMatrix
+                                                        ? $directorMatrix->getAllowedRoles()
+                                                        : ['director', 'admin_hr'];
                                                     $directorAllowedRoles[] = 'super_admin';
                                                 @endphp
                                                 <li>
@@ -590,7 +656,9 @@
                                                 </li>
 
                                                 {{-- Timing --}}
-                                                <li><hr class="dropdown-divider"></li>
+                                                <li>
+                                                    <hr class="dropdown-divider">
+                                                </li>
                                                 <li>
                                                     <a class="dropdown-item {{ request()->is('timings*') ? 'active' : '' }}"
                                                         href="{{ route('timings.index') }}">
@@ -599,7 +667,9 @@
                                                 </li>
 
                                                 {{-- Fingerspot & Export --}}
-                                                <li><hr class="dropdown-divider"></li>
+                                                <li>
+                                                    <hr class="dropdown-divider">
+                                                </li>
                                                 <li>
                                                     <a class="dropdown-item {{ request()->routeIs('fingerspot.*') ? 'active' : '' }}"
                                                         href="{{ route('fingerspot.index') }}">
@@ -634,8 +704,8 @@
                                     @if (auth()->user()->role === 'timing')
                                         <li class="nav-item dropdown">
                                             <a class="nav-link dropdown-toggle {{ request()->is('employees*') || request()->routeIs('timings.*') ? 'active' : '' }}"
-                                                href="#" id="hrTimingDropdown" role="button" data-bs-toggle="dropdown"
-                                                aria-expanded="false">
+                                                href="#" id="hrTimingDropdown" role="button"
+                                                data-bs-toggle="dropdown" aria-expanded="false">
                                                 <i></i>HR
                                             </a>
                                             <ul class="dropdown-menu" aria-labelledby="hrTimingDropdown">
@@ -645,7 +715,9 @@
                                                         <i class="fas fa-user-tie me-2"></i>Employees
                                                     </a>
                                                 </li>
-                                                <li><hr class="dropdown-divider"></li>
+                                                <li>
+                                                    <hr class="dropdown-divider">
+                                                </li>
                                                 <li>
                                                     <a class="dropdown-item {{ request()->is('timings*') ? 'active' : '' }}"
                                                         href="{{ route('timings.index') }}">

@@ -484,7 +484,7 @@ class LarkStagingController extends Controller
                         $resetBtn = '<button class="btn btn-secondary btn-xs btn-reset me-1" data-id="' . $row->id . '" title="Reset to Pending"><i class="bi bi-arrow-counterclockwise"></i></button>';
                         return '<span class="badge bg-success me-1" title="Approved &amp; Locked"><i class="bi bi-lock-fill"></i></span>' . $resetBtn;
                     }
-                    $editBtn = '<button class="btn btn-outline-primary btn-sm btn-edit-item me-1" data-id="' . $row->id . '" data-name="' . e($row->name) . '" data-unit="' . e($row->unit) . '" title="Edit Name &amp; Unit" data-bs-toggle="tooltip" data-bs-placement="top"><i class="bi bi-pencil-fill"></i></button>';
+                    $editBtn = '<button class="btn btn-outline-primary btn-sm btn-edit-item me-1" data-id="' . $row->id . '" data-name="' . e($row->name) . '" data-unit="' . e($row->unit) . '" data-price="' . ($row->price ?? '') . '" title="Edit Name, Unit &amp; Price" data-bs-toggle="tooltip" data-bs-placement="top"><i class="bi bi-pencil-fill"></i></button>';
                     $approveBtn = $row->review_status !== 'approved' ? '<button class="btn btn-success btn-sm btn-approve me-1" data-id="' . $row->id . '" title="Approve &amp; Push to Inventory"><i class="bi bi-check-lg"></i></button>' : '';
                     $rejectBtn = $row->review_status !== 'rejected' ? '<button class="btn btn-danger btn-sm btn-reject me-1" data-id="' . $row->id . '" title="Reject"><i class="bi bi-x-lg"></i></button>' : '';
                     $resetBtn = $row->review_status !== 'pending' ? '<button class="btn btn-secondary btn-sm btn-reset me-1" data-id="' . $row->id . '" title="Reset to Pending"><i class="bi bi-arrow-counterclockwise"></i></button>' : '';
@@ -598,6 +598,7 @@ class LarkStagingController extends Controller
             $request->validate([
                 'name' => ['required', 'string', 'max:255'],
                 'unit' => ['required', 'string', 'max:100'],
+                'price' => ['nullable', 'numeric', 'min:0'],
             ]);
 
             $staging = LarkStagingInventory::findOrFail($id);
@@ -612,16 +613,22 @@ class LarkStagingController extends Controller
                 );
             }
 
-            $staging->update([
+            $updateData = [
                 'name' => trim($request->name),
                 'unit' => trim($request->unit),
-            ]);
+            ];
+            if ($request->filled('price')) {
+                $updateData['price'] = $request->price;
+            }
+
+            $staging->update($updateData);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Item berhasil diperbarui.',
                 'name' => $staging->name,
                 'unit' => $staging->unit,
+                'price' => $staging->price,
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json(
@@ -730,6 +737,57 @@ class LarkStagingController extends Controller
             );
         } catch (\Exception $e) {
             Log::error('Update staging unit failed', ['id' => $id, 'error' => $e->getMessage()]);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Gagal menyimpan: ' . $e->getMessage(),
+                ],
+                500,
+            );
+        }
+    }
+
+    /**
+     * Update item price on a staging record.
+     * Allows admin to set/fix price before approve.
+     * AJAX endpoint
+     */
+    public function updatePrice(Request $request, int $id)
+    {
+        try {
+            $request->validate([
+                'price' => ['required', 'numeric', 'min:0.01'],
+            ]);
+
+            $staging = LarkStagingInventory::findOrFail($id);
+
+            if ($staging->locked) {
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => 'Item ini sudah di-approve dan terkunci. Harga tidak dapat diubah.',
+                    ],
+                    422,
+                );
+            }
+
+            $staging->update(['price' => $request->price]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Harga berhasil diperbarui.',
+                'price' => $staging->price,
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => collect($e->errors())->flatten()->first() ?? 'Validasi gagal.',
+                ],
+                422,
+            );
+        } catch (\Exception $e) {
+            Log::error('Update staging price failed', ['id' => $id, 'error' => $e->getMessage()]);
             return response()->json(
                 [
                     'success' => false,
