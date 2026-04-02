@@ -842,16 +842,16 @@
                             </div>
                             <div>
                                 <table class="cost-tbl">
-                                    <thead>
+                                    {{-- <thead>
                                         <tr>
                                             <th>Material</th>
                                             <th class="text-end">Qty</th>
                                             <th class="text-end">Unit Price</th>
                                             <th class="text-end">Total (IDR)</th>
                                         </tr>
-                                    </thead>
+                                    </thead> --}}
                                     <tbody>
-                                        @foreach ($intlMaterials as $m)
+                                        {{-- @foreach ($intlMaterials as $m)
                                             <tr>
                                                 <td>{{ $m['name'] }}</td>
                                                 <td class="text-end text-muted">{{ number_format($m['qty'], 2) }}
@@ -863,7 +863,7 @@
                                                 <td class="text-end">Rp {{ number_format($m['total_idr'], 0, ',', '.') }}
                                                 </td>
                                             </tr>
-                                        @endforeach
+                                        @endforeach --}}
                                         <tr class="subtotal-row">
                                             <td colspan="3">Subtotal Int'l</td>
                                             <td class="text-end">Rp
@@ -961,16 +961,16 @@
                                     </div>
                                     <table class="cost-tbl">
                                         <thead>
-                                            <tr>
+                                            {{-- <tr>
                                                 <th>Employee</th>
                                                 <th>Role</th>
                                                 <th>In</th>
                                                 <th>Out</th>
                                                 <th class="text-end">Hours</th>
-                                            </tr>
+                                            </tr> --}}
                                         </thead>
                                         <tbody>
-                                            @foreach ($joGroup['rows'] as $row)
+                                            {{-- @foreach ($joGroup['rows'] as $row)
                                                 <tr>
                                                     <td>{{ $row['employee'] }}</td>
                                                     <td class="text-muted">{{ $row['role'] }}</td>
@@ -978,7 +978,7 @@
                                                     <td class="text-muted">{{ $row['end_time'] }}</td>
                                                     <td class="text-end fw-semibold">{{ $row['hours'] }}</td>
                                                 </tr>
-                                            @endforeach
+                                            @endforeach --}}
                                             <tr class="subtotal-row">
                                                 <td colspan="4">Total Hours</td>
                                                 <td class="text-end">{{ $joGroup['total_hours'] }}</td>
@@ -1028,15 +1028,15 @@
                                 </div>
                                 <div>
                                     <table class="cost-tbl">
-                                        <thead>
+                                        {{-- <thead>
                                             <tr>
                                                 <th>Shipment</th>
                                                 <th class="text-end">Cost</th>
                                                 <th>Carrier</th>
                                             </tr>
-                                        </thead>
+                                        </thead> --}}
                                         <tbody>
-                                            @foreach ($sgBt as $c)
+                                            {{-- @foreach ($sgBt as $c)
                                                 @foreach ($c['items'] ?? [] as $item)
                                                     <tr>
                                                         <td>{{ is_array($item) ? $item['name'] ?? '—' : $item }}</td>
@@ -1044,7 +1044,7 @@
                                                         <td class="text-muted">{{ $c['courier_name'] ?? '—' }}</td>
                                                     </tr>
                                                 @endforeach
-                                            @endforeach
+                                            @endforeach --}}
                                             <tr class="subtotal-row">
                                                 <td colspan="1">Subtotal SG → BT</td>
                                                 <td class="text-end" colspan="2">Rp
@@ -1063,15 +1063,15 @@
                                 </div>
                                 <div>
                                     <table class="cost-tbl">
-                                        <thead>
+                                        {{-- <thead>
                                             <tr>
                                                 <th>Shipment</th>
                                                 <th class="text-end">Cost</th>
                                                 <th>Carrier</th>
                                             </tr>
-                                        </thead>
+                                        </thead> --}}
                                         <tbody>
-                                            @foreach ($btSg as $c)
+                                            {{-- @foreach ($btSg as $c)
                                                 @foreach ($c['items'] ?? [] as $item)
                                                     <tr>
                                                         <td>{{ is_array($item) ? $item['name'] ?? '—' : $item }}</td>
@@ -1079,7 +1079,7 @@
                                                         <td class="text-muted">{{ $c['courier_name'] ?? '—' }}</td>
                                                     </tr>
                                                 @endforeach
-                                            @endforeach
+                                            @endforeach --}}
                                             <tr class="subtotal-row">
                                                 <td colspan="1">Subtotal BT → SG</td>
                                                 <td class="text-end" colspan="2">Rp

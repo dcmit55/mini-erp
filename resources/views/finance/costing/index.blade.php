@@ -794,19 +794,10 @@
                                         <span class="pc-lbl">Actual Project Cost</span>
                                         <span class="pc-val">{{ $hasData ? $fmt($actualCost) : '—' }}</span>
                                     </div>
-
                                     <div class="pc-row">
-                                        <span class="pc-lbl">Material Cost</span>
-                                        <span class="pc-val">{{ $materialCost > 0 ? $fmt($materialCost) : '—' }}</span>
-                                    </div>
-                                    <div class="pc-row">
-                                        <span class="pc-lbl">Workmanship Cost</span>
+                                        <span class="pc-lbl">Total Timing Cost</span>
                                         <span
                                             class="pc-val">{{ $workmanshipCost > 0 ? $fmt($workmanshipCost) : '—' }}</span>
-                                    </div>
-                                    <div class="pc-row">
-                                        <span class="pc-lbl">Freight Cost</span>
-                                        <span class="pc-val">{{ $freightCost > 0 ? $fmt($freightCost) : '—' }}</span>
                                     </div>
                                     <div class="pc-row">
                                         <span class="pc-lbl">Total Project Time</span>
