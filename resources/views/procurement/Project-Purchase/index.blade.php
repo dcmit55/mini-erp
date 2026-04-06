@@ -515,7 +515,7 @@
                             <thead class="table-light">
                                 <tr>
                                     <th class="border-0 ps-4 text-center" width="50">No</th>
-                                    <th class="border-0">PO Number</th>
+                                    <th class="border-0">Purchase Number</th>
                                     <th class="border-0">Date</th>
                                     <th class="border-0">Department</th>
                                     <th class="border-0">Project</th>
@@ -607,28 +607,43 @@
                                                     <i class="fas fa-eye"></i>
                                                 </a>
                                                 
-                                                <!-- EDIT BUTTON - Bisa diedit jika pending ATAU approved -->
-                                                @if(in_array($purchase->status, ['pending', 'approved']))
-                                                <a href="{{ route('project-purchases.edit', $purchase->uid) }}" 
+                                                <!-- EDIT BUTTON - Hanya jika pending -->
+                                                @if($purchase->status == 'pending')
+                                                <a href="{{ route('project-purchases.edit', $purchase->uid) }}"
                                                    class="btn btn-sm btn-outline-primary border-0 px-2 action-btn"
                                                    data-bs-toggle="tooltip" title="Edit">
                                                     <i class="fas fa-edit"></i>
                                                 </a>
                                                 @endif
 
-                                                <!-- DELETE BUTTON - HANYA jika status pending -->
+                                                <!-- DELETE BUTTON - Hanya jika status pending -->
                                                 @if($purchase->status == 'pending')
-                                                <form action="{{ route('project-purchases.destroy', $purchase->uid) }}" 
-                                                      method="POST" class="d-inline" 
+                                                <form action="{{ route('project-purchases.destroy', $purchase->uid) }}"
+                                                      method="POST" class="d-inline"
                                                       onsubmit="return confirm('Delete purchase order {{ $purchase->po_number }}? This will delete all {{ $groupInfo['total_items'] }} items in this PO.')">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button type="submit" 
+                                                    <button type="submit"
                                                             class="btn btn-sm btn-outline-danger border-0 px-2 action-btn"
                                                             data-bs-toggle="tooltip" title="Delete">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
                                                 </form>
+                                                @endif
+
+                                                <!-- REQUEST DELETE - Hanya jika sudah approved -->
+                                                @if($purchase->status == 'approved')
+                                                <button type="button"
+                                                        class="btn btn-sm btn-outline-danger border-0 px-2 action-btn"
+                                                        data-bs-toggle="tooltip" title="Request Deletion"
+                                                        onclick="openDeletionModal('{{ $purchase->uid }}', '{{ $purchase->po_number }}')">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                                @endif
+
+                                                <!-- BADGE: Menunggu Persetujuan Hapus -->
+                                                @if($purchase->status == 'deletion_requested')
+                                                <span class="badge bg-warning text-dark" style="font-size:0.7rem;">Menunggu Hapus</span>
                                                 @endif
                                                 
                                                 <!-- APPROVE BUTTON - UNTUK FINANCE (hanya jika pending) -->
@@ -937,5 +952,47 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
 });
+</script>
+
+<!-- Modal: Request Deletion -->
+<div class="modal fade" id="deletionRequestModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">Request Penghapusan Purchase</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="deletionRequestForm" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <div class="alert alert-warning py-2 small">
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        Purchase ini sudah <strong>disetujui Finance</strong>. Permintaan hapus akan dikirim ke Finance untuk disetujui terlebih dahulu.
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Purchase Number</label>
+                        <input type="text" id="deletionPoNumber" class="form-control form-control-sm" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Alasan Penghapusan <span class="text-danger">*</span></label>
+                        <textarea name="deletion_reason" class="form-control form-control-sm" rows="3"
+                                  placeholder="Jelaskan alasan penghapusan..." required minlength="5"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-danger btn-sm">Kirim Permintaan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function openDeletionModal(uid, poNumber) {
+    document.getElementById('deletionPoNumber').value = poNumber;
+    document.getElementById('deletionRequestForm').action = '/project-purchases/' + uid + '/request-deletion';
+    new bootstrap.Modal(document.getElementById('deletionRequestModal')).show();
+}
 </script>
 @endsection

@@ -57,6 +57,7 @@ use App\Http\Controllers\Finance\PurchaseApprovalController;
 use App\Http\Controllers\Finance\PurchaseEditedController;
 use App\Http\Controllers\Hr\EmployeeWorkPolicyController;
 use App\Http\Controllers\Hr\AttendanceLogController;
+use App\Http\Controllers\Hr\AttendanceSummaryController;
 use App\Http\Controllers\Hr\EmployeeImportController;
 use App\Http\Controllers\Hr\OvertimeRequestController;
 use App\Http\Controllers\Hr\OvertimePayController;
@@ -162,6 +163,11 @@ Route::middleware(['auth'])->group(function () {
 
     // Departments
     Route::resource('departments', DepartmentController::class);
+
+    // National Holidays
+    Route::resource('national-holidays', \App\Http\Controllers\Admin\NationalHolidayController::class)
+        ->only(['index', 'store', 'update', 'destroy'])
+        ->middleware('auth');
 
     // Users
     Route::resource('users', UserController::class);
@@ -364,6 +370,7 @@ Route::middleware(['auth'])->group(function () {
     // Employees — route statis harus SEBELUM resource agar tidak kalah dengan {employee}
     Route::get('/employees/search', [EmployeeController::class, 'search'])->name('employees.search');
     Route::get('/employees/export', [EmployeeController::class, 'export'])->name('employees.export');
+    Route::get('/employees/near-expired', [EmployeeController::class, 'nearExpired'])->name('employees.near-expired');
     Route::post('/employees/check-employee-no', [EmployeeController::class, 'checkEmployeeNo'])->name('employees.check-employee-no');
     Route::post('/employees/check-ktp', [EmployeeController::class, 'checkKtpId'])->name('employees.check-ktp');
     Route::resource('employees', EmployeeController::class);
@@ -575,6 +582,9 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{uid}/approve', [ProjectPurchaseController::class, 'approve'])->name('project-purchases.approve');
         Route::post('/{uid}/reject', [ProjectPurchaseController::class, 'reject'])->name('project-purchases.reject');
 
+        // Deletion Request Routes
+        Route::post('/{uid}/request-deletion', [ProjectPurchaseController::class, 'requestDeletion'])->name('project-purchases.request-deletion');
+
         // Update Tracking Route
         Route::post('/{uid}/update-tracking', [ProjectPurchaseController::class, 'updateTracking'])->name('project-purchases.update-tracking');
 
@@ -628,6 +638,11 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/{id}/reject', [PurchaseApprovalController::class, 'reject'])->name('reject');
             Route::post('/bulk-approve', [PurchaseApprovalController::class, 'bulkApprove'])->name('bulk-approve');
             Route::post('/bulk-reject', [PurchaseApprovalController::class, 'bulkReject'])->name('bulk-reject');
+            Route::get('/deletion-requests', [PurchaseApprovalController::class, 'deletionRequests'])->name('deletion-requests');
+            Route::get('/deleted-purchases', [PurchaseApprovalController::class, 'deletedPurchases'])->name('deleted-purchases');
+            Route::get('/deletion-requests/{id}/detail', [PurchaseApprovalController::class, 'viewDeletionDetail'])->name('deletion-detail');
+            Route::post('/{id}/approve-deletion', [PurchaseApprovalController::class, 'approveDeletion'])->name('approve-deletion');
+            Route::post('/{id}/reject-deletion', [PurchaseApprovalController::class, 'rejectDeletion'])->name('reject-deletion');
         });
     Route::prefix('finance/purchase-edited')
         ->name('purchase-edited.')
@@ -711,6 +726,11 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('session-shifts/{session_shift}/clear-break2', [SessionShiftController::class, 'clearBreak2'])->name('session-shifts.clear-break2');
 
     Route::get('/attendance-logs', [AttendanceLogController::class, 'index'])->name('attendance-logs.index');
+    Route::get('/attendance-logs/summary', [AttendanceSummaryController::class, 'index'])->name('attendance-logs.summary');
+    Route::post('/attendance-logs/company-holidays', [AttendanceSummaryController::class, 'storeHoliday'])->name('attendance-logs.company-holidays.store');
+    Route::delete('/attendance-logs/company-holidays/{companyHoliday}', [AttendanceSummaryController::class, 'destroyHoliday'])->name('attendance-logs.company-holidays.destroy');
+    Route::put('/attendance-logs/national-holidays/{nationalHoliday}', [AttendanceSummaryController::class, 'updateNationalHoliday'])->name('attendance-logs.national-holidays.update');
+    Route::delete('/attendance-logs/national-holidays/{nationalHoliday}', [AttendanceSummaryController::class, 'destroyNationalHoliday'])->name('attendance-logs.national-holidays.destroy');
     Route::post('/attendance-logs/import', [AttendanceLogController::class, 'storeImport'])->name('attendance-logs.import.store');
     Route::get('/attendance-logs/import', function () {
         return redirect()->route('attendance-logs.index')->with('info', 'Halaman import telah dipindahkan. Gunakan tombol "Import Excel" di halaman ini.');

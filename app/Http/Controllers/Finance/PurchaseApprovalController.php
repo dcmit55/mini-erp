@@ -385,6 +385,214 @@ class PurchaseApprovalController extends Controller
     }
 
     /**
+     * Deleted purchases log
+     */
+    public function deletedPurchases(Request $request)
+    {
+        $search = $request->get('search');
+
+        $query = ProjectPurchase::onlyTrashed()
+            ->with(['department', 'supplier', 'pic',
+                    'material', 'project', 'internalProject', 'jobOrder', 'category', 'unit',
+                    'deletionApprovedBy'])
+            ->where('is_current', 1)
+            ->orderBy('deleted_at', 'desc');
+
+        if ($search) {
+            $query->where('po_number', 'like', "%{$search}%");
+        }
+
+        $items = $query->get();
+
+        // Group by PO number
+        $grouped = [];
+        foreach ($items as $item) {
+            $po = $item->po_number;
+            if (!isset($grouped[$po])) {
+                $grouped[$po] = [
+                    'po_number'             => $po,
+                    'date'                  => $item->date,
+                    'supplier'              => $item->supplier,
+                    'department'            => $item->department,
+                    'project_type'          => $item->project_type,
+                    'project'               => $item->project,
+                    'internal_project'      => $item->internalProject,
+                    'job_order'             => $item->jobOrder,
+                    'deletion_reason'       => $item->deletion_reason,
+                    'deletion_requested_at' => $item->deletion_requested_at,
+                    'deletion_approved_at'  => $item->deletion_approved_at,
+                    'approved_by_user'      => $item->deletionApprovedBy,
+                    'requested_by'          => $item->pic,
+                    'first_item_id'         => $item->id,
+                    'deleted_at'            => $item->deleted_at,
+                    'total_amount'          => 0,
+                    'items'                 => [],
+                ];
+            }
+            $grouped[$po]['items'][] = [
+                'name'       => $item->material_name,
+                'qty'        => $item->quantity,
+                'unit'       => $item->unit?->name ?? '-',
+                'unit_price' => $item->unit_price,
+                'total'      => $item->invoice_total,
+            ];
+            $grouped[$po]['total_amount'] += $item->invoice_total;
+        }
+
+        $deletedPurchases = collect(array_values($grouped));
+
+        // Manual pagination
+        $perPage = 20;
+        $currentPage = $request->input('page', 1);
+        $pagedData = $deletedPurchases->slice(($currentPage - 1) * $perPage, $perPage)->values();
+        $paginated = new \Illuminate\Pagination\LengthAwarePaginator(
+            $pagedData, $deletedPurchases->count(), $perPage, $currentPage,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+
+        return view('finance.purchase-approvals.deleted-purchases', [
+            'deletedPurchases' => $paginated,
+            'search'           => $search,
+        ]);
+    }
+
+    /**
+     * Detail view for a single deletion request
+     */
+    public function viewDeletionDetail($id)
+    {
+        $purchase = ProjectPurchase::with([
+                'department', 'supplier', 'pic', 'material', 'category', 'unit',
+                'project', 'internalProject', 'jobOrder'
+            ])
+            ->where('is_current', 1)
+            ->findOrFail($id);
+
+        $poItems = ProjectPurchase::with(['material', 'category', 'unit'])
+            ->where('po_number', $purchase->po_number)
+            ->where('is_current', 1)
+            ->get();
+
+        return view('finance.purchase-approvals.deletion-detail', compact('purchase', 'poItems'));
+    }
+
+    /**
+     * List deletion requests
+     */
+    public function deletionRequests()
+    {
+        $items = ProjectPurchase::with(['department', 'supplier', 'pic', 'material', 'project', 'internalProject', 'jobOrder', 'category', 'unit'])
+            ->where('status', 'deletion_requested')
+            ->where('is_current', 1)
+            ->orderBy('deletion_requested_at', 'desc')
+            ->get();
+
+        // Group by PO number
+        $grouped = [];
+        foreach ($items as $item) {
+            $po = $item->po_number;
+            if (!isset($grouped[$po])) {
+                $grouped[$po] = [
+                    'po_number'             => $po,
+                    'supplier'              => $item->supplier,
+                    'department'            => $item->department,
+                    'project_type'          => $item->project_type,
+                    'project'               => $item->project,
+                    'internal_project'      => $item->internalProject,
+                    'job_order'             => $item->jobOrder,
+                    'deletion_reason'       => $item->deletion_reason,
+                    'deletion_requested_at' => $item->deletion_requested_at,
+                    'requested_by'          => $item->pic,
+                    'first_item_id'         => $item->id,
+                    'date'                  => $item->date,
+                    'total_amount'          => 0,
+                    'items'                 => [],
+                ];
+            }
+            $grouped[$po]['items'][] = [
+                'name'       => $item->material_name,
+                'qty'        => $item->quantity,
+                'unit'       => $item->unit?->name ?? '-',
+                'unit_price' => $item->unit_price,
+                'total'      => $item->invoice_total,
+            ];
+            $grouped[$po]['total_amount'] += $item->invoice_total;
+        }
+
+        return view('finance.purchase-approvals.deletion-requests', [
+            'deletionRequests' => collect(array_values($grouped)),
+        ]);
+    }
+
+    /**
+     * Approve deletion — soft delete all items in the PO
+     */
+    public function approveDeletion(Request $request, $id)
+    {
+        try {
+            $purchase = ProjectPurchase::where('is_current', 1)->findOrFail($id);
+
+            if (!$purchase->isDeleteRequested()) {
+                return back()->with('error', 'Purchase ini tidak dalam status permintaan hapus.');
+            }
+
+            DB::beginTransaction();
+
+            ProjectPurchase::where('po_number', $purchase->po_number)
+                ->where('is_current', 1)
+                ->get()
+                ->each(function ($item) {
+                    $item->deletion_approved_by = Auth::id();
+                    $item->deletion_approved_at = now();
+                    $item->save();
+                    $item->delete();
+                });
+
+            // Soft delete DCM Costing yang terkait
+            DcmCosting::where('po_number', $purchase->po_number)->delete();
+
+            DB::commit();
+
+            return redirect()->route('purchase-approvals.deletion-requests')
+                ->with('success', 'Purchase ' . $purchase->po_number . ' berhasil dihapus.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Gagal menghapus: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Reject deletion — revert back to approved
+     */
+    public function rejectDeletion(Request $request, $id)
+    {
+        try {
+            $purchase = ProjectPurchase::where('is_current', 1)->findOrFail($id);
+
+            DB::beginTransaction();
+
+            ProjectPurchase::where('po_number', $purchase->po_number)
+                ->where('is_current', 1)
+                ->update([
+                    'status'                => 'approved',
+                    'deletion_reason'       => null,
+                    'deletion_requested_by' => null,
+                    'deletion_requested_at' => null,
+                ]);
+
+            DB::commit();
+
+            return redirect()->route('purchase-approvals.deletion-requests')
+                ->with('success', 'Permintaan hapus untuk ' . $purchase->po_number . ' ditolak, status dikembalikan ke Approved.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Gagal menolak permintaan hapus: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Get statistics for dashboard
      */
     public function statistics()

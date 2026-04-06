@@ -433,6 +433,46 @@ class ProjectPurchaseController extends Controller
     }
 
     /**
+     * REQUEST DELETION - Untuk purchase yang sudah approved
+     */
+    public function requestDeletion(Request $request, $uid)
+    {
+        $request->validate([
+            'deletion_reason' => 'required|string|min:5|max:500',
+        ]);
+
+        try {
+            $purchase = ProjectPurchase::where('uid', $uid)->firstOrFail();
+
+            if (!$purchase->canRequestDeletion()) {
+                return back()->with('error', 'Hanya purchase yang sudah approved yang bisa diminta dihapus.');
+            }
+
+            DB::beginTransaction();
+
+            // Update semua item dengan PO number yang sama
+            ProjectPurchase::where('po_number', $purchase->po_number)
+                ->where('is_current', 1)
+                ->update([
+                    'status'                 => 'deletion_requested',
+                    'deletion_reason'        => $request->deletion_reason,
+                    'deletion_requested_by'  => auth()->id(),
+                    'deletion_requested_at'  => now(),
+                ]);
+
+            DB::commit();
+
+            return redirect()->route('project-purchases.index')
+                ->with('success', 'Permintaan hapus untuk Purchase ' . $purchase->po_number . ' telah dikirim ke Finance.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Request deletion error: ' . $e->getMessage());
+            return back()->with('error', 'Gagal mengirim permintaan hapus: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * MARK AS CHECKED
      */
     public function markAsChecked(Request $request, $uid)

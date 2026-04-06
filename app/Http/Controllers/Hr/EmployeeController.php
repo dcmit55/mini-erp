@@ -49,6 +49,25 @@ class EmployeeController extends Controller
         return view('hr.employees.index', compact('employees'));
     }
 
+    public function nearExpired()
+    {
+        Employee::updateExpiredContracts();
+
+        $employees = Employee::with(['department', 'documents'])
+            ->withCount('documents')
+            ->latest()
+            ->get();
+
+        $nearExpiredIds = $employees->filter(function ($emp) {
+            if (!$emp->contract_end_date || $emp->status !== 'active') return false;
+            $days = now()->diffInDays($emp->contract_end_date, false);
+            return $days >= 0 && $days <= 60;
+        })->pluck('id')->toArray();
+
+        return view('hr.employees.index', compact('employees', 'nearExpiredIds'))
+            ->with('isNearExpired', true);
+    }
+
     public function export(Request $request)
     {
         $status = $request->input('status', 'all');

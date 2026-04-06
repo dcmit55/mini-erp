@@ -3,7 +3,7 @@
 @section('content')
     <div class="container-fluid py-4">
         <div class="card shadow-sm border-0 mb-4">
-            <div class="card-body">
+            <div class="card-body pt-1">
                 @php
                     $activeCount = $employees->where('status', 'active')->count();
                     $inactiveCount = $employees->where('status', 'inactive')->count();
@@ -11,10 +11,16 @@
                     $allCount = $employees->count();
                 @endphp
 
-                <!-- Header -->
-                <div class="position-relative d-flex align-items-center mb-3" style="min-height:40px;">
-                    <!-- Left: status tab buttons -->
-                    <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                <!-- Header: Title -->
+                <h5 class="fw-semibold mb-2 text-center"
+                    style="background:linear-gradient(135deg,#8F12FE,#4A25AA);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
+                    Employees Management
+                </h5>
+
+                <!-- Header: sub-menu + action buttons -->
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                    <!-- Left: status tab buttons + near expired -->
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
                         <button type="button" class="btn btn-sm rounded-2 px-3 emp-status-tab active-tab btn-purple"
                             data-status="" id="tab-all">
                             <i class="fas fa-users me-1"></i> All
@@ -41,20 +47,18 @@
                                     style="font-size:0.65rem;font-weight:600;">{{ $terminatedCount }}</span>
                             </button>
                         @endif
-                    </div>
-
-                    <!-- Center: Title -->
-                    <div class="position-absolute start-50 translate-middle-x text-center d-none d-lg-block"
-                        style="pointer-events:none;">
-                        <h5 class="fw-semibold mb-0"
-                            style="background:linear-gradient(135deg,#8F12FE,#4A25AA);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
-                            Employees Management
-                        </h5>
+                        <a href="{{ route('employees.near-expired') }}"
+                           class="btn btn-sm rounded-2 px-3 {{ isset($isNearExpired) ? 'btn-warning' : 'btn-outline-warning' }}">
+                            <i class="fas fa-clock me-1"></i> Near Expired
+                            @if(isset($nearExpiredIds))
+                                <span class="ms-1" style="font-size:0.65rem;font-weight:600;">{{ count($nearExpiredIds) }}</span>
+                            @endif
+                        </a>
                     </div>
 
                     <!-- Right: action buttons -->
                     @if (auth()->user()->canModifyData())
-                        <div class="ms-auto d-flex gap-2 flex-shrink-0">
+                        <div class="d-flex gap-2 flex-shrink-0">
                             <a href="{{ route('employees.export', ['status' => request('status', 'all')]) }}"
                                 class="btn btn-sm btn-outline-success rounded-2 px-3">
                                 <i class="bi bi-file-earmark-excel me-1"></i>
@@ -181,7 +185,9 @@
                         </thead>
                         <tbody>
                             @foreach ($employees as $employee)
-                                <tr data-employee-id="{{ $employee->id }}" data-status="{{ $employee->status }}">
+                                <tr data-employee-id="{{ $employee->id }}"
+                                    data-status="{{ $employee->status }}"
+                                    data-near-expired="{{ in_array($employee->id, $nearExpiredIds ?? []) ? '1' : '0' }}">
                                     <td class="text-center">
                                         <img src="{{ $employee->photo_url }}" alt="{{ $employee->name }}"
                                             class="rounded-circle employee-photo"
@@ -656,6 +662,15 @@
 
 @push('scripts')
     <script>
+        var isNearExpiredMode = {{ isset($isNearExpired) ? 'true' : 'false' }};
+
+        // Custom DataTables filter for near-expired mode
+        $.fn.dataTable.ext.search.push(function(settings, data, dataIndex, row) {
+            if (!isNearExpiredMode) return true;
+            var $row = $(settings.nTable).find('tbody tr').eq(dataIndex);
+            return $row.data('near-expired') == '1';
+        });
+
         $(document).ready(function() {
             // Initialize DataTable
             const table = $('#employees-table').DataTable({
@@ -761,8 +776,12 @@
                 saveFilters();
             }, 500));
 
-            // Restore filters on page load
-            restoreFilters();
+            // Restore filters on page load (skip jika near-expired mode)
+            if (!isNearExpiredMode) {
+                restoreFilters();
+            } else {
+                table.draw();
+            }
 
             function applyFilters() {
                 const dept = $('#departmentFilter').val();
@@ -796,6 +815,7 @@
 
             // Status tab buttons
             $('.emp-status-tab').on('click', function() {
+                isNearExpiredMode = false;
                 const status = $(this).data('status');
 
                 // Toggle active style
@@ -817,6 +837,7 @@
 
             // Reset filters
             $('#reset-filters').on('click', function() {
+                isNearExpiredMode = false;
                 $('#departmentFilter, #employmentTypeFilter, #statusFilter, #positionFilter').val('')
                     .trigger('change');
                 $('#custom-search').val('');

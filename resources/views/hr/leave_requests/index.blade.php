@@ -135,10 +135,10 @@
                                 <td class="px-3 py-2">
                                     <x-leave-type-badge :type="$leave->type" :labels="$leaveTypeLabels" />
                                 </td>
-                                <td class="px-3 py-2">
-                                    <div>{{ $leave->start_date?->format('d/m/Y') ?? '-' }}</div>
+                                <td class="px-3 py-2 small" style="white-space:nowrap;">
+                                    <span>{{ $leave->start_date?->format('d/m/Y') ?? '-' }}</span>
                                     @if($leave->end_date && $leave->end_date != $leave->start_date)
-                                        <div class="text-muted small">s/d {{ $leave->end_date->format('d/m/Y') }}</div>
+                                        <span class="text-muted"> – {{ $leave->end_date->format('d/m/Y') }}</span>
                                     @endif
                                 </td>
                                 <td class="px-3 py-2 text-center">
@@ -152,9 +152,8 @@
                                     @php $c2 = $leave->approval_2 === 'approved' ? 'success' : ($leave->approval_2 === 'rejected' ? 'danger' : 'warning'); @endphp
                                     <span class="badge bg-{{ $c2 }} {{ $c2 === 'warning' ? 'text-dark' : '' }}">{{ ucfirst($leave->approval_2) }}</span>
                                 </td>
-                                <td class="px-3 py-2 text-muted small">
-                                    {{ $leave->created_at->format('d/m/Y') }}
-                                    <div class="text-muted" style="font-size:0.75rem;">{{ $leave->created_at->format('H:i') }}</div>
+                                <td class="px-3 py-2 text-muted small" style="white-space:nowrap;">
+                                    {{ $leave->created_at->format('d/m/Y H:i') }}
                                 </td>
                                 @if($isAuthenticated && in_array($userRole, ['super_admin', 'admin_hr']))
                                 <td class="px-3 py-2 text-end">

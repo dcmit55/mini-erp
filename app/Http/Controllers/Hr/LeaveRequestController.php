@@ -239,7 +239,7 @@ class LeaveRequestController extends Controller
                 ]);
             }
 
-            // Skip dept approval if: SICK/MENSTRUATION type, OR employee's dept is not in any dept-approval group
+            // Skip dept approval jika tipe tertentu (SICK, MENSTRUATION, dll) ATAU dept tidak ada di approval map
             $deptInApprovalList = in_array(
                 optional($employee->department)->name,
                 \App\Models\Hr\LeaveRequest::getDeptApprovalDepartments()
@@ -427,14 +427,32 @@ class LeaveRequestController extends Controller
             $previousApproval1    = $leave->approval_1;
             $previousApproval2    = $leave->approval_2;
 
-            // Update approvals
-            if ($request->has('approval_dept') && (in_array($userRole, $deptAllowedRoles) || $userRole === 'super_admin')) {
+            // Update approvals — dengan validasi urutan
+            if ($request->has('approval_dept') && (in_array($userRole, $deptAllowedRoles) || in_array($userRole, ['super_admin', 'admin']))) {
                 $leave->approval_dept = $request->approval_dept;
             }
+
             if ($request->has('approval_1') && (in_array($userRole, $level1AllowedRoles) || $userRole === 'super_admin')) {
+                // HR hanya bisa approve jika dept sudah approved
+                if ($request->approval_1 === 'approved' && $leave->approval_dept !== 'approved') {
+                    DB::rollBack();
+                    $msg = 'Tidak bisa approve: Production/Dept approval belum selesai.';
+                    return $request->ajax()
+                        ? response()->json(['success' => false, 'message' => $msg], 422)
+                        : back()->with('error', $msg);
+                }
                 $leave->approval_1 = $request->approval_1;
             }
+
             if ($request->has('approval_2') && (in_array($userRole, $level2AllowedRoles) || $userRole === 'super_admin')) {
+                // Director hanya bisa approve jika HR sudah approved
+                if ($request->approval_2 === 'approved' && $leave->approval_1 !== 'approved') {
+                    DB::rollBack();
+                    $msg = 'Tidak bisa approve: HR approval belum selesai.';
+                    return $request->ajax()
+                        ? response()->json(['success' => false, 'message' => $msg], 422)
+                        : back()->with('error', $msg);
+                }
                 $leave->approval_2 = $request->approval_2;
             }
 
@@ -595,6 +613,7 @@ class LeaveRequestController extends Controller
             }
         }
 
+
         // super_admin / admin without ?dept → show department card index
         $isAllAccess = in_array($userRole, ['super_admin', 'admin']);
         if ($isAllAccess && !$request->filled('dept')) {
@@ -604,9 +623,8 @@ class LeaveRequestController extends Controller
         // Dept admin → filter by all their depts; super_admin/admin with ?dept → filter by that dept
         if (!$isAllAccess && isset($deptRoleMap[$userRole])) {
             $filterDepts = (array) $deptRoleMap[$userRole];
-            $deptName    = implode(' & ', $filterDepts); // label for header
+            $deptName    = implode(' & ', $filterDepts);
         } else {
-            // Support combined key (e.g. "DCM Costume & DCM Plush") from index page links
             $filterDepts = isset($combinedDeptMap[$request->dept])
                 ? $combinedDeptMap[$request->dept]
                 : [$request->dept];
@@ -652,6 +670,7 @@ class LeaveRequestController extends Controller
 
         $query = LeaveRequest::with(['employee.department'])
             ->where('approval_1', 'pending')
+            ->where('approval_dept', 'approved')
             ->latest();
 
         if ($request->filled('employee_id')) {
@@ -676,13 +695,13 @@ class LeaveRequestController extends Controller
         $leaveTypeLabels = LeaveRequest::getTypeLabels();
 
         $stats = [
-            'total_pending' => LeaveRequest::where('approval_1', 'pending')->count(),
+            'total_pending' => LeaveRequest::where('approval_1', 'pending')->where('approval_dept', 'approved')->count(),
             'this_month'    => LeaveRequest::whereMonth('created_at', now()->month)
                                 ->whereYear('created_at', now()->year)->count(),
-            'total_days'    => LeaveRequest::where('approval_1', 'pending')->sum('duration'),
+            'total_days'    => LeaveRequest::where('approval_1', 'pending')->where('approval_dept', 'approved')->sum('duration'),
             'avg_days'      => 0,
         ];
-        $directorPendingCount = LeaveRequest::where('approval_2', 'pending')->count();
+        $directorPendingCount = LeaveRequest::where('approval_2', 'pending')->where('approval_1', 'approved')->count();
 
         return view('hr.leave_requests.hr-approvals', compact(
             'leaves', 'employees', 'departments', 'leaveTypeLabels', 'stats', 'directorPendingCount'
@@ -704,6 +723,7 @@ class LeaveRequestController extends Controller
 
         $query = LeaveRequest::with(['employee.department'])
             ->where('approval_2', 'pending')
+            ->where('approval_1', 'approved')
             ->latest();
 
         if ($request->filled('employee_id')) {

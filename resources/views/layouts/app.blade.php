@@ -334,16 +334,21 @@
                                     ]))
                                     @php
                                         $deptLeavePendingCount = 0;
-                                        if (in_array(auth()->user()->role, ['admin_mascot', 'admin_logistic', 'admin_costume', 'admin_animatronic', 'super_admin', 'admin'])) {
-                                            $deptRole = auth()->user()->role;
-                                            $deptMap  = \App\Models\Hr\LeaveRequest::DEPT_ROLE_MAP;
-                                            if (isset($deptMap[$deptRole])) {
-                                                $deptLeavePendingCount = \App\Models\Hr\LeaveRequest::where('approval_dept', 'pending')
-                                                    ->whereHas('employee.department', fn($q) => $q->whereIn('name', (array) $deptMap[$deptRole]))
-                                                    ->count();
-                                            } elseif (in_array($deptRole, ['super_admin', 'admin'])) {
-                                                $deptLeavePendingCount = \App\Models\Hr\LeaveRequest::where('approval_dept', 'pending')->count();
-                                            }
+                                        $deptMap      = \App\Models\Hr\LeaveRequest::DEPT_ROLE_MAP;
+                                        $deptRole     = auth()->user()->role;
+                                        $allProdDepts = \App\Models\Hr\LeaveRequest::getDeptApprovalDepartments();
+
+                                        if (isset($deptMap[$deptRole])) {
+                                            // Dept admin: hitung hanya dept mereka
+                                            $mappedDepts = (array) $deptMap[$deptRole];
+                                            $deptLeavePendingCount = \App\Models\Hr\LeaveRequest::where('approval_dept', 'pending')
+                                                ->whereHas('employee.department', fn($q) => $q->whereIn('name', $mappedDepts))
+                                                ->count();
+                                        } elseif (in_array($deptRole, ['super_admin', 'admin'])) {
+                                            // Super admin / admin: hanya hitung production depts
+                                            $deptLeavePendingCount = \App\Models\Hr\LeaveRequest::where('approval_dept', 'pending')
+                                                ->whereHas('employee.department', fn($q) => $q->whereIn('name', $allProdDepts))
+                                                ->count();
                                         }
                                     @endphp
                                     <li class="nav-item dropdown">
@@ -384,7 +389,7 @@
                                                     <i class="fas fa-hourglass-half me-2"></i>Overtime Requests
                                                 </a>
                                             </li>
-                                            @if(in_array(auth()->user()->role, ['admin_mascot', 'admin_logistic', 'admin_costume', 'admin_animatronic', 'super_admin', 'admin']))
+                                            @if(isset($deptMap[$deptRole]) || in_array($deptRole, ['super_admin', 'admin']))
                                             <li><hr class="dropdown-divider"></li>
                                             <li>
                                                 <a class="dropdown-item {{ request()->routeIs('leave_requests.dept-approvals') ? 'active' : '' }}"
@@ -519,8 +524,8 @@
                                             $directorOvertimePendingCount = \App\Models\Hr\OvertimeRequest::whereIn('status', ['submitted', 'draft'])
                                                 ->where(function ($q) { $q->where('director_approval_status', 'pending')->orWhereNull('director_approval_status'); })
                                                 ->count();
-                                            $hrLeavePendingCount = \App\Models\Hr\LeaveRequest::where('approval_1', 'pending')->count();
-                                            $directorLeavePendingCount = \App\Models\Hr\LeaveRequest::where('approval_2', 'pending')->count();
+                                            $hrLeavePendingCount = \App\Models\Hr\LeaveRequest::where('approval_1', 'pending')->where('approval_dept', 'approved')->count();
+                                            $directorLeavePendingCount = \App\Models\Hr\LeaveRequest::where('approval_2', 'pending')->where('approval_1', 'approved')->count();
                                         @endphp
                                         <li class="nav-item dropdown">
                                             <a class="nav-link dropdown-toggle {{ request()->is('employees*') || request()->routeIs('leave_requests.index') || request()->is('attendance*') || request()->routeIs('employee-work-policies.*') || request()->routeIs('timings.*') || request()->routeIs('attendance-logs.*') || request()->routeIs('overtime-requests.*') || request()->routeIs('overtime-pays.*') || request()->routeIs('fingerspot.*') || request()->routeIs('session-shifts.*') ? 'active' : '' }}"
@@ -622,6 +627,12 @@
                                                     <a class="dropdown-item {{ request()->routeIs('session-shifts.*') ? 'active' : '' }}"
                                                         href="{{ route('session-shifts.index') }}">
                                                         <i class="fas fa-layer-group me-2"></i>Session Shifts
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->routeIs('national-holidays.*') ? 'active' : '' }}"
+                                                        href="{{ route('national-holidays.index') }}">
+                                                        <i class="fas fa-calendar-alt me-2"></i>National Holidays
                                                     </a>
                                                 </li>
                                             </ul>

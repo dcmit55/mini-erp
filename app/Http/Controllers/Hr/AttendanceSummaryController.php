@@ -1,0 +1,172 @@
+<?php
+
+namespace App\Http\Controllers\Hr;
+
+use App\Http\Controllers\Controller;
+use App\Models\Admin\Department;
+use App\Models\Hr\CompanyHoliday;
+use App\Models\Hr\DailyAttendance;
+use App\Models\Hr\Employee;
+use App\Models\NationalHoliday;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+
+class AttendanceSummaryController extends Controller
+{
+    public function index(Request $request)
+    {
+        // If no month/year specified, default to last month that has data
+        if (!$request->filled('month') && !$request->filled('year')) {
+            $latest = DailyAttendance::selectRaw('YEAR(date) as y, MONTH(date) as m')
+                ->orderByRaw('YEAR(date) DESC, MONTH(date) DESC')
+                ->first();
+            $month = $latest ? (int) $latest->m : now()->month;
+            $year  = $latest ? (int) $latest->y : now()->year;
+        } else {
+            $month = (int) $request->input('month', now()->month);
+            $year  = (int) $request->input('year',  now()->year);
+        }
+
+        $month = max(1, min(12, $month));
+        $year  = max(2020, min(2099, $year));
+
+        $startOfMonth = Carbon::create($year, $month, 1)->startOfDay();
+        $endOfMonth   = $startOfMonth->copy()->endOfMonth();
+        $daysInMonth  = $startOfMonth->daysInMonth;
+
+        $departmentId = $request->input('department_id');
+        $departments  = Department::orderBy('name')->get(['id', 'name']);
+
+        $employeeQuery = Employee::where('status', 'active')->orderBy('name');
+        if ($departmentId) {
+            $employeeQuery->where('department_id', $departmentId);
+        }
+        $employees = $employeeQuery->get(['id', 'name', 'employee_no', 'department_id', 'saldo_cuti']);
+
+        // National holidays for this year (exclude cuti bersama)
+        $nationalHolidays = NationalHoliday::forYear($year)
+            ->nationalOnly()
+            ->get()
+            ->keyBy(fn($h) => Carbon::parse($h->date)->format('Y-m-d'));
+
+        $nationalHolidayDates = $nationalHolidays->mapWithKeys(fn($h, $date) => [$date => $h->name]);
+
+        // Company holidays for this month
+        $companyHolidays = CompanyHoliday::forMonth($year, $month)
+            ->get()
+            ->keyBy(fn($h) => $h->date->format('Y-m-d'));
+
+        // Gunakan pola compound key sama seperti AttendanceLogController (terbukti benar)
+        // Key: "employee_id_date" e.g. "132_2026-03-09"
+        $dailiesMap = DailyAttendance::whereYear('date', $year)
+            ->whereMonth('date', $month)
+            ->get(['employee_id', 'date', 'status'])
+            ->groupBy(fn($d) => $d->employee_id . '_' . $d->date->format('Y-m-d'));
+
+        // Build day-level info array: [day => ['dayOfWeek', 'isSunday', 'national', 'company']]
+        $dayInfo = [];
+        for ($d = 1; $d <= $daysInMonth; $d++) {
+            $date    = Carbon::create($year, $month, $d);
+            $dateStr = $date->format('Y-m-d');
+            $dayInfo[$d] = [
+                'date'      => $dateStr,
+                'dayName'   => $date->isoFormat('dd'), // Mo,Tu,We,...
+                'isSunday'  => $date->dayOfWeek === Carbon::SUNDAY,
+                'national'  => $nationalHolidays->get($dateStr),
+                'company'   => $companyHolidays->get($dateStr),
+            ];
+        }
+
+        // Build per-employee summary counts using compound key lookup
+        $summary = [];
+        foreach ($employees as $emp) {
+            $counts = [
+                'present' => 0, 'late' => 0, 'alpha' => 0,
+                'annual'  => 0, 'sick' => 0, 'leave_other' => 0, 'unpaid' => 0,
+            ];
+
+            for ($d = 1; $d <= $daysInMonth; $d++) {
+                $info   = $dayInfo[$d];
+                if ($info['isSunday'] || $info['national'] !== null || $info['company']) {
+                    continue;
+                }
+                $record = $dailiesMap->get($emp->id . '_' . $info['date'])?->first();
+                if (!$record) continue;
+
+                match($record->status) {
+                    'Present'      => $counts['present']++,
+                    'Late'         => $counts['late']++,
+                    'Alpha'        => $counts['alpha']++,
+                    'Annual Leave' => $counts['annual']++,
+                    'Sick Leave'   => $counts['sick']++,
+                    'Unpaid Leave' => $counts['unpaid']++,
+                    default        => $counts['leave_other']++,
+                };
+            }
+            $summary[$emp->id] = $counts;
+        }
+
+        // All company holidays (for manage modal) in this month
+        $companyHolidaysList = CompanyHoliday::forMonth($year, $month)
+            ->with('creator:id,username')
+            ->orderBy('date')
+            ->get();
+
+        return view('hr.attendance-logs.summary', compact(
+            'month', 'year', 'daysInMonth', 'employees',
+            'nationalHolidayDates', 'nationalHolidays', 'companyHolidays', 'dailiesMap',
+            'dayInfo', 'summary', 'companyHolidaysList', 'startOfMonth',
+            'departments', 'departmentId'
+        ));
+    }
+
+    public function storeHoliday(Request $request)
+    {
+        $request->validate([
+            'date'  => 'required|date',
+            'name'  => 'required|string|max:100',
+            'type'  => 'required|in:free,paid_leave_deduction,unpaid',
+            'notes' => 'nullable|string|max:255',
+        ]);
+
+        CompanyHoliday::updateOrCreate(
+            ['date' => $request->date],
+            [
+                'name'       => $request->name,
+                'type'       => $request->type,
+                'notes'      => $request->notes,
+                'created_by' => Auth::id(),
+            ]
+        );
+
+        return response()->json(['message' => 'Holiday saved.']);
+    }
+
+    public function destroyHoliday(CompanyHoliday $companyHoliday)
+    {
+        $companyHoliday->delete();
+        return response()->json(['message' => 'Holiday deleted.']);
+    }
+
+    public function updateNationalHoliday(Request $request, NationalHoliday $nationalHoliday)
+    {
+        $request->validate([
+            'name' => 'required|string|max:100',
+            'date' => 'required|date',
+        ]);
+
+        $nationalHoliday->update([
+            'name' => $request->name,
+            'date' => $request->date,
+        ]);
+
+        return response()->json(['message' => 'National holiday updated.']);
+    }
+
+    public function destroyNationalHoliday(NationalHoliday $nationalHoliday)
+    {
+        $nationalHoliday->delete();
+        return response()->json(['message' => 'National holiday removed.']);
+    }
+}

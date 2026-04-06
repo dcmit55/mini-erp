@@ -9,7 +9,7 @@
          style="background: rgba(13,110,253,0.07); border: 1px solid rgba(13,110,253,0.18);">
         <i class="fas fa-info-circle text-primary mt-1"></i>
         <div>
-            <div class="fw-semibold text-primary small">Self-Service Leave Request</div>
+            <div class="fw-semibold text-primary small">Pengajuan Cuti Mandiri</div>
             <div class="text-muted small">Anda dapat mengajukan cuti tanpa login. Pengajuan akan diteruskan ke HR untuk persetujuan.</div>
         </div>
     </div>
@@ -61,11 +61,11 @@
                      style="background: var(--bs-tertiary-bg); border: 1px solid var(--bs-border-color);">
                     <div class="row g-2">
                         <div class="col-6 col-sm-4">
-                            <div class="text-muted" style="font-size:.7rem;">Department</div>
+                            <div class="text-muted" style="font-size:.7rem;">Departemen</div>
                             <div class="fw-medium" id="info-department">—</div>
                         </div>
                         <div class="col-6 col-sm-4">
-                            <div class="text-muted" style="font-size:.7rem;">Position</div>
+                            <div class="text-muted" style="font-size:.7rem;">Jabatan</div>
                             <div class="fw-medium" id="info-position">—</div>
                         </div>
                         <div class="col-6 col-sm-4">
@@ -94,15 +94,12 @@
                         <input type="date" name="end_date" id="end_date" class="form-control form-control-sm" required value="{{ old('end_date') }}">
                     </div>
                     <div class="col-sm-4">
-                        <label class="form-label small fw-medium">
-                            Durasi
-                            <i class="bi bi-info-circle text-muted ms-1" data-bs-toggle="tooltip" title="Gunakan 0.5 untuk setengah hari"></i>
-                        </label>
+                        <label class="form-label small fw-medium">Durasi</label>
                         <div class="input-group input-group-sm">
-                            <input type="number" name="duration" id="duration" class="form-control"
-                                   min="0.5" max="999.99" step="0.5" required
-                                   value="{{ old('duration') }}" placeholder="1">
-                            <span class="input-group-text">hari</span>
+                            <input type="number" name="duration" id="duration" class="form-control bg-light"
+                                   min="0.5" max="999.99" step="0.5" required readonly
+                                   value="{{ old('duration') }}" placeholder="—">
+                            <span class="input-group-text" id="duration_unit">hari</span>
                         </div>
                         <div id="leave-balance-info" class="mt-1 small"></div>
                     </div>
@@ -119,15 +116,17 @@
 
                 <div class="row g-2">
                     @foreach ($leaveTypes as $type)
+                    @if(isset($leaveTypeLabels[$type]))
                     <div class="col-sm-6">
                         <label class="leave-type-card d-flex align-items-center gap-2 rounded-2 px-3 py-2 w-100"
                                style="cursor:pointer; border: 1px solid var(--bs-border-color); transition: all .15s;">
                             <input class="form-check-input flex-shrink-0 mt-0" type="radio"
                                    name="type" id="type_{{ $type }}" value="{{ $type }}"
                                    {{ old('type') == $type ? 'checked' : '' }} required>
-                            <span class="small">{{ $leaveTypeLabels[$type] ?? $type }}</span>
+                            <span class="small">{{ $leaveTypeLabels[$type] }}</span>
                         </label>
                     </div>
+                    @endif
                     @endforeach
                 </div>
             </div>
@@ -141,13 +140,13 @@
                 </div>
                 <div class="row g-3">
                     <div class="col-12 col-sm-6">
-                        <label class="form-label small fw-medium mb-1">Jam Keluar <span class="text-danger">*</span></label>
+                        <label class="form-label small fw-medium mb-1" id="leave_time_from_label">Jam Keluar <span class="text-danger">*</span></label>
                         <input type="time" name="leave_time_from" id="leave_time_from"
                                class="form-control form-control-sm"
                                value="{{ old('leave_time_from') }}">
                     </div>
-                    <div class="col-12 col-sm-6 d-none" id="leave_time_to_col">
-                        <label class="form-label small fw-medium mb-1">Jam Kembali <span class="text-danger">*</span></label>
+                    <div class="col-12 col-sm-6" id="leave_time_to_col">
+                        <label class="form-label small fw-medium mb-1" id="leave_time_to_label">Jam Kembali <span class="text-danger">*</span></label>
                         <input type="time" name="leave_time_to" id="leave_time_to"
                                class="form-control form-control-sm"
                                value="{{ old('leave_time_to') }}">
@@ -160,9 +159,9 @@
         <div id="mc-upload-section" class="card border-0 shadow-sm rounded-3 mb-3 d-none">
             <div class="card-body p-4">
                 <div class="mb-3">
-                    <span class="fw-semibold small text-uppercase text-muted" style="letter-spacing:.05em;">Medical Certificate</span>
+                    <span class="fw-semibold small text-uppercase text-muted" style="letter-spacing:.05em;">Surat Keterangan Sakit</span>
                 </div>
-                <label class="form-label small fw-medium">Upload MC <span class="text-danger">*</span></label>
+                <label class="form-label small fw-medium">Upload Surat Sakit <span class="text-danger">*</span></label>
                 <input type="file" name="mc_document" id="mc_document" class="form-control form-control-sm"
                        accept=".pdf,.jpg,.jpeg,.png">
                 <div class="text-muted small mt-1">PDF, JPG, PNG &mdash; maks. 5MB</div>
@@ -319,16 +318,24 @@ $(document).ready(function () {
 
         if (type === 'EARLY_LEAVE' || type === 'PERMISSION_OUT') {
             $('#early-leave-time-section').removeClass('d-none');
-            if (type === 'PERMISSION_OUT') {
-                $('#leave_time_to_col').removeClass('d-none');
+            $('#leave_time_to_col').removeClass('d-none');
+            $('#leave_time_from, #leave_time_to').off('change.time').on('change.time', calcDurationFromTime);
+            $('#duration').val('');
+            $('#duration_unit').text('jam');
+
+            if (type === 'EARLY_LEAVE') {
+                $('#leave_time_from_label').html('Jam Pulang Lebih Awal <span class="text-danger">*</span>');
+                $('#leave_time_to_label').html('Jam Pulang Normal <span class="text-danger">*</span>');
             } else {
-                $('#leave_time_to_col').addClass('d-none');
-                $('#leave_time_to').val('');
+                $('#leave_time_from_label').html('Jam Keluar <span class="text-danger">*</span>');
+                $('#leave_time_to_label').html('Jam Kembali <span class="text-danger">*</span>');
             }
         } else {
             $('#early-leave-time-section').addClass('d-none');
+            $('#leave_time_from, #leave_time_to').off('change.time');
             $('#leave_time_from').val('');
             $('#leave_time_to').val('');
+            $('#duration_unit').text('hari');
         }
     }
 
@@ -361,20 +368,75 @@ $(document).ready(function () {
         updateDocumentSections(type);
     });
 
+    // ── Hitung hari kerja (exclude Minggu) ───────────────────────────────────
+    function countWorkDays(startStr, endStr) {
+        const start = new Date(startStr);
+        const end   = new Date(endStr);
+        let count = 0;
+        const cur = new Date(start);
+        while (cur <= end) {
+            if (cur.getDay() !== 0) count++; // 0 = Minggu
+            cur.setDate(cur.getDate() + 1);
+        }
+        return count;
+    }
+
+    // Hitung end_date berdasarkan start + N hari kerja
+    function addWorkDays(startStr, days) {
+        const date = new Date(startStr);
+        let added = 0;
+        while (added < days) {
+            date.setDate(date.getDate() + 1);
+            if (date.getDay() !== 0) added++;
+        }
+        return date.toISOString().split('T')[0];
+    }
+
     // ── Hitung durasi otomatis ────────────────────────────────────────────────
     function calcDuration() {
         const s = $('#start_date').val(), e = $('#end_date').val();
-        if (s && e) {
-            const diff = Math.floor((new Date(e) - new Date(s)) / 86400000) + 1;
-            if (diff > 0) {
-                $('#duration').val(diff);
-                if (diff === 1) $('#leave-balance-info').html('<i class="bi bi-lightbulb text-info me-1"></i>Gunakan 0.5 untuk setengah hari');
+        if (!s) return;
+
+        const type  = $('input[name="type"]:checked').val();
+        const saldo = parseFloat($('#employee_id option:selected').attr('data-saldo') || 0);
+
+        if (e) {
+            if (new Date(e) < new Date(s)) {
+                $('#duration').val('');
+                Swal.fire({ icon: 'warning', title: 'Tanggal Tidak Valid', text: 'Tanggal selesai harus sama atau setelah tanggal mulai', confirmButtonColor: '#dc3545' });
+                return;
+            }
+
+            let diff = countWorkDays(s, e);
+
+            // Cap ke saldo jika ANNUAL
+            if (type === 'ANNUAL' && $('#employee_id').val() && saldo > 0 && diff > saldo) {
+                diff = saldo;
+                $('#end_date').val(addWorkDays(s, saldo - 1));
+                $('#leave-balance-info').html('<i class="bi bi-exclamation-triangle text-warning me-1"></i>Durasi disesuaikan dengan saldo cuti tersisa: <strong>' + saldo + ' hari</strong>');
+            }
+
+            if (diff > 0) $('#duration').val(diff);
+        }
+        updateBalanceDisplay();
+    }
+
+    function calcDurationFromTime() {
+        const from = $('#leave_time_from').val();
+        const to   = $('#leave_time_to').val();
+        if (from && to) {
+            const [fh, fm] = from.split(':').map(Number);
+            const [th, tm] = to.split(':').map(Number);
+            const minutes  = (th * 60 + tm) - (fh * 60 + fm);
+            if (minutes > 0) {
+                const hours = Math.round(minutes / 60 * 100) / 100;
+                $('#duration').val(hours);
             } else {
                 $('#duration').val('');
-                if (diff < 0) Swal.fire({ icon: 'warning', title: 'Tanggal Tidak Valid', text: 'Tanggal selesai harus sama atau setelah tanggal mulai', confirmButtonColor: '#dc3545' });
             }
         }
     }
+
     $('#start_date, #end_date').on('change.calc', calcDuration);
 
     // ── Saldo cuti display ────────────────────────────────────────────────────
@@ -385,19 +447,17 @@ $(document).ready(function () {
         const $dur   = $('#duration');
 
         if (empId && type === 'ANNUAL') {
-            const saldo   = parseFloat($('#employee_id option:selected').attr('data-saldo') || 0);
-            const durVal  = parseFloat($dur.val());
+            const saldo  = parseFloat($('#employee_id option:selected').attr('data-saldo') || 0);
+            const durVal = parseFloat($dur.val());
             $dur.attr('max', saldo);
+            $dur.removeClass('is-invalid');
 
-            if (durVal && durVal > saldo) {
-                $dur.addClass('is-invalid');
-                $info.html('<i class="bi bi-exclamation-triangle text-danger me-1"></i>Melebihi saldo! Tersedia: <strong>' + saldo + ' hari</strong>');
-            } else if (durVal) {
-                $dur.removeClass('is-invalid');
-                $info.html('<i class="bi bi-info-circle me-1"></i>Saldo: <strong>' + saldo + ' hari</strong> — Sisa: <strong>' + (saldo - durVal).toFixed(1) + ' hari</strong>');
-            } else {
-                $dur.removeClass('is-invalid');
+            if (!durVal) {
                 $info.html('<i class="bi bi-info-circle me-1"></i>Saldo cuti tersedia: <strong>' + saldo + ' hari</strong>');
+            } else if (durVal >= saldo) {
+                $info.html('<i class="bi bi-exclamation-triangle text-warning me-1"></i>Durasi disesuaikan dengan saldo cuti tersisa: <strong>' + saldo + ' hari</strong>');
+            } else {
+                $info.html('<i class="bi bi-info-circle me-1"></i>Saldo: <strong>' + saldo + ' hari</strong> — Sisa: <strong>' + (saldo - durVal).toFixed(1) + ' hari</strong>');
             }
         } else {
             $info.html('');

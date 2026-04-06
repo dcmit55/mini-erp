@@ -9,8 +9,9 @@
             <!-- Header -->
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
-                    <h5 class="mb-0">Attendance Daily</h5>
-                    <p class="text-muted small mb-0">Daily attendance records</p>
+                    <a href="{{ route('attendance-logs.summary') }}" class="btn btn-sm btn-outline-primary px-3">
+                        <i class="fas fa-chart-bar me-1"></i> Attendance Summary
+                    </a>
                 </div>
                 <div class="d-flex gap-2">
                     <button type="button" class="btn btn-sm btn-outline-primary px-3" data-bs-toggle="modal" data-bs-target="#importModal">
@@ -26,16 +27,17 @@
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-body p-3">
                     <form method="GET" action="{{ route('attendance-logs.index') }}">
-                        <div class="row g-2 align-items-center">
+                        <div class="row g-2 align-items-end">
                             <div class="col-md-2">
-                                <label class="form-label mb-1" style="font-size:0.75rem;color:#6b7280;">Date / Start Date</label>
+                                <label class="form-label mb-1" style="font-size:0.75rem;color:#6b7280;">Start Date</label>
                                 <input type="date" name="start_date" class="form-control form-control-sm" value="{{ request('start_date') }}">
                             </div>
                             <div class="col-md-2">
-                                <label class="form-label mb-1" style="font-size:0.75rem;color:#6b7280;">End Date <span class="text-muted">(optional)</span></label>
+                                <label class="form-label mb-1" style="font-size:0.75rem;color:#6b7280;">End Date</label>
                                 <input type="date" name="end_date" class="form-control form-control-sm" value="{{ request('end_date') }}">
                             </div>
                             <div class="col-md-2">
+                                <label class="form-label mb-1" style="font-size:0.75rem;color:#6b7280;">Employee</label>
                                 <select name="employee_id" class="form-select form-select-sm">
                                     <option value="">All Employees</option>
                                     @foreach($employees as $emp)
@@ -46,17 +48,8 @@
                                 </select>
                             </div>
                             <div class="col-md-3">
-                                <div class="input-group input-group-sm">
-                                    <input type="text" name="search" class="form-control" placeholder="Search name or NIK..." value="{{ request('search') }}">
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="fas fa-search"></i>
-                                    </button>
-                                    @if(request()->filled('search'))
-                                        <a href="{{ route('attendance-logs.index', array_merge(request()->except(['search', 'page']))) }}" class="btn btn-outline-secondary">
-                                            <i class="fas fa-times"></i>
-                                        </a>
-                                    @endif
-                                </div>
+                                <label class="form-label mb-1" style="font-size:0.75rem;color:#6b7280;">Search</label>
+                                <input type="text" name="search" class="form-control form-control-sm" placeholder="Search name or NIK..." value="{{ request('search') }}">
                             </div>
                             <div class="col-md-3 d-flex gap-1">
                                 <button type="submit" class="btn btn-sm btn-primary px-3">

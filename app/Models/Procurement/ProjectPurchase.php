@@ -41,6 +41,11 @@ class ProjectPurchase extends Model
         'item_status',
         'note',
         'finance_notes',
+        'deletion_reason',
+        'deletion_requested_by',
+        'deletion_requested_at',
+        'deletion_approved_by',
+        'deletion_approved_at',
         'checked_at',
         'checked_by',
         'approved_at',
@@ -160,6 +165,11 @@ class ProjectPurchase extends Model
     public function receiver()
     {
         return $this->belongsTo(\App\Models\Admin\User::class, 'received_by');
+    }
+
+    public function deletionApprovedBy()
+    {
+        return $this->belongsTo(\App\Models\Admin\User::class, 'deletion_approved_by');
     }
 
     // ============================================
@@ -565,6 +575,16 @@ class ProjectPurchase extends Model
     public function canDelete()
     {
         return $this->status === 'pending';
+    }
+
+    public function canRequestDeletion()
+    {
+        return $this->status === 'approved';
+    }
+
+    public function isDeleteRequested()
+    {
+        return $this->status === 'deletion_requested';
     }
 
     public function canCheck()

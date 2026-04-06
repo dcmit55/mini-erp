@@ -159,21 +159,20 @@ class LeaveRequest extends Model implements AuditableContract
     public static function getTypeLabels()
     {
         return [
-            'ANNUAL' => 'Annual Leave',
-            'MATERNITY' => 'Maternity (3 months)',
-            'WEDDING' => 'Emp.Self Wedding (3 days)',
-            'SONWED' => 'Son/Daughter Wedding (2 days)',
-            'BIRTHCHILD' => 'Birth child/Misscarriage (2 days)',
-            'UNPAID' => 'Unpaid Leave',
-            'DEATH' => 'Death of family member living in the same house (1 day)',
-            'DEATH_2' => 'Death of spouse/child or child in law/parent in law (2 days)',
-            'BAPTISM' => 'Child Circumcision/Baptism (2 days)',
-            'SICK' => 'Sick Leave',
-            'MENSTRUATION' => 'Menstruation Leave',
-            'HAJJ' => 'Hajj / Umrah Leave',
-            'PATERNITY' => 'Paternity Leave (2 days)',
-            'EARLY_LEAVE'    => 'Early Leave (Izin Pulang Cepat)',
-            'PERMISSION_OUT' => 'Permission Out (Izin Keluar Sementara)',
+            'ANNUAL'         => 'Cuti Tahunan',
+            'MATERNITY'      => 'Cuti Melahirkan (3 bulan)',
+            'WEDDING'        => 'Cuti Pernikahan Karyawan (3 hari)',
+            'SONWED'         => 'Cuti Pernikahan Anak (2 hari)',
+            'BIRTHCHILD'     => 'Cuti Kelahiran Anak / Keguguran (2 hari)',
+            'UNPAID'         => 'Cuti Tanpa Digaji',
+            'DEATH'          => 'Cuti Duka Anggota Keluarga Serumah (1 hari)',
+            'DEATH_2'        => 'Cuti Duka Suami/Istri/Anak/Mertua (2 hari)',
+            'BAPTISM'        => 'Cuti Khitanan / Pembaptisan Anak (2 hari)',
+            'SICK'           => 'Cuti Sakit',
+            'MENSTRUATION'   => 'Cuti Haid',
+            'PATERNITY'      => 'Cuti Suami (Istri Melahirkan) (2 hari)',
+            'EARLY_LEAVE'    => 'Izin Pulang Cepat',
+            'PERMISSION_OUT' => 'Izin Keluar Sementara',
         ];
     }
 

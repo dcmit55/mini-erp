@@ -14,7 +14,17 @@
                     <p class="text-muted small mb-0">Purchases waiting for finance approval</p>
                 </div>
                 <div class="d-flex gap-2">
-                    <a href="{{ route('dcm-costings.index') }}" 
+                    @php $deletionCount = \App\Models\Procurement\ProjectPurchase::where('status','deletion_requested')->where('is_current',1)->distinct('po_number')->count('po_number'); @endphp
+                    <a href="{{ route('purchase-approvals.deletion-requests') }}"
+                       class="btn btn-outline-danger btn-sm rounded-2 px-3 position-relative">
+                        <i class="fas fa-trash me-1"></i> Deletion Requests
+                        @if($deletionCount > 0)
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size:0.65rem;">
+                                {{ $deletionCount }}
+                            </span>
+                        @endif
+                    </a>
+                    <a href="{{ route('dcm-costings.index') }}"
                        class="btn btn-outline-primary btn-sm rounded-2 px-3">
                         <i class="fas fa-file-invoice-dollar me-1"></i> DCM Costings
                     </a>
@@ -87,20 +97,18 @@
 
             <!-- Filters -->
             <div class="card border-0 shadow-sm rounded-3 mb-3">
-                <div class="card-body p-3">
-                    <form method="GET" action="{{ route('purchase-approvals.index') }}" class="row g-2">
+                <div class="card-body p-2">
+                    <form method="GET" action="{{ route('purchase-approvals.index') }}" class="row g-2 align-items-end">
                         <div class="col-md-3">
-                            <label class="form-label small text-dark">Search</label>
-                            <input type="text" 
-                                   class="form-control border-1 rounded-2 py-2 px-3" 
-                                   name="search" 
+                            <input type="text"
+                                   class="form-control form-control-sm border-1 rounded-2"
+                                   name="search"
                                    value="{{ request('search') }}"
                                    placeholder="PO, Item, Job Order...">
                         </div>
-                        
+
                         <div class="col-md-2">
-                            <label class="form-label small text-dark">Department</label>
-                            <select class="form-select border-1 rounded-2 py-2 px-3" name="department">
+                            <select class="form-select form-select-sm border-1 rounded-2" name="department">
                                 <option value="">All Departments</option>
                                 @foreach($departments as $dept)
                                     <option value="{{ $dept->id }}" {{ request('department') == $dept->id ? 'selected' : '' }}>
@@ -109,31 +117,29 @@
                                 @endforeach
                             </select>
                         </div>
-                        
+
                         <div class="col-md-2">
-                            <label class="form-label small text-dark">Project Type</label>
-                            <select class="form-select border-1 rounded-2 py-2 px-3" name="project_type">
+                            <select class="form-select form-select-sm border-1 rounded-2" name="project_type">
                                 <option value="">All Projects</option>
                                 <option value="client" {{ request('project_type') == 'client' ? 'selected' : '' }}>Client Project</option>
                                 <option value="internal" {{ request('project_type') == 'internal' ? 'selected' : '' }}>Internal Project</option>
                             </select>
                         </div>
-                        
+
                         <div class="col-md-2">
-                            <label class="form-label small text-dark">Purchase Type</label>
-                            <select class="form-select border-1 rounded-2 py-2 px-3" name="purchase_type">
+                            <select class="form-select form-select-sm border-1 rounded-2" name="purchase_type">
                                 <option value="">All Types</option>
                                 <option value="restock" {{ request('purchase_type') == 'restock' ? 'selected' : '' }}>Restock</option>
                                 <option value="new_item" {{ request('purchase_type') == 'new_item' ? 'selected' : '' }}>New Item</option>
                             </select>
-                        </div>                        
-                        <div class="col-md-1 d-flex align-items-end">
+                        </div>
+                        <div class="col-md-1 d-flex">
                             <div class="d-flex gap-1 w-100">
-                                <button type="submit" class="btn btn-primary rounded-2 px-3 w-100">
+                                <button type="submit" class="btn btn-primary btn-sm rounded-2 px-3 w-100">
                                     <i class="fas fa-filter"></i>
                                 </button>
-                                <a href="{{ route('purchase-approvals.index') }}" 
-                                   class="btn btn-outline-secondary rounded-2 px-3">
+                                <a href="{{ route('purchase-approvals.index') }}"
+                                   class="btn btn-outline-secondary btn-sm rounded-2 px-3">
                                     <i class="fas fa-sync-alt"></i>
                                 </a>
                             </div>
@@ -203,7 +209,7 @@
                                             </button>
                                         </th>
                                         <th class="border-0 small text-dark fw-medium px-3 py-2 text-center" style="width: 50px;">No</th>
-                                        <th class="border-0 small text-dark fw-medium px-3 py-2">PO Number</th>
+                                        <th class="border-0 small text-dark fw-medium px-3 py-2">Purchase Number</th>
                                         <th class="border-0 small text-dark fw-medium px-3 py-2">Date</th>
                                         <th class="border-0 small text-dark fw-medium px-3 py-2">Department</th>
                                         <th class="border-0 small text-dark fw-medium px-3 py-2">Project</th>
@@ -225,51 +231,29 @@
                                                    value="{{ $purchase['first_item_id'] }}"
                                                    data-po="{{ $purchase['po_number'] }}">
                                         </td>
-                                        <td class="px-3 py-2 text-center text-muted">
-                                            {{ $startNumber + $loop->index }}
-                                        </td>
-                                        <td class="px-3 py-2">
-                                            <div class="fw-medium text-dark">{{ $purchase['po_number'] }}</div>
-                                        </td>
-                                        <td class="px-3 py-2">
-                                            {{ $purchase['date']->format('d/m/Y') }}
-                                        </td>
-                                        <td class="px-3 py-2">
-                                            <span class="badge bg-secondary bg-opacity-10 text-dark border border-secondary border-opacity-25 rounded-2 px-2 py-1">
-                                                {{ $purchase['department']->name ?? 'N/A' }}
-                                            </span>
-                                        </td>
-                                        <td class="px-3 py-2">
+                                        <td class="px-3 py-2 text-center text-muted small">{{ $startNumber + $loop->index }}</td>
+                                        <td class="px-3 py-2" style="font-size:0.8rem;">{{ $purchase['po_number'] }}</td>
+                                        <td class="px-3 py-2 small">{{ $purchase['date']->format('d/m/Y') }}</td>
+                                        <td class="px-3 py-2 small text-muted">{{ $purchase['department']->name ?? 'N/A' }}</td>
+                                        <td class="px-3 py-2" style="font-size:0.8rem;">
                                             @if($purchase['project_type'] == 'client')
-                                                <div>
-                                                    <span class="fw-medium">{{ $purchase['project']->name ?? 'N/A' }}</span>
-                                                    <br>
-                                                </div>
+                                                {{ $purchase['project']->name ?? 'N/A' }}
                                             @else
-                                                <div>
-                                                    <span class="fw-medium">{{ $purchase['internalProject']->project ?? 'N/A' }}</span>
-                                                    <br>
-                                                    <small class="text-muted">{{ $purchase['internalProject']->job ?? '' }}</small>
-                                                </div>
+                                                {{ $purchase['internalProject']->project ?? 'N/A' }}
+                                                @if($purchase['internalProject']->job ?? '')
+                                                    <span class="text-muted"> · {{ $purchase['internalProject']->job }}</span>
+                                                @endif
                                             @endif
                                         </td>
-                                        <td class="px-3 py-2">
-                                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-2 px-2 py-1">
-                                                {{ $purchase['total_items'] }} item(s)
-                                            </span>
+                                        <td class="px-3 py-2 small text-center text-muted">{{ $purchase['total_items'] }}</td>
+                                        <td class="px-3 py-2" style="font-size:0.8rem;">{{ $purchase['supplier']->name ?? 'N/A' }}</td>
+                                        <td class="px-3 py-2 text-end" style="font-size:0.8rem; white-space:nowrap;">
+                                            Rp {{ number_format($purchase['total_amount'], 0, ',', '.') }}
                                         </td>
-                                        <td class="px-3 py-2">{{ $purchase['supplier']->name ?? 'N/A' }}</td>
-                                        <td class="px-3 py-2 text-end">
-                                            <div class="fw-medium text-primary">
-                                                Rp {{ number_format($purchase['total_amount'], 0, ',', '.') }}
-                                            </div>
-                                        </td>
-                                        <td class="px-3 py-2">
-                                            @php
-                                                $daysPending = $purchase['created_at']->diffInDays(now());
-                                            @endphp
+                                        <td class="px-3 py-2 small">
+                                            @php $daysPending = $purchase['created_at']->diffInDays(now()); @endphp
                                             <span class="badge bg-{{ $daysPending > 7 ? 'danger' : ($daysPending > 3 ? 'warning' : 'success') }} bg-opacity-10 text-{{ $daysPending > 7 ? 'danger' : ($daysPending > 3 ? 'warning' : 'success') }} border border-{{ $daysPending > 7 ? 'danger' : ($daysPending > 3 ? 'warning' : 'success') }} border-opacity-25 rounded-2 px-2 py-1">
-                                                {{ $daysPending }} days
+                                                {{ $daysPending }}d
                                             </span>
                                         </td>
                                         <td class="px-3 py-2 text-end">
