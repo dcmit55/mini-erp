@@ -385,6 +385,7 @@
                                                 )->count();
                                             }
                                         }
+                                    }
                                     @endphp
                                     <li class="nav-item dropdown">
                                         <a class="nav-link dropdown-toggle {{ request()->is('job-orders*') || request()->is('quick-timer*') || request()->is('material-usage*') || request()->is('employees/*/timing*') || request()->is('material-planning*') || request()->is('overtime-requests*') || request()->routeIs('leave_requests.dept-approvals') ? 'active' : '' }}"
@@ -459,6 +460,7 @@
                                             @endif
                                         </ul>
                                     </li>
+                                @endif
                                 @endif
 
                                 <!-- Timing Menu (Dedicated) -->
