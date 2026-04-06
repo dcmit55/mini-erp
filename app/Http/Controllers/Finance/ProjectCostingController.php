@@ -87,8 +87,94 @@ class ProjectCostingController extends Controller
             ->orderByDesc('created_at') // Then by created_at
             ->paginate(10);
 
-        // Card summaries: UI only — data queries disabled pending column audit
+        // Card summaries: calculate actual_project_cost and total_project_time per project
+        $projectIds = $projects->pluck('id')->toArray();
         $cardSummaries = [];
+
+        if (!empty($projectIds)) {
+            // Material cost: sum of (unit_price + freights) * qty * exchange_rate per project
+            // NOTE: inventory.batches must be eager-loaded to avoid N+1 in getPriceAttribute()
+            $usagesByProject = \App\Models\Logistic\MaterialUsage::whereIn('project_id', $projectIds)
+                ->with(['inventory.currency', 'inventory.batches'])
+                ->get()
+                ->groupBy('project_id');
+
+            // Timing (workmanship): sum duration_minutes per project + salary for cost
+            $timingsByProject = \App\Models\Production\Timing::whereIn('project_id', $projectIds)->where('approval_status', 'approved')->selectRaw('project_id, SUM(duration_minutes) as total_minutes')->groupBy('project_id')->pluck('total_minutes', 'project_id');
+
+            // Workmanship cost: need employee salary to calculate hourly_rate × hours
+            // Formula: hourly_rate = salary / 173, cost = hourly_rate × (duration_minutes / 60)
+            $timingsWithEmployee = \App\Models\Production\Timing::whereIn('project_id', $projectIds)->where('approval_status', 'approved')->with('employee:id,salary')->get()->groupBy('project_id');
+
+            // DCM Costings (PO): sum invoice_total per project_name
+            $projectNames = \App\Models\Production\Project::whereIn('id', $projectIds)->pluck('name', 'id');
+            $dcmByProjectName = \App\Models\Finance\DcmCosting::whereIn('project_name', $projectNames->values())->where('is_current', true)->get()->groupBy('project_name');
+
+            // Pre-fetch all courier tracking rows for all project IDs at once (avoids N+1 per project)
+            $sgdRate = \App\Models\Finance\Currency::where('name', 'SGD')->value('exchange_rate') ?? 12000;
+            $allBtSgItems = \App\Models\Lark\LarkBtSgItemTracking::whereIn('project_id', $projectIds)->with('courier')->get()->groupBy('project_id');
+            $allSgBtItems = \App\Models\Lark\LarkSgBtItemTracking::whereIn('project_id', $projectIds)->with('courier')->get()->groupBy('project_id');
+
+            foreach ($projectIds as $pid) {
+                // Material cost
+                $materialIDR = 0;
+                foreach ($usagesByProject[$pid] ?? collect() as $usage) {
+                    $inv = $usage->inventory;
+                    if (!$inv) {
+                        continue;
+                    }
+                    $rate = $inv->currency->exchange_rate ?? 1;
+                    $unitCost = ($inv->price ?? 0) + ($inv->unit_domestic_freight_cost ?? 0) + ($inv->unit_international_freight_cost ?? 0);
+                    $materialIDR += $unitCost * ($usage->used_quantity ?? 0) * $rate;
+                }
+
+                // Freight cost — compute from pre-fetched tracking rows (no extra queries)
+                $btSgForProject = $allBtSgItems[$pid] ?? collect();
+                $sgBtForProject = $allSgBtItems[$pid] ?? collect();
+                $freightIDR = 0;
+                foreach ($btSgForProject->groupBy(fn($i) => $i->courier_id ?? '__none__') as $items) {
+                    $courier = $items->first()->courier;
+                    $courierIdr = $courier ? $courier->total_cost ?? 0 : 0;
+                    $freightIDR += $courierIdr > 0 ? $courierIdr : round($items->sum('sgd_cost') * $sgdRate, 0);
+                }
+                foreach ($sgBtForProject->groupBy(fn($i) => $i->courier_id ?? '__none__') as $items) {
+                    $courier = $items->first()->courier;
+                    $courierIdr = $courier ? $courier->total_cost ?? 0 : 0;
+                    $freightIDR += $courierIdr > 0 ? $courierIdr : round($items->sum('sgd_cost') * $sgdRate, 0);
+                }
+
+                // Workmanship cost: sum of (salary/173 × hours) per timing session
+                $workmanshipIDR = 0;
+                $totalMinutes = $timingsByProject[$pid] ?? 0;
+                $totalHours = round($totalMinutes / 60, 2);
+                foreach ($timingsWithEmployee[$pid] ?? collect() as $timing) {
+                    $salary = $timing->employee->salary ?? 0;
+                    $hourlyRate = $salary > 0 ? round($salary / 173, 0) : 0;
+                    $hrs = round(($timing->duration_minutes ?? 0) / 60, 2);
+                    $workmanshipIDR += round($hourlyRate * $hrs, 0);
+                }
+
+                // Actual Project Cost = material + workmanship + freight
+                $actualCost = $materialIDR + $workmanshipIDR + $freightIDR;
+
+                // INT'L PO & LOCAL PO from DCM costings
+                $pName = $projectNames[$pid] ?? null;
+                $dcmRows = $pName ? $dcmByProjectName[$pName] ?? collect() : collect();
+                $intlRows = $dcmRows->filter(fn($c) => str_contains(strtolower($c->purchase_type ?? ''), 'intl') || str_contains(strtolower($c->purchase_type ?? ''), 'international') || str_contains(strtolower($c->supplier ?? ''), 'sg') || str_contains(strtolower($c->department ?? ''), 'sg'));
+                $localRows = $dcmRows->filter(fn($c) => !$intlRows->contains('id', $c->id));
+
+                $cardSummaries[$pid] = [
+                    'actual_project_cost' => $actualCost,
+                    'material_cost' => $materialIDR,
+                    'workmanship_cost' => $workmanshipIDR,
+                    'freight_cost' => $freightIDR,
+                    'total_hours' => $totalHours,
+                    'intl_po' => $intlRows->sum('invoice_total'),
+                    'local_po' => $localRows->sum('invoice_total'),
+                    'usage_idr' => $materialIDR,
+                ];
+            }
+        }
 
         // Get unique type_dept values from closed/delivered projects
         $rawDeptValues = Project::where('project_status', 'Delivered')->whereNotNull('type_dept')->where('type_dept', '!=', '')->pluck('type_dept');
@@ -191,26 +277,42 @@ class ProjectCostingController extends Controller
         $totalLaborMinutes = $timings->sum('duration_minutes');
         $totalLaborHours = round($totalLaborMinutes / 60, 2);
 
+        // ── Workmanship Cost (IDR) ──
+        // Formula: hourly_rate = employee.salary / 173 (Depnaker standard monthly work hours)
+        // labor_cost per session = hourly_rate × (duration_minutes / 60)
+        // Total workmanship = sum of all labor_cost across employees
+        $totalWorkmanshipIDR = 0;
         $timingsByJobOrder = $timings
             ->groupBy('job_order_id')
-            ->map(function ($rows) {
+            ->map(function ($rows) use (&$totalWorkmanshipIDR) {
                 $jo = $rows->first()->jobOrder;
+                $groupCost = 0;
+                $rowData = $rows
+                    ->map(function ($t) use (&$groupCost) {
+                        $salary = $t->employee->salary ?? 0;
+                        $hourlyRate = $salary > 0 ? round($salary / 173, 0) : 0;
+                        $hours = round(($t->duration_minutes ?? 0) / 60, 2);
+                        $cost = round($hourlyRate * $hours, 0);
+                        $groupCost += $cost;
+                        return [
+                            'employee' => $t->employee?->name ?? '—',
+                            'role' => $t->employee?->position ?? '—',
+                            'start_time' => $t->start_time ? \Carbon\Carbon::parse($t->start_time)->format('H:i') : '—',
+                            'end_time' => $t->end_time ? \Carbon\Carbon::parse($t->end_time)->format('H:i') : '—',
+                            'hours' => $hours,
+                            'hourly_rate' => $hourlyRate,
+                            'cost' => $cost,
+                        ];
+                    })
+                    ->values()
+                    ->toArray();
+                $totalWorkmanshipIDR += $groupCost;
                 return [
                     'job_order_name' => $jo?->name ?? 'No Job Order',
                     'total_hours' => round($rows->sum('duration_minutes') / 60, 2),
                     'sessions_count' => $rows->count(),
-                    'rows' => $rows
-                        ->map(
-                            fn($t) => [
-                                'employee' => $t->employee?->name ?? '—',
-                                'role' => $t->employee?->position ?? '—',
-                                'start_time' => $t->start_time ? \Carbon\Carbon::parse($t->start_time)->format('H:i') : '—',
-                                'end_time' => $t->end_time ? \Carbon\Carbon::parse($t->end_time)->format('H:i') : '—',
-                                'hours' => round(($t->duration_minutes ?? 0) / 60, 2),
-                            ],
-                        )
-                        ->values()
-                        ->toArray(),
+                    'total_cost' => $groupCost,
+                    'rows' => $rowData,
                 ];
             })
             ->values();
@@ -219,13 +321,16 @@ class ProjectCostingController extends Controller
         $courierData = $this->getCourierCosts($project_id);
         $totalFreightIDR = $courierData['total_idr'] ?? 0;
 
-        // ── Grand total (Actual Project Cost) ──
-        $grandTotal = $totalMaterialIDR + $totalFreightIDR;
+        // ── Grand total (Actual Project Cost = Material + Workmanship + Freight) ──
+        // material_cost  = sum of inventory usage × unit cost × exchange rate
+        // workmanship    = sum of (employee.salary / 173) × hours per timing session
+        // freight_cost   = sum of courier costs from Lark BT-SG/SG-BT tracking
+        $grandTotal = $totalMaterialIDR + $totalWorkmanshipIDR + $totalFreightIDR;
 
         // ── Overhead = from stock usage portion ──
         $overheadIDR = $usageCostIDR; // material usage from existing stock
 
-        return view('finance.costing.show', compact('project', 'intlMaterials', 'localMaterials', 'totalMaterialIDR', 'usageCostIDR', 'timingsByJobOrder', 'totalLaborHours', 'timings', 'courierData', 'totalFreightIDR', 'dcmCostings', 'totalIntlPo', 'totalLocalPo', 'totalPoIDR', 'grandTotal', 'overheadIDR'));
+        return view('finance.costing.show', compact('project', 'intlMaterials', 'localMaterials', 'totalMaterialIDR', 'usageCostIDR', 'timingsByJobOrder', 'totalLaborHours', 'timings', 'totalWorkmanshipIDR', 'courierData', 'totalFreightIDR', 'dcmCostings', 'totalIntlPo', 'totalLocalPo', 'totalPoIDR', 'grandTotal', 'overheadIDR'));
     }
 
     /**
@@ -938,95 +1043,63 @@ class ProjectCostingController extends Controller
     }
 
     /**
-     * Get courier costs for a specific project
-     * Aggregates both BT-SG and SG-BT courier costs
+     * Get courier costs for a specific project.
+     * Aggregates both BT-SG and SG-BT courier costs from Lark tracking data.
+     * SGD → IDR conversion uses the exchange rate from Finance Currency module.
      */
     private function getCourierCosts($projectId)
     {
+        // ── SGD exchange rate from Currency module (single source of truth) ──
+        $sgdRate = \App\Models\Finance\Currency::where('name', 'SGD')->value('exchange_rate') ?? 12000;
+
         // Get ALL BT-SG items (with or without courier)
         $btSgItems = LarkBtSgItemTracking::with('courier')->where('project_id', $projectId)->get();
 
         // Get ALL SG-BT items (with or without courier)
         $sgBtItems = LarkSgBtItemTracking::with('courier')->where('project_id', $projectId)->get();
 
-        // Group BT-SG by courier_id (items without courier get key '__none__')
-        $btSgCouriers = collect(
-            $btSgItems
-                ->groupBy(fn($i) => $i->courier_id ?? '__none__')
-                ->map(function ($items, $key) {
-                    $courier = $key !== '__none__' ? $items->first()->courier : null;
-                    $itemsCost = $items->sum('sgd_cost'); // SGD cost on items
-                    $courierTotalIdr = $courier ? $courier->total_cost ?? 0 : 0;
-                    $courierTotalSgd = $courier ? $courier->total_cost_sgd ?? 0 : 0;
-                    // Use courier cost if available, otherwise fall back to sum of item sgd_cost
-                    $totalIdr = $courierTotalIdr > 0 ? $courierTotalIdr : round($itemsCost * 15500, 0);
-                    $totalSgd = $courierTotalSgd > 0 ? $courierTotalSgd : $itemsCost;
-                    return [
-                        'courier_id' => $key !== '__none__' ? $key : null,
-                        'courier_name' => $courier->name ?? '—',
-                        'direction' => 'BT → SG',
-                        'date' => $courier && $courier->date ? $courier->date->format('d M Y') : '—',
-                        'mode' => $courier->mode ?? 'ferry',
-                        'tracking' => $courier->tracking_number ?? '—',
-                        'items_count' => $items->count(),
-                        'items' => $items
-                            ->map(
-                                fn($i) => [
-                                    'name' => $i->item_name ?? '—',
-                                    'qty' => $i->qty ?? 1,
-                                    'status' => $i->status ?? 'pending',
-                                    'sgd_cost' => $i->sgd_cost ?? 0,
-                                ],
-                            )
-                            ->toArray(),
-                        'transport_cost' => $courier->transport_cost ?? 0,
-                        'baggage_cost' => $courier->baggage_cost ?? 0,
-                        'gst_cost' => $courier->gst_cost ?? 0,
-                        'total_idr' => $totalIdr,
-                        'total_sgd' => $totalSgd,
-                    ];
-                })
-                ->values(),
-        );
+        // ── Helper: build courier group from items ──
+        $buildGroup = function ($items, $key, $direction) use ($sgdRate) {
+            $courier = $key !== '__none__' ? $items->first()->courier : null;
+            $itemsCostSgd = $items->sum('sgd_cost'); // SGD cost on items
+
+            // Courier model stores transport/baggage/gst in IDR (total_cost accessor)
+            $courierTotalIdr = $courier ? $courier->total_cost ?? 0 : 0;
+            // If courier has IDR cost, use it; otherwise convert item SGD cost via Currency rate
+            $totalIdr = $courierTotalIdr > 0 ? $courierTotalIdr : round($itemsCostSgd * $sgdRate, 0);
+            $totalSgd = $courierTotalIdr > 0 ? round($courierTotalIdr / $sgdRate, 2) : $itemsCostSgd;
+
+            return [
+                'courier_id' => $key !== '__none__' ? $key : null,
+                'courier_name' => $courier->name ?? '—',
+                'direction' => $direction,
+                'date' => $courier && $courier->date ? $courier->date->format('d M Y') : '—',
+                'mode' => $courier->mode ?? 'ferry',
+                'tracking' => $courier->tracking_number ?? '—',
+                'items_count' => $items->count(),
+                'items' => $items
+                    ->map(
+                        fn($i) => [
+                            'name' => $i->item_name ?? '—',
+                            'qty' => $i->qty ?? 1,
+                            'status' => $i->status ?? 'pending',
+                            'sgd_cost' => $i->sgd_cost ?? 0,
+                        ],
+                    )
+                    ->toArray(),
+                'transport_cost' => $courier->transport_cost ?? 0,
+                'baggage_cost' => $courier->baggage_cost ?? 0,
+                'gst_cost' => $courier->gst_cost ?? 0,
+                'total_idr' => $totalIdr,
+                'total_sgd' => $totalSgd,
+            ];
+        };
+
+        // Group BT-SG by courier_id
+        $btSgCouriers = collect($btSgItems->groupBy(fn($i) => $i->courier_id ?? '__none__')->map(fn($items, $key) => $buildGroup($items, $key, 'BT → SG'))->values());
 
         // Group SG-BT by courier_id
-        $sgBtCouriers = collect(
-            $sgBtItems
-                ->groupBy(fn($i) => $i->courier_id ?? '__none__')
-                ->map(function ($items, $key) {
-                    $courier = $key !== '__none__' ? $items->first()->courier : null;
-                    $itemsCost = $items->sum('sgd_cost');
-                    $courierTotalIdr = $courier ? $courier->total_cost ?? 0 : 0;
-                    $courierTotalSgd = $courier ? $courier->total_cost_sgd ?? 0 : 0;
-                    $totalIdr = $courierTotalIdr > 0 ? $courierTotalIdr : round($itemsCost * 15500, 0);
-                    $totalSgd = $courierTotalSgd > 0 ? $courierTotalSgd : $itemsCost;
-                    return [
-                        'courier_id' => $key !== '__none__' ? $key : null,
-                        'courier_name' => $courier->name ?? '—',
-                        'direction' => 'SG → BT',
-                        'date' => $courier && $courier->date ? $courier->date->format('d M Y') : '—',
-                        'mode' => $courier->mode ?? 'ferry',
-                        'tracking' => $courier->tracking_number ?? '—',
-                        'items_count' => $items->count(),
-                        'items' => $items
-                            ->map(
-                                fn($i) => [
-                                    'name' => $i->item_name ?? '—',
-                                    'qty' => $i->qty ?? 1,
-                                    'status' => $i->status ?? 'pending',
-                                    'sgd_cost' => $i->sgd_cost ?? 0,
-                                ],
-                            )
-                            ->toArray(),
-                        'transport_cost' => $courier->transport_cost ?? 0,
-                        'baggage_cost' => $courier->baggage_cost ?? 0,
-                        'gst_cost' => $courier->gst_cost ?? 0,
-                        'total_idr' => $totalIdr,
-                        'total_sgd' => $totalSgd,
-                    ];
-                })
-                ->values(),
-        );
+        $sgBtCouriers = collect($sgBtItems->groupBy(fn($i) => $i->courier_id ?? '__none__')->map(fn($items, $key) => $buildGroup($items, $key, 'SG → BT'))->values());
 
         // Combine both directions
         $allCouriers = $btSgCouriers->merge($sgBtCouriers)->values();

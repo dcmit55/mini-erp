@@ -9,35 +9,59 @@ use App\Models\Hr\Employee;
 use App\Models\Hr\SessionShift;
 use App\Helpers\TimeHelper;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
-class Timing extends Model
+class Timing extends Model implements AuditableContract
 {
-    use HasFactory;
+    use HasFactory, \OwenIt\Auditing\Auditable;
+
+    protected $auditInclude = ['tanggal', 'job_order_id', 'project_id', 'step', 'parts', 'employee_id', 'start_time', 'end_time', 'duration_minutes', 'status', 'approval_status', 'approved_by', 'rejection_reason', 'remarks'];
 
     protected $fillable = [
-        'tanggal', 'job_order_id', 'project_id', 'step', 'parts', 'employee_id',
-        'start_time', 'end_time', 'duration_minutes', 'measurement_type',
-        'measurement_value', 'duration_hours', 'status', 'approval_status',
-        'approved_by', 'approved_at', 'rejection_reason', 'remarks',
-        'department_specific_data', 'photo',
+        'tanggal',
+        'job_order_id',
+        'project_id',
+        'step',
+        'parts',
+        'employee_id',
+        'start_time',
+        'end_time',
+        'duration_minutes',
+        'measurement_type',
+        'measurement_value',
+        'duration_hours',
+        'status',
+        'approval_status',
+        'approved_by',
+        'approved_at',
+        'rejection_reason',
+        'remarks',
+        'department_specific_data',
+        'photo',
         // New lifecycle fields
-        'session_shift_id', 'started_at', 'paused_at', 'stopped_at',
-        'total_paused_minutes', 'break_deducted_minutes', 'pause_reason', 'stop_reason',
+        'session_shift_id',
+        'started_at',
+        'paused_at',
+        'stopped_at',
+        'total_paused_minutes',
+        'break_deducted_minutes',
+        'pause_reason',
+        'stop_reason',
         'pause_log',
     ];
 
     protected $casts = [
         'department_specific_data' => 'array',
-        'pause_log'                => 'array',
-        'tanggal'                  => 'date',
-        'measurement_value'        => 'decimal:2',
-        'duration_hours'           => 'decimal:2',
-        'duration_minutes'         => 'integer',
-        'total_paused_minutes'     => 'integer',
-        'break_deducted_minutes'   => 'integer',
-        'started_at'               => 'datetime',
-        'paused_at'                => 'datetime',
-        'stopped_at'               => 'datetime',
+        'pause_log' => 'array',
+        'tanggal' => 'date',
+        'measurement_value' => 'decimal:2',
+        'duration_hours' => 'decimal:2',
+        'duration_minutes' => 'integer',
+        'total_paused_minutes' => 'integer',
+        'break_deducted_minutes' => 'integer',
+        'started_at' => 'datetime',
+        'paused_at' => 'datetime',
+        'stopped_at' => 'datetime',
     ];
 
     // ============================================
@@ -376,8 +400,7 @@ class Timing extends Model
     /** Auto-paused by the break scheduler (has auto_break_paused marker) */
     public function isAutoBreakPaused(): bool
     {
-        return $this->isCurrentlyPaused()
-            && !empty(($this->department_specific_data ?? [])['auto_break_paused']);
+        return $this->isCurrentlyPaused() && !empty(($this->department_specific_data ?? [])['auto_break_paused']);
     }
 
     /**
@@ -386,12 +409,10 @@ class Timing extends Model
      */
     public function getNetActiveMinutesAttribute(): int
     {
-        $start = $this->started_at
-            ?? (\Carbon\Carbon::parse($this->tanggal->format('Y-m-d') . ' ' . $this->start_time));
-        $end = $this->stopped_at
-            ?? ($this->end_time ? \Carbon\Carbon::parse($this->tanggal->format('Y-m-d') . ' ' . $this->end_time) : now());
+        $start = $this->started_at ?? \Carbon\Carbon::parse($this->tanggal->format('Y-m-d') . ' ' . $this->start_time);
+        $end = $this->stopped_at ?? ($this->end_time ? \Carbon\Carbon::parse($this->tanggal->format('Y-m-d') . ' ' . $this->end_time) : now());
 
-        $gross  = max(0, $start->diffInMinutes($end));
+        $gross = max(0, $start->diffInMinutes($end));
         $paused = $this->total_paused_minutes ?? 0;
 
         return max(0, $gross - $paused);
@@ -402,8 +423,7 @@ class Timing extends Model
     /** Active sessions: running OR auto-break-frozen (no end_time) */
     public function scopeActive($query)
     {
-        return $query->whereIn('status', ['on progress', 'running', 'frozen', 'paused'])
-            ->whereNull('end_time');
+        return $query->whereIn('status', ['on progress', 'running', 'frozen', 'paused'])->whereNull('end_time');
     }
 
     /** Scope: only stopped/complete sessions */

@@ -196,6 +196,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/inventory-batch/stock-value', [\App\Http\Controllers\Logistic\InventoryBatchController::class, 'batchStockValue'])->name('inventory-batch.stock-value');
     Route::get('/inventory-batch/by-inventory/{id}', [\App\Http\Controllers\Logistic\InventoryBatchController::class, 'byInventory'])->name('inventory-batch.by-inventory');
 
+    // Stock Adjustments
+    Route::get('/stock-adjustments/batches', [\App\Http\Controllers\Logistic\StockAdjustmentController::class, 'getBatches'])->name('stock-adjustments.batches');
+    Route::resource('stock-adjustments', \App\Http\Controllers\Logistic\StockAdjustmentController::class)->only(['index', 'create', 'store', 'show']);
+
     // Projects
     Route::get('/projects/export', [ProjectController::class, 'export'])->name('projects.export');
     Route::post('/projects/sync-from-lark', [ProjectController::class, 'syncFromLark'])->name('projects.sync.lark');
@@ -231,6 +235,7 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/inventory/{id}/update-item', [App\Http\Controllers\Lark\LarkStagingController::class, 'updateItem'])->name('inventory.update-item');
             Route::post('/inventory/{id}/update-name', [App\Http\Controllers\Lark\LarkStagingController::class, 'updateName'])->name('inventory.update-name');
             Route::post('/inventory/{id}/update-unit', [App\Http\Controllers\Lark\LarkStagingController::class, 'updateUnit'])->name('inventory.update-unit');
+            Route::post('/inventory/{id}/update-price', [App\Http\Controllers\Lark\LarkStagingController::class, 'updatePrice'])->name('inventory.update-price');
             Route::post('/inventory/bulk-approve', [App\Http\Controllers\Lark\LarkStagingController::class, 'bulkApproveInventory'])->name('inventory.bulk-approve');
         });
 

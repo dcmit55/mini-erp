@@ -133,13 +133,13 @@ class JobOrderController extends Controller
                     return '<span class="text-muted">' . $displayText . '</span>';
                 })
                 ->addColumn('actions', function ($jo) {
-                    $imgUrl = !empty($jo->final_image) ? e(asset('storage/' . $jo->final_image)) : '';
+                    $imgUrl = $jo->hasFinalImage() ? e($jo->final_image_url) : '';
                     $imgName = e($jo->name);
 
                     $btnStyle = 'width:100%;padding:3px 0;font-size:12px;border-radius:4px;';
 
                     // Image button: biru full jika ada gambar, outline kosong jika tidak
-                    if (!empty($jo->final_image)) {
+                    if ($jo->hasFinalImage()) {
                         $imgBtn = '<button type="button" class="btn btn-sm btn-info btn-show-image" style="' . $btnStyle . '" title="View Final Image" data-img="' . $imgUrl . '" data-name="' . $imgName . '"><i class="bi bi-file-earmark-image"></i></button>';
                     } else {
                         $imgBtn = '<button type="button" class="btn btn-sm btn-outline-secondary" style="' . $btnStyle . '" title="No image" disabled><i class="bi bi-file-earmark-image"></i></button>';

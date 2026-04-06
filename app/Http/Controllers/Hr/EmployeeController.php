@@ -23,9 +23,9 @@ class EmployeeController extends Controller
     {
         $this->middleware('auth')->except('getLeaveBalance');
 
-        // Admin HR, Super Admin, dan Admin (read-only) bisa akses
+        // Admin HR, Super Admin, Admin, dan Timing (read-only) bisa akses
         $this->middleware(function ($request, $next) {
-            $rolesAllowed = ['super_admin', 'admin_hr', 'admin'];
+            $rolesAllowed = ['super_admin', 'admin_hr', 'admin', 'timing'];
             if (!in_array(Auth::user()->role, $rolesAllowed)) {
                 abort(403, 'Unauthorized access to HR module.');
             }
@@ -79,7 +79,7 @@ class EmployeeController extends Controller
     public function create()
     {
         [$departments, $skillsets, $skillCategories, $proficiencyOptions] = $this->getFormData();
-        $documentTypes   = EmployeeDocument::getDocumentTypes();
+        $documentTypes = EmployeeDocument::getDocumentTypes();
         $employmentTypes = Employee::getEmploymentTypeOptions();
 
         return view('hr.employees.create', compact('departments', 'documentTypes', 'employmentTypes', 'skillsets', 'skillCategories', 'proficiencyOptions'));
@@ -272,7 +272,7 @@ class EmployeeController extends Controller
     public function edit(Employee $employee)
     {
         [$departments, $skillsets, $skillCategories, $proficiencyOptions] = $this->getFormData();
-        $documentTypes   = EmployeeDocument::getDocumentTypes();
+        $documentTypes = EmployeeDocument::getDocumentTypes();
         $employmentTypes = Employee::getEmploymentTypeOptions();
         $employee->load('documents', 'skillsets');
 
@@ -282,13 +282,18 @@ class EmployeeController extends Controller
     /** Shared form data — cached 10 menit karena jarang berubah */
     private function getFormData(): array
     {
-        $departments = Cache::remember('form_departments', 600,
-            fn() => Department::orderBy('name')->get());
+        $departments = Cache::remember('form_departments', 600, fn() => Department::orderBy('name')->get());
 
-        $skillsets = Cache::remember('form_skillsets', 600,
-            fn() => Skillset::active()->select(['id', 'name', 'category'])->orderBy('name')->get());
+        $skillsets = Cache::remember(
+            'form_skillsets',
+            600,
+            fn() => Skillset::active()
+                ->select(['id', 'name', 'category'])
+                ->orderBy('name')
+                ->get(),
+        );
 
-        $skillCategories    = Skillset::getCategoryOptions();
+        $skillCategories = Skillset::getCategoryOptions();
         $proficiencyOptions = Skillset::getProficiencyOptions();
 
         return [$departments, $skillsets, $skillCategories, $proficiencyOptions];
