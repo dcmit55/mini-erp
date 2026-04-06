@@ -101,7 +101,8 @@ class StockAdjustmentController extends Controller
 
         $inventories = Inventory::orderBy('name')->get(['id', 'name', 'material_code', 'unit']);
         $projects = \App\Models\Production\Project::notArchived()->orderBy('name')->get(['id', 'name']);
-        return view('logistic.stock_adjustments.create', compact('inventories', 'projects'));
+        $currencies = \App\Models\Finance\Currency::orderBy('name')->get(['id', 'name']);
+        return view('logistic.stock_adjustments.create', compact('inventories', 'projects', 'currencies'));
     }
 
     // ─── Store ────────────────────────────────────────────────────────────────
@@ -123,6 +124,9 @@ class StockAdjustmentController extends Controller
                 'price' => $isInitialStock
                     ? ['required', 'numeric', 'min:0.0001'] // Initial Stock: price mandatory
                     : ['nullable', 'numeric', 'min:0'], // Adjustment: price optional (revaluation)
+                'currency_id' => $isInitialStock
+                    ? ['required', 'exists:currencies,id']
+                    : ['nullable', 'exists:currencies,id'],
                 'batch_id' => ['nullable', 'exists:inventory_batches,id'],
                 'reason' => ['nullable', 'string', 'max:1000'],
             ],
@@ -156,7 +160,7 @@ class StockAdjustmentController extends Controller
                         'qty' => $qty,
                         'qty_remaining' => $qty,
                         'unit_price' => (float) ($validated['price'] ?? 0),
-                        'currency_id' => $inventory->currency_id ?? 6,
+                        'currency_id' => (int) ($validated['currency_id'] ?? $inventory->currency_id ?? 6),
                         'received_date' => now()->toDateString(),
                         'source_type' => InventoryBatch::SOURCE_INITIAL_STOCK,
                         'notes' => $validated['reason'],
@@ -218,9 +222,16 @@ class StockAdjustmentController extends Controller
 
                 $batch->update(['qty_remaining' => $newRemaining]);
 
-                // Optionally update unit_price if a new price was provided
+                // Optionally update unit_price and/or currency if provided
+                $batchUpdates = [];
                 if (!is_null($validated['price']) && (float) $validated['price'] > 0) {
-                    $batch->update(['unit_price' => (float) $validated['price']]);
+                    $batchUpdates['unit_price'] = (float) $validated['price'];
+                }
+                if (!empty($validated['currency_id'])) {
+                    $batchUpdates['currency_id'] = (int) $validated['currency_id'];
+                }
+                if (!empty($batchUpdates)) {
+                    $batch->update($batchUpdates);
                 }
 
                 $adjustment = StockAdjustment::create([

@@ -116,6 +116,31 @@
                                 @enderror
                             </div>
 
+                            {{-- Currency (always shown; required for initial_stock, optional for adjustment) --}}
+                            <div class="mb-3" id="currencySection">
+                                <label for="currency_id" class="form-label fw-semibold">
+                                    Currency
+                                    <span id="currencyRequiredStar" class="text-danger"
+                                        @if (old('type', 'adjustment') !== 'initial_stock') style="display:none" @endif>*</span>
+                                    <span id="currencyOptionalText" class="text-muted fw-normal"
+                                        @if (old('type', 'adjustment') === 'initial_stock') style="display:none" @endif>(Opsional — ubah jika perlu)</span>
+                                </label>
+                                <select name="currency_id" id="currency_id"
+                                    class="form-select select2-currency @error('currency_id') is-invalid @enderror"
+                                    {{ old('type', 'adjustment') === 'initial_stock' ? 'required' : '' }}>
+                                    <option value="">— Pilih Currency —</option>
+                                    @foreach ($currencies as $currency)
+                                        <option value="{{ $currency->id }}"
+                                            {{ old('currency_id') == $currency->id ? 'selected' : '' }}>
+                                            {{ $currency->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('currency_id')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
                             {{-- Qty --}}
                             <div class="mb-3">
                                 <label for="qty" class="form-label fw-semibold">
@@ -214,6 +239,13 @@
                 width: '100%'
             });
 
+            $('.select2-currency').select2({
+                theme: 'bootstrap-5',
+                placeholder: '— Pilih Currency —',
+                allowClear: true,
+                width: '100%'
+            });
+
             $('#batch_id').select2({
                 theme: 'bootstrap-5',
                 placeholder: '— Pilih Batch —',
@@ -228,6 +260,7 @@
                 var type = currentType();
                 var $qty = $('#qty');
                 var $price = $('#price');
+                var $currency = $('#currency_id');
 
                 if (type === 'initial_stock') {
                     $('#batchSection').addClass('d-none');
@@ -239,6 +272,10 @@
                     // Price: required for initial stock
                     $price.attr('required', true).attr('min', '0.0001');
                     $('#priceRequiredStar').show();
+                    // Currency: required for initial stock
+                    $currency.attr('required', true);
+                    $('#currencyRequiredStar').show();
+                    $('#currencyOptionalText').hide();
 
                 } else {
                     $('#batchSection').removeClass('d-none');
@@ -248,6 +285,10 @@
                     // Price: optional for adjustment
                     $price.removeAttr('required').attr('min', '0');
                     $('#priceRequiredStar').hide();
+                    // Currency: optional for adjustment
+                    $currency.removeAttr('required');
+                    $('#currencyRequiredStar').hide();
+                    $('#currencyOptionalText').show();
 
                 }
             }
@@ -320,7 +361,7 @@
                 loadBatches($(this).val(), null);
             });
 
-            // ── When batch selected, pre-fill price field ─────────────────────
+            // ── When batch selected, pre-fill price & currency fields ─────────
             $('#batch_id').on('change', function() {
                 var $opt = $(this).find('option:selected');
                 var unitPrice = $opt.data('unit_price');
@@ -331,6 +372,21 @@
                 }
                 if (currency) {
                     $('#currencyLabel').text(currency);
+                    // Auto-select matching currency in the dropdown
+                    var $currOpt = $('#currency_id option').filter(function() {
+                        return $(this).text().trim().toUpperCase() === currency.toUpperCase();
+                    });
+                    if ($currOpt.length) {
+                        $('#currency_id').val($currOpt.val()).trigger('change');
+                    }
+                }
+            });
+
+            // ── When currency select changes, update currencyLabel span ───────
+            $('#currency_id').on('change', function() {
+                var selected = $(this).find('option:selected').text().trim();
+                if (selected && selected !== '— Pilih Currency —') {
+                    $('#currencyLabel').text(selected);
                 }
             });
 
