@@ -11,7 +11,7 @@ class StockAdjustment extends Model implements AuditableContract
 
     protected $table = 'stock_adjustments';
 
-    protected $fillable = ['inventory_id', 'batch_id', 'type', 'qty', 'reason', 'created_by', 'price'];
+    protected $fillable = ['inventory_id', 'batch_id', 'project_id', 'type', 'qty', 'reason', 'created_by', 'price'];
 
     protected $auditInclude = ['inventory_id', 'batch_id', 'type', 'qty', 'price', 'reason', 'created_by'];
 

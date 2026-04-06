@@ -53,6 +53,24 @@ class MaterialUsageController extends Controller
                 ->addColumn('material_name', function ($item) {
                     return $item->inventory ? $item->inventory->name : 'N/A';
                 })
+                ->addColumn('batch_number', function ($item) {
+                    // Show batch number from the most recent goods_out for this material+project
+                    $goodsOut = GoodsOut::with('inventoryBatch')
+                        ->where('inventory_id', $item->inventory_id)
+                        ->where(function ($q) use ($item) {
+                            if ($item->project_id) {
+                                $q->where('project_id', $item->project_id);
+                            } else {
+                                $q->whereNull('project_id');
+                            }
+                        })
+                        ->whereNotNull('inventory_batch_id')
+                        ->latest()
+                        ->first();
+                    return $goodsOut && $goodsOut->inventoryBatch
+                        ? $goodsOut->inventoryBatch->batch_number
+                        : '-';
+                })
                 ->addColumn('project_name', function ($item) {
                     return $item->project ? $item->project->name : 'No Project';
                 })
@@ -232,8 +250,24 @@ class MaterialUsageController extends Controller
             ->map(function ($usage) {
                 // Check if inventory exists
                 $unit = $usage->inventory ? $usage->inventory->unit ?? '' : '';
+                // Get batch number from most recent goods_out for this material+project
+                $goodsOutWithBatch = GoodsOut::with('inventoryBatch')
+                    ->where('inventory_id', $usage->inventory_id)
+                    ->where(function ($q) use ($usage) {
+                        if ($usage->project_id) {
+                            $q->where('project_id', $usage->project_id);
+                        } else {
+                            $q->whereNull('project_id');
+                        }
+                    })
+                    ->whereNotNull('inventory_batch_id')
+                    ->latest()
+                    ->first();
                 return [
                     'project_name' => $usage->project ? $usage->project->name : 'No Project',
+                    'batch_number' => $goodsOutWithBatch && $goodsOutWithBatch->inventoryBatch
+                        ? $goodsOutWithBatch->inventoryBatch->batch_number
+                        : '-',
                     'goods_out_quantity' => GoodsOut::where('inventory_id', $usage->inventory_id)
                         ->where(function ($q) use ($usage) {
                             if ($usage->project_id) {

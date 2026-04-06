@@ -428,11 +428,9 @@
                     <thead>
                         <tr>
                             <th style="padding-left:1.25rem;">Description</th>
-                            <th>Carrier</th>
-                            <th>Mode</th>
-                            <th>Tracking / Ref</th>
-                            <th>Date</th>
+                            <th>Qty</th>
                             <th>Status</th>
+                            <th class="text-end">SGD Cost</th>
                             <th class="text-end">Cost (IDR)</th>
                         </tr>
                     </thead>
@@ -442,26 +440,16 @@
                                 <tr>
                                     <td style="padding-left:1.25rem;">
                                         <div class="fw-semibold">{{ $item['name'] }}</div>
-                                        @if (($item['qty'] ?? 1) > 1)
-                                            <div class="text-muted" style="font-size:.7rem;">Qty: {{ $item['qty'] }}</div>
-                                        @endif
                                     </td>
-                                    <td class="text-muted">{{ $ship['courier_name'] }}</td>
-                                    <td>
-                                        @php [$icon, $cls] = $modeIcon($ship['mode']); @endphp
-                                        <span class="mode-chip {{ $cls }}">{{ $icon }}
-                                            {{ ucfirst($ship['mode']) }}</span>
-                                    </td>
-                                    <td class="text-muted" style="font-size:.73rem; font-family:monospace;">
-                                        {{ $ship['tracking'] }}</td>
-                                    <td class="text-muted" style="font-size:.75rem;">{{ $ship['date'] }}</td>
+                                    <td class="text-muted">{{ $item['qty'] ?? 1 }}</td>
                                     <td>
                                         <span class="status-badge {{ $statusClass($item['status']) }}">●
                                             {{ $item['status'] }}</span>
                                     </td>
+                                    <td class="text-end text-muted" style="font-size:.75rem;">SGD {{ number_format($item['sgd_cost'] ?? 0, 2) }}</td>
                                     <td class="text-end">
                                         @if (($item['sgd_cost'] ?? 0) > 0)
-                                            {{ $fmt($item['sgd_cost'] * 12225) }}
+                                            {{ $fmt(round($item['sgd_cost'] * $sgdRate, 0)) }}
                                         @else
                                             —
                                         @endif
@@ -470,8 +458,8 @@
                             @endforeach
                         @endforeach
                         <tr class="subtotal-row">
-                            <td colspan="6" style="padding-left:1.25rem;">Subtotal — SG → BT
-                                ({{ $sgBtShipments->count() }} shipments)</td>
+                            <td colspan="4" style="padding-left:1.25rem;">Subtotal — SG → BT
+                                ({{ $sgBtShipments->count() }} group(s))</td>
                             <td class="text-end">{{ $fmt($totalSgBtIDR) }}</td>
                         </tr>
                     </tbody>
@@ -497,11 +485,9 @@
                     <thead>
                         <tr>
                             <th style="padding-left:1.25rem;">Description</th>
-                            <th>Carrier</th>
-                            <th>Mode</th>
-                            <th>Tracking / Ref</th>
-                            <th>Date</th>
+                            <th>Qty</th>
                             <th>Status</th>
+                            <th class="text-end">SGD Cost</th>
                             <th class="text-end">Cost (IDR)</th>
                         </tr>
                     </thead>
@@ -511,26 +497,16 @@
                                 <tr>
                                     <td style="padding-left:1.25rem;">
                                         <div class="fw-semibold">{{ $item['name'] }}</div>
-                                        @if (($item['qty'] ?? 1) > 1)
-                                            <div class="text-muted" style="font-size:.7rem;">Qty: {{ $item['qty'] }}</div>
-                                        @endif
                                     </td>
-                                    <td class="text-muted">{{ $ship['courier_name'] }}</td>
-                                    <td>
-                                        @php [$icon, $cls] = $modeIcon($ship['mode']); @endphp
-                                        <span class="mode-chip {{ $cls }}">{{ $icon }}
-                                            {{ ucfirst($ship['mode']) }}</span>
-                                    </td>
-                                    <td class="text-muted" style="font-size:.73rem; font-family:monospace;">
-                                        {{ $ship['tracking'] }}</td>
-                                    <td class="text-muted" style="font-size:.75rem;">{{ $ship['date'] }}</td>
+                                    <td class="text-muted">{{ $item['qty'] ?? 1 }}</td>
                                     <td>
                                         <span class="status-badge {{ $statusClass($item['status']) }}">●
                                             {{ $item['status'] }}</span>
                                     </td>
+                                    <td class="text-end text-muted" style="font-size:.75rem;">SGD {{ number_format($item['sgd_cost'] ?? 0, 2) }}</td>
                                     <td class="text-end">
                                         @if (($item['sgd_cost'] ?? 0) > 0)
-                                            {{ $fmt($item['sgd_cost'] * 12225) }}
+                                            {{ $fmt(round($item['sgd_cost'] * $sgdRate, 0)) }}
                                         @else
                                             —
                                         @endif
@@ -539,8 +515,8 @@
                             @endforeach
                         @endforeach
                         <tr class="subtotal-row">
-                            <td colspan="6" style="padding-left:1.25rem;">Subtotal — BT → SG
-                                ({{ $btSgShipments->count() }} shipments)</td>
+                            <td colspan="4" style="padding-left:1.25rem;">Subtotal — BT → SG
+                                ({{ $btSgShipments->count() }} group(s))</td>
                             <td class="text-end">{{ $fmt($totalBtSgIDR) }}</td>
                         </tr>
                     </tbody>

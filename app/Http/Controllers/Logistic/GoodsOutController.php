@@ -49,7 +49,7 @@ class GoodsOutController extends Controller
 
     public function getDataTablesData(Request $request)
     {
-        $query = GoodsOut::with(['inventory', 'project', 'goodsIns', 'materialRequest', 'user.department'])->latest();
+        $query = GoodsOut::with(['inventory', 'project', 'goodsIns', 'materialRequest', 'user.department', 'inventoryBatch'])->latest();
 
         // Apply filters
         if ($request->filled('material_filter')) {
@@ -135,6 +135,7 @@ class GoodsOutController extends Controller
             $data[] = [
                 'DT_RowIndex' => $start + $index + 1,
                 'material' => $goodsOut->inventory ? $goodsOut->inventory->name : '(No material)',
+                'batch_number' => $goodsOut->inventoryBatch ? $goodsOut->inventoryBatch->batch_number : '-',
                 'quantity' => $this->formatQuantity($goodsOut),
                 'remaining_quantity' => $this->formatRemainingQuantity($goodsOut),
                 'project' => $goodsOut->project ? $goodsOut->project->name : '(No project)',
@@ -335,9 +336,13 @@ class GoodsOutController extends Controller
             event(new \App\Events\MaterialRequestUpdated($materialRequest, 'status'));
 
             // Simpan Goods Out
+            // Capture primary (first FIFO) batch for traceability
+            $primaryBatch = $inventory->activeBatches()->orderBy('received_date')->orderBy('id')->first();
+
             $goodsOut = GoodsOut::create([
                 'material_request_id' => $materialRequest->id,
                 'inventory_id' => $inventory->id,
+                'inventory_batch_id' => $primaryBatch?->id,
                 'project_id' => $materialRequest->project_id,
                 'job_order_id' => $materialRequest->job_order_id,
                 'requested_by' => $materialRequest->requested_by,
@@ -414,11 +419,14 @@ class GoodsOutController extends Controller
             }
 
             // Kurangi stok di inventory
+            // Capture primary (first FIFO) batch for traceability
+            $primaryBatch = $inventory->activeBatches()->orderBy('received_date')->orderBy('id')->first();
             $inventory->consumeStock($request->quantity);
 
             // Simpan Goods Out
             GoodsOut::create([
                 'inventory_id' => $request->inventory_id,
+                'inventory_batch_id' => $primaryBatch?->id,
                 'project_id' => $request->project_id,
                 'job_order_id' => $request->job_order_id,
                 'requested_by' => $user->username,
@@ -505,12 +513,15 @@ class GoodsOutController extends Controller
                 }
 
                 // Kurangi stok inventory
+                // Capture primary (first FIFO) batch for traceability
+                $primaryBatch = $inventory->activeBatches()->orderBy('received_date')->orderBy('id')->first();
                 $inventory->consumeStock($qtyToGoodsOut);
 
                 // Buat Goods Out
                 $goodsOut = GoodsOut::create([
                     'material_request_id' => $materialRequest->id,
                     'inventory_id' => $inventory->id,
+                    'inventory_batch_id' => $primaryBatch?->id,
                     'project_id' => $materialRequest->project_id,
                     'job_order_id' => $materialRequest->job_order_id,
                     'requested_by' => $materialRequest->requested_by,

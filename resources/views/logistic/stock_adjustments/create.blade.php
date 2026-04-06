@@ -44,8 +44,8 @@
                                             {{ old('type', 'adjustment') === 'initial_stock' ? 'checked' : '' }}>
                                         <label class="form-check-label" for="typeInitial">
                                             <span class="badge bg-info">Initial Stock</span>
-                                            <small class="text-muted d-block" style="font-size:.7rem;">Add Stock
-                                                Lama</small>
+                                            <small class="text-muted d-block" style="font-size:.7rem;">Add Old Stock
+                                                & Create new batch number </small>
                                         </label>
                                     </div>
                                     <div class="form-check form-check-inline">
@@ -61,6 +61,24 @@
                                 </div>
                                 @error('type')
                                     <div class="text-danger small mt-1">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            {{-- Project (optional) --}}
+                            <div class="mb-3">
+                                <label for="project_id" class="form-label fw-semibold">Project <span class="text-muted fw-normal">(Opsional)</span></label>
+                                <select name="project_id" id="project_id"
+                                    class="form-select select2-project @error('project_id') is-invalid @enderror">
+                                    <option value="">— Pilih Project —</option>
+                                    @foreach ($projects as $project)
+                                        <option value="{{ $project->id }}"
+                                            {{ old('project_id') == $project->id ? 'selected' : '' }}>
+                                            {{ $project->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('project_id')
+                                    <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
 
@@ -187,6 +205,13 @@
                 width: '100%'
             }).on('select2:open', function() {
                 setTimeout(() => document.querySelector('.select2-search__field')?.focus(), 100);
+            });
+
+            $('.select2-project').select2({
+                theme: 'bootstrap-5',
+                placeholder: '— Pilih Project —',
+                allowClear: true,
+                width: '100%'
             });
 
             $('#batch_id').select2({

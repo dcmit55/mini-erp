@@ -87,6 +87,7 @@
                             <tr>
                                 <th width="50">#</th>
                                 <th>Material</th>
+                                <th>Batch No.</th>
                                 <th>Project</th>
                                 <th>Job Order</th>
                                 <th>Goods Out Qty</th>
@@ -229,8 +230,8 @@
         /* Center align checkbox and actions */
         #datatable thead th:nth-child(1),
         #datatable tbody td:nth-child(1),
-        #datatable thead th:nth-child(10),
-        #datatable tbody td:nth-child(10) {
+        #datatable thead th:nth-child(11),
+        #datatable tbody td:nth-child(11) {
             text-align: center !important;
         }
     </style>
@@ -273,6 +274,12 @@
                     },
                     {
                         data: 'material_name'
+                    },
+                    {
+                        data: 'batch_number',
+                        orderable: false,
+                        searchable: false,
+                        className: 'text-muted'
                     },
                     {
                         data: 'project_name'

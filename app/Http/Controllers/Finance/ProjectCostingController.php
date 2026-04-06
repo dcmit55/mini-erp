@@ -85,7 +85,7 @@ class ProjectCostingController extends Controller
             ->with(['departments', 'jobOrders' => fn($q) => $q->select('id', 'project_id', 'name', 'department_id', 'final_image'), 'jobOrders.materialRequests', 'jobOrders.department'])
             ->orderByDesc('deadline') // Sort by deadline descending
             ->orderByDesc('created_at') // Then by created_at
-            ->paginate(10);
+            ->paginate(12); // 12 = 3 cols × 4 rows (xl), fits clean grid
 
         // Card summaries: calculate actual_project_cost and total_project_time per project
         $projectIds = $projects->pluck('id')->toArray();
@@ -102,8 +102,8 @@ class ProjectCostingController extends Controller
             // Timing (workmanship): sum duration_minutes per project + salary for cost
             $timingsByProject = \App\Models\Production\Timing::whereIn('project_id', $projectIds)->where('approval_status', 'approved')->selectRaw('project_id, SUM(duration_minutes) as total_minutes')->groupBy('project_id')->pluck('total_minutes', 'project_id');
 
-            // Workmanship cost: need employee salary to calculate hourly_rate × hours
-            // Formula: hourly_rate = salary / 173, cost = hourly_rate × (duration_minutes / 60)
+            // Workmanship cost: need snapshotted rate_per_hour (or fallback employee salary)
+            // Select rate_per_hour along with employee salary as fallback
             $timingsWithEmployee = \App\Models\Production\Timing::whereIn('project_id', $projectIds)->where('approval_status', 'approved')->with('employee:id,salary')->get()->groupBy('project_id');
 
             // DCM Costings (PO): sum invoice_total per project_name
@@ -112,8 +112,8 @@ class ProjectCostingController extends Controller
 
             // Pre-fetch all courier tracking rows for all project IDs at once (avoids N+1 per project)
             $sgdRate = \App\Models\Finance\Currency::where('name', 'SGD')->value('exchange_rate') ?? 12000;
-            $allBtSgItems = \App\Models\Lark\LarkBtSgItemTracking::whereIn('project_id', $projectIds)->with('courier')->get()->groupBy('project_id');
-            $allSgBtItems = \App\Models\Lark\LarkSgBtItemTracking::whereIn('project_id', $projectIds)->with('courier')->get()->groupBy('project_id');
+            $allBtSgItems = \App\Models\Lark\LarkBtSgItemTracking::whereIn('project_id', $projectIds)->get()->groupBy('project_id');
+            $allSgBtItems = \App\Models\Lark\LarkSgBtItemTracking::whereIn('project_id', $projectIds)->get()->groupBy('project_id');
 
             foreach ($projectIds as $pid) {
                 // Material cost
@@ -128,28 +128,27 @@ class ProjectCostingController extends Controller
                     $materialIDR += $unitCost * ($usage->used_quantity ?? 0) * $rate;
                 }
 
-                // Freight cost — compute from pre-fetched tracking rows (no extra queries)
+                // Freight cost — sum sgd_cost directly from Lark tracking rows, convert to IDR
                 $btSgForProject = $allBtSgItems[$pid] ?? collect();
                 $sgBtForProject = $allSgBtItems[$pid] ?? collect();
-                $freightIDR = 0;
-                foreach ($btSgForProject->groupBy(fn($i) => $i->courier_id ?? '__none__') as $items) {
-                    $courier = $items->first()->courier;
-                    $courierIdr = $courier ? $courier->total_cost ?? 0 : 0;
-                    $freightIDR += $courierIdr > 0 ? $courierIdr : round($items->sum('sgd_cost') * $sgdRate, 0);
-                }
-                foreach ($sgBtForProject->groupBy(fn($i) => $i->courier_id ?? '__none__') as $items) {
-                    $courier = $items->first()->courier;
-                    $courierIdr = $courier ? $courier->total_cost ?? 0 : 0;
-                    $freightIDR += $courierIdr > 0 ? $courierIdr : round($items->sum('sgd_cost') * $sgdRate, 0);
-                }
+                $freightIDR = round(
+                    ($btSgForProject->sum('sgd_cost') + $sgBtForProject->sum('sgd_cost')) * $sgdRate,
+                    0
+                );
 
-                // Workmanship cost: sum of (salary/173 × hours) per timing session
+                // Workmanship cost: use snapshotted rate_per_hour if available,
+                // otherwise fall back to employee's current salary (legacy data).
                 $workmanshipIDR = 0;
                 $totalMinutes = $timingsByProject[$pid] ?? 0;
                 $totalHours = round($totalMinutes / 60, 2);
                 foreach ($timingsWithEmployee[$pid] ?? collect() as $timing) {
-                    $salary = $timing->employee->salary ?? 0;
-                    $hourlyRate = $salary > 0 ? round($salary / 173, 0) : 0;
+                    // Prefer locked snapshot; fall back to live salary for old records
+                    if (!is_null($timing->rate_per_hour) && (float) $timing->rate_per_hour > 0) {
+                        $hourlyRate = (float) $timing->rate_per_hour;
+                    } else {
+                        $salary = $timing->employee->salary ?? 0;
+                        $hourlyRate = $salary > 0 ? round($salary / 173, 0) : 0;
+                    }
                     $hrs = round(($timing->duration_minutes ?? 0) / 60, 2);
                     $workmanshipIDR += round($hourlyRate * $hrs, 0);
                 }
@@ -278,9 +277,9 @@ class ProjectCostingController extends Controller
         $totalLaborHours = round($totalLaborMinutes / 60, 2);
 
         // ── Workmanship Cost (IDR) ──
-        // Formula: hourly_rate = employee.salary / 173 (Depnaker standard monthly work hours)
-        // labor_cost per session = hourly_rate × (duration_minutes / 60)
-        // Total workmanship = sum of all labor_cost across employees
+        // Use snapshotted rate_per_hour (locked at approval time) to prevent
+        // retroactive changes when employee salary is updated later.
+        // Fallback to employee.salary/173 for legacy records without snapshot.
         $totalWorkmanshipIDR = 0;
         $timingsByJobOrder = $timings
             ->groupBy('job_order_id')
@@ -289,8 +288,13 @@ class ProjectCostingController extends Controller
                 $groupCost = 0;
                 $rowData = $rows
                     ->map(function ($t) use (&$groupCost) {
-                        $salary = $t->employee->salary ?? 0;
-                        $hourlyRate = $salary > 0 ? round($salary / 173, 0) : 0;
+                        // Prefer locked snapshot; fall back to live salary for old records
+                        if (!is_null($t->rate_per_hour) && (float) $t->rate_per_hour > 0) {
+                            $hourlyRate = (int) round((float) $t->rate_per_hour);
+                        } else {
+                            $salary = $t->employee->salary ?? 0;
+                            $hourlyRate = $salary > 0 ? round($salary / 173, 0) : 0;
+                        }
                         $hours = round(($t->duration_minutes ?? 0) / 60, 2);
                         $cost = round($hourlyRate * $hours, 0);
                         $groupCost += $cost;
@@ -514,7 +518,14 @@ class ProjectCostingController extends Controller
             ->map(function ($rows) use ($computeCost) {
                 $emp = $rows->first()->employee;
                 $salary = $emp->salary ?? 0;
-                $hourlyRate = $salary > 0 ? round($salary / 173, 0) : 0;
+                $liveFallbackRate = $salary > 0 ? round($salary / 173, 0) : 0;
+
+                // Use per-row snapshotted rate_per_hour (locked at approval time).
+                // All rows for the same employee SHOULD have the same rate, but if
+                // they differ (e.g. approval happened across a salary change), use
+                // the first non-null snapshot; fall back to live salary if none stored.
+                $snapshotRate = $rows->firstWhere(fn($t) => !is_null($t->rate_per_hour))?->rate_per_hour;
+                $hourlyRate = $snapshotRate > 0 ? (int) round($snapshotRate) : $liveFallbackRate;
 
                 $totalNormalMins = 0;
                 $totalOtMins = 0;
@@ -627,8 +638,9 @@ class ProjectCostingController extends Controller
         $totalFreightIDR = $courierData['total_idr'];
         $sgBtCount = $courierData['sg_bt_count'];
         $btSgCount = $courierData['bt_sg_count'];
+        $sgdRate = \App\Models\Finance\Currency::where('name', 'SGD')->value('exchange_rate') ?? 12000;
 
-        return view('finance.costing.freight-detail', compact('project', 'sgBtShipments', 'btSgShipments', 'totalSgBtIDR', 'totalBtSgIDR', 'totalFreightIDR', 'sgBtCount', 'btSgCount', 'courierData'));
+        return view('finance.costing.freight-detail', compact('project', 'sgBtShipments', 'btSgShipments', 'totalSgBtIDR', 'totalBtSgIDR', 'totalFreightIDR', 'sgBtCount', 'btSgCount', 'courierData', 'sgdRate'));
     }
 
     public function viewCosting($project_id)
@@ -1043,8 +1055,8 @@ class ProjectCostingController extends Controller
     }
 
     /**
-     * Get courier costs for a specific project.
-     * Aggregates both BT-SG and SG-BT courier costs from Lark tracking data.
+     * Get freight costs for a specific project.
+     * Source: BT-SG and SG-BT Lark item tracking tables, using only sgd_cost column.
      * SGD → IDR conversion uses the exchange rate from Finance Currency module.
      */
     private function getCourierCosts($projectId)
@@ -1052,70 +1064,62 @@ class ProjectCostingController extends Controller
         // ── SGD exchange rate from Currency module (single source of truth) ──
         $sgdRate = \App\Models\Finance\Currency::where('name', 'SGD')->value('exchange_rate') ?? 12000;
 
-        // Get ALL BT-SG items (with or without courier)
-        $btSgItems = LarkBtSgItemTracking::with('courier')->where('project_id', $projectId)->get();
+        // Get ALL BT-SG and SG-BT items for this project
+        $btSgItems = LarkBtSgItemTracking::where('project_id', $projectId)->get();
+        $sgBtItems = LarkSgBtItemTracking::where('project_id', $projectId)->get();
 
-        // Get ALL SG-BT items (with or without courier)
-        $sgBtItems = LarkSgBtItemTracking::with('courier')->where('project_id', $projectId)->get();
+        // Sum SGD costs per direction
+        $btSgTotalSgd = round((float) $btSgItems->sum('sgd_cost'), 2);
+        $sgBtTotalSgd = round((float) $sgBtItems->sum('sgd_cost'), 2);
+        $totalSgd     = round($btSgTotalSgd + $sgBtTotalSgd, 2);
+        $totalIdr     = round($totalSgd * $sgdRate, 0);
+        $btSgTotalIdr = round($btSgTotalSgd * $sgdRate, 0);
+        $sgBtTotalIdr = round($sgBtTotalSgd * $sgdRate, 0);
 
-        // ── Helper: build courier group from items ──
-        $buildGroup = function ($items, $key, $direction) use ($sgdRate) {
-            $courier = $key !== '__none__' ? $items->first()->courier : null;
-            $itemsCostSgd = $items->sum('sgd_cost'); // SGD cost on items
+        // Build item lists per direction for detail display
+        $btSgList = $btSgItems->map(fn($i) => [
+            'name'      => $i->item_name ?? '—',
+            'qty'       => $i->qty ?? 1,
+            'status'    => $i->status ?? 'pending',
+            'sgd_cost'  => $i->sgd_cost ?? 0,
+        ])->values()->toArray();
 
-            // Courier model stores transport/baggage/gst in IDR (total_cost accessor)
-            $courierTotalIdr = $courier ? $courier->total_cost ?? 0 : 0;
-            // If courier has IDR cost, use it; otherwise convert item SGD cost via Currency rate
-            $totalIdr = $courierTotalIdr > 0 ? $courierTotalIdr : round($itemsCostSgd * $sgdRate, 0);
-            $totalSgd = $courierTotalIdr > 0 ? round($courierTotalIdr / $sgdRate, 2) : $itemsCostSgd;
+        $sgBtList = $sgBtItems->map(fn($i) => [
+            'name'      => $i->item_name ?? '—',
+            'qty'       => $i->qty ?? 1,
+            'status'    => $i->status ?? 'pending',
+            'sgd_cost'  => $i->sgd_cost ?? 0,
+        ])->values()->toArray();
 
-            return [
-                'courier_id' => $key !== '__none__' ? $key : null,
-                'courier_name' => $courier->name ?? '—',
-                'direction' => $direction,
-                'date' => $courier && $courier->date ? $courier->date->format('d M Y') : '—',
-                'mode' => $courier->mode ?? 'ferry',
-                'tracking' => $courier->tracking_number ?? '—',
-                'items_count' => $items->count(),
-                'items' => $items
-                    ->map(
-                        fn($i) => [
-                            'name' => $i->item_name ?? '—',
-                            'qty' => $i->qty ?? 1,
-                            'status' => $i->status ?? 'pending',
-                            'sgd_cost' => $i->sgd_cost ?? 0,
-                        ],
-                    )
-                    ->toArray(),
-                'transport_cost' => $courier->transport_cost ?? 0,
-                'baggage_cost' => $courier->baggage_cost ?? 0,
-                'gst_cost' => $courier->gst_cost ?? 0,
-                'total_idr' => $totalIdr,
-                'total_sgd' => $totalSgd,
-            ];
-        };
-
-        // Group BT-SG by courier_id
-        $btSgCouriers = collect($btSgItems->groupBy(fn($i) => $i->courier_id ?? '__none__')->map(fn($items, $key) => $buildGroup($items, $key, 'BT → SG'))->values());
-
-        // Group SG-BT by courier_id
-        $sgBtCouriers = collect($sgBtItems->groupBy(fn($i) => $i->courier_id ?? '__none__')->map(fn($items, $key) => $buildGroup($items, $key, 'SG → BT'))->values());
-
-        // Combine both directions
-        $allCouriers = $btSgCouriers->merge($sgBtCouriers)->values();
-
-        // Calculate totals
-        $totalSgd = $allCouriers->sum('total_sgd');
-        $totalIdr = $allCouriers->sum('total_idr');
+        // Build direction groups (replaces courier groups) for view consumption
+        $groups = collect();
+        if ($btSgItems->isNotEmpty()) {
+            $groups->push([
+                'direction'   => 'BT → SG',
+                'items_count' => $btSgItems->count(),
+                'items'       => $btSgList,
+                'total_sgd'   => $btSgTotalSgd,
+                'total_idr'   => $btSgTotalIdr,
+            ]);
+        }
+        if ($sgBtItems->isNotEmpty()) {
+            $groups->push([
+                'direction'   => 'SG → BT',
+                'items_count' => $sgBtItems->count(),
+                'items'       => $sgBtList,
+                'total_sgd'   => $sgBtTotalSgd,
+                'total_idr'   => $sgBtTotalIdr,
+            ]);
+        }
 
         return [
-            'bt_sg_count' => $btSgCouriers->count(),
-            'sg_bt_count' => $sgBtCouriers->count(),
-            'total_couriers' => $allCouriers->count(),
-            'total_items' => $btSgItems->count() + $sgBtItems->count(),
-            'total_sgd' => round($totalSgd, 2),
-            'total_idr' => round($totalIdr, 0),
-            'couriers' => $allCouriers,
+            'bt_sg_count'    => $btSgItems->count(),
+            'sg_bt_count'    => $sgBtItems->count(),
+            'total_couriers' => $groups->count(),
+            'total_items'    => $btSgItems->count() + $sgBtItems->count(),
+            'total_sgd'      => $totalSgd,
+            'total_idr'      => $totalIdr,
+            'couriers'       => $groups,
         ];
     }
 }

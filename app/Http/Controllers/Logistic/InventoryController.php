@@ -480,14 +480,9 @@ class InventoryController extends Controller
             'name' => 'required|string|max:255|unique:inventories,name,NULL,id,deleted_at,NULL',
             'category_id' => 'required|exists:categories,id',
             'project_id' => 'nullable|exists:projects,id',
-            'quantity' => 'required|numeric|min:0',
             'unit' => 'required|string',
             'new_unit' => 'required_if:unit,__new__|nullable|string|max:255',
-            'price' => 'nullable|numeric|min:0',
-            'unit_domestic_freight_cost' => 'nullable|numeric|min:0',
-            'unit_international_freight_cost' => 'nullable|numeric|min:0',
             'supplier_id' => 'nullable|exists:suppliers,id',
-            'currency_id' => 'nullable|exists:currencies,id',
             'location_id' => 'nullable|exists:locations,id',
             'remark' => 'nullable|string',
             'img' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
@@ -498,10 +493,7 @@ class InventoryController extends Controller
         $inventory->category_id = $request->category_id;
         $inventory->project_id = $request->project_id;
         $inventory->unit = $request->unit;
-        $inventory->unit_domestic_freight_cost = $request->unit_domestic_freight_cost;
-        $inventory->unit_international_freight_cost = $request->unit_international_freight_cost;
         $inventory->supplier_id = $request->supplier_id;
-        $inventory->currency_id = $request->currency_id;
         $inventory->location_id = $request->location_id;
         $inventory->remark = $request->remark;
 
@@ -521,33 +513,15 @@ class InventoryController extends Controller
 
         $inventory->save();
 
-        // Create initial batch for the opening stock
-        if ($request->quantity > 0) {
-            \App\Models\Logistic\InventoryBatch::create([
-                'batch_number' => \App\Models\Logistic\InventoryBatch::generateBatchNumber($inventory->id),
-                'inventory_id' => $inventory->id,
-                'qty' => $request->quantity,
-                'qty_remaining' => $request->quantity,
-                'unit_price' => $request->price ?? 0,
-                'currency_id' => $request->currency_id ?? null,
-                'received_date' => now()->toDateString(),
-                'source_type' => \App\Models\Logistic\InventoryBatch::SOURCE_INITIAL_STOCK,
-                'source_id' => $inventory->id,
-            ]);
-        }
-
-        // Warning message untuk field kosong
-        $warningMessage = null;
-        if (!$inventory->currency_id || !$request->price) {
-            $warningMessage = "Price or Currency is empty for <b>{$inventory->name}</b>. Please update it as soon as possible, as it will affect the cost calculation!";
+        // Auto-generate material code if not yet set
+        if (empty($inventory->material_code)) {
+            $inventory->material_code = \App\Models\Logistic\Inventory::generateMaterialCode();
+            $inventory->saveQuietly();
         }
 
         return redirect()
             ->route('inventory.index')
-            ->with([
-                'success' => "Inventory <b>{$inventory->name}</b> created successfully.",
-                'warning' => $warningMessage,
-            ]);
+            ->with('success', "Inventory <b>{$inventory->name}</b> created successfully.");
     }
 
     public function storeQuick(Request $request)
@@ -647,14 +621,9 @@ class InventoryController extends Controller
             'name' => 'required|string|max:255|unique:inventories,name,' . $inventory->id . ',id,deleted_at,NULL',
             'category_id' => 'required|exists:categories,id',
             'project_id' => 'nullable|exists:projects,id',
-            'quantity' => 'required|numeric|min:0',
             'unit' => 'required|string',
             'unit_id' => 'nullable|exists:units,id',
             'new_unit' => 'required_if:unit,__new__|nullable|string|max:255',
-            'currency_id' => 'nullable|exists:currencies,id',
-            'price' => 'nullable|numeric|min:0',
-            'unit_domestic_freight_cost' => 'nullable|numeric|min:0',
-            'unit_international_freight_cost' => 'nullable|numeric|min:0',
             'supplier_id' => 'nullable|exists:suppliers,id',
             'location_id' => 'nullable|exists:locations,id',
             'remark' => 'nullable|string',
@@ -666,36 +635,9 @@ class InventoryController extends Controller
         $inventory->category_id = $request->category_id;
         $inventory->project_id = $request->project_id;
         $inventory->unit = $request->unit;
-        $inventory->currency_id = $request->currency_id;
-        $inventory->unit_domestic_freight_cost = $request->unit_domestic_freight_cost;
-        $inventory->unit_international_freight_cost = $request->unit_international_freight_cost;
         $inventory->supplier_id = $request->supplier_id;
         $inventory->location_id = $request->location_id;
         $inventory->remark = $request->remark;
-
-        // Always create a new INIT batch on each stock update to preserve full history.
-        // This means each manual edit of qty/price becomes a traceable batch record.
-        $newQty = (float) $request->quantity;
-        $newPrice = (float) ($request->price ?? 0);
-
-        // Get the last INIT batch price for comparison (detect actual price change)
-        $currentPrice = (float) ($inventory->batches()->where('source_type', \App\Models\Logistic\InventoryBatch::SOURCE_INITIAL_STOCK)->orderByDesc('id')->value('unit_price') ?? 0);
-
-        // Create new INIT batch when qty > 0 or price has changed
-        if ($newQty > 0 || ($newPrice > 0 && $newPrice !== $currentPrice)) {
-            \App\Models\Logistic\InventoryBatch::create([
-                'batch_number' => \App\Models\Logistic\InventoryBatch::generateInitBatchNumber($inventory->id),
-                'inventory_id' => $inventory->id,
-                'qty' => $newQty,
-                'qty_remaining' => $newQty,
-                'unit_price' => $newPrice,
-                'currency_id' => $request->currency_id ?? null,
-                'received_date' => now()->toDateString(),
-                'source_type' => \App\Models\Logistic\InventoryBatch::SOURCE_INITIAL_STOCK,
-                'source_id' => $inventory->id,
-                'notes' => 'Stock update via Edit Inventory — ' . now()->format('d M Y H:i'),
-            ]);
-        }
 
         // Simpan unit baru jika ada
         if ($request->unit === '__new__' && $request->new_unit) {
@@ -720,17 +662,9 @@ class InventoryController extends Controller
 
         $inventory->save();
 
-        $warningMessage = null;
-        if (!$inventory->currency_id || !$request->price) {
-            $warningMessage = "Price or Currency is empty for <b>{$inventory->name}</b>. Please update it as soon as possible, as it will affect the cost calculation!";
-        }
-
         return redirect()
             ->route('inventory.index')
-            ->with([
-                'success' => "Inventory <b>{$inventory->name}</b> updated successfully.",
-                'warning' => $warningMessage,
-            ]);
+            ->with('success', "Inventory <b>{$inventory->name}</b> updated successfully.");
     }
 
     public function import(Request $request)

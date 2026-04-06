@@ -81,16 +81,6 @@
                     </div>
 
                     <div class="row mb-3">
-                        <!-- Quantity -->
-                        <div class="col-lg-6 mb-3">
-                            <label for="quantity" class="form-label">Quantity <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" id="quantity" name="quantity"
-                                value="{{ old('quantity', $inventory->quantity) }}" min="0" step="any" required>
-                            @error('quantity')
-                                <small class="text-danger">{{ $message }}</small>
-                            @enderror
-                        </div>
-
                         <!-- Unit -->
                         <div class="col-lg-6 mb-3">
                             <label for="unit" class="form-label">Unit <span class="text-danger">*</span></label>
@@ -117,72 +107,7 @@
                         </div>
                     </div>
 
-                    <div class="row mb-3">
-                        <!-- Unit Price -->
-                        <div class="col-lg-4">
-                            <label for="price" class="form-label">Unit Price</label>
-                            <input type="number" class="form-control" step="any" id="price" name="price"
-                                value="{{ old('price', $inventory->price) }}" min="0">
-                            @error('price')
-                                <small class="text-danger">{{ $message }}</small>
-                            @enderror
-                        </div>
 
-                        <!-- Unit Domestic Freight Cost -->
-                        <div class="col-lg-4">
-                            <label for="unit_domestic_freight_cost" class="form-label">
-                                Domestic Freight Cost
-                                <i class="fas fa-info-circle text-info" data-bs-toggle="tooltip" data-bs-placement="top"
-                                    title="Cost for domestic shipping per unit"></i>
-                            </label>
-                            <input type="number" step="any" class="form-control" id="unit_domestic_freight_cost"
-                                name="unit_domestic_freight_cost"
-                                value="{{ old('unit_domestic_freight_cost', $inventory->unit_domestic_freight_cost) }}"
-                                min="0" placeholder="0.00">
-                            @error('unit_domestic_freight_cost')
-                                <small class="text-danger">{{ $message }}</small>
-                            @enderror
-                        </div>
-
-                        <!-- Unit International Freight Cost -->
-                        <div class="col-lg-4">
-                            <label for="unit_international_freight_cost" class="form-label">
-                                International Freight Cost
-                                <i class="fas fa-info-circle text-warning" data-bs-toggle="tooltip"
-                                    data-bs-placement="top" title="Cost for international shipping per unit"></i>
-                            </label>
-                            <input type="number" step="any" class="form-control"
-                                id="unit_international_freight_cost" name="unit_international_freight_cost"
-                                value="{{ old('unit_international_freight_cost', $inventory->unit_international_freight_cost) }}"
-                                min="0" placeholder="0.00">
-                            @error('unit_international_freight_cost')
-                                <small class="text-danger">{{ $message }}</small>
-                            @enderror
-                        </div>
-                    </div>
-                    <div class="row mb-3">
-                        <!-- Currency -->
-                        <div class="col-lg-6 mb-3">
-                            <label for="currency_id" class="form-label">Currency</label>
-                            <button type="button" class="btn btn-outline-primary"
-                                style="--bs-btn-padding-y: .25rem; --bs-btn-padding-x: .5rem; --bs-btn-font-size: .55rem;"
-                                data-bs-toggle="modal" data-bs-target="#currencyModal">
-                                + Add Currency
-                            </button>
-                            <select name="currency_id" id="currency_id" class="form-select select2">
-                                <option value="">Select Currency</option>
-                                @foreach ($currencies as $currency)
-                                    <option value="{{ $currency->id }}"
-                                        {{ old('currency_id', $inventory->currency_id) == $currency->id ? 'selected' : '' }}>
-                                        {{ $currency->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('currency_id')
-                                <small class="text-danger">{{ $message }}</small>
-                            @enderror
-                        </div>
-                    </div>
 
                     <div class="row">
                         <div class="col-lg-6 mb-3">

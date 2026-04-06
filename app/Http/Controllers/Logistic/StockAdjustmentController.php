@@ -100,7 +100,8 @@ class StockAdjustmentController extends Controller
         $this->authorizeWrite();
 
         $inventories = Inventory::orderBy('name')->get(['id', 'name', 'material_code', 'unit']);
-        return view('logistic.stock_adjustments.create', compact('inventories'));
+        $projects = \App\Models\Production\Project::notArchived()->orderBy('name')->get(['id', 'name']);
+        return view('logistic.stock_adjustments.create', compact('inventories', 'projects'));
     }
 
     // ─── Store ────────────────────────────────────────────────────────────────
@@ -114,6 +115,7 @@ class StockAdjustmentController extends Controller
         $validated = $request->validate(
             [
                 'inventory_id' => ['required', 'exists:inventories,id'],
+                'project_id'   => ['nullable', 'exists:projects,id'],
                 'type' => ['required', 'in:initial_stock,adjustment,correction'],
                 'qty' => $isCorrection
                     ? ['required', 'numeric', 'min:0'] // Correction: SET to value, 0 allowed
@@ -166,6 +168,7 @@ class StockAdjustmentController extends Controller
                 $adjustment = StockAdjustment::create([
                     'inventory_id' => $inventory->id,
                     'batch_id' => $batch->id,
+                    'project_id' => $validated['project_id'] ?? null,
                     'type' => $validated['type'],
                     'qty' => $qty,
                     'price' => (float) ($validated['price'] ?? 0),
@@ -174,10 +177,17 @@ class StockAdjustmentController extends Controller
                 ]);
             } else {
                 // Adjustment or Correction — modify existing batch qty_remaining
-                $batch = InventoryBatch::lockForUpdate()->findOrFail($validated['batch_id']);
+                $batch = InventoryBatch::where('id', $validated['batch_id'])->lockForUpdate()->first();
 
-                // Validate ownership
-                if ($batch->inventory_id !== $inventory->id) {
+                if (!$batch) {
+                    DB::rollBack();
+                    return back()
+                        ->withInput()
+                        ->withErrors(['batch_id' => 'Batch tidak ditemukan.']);
+                }
+
+                // Validate ownership — cast to int to avoid strict type mismatch between string/int from PDO
+                if ((int) $batch->inventory_id !== (int) $inventory->id) {
                     DB::rollBack();
                     return back()
                         ->withInput()
@@ -216,6 +226,7 @@ class StockAdjustmentController extends Controller
                 $adjustment = StockAdjustment::create([
                     'inventory_id' => $inventory->id,
                     'batch_id' => $batch->id,
+                    'project_id' => $validated['project_id'] ?? null,
                     'type' => $validated['type'],
                     'qty' => $qty,
                     'price' => !is_null($validated['price']) ? (float) $validated['price'] : null,

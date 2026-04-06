@@ -91,6 +91,7 @@
                             <tr>
                                 <th>#</th>
                                 <th>Material</th>
+                                <th>Batch No.</th>
                                 <th>Goods Out Qty</th>
                                 <th><i class="bi bi-question-circle" data-bs-toggle="tooltip" data-bs-placement="top"
                                         title="Remaining Qty column serves as an indicator to monitor the quantity of goods that have not been returned (Goods In) to inventory after the Goods Out process."
@@ -268,6 +269,13 @@
                     {
                         data: 'material',
                         name: 'material'
+                    },
+                    {
+                        data: 'batch_number',
+                        name: 'batch_number',
+                        orderable: false,
+                        searchable: false,
+                        className: 'text-muted'
                     },
                     {
                         data: 'quantity',

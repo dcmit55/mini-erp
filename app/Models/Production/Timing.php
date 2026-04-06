@@ -48,6 +48,7 @@ class Timing extends Model implements AuditableContract
         'pause_reason',
         'stop_reason',
         'pause_log',
+        'rate_per_hour',
     ];
 
     protected $casts = [
@@ -62,6 +63,7 @@ class Timing extends Model implements AuditableContract
         'started_at' => 'datetime',
         'paused_at' => 'datetime',
         'stopped_at' => 'datetime',
+        'rate_per_hour' => 'decimal:2',
     ];
 
     // ============================================
@@ -294,6 +296,10 @@ class Timing extends Model implements AuditableContract
     /**
      * Approve this timing session
      *
+     * Snaps a rate_per_hour from the employee's CURRENT salary at approval time.
+     * This locks the historical labor cost — future salary changes will NOT
+     * retroactively alter already-approved costing data.
+     *
      * @param int $userId User ID who approved
      * @return bool
      */
@@ -303,6 +309,16 @@ class Timing extends Model implements AuditableContract
         $this->approved_by = $userId;
         $this->approved_at = now();
         $this->rejection_reason = null;
+
+        // Snapshot rate_per_hour if not already set
+        if (is_null($this->rate_per_hour)) {
+            // Load employee if not already loaded
+            $employee = $this->relationLoaded('employee') ? $this->employee : $this->employee()->first();
+            $salary = (float) ($employee->salary ?? 0);
+            if ($salary > 0) {
+                $this->rate_per_hour = round($salary / 173, 2);
+            }
+        }
 
         return $this->save();
     }
