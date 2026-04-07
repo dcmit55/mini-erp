@@ -100,7 +100,9 @@ class StockAdjustmentController extends Controller
         $this->authorizeWrite();
 
         $inventories = Inventory::orderBy('name')->get(['id', 'name', 'material_code', 'unit']);
-        $projects = \App\Models\Production\Project::notArchived()->orderBy('name')->get(['id', 'name']);
+        $projects = \App\Models\Production\Project::notArchived()
+            ->orderBy('name')
+            ->get(['id', 'name']);
         $currencies = \App\Models\Finance\Currency::orderBy('name')->get(['id', 'name']);
         return view('logistic.stock_adjustments.create', compact('inventories', 'projects', 'currencies'));
     }
@@ -116,7 +118,7 @@ class StockAdjustmentController extends Controller
         $validated = $request->validate(
             [
                 'inventory_id' => ['required', 'exists:inventories,id'],
-                'project_id'   => ['nullable', 'exists:projects,id'],
+                'project_id' => ['nullable', 'exists:projects,id'],
                 'type' => ['required', 'in:initial_stock,adjustment,correction'],
                 'qty' => $isCorrection
                     ? ['required', 'numeric', 'min:0'] // Correction: SET to value, 0 allowed
@@ -124,9 +126,7 @@ class StockAdjustmentController extends Controller
                 'price' => $isInitialStock
                     ? ['required', 'numeric', 'min:0.0001'] // Initial Stock: price mandatory
                     : ['nullable', 'numeric', 'min:0'], // Adjustment: price optional (revaluation)
-                'currency_id' => $isInitialStock
-                    ? ['required', 'exists:currencies,id']
-                    : ['nullable', 'exists:currencies,id'],
+                'currency_id' => $isInitialStock ? ['required', 'exists:currencies,id'] : ['nullable', 'exists:currencies,id'],
                 'batch_id' => ['nullable', 'exists:inventory_batches,id'],
                 'reason' => ['nullable', 'string', 'max:1000'],
             ],
@@ -160,7 +160,7 @@ class StockAdjustmentController extends Controller
                         'qty' => $qty,
                         'qty_remaining' => $qty,
                         'unit_price' => (float) ($validated['price'] ?? 0),
-                        'currency_id' => (int) ($validated['currency_id'] ?? $inventory->currency_id ?? 6),
+                        'currency_id' => (int) ($validated['currency_id'] ?? ($inventory->currency_id ?? 6)),
                         'received_date' => now()->toDateString(),
                         'source_type' => InventoryBatch::SOURCE_INITIAL_STOCK,
                         'notes' => $validated['reason'],

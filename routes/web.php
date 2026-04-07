@@ -183,6 +183,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/material-usage/get-by-inventory', [MaterialUsageController::class, 'getByInventory'])->name('material_usage.get_by_inventory');
     Route::get('/material-usage-bulk/create', [MaterialUsageController::class, 'bulkCreate'])->name('material_usage.bulk.create');
     Route::post('/material-usage-bulk/store', [MaterialUsageController::class, 'bulkStore'])->name('material_usage.bulk.store');
+    Route::get('/material-usage/{materialUsage}/batch-usage', [MaterialUsageController::class, 'getBatchUsage'])->name('material_usage.batch_usage');
 
     // Inventory
     Route::get('/inventory/template', [InventoryController::class, 'downloadTemplate'])->name('inventory.template');
@@ -336,6 +337,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/material-requests/bulk-goods-out', [GoodsOutController::class, 'bulkGoodsOut'])->name('goods_out.bulk');
     Route::get('/goods_out/details', [GoodsOutController::class, 'getDetails'])->name('goods_out.details');
     Route::post('/goods-out/{id}/restore', [GoodsOutController::class, 'restore'])->name('goods_out.restore');
+    Route::get('/goods-out/{id}/batch-usage', [GoodsOutController::class, 'getBatchUsage'])->name('goods_out.batch_usage');
 
     // Goods In
     Route::get('/goods_in/export', [GoodsInController::class, 'export'])->name('goods_in.export');

@@ -53,23 +53,9 @@ class MaterialUsageController extends Controller
                 ->addColumn('material_name', function ($item) {
                     return $item->inventory ? $item->inventory->name : 'N/A';
                 })
-                ->addColumn('batch_number', function ($item) {
-                    // Show batch number from the most recent goods_out for this material+project
-                    $goodsOut = GoodsOut::with('inventoryBatch')
-                        ->where('inventory_id', $item->inventory_id)
-                        ->where(function ($q) use ($item) {
-                            if ($item->project_id) {
-                                $q->where('project_id', $item->project_id);
-                            } else {
-                                $q->whereNull('project_id');
-                            }
-                        })
-                        ->whereNotNull('inventory_batch_id')
-                        ->latest()
-                        ->first();
-                    return $goodsOut && $goodsOut->inventoryBatch
-                        ? $goodsOut->inventoryBatch->batch_number
-                        : '-';
+                ->addColumn('batch_used', function ($item) {
+                    $materialName = $item->inventory ? e($item->inventory->name) : '';
+                    return '<button class="btn btn-sm btn-outline-secondary btn-batch-used" data-id="' . $item->id . '" data-material="' . $materialName . '" title="View batches used"><i class="bi bi-layers"></i></button>';
                 })
                 ->addColumn('project_name', function ($item) {
                     return $item->project ? $item->project->name : 'No Project';
@@ -129,7 +115,7 @@ class MaterialUsageController extends Controller
                     $actions .= '</div>';
                     return $actions;
                 })
-                ->rawColumns(['checkbox', 'actions'])
+                ->rawColumns(['checkbox', 'actions', 'batch_used'])
                 ->make(true);
         }
 
@@ -265,9 +251,7 @@ class MaterialUsageController extends Controller
                     ->first();
                 return [
                     'project_name' => $usage->project ? $usage->project->name : 'No Project',
-                    'batch_number' => $goodsOutWithBatch && $goodsOutWithBatch->inventoryBatch
-                        ? $goodsOutWithBatch->inventoryBatch->batch_number
-                        : '-',
+                    'batch_number' => $goodsOutWithBatch && $goodsOutWithBatch->inventoryBatch ? $goodsOutWithBatch->inventoryBatch->batch_number : '-',
                     'goods_out_quantity' => GoodsOut::where('inventory_id', $usage->inventory_id)
                         ->where(function ($q) use ($usage) {
                             if ($usage->project_id) {
@@ -385,5 +369,52 @@ class MaterialUsageController extends Controller
                 ->withInput()
                 ->with('error', 'Failed to process bulk add: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Return aggregated batch breakdown for a specific material_usage record.
+     * Aggregates stock_usage_batches from all goods_out records for the same inventory+project+job_order.
+     * GET /material-usage/{id}/batch-usage
+     */
+    public function getBatchUsage(MaterialUsage $materialUsage)
+    {
+        $materialUsage->load('inventory.unit');
+        $unit = $materialUsage->inventory?->unit ?? '';
+
+        // Collect all goods_out IDs that match this material_usage's inventory+project+job_order
+        $goodsOutIds = GoodsOut::where('inventory_id', $materialUsage->inventory_id)
+            ->where(function ($q) use ($materialUsage) {
+                if ($materialUsage->project_id) {
+                    $q->where('project_id', $materialUsage->project_id);
+                } else {
+                    $q->whereNull('project_id');
+                }
+            })
+            ->where(function ($q) use ($materialUsage) {
+                if ($materialUsage->job_order_id) {
+                    $q->where('job_order_id', $materialUsage->job_order_id);
+                } else {
+                    $q->whereNull('job_order_id');
+                }
+            })
+            ->whereNull('deleted_at')
+            ->pluck('id');
+
+        // Aggregate qty_used per batch
+        $rows = \App\Models\Logistic\StockUsageBatch::whereIn('goods_out_id', $goodsOutIds)
+            ->with('batch')
+            ->get()
+            ->groupBy('batch_id')
+            ->map(function ($group) use ($unit) {
+                $batch = $group->first()->batch;
+                return [
+                    'batch_number' => $batch?->batch_number ?? '—',
+                    'qty_used'     => (float) $group->sum('qty_used'),
+                    'unit'         => $unit,
+                ];
+            })
+            ->values();
+
+        return response()->json(['batches' => $rows]);
     }
 }

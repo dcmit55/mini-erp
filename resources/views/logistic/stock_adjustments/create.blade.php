@@ -64,24 +64,6 @@
                                 @enderror
                             </div>
 
-                            {{-- Project (optional) --}}
-                            <div class="mb-3">
-                                <label for="project_id" class="form-label fw-semibold">Project <span class="text-muted fw-normal">(Opsional)</span></label>
-                                <select name="project_id" id="project_id"
-                                    class="form-select select2-project @error('project_id') is-invalid @enderror">
-                                    <option value="">— Pilih Project —</option>
-                                    @foreach ($projects as $project)
-                                        <option value="{{ $project->id }}"
-                                            {{ old('project_id') == $project->id ? 'selected' : '' }}>
-                                            {{ $project->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                                @error('project_id')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-
                             {{-- Material --}}
                             <div class="mb-3">
                                 <label for="inventory_id" class="form-label fw-semibold">Material <span
@@ -123,7 +105,7 @@
                                     <span id="currencyRequiredStar" class="text-danger"
                                         @if (old('type', 'adjustment') !== 'initial_stock') style="display:none" @endif>*</span>
                                     <span id="currencyOptionalText" class="text-muted fw-normal"
-                                        @if (old('type', 'adjustment') === 'initial_stock') style="display:none" @endif>(Opsional — ubah jika perlu)</span>
+                                        @if (old('type', 'adjustment') === 'initial_stock') style="display:none" @endif>(Opsional)</span>
                                 </label>
                                 <select name="currency_id" id="currency_id"
                                     class="form-select select2-currency @error('currency_id') is-invalid @enderror"

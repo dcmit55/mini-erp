@@ -159,13 +159,16 @@ class Inventory extends Model implements Auditable
 
     /**
      * Consume stock from batches using FIFO.
+     * Returns an array of ['batch_id' => int, 'qty' => float] for each batch deducted.
      * Throws a RuntimeException if stock is insufficient.
      *
+     * @return array<int, array{batch_id: int, qty: float}>
      * @throws \RuntimeException
      */
-    public function consumeStock(float $qty): void
+    public function consumeStock(float $qty): array
     {
         $remaining = $qty;
+        $usedBatches = [];
 
         $batches = $this->activeBatches()->lockForUpdate()->get();
 
@@ -175,11 +178,16 @@ class Inventory extends Model implements Auditable
             }
             $consumed = $batch->consume($remaining);
             $remaining -= $consumed;
+            if ($consumed > 0) {
+                $usedBatches[] = ['batch_id' => (int) $batch->id, 'qty' => $consumed];
+            }
         }
 
         if ($remaining > 0.0001) {
             throw new \RuntimeException("Insufficient stock for inventory #{$this->id} ({$this->name}). " . "Short by {$remaining}.");
         }
+
+        return $usedBatches;
     }
 
     /**

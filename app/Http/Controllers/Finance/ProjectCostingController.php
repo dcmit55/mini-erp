@@ -131,10 +131,7 @@ class ProjectCostingController extends Controller
                 // Freight cost — sum sgd_cost directly from Lark tracking rows, convert to IDR
                 $btSgForProject = $allBtSgItems[$pid] ?? collect();
                 $sgBtForProject = $allSgBtItems[$pid] ?? collect();
-                $freightIDR = round(
-                    ($btSgForProject->sum('sgd_cost') + $sgBtForProject->sum('sgd_cost')) * $sgdRate,
-                    0
-                );
+                $freightIDR = round(($btSgForProject->sum('sgd_cost') + $sgBtForProject->sum('sgd_cost')) * $sgdRate, 0);
 
                 // Workmanship cost: use snapshotted rate_per_hour if available,
                 // otherwise fall back to employee's current salary (legacy data).
@@ -1071,55 +1068,65 @@ class ProjectCostingController extends Controller
         // Sum SGD costs per direction
         $btSgTotalSgd = round((float) $btSgItems->sum('sgd_cost'), 2);
         $sgBtTotalSgd = round((float) $sgBtItems->sum('sgd_cost'), 2);
-        $totalSgd     = round($btSgTotalSgd + $sgBtTotalSgd, 2);
-        $totalIdr     = round($totalSgd * $sgdRate, 0);
+        $totalSgd = round($btSgTotalSgd + $sgBtTotalSgd, 2);
+        $totalIdr = round($totalSgd * $sgdRate, 0);
         $btSgTotalIdr = round($btSgTotalSgd * $sgdRate, 0);
         $sgBtTotalIdr = round($sgBtTotalSgd * $sgdRate, 0);
 
         // Build item lists per direction for detail display
-        $btSgList = $btSgItems->map(fn($i) => [
-            'name'      => $i->item_name ?? '—',
-            'qty'       => $i->qty ?? 1,
-            'status'    => $i->status ?? 'pending',
-            'sgd_cost'  => $i->sgd_cost ?? 0,
-        ])->values()->toArray();
+        $btSgList = $btSgItems
+            ->map(
+                fn($i) => [
+                    'name' => $i->item_name ?? '—',
+                    'qty' => $i->qty ?? 1,
+                    'status' => $i->status ?? 'pending',
+                    'sgd_cost' => $i->sgd_cost ?? 0,
+                ],
+            )
+            ->values()
+            ->toArray();
 
-        $sgBtList = $sgBtItems->map(fn($i) => [
-            'name'      => $i->item_name ?? '—',
-            'qty'       => $i->qty ?? 1,
-            'status'    => $i->status ?? 'pending',
-            'sgd_cost'  => $i->sgd_cost ?? 0,
-        ])->values()->toArray();
+        $sgBtList = $sgBtItems
+            ->map(
+                fn($i) => [
+                    'name' => $i->item_name ?? '—',
+                    'qty' => $i->qty ?? 1,
+                    'status' => $i->status ?? 'pending',
+                    'sgd_cost' => $i->sgd_cost ?? 0,
+                ],
+            )
+            ->values()
+            ->toArray();
 
         // Build direction groups (replaces courier groups) for view consumption
         $groups = collect();
         if ($btSgItems->isNotEmpty()) {
             $groups->push([
-                'direction'   => 'BT → SG',
+                'direction' => 'BT → SG',
                 'items_count' => $btSgItems->count(),
-                'items'       => $btSgList,
-                'total_sgd'   => $btSgTotalSgd,
-                'total_idr'   => $btSgTotalIdr,
+                'items' => $btSgList,
+                'total_sgd' => $btSgTotalSgd,
+                'total_idr' => $btSgTotalIdr,
             ]);
         }
         if ($sgBtItems->isNotEmpty()) {
             $groups->push([
-                'direction'   => 'SG → BT',
+                'direction' => 'SG → BT',
                 'items_count' => $sgBtItems->count(),
-                'items'       => $sgBtList,
-                'total_sgd'   => $sgBtTotalSgd,
-                'total_idr'   => $sgBtTotalIdr,
+                'items' => $sgBtList,
+                'total_sgd' => $sgBtTotalSgd,
+                'total_idr' => $sgBtTotalIdr,
             ]);
         }
 
         return [
-            'bt_sg_count'    => $btSgItems->count(),
-            'sg_bt_count'    => $sgBtItems->count(),
+            'bt_sg_count' => $btSgItems->count(),
+            'sg_bt_count' => $sgBtItems->count(),
             'total_couriers' => $groups->count(),
-            'total_items'    => $btSgItems->count() + $sgBtItems->count(),
-            'total_sgd'      => $totalSgd,
-            'total_idr'      => $totalIdr,
-            'couriers'       => $groups,
+            'total_items' => $btSgItems->count() + $sgBtItems->count(),
+            'total_sgd' => $totalSgd,
+            'total_idr' => $totalIdr,
+            'couriers' => $groups,
         ];
     }
 }

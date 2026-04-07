@@ -11,6 +11,7 @@ use App\Models\Logistic\GoodsIn;
 use App\Models\Logistic\InventoryBatch;
 use App\Models\Production\Project;
 use App\Models\Production\JobOrder;
+use App\Models\Logistic\StockUsageBatch;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use OwenIt\Auditing\Contracts\Auditable;
 
@@ -29,6 +30,11 @@ class GoodsOut extends Model implements Auditable
     public function inventoryBatch()
     {
         return $this->belongsTo(InventoryBatch::class, 'inventory_batch_id');
+    }
+
+    public function stockUsageBatches()
+    {
+        return $this->hasMany(StockUsageBatch::class, 'goods_out_id');
     }
 
     public function materialRequest()

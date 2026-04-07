@@ -446,7 +446,8 @@
                                         <span class="status-badge {{ $statusClass($item['status']) }}">●
                                             {{ $item['status'] }}</span>
                                     </td>
-                                    <td class="text-end text-muted" style="font-size:.75rem;">SGD {{ number_format($item['sgd_cost'] ?? 0, 2) }}</td>
+                                    <td class="text-end text-muted" style="font-size:.75rem;">SGD
+                                        {{ number_format($item['sgd_cost'] ?? 0, 2) }}</td>
                                     <td class="text-end">
                                         @if (($item['sgd_cost'] ?? 0) > 0)
                                             {{ $fmt(round($item['sgd_cost'] * $sgdRate, 0)) }}
@@ -503,7 +504,8 @@
                                         <span class="status-badge {{ $statusClass($item['status']) }}">●
                                             {{ $item['status'] }}</span>
                                     </td>
-                                    <td class="text-end text-muted" style="font-size:.75rem;">SGD {{ number_format($item['sgd_cost'] ?? 0, 2) }}</td>
+                                    <td class="text-end text-muted" style="font-size:.75rem;">SGD
+                                        {{ number_format($item['sgd_cost'] ?? 0, 2) }}</td>
                                     <td class="text-end">
                                         @if (($item['sgd_cost'] ?? 0) > 0)
                                             {{ $fmt(round($item['sgd_cost'] * $sgdRate, 0)) }}

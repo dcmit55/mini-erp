@@ -91,7 +91,7 @@
                             <tr>
                                 <th>#</th>
                                 <th>Material</th>
-                                <th>Batch No.</th>
+                                <th class="text-center">Batches Used</th>
                                 <th>Goods Out Qty</th>
                                 <th><i class="bi bi-question-circle" data-bs-toggle="tooltip" data-bs-placement="top"
                                         title="Remaining Qty column serves as an indicator to monitor the quantity of goods that have not been returned (Goods In) to inventory after the Goods Out process."
@@ -109,6 +109,21 @@
                             <!-- DataTables will populate this -->
                         </tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Batches Used Modal --}}
+    <div class="modal fade" id="batchUsedModal" tabindex="-1" aria-labelledby="batchUsedModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title fw-semibold" id="batchUsedModalLabel">Batches Used</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="batchUsedBody">
+                    {{-- populated via AJAX --}}
                 </div>
             </div>
         </div>
@@ -259,7 +274,7 @@
                         d.custom_search = $('#custom-search').val();
                     }
                 },
-                columns: [{
+                    {
                         data: 'DT_RowIndex',
                         name: 'DT_RowIndex',
                         orderable: false,
@@ -271,11 +286,11 @@
                         name: 'material'
                     },
                     {
-                        data: 'batch_number',
-                        name: 'batch_number',
+                        data: 'batch_used',
+                        name: 'batch_used',
                         orderable: false,
                         searchable: false,
-                        className: 'text-muted'
+                        className: 'text-center'
                     },
                     {
                         data: 'quantity',
@@ -478,5 +493,35 @@
                 }, wait);
             };
         }
+
+        // ── Batches Used modal ────────────────────────────────────────────────
+        $(document).on('click', '.btn-batch-used', function() {
+            const id = $(this).data('id');
+            const material = $(this).data('material');
+            $('#batchUsedModalLabel').text('Batches Used — ' + material);
+            $('#batchUsedBody').html('<div class="text-center py-3"><span class="spinner-border spinner-border-sm"></span> Loading...</div>');
+            $('#batchUsedModal').modal('show');
+
+            $.ajax({
+                url: '/goods-out/' + id + '/batch-usage',
+                success: function(res) {
+                    if (!res.batches || res.batches.length === 0) {
+                        $('#batchUsedBody').html('<p class="text-muted text-center mb-0">No batch data recorded for this goods out.</p>');
+                        return;
+                    }
+                    let rows = '';
+                    res.batches.forEach(function(b) {
+                        const qty = parseFloat(b.qty_used);
+                        const qtyFmt = Number.isInteger(qty) ? qty.toLocaleString() : qty.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 4});
+                        rows += '<tr><td><span class="badge bg-secondary font-monospace">' + b.batch_number + '</span></td>' +
+                                '<td class="text-end fw-semibold">' + qtyFmt + ' <span class="text-muted fw-normal">' + (b.unit || '') + '</span></td></tr>';
+                    });
+                    $('#batchUsedBody').html('<table class="table table-sm table-bordered mb-0"><thead class="table-light"><tr><th>Batch</th><th class="text-end">Qty Used</th></tr></thead><tbody>' + rows + '</tbody></table>');
+                },
+                error: function() {
+                    $('#batchUsedBody').html('<p class="text-danger text-center mb-0">Failed to load batch data.</p>');
+                }
+            });
+        });
     </script>
 @endpush

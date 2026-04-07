@@ -7,6 +7,7 @@ use App\Models\Admin\User;
 use App\Models\Production\Project;
 use App\Models\Logistic\GoodsOut;
 use App\Models\Logistic\Inventory;
+use App\Models\Logistic\StockUsageBatch;
 use Illuminate\Http\Request;
 use App\Models\Logistic\MaterialRequest;
 use App\Helpers\MaterialUsageHelper;
@@ -135,7 +136,7 @@ class GoodsOutController extends Controller
             $data[] = [
                 'DT_RowIndex' => $start + $index + 1,
                 'material' => $goodsOut->inventory ? $goodsOut->inventory->name : '(No material)',
-                'batch_number' => $goodsOut->inventoryBatch ? $goodsOut->inventoryBatch->batch_number : '-',
+                'batch_used' => '<button class="btn btn-sm btn-outline-secondary btn-batch-used" data-id="' . $goodsOut->id . '" data-material="' . e($goodsOut->inventory?->name ?? '') . '" title="View batches used"><i class="bi bi-layers"></i></button>',
                 'quantity' => $this->formatQuantity($goodsOut),
                 'remaining_quantity' => $this->formatRemainingQuantity($goodsOut),
                 'project' => $goodsOut->project ? $goodsOut->project->name : '(No project)',
@@ -350,8 +351,15 @@ class GoodsOutController extends Controller
                 'remark' => $request->remark,
             ]);
 
-            // Kurangi stok inventory
-            $inventory->consumeStock($request->quantity);
+            // Kurangi stok inventory dan catat batch yang digunakan (FIFO)
+            $usedBatches = $inventory->consumeStock($request->quantity);
+            foreach ($usedBatches as $ub) {
+                StockUsageBatch::create([
+                    'goods_out_id' => $goodsOut->id,
+                    'batch_id'     => $ub['batch_id'],
+                    'qty_used'     => $ub['qty'],
+                ]);
+            }
 
             MaterialUsageHelper::sync($inventory->id, $materialRequest->project_id, $materialRequest->job_order_id);
 
@@ -421,10 +429,10 @@ class GoodsOutController extends Controller
             // Kurangi stok di inventory
             // Capture primary (first FIFO) batch for traceability
             $primaryBatch = $inventory->activeBatches()->orderBy('received_date')->orderBy('id')->first();
-            $inventory->consumeStock($request->quantity);
+            $usedBatches = $inventory->consumeStock($request->quantity);
 
             // Simpan Goods Out
-            GoodsOut::create([
+            $goodsOut = GoodsOut::create([
                 'inventory_id' => $request->inventory_id,
                 'inventory_batch_id' => $primaryBatch?->id,
                 'project_id' => $request->project_id,
@@ -433,6 +441,15 @@ class GoodsOutController extends Controller
                 'quantity' => $request->quantity,
                 'remark' => $request->remark,
             ]);
+
+            // Catat batch yang digunakan (FIFO)
+            foreach ($usedBatches as $ub) {
+                StockUsageBatch::create([
+                    'goods_out_id' => $goodsOut->id,
+                    'batch_id'     => $ub['batch_id'],
+                    'qty_used'     => $ub['qty'],
+                ]);
+            }
 
             // Sync Material Usage
             MaterialUsageHelper::sync($request->inventory_id, $request->project_id, $request->job_order_id);
@@ -515,7 +532,7 @@ class GoodsOutController extends Controller
                 // Kurangi stok inventory
                 // Capture primary (first FIFO) batch for traceability
                 $primaryBatch = $inventory->activeBatches()->orderBy('received_date')->orderBy('id')->first();
-                $inventory->consumeStock($qtyToGoodsOut);
+                $usedBatches = $inventory->consumeStock($qtyToGoodsOut);
 
                 // Buat Goods Out
                 $goodsOut = GoodsOut::create([
@@ -528,6 +545,15 @@ class GoodsOutController extends Controller
                     'quantity' => $qtyToGoodsOut,
                     'remark' => 'Bulk Goods Out',
                 ]);
+
+                // Catat batch yang digunakan (FIFO)
+                foreach ($usedBatches as $ub) {
+                    StockUsageBatch::create([
+                        'goods_out_id' => $goodsOut->id,
+                        'batch_id'     => $ub['batch_id'],
+                        'qty_used'     => $ub['qty'],
+                    ]);
+                }
 
                 $createdGoodsOuts[] = $goodsOut; // Store for notification
 
@@ -666,7 +692,17 @@ class GoodsOutController extends Controller
 
             // Kurangi stok dengan quantity baru (return lama dulu, consume baru)
             $inventory->returnStock($oldQuantity);
-            $inventory->consumeStock($request->quantity);
+            $usedBatches = $inventory->consumeStock($request->quantity);
+
+            // Hapus stock_usage_batches lama, ganti dengan yang baru
+            StockUsageBatch::where('goods_out_id', $goodsOut->id)->delete();
+            foreach ($usedBatches as $ub) {
+                StockUsageBatch::create([
+                    'goods_out_id' => $goodsOut->id,
+                    'batch_id'     => $ub['batch_id'],
+                    'qty_used'     => $ub['qty'],
+                ]);
+            }
 
             // Perbarui Material Request dengan quantity baru
             if ($materialRequest) {
@@ -720,7 +756,14 @@ class GoodsOutController extends Controller
         // Kurangi stok di inventory
         $inventory = $goodsOut->inventory;
         if ($inventory) {
-            $inventory->consumeStock($goodsOut->quantity);
+            $usedBatches = $inventory->consumeStock($goodsOut->quantity);
+            foreach ($usedBatches as $ub) {
+                StockUsageBatch::create([
+                    'goods_out_id' => $goodsOut->id,
+                    'batch_id'     => $ub['batch_id'],
+                    'qty_used'     => $ub['qty'],
+                ]);
+            }
         }
 
         // Sinkronkan Material Usage
@@ -821,5 +864,26 @@ class GoodsOutController extends Controller
 
             return redirect()->route('goods_out.index')->with('error', $errorMessage);
         }
+    }
+
+    /**
+     * Return batch breakdown used for a specific goods_out (for the Batch Used modal).
+     * GET /goods-out/{id}/batch-usage
+     */
+    public function getBatchUsage($id)
+    {
+        $goodsOut = GoodsOut::with(['stockUsageBatches.batch', 'inventory.unit'])->findOrFail($id);
+
+        $unit = $goodsOut->inventory?->unit ?? '';
+
+        $batches = $goodsOut->stockUsageBatches->map(function ($sub) use ($unit) {
+            return [
+                'batch_number' => $sub->batch?->batch_number ?? '—',
+                'qty_used'     => (float) $sub->qty_used,
+                'unit'         => $unit,
+            ];
+        });
+
+        return response()->json(['batches' => $batches]);
     }
 }
