@@ -104,9 +104,11 @@ class KasbonAdminController extends Controller
     public function approve(Request $request, $id)
     {
         $request->validate([
-            'jumlah_disetujui' => 'required|numeric|min:100000',
-            'tenor_bulan'      => 'required|integer|in:1,2,3,6,12',
-            'catatan_admin'    => 'nullable|string|max:500',
+            'jumlah_disetujui'  => 'required|numeric|min:100000',
+            'tenor_bulan'       => 'required|integer|in:1,2,3,6,12',
+            'suku_bunga_persen' => 'required|numeric|min:0|max:100',
+            'biaya_admin'       => 'required|numeric|min:0',
+            'catatan_admin'     => 'nullable|string|max:500',
         ]);
 
         $kasbon = KasbonRequest::findOrFail($id);
@@ -117,12 +119,14 @@ class KasbonAdminController extends Controller
 
         $fromStatus = $kasbon->status;
         $kasbon->update([
-            'status'           => KasbonRequest::STATUS_APPROVED,
-            'jumlah_disetujui' => $request->jumlah_disetujui,
-            'tenor_bulan'      => $request->tenor_bulan,
-            'catatan_admin'    => $request->catatan_admin,
-            'reviewed_at'      => now(),
-            'reviewed_by'      => Auth::id(),
+            'status'            => KasbonRequest::STATUS_APPROVED,
+            'jumlah_disetujui'  => $request->jumlah_disetujui,
+            'tenor_bulan'       => $request->tenor_bulan,
+            'suku_bunga_persen' => $request->suku_bunga_persen,
+            'biaya_admin'       => $request->biaya_admin,
+            'catatan_admin'     => $request->catatan_admin,
+            'reviewed_at'       => now(),
+            'reviewed_by'       => Auth::id(),
         ]);
 
         // Generate jadwal cicilan
@@ -275,20 +279,30 @@ class KasbonAdminController extends Controller
     {
         $kasbon->installments()->delete();
 
-        $jumlah = $kasbon->jumlah_disetujui;
-        $tenor  = $kasbon->tenor_bulan;
-        $perBulan = (int) ceil($jumlah / $tenor);
-        $lastAmount = $jumlah - ($perBulan * ($tenor - 1));
+        $jumlah     = (float) $kasbon->jumlah_disetujui;
+        $tenor      = (int)   $kasbon->tenor_bulan;
+        $bunga      = round($jumlah * ((float) $kasbon->suku_bunga_persen / 100));
+        $biayaAdmin = (float) $kasbon->biaya_admin;
+
+        $pokokPerBulan = (int) ceil($jumlah / $tenor);
+        $pokokLast     = (int) ($jumlah - ($pokokPerBulan * ($tenor - 1)));
 
         for ($i = 1; $i <= $tenor; $i++) {
+            $pokok      = $i === $tenor ? $pokokLast : $pokokPerBulan;
+            $adminBulan = $i === 1 ? $biayaAdmin : 0;
+            $total      = $pokok + $bunga + $adminBulan;
+
             KasbonInstallment::create([
-                'kasbon_id'      => $kasbon->id,
-                'bulan_ke'       => $i,
-                'due_date'       => Carbon::now()->addMonths($i),
-                'jumlah_cicilan' => $i === $tenor ? $lastAmount : $perBulan,
-                'jumlah_dibayar' => 0,
-                'status'         => KasbonInstallment::STATUS_PENDING,
-                'created_by'     => Auth::id(),
+                'kasbon_id'          => $kasbon->id,
+                'bulan_ke'           => $i,
+                'due_date'           => Carbon::now()->addMonths($i),
+                'jumlah_pokok'       => $pokok,
+                'jumlah_bunga'       => $bunga,
+                'jumlah_biaya_admin' => $adminBulan,
+                'jumlah_cicilan'     => $total,
+                'jumlah_dibayar'     => 0,
+                'status'             => KasbonInstallment::STATUS_PENDING,
+                'created_by'         => Auth::id(),
             ]);
         }
     }

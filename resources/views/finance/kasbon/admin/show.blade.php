@@ -89,6 +89,16 @@
                                     <div class="text-muted" style="font-size:.7rem;">Tenor</div>
                                     <div class="fw-medium">{{ $kasbon->tenor_bulan }} Months</div>
                                 </div>
+                                @if($kasbon->suku_bunga_persen !== null)
+                                <div class="col-6">
+                                    <div class="text-muted" style="font-size:.7rem;">Interest Rate</div>
+                                    <div class="fw-medium">{{ $kasbon->suku_bunga_persen }}% / month (flat)</div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="text-muted" style="font-size:.7rem;">Admin Fee</div>
+                                    <div class="fw-medium">Rp {{ number_format($kasbon->biaya_admin, 0, ',', '.') }} <span class="text-muted" style="font-size:.7rem;">(month 1)</span></div>
+                                </div>
+                                @endif
                                 @if($kasbon->disbursed_at)
                                 <div class="col-6">
                                     <div class="text-muted" style="font-size:.7rem;">Disbursed At</div>
@@ -146,7 +156,10 @@
                                         <tr class="text-muted" style="font-size:.7rem;">
                                             <th>Month</th>
                                             <th>Due Date</th>
-                                            <th class="text-end">Amount</th>
+                                            <th class="text-end">Principal</th>
+                                            <th class="text-end">Interest</th>
+                                            <th class="text-end">Admin</th>
+                                            <th class="text-end">Total</th>
                                             <th class="text-center">Status</th>
                                             <th class="text-center">Method</th>
                                             <th class="text-end">Action</th>
@@ -157,7 +170,10 @@
                                         <tr>
                                             <td>{{ $cicilan->bulan_ke }}</td>
                                             <td style="white-space:nowrap;">{{ $cicilan->due_date->format('d M Y') }}</td>
-                                            <td class="text-end">Rp {{ number_format($cicilan->jumlah_cicilan, 0, ',', '.') }}</td>
+                                            <td class="text-end">Rp {{ number_format($cicilan->jumlah_pokok, 0, ',', '.') }}</td>
+                                            <td class="text-end text-warning">Rp {{ number_format($cicilan->jumlah_bunga, 0, ',', '.') }}</td>
+                                            <td class="text-end text-info">{{ $cicilan->jumlah_biaya_admin > 0 ? 'Rp '.number_format($cicilan->jumlah_biaya_admin, 0, ',', '.') : '—' }}</td>
+                                            <td class="text-end fw-medium">Rp {{ number_format($cicilan->jumlah_cicilan, 0, ',', '.') }}</td>
                                             <td class="text-center">
                                                 @if($cicilan->status === 'paid')
                                                     <span class="badge bg-success rounded-2">Paid</span>
@@ -188,7 +204,7 @@
                                     </tbody>
                                     <tfoot>
                                         <tr class="border-top">
-                                            <td colspan="2" class="fw-medium small pt-2">Remaining Balance</td>
+                                            <td colspan="5" class="fw-medium small pt-2">Remaining Balance</td>
                                             <td class="text-end fw-semibold text-danger pt-2">Rp {{ number_format($totalSisa, 0, ',', '.') }}</td>
                                             <td colspan="3"></td>
                                         </tr>
@@ -233,6 +249,28 @@
                                         </option>
                                         @endforeach
                                     </select>
+                                </div>
+                                <div class="row g-2 mb-3">
+                                    <div class="col-6">
+                                        <label class="form-label small fw-medium">Interest Rate (% / month) <span class="text-danger">*</span></label>
+                                        <div class="input-group input-group-sm">
+                                            <input type="number" name="suku_bunga_persen" step="0.01" min="0" max="100"
+                                                   class="form-control @error('suku_bunga_persen') is-invalid @enderror"
+                                                   value="{{ old('suku_bunga_persen', $kasbon->suku_bunga_persen ?? 2) }}" required>
+                                            <span class="input-group-text">%</span>
+                                            @error('suku_bunga_persen')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label small fw-medium">Admin Fee (Rp) <span class="text-danger">*</span></label>
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text">Rp</span>
+                                            <input type="number" name="biaya_admin" min="0"
+                                                   class="form-control @error('biaya_admin') is-invalid @enderror"
+                                                   value="{{ old('biaya_admin', $kasbon->biaya_admin ?? 50000) }}" required>
+                                            @error('biaya_admin')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label small fw-medium">Note (optional)</label>

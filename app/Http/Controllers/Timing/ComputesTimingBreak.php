@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Timing;
 
 use App\Models\FingerprintLog;
+use App\Models\Hr\AttendanceLog;
 use App\Models\Hr\DailyAttendance;
 use App\Models\Hr\Employee;
 use App\Models\Production\Timing;
@@ -93,7 +94,17 @@ trait ComputesTimingBreak
             })
             ->exists();
 
-        return $tapped;
+        if ($tapped) {
+            return true;
+        }
+
+        // Fallback: cek attendance_logs (import XLS) jika tidak ada data fingerprint_logs
+        $hasAttendanceLog = AttendanceLog::where('employee_id', $employee->id)
+            ->whereDate('date', $today)
+            ->whereNotNull('clock_in')
+            ->exists();
+
+        return $hasAttendanceLog ?: false;
     }
 
     /**

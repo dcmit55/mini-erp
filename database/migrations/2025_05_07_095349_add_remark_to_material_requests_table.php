@@ -9,7 +9,7 @@ class AddRemarkToMaterialRequestsTable extends Migration
     public function up()
     {
         Schema::table('material_requests', function (Blueprint $table) {
-            $table->text('remark')->nullable()->after('department'); // Tambahkan kolom remark setelah department
+            $table->text('remark')->nullable()->after('status');
         });
     }
 

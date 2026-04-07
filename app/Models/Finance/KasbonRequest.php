@@ -18,6 +18,8 @@ class KasbonRequest extends Model
         'jumlah_diminta',
         'jumlah_disetujui',
         'tenor_bulan',
+        'suku_bunga_persen',
+        'biaya_admin',
         'alasan',
         'dokumen_url',
         'status',
@@ -36,8 +38,10 @@ class KasbonRequest extends Model
         'reviewed_at'   => 'datetime',
         'disbursed_at'  => 'datetime',
         'settled_at'    => 'datetime',
-        'jumlah_diminta'   => 'decimal:2',
-        'jumlah_disetujui' => 'decimal:2',
+        'jumlah_diminta'    => 'decimal:2',
+        'jumlah_disetujui'  => 'decimal:2',
+        'suku_bunga_persen' => 'decimal:2',
+        'biaya_admin'       => 'decimal:2',
     ];
 
     public const STATUS_PENDING     = 'pending';

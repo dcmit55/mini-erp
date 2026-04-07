@@ -22,7 +22,11 @@ class KasbonPublicController extends Controller
             ->where('status', 'active')
             ->orderBy('name')
             ->get(['id', 'name', 'employee_no', 'department_id']);
-        return view('finance.kasbon.public.form', compact('departments', 'employees'));
+
+        $defaultRate       = 2.00;   // % per bulan flat
+        $defaultBiayaAdmin = 50000;  // Rp, sekali bayar bulan ke-1
+
+        return view('finance.kasbon.public.form', compact('departments', 'employees', 'defaultRate', 'defaultBiayaAdmin'));
     }
 
     public function store(Request $request)

@@ -9,7 +9,7 @@ class AddRemarkToInventoriesTable extends Migration
     public function up()
     {
         Schema::table('inventories', function (Blueprint $table) {
-            $table->text('remark')->nullable()->after('location'); // Tambahkan kolom remark
+            $table->text('remark')->nullable()->after('img');
         });
     }
 

@@ -78,8 +78,8 @@ Route::get('leave_requests/create', [LeaveRequestController::class, 'create'])->
 Route::post('leave_requests', [LeaveRequestController::class, 'store'])->name('leave_requests.store');
 
 // Kasbon - Public access (no login required)
-Route::get('/kasbon', [\App\Http\Controllers\Finance\KasbonPublicController::class, 'create'])->name('kasbon.create');
-Route::post('/kasbon', [\App\Http\Controllers\Finance\KasbonPublicController::class, 'store'])->name('kasbon.store')->middleware('throttle:3,1');
+Route::get('/pengajuan-kasbon', [\App\Http\Controllers\Finance\KasbonPublicController::class, 'create'])->name('kasbon.create');
+Route::post('/pengajuan-kasbon', [\App\Http\Controllers\Finance\KasbonPublicController::class, 'store'])->name('kasbon.store')->middleware('throttle:3,1');
 Route::get('/cek-kasbon', [\App\Http\Controllers\Finance\KasbonPublicController::class, 'status'])->name('kasbon.status');
 // Employee leave balance - public agar guest bisa melihat sisa cuti saat form create
 Route::get('/employees/{employee}/leave-balance', [EmployeeController::class, 'getLeaveBalance'])->name('employees.leave-balance.public');

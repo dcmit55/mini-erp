@@ -80,6 +80,16 @@
                     <div class="fw-semibold text-success">Rp {{ number_format($kasbon->jumlah_disetujui, 0, ',', '.') }}</div>
                 </div>
                 @endif
+                @if ($kasbon->suku_bunga_persen !== null && $kasbon->jumlah_disetujui)
+                <div class="col-6">
+                    <div class="text-muted" style="font-size:.7rem;">Bunga</div>
+                    <div class="fw-medium">{{ $kasbon->suku_bunga_persen }}% / bulan (flat)</div>
+                </div>
+                <div class="col-6">
+                    <div class="text-muted" style="font-size:.7rem;">Biaya Admin</div>
+                    <div class="fw-medium">Rp {{ number_format($kasbon->biaya_admin, 0, ',', '.') }} <span class="text-muted" style="font-size:.7rem;">(dibayar bulan ke-1)</span></div>
+                </div>
+                @endif
 
                 @if ($kasbon->status === 'rejected' && $kasbon->catatan_admin)
                 <div class="col-12">
@@ -118,7 +128,10 @@
                         <tr class="text-muted" style="font-size:.7rem;">
                             <th>Bulan ke-</th>
                             <th>Jatuh Tempo</th>
-                            <th class="text-end">Jumlah</th>
+                            <th class="text-end">Pokok</th>
+                            <th class="text-end">Bunga</th>
+                            <th class="text-end">Admin</th>
+                            <th class="text-end">Total</th>
                             <th class="text-center">Status</th>
                         </tr>
                     </thead>
@@ -126,8 +139,11 @@
                         @foreach ($kasbon->installments as $cicilan)
                         <tr>
                             <td>{{ $cicilan->bulan_ke }}</td>
-                            <td>{{ $cicilan->due_date->format('d M Y') }}</td>
-                            <td class="text-end">Rp {{ number_format($cicilan->jumlah_cicilan, 0, ',', '.') }}</td>
+                            <td style="white-space:nowrap;">{{ $cicilan->due_date->format('d M Y') }}</td>
+                            <td class="text-end">Rp {{ number_format($cicilan->jumlah_pokok, 0, ',', '.') }}</td>
+                            <td class="text-end text-warning">Rp {{ number_format($cicilan->jumlah_bunga, 0, ',', '.') }}</td>
+                            <td class="text-end text-info">{{ $cicilan->jumlah_biaya_admin > 0 ? 'Rp '.number_format($cicilan->jumlah_biaya_admin, 0, ',', '.') : '—' }}</td>
+                            <td class="text-end fw-medium">Rp {{ number_format($cicilan->jumlah_cicilan, 0, ',', '.') }}</td>
                             <td class="text-center">
                                 @if ($cicilan->status === 'paid')
                                     <span class="badge bg-success rounded-2">Lunas</span>

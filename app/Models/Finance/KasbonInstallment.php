@@ -12,6 +12,9 @@ class KasbonInstallment extends Model
         'bulan_ke',
         'due_date',
         'jumlah_cicilan',
+        'jumlah_pokok',
+        'jumlah_bunga',
+        'jumlah_biaya_admin',
         'jumlah_dibayar',
         'status',
         'metode',
@@ -23,8 +26,11 @@ class KasbonInstallment extends Model
     protected $casts = [
         'due_date'       => 'date',
         'paid_at'        => 'datetime',
-        'jumlah_cicilan' => 'decimal:2',
-        'jumlah_dibayar' => 'decimal:2',
+        'jumlah_cicilan'      => 'decimal:2',
+        'jumlah_pokok'        => 'decimal:2',
+        'jumlah_bunga'        => 'decimal:2',
+        'jumlah_biaya_admin'  => 'decimal:2',
+        'jumlah_dibayar'      => 'decimal:2',
     ];
 
     public const STATUS_PENDING = 'pending';
