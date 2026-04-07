@@ -266,8 +266,7 @@
                         d.search = $('#custom-search').val();
                     }
                 },
-                columns: [
-                    {
+                columns: [{
                         data: 'DT_RowIndex',
                         orderable: false,
                         searchable: false,
@@ -405,27 +404,43 @@
                 const id = $(this).data('id');
                 const material = $(this).data('material');
                 $('#batchUsedModalLabel').text('Batches Used — ' + material);
-                $('#batchUsedBody').html('<div class="text-center py-3"><span class="spinner-border spinner-border-sm"></span> Loading...</div>');
+                $('#batchUsedBody').html(
+                    '<div class="text-center py-3"><span class="spinner-border spinner-border-sm"></span> Loading...</div>'
+                    );
                 $('#batchUsedModal').modal('show');
 
                 $.ajax({
                     url: '/material-usage/' + id + '/batch-usage',
                     success: function(res) {
                         if (!res.batches || res.batches.length === 0) {
-                            $('#batchUsedBody').html('<p class="text-muted text-center mb-0">No batch data recorded.</p>');
+                            $('#batchUsedBody').html(
+                                '<p class="text-muted text-center mb-0">No batch data recorded.</p>'
+                                );
                             return;
                         }
                         let rows = '';
                         res.batches.forEach(function(b) {
                             const qty = parseFloat(b.qty_used);
-                            const qtyFmt = Number.isInteger(qty) ? qty.toLocaleString() : qty.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 4});
-                            rows += '<tr><td><span class="badge bg-secondary font-monospace">' + b.batch_number + '</span></td>' +
-                                    '<td class="text-end fw-semibold">' + qtyFmt + ' <span class="text-muted fw-normal">' + (b.unit || '') + '</span></td></tr>';
+                            const qtyFmt = Number.isInteger(qty) ? qty
+                            .toLocaleString() : qty.toLocaleString(undefined, {
+                                    minimumFractionDigits: 0,
+                                    maximumFractionDigits: 4
+                                });
+                            rows +=
+                                '<tr><td><span class="badge bg-secondary font-monospace">' +
+                                b.batch_number + '</span></td>' +
+                                '<td class="text-end fw-semibold">' + qtyFmt +
+                                ' <span class="text-muted fw-normal">' + (b.unit ||
+                                '') + '</span></td></tr>';
                         });
-                        $('#batchUsedBody').html('<table class="table table-sm table-bordered mb-0"><thead class="table-light"><tr><th>Batch</th><th class="text-end">Qty Used</th></tr></thead><tbody>' + rows + '</tbody></table>');
+                        $('#batchUsedBody').html(
+                            '<table class="table table-sm table-bordered mb-0"><thead class="table-light"><tr><th>Batch</th><th class="text-end">Qty Used</th></tr></thead><tbody>' +
+                            rows + '</tbody></table>');
                     },
                     error: function() {
-                        $('#batchUsedBody').html('<p class="text-danger text-center mb-0">Failed to load batch data.</p>');
+                        $('#batchUsedBody').html(
+                            '<p class="text-danger text-center mb-0">Failed to load batch data.</p>'
+                            );
                     }
                 });
             });

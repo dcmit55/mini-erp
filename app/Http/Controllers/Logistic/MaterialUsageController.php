@@ -409,8 +409,8 @@ class MaterialUsageController extends Controller
                 $batch = $group->first()->batch;
                 return [
                     'batch_number' => $batch?->batch_number ?? '—',
-                    'qty_used'     => (float) $group->sum('qty_used'),
-                    'unit'         => $unit,
+                    'qty_used' => (float) $group->sum('qty_used'),
+                    'unit' => $unit,
                 ];
             })
             ->values();

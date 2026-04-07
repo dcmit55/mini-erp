@@ -6,11 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class StockUsageBatch extends Model
 {
-    protected $fillable = [
-        'goods_out_id',
-        'batch_id',
-        'qty_used',
-    ];
+    protected $fillable = ['goods_out_id', 'batch_id', 'qty_used'];
 
     protected $casts = [
         'qty_used' => 'float',

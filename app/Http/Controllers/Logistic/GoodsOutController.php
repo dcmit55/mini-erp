@@ -356,8 +356,8 @@ class GoodsOutController extends Controller
             foreach ($usedBatches as $ub) {
                 StockUsageBatch::create([
                     'goods_out_id' => $goodsOut->id,
-                    'batch_id'     => $ub['batch_id'],
-                    'qty_used'     => $ub['qty'],
+                    'batch_id' => $ub['batch_id'],
+                    'qty_used' => $ub['qty'],
                 ]);
             }
 
@@ -446,8 +446,8 @@ class GoodsOutController extends Controller
             foreach ($usedBatches as $ub) {
                 StockUsageBatch::create([
                     'goods_out_id' => $goodsOut->id,
-                    'batch_id'     => $ub['batch_id'],
-                    'qty_used'     => $ub['qty'],
+                    'batch_id' => $ub['batch_id'],
+                    'qty_used' => $ub['qty'],
                 ]);
             }
 
@@ -550,8 +550,8 @@ class GoodsOutController extends Controller
                 foreach ($usedBatches as $ub) {
                     StockUsageBatch::create([
                         'goods_out_id' => $goodsOut->id,
-                        'batch_id'     => $ub['batch_id'],
-                        'qty_used'     => $ub['qty'],
+                        'batch_id' => $ub['batch_id'],
+                        'qty_used' => $ub['qty'],
                     ]);
                 }
 
@@ -699,8 +699,8 @@ class GoodsOutController extends Controller
             foreach ($usedBatches as $ub) {
                 StockUsageBatch::create([
                     'goods_out_id' => $goodsOut->id,
-                    'batch_id'     => $ub['batch_id'],
-                    'qty_used'     => $ub['qty'],
+                    'batch_id' => $ub['batch_id'],
+                    'qty_used' => $ub['qty'],
                 ]);
             }
 
@@ -760,8 +760,8 @@ class GoodsOutController extends Controller
             foreach ($usedBatches as $ub) {
                 StockUsageBatch::create([
                     'goods_out_id' => $goodsOut->id,
-                    'batch_id'     => $ub['batch_id'],
-                    'qty_used'     => $ub['qty'],
+                    'batch_id' => $ub['batch_id'],
+                    'qty_used' => $ub['qty'],
                 ]);
             }
         }
@@ -879,8 +879,8 @@ class GoodsOutController extends Controller
         $batches = $goodsOut->stockUsageBatches->map(function ($sub) use ($unit) {
             return [
                 'batch_number' => $sub->batch?->batch_number ?? '—',
-                'qty_used'     => (float) $sub->qty_used,
-                'unit'         => $unit,
+                'qty_used' => (float) $sub->qty_used,
+                'unit' => $unit,
             ];
         });
 
