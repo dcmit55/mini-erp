@@ -274,6 +274,7 @@
                         d.custom_search = $('#custom-search').val();
                     }
                 },
+                columns: [
                     {
                         data: 'DT_RowIndex',
                         name: 'DT_RowIndex',

@@ -266,6 +266,7 @@
                         d.search = $('#custom-search').val();
                     }
                 },
+                columns: [
                     {
                         data: 'DT_RowIndex',
                         orderable: false,
