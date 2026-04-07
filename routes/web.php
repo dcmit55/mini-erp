@@ -76,6 +76,11 @@ use App\Http\Controllers\Hr\SymcoreExportController;
 // Leave Requests - Public access ONLY for create & store
 Route::get('leave_requests/create', [LeaveRequestController::class, 'create'])->name('leave_requests.create');
 Route::post('leave_requests', [LeaveRequestController::class, 'store'])->name('leave_requests.store');
+
+// Kasbon - Public access (no login required)
+Route::get('/kasbon', [\App\Http\Controllers\Finance\KasbonPublicController::class, 'create'])->name('kasbon.create');
+Route::post('/kasbon', [\App\Http\Controllers\Finance\KasbonPublicController::class, 'store'])->name('kasbon.store')->middleware('throttle:3,1');
+Route::get('/cek-kasbon', [\App\Http\Controllers\Finance\KasbonPublicController::class, 'status'])->name('kasbon.status');
 // Employee leave balance - public agar guest bisa melihat sisa cuti saat form create
 Route::get('/employees/{employee}/leave-balance', [EmployeeController::class, 'getLeaveBalance'])->name('employees.leave-balance.public');
 
@@ -390,6 +395,17 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/skillsets/store', [App\Http\Controllers\Hr\SkillsetController::class, 'store'])->name('skillsets.store');
     Route::get('/skillsets/json', [App\Http\Controllers\Hr\SkillsetController::class, 'json'])->name('skillsets.json');
     Route::get('/skillsets/search', [App\Http\Controllers\Hr\SkillsetController::class, 'search'])->name('skillsets.search');
+
+    // Kasbon - Admin (authenticated)
+    Route::prefix('admin/kasbon')->name('kasbon.admin.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Finance\KasbonAdminController::class, 'index'])->name('index');
+        Route::get('/installments', [\App\Http\Controllers\Finance\KasbonAdminController::class, 'installments'])->name('installments');
+        Route::get('/{id}', [\App\Http\Controllers\Finance\KasbonAdminController::class, 'show'])->name('show');
+        Route::post('/{id}/approve', [\App\Http\Controllers\Finance\KasbonAdminController::class, 'approve'])->name('approve');
+        Route::post('/{id}/reject', [\App\Http\Controllers\Finance\KasbonAdminController::class, 'reject'])->name('reject');
+        Route::post('/{id}/disburse', [\App\Http\Controllers\Finance\KasbonAdminController::class, 'disburse'])->name('disburse');
+        Route::post('/{id}/installments/{installmentId}/pay', [\App\Http\Controllers\Finance\KasbonAdminController::class, 'payInstallment'])->name('installment.pay');
+    });
 
     // Leave Request - Authenticated only
     Route::get('leave_requests', [LeaveRequestController::class, 'index'])->name('leave_requests.index');

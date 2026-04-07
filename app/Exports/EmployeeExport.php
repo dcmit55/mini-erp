@@ -46,7 +46,7 @@ class EmployeeExport implements FromCollection, WithHeadings, WithMapping, WithS
     {
         $this->rowNum++;
 
-        return [$this->rowNum, $employee->employee_no, $employee->name, $employee->department?->name ?? '-', $employee->position ?? '-', $employee->employment_type ?? '-', $employee->gender ?? '-', $employee->citizenship ?? '-', $employee->place_of_birth ?? '-', $employee->date_of_birth ? \Carbon\Carbon::parse($employee->date_of_birth)->format('Y-m-d') : '-', $employee->email ?? '-', $employee->phone ?? '-', $employee->address ?? '-', $employee->ktp_id ?? '-', $employee->hire_date ? \Carbon\Carbon::parse($employee->hire_date)->format('Y-m-d') : '-', $employee->contract_end_date ? \Carbon\Carbon::parse($employee->contract_end_date)->format('Y-m-d') : '-', ucfirst($employee->status ?? '-'), $employee->notes ?? '-'];
+        return [$this->rowNum, $employee->employee_no, $employee->name, $employee->department?->name ?? null, $employee->position ?? null, $employee->employment_type ?? null, $employee->gender ?? null, $employee->citizenship ?? null, $employee->place_of_birth ?? null, $employee->date_of_birth ? \Carbon\Carbon::parse($employee->date_of_birth)->format('Y-m-d') : null, $employee->email ?? null, $employee->phone ?? null, $employee->address ?? null, $employee->ktp_id ?? null, $employee->hire_date ? \Carbon\Carbon::parse($employee->hire_date)->format('Y-m-d') : null, $employee->contract_end_date ? \Carbon\Carbon::parse($employee->contract_end_date)->format('Y-m-d') : null, $employee->status ? strtolower($employee->status) : null, $employee->notes ?? null];
     }
 
     public function styles(Worksheet $sheet)

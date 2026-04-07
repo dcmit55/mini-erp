@@ -66,6 +66,18 @@ class SymcoreExport implements FromArray, WithStyles, WithEvents
             ->get()
             ->keyBy('employee_id');
 
+        // Kasbon: total outstanding (jumlah_disetujui - total dibayar) untuk kasbon aktif
+        $kasbonData = DB::table('kasbon_requests')
+            ->whereIn('status', ['approved', 'disbursed', 'repaying'])
+            ->leftJoin('kasbon_installments', 'kasbon_requests.id', '=', 'kasbon_installments.kasbon_id')
+            ->select(
+                'kasbon_requests.employee_id',
+                DB::raw('COALESCE(SUM(kasbon_requests.jumlah_disetujui), 0) - COALESCE(SUM(kasbon_installments.jumlah_dibayar), 0) as total_outstanding')
+            )
+            ->groupBy('kasbon_requests.employee_id')
+            ->get()
+            ->keyBy('employee_id');
+
         // Leave data: split by type, fully approved (approval_1 + approval_2)
         $leaveData = DB::table('leave_requests')
             ->where(function ($q) {
@@ -114,6 +126,7 @@ class SymcoreExport implements FromArray, WithStyles, WithEvents
             $ot         = $otData->get($emp->id);
             $attendance = $attendanceData->get($emp->id);
             $leave      = $leaveData->get($emp->id);
+            $kasbon     = $kasbonData->get($emp->id);
 
             $rows[] = [
                 $emp->employee_no,
@@ -133,7 +146,7 @@ class SymcoreExport implements FromArray, WithStyles, WithEvents
                 $attendance ? (int) $attendance->late_sat_20_39 : 0,
                 $attendance ? (int) $attendance->late_sat_40_plus : 0,
                 '',   // Penalty — data belum tersedia
-                '',   // Kasbon — data belum tersedia
+                $kasbon ? (float) $kasbon->total_outstanding : 0,
             ];
         }
 

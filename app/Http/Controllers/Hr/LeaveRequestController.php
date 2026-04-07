@@ -95,52 +95,7 @@ class LeaveRequestController extends Controller
      */
     public function store(Request $request)
     {
-        // reCAPTCHA validation for unauthenticated users
-        if (!Auth::check()) {
-            $request->validate(
-                [
-                    'g-recaptcha-response' => 'required',
-                ],
-                [
-                    'g-recaptcha-response.required' => 'Please complete the reCAPTCHA verification.',
-                ],
-            );
-
-            // Verify reCAPTCHA with v2 secret from config
-            $recaptchaSecret = config('services.recaptcha.secret_key', '6LfD2WgsAAAAAFWpgoubzDNlqh_0q7ns5v_5mYgj');
-            $recaptchaResponse = $request->input('g-recaptcha-response');
-
-            try {
-                $response = Http::timeout(10)
-                    ->asForm()
-                    ->post('https://www.google.com/recaptcha/api/siteverify', [
-                        'secret' => $recaptchaSecret,
-                        'response' => $recaptchaResponse,
-                        'remoteip' => $request->ip(),
-                    ]);
-
-                $result = $response->json();
-
-                if (!isset($result['success']) || !$result['success']) {
-                    $errorCodes = $result['error-codes'] ?? [];
-                    \Log::warning('reCAPTCHA verification failed', [
-                        'error_codes' => $errorCodes,
-                        'ip' => $request->ip(),
-                        'result' => $result,
-                    ]);
-
-                    return back()
-                        ->withInput()
-                        ->withErrors(['g-recaptcha-response' => 'reCAPTCHA verification failed. Please try again.']);
-                }
-            } catch (\Exception $e) {
-                \Log::error('reCAPTCHA API error: ' . $e->getMessage());
-                // Allow submission if reCAPTCHA service is down (graceful degradation)
-                // But log the error for monitoring
-            }
-        }
-
-        // Validate employee is active
+// Validate employee is active
         $employee = Employee::with('department')->findOrFail($request->employee_id);
 
         if ($employee->status !== 'active') {

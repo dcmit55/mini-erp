@@ -192,25 +192,7 @@
             </div>
         </div>
 
-        {{-- reCAPTCHA (guest only) --}}
-        @guest
-        <div class="card border-0 shadow-sm rounded-3 mb-3">
-            <div class="card-body p-4">
-                <div class="mb-3">
-                    <span class="fw-semibold small text-uppercase text-muted" style="letter-spacing:.05em;">Verifikasi</span>
-                </div>
-                <div class="g-recaptcha" data-sitekey="{{ config('services.recaptcha.site_key') }}"></div>
-                <div class="text-muted small mt-2">
-                    <i class="bi bi-shield-check me-1"></i>Verifikasi diperlukan untuk mencegah spam
-                </div>
-                @error('g-recaptcha-response')
-                    <div class="text-danger small mt-1">{{ $message }}</div>
-                @enderror
-            </div>
-        </div>
-        @endguest
-
-        {{-- Actions --}}
+{{-- Actions --}}
         <div class="d-flex justify-content-end gap-2">
             @auth
                 <a href="{{ route('leave_requests.index') }}" class="btn btn-outline-secondary btn-sm px-4 rounded-2">Batal</a>
@@ -242,10 +224,6 @@
 @endpush
 
 @push('scripts')
-@guest
-    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
-@endguest
-
 <script>
 $(document).ready(function () {
 
@@ -263,9 +241,6 @@ $(document).ready(function () {
             $('#employee_id').val(null).trigger('change');
             $('#employee-info').addClass('d-none');
             $('#leave-balance-info').html('');
-            @guest
-            if (typeof grecaptcha !== 'undefined') grecaptcha.reset();
-            @endguest
         });
     @endif
 
@@ -472,27 +447,7 @@ $(document).ready(function () {
     $('#leaveRequestForm').on('submit', function (e) {
         const $btn = $('#submitBtn');
 
-        @guest
-        try {
-            if (typeof grecaptcha !== 'undefined') {
-                const captchaResponse = grecaptcha.getResponse();
-                if (!captchaResponse) {
-                    e.preventDefault();
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'Verifikasi Diperlukan',
-                        text: 'Harap selesaikan verifikasi reCAPTCHA terlebih dahulu.',
-                        confirmButtonColor: '#ffc107'
-                    });
-                    return false;
-                }
-            }
-        } catch (err) {
-            // reCAPTCHA tidak tersedia, lanjutkan submit (server-side graceful degradation)
-        }
-        @endguest
-
-        if ($btn.prop('disabled')) { e.preventDefault(); return false; }
+if ($btn.prop('disabled')) { e.preventDefault(); return false; }
         $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Mengirim...');
     });
 

@@ -88,8 +88,8 @@ trait ComputesTimingBreak
         $tapped = FingerprintLog::where('cloud_id', $pin)
             ->whereDate('event_time', $today)
             ->where(function ($q) {
-                $q->where('payload->status_scan', 0)
-                  ->orWhere('payload->status_scan', 4);
+                $q->where('payload->status', 0)
+                  ->orWhere('payload->status', 4);
             })
             ->exists();
 
