@@ -740,6 +740,7 @@
                             @endif
 
                             <!-- Kasbon Self-Service (semua role) -->
+                            @auth
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle {{ request()->is('pengajuan-kasbon*') || request()->is('cek-kasbon*') ? 'active' : '' }}"
                                     href="#" id="kasbonSelfDropdown" role="button" data-bs-toggle="dropdown"
@@ -761,6 +762,7 @@
                                     </li>
                                 </ul>
                             </li>
+                            @endauth
 
                         </ul>
 
