@@ -145,13 +145,14 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-2">
-                            <label for="date_from">Date From</label>
-                            <input type="date" name="date_from" id="date_from" class="form-control">
-                        </div>
-                        <div class="col-md-2">
-                            <label for="date_to">Date To</label>
-                            <input type="date" name="date_to" id="date_to" class="form-control">
+                        <div class="col-md-3">
+                            <label>Date Range</label>
+                            <div class="position-relative">
+                                <input type="text" id="tanggal-range-picker" class="form-control"
+                                    placeholder="All dates" readonly style="cursor:pointer;">
+                                <input type="hidden" id="date_from" name="date_from">
+                                <input type="hidden" id="date_to" name="date_to">
+                            </div>
                         </div>
                     </div>
                 </form>
@@ -288,6 +289,7 @@
     <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css"
         rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <style>
         /* Fix Select2 with Bootstrap 5 */
         .select2-container .select2-selection--single {
@@ -304,6 +306,7 @@
 @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
     <script>
         $(document).ready(function() {
@@ -356,6 +359,40 @@
 
             // Restore filters before DataTable initialises
             restoreFilters();
+
+            // ── Flatpickr date range picker ──────────────────────────────────
+            const dateFromVal = $('#date_from').val();
+            const dateToVal = $('#date_to').val();
+
+            const tanggalPicker = flatpickr('#tanggal-range-picker', {
+                mode: 'range',
+                dateFormat: 'Y-m-d',
+                altInput: false,
+                showMonths: 2,
+                defaultDate: (dateFromVal && dateToVal) ? [dateFromVal, dateToVal] : (dateFromVal ? [dateFromVal] : []),
+                onChange: function(selectedDates) {
+                    if (selectedDates.length === 0) {
+                        $('#date_from').val('');
+                        $('#date_to').val('');
+                    } else if (selectedDates.length === 1) {
+                        $('#date_from').val(flatpickr.formatDate(selectedDates[0], 'Y-m-d'));
+                        $('#date_to').val('');
+                    } else {
+                        $('#date_from').val(flatpickr.formatDate(selectedDates[0], 'Y-m-d'));
+                        $('#date_to').val(flatpickr.formatDate(selectedDates[1], 'Y-m-d'));
+                        saveFilters();
+                        table.ajax.reload();
+                    }
+                },
+                onClose: function(selectedDates) {
+                    if (selectedDates.length === 1) {
+                        $('#date_from').val(flatpickr.formatDate(selectedDates[0], 'Y-m-d'));
+                        $('#date_to').val('');
+                        saveFilters();
+                        table.ajax.reload();
+                    }
+                }
+            });
             // --- End filter persistence ---
 
             // Initialize DataTable
@@ -457,6 +494,9 @@
                 $('#filterForm')[0].reset();
                 $('#approval_status').val('pending'); // Set back to default
                 $('.select2').val(null).trigger('change');
+                $('#date_from').val('');
+                $('#date_to').val('');
+                tanggalPicker.clear();
                 table.ajax.reload();
             });
 

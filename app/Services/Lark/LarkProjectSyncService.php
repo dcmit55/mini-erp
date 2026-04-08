@@ -69,9 +69,17 @@ class LarkProjectSyncService
             // 1. Fetch raw data dari Lark
             Log::info('Starting Lark project sync');
 
-            $rawRecords = $this->apiClient->fetchRecords($this->appToken, $this->tableId, $this->viewId);
+            $rawRecords = $this->apiClient->fetchRecords($this->appToken, $this->tableId, $this->viewId, 'name');
 
             $stats['fetched'] = count($rawRecords);
+
+            // Debug: log field names dari record pertama
+            if (!empty($rawRecords)) {
+                Log::info('Lark Project - available field names', [
+                    'field_names' => array_keys($rawRecords[0]['fields'] ?? []),
+                    'record_id' => $rawRecords[0]['record_id'] ?? 'unknown',
+                ]);
+            }
 
             // 2. Process each record
             $larkRecordIds = [];
@@ -157,7 +165,7 @@ class LarkProjectSyncService
      */
     public function getRawResponse(): array
     {
-        return $this->apiClient->fetchRawResponse($this->appToken, $this->tableId, $this->viewId);
+        return $this->apiClient->fetchRawResponse($this->appToken, $this->tableId, $this->viewId, 'name');
     }
 
     /**
@@ -166,7 +174,7 @@ class LarkProjectSyncService
     public function syncSingle(string $larkRecordId): Project
     {
         // Fetch all and find specific record
-        $rawRecords = $this->apiClient->fetchRecords($this->appToken, $this->tableId, $this->viewId);
+        $rawRecords = $this->apiClient->fetchRecords($this->appToken, $this->tableId, $this->viewId, 'name');
 
         $rawRecord = collect($rawRecords)->firstWhere('record_id', $larkRecordId);
 
@@ -240,8 +248,8 @@ class LarkProjectSyncService
         }
 
         // Sync departments (replace existing)
-        // Using sync() instead of attach() to avoid duplicates
-        $project->departments()->sync($departmentIds);
+        // Using sync() with unique IDs to avoid duplicates
+        $project->departments()->sync(array_unique($departmentIds));
 
         Log::debug('Departments synced to pivot table', [
             'project_id' => $project->id,
