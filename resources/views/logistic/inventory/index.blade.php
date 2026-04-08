@@ -135,7 +135,7 @@
                 <div class="d-flex flex-column flex-lg-row align-items-lg-center gap-3 mb-3">
                     <div class="d-flex align-items-center">
                         <i class="fas fa-warehouse gradient-icon me-2" style="font-size: 1.5rem;"></i>
-                        <h2 class="mb-0 flex-shrink-0" style="font-size:1.3rem;">Inventory List</h2>
+                        <h2 class="mb-0 flex-shrink-0" style="font-size:1.3rem;">Inventory Stock</h2>
                     </div>
 
                     <div class="ms-lg-auto">
