@@ -472,8 +472,7 @@
                                         request()->is('final_project_summary*') ||
                                         request()->is('dcm-costings*') ||
                                         request()->is('purchase-approvals*') ||
-                                        request()->is('purchase-edited*') ||
-                                        request()->is('admin/kasbon*')
+                                        request()->is('purchase-edited*')
                                             ? 'active'
                                             : '' }}"
                                             href="#" id="financesDropdown" role="button"
@@ -515,19 +514,6 @@
                                                 <a class="dropdown-item {{ request()->is('purchase-edited*') ? 'active' : '' }}"
                                                     href="{{ route('purchase-edited.index') }}">
                                                     <i class="fas fa-edit me-2"></i>Purchase Edited
-                                                </a>
-                                            </li>
-                                            <li><hr class="dropdown-divider"></li>
-                                            <li>
-                                                <a class="dropdown-item {{ request()->is('admin/kasbon') ? 'active' : '' }}"
-                                                    href="{{ route('kasbon.admin.index') }}">
-                                                    <i class="fas fa-hand-holding-usd me-2"></i>Cash Advance
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item {{ request()->is('admin/kasbon/installments*') ? 'active' : '' }}"
-                                                    href="{{ route('kasbon.admin.installments') }}">
-                                                    <i class="fas fa-calendar-check me-2"></i>Installment Monitoring
                                                 </a>
                                             </li>
                                         </ul>

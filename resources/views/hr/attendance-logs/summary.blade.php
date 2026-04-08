@@ -42,9 +42,13 @@
                    class="btn btn-sm btn-outline-secondary px-2 px-sm-3">
                     <i class="fas fa-chevron-right"></i>
                 </a>
-                <a href="{{ route('attendance-logs.summary', $navParams ?: []) }}" class="btn btn-sm btn-outline-primary px-2 px-sm-3">
-                    <span class="d-none d-sm-inline">Today</span><i class="fas fa-calendar-day d-sm-none"></i>
+                <a href="{{ route('session-shifts.live-monitor', ['from' => 'summary']) }}" class="btn btn-sm btn-outline-success px-2 px-sm-3">
+                    <i class="fas fa-satellite-dish me-sm-1"></i><span class="d-none d-sm-inline">Live Monitor</span>
                 </a>
+                <div style="min-width:180px;">
+                    <input type="text" id="empSearchSummary" class="form-select form-select-sm"
+                           placeholder="Search employee..." autocomplete="off">
+                </div>
                 <div class="ms-auto">
                     <select id="deptFilter" class="form-select form-select-sm dept-filter-select">
                         <option value="">All Dept</option>
@@ -589,6 +593,15 @@
 @push('scripts')
 <script>
 $(document).ready(function () {
+
+    // Employee search
+    document.getElementById('empSearchSummary').addEventListener('input', function () {
+        const val = this.value.toLowerCase().trim();
+        document.querySelectorAll('tr.summary-row').forEach(function (row) {
+            const name = (row.querySelector('td .fw-semibold')?.textContent || '').toLowerCase();
+            row.style.display = (!val || name.includes(val)) ? '' : 'none';
+        });
+    });
 
     // Department filter
     $('#deptFilter').on('change', function () {

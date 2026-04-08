@@ -67,40 +67,25 @@
 <div class="col-12">
 
     {{-- ── Header ───────────────────────────────────── --}}
-    <div class="d-flex align-items-start justify-content-between mb-4 flex-wrap gap-2">
-        <div>
-            <div class="d-flex align-items-center gap-2 mb-1">
-                <a href="{{ route('session-shifts.index') }}" class="text-muted text-decoration-none" style="font-size:.8rem;">
-                    <i class="fas fa-chevron-left me-1" style="font-size:.65rem;"></i>Session Shifts
-                </a>
-            </div>
-            <div class="d-flex align-items-center gap-3">
-                <h5 class="fw-bold mb-0">Live Monitor</h5>
-                <span class="d-flex align-items-center gap-1 text-muted" style="font-size:.8rem;">
-                    <span class="rounded-circle bg-success d-inline-block" style="width:7px;height:7px;"></span>
-                    {{ \Carbon\Carbon::parse($date)->format('d M Y') }}
-                    @if($isToday) · <span class="text-danger fw-semibold">{{ $now->format('H:i') }}</span> @endif
-                </span>
-            </div>
+    @php
+        $backUrl = request('from') === 'summary'
+            ? route('attendance-logs.summary')
+            : route('session-shifts.index');
+    @endphp
+    <div class="mb-3">
+        <a href="{{ $backUrl }}" class="btn btn-sm btn-outline-secondary px-3">
+            <i class="fas fa-arrow-left me-1"></i>Back
+        </a>
+    </div>
+    <div class="mb-4">
+        <div class="d-flex align-items-center gap-3">
+            <h5 class="fw-bold mb-0">Live Monitor</h5>
+            <span class="d-flex align-items-center gap-1 text-muted" style="font-size:.8rem;">
+                <span class="rounded-circle bg-success d-inline-block" style="width:7px;height:7px;"></span>
+                {{ \Carbon\Carbon::parse($date)->format('d M Y') }}
+                @if($isToday) · <span class="text-danger fw-semibold">{{ $now->format('H:i') }}</span> @endif
+            </span>
         </div>
-
-        {{-- Filters --}}
-        <form method="GET" action="{{ route('session-shifts.live-monitor') }}" class="d-flex gap-2 align-items-end flex-wrap">
-            <div>
-                <label class="form-label small text-muted mb-1 d-block">Date</label>
-                <input type="date" name="date" class="form-control form-control-sm rounded-2"
-                       value="{{ $date }}" onchange="this.form.submit()" style="font-size:.82rem;">
-            </div>
-            <div>
-                <label class="form-label small text-muted mb-1 d-block">Department</label>
-                <select name="department_id" class="form-select form-select-sm rounded-2" onchange="this.form.submit()" style="font-size:.82rem;">
-                    <option value="">All Departments</option>
-                    @foreach($departments as $dept)
-                        <option value="{{ $dept->id }}" {{ $departmentId == $dept->id ? 'selected' : '' }}>{{ $dept->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-        </form>
     </div>
 
     {{-- ── Stat cards ───────────────────────────────── --}}
@@ -133,20 +118,35 @@
         @endforeach
     </div>
 
-    {{-- ── Timeline ─────────────────────────────────── --}}
-    @php
-        $START_HOUR   = 7;
-        $TL           = round(24 * 60 * $PX);
-        $toDisplayPx  = fn($min) => round((($min - $START_HOUR * 60 + 1440) % 1440) * $PX);
-        $nowDisplayPx = $toDisplayPx($currentMinutes);
-        $COL_W        = round(60 * $PX);
-    @endphp
+    {{-- ── Filters + Color Guide ───────────────────── --}}
+    <div class="d-flex align-items-end justify-content-between flex-wrap gap-3 mb-2">
+        {{-- Filters (left) --}}
+        <div class="d-flex gap-2 align-items-end flex-wrap">
+            <form method="GET" action="{{ route('session-shifts.live-monitor') }}" class="d-flex gap-2 align-items-end flex-wrap">
+                <div>
+                    <label class="form-label small text-muted mb-1 d-block">Date</label>
+                    <input type="date" name="date" class="form-control form-control-sm rounded-2"
+                           value="{{ $date }}" onchange="this.form.submit()" style="font-size:.82rem;">
+                </div>
+                <div>
+                    <label class="form-label small text-muted mb-1 d-block">Department</label>
+                    <select name="department_id" class="form-select form-select-sm rounded-2" onchange="this.form.submit()" style="font-size:.82rem;">
+                        <option value="">All Departments</option>
+                        @foreach($departments as $dept)
+                            <option value="{{ $dept->id }}" {{ $departmentId == $dept->id ? 'selected' : '' }}>{{ $dept->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </form>
+            <div>
+                <label class="form-label small text-muted mb-1 d-block">Search Employee</label>
+                <input type="text" id="empSearch" class="form-control form-control-sm rounded-2"
+                       placeholder="Type name or ID..." style="min-width:200px; font-size:.82rem;" autocomplete="off">
+            </div>
+        </div>
 
-    <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
-
-        {{-- Legend strip --}}
-        <div class="px-3 py-2 d-flex align-items-center gap-3 border-bottom" style="background:#fafafa;">
-            <span class="text-muted" style="font-size:.7rem;font-weight:600;letter-spacing:.05em;">LEGEND</span>
+        {{-- Color Guide + Countdown (right) --}}
+        <div class="d-flex align-items-center flex-wrap gap-3">
             @foreach([
                 ['#0d6efd','Active / In Office'],
                 ['#198754','Clocked Out'],
@@ -159,8 +159,20 @@
                 {{ $l }}
             </span>
             @endforeach
-            <span class="ms-auto text-muted" style="font-size:.7rem;" id="countdown-label">Refresh in 60s</span>
+            <span class="text-muted" style="font-size:.7rem;border-left:1px solid #dee2e6;padding-left:.75rem;" id="countdown-label">Refresh in 60s</span>
         </div>
+    </div>
+
+    {{-- ── Timeline ─────────────────────────────────── --}}
+    @php
+        $START_HOUR   = 7;
+        $TL           = round(24 * 60 * $PX);
+        $toDisplayPx  = fn($min) => round((($min - $START_HOUR * 60 + 1440) % 1440) * $PX);
+        $nowDisplayPx = $toDisplayPx($currentMinutes);
+        $COL_W        = round(60 * $PX);
+    @endphp
+
+    <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
 
         <div style="overflow-x:scroll; -webkit-overflow-scrolling:touch;">
             <table class="table table-borderless mb-0" style="min-width:{{ 230 + $TL }}px; table-layout:fixed; border-collapse:collapse;">
@@ -238,7 +250,7 @@
                     $rowType        = $isActive ? 'row-active' : 'row-done';
                     $accentColor    = $isActive ? '#0d6efd' : '#198754';
                 @endphp
-                <tr class="tl-row {{ $rowType }}">
+                <tr class="tl-row {{ $rowType }}" data-emp="{{ strtolower($att->employee->name ?? '') }}">
                     <td class="emp-col py-0 px-3" style="height:52px; vertical-align:middle;">
                         <div class="d-flex align-items-center gap-2">
                             <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
@@ -295,7 +307,7 @@
                         $lWidth = round(($ltMin - $lfMin) * $PX);
                     }
                 @endphp
-                <tr class="tl-row row-leave">
+                <tr class="tl-row row-leave" data-emp="{{ strtolower($leave->employee->name ?? '') }}">
                     <td class="emp-col py-0 px-3" style="height:52px; vertical-align:middle;">
                         <div class="d-flex align-items-center gap-2">
                             <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
@@ -326,7 +338,7 @@
 
                 {{-- Not clocked in rows --}}
                 @foreach($notClockedIn as $emp)
-                <tr class="tl-row row-absent">
+                <tr class="tl-row row-absent" data-emp="{{ strtolower($emp->name ?? '') }}">
                     <td class="emp-col py-0 px-3" style="height:48px; vertical-align:middle; opacity:.55;">
                         <div class="d-flex align-items-center gap-2">
                             <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
@@ -376,5 +388,12 @@
     if (bar) bar.style.width = '0%';
     setInterval(tick, 1000);
 })();
+
+document.getElementById('empSearch').addEventListener('input', function () {
+    const val = this.value.toLowerCase().trim();
+    document.querySelectorAll('tr.tl-row').forEach(function (row) {
+        row.style.display = (!val || row.dataset.emp.includes(val)) ? '' : 'none';
+    });
+});
 </script>
 @endsection
