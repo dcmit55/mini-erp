@@ -30,7 +30,7 @@ class LarkProjectDTO extends BaseLarkDTO
      *
      * Field Names dari Lark Base (Job Orders table) berdasarkan actual API response:
      * - "Project Label" → projects.name (nama project)
-     * - "Type of Project" → projects.department (tipe/departemen project)
+     * - "Departments" → projects.department (tipe/departemen project)
      * - "Sales / Ops IC" → projects.sales (PIC sales)
      * - "Project Status" → projects.stage (status project - single select)
      * - "Batam Job Order Statuses" → projects.project_status (statuses - multi select)
@@ -48,7 +48,7 @@ class LarkProjectDTO extends BaseLarkDTO
      */
     protected const FIELD_MAPPING = [
         'projects.name' => 'Project Label', // Nama project
-        'projects.department' => 'Type of Project', // Tipe/Department project
+        'projects.department' => 'Departments', // Tipe/Department project
         'projects.sales' => 'Sales / Ops IC', // PIC Sales (bisa null)
         'projects.stage' => 'Project Status', // Status project (single select)
         'projects.project_status' => 'Batam Job Order Statuses', // Statuses (multi select)

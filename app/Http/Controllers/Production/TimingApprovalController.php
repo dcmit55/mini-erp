@@ -63,6 +63,26 @@ class TimingApprovalController extends Controller
                 $query->whereDate('tanggal', '<=', $request->date_to);
             }
 
+            // Global search (DataTables search box)
+            $search = $request->input('search.value');
+            if ($search && trim($search) !== '') {
+                $search = trim($search);
+                $query->where(function ($q) use ($search) {
+                    $q->whereHas('employee', function ($eq) use ($search) {
+                        $eq->where('name', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('project', function ($pq) use ($search) {
+                        $pq->where('name', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('jobOrder', function ($jq) use ($search) {
+                        $jq->where('name', 'like', "%{$search}%");
+                    })
+                    ->orWhere('step', 'like', "%{$search}%")
+                    ->orWhere('parts', 'like', "%{$search}%")
+                    ->orWhere('remarks', 'like', "%{$search}%");
+                });
+            }
+
             $query->orderBy('tanggal', 'desc')->orderBy('created_at', 'desc');
 
             return DataTables::of($query)
