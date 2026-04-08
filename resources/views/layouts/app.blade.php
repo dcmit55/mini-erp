@@ -264,8 +264,27 @@
                                                     href="{{ route('lark.staging.inventory') }}">
                                                     <i class="fas fa-filter me-2"></i>Inventory Incomming
                                                 </a>
+                                            </li>
+                                        </ul>
+                                    </li>
+                                @endif
 
-                                                ++labelledby="procurementDropdown">
+                                <!-- Procurement Dropdown -->
+                                @if (in_array(auth()->user()->role, [
+                                        'super_admin',
+                                        'admin_procurement',
+                                        'admin_hr',
+                                        'admin',
+                                        'admin_logistic',
+                                        'admin_finance',
+                                    ]))
+                                    <li class="nav-item dropdown">
+                                        <a class="nav-link dropdown-toggle {{ isDropdownActive($procurementPrefixes) ? 'active' : '' }}"
+                                            href="#" id="procurementDropdown" role="button"
+                                            data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i></i>Procurement
+                                        </a>
+                                        <ul class="dropdown-menu" aria-labelledby="procurementDropdown">
                                             <li>
                                                 <a class="dropdown-item {{ request()->is('project-purchases*') ? 'active' : '' }}"
                                                     href="{{ route('project-purchases.index') }}">
@@ -511,8 +530,7 @@
                                                     href="{{ route('purchase-edited.index') }}">
                                                     <i class="fas fa-edit me-2"></i>Purchase Edited
                                                 </a>
-                                            </li>
-                                            <li>
+
                                                 <hr class="dropdown-divider">
                                             </li>
                                             <li>
@@ -741,27 +759,27 @@
 
                             <!-- Kasbon Self-Service (semua role) -->
                             @auth
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle {{ request()->is('pengajuan-kasbon*') || request()->is('cek-kasbon*') ? 'active' : '' }}"
-                                    href="#" id="kasbonSelfDropdown" role="button" data-bs-toggle="dropdown"
-                                    aria-expanded="false">
-                                    <i></i>Kasbon
-                                </a>
-                                <ul class="dropdown-menu" aria-labelledby="kasbonSelfDropdown">
-                                    <li>
-                                        <a class="dropdown-item {{ request()->is('pengajuan-kasbon*') ? 'active' : '' }}"
-                                            href="{{ route('kasbon.create') }}">
-                                            <i class="fas fa-hand-holding-usd me-2"></i>Request Kasbon
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item {{ request()->is('cek-kasbon*') ? 'active' : '' }}"
-                                            href="{{ route('kasbon.status') }}">
-                                            <i class="fas fa-search me-2"></i>Cek Status Kasbon
-                                        </a>
-                                    </li>
-                                </ul>
-                            </li>
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle {{ request()->is('pengajuan-kasbon*') || request()->is('cek-kasbon*') ? 'active' : '' }}"
+                                        href="#" id="kasbonSelfDropdown" role="button" data-bs-toggle="dropdown"
+                                        aria-expanded="false">
+                                        <i></i>Kasbon
+                                    </a>
+                                    <ul class="dropdown-menu" aria-labelledby="kasbonSelfDropdown">
+                                        <li>
+                                            <a class="dropdown-item {{ request()->is('pengajuan-kasbon*') ? 'active' : '' }}"
+                                                href="{{ route('kasbon.create') }}">
+                                                <i class="fas fa-hand-holding-usd me-2"></i>Request Kasbon
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item {{ request()->is('cek-kasbon*') ? 'active' : '' }}"
+                                                href="{{ route('kasbon.status') }}">
+                                                <i class="fas fa-search me-2"></i>Cek Status Kasbon
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </li>
                             @endauth
 
                         </ul>
