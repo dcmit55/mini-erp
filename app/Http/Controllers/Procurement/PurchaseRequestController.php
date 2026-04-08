@@ -801,6 +801,100 @@ class PurchaseRequestController extends Controller
     }
 
     /**
+     * Bulk store via Handsontable spreadsheet mode (JSON AJAX request).
+     */
+    public function bulkStoreHandsontable(Request $request)
+    {
+        if (auth()->user()->isReadOnlyAdmin()) {
+            return response()->json(['success' => false, 'message' => 'You do not have permission.'], 403);
+        }
+
+        $validated = $request->validate([
+            'items'                         => 'required|array|min:1',
+            'items.*.type'                  => 'required|in:new_material,restock',
+            'items.*.item_name'             => 'nullable|string|max:255',
+            'items.*.inventory_id'          => 'nullable|integer|exists:inventories,id',
+            'items.*.qty'                   => 'required|numeric|min:0.01',
+            'items.*.unit'                  => 'required|string|max:50',
+            'items.*.project_id'            => 'nullable|integer|exists:projects,id',
+            'items.*.remark'                => 'nullable|string',
+        ]);
+
+        $errors = [];
+        $validRows = [];
+
+        foreach ($validated['items'] as $i => $item) {
+            $rowLabel = 'Row ' . ($i + 1);
+            if ($item['type'] === 'new_material') {
+                if (empty($item['item_name'])) {
+                    $errors[] = "{$rowLabel}: Item name is required for New Material.";
+                    continue;
+                }
+                $exists = Inventory::whereRaw('LOWER(name) = ?', [strtolower($item['item_name'])])->exists();
+                if ($exists) {
+                    $errors[] = "{$rowLabel}: \"{$item['item_name']}\" already exists in inventory. Use Restock type instead.";
+                    continue;
+                }
+            }
+            if ($item['type'] === 'restock' && empty($item['inventory_id'])) {
+                $errors[] = "{$rowLabel}: Please select an inventory item for Restock.";
+                continue;
+            }
+            $validRows[] = $item;
+        }
+
+        if (!empty($errors) && empty($validRows)) {
+            return response()->json(['success' => false, 'errors' => $errors], 422);
+        }
+
+        $successCount = 0;
+        $saveErrors = [];
+
+        DB::beginTransaction();
+        try {
+            foreach ($validRows as $i => $item) {
+                $supplierData = ['supplier_id' => null, 'original_supplier_id' => null];
+
+                if ($item['type'] === 'restock' && !empty($item['inventory_id'])) {
+                    $inventory = Inventory::find($item['inventory_id']);
+                    $materialName = $inventory->name;
+                    $supplierData['supplier_id'] = $inventory->supplier_id;
+                    $supplierData['original_supplier_id'] = $inventory->supplier_id;
+                } else {
+                    $materialName = $item['item_name'];
+                }
+
+                PurchaseRequest::create([
+                    'type'               => $item['type'],
+                    'material_name'      => $materialName,
+                    'inventory_id'       => $item['type'] === 'restock' ? $item['inventory_id'] : null,
+                    'required_quantity'  => $item['qty'],
+                    'qty_to_buy'         => $item['qty'],
+                    'unit'               => $item['unit'],
+                    'stock_level'        => null,
+                    'project_id'         => $item['project_id'] ?? null,
+                    'remark'             => $item['remark'] ?? null,
+                    'requested_by'       => Auth::id(),
+                    'approval_status'    => 'Pending',
+                    ...$supplierData,
+                ]);
+                $successCount++;
+            }
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => 'Database error: ' . $e->getMessage()], 500);
+        }
+
+        return response()->json([
+            'success'  => true,
+            'count'    => $successCount,
+            'errors'   => $errors,   // partial-row validation errors (rows that were skipped)
+            'redirect' => route('purchase_requests.index'),
+        ]);
+    }
+
+    /**
      * Show the form for editing the specified resource.
      */
     public function edit($id)

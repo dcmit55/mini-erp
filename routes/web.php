@@ -526,6 +526,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Purchase Requests
     Route::get('/purchase_requests/export', [PurchaseRequestController::class, 'export'])->name('purchase_requests.export');
+    Route::post('/purchase_requests/bulk-handsontable', [PurchaseRequestController::class, 'bulkStoreHandsontable'])->name('purchase_requests.bulk_handsontable');
     Route::resource('purchase_requests', PurchaseRequestController::class)->middleware('auth');
     Route::post('/purchase_requests/{id}/quick-update', [PurchaseRequestController::class, 'quickUpdate'])->name('purchase_requests.quick_update');
 
