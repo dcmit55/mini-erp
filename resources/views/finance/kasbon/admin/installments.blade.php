@@ -13,6 +13,11 @@
                 <span class="text-muted">/</span>
                 <span class="fw-semibold text-dark">Installment Monitoring</span>
             </div>
+            <div class="ms-auto flex-shrink-0">
+                <a href="{{ url('/cek-kasbon') }}" target="_blank" class="btn btn-outline-secondary btn-sm rounded-2 px-3">
+                    <i class="fas fa-search me-1"></i>Check Status
+                </a>
+            </div>
         </div>
 
         @if(session('success'))
@@ -109,7 +114,8 @@
                         <thead class="bg-light">
                             <tr>
                                 <th class="border-0 text-muted fw-normal px-3 py-2 text-center" style="width:44px;">No</th>
-                                <th class="border-0 text-muted fw-normal px-3 py-2">Employee</th>
+                                <th class="border-0 text-muted fw-normal px-3 py-2">Name</th>
+                                <th class="border-0 text-muted fw-normal px-3 py-2">Employee ID</th>
                                 <th class="border-0 text-muted fw-normal px-3 py-2">Department</th>
                                 <th class="border-0 text-muted fw-normal px-3 py-2">Ref No.</th>
                                 <th class="border-0 text-muted fw-normal px-3 py-2 text-center">Month</th>
@@ -122,7 +128,7 @@
                         <tbody>
                             @if($installments->isEmpty())
                             <tr>
-                                <td colspan="9" class="text-center py-5">
+                                <td colspan="10" class="text-center py-5">
                                     <i class="fas fa-check-circle fa-2x text-muted mb-2 d-block"></i>
                                     <span class="text-muted small">No installments found for this period.</span>
                                 </td>
@@ -135,10 +141,8 @@
                             @endphp
                             <tr class="{{ $isOverdue ? 'table-danger' : '' }}">
                                 <td class="px-3 py-2 text-center text-muted">{{ $no + $i }}</td>
-                                <td class="px-3 py-2 small">
-                                    {{ $cicilan->kasbon->nama_lengkap }}
-                                    <span class="text-muted ms-1">{{ $cicilan->kasbon->nik_karyawan }}</span>
-                                </td>
+                                <td class="px-3 py-2 small">{{ $cicilan->kasbon->nama_lengkap }}</td>
+                                <td class="px-3 py-2 small text-muted font-monospace">{{ $cicilan->kasbon->nik_karyawan }}</td>
                                 <td class="px-3 py-2 text-muted small">{{ $cicilan->kasbon->department->name ?? '—' }}</td>
                                 <td class="px-3 py-2">
                                     <a href="{{ route('kasbon.admin.show', $cicilan->kasbon_id) }}"

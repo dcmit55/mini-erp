@@ -4,9 +4,13 @@ namespace App\Http\Controllers\Hr;
 
 use App\Http\Controllers\Controller;
 use App\Models\Hr\SessionShift;
+use App\Models\Hr\DailyAttendance;
+use App\Models\Hr\LeaveRequest;
+use App\Models\Hr\Employee;
 use App\Models\Admin\Department;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class SessionShiftController extends Controller
 {
@@ -133,5 +137,60 @@ class SessionShiftController extends Controller
 
         return redirect()->route('session-shifts.index')
             ->with('success', "Break 2 cleared for shift {$sessionShift->type_of_shift}.");
+    }
+
+    public function liveMonitor(Request $request)
+    {
+        $date         = $request->input('date', today()->toDateString());
+        $departmentId = $request->input('department_id');
+
+        $attendanceQuery = DailyAttendance::with(['employee.department', 'sessionShift'])
+            ->whereDate('date', $date)
+            ->whereNotNull('clock_in');
+
+        if ($departmentId) {
+            $attendanceQuery->whereHas('employee', fn($q) => $q->where('department_id', $departmentId));
+        }
+
+        $attendances = $attendanceQuery->orderBy('clock_in')->get();
+
+        $leaveQuery = LeaveRequest::with('employee.department')
+            ->where('start_date', '<=', $date)
+            ->where('end_date', '>=', $date)
+            ->where('approval_1', 'approved');
+
+        if ($departmentId) {
+            $leaveQuery->whereHas('employee', fn($q) => $q->where('department_id', $departmentId));
+        }
+
+        $leaves = $leaveQuery->get();
+
+        // Exclude employees already counted in attendance
+        $attendanceEmployeeIds = $attendances->pluck('employee_id')->toArray();
+        $leaves = $leaves->filter(fn($l) => !in_array($l->employee_id, $attendanceEmployeeIds));
+
+        // Active employees who haven't clocked in and are not on leave
+        $leaveEmployeeIds = $leaves->pluck('employee_id')->toArray();
+        $excludedIds      = array_merge($attendanceEmployeeIds, $leaveEmployeeIds);
+
+        $notClockedInQuery = Employee::with('department')
+            ->where('status', 'active')
+            ->whereNotIn('id', $excludedIds);
+
+        if ($departmentId) {
+            $notClockedInQuery->where('department_id', $departmentId);
+        }
+
+        $notClockedIn = $notClockedInQuery->orderBy('name')->get();
+
+        $now            = Carbon::now();
+        $currentMinutes = $now->hour * 60 + $now->minute;
+        $departments    = Department::orderBy('name')->get();
+        $isToday        = $date === today()->toDateString();
+
+        return view('hr.session-shifts.live-monitor', compact(
+            'attendances', 'leaves', 'notClockedIn', 'departments', 'date',
+            'departmentId', 'now', 'currentMinutes', 'isToday'
+        ));
     }
 }

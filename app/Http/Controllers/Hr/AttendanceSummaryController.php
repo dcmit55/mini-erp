@@ -149,6 +149,26 @@ class AttendanceSummaryController extends Controller
         return response()->json(['message' => 'Holiday deleted.']);
     }
 
+    public function storeNationalHoliday(Request $request)
+    {
+        $request->validate([
+            'date'           => 'required|date',
+            'name'           => 'required|string|max:100',
+            'is_joint_leave' => 'nullable|boolean',
+        ]);
+
+        $date = Carbon::parse($request->date);
+
+        NationalHoliday::create([
+            'date'           => $request->date,
+            'name'           => $request->name,
+            'year'           => $date->year,
+            'is_joint_leave' => $request->boolean('is_joint_leave'),
+        ]);
+
+        return response()->json(['message' => 'National holiday added.']);
+    }
+
     public function updateNationalHoliday(Request $request, NationalHoliday $nationalHoliday)
     {
         $request->validate([

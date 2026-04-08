@@ -154,49 +154,85 @@
                                 <table class="table table-sm table-borderless small mb-0">
                                     <thead>
                                         <tr class="text-muted" style="font-size:.7rem;">
-                                            <th>Month</th>
+                                            <th>Mo.</th>
                                             <th>Due Date</th>
                                             <th class="text-end">Principal</th>
-                                            <th class="text-end">Interest</th>
-                                            <th class="text-end">Admin</th>
+                                            <th class="text-end">Interest+Admin</th>
                                             <th class="text-end">Total</th>
+                                            <th class="text-center">Payroll Deduction</th>
+                                            <th class="text-center">Cash</th>
                                             <th class="text-center">Status</th>
-                                            <th class="text-center">Method</th>
-                                            <th class="text-end">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         @foreach($kasbon->installments as $cicilan)
-                                        <tr>
-                                            <td>{{ $cicilan->bulan_ke }}</td>
+                                        @php
+                                            $canAct       = in_array($kasbon->status, ['disbursed', 'repaying']);
+                                            $cashTotal    = $cicilan->jumlah_bunga + $cicilan->jumlah_biaya_admin;
+                                            $isOverdue    = $cicilan->status !== 'paid' && $cicilan->due_date->isPast();
+                                            $cashFormatted = number_format($cashTotal, 0, ',', '.');
+                                        @endphp
+                                        <tr class="{{ $isOverdue ? 'table-danger' : '' }}">
+                                            <td class="fw-medium">{{ $cicilan->bulan_ke }}</td>
                                             <td style="white-space:nowrap;">{{ $cicilan->due_date->format('d M Y') }}</td>
                                             <td class="text-end">Rp {{ number_format($cicilan->jumlah_pokok, 0, ',', '.') }}</td>
-                                            <td class="text-end text-warning">Rp {{ number_format($cicilan->jumlah_bunga, 0, ',', '.') }}</td>
-                                            <td class="text-end text-info">{{ $cicilan->jumlah_biaya_admin > 0 ? 'Rp '.number_format($cicilan->jumlah_biaya_admin, 0, ',', '.') : '—' }}</td>
+                                            <td class="text-end">
+                                                Rp {{ number_format($cashTotal, 0, ',', '.') }}
+                                                @if($cicilan->jumlah_biaya_admin > 0)
+                                                    <div class="text-muted" style="font-size:.65rem;">incl. fee Rp {{ number_format($cicilan->jumlah_biaya_admin, 0, ',', '.') }}</div>
+                                                @endif
+                                            </td>
                                             <td class="text-end fw-medium">Rp {{ number_format($cicilan->jumlah_cicilan, 0, ',', '.') }}</td>
+
+                                            {{-- Kolom: Potong Gaji --}}
+                                            <td class="text-center">
+                                                @if($cicilan->pokok_paid_at)
+                                                    <span class="badge bg-success rounded-2" style="font-size:.65rem;">
+                                                        <i class="fas fa-check me-1"></i>{{ $cicilan->pokok_paid_at->format('d/m/Y') }}
+                                                    </span>
+                                                @elseif($canAct)
+                                                    <form method="POST" action="{{ route('kasbon.admin.installment.confirm-pokok', [$kasbon->id, $cicilan->id]) }}" class="d-inline">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-outline-primary btn-sm rounded-2 px-2 py-1"
+                                                                onclick="return confirm('Confirm principal month {{ $cicilan->bulan_ke }} has been deducted from payroll?')"
+                                                                style="font-size:.7rem;">
+                                                            <i class="fas fa-cut me-1"></i>Confirm
+                                                        </button>
+                                                    </form>
+                                                @else
+                                                    <span class="text-muted">—</span>
+                                                @endif
+                                            </td>
+
+                                            {{-- Kolom: Cash --}}
+                                            <td class="text-center">
+                                                @if($cicilan->cash_paid_at)
+                                                    <span class="badge bg-success rounded-2" style="font-size:.65rem;">
+                                                        <i class="fas fa-check me-1"></i>{{ $cicilan->cash_paid_at->format('d/m/Y') }}
+                                                    </span>
+                                                @elseif($canAct)
+                                                    <form method="POST" action="{{ route('kasbon.admin.installment.confirm-cash', [$kasbon->id, $cicilan->id]) }}" class="d-inline">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-outline-danger btn-sm rounded-2 px-2 py-1"
+                                                                onclick="return confirm('Confirm cash received for month {{ $cicilan->bulan_ke }} (Rp {{ $cashFormatted }})?')"
+                                                                style="font-size:.7rem;">
+                                                            <i class="fas fa-money-bill me-1"></i>Receive
+                                                        </button>
+                                                    </form>
+                                                @else
+                                                    <span class="text-muted">—</span>
+                                                @endif
+                                            </td>
+
                                             <td class="text-center">
                                                 @if($cicilan->status === 'paid')
                                                     <span class="badge bg-success rounded-2">Paid</span>
                                                 @elseif($cicilan->status === 'partial')
                                                     <span class="badge bg-warning text-dark rounded-2">Partial</span>
+                                                @elseif($isOverdue)
+                                                    <span class="badge bg-danger rounded-2">Overdue</span>
                                                 @else
                                                     <span class="badge bg-secondary rounded-2">Unpaid</span>
-                                                @endif
-                                            </td>
-                                            <td class="text-center text-muted" style="font-size:.7rem;">
-                                                {{ $cicilan->metode ? str_replace('_', ' ', $cicilan->metode) : '—' }}
-                                            </td>
-                                            <td class="text-end">
-                                                @if($cicilan->status !== 'paid' && in_array($kasbon->status, ['disbursed', 'repaying']))
-                                                <button type="button"
-                                                    class="btn btn-success btn-sm rounded-2 px-2 py-1"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#modalPay"
-                                                    data-installment-id="{{ $cicilan->id }}"
-                                                    data-bulan="{{ $cicilan->bulan_ke }}"
-                                                    data-jumlah="Rp {{ number_format($cicilan->jumlah_cicilan, 0, ',', '.') }}">
-                                                    <i class="fas fa-check me-1"></i>Pay
-                                                </button>
                                                 @endif
                                             </td>
                                         </tr>
@@ -204,7 +240,7 @@
                                     </tbody>
                                     <tfoot>
                                         <tr class="border-top">
-                                            <td colspan="5" class="fw-medium small pt-2">Remaining Balance</td>
+                                            <td colspan="4" class="fw-medium small pt-2">Remaining Balance</td>
                                             <td class="text-end fw-semibold text-danger pt-2">Rp {{ number_format($totalSisa, 0, ',', '.') }}</td>
                                             <td colspan="3"></td>
                                         </tr>
@@ -368,61 +404,4 @@
     </div>
 </div>
 
-{{-- Modal Pay Installment --}}
-<div class="modal fade" id="modalPay" tabindex="-1">
-    <div class="modal-dialog modal-sm">
-        <div class="modal-content">
-            <div class="modal-header border-0">
-                <h6 class="modal-title fw-semibold">Record Installment Payment</h6>
-                <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button>
-            </div>
-            <form method="POST" id="formPay">
-                @csrf
-                <div class="modal-body">
-                    <p class="small text-muted mb-3">
-                        Month <strong id="payMonth">—</strong>:
-                        <strong id="payAmount">—</strong>
-                    </p>
-                    <div class="mb-3">
-                        <label class="form-label small fw-medium">Payment Method <span class="text-danger">*</span></label>
-                        <select name="metode" class="form-select form-select-sm" required>
-                            <option value="cash">Cash</option>
-                            <option value="payroll_deduction">Payroll Deduction</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="form-label small fw-medium">Note (optional)</label>
-                        <input type="text" name="note" class="form-control form-control-sm" placeholder="Remarks...">
-                    </div>
-                </div>
-                <div class="modal-footer border-0 pt-0">
-                    <button type="button" class="btn btn-outline-secondary btn-sm rounded-2" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-success btn-sm rounded-2 px-4">
-                        <i class="fas fa-check me-1"></i>Confirm
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
 @endsection
-
-@push('scripts')
-<script>
-$(document).ready(function () {
-    $('#modalPay').on('show.bs.modal', function (e) {
-        const btn = e.relatedTarget;
-        const installmentId = btn.getAttribute('data-installment-id');
-        const bulan         = btn.getAttribute('data-bulan');
-        const jumlah        = btn.getAttribute('data-jumlah');
-
-        $('#payMonth').text(bulan);
-        $('#payAmount').text(jumlah);
-
-        const kasbonId = {{ $kasbon->id }};
-        $('#formPay').attr('action', `/admin/kasbon/${kasbonId}/installments/${installmentId}/pay`);
-    });
-});
-</script>
-@endpush

@@ -407,6 +407,10 @@
                         <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">
                             <i class="bi bi-x me-1"></i>Cancel
                         </button>
+                        <button type="button" class="btn btn-sm btn-success d-none" id="importReloadBtn"
+                            onclick="$('#importEmployeeModal').modal('hide'); location.reload();">
+                            <i class="bi bi-arrow-clockwise me-1"></i>Tutup & Refresh
+                        </button>
                         <button type="submit" class="btn btn-sm btn-primary" id="importBtn">
                             <i class="bi bi-upload me-1"></i>Import
                         </button>
@@ -879,11 +883,8 @@
                         $progress.addClass('d-none');
                         $result.html('<div class="alert alert-success py-1 px-2 mb-0">' +
                             response.message + '</div>');
-
-                        setTimeout(function() {
-                            $('#importEmployeeModal').modal('hide');
-                            location.reload();
-                        }, 2000);
+                        $btn.addClass('d-none');
+                        $('#importReloadBtn').removeClass('d-none');
                     },
                     error: function(xhr) {
                         $progress.addClass('d-none');
@@ -928,7 +929,8 @@
                 $('#importProgress').addClass('d-none');
                 $('#failedRowsContainer').addClass('d-none');
                 $('#failedRowsBody').empty();
-                $('#importBtn').prop('disabled', false);
+                $('#importBtn').prop('disabled', false).removeClass('d-none');
+                $('#importReloadBtn').addClass('d-none');
             });
 
             // Handle name click

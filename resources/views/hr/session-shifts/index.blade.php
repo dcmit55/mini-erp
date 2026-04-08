@@ -12,9 +12,14 @@
                     <h4 class="mb-0">Session Shifts</h4>
                     <p class="text-muted mb-0">Manage shift definitions — auto-detected from employee clock-in time</p>
                 </div>
-                <a href="{{ route('session-shifts.create') }}" class="btn btn-sm btn-primary">
-                    <i class="fas fa-plus me-1"></i> Add Shift
-                </a>
+                <div class="d-flex gap-2">
+                    <a href="{{ route('session-shifts.live-monitor') }}" class="btn btn-sm btn-outline-success">
+                        <i class="fas fa-satellite-dish me-1"></i> Live Monitor
+                    </a>
+                    <a href="{{ route('session-shifts.create') }}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-plus me-1"></i> Add Shift
+                    </a>
+                </div>
             </div>
 
             {{-- Main Table --}}

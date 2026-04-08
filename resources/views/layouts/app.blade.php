@@ -655,12 +655,6 @@
                                                         <i class="fas fa-layer-group me-2"></i>Session Shifts
                                                     </a>
                                                 </li>
-                                                <li>
-                                                    <a class="dropdown-item {{ request()->routeIs('national-holidays.*') ? 'active' : '' }}"
-                                                        href="{{ route('national-holidays.index') }}">
-                                                        <i class="fas fa-calendar-alt me-2"></i>National Holidays
-                                                    </a>
-                                                </li>
                                             </ul>
                                         </li>
                                     @endif
@@ -726,28 +720,7 @@
                                 @endif
                             @endif
 
-                                <!-- Kasbon Self-Service (semua role) -->
-                                <li class="nav-item dropdown">
-                                    <a class="nav-link dropdown-toggle {{ request()->is('pengajuan-kasbon*') || request()->is('cek-kasbon*') ? 'active' : '' }}"
-                                        href="#" id="kasbonSelfDropdown" role="button"
-                                        data-bs-toggle="dropdown" aria-expanded="false">
-                                        <i></i>Kasbon
-                                    </a>
-                                    <ul class="dropdown-menu" aria-labelledby="kasbonSelfDropdown">
-                                        <li>
-                                            <a class="dropdown-item {{ request()->is('pengajuan-kasbon*') ? 'active' : '' }}"
-                                                href="{{ route('kasbon.create') }}">
-                                                <i class="fas fa-hand-holding-usd me-2"></i>Request Kasbon
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item {{ request()->is('cek-kasbon*') ? 'active' : '' }}"
-                                                href="{{ route('kasbon.status') }}">
-                                                <i class="fas fa-search me-2"></i>Cek Status Kasbon
-                                            </a>
-                                        </li>
-                                    </ul>
-                                </li>
+
                         </ul>
 
                         <!-- Right Side Of Navbar -->

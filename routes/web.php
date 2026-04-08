@@ -407,6 +407,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{id}/reject', [\App\Http\Controllers\Finance\KasbonAdminController::class, 'reject'])->name('reject');
         Route::post('/{id}/disburse', [\App\Http\Controllers\Finance\KasbonAdminController::class, 'disburse'])->name('disburse');
         Route::post('/{id}/installments/{installmentId}/pay', [\App\Http\Controllers\Finance\KasbonAdminController::class, 'payInstallment'])->name('installment.pay');
+        Route::post('/{id}/installments/{installmentId}/confirm-pokok', [\App\Http\Controllers\Finance\KasbonAdminController::class, 'confirmPokokRoute'])->name('installment.confirm-pokok');
+        Route::post('/{id}/installments/{installmentId}/confirm-cash', [\App\Http\Controllers\Finance\KasbonAdminController::class, 'confirmCashRoute'])->name('installment.confirm-cash');
     });
 
     // Leave Request - Authenticated only
@@ -745,6 +747,7 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/download-attendance', [FingerspotController::class, 'downloadAttendance'])->name('download-attendance');
         }); // Attendance Logs
     // Session Shifts CRUD
+    Route::get('session-shifts/live-monitor', [SessionShiftController::class, 'liveMonitor'])->name('session-shifts.live-monitor');
     Route::resource('session-shifts', SessionShiftController::class)->except(['show']);
     Route::patch('session-shifts/{session_shift}/clear-break2', [SessionShiftController::class, 'clearBreak2'])->name('session-shifts.clear-break2');
 
@@ -752,6 +755,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/attendance-logs/summary', [AttendanceSummaryController::class, 'index'])->name('attendance-logs.summary');
     Route::post('/attendance-logs/company-holidays', [AttendanceSummaryController::class, 'storeHoliday'])->name('attendance-logs.company-holidays.store');
     Route::delete('/attendance-logs/company-holidays/{companyHoliday}', [AttendanceSummaryController::class, 'destroyHoliday'])->name('attendance-logs.company-holidays.destroy');
+    Route::post('/attendance-logs/national-holidays', [AttendanceSummaryController::class, 'storeNationalHoliday'])->name('attendance-logs.national-holidays.store');
     Route::put('/attendance-logs/national-holidays/{nationalHoliday}', [AttendanceSummaryController::class, 'updateNationalHoliday'])->name('attendance-logs.national-holidays.update');
     Route::delete('/attendance-logs/national-holidays/{nationalHoliday}', [AttendanceSummaryController::class, 'destroyNationalHoliday'])->name('attendance-logs.national-holidays.destroy');
     Route::post('/attendance-logs/import', [AttendanceLogController::class, 'storeImport'])->name('attendance-logs.import.store');

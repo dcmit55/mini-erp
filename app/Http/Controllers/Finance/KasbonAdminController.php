@@ -231,22 +231,111 @@ class KasbonAdminController extends Controller
             return back()->with('error', 'Cicilan ini sudah lunas.');
         }
 
-        $cicilan->update([
-            'jumlah_dibayar' => $cicilan->jumlah_cicilan,
-            'status'         => KasbonInstallment::STATUS_PAID,
-            'metode'         => $request->metode,
-            'paid_at'        => now(),
-            'created_by'     => Auth::id(),
-            'note'           => $request->note,
-        ]);
+        if ($request->metode === 'payroll_deduction') {
+            return $this->confirmPokok($request, $kasbon, $cicilan);
+        }
 
-        // Cek apakah semua cicilan lunas → auto settle
+        return $this->confirmCash($request, $kasbon, $cicilan);
+    }
+
+    public function confirmPokokRoute(Request $request, $id, $installmentId)
+    {
+        $request->validate(['note' => 'nullable|string|max:255']);
+        $kasbon  = KasbonRequest::findOrFail($id);
+        $cicilan = KasbonInstallment::where('kasbon_id', $id)->findOrFail($installmentId);
+
+        if ($cicilan->pokok_paid_at) {
+            return back()->with('error', 'Pokok cicilan ini sudah dikonfirmasi.');
+        }
+
+        return $this->confirmPokok($request, $kasbon, $cicilan);
+    }
+
+    public function confirmCashRoute(Request $request, $id, $installmentId)
+    {
+        $request->validate(['note' => 'nullable|string|max:255']);
+        $kasbon  = KasbonRequest::findOrFail($id);
+        $cicilan = KasbonInstallment::where('kasbon_id', $id)->findOrFail($installmentId);
+
+        if ($cicilan->cash_paid_at) {
+            return back()->with('error', 'Pembayaran cash cicilan ini sudah dikonfirmasi.');
+        }
+
+        return $this->confirmCash($request, $kasbon, $cicilan);
+    }
+
+    private function confirmPokok(Request $request, KasbonRequest $kasbon, KasbonInstallment $cicilan): \Illuminate\Http\RedirectResponse
+    {
+        $updates = [
+            'pokok_paid_at'      => now(),
+            'pokok_confirmed_by' => Auth::id(),
+            'metode'             => 'payroll_deduction',
+            'created_by'         => Auth::id(),
+        ];
+
+        if ($request->filled('note')) {
+            $updates['note'] = $request->note;
+        }
+
+        // Tambah jumlah_dibayar dengan porsi pokok
+        $updates['jumlah_dibayar'] = (float) $cicilan->jumlah_dibayar + (float) $cicilan->jumlah_pokok;
+
+        // Jika cash sudah dibayar juga → lunas
+        if ($cicilan->cash_paid_at) {
+            $updates['status']   = KasbonInstallment::STATUS_PAID;
+            $updates['paid_at']  = now();
+        } else {
+            $updates['status'] = KasbonInstallment::STATUS_PARTIAL;
+        }
+
+        $cicilan->update($updates);
+        $this->checkAndSettleKasbon($kasbon);
+
+        return redirect()->route('kasbon.admin.show', $kasbon->id)
+            ->with('success', 'Pokok cicilan bulan ke-' . $cicilan->bulan_ke . ' dikonfirmasi sebagai potong gaji.');
+    }
+
+    private function confirmCash(Request $request, KasbonRequest $kasbon, KasbonInstallment $cicilan): \Illuminate\Http\RedirectResponse
+    {
+        $cashAmount = (float) $cicilan->jumlah_bunga + (float) $cicilan->jumlah_biaya_admin;
+
+        $updates = [
+            'cash_paid_at'    => now(),
+            'cash_received_by'=> Auth::id(),
+            'created_by'      => Auth::id(),
+        ];
+
+        if ($request->filled('note')) {
+            $updates['note'] = $request->note;
+        }
+
+        // Tambah jumlah_dibayar dengan porsi cash
+        $updates['jumlah_dibayar'] = (float) $cicilan->jumlah_dibayar + $cashAmount;
+
+        // Jika pokok sudah dikonfirmasi juga → lunas
+        if ($cicilan->pokok_paid_at) {
+            $updates['status']  = KasbonInstallment::STATUS_PAID;
+            $updates['paid_at'] = now();
+            $updates['metode']  = 'cash';
+        } else {
+            $updates['status'] = KasbonInstallment::STATUS_PARTIAL;
+            $updates['metode'] = 'cash';
+        }
+
+        $cicilan->update($updates);
+        $this->checkAndSettleKasbon($kasbon);
+
+        return redirect()->route('kasbon.admin.show', $kasbon->id)
+            ->with('success', 'Cash bulan ke-' . $cicilan->bulan_ke . ' (bunga + admin) berhasil diterima.');
+    }
+
+    private function checkAndSettleKasbon(KasbonRequest $kasbon): void
+    {
+        $kasbon->refresh();
+
         $allPaid = $kasbon->installments()->where('status', '!=', 'paid')->doesntExist();
         if ($allPaid) {
-            $kasbon->update([
-                'status'     => KasbonRequest::STATUS_SETTLED,
-                'settled_at' => now(),
-            ]);
+            $kasbon->update(['status' => KasbonRequest::STATUS_SETTLED, 'settled_at' => now()]);
             KasbonAuditLog::create([
                 'kasbon_id'   => $kasbon->id,
                 'action'      => 'settled',
@@ -270,9 +359,6 @@ class KasbonAdminController extends Controller
                 'created_at'  => now(),
             ]);
         }
-
-        return redirect()->route('kasbon.admin.show', $kasbon->id)
-            ->with('success', 'Pembayaran cicilan bulan ke-' . $cicilan->bulan_ke . ' berhasil dicatat.');
     }
 
     private function generateInstallments(KasbonRequest $kasbon): void

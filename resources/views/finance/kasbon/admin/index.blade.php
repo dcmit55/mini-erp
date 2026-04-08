@@ -16,7 +16,10 @@
             <div class="position-absolute start-50 translate-middle-x text-center d-none d-md-block" style="pointer-events:none;">
                 <h5 class="text-dark fw-semibold mb-0">Cash Advance List</h5>
             </div>
-            <div class="ms-auto flex-shrink-0">
+            <div class="ms-auto flex-shrink-0 d-flex gap-2">
+                <a href="{{ url('/cek-kasbon') }}" target="_blank" class="btn btn-outline-secondary btn-sm rounded-2 px-3">
+                    <i class="fas fa-search me-1"></i>Check Status
+                </a>
                 <a href="{{ route('kasbon.create') }}" class="btn btn-outline-secondary btn-sm rounded-2 px-3">
                     <i class="fas fa-external-link-alt me-1"></i>Request Kasbon
                 </a>

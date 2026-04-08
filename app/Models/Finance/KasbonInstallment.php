@@ -16,6 +16,10 @@ class KasbonInstallment extends Model
         'jumlah_bunga',
         'jumlah_biaya_admin',
         'jumlah_dibayar',
+        'pokok_paid_at',
+        'pokok_confirmed_by',
+        'cash_paid_at',
+        'cash_received_by',
         'status',
         'metode',
         'paid_at',
@@ -31,6 +35,8 @@ class KasbonInstallment extends Model
         'jumlah_bunga'        => 'decimal:2',
         'jumlah_biaya_admin'  => 'decimal:2',
         'jumlah_dibayar'      => 'decimal:2',
+        'pokok_paid_at'       => 'datetime',
+        'cash_paid_at'        => 'datetime',
     ];
 
     public const STATUS_PENDING = 'pending';

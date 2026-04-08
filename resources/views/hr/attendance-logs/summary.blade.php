@@ -8,45 +8,46 @@
         <div class="col-12">
 
             {{-- Header --}}
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <div class="d-flex align-items-center gap-3">
-                    <a href="{{ route('attendance-logs.index') }}" class="btn btn-sm btn-outline-secondary px-3">
-                        <i class="fas fa-arrow-left me-1"></i> Back
-                    </a>
-                    <div></div>
-                </div>
+            <div class="d-flex justify-content-between align-items-center mb-2 mb-md-3">
+                <a href="{{ route('attendance-logs.index') }}" class="btn btn-sm btn-outline-secondary px-3">
+                    <i class="fas fa-arrow-left me-1"></i><span class="d-none d-sm-inline"> Back</span>
+                </a>
                 @if(in_array(auth()->user()->role, ['super_admin','admin_hr','admin']))
-                <button class="btn btn-sm btn-outline-purple px-3" data-bs-toggle="modal" data-bs-target="#manageHolidayModal">
-                    <i class="fas fa-calendar-plus me-1"></i> Manage Holidays
-                </button>
+                <div class="d-flex gap-2">
+                    <a href="{{ route('national-holidays.index') }}" class="btn btn-sm btn-outline-secondary px-3">
+                        <i class="fas fa-flag me-1"></i><span class="d-none d-sm-inline"> National Holidays</span><span class="d-inline d-sm-none"> Nat.Hol</span>
+                    </a>
+                    <button class="btn btn-sm btn-outline-purple px-3" data-bs-toggle="modal" data-bs-target="#manageHolidayModal">
+                        <i class="fas fa-calendar-plus me-1"></i><span class="d-none d-sm-inline"> Company Holidays</span><span class="d-inline d-sm-none"> Co.Hol</span>
+                    </button>
+                </div>
                 @endif
             </div>
 
-            {{-- Month Navigator + Department Filter --}}
-            <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
-                @php
-                    $prevMonth = $startOfMonth->copy()->subMonth();
-                    $nextMonth = $startOfMonth->copy()->addMonth();
-                    $navParams = $departmentId ? ['department_id' => $departmentId] : [];
-                @endphp
+            {{-- Month Navigator --}}
+            @php
+                $prevMonth = $startOfMonth->copy()->subMonth();
+                $nextMonth = $startOfMonth->copy()->addMonth();
+                $navParams = $departmentId ? ['department_id' => $departmentId] : [];
+            @endphp
+            <div class="d-flex align-items-center gap-2 mb-2">
                 <a href="{{ route('attendance-logs.summary', array_merge($navParams, ['month' => $prevMonth->month, 'year' => $prevMonth->year])) }}"
-                   class="btn btn-sm btn-outline-secondary px-3">
+                   class="btn btn-sm btn-outline-secondary px-2 px-sm-3">
                     <i class="fas fa-chevron-left"></i>
                 </a>
-                <span class="fw-semibold" style="min-width:140px;text-align:center;font-size:1rem;">
+                <span class="fw-semibold text-center month-label">
                     {{ $startOfMonth->isoFormat('MMMM YYYY') }}
                 </span>
                 <a href="{{ route('attendance-logs.summary', array_merge($navParams, ['month' => $nextMonth->month, 'year' => $nextMonth->year])) }}"
-                   class="btn btn-sm btn-outline-secondary px-3">
+                   class="btn btn-sm btn-outline-secondary px-2 px-sm-3">
                     <i class="fas fa-chevron-right"></i>
                 </a>
-                <a href="{{ route('attendance-logs.summary', $navParams ?: []) }}" class="btn btn-sm btn-outline-primary px-3 ms-2">
-                    Today
+                <a href="{{ route('attendance-logs.summary', $navParams ?: []) }}" class="btn btn-sm btn-outline-primary px-2 px-sm-3">
+                    <span class="d-none d-sm-inline">Today</span><i class="fas fa-calendar-day d-sm-none"></i>
                 </a>
-
-                <div class="ms-3">
-                    <select id="deptFilter" class="form-select form-select-sm" style="min-width:180px;">
-                        <option value="">All Department</option>
+                <div class="ms-auto">
+                    <select id="deptFilter" class="form-select form-select-sm dept-filter-select">
+                        <option value="">All Dept</option>
                         @foreach($departments as $dept)
                             <option value="{{ $dept->id }}" {{ (string)$departmentId === (string)$dept->id ? 'selected' : '' }}>
                                 {{ $dept->name }}
@@ -56,25 +57,30 @@
                 </div>
             </div>
 
-            {{-- Legend --}}
-            <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
-                <span class="legend-box" style="background:#bbf7d0;border:1.5px solid #22c55e;"></span><small class="me-2">Present</small>
-                <span class="legend-box" style="background:#fde68a;border:1.5px solid #f59e0b;"></span><small class="me-2">Late</small>
-                <span class="legend-box" style="background:#fca5a5;border:1.5px solid #ef4444;"></span><small class="me-2">Alpha</small>
-                <span class="legend-box" style="background:#bfdbfe;border:1.5px solid #3b82f6;"></span><small class="me-2">Annual Leave</small>
-                <span class="legend-box" style="background:#a5f3fc;border:1.5px solid #06b6d4;"></span><small class="me-2">Sick</small>
-                <span class="legend-box" style="background:#c4b5fd;border:1.5px solid #8b5cf6;"></span><small class="me-2">Other Leave</small>
-                <span class="legend-box" style="background:#e0e7ff;border:1.5px solid #6366f1;"></span><small class="me-2">Unpaid</small>
-                <span class="legend-box" style="background:#cbd5e1;border:1.5px solid #94a3b8;"></span><small class="me-2">Minggu</small>
-                <span class="legend-box" style="background:#fed7aa;border:1.5px solid #f97316;"></span><small class="me-2">National Holiday</small>
-                <span class="legend-box" style="background:#99f6e4;border:1.5px solid #14b8a6;"></span><small class="me-2">Company Holiday</small>
-                <span class="legend-box" style="background:#fbcfe8;border:1.5px solid #ec4899;"></span><small class="me-2">Holiday (Leave Deduction)</small>
-                <span class="legend-box" style="background:#fcd34d;border:1.5px solid #d97706;"></span><small class="me-2">Holiday (Unpaid)</small>
-                <span class="legend-box" style="background:#fafafa;border:1.5px solid #e5e7eb;"></span><small class="me-2">No Data</small>
+            {{-- Legend (horizontal scroll on mobile) --}}
+            <div class="legend-scroll-wrap mb-2 mb-md-3">
+                <div class="d-flex gap-2 align-items-center legend-inner">
+                    <span class="legend-box" style="background:#bbf7d0;border:1.5px solid #22c55e;"></span><small class="legend-text">Present</small>
+                    <span class="legend-box" style="background:#fde68a;border:1.5px solid #f59e0b;"></span><small class="legend-text">Late</small>
+                    <span class="legend-box" style="background:#fca5a5;border:1.5px solid #ef4444;"></span><small class="legend-text">Alpha</small>
+                    <span class="legend-box" style="background:#bfdbfe;border:1.5px solid #3b82f6;"></span><small class="legend-text">Ann.Leave</small>
+                    <span class="legend-box" style="background:#a5f3fc;border:1.5px solid #06b6d4;"></span><small class="legend-text">Sick</small>
+                    <span class="legend-box" style="background:#c4b5fd;border:1.5px solid #8b5cf6;"></span><small class="legend-text">Oth.Leave</small>
+                    <span class="legend-box" style="background:#e0e7ff;border:1.5px solid #6366f1;"></span><small class="legend-text">Unpaid</small>
+                    <span class="legend-box" style="background:#cbd5e1;border:1.5px solid #94a3b8;"></span><small class="legend-text">Sun</small>
+                    <span class="legend-box" style="background:#fed7aa;border:1.5px solid #f97316;"></span><small class="legend-text">Nat.Hol</small>
+                    <span class="legend-box" style="background:#99f6e4;border:1.5px solid #14b8a6;"></span><small class="legend-text">Co.Hol</small>
+                    <span class="legend-box" style="background:#fbcfe8;border:1.5px solid #ec4899;"></span><small class="legend-text">Hol-Ded</small>
+                    <span class="legend-box" style="background:#fcd34d;border:1.5px solid #d97706;"></span><small class="legend-text">Hol-Unp</small>
+                    <span class="legend-box" style="background:#fafafa;border:1.5px solid #e5e7eb;"></span><small class="legend-text">No Data</small>
+                </div>
             </div>
 
             {{-- Main Grid --}}
             <div class="card border-0 shadow-sm">
+                <div class="d-md-none text-muted text-center py-1" style="font-size:0.7rem;border-bottom:1px solid #e2e8f0;">
+                    <i class="fas fa-arrows-alt-h me-1"></i>Geser kiri-kanan untuk melihat semua tanggal
+                </div>
                 <div class="card-body p-0">
                     <div class="summary-scroll-wrap">
                         <table class="table table-bordered summary-table mb-0">
@@ -102,10 +108,10 @@
                                             {{ $d }}
                                         </th>
                                     @endfor
-                                    <th class="text-center bg-light summary-header" style="min-width:46px;">P</th>
-                                    <th class="text-center bg-light summary-header" style="min-width:46px;">L</th>
-                                    <th class="text-center bg-light summary-header" style="min-width:46px;">A</th>
-                                    <th class="text-center bg-light summary-header" style="min-width:46px;">Cuti</th>
+                                    <th class="text-center summary-header" style="min-width:46px;background:#bbf7d0;color:#166534;">P</th>
+                                    <th class="text-center summary-header" style="min-width:46px;background:#fde68a;color:#92400e;">L</th>
+                                    <th class="text-center summary-header" style="min-width:46px;background:#fca5a5;color:#991b1b;">A</th>
+                                    <th class="text-center summary-header" style="min-width:46px;background:#bfdbfe;color:#1e40af;">Cuti</th>
                                 </tr>
                                 <tr>
                                     @for ($d = 1; $d <= $daysInMonth; $d++)
@@ -117,10 +123,10 @@
                                             {{ $info['dayName'] }}
                                         </th>
                                     @endfor
-                                    <th class="text-center bg-light" style="font-size:0.65rem;color:#64748b;">Present</th>
-                                    <th class="text-center bg-light" style="font-size:0.65rem;color:#64748b;">Late</th>
-                                    <th class="text-center bg-light" style="font-size:0.65rem;color:#64748b;">Alpha</th>
-                                    <th class="text-center bg-light" style="font-size:0.65rem;color:#64748b;">Leave</th>
+                                    <th class="text-center" style="font-size:0.65rem;background:#bbf7d0;color:#166534;">Present</th>
+                                    <th class="text-center" style="font-size:0.65rem;background:#fde68a;color:#92400e;">Late</th>
+                                    <th class="text-center" style="font-size:0.65rem;background:#fca5a5;color:#991b1b;">Alpha</th>
+                                    <th class="text-center" style="font-size:0.65rem;background:#bfdbfe;color:#1e40af;">Leave</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -284,7 +290,7 @@
 </div>
 @endif
 
-{{-- Modal: Manage Company Holidays --}}
+{{-- Modal: Company Holidays --}}
 @if(in_array(auth()->user()->role, ['super_admin','admin_hr','admin']))
 <div class="modal fade" id="manageHolidayModal" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -398,6 +404,7 @@
     overflow-x: auto;
     max-height: 75vh;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .summary-table {
@@ -500,10 +507,36 @@
 /* Legend */
 .legend-box {
     display: inline-block;
-    width: 18px;
-    height: 14px;
+    width: 14px;
+    height: 12px;
     border-radius: 3px;
     flex-shrink: 0;
+}
+
+/* Legend scroll wrap */
+.legend-scroll-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+.legend-inner {
+    flex-wrap: wrap;
+    white-space: nowrap;
+}
+.legend-text {
+    white-space: nowrap;
+    margin-right: 4px;
+}
+
+/* Month label */
+.month-label {
+    font-size: 1rem;
+    min-width: 120px;
+}
+
+/* Dept filter */
+.dept-filter-select {
+    min-width: 150px;
+    max-width: 180px;
 }
 
 /* Row highlight on click */
@@ -527,6 +560,27 @@
 .btn-outline-purple:hover {
     background: #7c3aed;
     color: #fff;
+}
+
+/* ── Mobile ── */
+@media (max-width: 767.98px) {
+    .container-fluid { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
+    .py-4 { padding-top: 0.75rem !important; padding-bottom: 0.75rem !important; }
+
+    .month-label { font-size: 0.85rem; min-width: 90px; }
+
+    .dept-filter-select { min-width: 110px; max-width: 140px; font-size: 0.75rem; }
+
+    .legend-inner { flex-wrap: nowrap; }
+    .legend-text  { font-size: 0.65rem; }
+    .legend-box   { width: 12px; height: 10px; }
+
+    /* Tighter grid cells on mobile */
+    .att-cell { min-width: 22px !important; width: 22px !important; height: 26px !important; }
+    .day-header { min-width: 22px !important; }
+    .summary-table { font-size: 0.66rem; }
+    .name-col { min-width: 120px; }
+    .summary-scroll-wrap { max-height: 62vh; }
 }
 </style>
 
