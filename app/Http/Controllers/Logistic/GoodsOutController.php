@@ -294,10 +294,24 @@ class GoodsOutController extends Controller
     {
         $materialRequest = MaterialRequest::with('inventory', 'stagingInventory', 'project', 'internalProject')->findOrFail($materialRequestId);
 
-        // Jika incoming source, inventory_id harus sudah ada (staging sudah pushed ke batch)
-        if ($materialRequest->inventory_source === 'incoming' && !$materialRequest->inventory_id) {
-            return redirect()->route('material_requests.index')
-                ->with('error', 'Goods Out tidak dapat diproses. Material Request ini menggunakan <b>Inventory Incoming</b> dan staging inventory belum di-push ke Inventory Batch. Hubungi Admin Logistik.');
+        // Jika incoming source, pastikan staging sudah processed (approved ke Inventory Batch)
+        if ($materialRequest->inventory_source === 'incoming') {
+            $staging = $materialRequest->stagingInventory;
+            if (!$staging || !$staging->processed) {
+                return redirect()->route('material_requests.index')
+                    ->with('error', 'Goods Out tidak dapat diproses. Material Request ini menggunakan <b>Inventory Incoming</b> dan staging inventory (<b>' . e($staging->name ?? '-') . '</b>) belum di-approve ke Inventory Batch. Hubungi Admin Logistik.');
+            }
+            // Jika inventory_id di MR belum terisi (data lama), auto-resolve dari staging
+            if (!$materialRequest->inventory_id && $staging->processed) {
+                $resolvedInventory = \App\Models\Logistic\Inventory::whereHas('batches', function ($q) use ($staging) {
+                    $q->where('source_type', 'lark')->where('source_id', $staging->id);
+                })->first();
+                if ($resolvedInventory) {
+                    $materialRequest->inventory_id = $resolvedInventory->id;
+                    $materialRequest->save();
+                    $materialRequest->setRelation('inventory', $resolvedInventory);
+                }
+            }
         }
 
         $inventories = Inventory::withComputedStock()->orderBy('name')->get();

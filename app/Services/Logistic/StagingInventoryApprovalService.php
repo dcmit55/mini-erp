@@ -87,6 +87,12 @@ class StagingInventoryApprovalService
                     'locked' => true,
                 ]);
 
+                // ── 4. Back-fill inventory_id on any MaterialRequest linked to this staging ──
+                // This allows Goods Out to be processed after staging is approved.
+                \App\Models\Logistic\MaterialRequest::where('staging_inventory_id', $staging->id)
+                    ->whereNull('inventory_id')
+                    ->update(['inventory_id' => $inventory->id]);
+
                 Log::info('Staging inventory approved', [
                     'staging_id' => $staging->id,
                     'inventory_id' => $inventory->id,
