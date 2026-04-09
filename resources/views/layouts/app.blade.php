@@ -600,6 +600,7 @@
                                                         <i class="fas fa-user-tie me-2"></i>Employees
                                                     </a>
                                                 </li>
+                                                @if(!auth()->user()->isAdminTiming())
                                                 <li>
                                                     <a class="dropdown-item {{ request()->routeIs('attendance-logs.*') ? 'active' : '' }}"
                                                         href="{{ route('attendance-logs.index') }}">
@@ -650,6 +651,7 @@
                                                         <i class="fas fa-calculator me-2"></i>Overtime Pay
                                                     </a>
                                                 </li>
+                                                @endif
 
                                                 {{-- Timing --}}
                                                 <li>
@@ -662,6 +664,7 @@
                                                     </a>
                                                 </li>
 
+                                                @if(!auth()->user()->isAdminTiming())
                                                 {{-- Fingerspot & Export --}}
                                                 <li>
                                                     <hr class="dropdown-divider">
@@ -692,6 +695,7 @@
                                                         <i class="fas fa-layer-group me-2"></i>Session Shifts
                                                     </a>
                                                 </li>
+                                                @endif
                                             </ul>
                                         </li>
                                     @endif

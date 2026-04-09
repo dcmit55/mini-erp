@@ -311,10 +311,10 @@ class MaterialRequestController extends Controller
 
         // Validasi dasar
         $request->validate([
-            'project_type'     => 'required|in:client,internal',
+            'project_type' => 'required|in:client,internal',
             'inventory_source' => 'required|in:stock,incoming',
-            'qty'              => 'required|numeric|min:0.01',
-            'job_order_id'     => 'required',
+            'qty' => 'required|numeric|min:0.01',
+            'job_order_id' => 'required',
         ]);
 
         if ($inventorySource === 'stock') {
@@ -331,7 +331,7 @@ class MaterialRequestController extends Controller
         if ($request->project_type === MaterialRequest::PROJECT_TYPE_CLIENT) {
             $request->validate([
                 'job_order_id' => 'required|exists:job_orders,id',
-                'project_id'   => 'required|exists:projects,id',
+                'project_id' => 'required|exists:projects,id',
             ]);
         } else {
             $request->validate([
@@ -355,7 +355,7 @@ class MaterialRequestController extends Controller
                 }
 
                 $materialName = $inventory->name;
-                $inventoryId  = $inventory->id;
+                $inventoryId = $inventory->id;
             } else {
                 // Source: Inventory Incoming (lark_staging_inventories)
                 $staging = LarkStagingInventory::where('id', $request->staging_inventory_id)->lockForUpdate()->first();
@@ -369,26 +369,28 @@ class MaterialRequestController extends Controller
                 }
 
                 $materialName = $staging->name;
-                $inventoryId  = null; // no batch inventory link
+                $inventoryId = null; // no batch inventory link
             }
 
             $data = [
-                'inventory_id'     => $inventoryId,
-                'project_type'     => $request->project_type,
-                'qty'              => $request->qty,
-                'processed_qty'    => 0,
-                'requested_by'     => $user->username,
-                'remark'           => $request->remark,
+                'inventory_id'        => $inventoryId,
+                'staging_inventory_id' => $inventorySource === 'incoming' ? $request->staging_inventory_id : null,
+                'inventory_source'    => $inventorySource,
+                'project_type'        => $request->project_type,
+                'qty'                 => $request->qty,
+                'processed_qty'       => 0,
+                'requested_by'        => $user->username,
+                'remark'              => $request->remark,
             ];
 
             if ($request->project_type === MaterialRequest::PROJECT_TYPE_CLIENT) {
-                $data['job_order_id']         = $request->job_order_id;
-                $data['project_id']           = $request->project_id;
-                $data['internal_project_id']  = null;
+                $data['job_order_id'] = $request->job_order_id;
+                $data['project_id'] = $request->project_id;
+                $data['internal_project_id'] = null;
             } else {
                 $data['internal_project_id'] = $request->job_order_id;
-                $data['job_order_id']        = null;
-                $data['project_id']          = null;
+                $data['job_order_id'] = null;
+                $data['project_id'] = null;
             }
 
             $materialRequest = MaterialRequest::create($data);
@@ -400,9 +402,22 @@ class MaterialRequestController extends Controller
             $projectName = $materialRequest->project_name;
             $sourceLabel = $inventorySource === 'stock' ? 'Inventory Stock' : 'Inventory Incoming';
 
-            return redirect()
+            $redirect = redirect()
                 ->route('material_requests.index')
                 ->with('success', "Material Request for <b>{$materialName}</b> (source: {$sourceLabel}) in project <b>{$projectName}</b> created successfully!");
+
+            if ($inventorySource === 'incoming') {
+                $redirect = $redirect->with(
+                    'info_incoming',
+                    "Material Request ini menggunakan <b>Inventory Incoming</b> (Lark Staging). " .
+                    "Status MR <b>tidak dapat diubah ke Approved</b> secara langsung — " .
+                    "material <b>{$materialName}</b> harus terlebih dahulu di-review dan di-approve oleh Admin Logistik, " .
+                    "kemudian di-push ke <b>Inventory Batch</b>. Setelah proses tersebut selesai, " .
+                    "MR ini baru dapat diproses ke tahap <b>Goods Out</b>."
+                );
+            }
+
+            return $redirect;
         } catch (\Exception $e) {
             DB::rollBack();
             return back()

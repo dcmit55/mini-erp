@@ -21,6 +21,8 @@ class MaterialRequest extends Model implements Auditable
 
     protected $fillable = [
         'inventory_id',
+        'staging_inventory_id',
+        'inventory_source',
         'project_type',
         'project_id',
         'internal_project_id',
@@ -44,6 +46,8 @@ class MaterialRequest extends Model implements Auditable
 
     protected $auditInclude = [
         'inventory_id',
+        'staging_inventory_id',
+        'inventory_source',
         'project_type',
         'project_id',
         'internal_project_id',

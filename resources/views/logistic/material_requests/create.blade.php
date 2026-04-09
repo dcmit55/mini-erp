@@ -62,9 +62,9 @@
                         </div>
                     </div>
 
-                    <!-- JOB ORDER & MATERIAL -->
+                    <!-- ROW 1: Job Order (kiri) + Material Source Radio (kanan) -->
                     <div class="row">
-                        <!-- Kolom Kiri: Job Order + Project Info + Add Internal Button -->
+                        <!-- Kolom Kiri: Job Order -->
                         <div class="col-lg-6 mb-3">
                             <div class="d-flex justify-content-between align-items-center mb-1">
                                 <label id="jobOrderLabel">Job Order <span class="text-danger">*</span></label>
@@ -92,43 +92,43 @@
                             </div>
                         </div>
 
-                        <!-- Inventory Radio Type -->
-                        <div class="row mb-3">
-                            <div class="col-12">
-                                <label class="fw-bold mb-2">Material Source <span class="text-danger">*</span></label>
-                                <div class="d-flex gap-4">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="inventory_source"
-                                            id="sourceStock" value="stock"
-                                            {{ old('inventory_source', 'stock') == 'stock' ? 'checked' : '' }}>
-                                        <label class="form-check-label fw-semibold text-primary" for="sourceStock">
-                                            <i class="bi bi-boxes me-1"></i>Inventory Stock
-                                        </label>
-                                        <div class="form-text text-muted">From batch inventory</div>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="inventory_source"
-                                            id="sourceIncoming" value="incoming"
-                                            {{ old('inventory_source') == 'incoming' ? 'checked' : '' }}>
-                                        <label class="form-check-label fw-semibold text-success" for="sourceIncoming">
-                                            <i class="bi bi-box-arrow-in-down me-1"></i>Inventory Incoming
-                                        </label>
-                                        <div class="form-text text-muted">From Lark staging</div>
-                                    </div>
+                        <!-- Kolom Kanan: Material Source Radio -->
+                        <div class="col-lg-6 mb-1">
+                            <label class="fw-bold mb-1">Material Source <span class="text-danger">*</span></label>
+                            <div class="d-flex gap-4 mt-1">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="inventory_source"
+                                        id="sourceStock" value="stock"
+                                        {{ old('inventory_source', 'stock') == 'stock' ? 'checked' : '' }}>
+                                    <label class="form-check-label fw-semibold text-primary" for="sourceStock">
+                                        <i class="bi bi-boxes me-1"></i>Inventory Stock
+                                    </label>
+                                    <div class="form-text text-muted">From batch inventory</div>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="inventory_source"
+                                        id="sourceIncoming" value="incoming"
+                                        {{ old('inventory_source') == 'incoming' ? 'checked' : '' }}>
+                                    <label class="form-check-label fw-semibold text-success" for="sourceIncoming">
+                                        <i class="bi bi-box-arrow-in-down me-1"></i>Inventory Incoming
+                                    </label>
+                                    <div class="form-text text-muted">From Lark staging</div>
                                 </div>
                             </div>
+                            <input type="hidden" name="inventory_source" id="hiddenInventorySource"
+                                value="{{ old('inventory_source', 'stock') }}">
                         </div>
+                    </div>
 
-                        <!-- Kolom Kanan: Material -->
+                    <!-- ROW 2: Material Select (kiri, sejajar Job Order) -->
+                    <div class="row">
                         <div class="col-lg-6 mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <label id="materialLabel">Material <span class="text-danger">*</span></label>
-                            </div>
+                            <label id="materialLabel" class="mb-1">Material <span class="text-danger">*</span></label>
 
                             {{-- Stock select --}}
                             <div id="stockMaterialWrapper">
                                 <select name="inventory_id" id="inventory_id" class="form-select select2"
-                                    data-placeholder="Select Material (Stock)" required>
+                                    data-placeholder="Select Material (Stock)">
                                     <option value="">Select Material</option>
                                     @foreach ($inventories as $inv)
                                         <option value="{{ $inv->id }}" data-unit="{{ $inv->unit }}"
@@ -146,14 +146,12 @@
 
                             {{-- Incoming (staging) select --}}
                             <div id="incomingMaterialWrapper" style="display:none;">
-                                <select name="staging_inventory_id" id="staging_inventory_id"
-                                    class="form-select select2"
+                                <select name="staging_inventory_id" id="staging_inventory_id" class="form-select select2"
                                     data-placeholder="Select Incoming Material" disabled>
                                     <option value="">Select Incoming Material</option>
                                     @foreach ($stagingInventories as $si)
                                         <option value="{{ $si->id }}" data-unit="{{ $si->unit }}"
-                                            data-qty="{{ $si->quantity }}"
-                                            data-received="{{ $si->received_qty ?? 0 }}"
+                                            data-qty="{{ $si->quantity }}" data-received="{{ $si->received_qty ?? 0 }}"
                                             {{ old('staging_inventory_id') == $si->id ? 'selected' : '' }}>
                                             {{ $si->name }}{{ $si->material_code ? ' (' . $si->material_code . ')' : '' }}
                                         </option>
@@ -164,9 +162,6 @@
                                     <small class="text-danger">{{ $message }}</small>
                                 @enderror
                             </div>
-
-                            <input type="hidden" name="inventory_source" id="hiddenInventorySource"
-                                value="{{ old('inventory_source', 'stock') }}">
                         </div>
                     </div>
 
@@ -180,9 +175,7 @@
                                     value="{{ old('qty') }}">
                                 <span class="input-group-text unit-label">unit</span>
                             </div>
-                            @error('qty')
-                                <small class="text-danger">{{ $message }}</small>
-                            @enderror
+                            
                         </div>
                         <div class="col-lg-6 mb-3">
                             <label>Remark (Optional)</label>
@@ -393,17 +386,27 @@
 @push('styles')
     <style>
         @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(16px); }
-            to   { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(16px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
-        .form-check-label { cursor: pointer; }
+        .form-check-label {
+            cursor: pointer;
+        }
 
         .source-radio-active {
-            background: rgba(13,110,253,.06);
+            background: rgba(13, 110, 253, .06);
             border-radius: 0.5rem;
             padding: 0.4rem 0.7rem;
         }
+
         .select2-container .select2-selection--single {
             height: calc(2.375rem + 2px);
             padding: 0.375rem 0.75rem;
@@ -722,9 +725,11 @@
 
                 if (selected.val() && stock !== undefined) {
                     // Notification for selected material (stock)
-                    let stockClass = stock == 0 ? 'text-danger' : (stock < 3 ? 'text-warning' : 'text-success');
-                    let stockIcon  = stock == 0 ? '⚠️' : (stock < 3 ? '⚠️' : '✅');
-                    $avail.html(`${stockIcon} Available Stock: <b>${stock} ${unit}</b>`).addClass(stockClass).removeClass('d-none');
+                    let stockClass = stock == 0 ? 'text-danger' : (stock < 3 ? 'text-warning' :
+                        'text-success');
+                    let stockIcon = stock == 0 ? '⚠️' : (stock < 3 ? '⚠️' : '✅');
+                    $avail.html(`${stockIcon} Available Stock: <b>${stock} ${unit}</b>`).addClass(
+                        stockClass).removeClass('d-none');
 
                     // Toast notification
                     if (selected.val()) {
@@ -750,31 +755,33 @@
             // ========== AVAILABLE QTY (Inventory Incoming) ==========
             $('#staging_inventory_id').on('change', function() {
                 const selected = $(this).find(':selected');
-                const unit      = selected.data('unit') || 'unit';
-                const qty       = parseFloat(selected.data('qty') || 0);
-                const received  = parseFloat(selected.data('received') || 0);
-                const total     = qty + received;
+                const unit = selected.data('unit') || 'unit';
+                const qty = parseFloat(selected.data('qty') || 0);
+                const received = parseFloat(selected.data('received') || 0);
+                const total = qty + received;
                 $('.unit-label').text(unit);
 
                 const $avail = $('#available-incoming-qty');
                 $avail.removeClass('d-none text-danger text-warning text-success');
 
                 if (selected.val()) {
-                    let cls  = total == 0 ? 'text-danger' : (total < 3 ? 'text-warning' : 'text-success');
+                    let cls = total == 0 ? 'text-danger' : (total < 3 ? 'text-warning' : 'text-success');
                     let icon = total == 0 ? '⚠️' : (total < 3 ? '⚠️' : '✅');
-                    $avail.html(`${icon} Incoming Qty: <b>${total} ${unit}</b>`).addClass(cls).removeClass('d-none');
+                    $avail.html(`${icon} Incoming Qty: <b>${total} ${unit}</b>`).addClass(cls).removeClass(
+                        'd-none');
 
                     const matName = selected.text().trim();
                     let toastType, toastMsg;
                     if (total == 0) {
                         toastType = 'warning';
-                        toastMsg  = `<b>${matName}</b> — No incoming stock available (0 ${unit})`;
+                        toastMsg = `<b>${matName}</b> — No incoming stock available (0 ${unit})`;
                     } else if (total < 3) {
                         toastType = 'warning';
-                        toastMsg  = `<b>${matName}</b> selected (Incoming) — Low qty: <b>${total} ${unit}</b>`;
+                        toastMsg =
+                            `<b>${matName}</b> selected (Incoming) — Low qty: <b>${total} ${unit}</b>`;
                     } else {
                         toastType = 'success';
-                        toastMsg  = `<b>${matName}</b> selected (Incoming) — Qty: <b>${total} ${unit}</b>`;
+                        toastMsg = `<b>${matName}</b> selected (Incoming) — Qty: <b>${total} ${unit}</b>`;
                     }
                     showMaterialNotif(toastMsg, toastType);
                 } else {
@@ -827,8 +834,8 @@
                 const colors = {
                     success: '#198754',
                     warning: '#fd7e14',
-                    info:    '#0dcaf0',
-                    danger:  '#dc3545',
+                    info: '#0dcaf0',
+                    danger: '#dc3545',
                 };
                 const color = colors[type] || '#198754';
 
@@ -853,9 +860,13 @@
                     const audio = new Audio('/sounds/notif.mp3');
                     audio.volume = 0.3;
                     audio.play().catch(() => {});
-                } catch(e) {}
+                } catch (e) {}
 
-                setTimeout(() => { $('#materialNotifToast').fadeOut(400, function(){ $(this).remove(); }); }, 4000);
+                setTimeout(() => {
+                    $('#materialNotifToast').fadeOut(400, function() {
+                        $(this).remove();
+                    });
+                }, 4000);
             }
 
             // ========== SUBMIT BUTTON SPINNER ==========

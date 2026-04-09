@@ -54,6 +54,18 @@
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 @endif
+                @if (session('info_incoming'))
+                    <div class="alert alert-info alert-dismissible fade show" role="alert">
+                        <div class="d-flex align-items-start gap-2">
+                            <i class="fas fa-info-circle mt-1 flex-shrink-0"></i>
+                            <div>
+                                <strong>Info — Inventory Incoming</strong><br>
+                                {!! session('info_incoming') !!}
+                            </div>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                @endif
 
                 <!-- Filter form (dengan tambahan Project Type) -->
                 <div class="mb-3">

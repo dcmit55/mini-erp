@@ -67,8 +67,8 @@
 
                 <form method="GET" class="row g-2 align-items-end mb-3">
                     <div class="col-md-3">
-                        <input type="text" name="search" value="{{ request('search') }}" class="form-control form-control-sm"
-                            placeholder="Search step, remarks...">
+                        <input type="text" name="search" value="{{ request('search') }}"
+                            class="form-control form-control-sm" placeholder="Search step, remarks...">
                     </div>
                     <div class="col-md-2">
                         <label class="form-label mb-1">Filter Project</label>
@@ -254,7 +254,10 @@
 
                                 {{-- Actions --}}
                                 <td class="text-nowrap">
-                                    @if (auth()->user()->isSuperAdmin() || auth()->user()->isLogisticAdmin() || auth()->user()->isAdminTiming() || auth()->user()->id == $timing->employee_id)
+                                    @if (auth()->user()->isSuperAdmin() ||
+                                            auth()->user()->isLogisticAdmin() ||
+                                            auth()->user()->isAdminTiming() ||
+                                            auth()->user()->id == $timing->employee_id)
                                         <a href="{{ route('timings.edit', $timing->id) }}" class="btn btn-sm btn-primary"
                                             title="Edit">
                                             <i class="bi bi-pencil-fill"></i>
@@ -614,67 +617,74 @@
 
             // AJAX search & filter dengan debounce dan update URL
             let debounceTimer;
+
             function triggerSearch() {
                 updateQueryString();
                 clearTimeout(debounceTimer);
                 debounceTimer = setTimeout(function() {
                     let state = dt.state ? dt.state.loaded() : null;
-                    let search      = $('input[name="search"]').val();
-                    let project_id  = $('select[name="project_id"]').val();
+                    let search = $('input[name="search"]').val();
+                    let project_id = $('select[name="project_id"]').val();
                     let job_order_id = $('select[name="job_order_id"]').val();
-                    let department  = $('select[name="department"]').val();
+                    let department = $('select[name="department"]').val();
                     let employee_id = $('select[name="employee_id"]').val();
 
                     $.ajax({
                         url: "{{ route('timings.ajax_search') }}",
                         method: 'POST',
                         data: {
-                            search, project_id, job_order_id, department, employee_id,
+                            search,
+                            project_id,
+                            job_order_id,
+                            department,
+                            employee_id,
                         },
-                            success: function(res) {
-                                $('#timing-error-alert').addClass('d-none').text('');
-                                try {
-                                    if (dt && typeof dt.destroy === 'function') {
-                                        dt.destroy();
-                                    }
-                                    $('#timing-rows').html(res.html);
-
-                                    // Force newest first sorting before re-init
-                                    dtConfig.order = [
-                                        [0, 'desc']
-                                    ];
-                                    dt = $('#timing-table').DataTable(dtConfig);
-
-                                    // Restore page position only, NOT sorting
-                                    if (state && state.start) {
-                                        dt.page(state.start / dt.page.len()).draw('page');
-                                    }
-
-                                    // Ensure sorting is DESC after draw
-                                    dt.order([
-                                        [0, 'desc']
-                                    ]).draw();
-                                } catch (error) {
-                                    location.reload();
+                        success: function(res) {
+                            $('#timing-error-alert').addClass('d-none').text('');
+                            try {
+                                if (dt && typeof dt.destroy === 'function') {
+                                    dt.destroy();
                                 }
-                            },
-                            error: function(xhr) {
-                                let msg =
-                                    'Failed to load data. Please check your connection or try again in a while.';
-                                if (xhr.status === 500) {
-                                    msg =
-                                        'An error occurred on the server. Please try again later.';
-                                } else if (xhr.status === 404) {
-                                    msg = 'Data not found.';
+                                $('#timing-rows').html(res.html);
+
+                                // Force newest first sorting before re-init
+                                dtConfig.order = [
+                                    [0, 'desc']
+                                ];
+                                dt = $('#timing-table').DataTable(dtConfig);
+
+                                // Restore page position only, NOT sorting
+                                if (state && state.start) {
+                                    dt.page(state.start / dt.page.len()).draw('page');
                                 }
-                                $('#timing-error-alert').removeClass('d-none').text(msg);
+
+                                // Ensure sorting is DESC after draw
+                                dt.order([
+                                    [0, 'desc']
+                                ]).draw();
+                            } catch (error) {
+                                location.reload();
                             }
-                        });
-                    }, 400); // 400ms debounce
+                        },
+                        error: function(xhr) {
+                            let msg =
+                                'Failed to load data. Please check your connection or try again in a while.';
+                            if (xhr.status === 500) {
+                                msg =
+                                    'An error occurred on the server. Please try again later.';
+                            } else if (xhr.status === 404) {
+                                msg = 'Data not found.';
+                            }
+                            $('#timing-error-alert').removeClass('d-none').text(msg);
+                        }
+                    });
+                }, 400); // 400ms debounce
             }
 
             $('input[name="search"], select[name="project_id"], select[name="job_order_id"], select[name="department"], select[name="employee_id"]')
-                .on('input change', function() { triggerSearch(); });
+                .on('input change', function() {
+                    triggerSearch();
+                });
 
             $('#export-btn').on('click', function() {
                 // Ambil filter dari form
