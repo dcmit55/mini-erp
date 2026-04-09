@@ -292,7 +292,14 @@ class GoodsOutController extends Controller
 
     public function create($materialRequestId)
     {
-        $materialRequest = MaterialRequest::with('inventory', 'project')->findOrFail($materialRequestId);
+        $materialRequest = MaterialRequest::with('inventory', 'stagingInventory', 'project', 'internalProject')->findOrFail($materialRequestId);
+
+        // Jika incoming source, inventory_id harus sudah ada (staging sudah pushed ke batch)
+        if ($materialRequest->inventory_source === 'incoming' && !$materialRequest->inventory_id) {
+            return redirect()->route('material_requests.index')
+                ->with('error', 'Goods Out tidak dapat diproses. Material Request ini menggunakan <b>Inventory Incoming</b> dan staging inventory belum di-push ke Inventory Batch. Hubungi Admin Logistik.');
+        }
+
         $inventories = Inventory::withComputedStock()->orderBy('name')->get();
         return view('logistic.goods_out.create', compact('materialRequest', 'inventories'));
     }
@@ -309,7 +316,14 @@ class GoodsOutController extends Controller
         try {
             // Lock inventory row
             $materialRequest = MaterialRequest::where('id', $request->material_request_id)->lockForUpdate()->first();
-            $inventory = Inventory::where('id', $materialRequest->inventory_id)->lockForUpdate()->first();
+            $inventory = $materialRequest->inventory_id
+                ? Inventory::where('id', $materialRequest->inventory_id)->lockForUpdate()->first()
+                : null;
+
+            if (!$inventory) {
+                DB::rollBack();
+                return back()->withInput()->with('error', 'Inventory tidak ditemukan. Material Request ini belum terhubung ke Inventory Batch.');
+            }
 
             // VALIDASI: Quantity tidak boleh melebihi Remaining Quantity
             $remainingQty = $materialRequest->qty - $materialRequest->processed_qty;
@@ -374,7 +388,7 @@ class GoodsOutController extends Controller
 
             return redirect()
                 ->route('goods_out.index')
-                ->with('success', "Goods Out <b>{$inventory->name}</b> to <b>{$materialRequest->project->name}</b> processed successfully.");
+                ->with('success', "Goods Out <b>{$inventory->name}</b> to <b>{$materialRequest->project_name}</b> processed successfully.");
         } catch (\Exception $e) {
             DB::rollBack();
             return back()
@@ -739,7 +753,7 @@ class GoodsOutController extends Controller
 
             return redirect()
                 ->route('goods_out.index')
-                ->with('success', "Goods Out <b>{$inventory->name}</b> to <b>{$materialRequest->project->name}</b> processed successfully.");
+                ->with('success', "Goods Out <b>{$inventory->name}</b> to <b>{$materialRequest->project_name}</b> processed successfully.");
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Failed to update Goods Out: ' . $e->getMessage());

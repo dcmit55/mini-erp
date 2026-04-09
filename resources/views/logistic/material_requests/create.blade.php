@@ -65,11 +65,10 @@
                             <label class="fw-bold mb-2">Material Source <span class="text-danger">*</span></label>
                             <div class="d-flex gap-4">
                                 <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="inventory_source"
-                                        id="sourceStock" value="stock"
-                                        {{ old('inventory_source', 'stock') == 'stock' ? 'checked' : '' }}>
-                                    <label class="form-check-label fw-semibold text-primary" for="sourceStock">
-                                        <i class="bi bi-boxes me-1"></i>Inventory Stock
+                                    <input class="form-check-input" type="radio" name="inventory_source" id="sourceStock"
+                                        value="stock" {{ old('inventory_source', 'stock') == 'stock' ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="sourceStock">
+                                        </i>Inventory Stock
                                     </label>
                                     <div class="form-text text-muted">From batch inventory</div>
                                 </div>
@@ -77,10 +76,10 @@
                                     <input class="form-check-input" type="radio" name="inventory_source"
                                         id="sourceIncoming" value="incoming"
                                         {{ old('inventory_source') == 'incoming' ? 'checked' : '' }}>
-                                    <label class="form-check-label fw-semibold text-success" for="sourceIncoming">
-                                        <i class="bi bi-box-arrow-in-down me-1"></i>Inventory Incoming
+                                    <label class="form-check-label" for="sourceIncoming">
+                                        </i>Inventory Incoming
                                     </label>
-                                    <div class="form-text text-muted">From Lark staging</div>
+                                    <div class="form-text text-muted">From Lark Purchasing</div>
                                 </div>
                             </div>
                             <input type="hidden" name="inventory_source" id="hiddenInventorySource"

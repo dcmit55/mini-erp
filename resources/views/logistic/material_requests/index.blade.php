@@ -230,7 +230,7 @@
                         <!-- Left column: Image & QR Code -->
                         <div class="col-md-5">
                             <div id="material-image-container" class="text-center mb-3 p-2 border rounded bg-light">
-                                <img id="material-image" src="" alt="Material Image" 
+                                <img id="material-image" src="" alt="Material Image"
                                      class="img-fluid rounded" style="max-height: 200px; display: none;">
                                 <div id="no-image-placeholder" class="text-muted py-4" style="display: none;">
                                     <i class="bi bi-image fs-1"></i>
@@ -238,7 +238,7 @@
                                 </div>
                             </div>
                             <div id="material-qr-container" class="text-center p-2 border rounded bg-light">
-                                <img id="material-qr" src="" alt="QR Code" 
+                                <img id="material-qr" src="" alt="QR Code"
                                      class="img-fluid" style="max-height: 120px; display: none;">
                                 <div id="no-qr-placeholder" class="text-muted py-2" style="display: none;">
                                     <i class="bi bi-qr-code fs-2"></i>
