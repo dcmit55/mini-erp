@@ -369,7 +369,9 @@
                 dateFormat: 'Y-m-d',
                 altInput: false,
                 showMonths: 2,
-                defaultDate: (dateFromVal && dateToVal) ? [dateFromVal, dateToVal] : (dateFromVal ? [dateFromVal] : []),
+                defaultDate: (dateFromVal && dateToVal) ? [dateFromVal, dateToVal] : (dateFromVal ? [
+                    dateFromVal
+                ] : []),
                 onChange: function(selectedDates) {
                     if (selectedDates.length === 0) {
                         $('#date_from').val('');

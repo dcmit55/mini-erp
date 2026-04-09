@@ -55,7 +55,7 @@
                 <small class="text-muted">Stok material berdasarkan batch penerimaan</small>
             </div>
             <a href="{{ route('inventory.index') }}" class="btn btn-outline-secondary btn-sm">
-                <i class="bi bi-arrow-left me-1"></i>Inventory Listing
+                <i class="bi bi-arrow-left me-1"></i>Inventory Stock
             </a>
         </div>
 

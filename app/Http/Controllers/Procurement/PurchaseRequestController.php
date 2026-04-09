@@ -810,14 +810,14 @@ class PurchaseRequestController extends Controller
         }
 
         $validated = $request->validate([
-            'items'                         => 'required|array|min:1',
-            'items.*.type'                  => 'required|in:new_material,restock',
-            'items.*.item_name'             => 'nullable|string|max:255',
-            'items.*.inventory_id'          => 'nullable|integer|exists:inventories,id',
-            'items.*.qty'                   => 'required|numeric|min:0.01',
-            'items.*.unit'                  => 'required|string|max:50',
-            'items.*.project_id'            => 'nullable|integer|exists:projects,id',
-            'items.*.remark'                => 'nullable|string',
+            'items' => 'required|array|min:1',
+            'items.*.type' => 'required|in:new_material,restock',
+            'items.*.item_name' => 'nullable|string|max:255',
+            'items.*.inventory_id' => 'nullable|integer|exists:inventories,id',
+            'items.*.qty' => 'required|numeric|min:0.01',
+            'items.*.unit' => 'required|string|max:50',
+            'items.*.project_id' => 'nullable|integer|exists:projects,id',
+            'items.*.remark' => 'nullable|string',
         ]);
 
         $errors = [];
@@ -865,17 +865,17 @@ class PurchaseRequestController extends Controller
                 }
 
                 PurchaseRequest::create([
-                    'type'               => $item['type'],
-                    'material_name'      => $materialName,
-                    'inventory_id'       => $item['type'] === 'restock' ? $item['inventory_id'] : null,
-                    'required_quantity'  => $item['qty'],
-                    'qty_to_buy'         => $item['qty'],
-                    'unit'               => $item['unit'],
-                    'stock_level'        => null,
-                    'project_id'         => $item['project_id'] ?? null,
-                    'remark'             => $item['remark'] ?? null,
-                    'requested_by'       => Auth::id(),
-                    'approval_status'    => 'Pending',
+                    'type' => $item['type'],
+                    'material_name' => $materialName,
+                    'inventory_id' => $item['type'] === 'restock' ? $item['inventory_id'] : null,
+                    'required_quantity' => $item['qty'],
+                    'qty_to_buy' => $item['qty'],
+                    'unit' => $item['unit'],
+                    'stock_level' => null,
+                    'project_id' => $item['project_id'] ?? null,
+                    'remark' => $item['remark'] ?? null,
+                    'requested_by' => Auth::id(),
+                    'approval_status' => 'Pending',
                     ...$supplierData,
                 ]);
                 $successCount++;
@@ -887,9 +887,9 @@ class PurchaseRequestController extends Controller
         }
 
         return response()->json([
-            'success'  => true,
-            'count'    => $successCount,
-            'errors'   => $errors,   // partial-row validation errors (rows that were skipped)
+            'success' => true,
+            'count' => $successCount,
+            'errors' => $errors, // partial-row validation errors (rows that were skipped)
             'redirect' => route('purchase_requests.index'),
         ]);
     }

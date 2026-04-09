@@ -83,7 +83,7 @@
                     <div class="d-flex align-items-center">
                         <i class="fas fa-filter gradient-icon me-2" style="font-size: 1.5rem;"></i>
                         <div>
-                            <h2 class="mb-0 flex-shrink-0" style="font-size:1.3rem;">Lark Staging Inventory</h2>
+                            <h2 class="mb-0 flex-shrink-0" style="font-size:1.3rem;">Inventory Incoming</h2>
                             @if ($lastSync)
                                 <small class="text-muted">
                                     <i class="bi bi-clock me-1"></i>Last sync:
@@ -98,7 +98,7 @@
                     <div class="ms-lg-auto">
                         <div class="d-flex flex-wrap gap-2 align-items-center justify-content-lg-end">
                             <a href="{{ route('inventory.index') }}" class="btn btn-outline-secondary btn-sm">
-                                <i class="fas fa-warehouse me-1"></i> Inventory Listing
+                                <i class="fas fa-warehouse me-1"></i> Inventory Stock
                             </a>
                             @if (in_array(auth()->user()->role, ['super_admin', 'admin', 'admin_logistic']))
                                 {{-- Approve selected rows (shown only when rows are checked) --}}
@@ -109,7 +109,7 @@
                                 {{-- Approve all pending --}}
                                 {{-- <button type="button" class="btn btn-outline-success btn-sm" id="btnBulkApproveAll"
                                     @if ($stats['pending'] === 0) disabled @endif
-                                    title="Approve semua item pending dan push ke Inventory Listing">
+                                    title="Approve semua item pending dan push ke Inventory Stock">
                                     <i class="bi bi-check2-square me-1"></i>
                                     Approve All Pending
                                     @if ($stats['pending'] > 0)
@@ -136,7 +136,7 @@
                     <i class="bi bi-info-circle me-2"></i>
                     <strong>Cara kerja:</strong> Data dari Lark disync ke halaman ini terlebih dahulu. Admin dapat mereview,
                     lalu <strong class="text-success">Approve</strong> untuk mendorong ke
-                    <a href="{{ route('inventory.index') }}" class="alert-link">Inventory Listing</a>,
+                    <a href="{{ route('inventory-batch.index') }}" class="alert-link">Inventory Batch</a>,
                     atau <strong class="text-danger">Reject</strong> jika tidak sesuai.
                 </div>
 
@@ -651,7 +651,7 @@
                             '<strong>' + ids.length + '</strong> item yang dipilih' :
                             'Semua <strong class="text-warning">{{ $stats['pending'] }}</strong> item pending'
                         ) +
-                        ' akan di-approve dan masuk ke <strong>Inventory Listing</strong>.<br><br>Lanjutkan?',
+                        ' akan di-approve dan masuk ke <strong>Inventory Stock</strong>.<br><br>Lanjutkan?',
                     icon: 'question',
                     showCancelButton: true,
                     confirmButtonColor: '#28a745',
@@ -732,7 +732,7 @@
                         '• Status: Sent Out<br>' +
                         '• DEPT: Bukan Stock<br><br>' +
                         '<strong>Catatan:</strong><br>' +
-                        '• Data <strong class="text-warning">TIDAK langsung masuk ke Inventory Listing</strong><br>' +
+                        '• Data <strong class="text-warning">TIDAK langsung masuk ke Inventory Stock</strong><br>' +
                         '• Admin perlu me-review dan Approve masing-masing item<br>' +
                         '• Item yang sudah di-Approve/Reject sebelumnya tidak akan direset statusnya<br><br>' +
                         'Lanjutkan?',

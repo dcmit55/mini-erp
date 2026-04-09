@@ -9,6 +9,7 @@ use App\Models\Production\Project;
 use App\Models\Admin\Department;
 use App\Models\Logistic\Unit;
 use App\Models\InternalProject;
+use App\Models\Lark\LarkStagingInventory;
 use Illuminate\Http\Request;
 use App\Events\MaterialRequestUpdated;
 use App\Models\Admin\User;
@@ -250,6 +251,11 @@ class MaterialRequestController extends Controller
     public function create(Request $request)
     {
         $inventories = Inventory::withComputedStock()->orderBy('name')->get();
+        $stagingInventories = LarkStagingInventory::select('id', 'name', 'quantity', 'received_qty', 'unit', 'material_code')
+            ->whereIn('review_status', ['approved', 'pending'])
+            ->where('processed', false)
+            ->orderBy('name')
+            ->get();
         $projects = Project::fromLark()->with('departments', 'status')->notArchived()->orderBy('name')->get();
         $jobOrders = \App\Models\Production\JobOrder::with('project:id,name')
             ->where(function ($q) {
@@ -274,7 +280,21 @@ class MaterialRequestController extends Controller
         }
         $defaultPtDcmDepartmentId = $ptDcmDepartment ? $ptDcmDepartment->id : null;
 
-        return view('logistic.material_requests.create', compact('inventories', 'projects', 'jobOrders', 'internalProjects', 'selectedMaterial', 'departments', 'units', 'defaultPtDcmDepartmentId'));
+        return view('logistic.material_requests.create', compact('inventories', 'stagingInventories', 'projects', 'jobOrders', 'internalProjects', 'selectedMaterial', 'departments', 'units', 'defaultPtDcmDepartmentId'));
+    }
+
+    /**
+     * AJAX: Get staging inventories for Inventory Incoming source.
+     */
+    public function getStagingInventories(Request $request)
+    {
+        $items = LarkStagingInventory::select('id', 'name', 'quantity', 'received_qty', 'unit', 'material_code')
+            ->whereIn('review_status', ['approved', 'pending'])
+            ->where('processed', false)
+            ->orderBy('name')
+            ->get();
+
+        return response()->json($items);
     }
 
     /**
@@ -286,19 +306,32 @@ class MaterialRequestController extends Controller
             abort(403, 'You do not have permission to create material requests.');
         }
 
-        // Validasi dasar: gunakan job_order_id
+        // inventory_source: 'stock' (inventories table) or 'incoming' (lark_staging_inventories)
+        $inventorySource = $request->input('inventory_source', 'stock');
+
+        // Validasi dasar
         $request->validate([
-            'project_type' => 'required|in:client,internal',
-            'inventory_id' => 'required|exists:inventories,id',
-            'qty' => 'required|numeric|min:0.01',
-            'job_order_id' => 'required', // akan divalidasi lebih lanjut
+            'project_type'     => 'required|in:client,internal',
+            'inventory_source' => 'required|in:stock,incoming',
+            'qty'              => 'required|numeric|min:0.01',
+            'job_order_id'     => 'required',
         ]);
+
+        if ($inventorySource === 'stock') {
+            $request->validate([
+                'inventory_id' => 'required|exists:inventories,id',
+            ]);
+        } else {
+            $request->validate([
+                'staging_inventory_id' => 'required|exists:lark_staging_inventories,id',
+            ]);
+        }
 
         // Validasi conditional berdasarkan tipe proyek
         if ($request->project_type === MaterialRequest::PROJECT_TYPE_CLIENT) {
             $request->validate([
                 'job_order_id' => 'required|exists:job_orders,id',
-                'project_id' => 'required|exists:projects,id',
+                'project_id'   => 'required|exists:projects,id',
             ]);
         } else {
             $request->validate([
@@ -310,32 +343,52 @@ class MaterialRequestController extends Controller
 
         DB::beginTransaction();
         try {
-            $inventory = Inventory::where('id', $request->inventory_id)->lockForUpdate()->first();
+            if ($inventorySource === 'stock') {
+                // Source: Inventory Stock (batch inventory)
+                $inventory = Inventory::where('id', $request->inventory_id)->lockForUpdate()->first();
 
-            if ($request->qty > $inventory->quantity) {
-                DB::rollBack();
-                return back()
-                    ->withInput()
-                    ->withErrors(['qty' => 'Requested quantity cannot exceed available inventory quantity.']);
+                if ($request->qty > $inventory->quantity) {
+                    DB::rollBack();
+                    return back()
+                        ->withInput()
+                        ->withErrors(['qty' => 'Requested quantity cannot exceed available inventory stock quantity.']);
+                }
+
+                $materialName = $inventory->name;
+                $inventoryId  = $inventory->id;
+            } else {
+                // Source: Inventory Incoming (lark_staging_inventories)
+                $staging = LarkStagingInventory::where('id', $request->staging_inventory_id)->lockForUpdate()->first();
+                $availableQty = floatval($staging->quantity) + floatval($staging->received_qty ?? 0);
+
+                if ($request->qty > $availableQty) {
+                    DB::rollBack();
+                    return back()
+                        ->withInput()
+                        ->withErrors(['qty' => 'Requested quantity cannot exceed available incoming inventory quantity (' . $availableQty . ' ' . $staging->unit . ').']);
+                }
+
+                $materialName = $staging->name;
+                $inventoryId  = null; // no batch inventory link
             }
 
             $data = [
-                'inventory_id' => $request->inventory_id,
-                'project_type' => $request->project_type,
-                'qty' => $request->qty,
-                'processed_qty' => 0,
-                'requested_by' => $user->username,
-                'remark' => $request->remark,
+                'inventory_id'     => $inventoryId,
+                'project_type'     => $request->project_type,
+                'qty'              => $request->qty,
+                'processed_qty'    => 0,
+                'requested_by'     => $user->username,
+                'remark'           => $request->remark,
             ];
 
             if ($request->project_type === MaterialRequest::PROJECT_TYPE_CLIENT) {
-                $data['job_order_id'] = $request->job_order_id;
-                $data['project_id'] = $request->project_id;
-                $data['internal_project_id'] = null;
+                $data['job_order_id']         = $request->job_order_id;
+                $data['project_id']           = $request->project_id;
+                $data['internal_project_id']  = null;
             } else {
-                $data['internal_project_id'] = $request->job_order_id; // ID internal project
-                $data['job_order_id'] = null;
-                $data['project_id'] = null;
+                $data['internal_project_id'] = $request->job_order_id;
+                $data['job_order_id']        = null;
+                $data['project_id']          = null;
             }
 
             $materialRequest = MaterialRequest::create($data);
@@ -345,10 +398,11 @@ class MaterialRequestController extends Controller
             event(new MaterialRequestUpdated($materialRequest, 'created'));
 
             $projectName = $materialRequest->project_name;
+            $sourceLabel = $inventorySource === 'stock' ? 'Inventory Stock' : 'Inventory Incoming';
 
             return redirect()
                 ->route('material_requests.index')
-                ->with('success', "Material Request for <b>{$inventory->name}</b> in project <b>{$projectName}</b> created successfully!");
+                ->with('success', "Material Request for <b>{$materialName}</b> (source: {$sourceLabel}) in project <b>{$projectName}</b> created successfully!");
         } catch (\Exception $e) {
             DB::rollBack();
             return back()

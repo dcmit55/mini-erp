@@ -262,7 +262,7 @@
                                             <li>
                                                 <a class="dropdown-item {{ request()->is('lark/staging/inventory*') ? 'active' : '' }}"
                                                     href="{{ route('lark.staging.inventory') }}">
-                                                    <i class="fas fa-filter me-2"></i>Inventory Incomming
+                                                    <i class="fas fa-filter me-2"></i>Inventory Incoming
                                                 </a>
                                             </li>
                                         </ul>
@@ -551,7 +551,7 @@
 
                                 <!-- HR Dropdown (DIPERBARUI) -->
                                 @auth
-                                    @if (in_array(auth()->user()->role, ['super_admin', 'admin_hr', 'admin']))
+                                    @if (in_array(auth()->user()->role, ['super_admin', 'admin_hr', 'admin', 'timing']))
                                         @php
                                             $hrOvertimePendingCount = \App\Models\Hr\OvertimeRequest::whereIn(
                                                 'status',

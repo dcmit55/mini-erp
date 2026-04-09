@@ -56,9 +56,17 @@ class User extends Authenticatable implements AuditableContract
     }
 
     /**
-     * Check if user is Timing role (only Production Timing & HR access)
+     * Check if user is Timing role (Admin Timing — can create/edit timing data)
      */
     public function isTimingRole()
+    {
+        return $this->role === 'timing';
+    }
+
+    /**
+     * Alias kept for readability — same as isTimingRole()
+     */
+    public function isAdminTiming()
     {
         return $this->role === 'timing';
     }
@@ -73,6 +81,7 @@ class User extends Authenticatable implements AuditableContract
 
     /**
      * Check if user can modify data (create/edit/delete)
+     * Note: timing role can modify timing data specifically — handled per-controller
      */
     public function canModifyData()
     {

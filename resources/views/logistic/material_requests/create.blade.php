@@ -92,29 +92,81 @@
                             </div>
                         </div>
 
+                        <!-- Inventory Radio Type -->
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <label class="fw-bold mb-2">Material Source <span class="text-danger">*</span></label>
+                                <div class="d-flex gap-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="inventory_source"
+                                            id="sourceStock" value="stock"
+                                            {{ old('inventory_source', 'stock') == 'stock' ? 'checked' : '' }}>
+                                        <label class="form-check-label fw-semibold text-primary" for="sourceStock">
+                                            <i class="bi bi-boxes me-1"></i>Inventory Stock
+                                        </label>
+                                        <div class="form-text text-muted">From batch inventory</div>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="inventory_source"
+                                            id="sourceIncoming" value="incoming"
+                                            {{ old('inventory_source') == 'incoming' ? 'checked' : '' }}>
+                                        <label class="form-check-label fw-semibold text-success" for="sourceIncoming">
+                                            <i class="bi bi-box-arrow-in-down me-1"></i>Inventory Incoming
+                                        </label>
+                                        <div class="form-text text-muted">From Lark staging</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Kolom Kanan: Material -->
                         <div class="col-lg-6 mb-3">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <label>Material <span class="text-danger">*</span></label>
-                                {{-- <button type="button" class="btn btn-sm btn-outline-primary" id="btnQuickAddMaterial">
-                                    + Quick Add Material
-                                </button> --}}
+                                <label id="materialLabel">Material <span class="text-danger">*</span></label>
                             </div>
-                            <select name="inventory_id" id="inventory_id" class="form-select select2"
-                                data-placeholder="Select Material" required>
-                                <option value="">Select Material</option>
-                                @foreach ($inventories as $inv)
-                                    <option value="{{ $inv->id }}" data-unit="{{ $inv->unit }}"
-                                        data-stock="{{ $inv->quantity }}"
-                                        {{ old('inventory_id', $selectedMaterial?->id) == $inv->id ? 'selected' : '' }}>
-                                        {{ $inv->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            <div id="available-qty" class="form-text d-none"></div>
-                            @error('inventory_id')
-                                <small class="text-danger">{{ $message }}</small>
-                            @enderror
+
+                            {{-- Stock select --}}
+                            <div id="stockMaterialWrapper">
+                                <select name="inventory_id" id="inventory_id" class="form-select select2"
+                                    data-placeholder="Select Material (Stock)" required>
+                                    <option value="">Select Material</option>
+                                    @foreach ($inventories as $inv)
+                                        <option value="{{ $inv->id }}" data-unit="{{ $inv->unit }}"
+                                            data-stock="{{ $inv->quantity }}"
+                                            {{ old('inventory_id', $selectedMaterial?->id) == $inv->id ? 'selected' : '' }}>
+                                            {{ $inv->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <div id="available-qty" class="form-text d-none"></div>
+                                @error('inventory_id')
+                                    <small class="text-danger">{{ $message }}</small>
+                                @enderror
+                            </div>
+
+                            {{-- Incoming (staging) select --}}
+                            <div id="incomingMaterialWrapper" style="display:none;">
+                                <select name="staging_inventory_id" id="staging_inventory_id"
+                                    class="form-select select2"
+                                    data-placeholder="Select Incoming Material" disabled>
+                                    <option value="">Select Incoming Material</option>
+                                    @foreach ($stagingInventories as $si)
+                                        <option value="{{ $si->id }}" data-unit="{{ $si->unit }}"
+                                            data-qty="{{ $si->quantity }}"
+                                            data-received="{{ $si->received_qty ?? 0 }}"
+                                            {{ old('staging_inventory_id') == $si->id ? 'selected' : '' }}>
+                                            {{ $si->name }}{{ $si->material_code ? ' (' . $si->material_code . ')' : '' }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <div id="available-incoming-qty" class="form-text d-none"></div>
+                                @error('staging_inventory_id')
+                                    <small class="text-danger">{{ $message }}</small>
+                                @enderror
+                            </div>
+
+                            <input type="hidden" name="inventory_source" id="hiddenInventorySource"
+                                value="{{ old('inventory_source', 'stock') }}">
                         </div>
                     </div>
 
@@ -340,6 +392,18 @@
 
 @push('styles')
     <style>
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .form-check-label { cursor: pointer; }
+
+        .source-radio-active {
+            background: rgba(13,110,253,.06);
+            border-radius: 0.5rem;
+            padding: 0.4rem 0.7rem;
+        }
         .select2-container .select2-selection--single {
             height: calc(2.375rem + 2px);
             padding: 0.375rem 0.75rem;
@@ -646,21 +710,153 @@
                 });
             });
 
-            // ========== UNIT LABEL & AVAILABLE STOCK ==========
+            // ========== UNIT LABEL & AVAILABLE STOCK (Inventory Stock) ==========
             $('#inventory_id').on('change', function() {
                 const selected = $(this).find(':selected');
                 const unit = selected.data('unit') || 'unit';
                 const stock = selected.data('stock');
                 $('.unit-label').text(unit);
+
                 const $avail = $('#available-qty');
-                $avail.removeClass('d-none text-danger text-warning');
+                $avail.removeClass('d-none text-danger text-warning text-success');
+
                 if (selected.val() && stock !== undefined) {
-                    let cls = stock == 0 ? 'text-danger' : (stock < 3 ? 'text-warning' : '');
-                    $avail.text(`Available Qty: ${stock} ${unit}`).addClass(cls);
+                    // Notification for selected material (stock)
+                    let stockClass = stock == 0 ? 'text-danger' : (stock < 3 ? 'text-warning' : 'text-success');
+                    let stockIcon  = stock == 0 ? '⚠️' : (stock < 3 ? '⚠️' : '✅');
+                    $avail.html(`${stockIcon} Available Stock: <b>${stock} ${unit}</b>`).addClass(stockClass).removeClass('d-none');
+
+                    // Toast notification
+                    if (selected.val()) {
+                        const matName = selected.text().trim();
+                        let toastType, toastMsg;
+                        if (stock == 0) {
+                            toastType = 'warning';
+                            toastMsg = `<b>${matName}</b> is out of stock! Available: 0 ${unit}`;
+                        } else if (stock < 3) {
+                            toastType = 'warning';
+                            toastMsg = `<b>${matName}</b> selected — Low stock: <b>${stock} ${unit}</b>`;
+                        } else {
+                            toastType = 'success';
+                            toastMsg = `<b>${matName}</b> selected — Available: <b>${stock} ${unit}</b>`;
+                        }
+                        showMaterialNotif(toastMsg, toastType);
+                    }
                 } else {
                     $avail.addClass('d-none').text('');
                 }
             }).trigger('change');
+
+            // ========== AVAILABLE QTY (Inventory Incoming) ==========
+            $('#staging_inventory_id').on('change', function() {
+                const selected = $(this).find(':selected');
+                const unit      = selected.data('unit') || 'unit';
+                const qty       = parseFloat(selected.data('qty') || 0);
+                const received  = parseFloat(selected.data('received') || 0);
+                const total     = qty + received;
+                $('.unit-label').text(unit);
+
+                const $avail = $('#available-incoming-qty');
+                $avail.removeClass('d-none text-danger text-warning text-success');
+
+                if (selected.val()) {
+                    let cls  = total == 0 ? 'text-danger' : (total < 3 ? 'text-warning' : 'text-success');
+                    let icon = total == 0 ? '⚠️' : (total < 3 ? '⚠️' : '✅');
+                    $avail.html(`${icon} Incoming Qty: <b>${total} ${unit}</b>`).addClass(cls).removeClass('d-none');
+
+                    const matName = selected.text().trim();
+                    let toastType, toastMsg;
+                    if (total == 0) {
+                        toastType = 'warning';
+                        toastMsg  = `<b>${matName}</b> — No incoming stock available (0 ${unit})`;
+                    } else if (total < 3) {
+                        toastType = 'warning';
+                        toastMsg  = `<b>${matName}</b> selected (Incoming) — Low qty: <b>${total} ${unit}</b>`;
+                    } else {
+                        toastType = 'success';
+                        toastMsg  = `<b>${matName}</b> selected (Incoming) — Qty: <b>${total} ${unit}</b>`;
+                    }
+                    showMaterialNotif(toastMsg, toastType);
+                } else {
+                    $avail.addClass('d-none').text('');
+                    $('.unit-label').text('unit');
+                }
+            });
+
+            // ========== MATERIAL SOURCE RADIO TOGGLE ==========
+            function toggleMaterialSource() {
+                const source = $('input[name="inventory_source"]:checked').val();
+                $('#hiddenInventorySource').val(source);
+
+                if (source === 'stock') {
+                    $('#stockMaterialWrapper').show();
+                    $('#incomingMaterialWrapper').hide();
+                    $('#inventory_id').prop('disabled', false).prop('required', true);
+                    $('#staging_inventory_id').prop('disabled', true).prop('required', false);
+                    // trigger change to show available qty
+                    if ($('#inventory_id').val()) {
+                        $('#inventory_id').trigger('change');
+                    } else {
+                        $('#available-qty').addClass('d-none');
+                        $('.unit-label').text('unit');
+                    }
+                    $('#available-incoming-qty').addClass('d-none');
+                } else {
+                    $('#stockMaterialWrapper').hide();
+                    $('#incomingMaterialWrapper').show();
+                    $('#inventory_id').prop('disabled', true).prop('required', false);
+                    $('#staging_inventory_id').prop('disabled', false).prop('required', true);
+                    if ($('#staging_inventory_id').val()) {
+                        $('#staging_inventory_id').trigger('change');
+                    } else {
+                        $('#available-incoming-qty').addClass('d-none');
+                        $('.unit-label').text('unit');
+                    }
+                    $('#available-qty').addClass('d-none');
+                }
+            }
+
+            $('input[name="inventory_source"]').on('change', toggleMaterialSource);
+            toggleMaterialSource(); // init on page load
+
+            // ========== TOAST NOTIFICATION HELPER ==========
+            function showMaterialNotif(message, type) {
+                // Remove existing notif
+                $('#materialNotifToast').remove();
+
+                const colors = {
+                    success: '#198754',
+                    warning: '#fd7e14',
+                    info:    '#0dcaf0',
+                    danger:  '#dc3545',
+                };
+                const color = colors[type] || '#198754';
+
+                const toast = $(`
+                    <div id="materialNotifToast" style="
+                        position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999;
+                        background: ${color}; color: #fff;
+                        padding: 0.75rem 1.2rem; border-radius: 0.5rem;
+                        box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+                        max-width: 320px; font-size: 0.92rem;
+                        display: flex; align-items: flex-start; gap: 0.5rem;
+                        animation: fadeInUp 0.3s ease;
+                    ">
+                        <span style="flex:1">${message}</span>
+                        <button onclick="$('#materialNotifToast').remove()" style="background:none;border:none;color:#fff;font-size:1rem;cursor:pointer;padding:0;line-height:1;">&times;</button>
+                    </div>
+                `);
+                $('body').append(toast);
+
+                // Play notification sound if available
+                try {
+                    const audio = new Audio('/sounds/notif.mp3');
+                    audio.volume = 0.3;
+                    audio.play().catch(() => {});
+                } catch(e) {}
+
+                setTimeout(() => { $('#materialNotifToast').fadeOut(400, function(){ $(this).remove(); }); }, 4000);
+            }
 
             // ========== SUBMIT BUTTON SPINNER ==========
             $('#materialRequestForm').on('submit', function() {

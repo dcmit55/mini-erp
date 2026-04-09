@@ -105,7 +105,7 @@ class StagingInventoryApprovalService
                 // Catch UNIQUE constraint violations (e.g. lark_record_id duplicate)
                 // and surface as a user-friendly message instead of a raw SQL error.
                 if ($e->errorInfo[1] === 1062) {
-                    throw new \InvalidArgumentException("Data item <strong>{$staging->name}</strong> sudah ada di Inventory Listing. " . 'Tidak dapat di-approve karena akan membuat data duplikat. ' . 'Silakan reset item ini dan sesuaikan Material Code / Nama terlebih dahulu.');
+                    throw new \InvalidArgumentException("Data item <strong>{$staging->name}</strong> sudah ada di Inventory Stock. " . 'Tidak dapat di-approve karena akan membuat data duplikat. ' . 'Silakan reset item ini dan sesuaikan Material Code / Nama terlebih dahulu.');
                 }
                 throw $e;
             }

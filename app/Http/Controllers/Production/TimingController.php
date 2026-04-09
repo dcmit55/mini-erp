@@ -139,18 +139,21 @@ class TimingController extends Controller
 
                     // Actions column
                     $authUser = auth()->user();
-                    $canEdit = $authUser->isSuperAdmin() || $authUser->isLogisticAdmin() || $authUser->id == $timing->employee_id;
+                    $canEdit = $authUser->isSuperAdmin() || $authUser->isLogisticAdmin() || $authUser->isAdminTiming() || $authUser->id == $timing->employee_id;
+                    $canDelete = $authUser->isSuperAdmin();
 
                     if ($canEdit) {
                         $editUrl = route('timings.edit', $timing->id);
                         $deleteUrl = route('timings.destroy', $timing->id);
                         $html .= '<td class="text-nowrap">';
                         $html .= '<a href="' . $editUrl . '" class="btn btn-sm btn-warning" title="Edit"><i class="bi bi-pencil-fill"></i></a> ';
-                        $html .= '<form action="' . $deleteUrl . '" method="POST" class="d-inline" onsubmit="return confirm(\'Are you sure you want to delete this timing record?\')">';
-                        $html .= csrf_field();
-                        $html .= method_field('DELETE');
-                        $html .= '<button type="submit" class="btn btn-sm btn-danger" title="Delete"><i class="bi bi-trash-fill"></i></button>';
-                        $html .= '</form>';
+                        if ($canDelete) {
+                            $html .= '<form action="' . $deleteUrl . '" method="POST" class="d-inline" onsubmit="return confirm(\'Are you sure you want to delete this timing record?\')">';
+                            $html .= csrf_field();
+                            $html .= method_field('DELETE');
+                            $html .= '<button type="submit" class="btn btn-sm btn-danger" title="Delete"><i class="bi bi-trash-fill"></i></button>';
+                            $html .= '</form>';
+                        }
                         $html .= '</td>';
                     } else {
                         $html .= '<td class="text-nowrap"><span class="text-muted">-</span></td>';

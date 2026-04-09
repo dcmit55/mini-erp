@@ -79,7 +79,9 @@ Route::post('leave_requests', [LeaveRequestController::class, 'store'])->name('l
 
 // Kasbon - Public access (no login required)
 Route::get('/pengajuan-kasbon', [\App\Http\Controllers\Finance\KasbonPublicController::class, 'create'])->name('kasbon.create');
-Route::post('/pengajuan-kasbon', [\App\Http\Controllers\Finance\KasbonPublicController::class, 'store'])->name('kasbon.store')->middleware('throttle:3,1');
+Route::post('/pengajuan-kasbon', [\App\Http\Controllers\Finance\KasbonPublicController::class, 'store'])
+    ->name('kasbon.store')
+    ->middleware('throttle:3,1');
 Route::get('/cek-kasbon', [\App\Http\Controllers\Finance\KasbonPublicController::class, 'status'])->name('kasbon.status');
 // Employee leave balance - public agar guest bisa melihat sisa cuti saat form create
 Route::get('/employees/{employee}/leave-balance', [EmployeeController::class, 'getLeaveBalance'])->name('employees.leave-balance.public');
@@ -399,17 +401,19 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/skillsets/search', [App\Http\Controllers\Hr\SkillsetController::class, 'search'])->name('skillsets.search');
 
     // Kasbon - Admin (authenticated)
-    Route::prefix('admin/kasbon')->name('kasbon.admin.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Finance\KasbonAdminController::class, 'index'])->name('index');
-        Route::get('/installments', [\App\Http\Controllers\Finance\KasbonAdminController::class, 'installments'])->name('installments');
-        Route::get('/{id}', [\App\Http\Controllers\Finance\KasbonAdminController::class, 'show'])->name('show');
-        Route::post('/{id}/approve', [\App\Http\Controllers\Finance\KasbonAdminController::class, 'approve'])->name('approve');
-        Route::post('/{id}/reject', [\App\Http\Controllers\Finance\KasbonAdminController::class, 'reject'])->name('reject');
-        Route::post('/{id}/disburse', [\App\Http\Controllers\Finance\KasbonAdminController::class, 'disburse'])->name('disburse');
-        Route::post('/{id}/installments/{installmentId}/pay', [\App\Http\Controllers\Finance\KasbonAdminController::class, 'payInstallment'])->name('installment.pay');
-        Route::post('/{id}/installments/{installmentId}/confirm-pokok', [\App\Http\Controllers\Finance\KasbonAdminController::class, 'confirmPokokRoute'])->name('installment.confirm-pokok');
-        Route::post('/{id}/installments/{installmentId}/confirm-cash', [\App\Http\Controllers\Finance\KasbonAdminController::class, 'confirmCashRoute'])->name('installment.confirm-cash');
-    });
+    Route::prefix('admin/kasbon')
+        ->name('kasbon.admin.')
+        ->group(function () {
+            Route::get('/', [\App\Http\Controllers\Finance\KasbonAdminController::class, 'index'])->name('index');
+            Route::get('/installments', [\App\Http\Controllers\Finance\KasbonAdminController::class, 'installments'])->name('installments');
+            Route::get('/{id}', [\App\Http\Controllers\Finance\KasbonAdminController::class, 'show'])->name('show');
+            Route::post('/{id}/approve', [\App\Http\Controllers\Finance\KasbonAdminController::class, 'approve'])->name('approve');
+            Route::post('/{id}/reject', [\App\Http\Controllers\Finance\KasbonAdminController::class, 'reject'])->name('reject');
+            Route::post('/{id}/disburse', [\App\Http\Controllers\Finance\KasbonAdminController::class, 'disburse'])->name('disburse');
+            Route::post('/{id}/installments/{installmentId}/pay', [\App\Http\Controllers\Finance\KasbonAdminController::class, 'payInstallment'])->name('installment.pay');
+            Route::post('/{id}/installments/{installmentId}/confirm-pokok', [\App\Http\Controllers\Finance\KasbonAdminController::class, 'confirmPokokRoute'])->name('installment.confirm-pokok');
+            Route::post('/{id}/installments/{installmentId}/confirm-cash', [\App\Http\Controllers\Finance\KasbonAdminController::class, 'confirmCashRoute'])->name('installment.confirm-cash');
+        });
 
     // Leave Request - Authenticated only
     Route::get('leave_requests', [LeaveRequestController::class, 'index'])->name('leave_requests.index');
@@ -696,6 +700,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Material Request Inventory Detail
     Route::get('/material-requests/inventory/{id}', [App\Http\Controllers\Logistic\MaterialRequestController::class, 'getInventoryDetail'])->name('material_requests.inventory_detail');
+    Route::get('/material-requests/staging-inventories', [App\Http\Controllers\Logistic\MaterialRequestController::class, 'getStagingInventories'])->name('material_requests.staging_inventories');
 
     // Employee Work Policies
     Route::middleware(['auth'])->group(function () {

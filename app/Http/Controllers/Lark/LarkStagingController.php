@@ -812,7 +812,7 @@ class LarkStagingController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => "Item <strong>{$staging->name}</strong> telah di-approve dan masuk ke Inventory Listing.",
+                'message' => "Item <strong>{$staging->name}</strong> telah di-approve dan masuk ke Inventory Stock.",
             ]);
         } catch (\InvalidArgumentException $e) {
             return response()->json(

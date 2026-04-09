@@ -154,7 +154,7 @@
                             @if (in_array(auth()->user()->role, ['super_admin', 'admin']))
                                 <a href="{{ route('lark.staging.inventory') }}" class="btn btn-info btn-sm flex-shrink-0"
                                     data-bs-toggle="tooltip" data-bs-placement="bottom"
-                                    title="Review & approve data purchase dari Lark sebelum masuk ke inventory listing">
+                                    title="Review & approve data purchase dari Lark sebelum masuk ke inventory stock">
                                     <i class="fas fa-filter me-1"></i>
                                     <span>Lark Staging</span>
                                 </a>

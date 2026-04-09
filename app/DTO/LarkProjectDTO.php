@@ -138,7 +138,7 @@ class LarkProjectDTO extends BaseLarkDTO
         $resolvedTexts = $resolver->resolveOptions(
             $value,
             'tblXJcCC3h7gF5aF', // Source table ID
-            'fldDu7wps6',        // Source field ID (Department name)
+            'fldDu7wps6', // Source field ID (Department name)
         );
 
         return !empty($resolvedTexts) ? implode(', ', $resolvedTexts) : null;

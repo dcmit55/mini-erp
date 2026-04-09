@@ -6,6 +6,7 @@ use App\Models\Production\JobOrder;
 use App\Models\Logistic\MaterialRequest;
 use App\Models\Logistic\GoodsOut;
 use App\Models\Logistic\Inventory;
+use App\Models\Logistic\StockUsageBatch;
 use App\Helpers\MaterialUsageHelper;
 use App\Events\GoodsOutProcessed;
 use Illuminate\Support\Facades\DB;
@@ -126,8 +127,15 @@ class AutoGoodsOutService
                     'remark' => "Auto Goods Out - Job Order Delivered: {$jobOrder->name}",
                 ]);
 
-                // Reduce inventory stock
-                $inventory->consumeStock($remainingQty);
+                // FIFO batch allocation — consume stock and record each batch used
+                $usedBatches = $inventory->consumeStock($remainingQty);
+                foreach ($usedBatches as $ub) {
+                    StockUsageBatch::create([
+                        'goods_out_id' => $goodsOut->id,
+                        'batch_id' => $ub['batch_id'],
+                        'qty_used' => $ub['qty'],
+                    ]);
+                }
 
                 // Update material request status and processed quantity
                 Log::info('AutoGoodsOut: Before updating MaterialRequest', [

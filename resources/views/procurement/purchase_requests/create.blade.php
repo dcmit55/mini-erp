@@ -30,18 +30,19 @@
 
                 {{-- Mode Toggle --}}
                 @if (!isset($selectedInventory) || !isset($prefilledType))
-                <div class="d-flex align-items-center gap-2 mb-3">
-                    <span class="text-muted small">Input Mode:</span>
-                    <div class="btn-group btn-group-sm" id="input-mode-toggle" role="group">
-                        <button type="button" class="btn btn-primary active" id="btn-mode-form">
-                            <i class="fas fa-list-ul me-1"></i>Form Mode
-                        </button>
-                        <button type="button" class="btn btn-outline-primary" id="btn-mode-spreadsheet">
-                            <i class="fas fa-table me-1"></i>Spreadsheet Mode
-                        </button>
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <span class="text-muted small">Input Mode:</span>
+                        <div class="btn-group btn-group-sm" id="input-mode-toggle" role="group">
+                            <button type="button" class="btn btn-primary active" id="btn-mode-form">
+                                <i class="fas fa-list-ul me-1"></i>Form Mode
+                            </button>
+                            <button type="button" class="btn btn-outline-primary" id="btn-mode-spreadsheet">
+                                <i class="fas fa-table me-1"></i>Spreadsheet Mode
+                            </button>
+                        </div>
+                        <small class="text-muted ms-1"><i class="fas fa-info-circle"></i> Spreadsheet mode supports paste
+                            from Excel</small>
                     </div>
-                    <small class="text-muted ms-1"><i class="fas fa-info-circle"></i> Spreadsheet mode supports paste from Excel</small>
-                </div>
                 @endif
 
                 {{-- ============================== HANDSONTABLE SECTION ============================== --}}
@@ -153,7 +154,8 @@
                                         @endforeach
                                     </select>
                                     <!-- Input text for restock -->
-                                    <input type="text" name="requests[0][unit]" class="form-control unit-input" readonly>
+                                    <input type="text" name="requests[0][unit]" class="form-control unit-input"
+                                        readonly>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Project</label>
@@ -427,9 +429,11 @@
             border-radius: 0.375rem;
             min-height: 280px;
         }
+
         #hot-container .handsontable td.htInvalid {
             background-color: #fff3cd !important;
         }
+
         .select2-container .select2-selection--single {
             height: calc(2.375rem + 2px);
             padding: 0.375rem 0.75rem;
@@ -472,66 +476,74 @@
         /* =====================================================================
          * HANDSONTABLE — Spreadsheet Mode
          * ===================================================================== */
-        (function () {
+        (function() {
             // ─── data from Blade ─────────────────────────────────────────────
             const allInventories = @json($inventories ?? []);
-            const allUnits       = @json($units ?? []);
+            const allUnits = @json($units ?? []);
 
-            const inventoryNames  = allInventories.map(i => i.name);
-            const inventoryMap    = {};  // name → {id, unit}
-            allInventories.forEach(i => { inventoryMap[i.name] = { id: i.id, unit: i.unit }; });
+            const inventoryNames = allInventories.map(i => i.name);
+            const inventoryMap = {}; // name → {id, unit}
+            allInventories.forEach(i => {
+                inventoryMap[i.name] = {
+                    id: i.id,
+                    unit: i.unit
+                };
+            });
 
             const unitNames = allUnits.map(u => u.name);
 
             // ─── defaults ────────────────────────────────────────────────────
             const EMPTY_ROW = () => ({
-                type      : 'new_material',
-                item_name : '',
-                qty       : '',
-                unit      : '',
-                remark    : '',
+                type: 'new_material',
+                item_name: '',
+                qty: '',
+                unit: '',
+                remark: '',
             });
 
-            let hotData = Array.from({ length: 10 }, EMPTY_ROW);
+            let hotData = Array.from({
+                length: 10
+            }, EMPTY_ROW);
             let hotInstance = null;
 
             // ─── column definition ───────────────────────────────────────────
-            const columns = [
-                {
-                    data    : 'type',
-                    title   : 'Type <span class="text-danger">*</span>',
-                    type    : 'dropdown',
-                    source  : ['new_material', 'restock'],
-                    width   : 130,
+            const columns = [{
+                    data: 'type',
+                    title: 'Type <span class="text-danger">*</span>',
+                    type: 'dropdown',
+                    source: ['new_material', 'restock'],
+                    width: 130,
                 },
                 {
-                    data     : 'item_name',
-                    title    : 'Item Name <span class="text-danger">*</span>',
-                    type     : 'autocomplete',
-                    source   : inventoryNames,
-                    strict   : false,
+                    data: 'item_name',
+                    title: 'Item Name <span class="text-danger">*</span>',
+                    type: 'autocomplete',
+                    source: inventoryNames,
+                    strict: false,
                     visibleRows: 8,
-                    width    : 260,
+                    width: 260,
                 },
                 {
-                    data  : 'qty',
-                    title : 'Qty <span class="text-danger">*</span>',
-                    type  : 'numeric',
-                    numericFormat: { pattern: '0,0.##' },
-                    width : 90,
+                    data: 'qty',
+                    title: 'Qty <span class="text-danger">*</span>',
+                    type: 'numeric',
+                    numericFormat: {
+                        pattern: '0,0.##'
+                    },
+                    width: 90,
                 },
                 {
-                    data   : 'unit',
-                    title  : 'Unit <span class="text-danger">*</span>',
-                    type   : 'dropdown',
-                    source : unitNames,
-                    width  : 100,
+                    data: 'unit',
+                    title: 'Unit <span class="text-danger">*</span>',
+                    type: 'dropdown',
+                    source: unitNames,
+                    width: 100,
                 },
                 {
-                    data  : 'remark',
-                    title : 'Remark',
-                    type  : 'text',
-                    width : 220,
+                    data: 'remark',
+                    title: 'Remark',
+                    type: 'text',
+                    width: 220,
                 },
             ];
 
@@ -539,21 +551,26 @@
 
             // ─── init ────────────────────────────────────────────────────────
             function initHOT() {
-                if (hotInstance) { hotInstance.destroy(); hotInstance = null; }
+                if (hotInstance) {
+                    hotInstance.destroy();
+                    hotInstance = null;
+                }
 
                 hotInstance = new Handsontable(document.getElementById('hot-container'), {
-                    data            : hotData,
-                    columns         : columns,
-                    colHeaders      : colHeaders,
-                    rowHeaders      : true,
-                    height          : 420,
-                    stretchH        : 'all',
-                    autoWrapRow     : true,
-                    autoWrapCol     : true,
-                    contextMenu     : ['row_above', 'row_below', '---------', 'remove_row', '---------', 'copy', 'cut'],
-                    manualRowResize : true,
-                    manualColResize : true,
-                    licenseKey      : 'non-commercial-and-evaluation',
+                    data: hotData,
+                    columns: columns,
+                    colHeaders: colHeaders,
+                    rowHeaders: true,
+                    height: 420,
+                    stretchH: 'all',
+                    autoWrapRow: true,
+                    autoWrapCol: true,
+                    contextMenu: ['row_above', 'row_below', '---------', 'remove_row', '---------', 'copy',
+                        'cut'
+                    ],
+                    manualRowResize: true,
+                    manualColResize: true,
+                    licenseKey: 'non-commercial-and-evaluation',
 
                     // Auto-fill unit when item_name matches an inventory entry (restock)
                     afterChange(changes) {
@@ -572,7 +589,7 @@
             }
 
             // ─── mode toggle ─────────────────────────────────────────────────
-            $('#btn-mode-spreadsheet').on('click', function () {
+            $('#btn-mode-spreadsheet').on('click', function() {
                 $('#btn-mode-form').removeClass('active btn-primary').addClass('btn-outline-primary');
                 $(this).addClass('active btn-primary').removeClass('btn-outline-primary');
                 $('#handsontable-section').show();
@@ -590,25 +607,27 @@
                 }
             });
 
-            $('#btn-mode-form').on('click', function () {
+            $('#btn-mode-form').on('click', function() {
                 $('#btn-mode-spreadsheet').removeClass('active btn-primary').addClass('btn-outline-primary');
                 $(this).addClass('active btn-primary').removeClass('btn-outline-primary');
                 $('#handsontable-section').hide();
                 $('form[action="{{ route('purchase_requests.store') }}"]').show();
             });
 
-            $('#hot-cancel-btn').on('click', function () {
+            $('#hot-cancel-btn').on('click', function() {
                 $('#btn-mode-form').trigger('click');
             });
 
             // ─── toolbar buttons ─────────────────────────────────────────────
-            $('#hot-add-row-btn').on('click', function () {
+            $('#hot-add-row-btn').on('click', function() {
                 if (!hotInstance) return;
                 hotData.push(EMPTY_ROW());
-                hotInstance.updateSettings({ data: hotData });
+                hotInstance.updateSettings({
+                    data: hotData
+                });
             });
 
-            $('#hot-remove-row-btn').on('click', function () {
+            $('#hot-remove-row-btn').on('click', function() {
                 if (!hotInstance) return;
                 const selected = hotInstance.getSelected();
                 if (!selected || !selected.length) {
@@ -622,10 +641,12 @@
                 [...rowsToRemove].sort((a, b) => b - a).forEach(r => {
                     if (hotData.length > 1) hotData.splice(r, 1);
                 });
-                hotInstance.updateSettings({ data: hotData });
+                hotInstance.updateSettings({
+                    data: hotData
+                });
             });
 
-            $('#hot-clear-btn').on('click', function () {
+            $('#hot-clear-btn').on('click', function() {
                 if (!hotInstance) return;
                 Swal.fire({
                     title: 'Clear all rows?',
@@ -634,14 +655,18 @@
                     confirmButtonText: 'Yes, clear',
                 }).then(res => {
                     if (res.isConfirmed) {
-                        hotData = Array.from({ length: 10 }, EMPTY_ROW);
-                        hotInstance.updateSettings({ data: hotData });
+                        hotData = Array.from({
+                            length: 10
+                        }, EMPTY_ROW);
+                        hotInstance.updateSettings({
+                            data: hotData
+                        });
                     }
                 });
             });
 
             // ─── submit ──────────────────────────────────────────────────────
-            $('#hot-submit-btn').on('click', function () {
+            $('#hot-submit-btn').on('click', function() {
                 if (!hotInstance) return;
 
                 const rawData = hotInstance.getData();
@@ -651,7 +676,9 @@
                 const items = [];
                 rawData.forEach((row, i) => {
                     const obj = {};
-                    colProps.forEach((p, j) => { obj[p] = row[j]; });
+                    colProps.forEach((p, j) => {
+                        obj[p] = row[j];
+                    });
 
                     // Skip row if all key fields are blank
                     if (!obj.item_name && !obj.qty) return;
@@ -690,9 +717,12 @@
 
                 if (clientErrors.length) {
                     $('#hot-validation-errors')
-                        .html('<strong>Please fix:</strong><ul><li>' + clientErrors.join('</li><li>') + '</li></ul>')
+                        .html('<strong>Please fix:</strong><ul><li>' + clientErrors.join('</li><li>') +
+                            '</li></ul>')
                         .show();
-                    $('html,body').animate({ scrollTop: $('#hot-validation-errors').offset().top - 80 }, 400);
+                    $('html,body').animate({
+                        scrollTop: $('#hot-validation-errors').offset().top - 80
+                    }, 400);
                     return;
                 }
 
@@ -707,20 +737,32 @@
                 $icon.addClass('d-none');
 
                 $.ajax({
-                    url    : '{{ route('purchase_requests.bulk_handsontable') }}',
-                    method : 'POST',
+                    url: '{{ route('purchase_requests.bulk_handsontable') }}',
+                    method: 'POST',
                     contentType: 'application/json',
-                    data   : JSON.stringify({ items }),
-                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-                    success: function (res) {
+                    data: JSON.stringify({
+                        items
+                    }),
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    success: function(res) {
                         let msg = `<strong>${res.count} request(s)</strong> created successfully!`;
                         if (res.errors && res.errors.length) {
-                            msg += '<br><em>Skipped rows:</em><ul><li>' + res.errors.join('</li><li>') + '</li></ul>';
+                            msg += '<br><em>Skipped rows:</em><ul><li>' + res.errors.join(
+                                '</li><li>') + '</li></ul>';
                         }
-                        Swal.fire({ icon: 'success', title: 'Done!', html: msg, confirmButtonText: 'View Requests' })
-                            .then(() => { window.location.href = res.redirect; });
+                        Swal.fire({
+                                icon: 'success',
+                                title: 'Done!',
+                                html: msg,
+                                confirmButtonText: 'View Requests'
+                            })
+                            .then(() => {
+                                window.location.href = res.redirect;
+                            });
                     },
-                    error: function (xhr) {
+                    error: function(xhr) {
                         $btn.prop('disabled', false);
                         $spinner.addClass('d-none');
                         $icon.removeClass('d-none');
@@ -728,10 +770,12 @@
                         const data = xhr.responseJSON || {};
                         if (data.errors && Array.isArray(data.errors)) {
                             $('#hot-validation-errors')
-                                .html('<strong>Validation errors:</strong><ul><li>' + data.errors.join('</li><li>') + '</li></ul>')
+                                .html('<strong>Validation errors:</strong><ul><li>' + data.errors
+                                    .join('</li><li>') + '</li></ul>')
                                 .show();
                         } else {
-                            Swal.fire('Error', data.message || 'An unexpected error occurred.', 'error');
+                            Swal.fire('Error', data.message || 'An unexpected error occurred.',
+                                'error');
                         }
                     },
                 });

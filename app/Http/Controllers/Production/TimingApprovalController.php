@@ -71,15 +71,15 @@ class TimingApprovalController extends Controller
                     $q->whereHas('employee', function ($eq) use ($search) {
                         $eq->where('name', 'like', "%{$search}%");
                     })
-                    ->orWhereHas('project', function ($pq) use ($search) {
-                        $pq->where('name', 'like', "%{$search}%");
-                    })
-                    ->orWhereHas('jobOrder', function ($jq) use ($search) {
-                        $jq->where('name', 'like', "%{$search}%");
-                    })
-                    ->orWhere('step', 'like', "%{$search}%")
-                    ->orWhere('parts', 'like', "%{$search}%")
-                    ->orWhere('remarks', 'like', "%{$search}%");
+                        ->orWhereHas('project', function ($pq) use ($search) {
+                            $pq->where('name', 'like', "%{$search}%");
+                        })
+                        ->orWhereHas('jobOrder', function ($jq) use ($search) {
+                            $jq->where('name', 'like', "%{$search}%");
+                        })
+                        ->orWhere('step', 'like', "%{$search}%")
+                        ->orWhere('parts', 'like', "%{$search}%")
+                        ->orWhere('remarks', 'like', "%{$search}%");
                 });
             }
 
