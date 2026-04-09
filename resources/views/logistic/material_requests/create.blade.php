@@ -41,9 +41,9 @@
                 <form method="POST" action="{{ route('material_requests.store') }}" id="materialRequestForm">
                     @csrf
 
-                    <!-- PROJECT TYPE RADIO -->
+                    <!-- PROJECT TYPE RADIO (kiri) -->
                     <div class="row mb-3">
-                        <div class="col-12">
+                        <div class="col-lg-6">
                             <label class="fw-bold mb-2">Project Type <span class="text-danger">*</span></label>
                             <div class="d-flex gap-4">
                                 <div class="form-check">
@@ -60,9 +60,35 @@
                                 </div>
                             </div>
                         </div>
+                        {{-- Material Source Radio (kanan, sejajar Project Type) --}}
+                        <div class="col-lg-6">
+                            <label class="fw-bold mb-2">Material Source <span class="text-danger">*</span></label>
+                            <div class="d-flex gap-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="inventory_source"
+                                        id="sourceStock" value="stock"
+                                        {{ old('inventory_source', 'stock') == 'stock' ? 'checked' : '' }}>
+                                    <label class="form-check-label fw-semibold text-primary" for="sourceStock">
+                                        <i class="bi bi-boxes me-1"></i>Inventory Stock
+                                    </label>
+                                    <div class="form-text text-muted">From batch inventory</div>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="inventory_source"
+                                        id="sourceIncoming" value="incoming"
+                                        {{ old('inventory_source') == 'incoming' ? 'checked' : '' }}>
+                                    <label class="form-check-label fw-semibold text-success" for="sourceIncoming">
+                                        <i class="bi bi-box-arrow-in-down me-1"></i>Inventory Incoming
+                                    </label>
+                                    <div class="form-text text-muted">From Lark staging</div>
+                                </div>
+                            </div>
+                            <input type="hidden" name="inventory_source" id="hiddenInventorySource"
+                                value="{{ old('inventory_source', 'stock') }}">
+                        </div>
                     </div>
 
-                    <!-- ROW 1: Job Order (kiri) + Material Source Radio (kanan) -->
+                    <!-- JOB ORDER (kiri) + SELECT MATERIAL (kanan) -->
                     <div class="row">
                         <!-- Kolom Kiri: Job Order -->
                         <div class="col-lg-6 mb-3">
@@ -92,36 +118,7 @@
                             </div>
                         </div>
 
-                        <!-- Kolom Kanan: Material Source Radio -->
-                        <div class="col-lg-6 mb-1">
-                            <label class="fw-bold mb-1">Material Source <span class="text-danger">*</span></label>
-                            <div class="d-flex gap-4 mt-1">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="inventory_source"
-                                        id="sourceStock" value="stock"
-                                        {{ old('inventory_source', 'stock') == 'stock' ? 'checked' : '' }}>
-                                    <label class="form-check-label fw-semibold text-primary" for="sourceStock">
-                                        <i class="bi bi-boxes me-1"></i>Inventory Stock
-                                    </label>
-                                    <div class="form-text text-muted">From batch inventory</div>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="inventory_source"
-                                        id="sourceIncoming" value="incoming"
-                                        {{ old('inventory_source') == 'incoming' ? 'checked' : '' }}>
-                                    <label class="form-check-label fw-semibold text-success" for="sourceIncoming">
-                                        <i class="bi bi-box-arrow-in-down me-1"></i>Inventory Incoming
-                                    </label>
-                                    <div class="form-text text-muted">From Lark staging</div>
-                                </div>
-                            </div>
-                            <input type="hidden" name="inventory_source" id="hiddenInventorySource"
-                                value="{{ old('inventory_source', 'stock') }}">
-                        </div>
-                    </div>
-
-                    <!-- ROW 2: Material Select (kiri, sejajar Job Order) -->
-                    <div class="row">
+                        <!-- Kolom Kanan: Select Material (sejajar Job Order) -->
                         <div class="col-lg-6 mb-3">
                             <label id="materialLabel" class="mb-1">Material <span class="text-danger">*</span></label>
 
@@ -175,7 +172,7 @@
                                     value="{{ old('qty') }}">
                                 <span class="input-group-text unit-label">unit</span>
                             </div>
-                            
+
                         </div>
                         <div class="col-lg-6 mb-3">
                             <label>Remark (Optional)</label>

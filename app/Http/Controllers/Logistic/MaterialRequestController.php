@@ -33,7 +33,7 @@ class MaterialRequestController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = MaterialRequest::with(['inventory:id,name,unit', 'project:id,name,department_id', 'internalProject:id,project,job,department_id', 'jobOrder:id,name,project_id', 'user:id,username,department_id', 'user.department:id,name'])->latest();
+            $query = MaterialRequest::with(['inventory:id,name,unit', 'stagingInventory:id,name,unit,review_status,inventory_id', 'project:id,name,department_id', 'internalProject:id,project,job,department_id', 'jobOrder:id,name,project_id', 'user:id,username,department_id', 'user.department:id,name'])->latest();
 
             // Apply filters
             if ($request->filled('project')) {
@@ -102,17 +102,35 @@ class MaterialRequestController extends Controller
                     return $req->project_type === 'client' ? 'Client' : 'Internal';
                 })
                 ->addColumn('material_name', function ($req) {
+                    if ($req->inventory_source === 'incoming') {
+                        // Incoming source: ambil nama dari staging inventory
+                        $stagingName = $req->stagingInventory->name ?? null;
+                        if ($stagingName) {
+                            return '<span class="badge bg-success-subtle text-success border border-success-subtle me-1" title="Inventory Incoming"><i class="bi bi-box-arrow-in-down"></i></span>' . e($stagingName);
+                        }
+                        return '(No Material)';
+                    }
+                    // Stock source: ambil dari relasi inventory
                     return $req->inventory->name ?? '(No Material)';
                 })
                 ->addColumn('requested_qty', function ($req) {
-                    return rtrim(rtrim(number_format($req->qty, 2, '.', ''), '0'), '.') . ' ' . ($req->inventory->unit ?? '');
+                    $unit = $req->inventory_source === 'incoming'
+                        ? ($req->stagingInventory->unit ?? '')
+                        : ($req->inventory->unit ?? '');
+                    return rtrim(rtrim(number_format($req->qty, 2, '.', ''), '0'), '.') . ' ' . $unit;
                 })
                 ->addColumn('remaining_qty', function ($req) {
+                    $unit = $req->inventory_source === 'incoming'
+                        ? ($req->stagingInventory->unit ?? '')
+                        : ($req->inventory->unit ?? '');
                     $remaining = $req->qty - $req->processed_qty;
-                    return '<span data-bs-toggle="tooltip" title="' . ($req->inventory->unit ?? '') . '">' . rtrim(rtrim(number_format($remaining, 2, '.', ''), '0'), '.') . '</span>';
+                    return '<span data-bs-toggle="tooltip" title="' . $unit . '">' . rtrim(rtrim(number_format($remaining, 2, '.', ''), '0'), '.') . '</span>';
                 })
                 ->addColumn('processed_qty', function ($req) {
-                    return '<span data-bs-toggle="tooltip" title="' . ($req->inventory->unit ?? '') . '">' . rtrim(rtrim(number_format($req->processed_qty, 2, '.', ''), '0'), '.') . '</span>';
+                    $unit = $req->inventory_source === 'incoming'
+                        ? ($req->stagingInventory->unit ?? '')
+                        : ($req->inventory->unit ?? '');
+                    return '<span data-bs-toggle="tooltip" title="' . $unit . '">' . rtrim(rtrim(number_format($req->processed_qty, 2, '.', ''), '0'), '.') . '</span>';
                 })
                 ->addColumn('requested_by', function ($req) {
                     $department = $req->user && $req->user->department ? ucfirst($req->user->department->name) : '-';
@@ -214,7 +232,7 @@ class MaterialRequestController extends Controller
                     $actions .= '</div>';
                     return $actions;
                 })
-                ->rawColumns(['checkbox', 'job_order', 'project_type', 'remaining_qty', 'processed_qty', 'requested_by', 'status', 'remark', 'actions'])
+                ->rawColumns(['checkbox', 'job_order', 'project_type', 'material_name', 'remaining_qty', 'processed_qty', 'requested_by', 'status', 'remark', 'actions'])
                 ->setRowId(function ($req) {
                     return 'row-' . $req->id;
                 })
@@ -855,7 +873,7 @@ class MaterialRequestController extends Controller
 
         $request->validate(['status' => 'required|in:pending,approved,delivered,canceled']);
 
-        $materialRequest = MaterialRequest::findOrFail($id);
+        $materialRequest = MaterialRequest::with('stagingInventory')->findOrFail($id);
 
         if ($materialRequest->status === 'delivered') {
             return response()->json(['success' => false, 'message' => 'Delivered requests cannot be updated.'], 422);
@@ -866,6 +884,24 @@ class MaterialRequestController extends Controller
         }
 
         $oldStatus = $materialRequest->status;
+
+        // Validasi: incoming source tidak bisa di-approve jika staging belum push ke inventory batch
+        if ($request->status === 'approved' && $materialRequest->inventory_source === 'incoming') {
+            $staging = $materialRequest->stagingInventory;
+            if (!$staging || $staging->review_status !== 'approved' || !$staging->processed) {
+                $stagingName = $staging->name ?? '-';
+                $reason = !$staging
+                    ? 'data staging tidak ditemukan'
+                    : ($staging->review_status !== 'approved'
+                        ? 'belum di-approve oleh Admin Logistik'
+                        : 'belum di-push ke Inventory Batch');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Material Request ini menggunakan <b>Inventory Incoming</b>. Status tidak dapat diubah ke <b>Approved</b> karena staging inventory (<b>' . e($stagingName) . '</b>) ' . $reason . '.',
+                ], 422);
+            }
+        }
+
         $updateData = ['status' => $request->status];
         if ($request->status === 'approved' && $materialRequest->status !== 'approved') {
             $updateData['approved_at'] = now();

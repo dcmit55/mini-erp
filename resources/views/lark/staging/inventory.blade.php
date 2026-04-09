@@ -499,7 +499,7 @@
                     url: '{{ url('lark/staging/inventory') }}/' + id + '/received-qty',
                     method: 'POST',
                     data: {
-                        _token: '{{ csrf_token() }}',
+                        _token: $('meta[name="csrf-token"]').attr('content'),
                         received_qty: qty
                     },
                     success: function(response) {
@@ -548,7 +548,7 @@
                     url: urls[type],
                     method: 'POST',
                     data: {
-                        _token: '{{ csrf_token() }}',
+                        _token: $('meta[name="csrf-token"]').attr('content'),
                         note: note
                     },
                     success: function(response) {
@@ -666,7 +666,7 @@
                         true);
 
                     var postData = {
-                        _token: '{{ csrf_token() }}'
+                        _token: $('meta[name="csrf-token"]').attr('content')
                     };
                     if (isSelected) {
                         postData.ids = ids;

@@ -68,6 +68,11 @@ class MaterialRequest extends Model implements Auditable
         return $this->belongsTo(Inventory::class);
     }
 
+    public function stagingInventory()
+    {
+        return $this->belongsTo(\App\Models\Lark\LarkStagingInventory::class, 'staging_inventory_id');
+    }
+
     public function project()
     {
         return $this->belongsTo(Project::class);

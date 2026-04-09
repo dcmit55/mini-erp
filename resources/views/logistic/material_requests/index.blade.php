@@ -1173,9 +1173,9 @@
                         Swal.fire({
                             icon: 'error',
                             title: 'Update Failed',
-                            text: errorMessage,
-                            timer: 3000,
-                            showConfirmButton: false
+                            html: errorMessage,
+                            timer: 5000,
+                            showConfirmButton: true
                         });
 
                         console.error('Status update failed:', errorMessage);
