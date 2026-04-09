@@ -33,7 +33,7 @@ class MaterialRequestController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = MaterialRequest::with(['inventory:id,name,unit', 'stagingInventory:id,name,unit,review_status,inventory_id', 'project:id,name,department_id', 'internalProject:id,project,job,department_id', 'jobOrder:id,name,project_id', 'user:id,username,department_id', 'user.department:id,name'])->latest();
+            $query = MaterialRequest::with(['inventory:id,name,unit', 'stagingInventory:id,name,unit,review_status,processed', 'project:id,name,department_id', 'internalProject:id,project,job,department_id', 'jobOrder:id,name,project_id', 'user:id,username,department_id', 'user.department:id,name'])->latest();
 
             // Apply filters
             if ($request->filled('project')) {
