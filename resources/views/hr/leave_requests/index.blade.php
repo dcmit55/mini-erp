@@ -158,13 +158,13 @@
                                 @if($isAuthenticated && in_array($userRole, ['super_admin', 'admin_hr']))
                                 <td class="px-3 py-2 text-end">
                                     <div class="d-flex gap-1 justify-content-end">
-                                        <a href="{{ route('leave_requests.show', $leave->id) }}" class="btn btn-outline-info btn-sm rounded-2 px-2 py-1" title="Detail">
+                                        <a href="{{ route('leave_requests.show', $leave) }}" class="btn btn-outline-info btn-sm rounded-2 px-2 py-1" title="Detail">
                                             <i class="fas fa-eye"></i>
                                         </a>
-                                        <a href="{{ route('leave_requests.edit', $leave->id) }}" class="btn btn-outline-warning btn-sm rounded-2 px-2 py-1" title="Edit">
+                                        <a href="{{ route('leave_requests.edit', $leave) }}" class="btn btn-outline-warning btn-sm rounded-2 px-2 py-1" title="Edit">
                                             <i class="fas fa-pencil-alt"></i>
                                         </a>
-                                        <form action="{{ route('leave_requests.destroy', $leave->id) }}" method="POST" class="d-inline"
+                                        <form action="{{ route('leave_requests.destroy', $leave) }}" method="POST" class="d-inline"
                                               onsubmit="return confirm('Delete leave request for {{ addslashes($leave->employee->name ?? '') }}?')">
                                             @csrf @method('DELETE')
                                             <button type="submit" class="btn btn-outline-danger btn-sm rounded-2 px-2 py-1" title="Delete">
@@ -221,13 +221,13 @@
                     </div>
                     @if($isAuthenticated && in_array($userRole, ['super_admin', 'admin_hr']))
                     <div class="d-flex gap-2">
-                        <a href="{{ route('leave_requests.show', $leave->id) }}" class="btn btn-outline-info btn-sm rounded-2 px-2">
+                        <a href="{{ route('leave_requests.show', $leave) }}" class="btn btn-outline-info btn-sm rounded-2 px-2">
                             <i class="fas fa-eye"></i>
                         </a>
-                        <a href="{{ route('leave_requests.edit', $leave->id) }}" class="btn btn-outline-warning btn-sm rounded-2 px-2">
+                        <a href="{{ route('leave_requests.edit', $leave) }}" class="btn btn-outline-warning btn-sm rounded-2 px-2">
                             <i class="fas fa-pencil-alt"></i>
                         </a>
-                        <form action="{{ route('leave_requests.destroy', $leave->id) }}" method="POST" class="d-inline"
+                        <form action="{{ route('leave_requests.destroy', $leave) }}" method="POST" class="d-inline"
                               onsubmit="return confirm('Delete?')">
                             @csrf @method('DELETE')
                             <button type="submit" class="btn btn-outline-danger btn-sm rounded-2 px-2">

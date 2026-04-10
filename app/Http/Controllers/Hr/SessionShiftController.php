@@ -8,6 +8,7 @@ use App\Models\Hr\DailyAttendance;
 use App\Models\Hr\LeaveRequest;
 use App\Models\Hr\Employee;
 use App\Models\Admin\Department;
+use Illuminate\Support\Arr;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -27,7 +28,7 @@ class SessionShiftController extends Controller
 
     public function index()
     {
-        $shifts = SessionShift::with('department')
+        $shifts = SessionShift::with(['department', 'employee'])
             ->orderByRaw('department_id IS NULL DESC')
             ->orderBy('department_id')
             ->orderBy('for_wna')
@@ -42,7 +43,19 @@ class SessionShiftController extends Controller
     public function create()
     {
         $departments = Department::orderBy('name')->get();
-        return view('hr.session-shifts.form', compact('departments'));
+        $employees   = Employee::where('status', 'active')->orderBy('name')->get();
+        return view('hr.session-shifts.form', compact('departments', 'employees'));
+    }
+
+    /**
+     * Ubah position_keywords (string dipisah koma) jadi array, strip whitespace.
+     * Return null jika kosong.
+     */
+    private function parsePositionKeywords(?string $raw): ?array
+    {
+        if (blank($raw)) return null;
+        $keywords = array_values(array_filter(array_map('trim', explode(',', $raw))));
+        return empty($keywords) ? null : array_map('strtolower', $keywords);
     }
 
     /**
@@ -64,22 +77,28 @@ class SessionShiftController extends Controller
         $this->normalizeTimeFields($request);
 
         $data = $request->validate([
-            'department_id' => 'nullable|exists:departments,id',
-            'type_of_shift' => 'required|string|max:10',
-            'start_time'    => 'required|date_format:H:i',
-            'end_time'      => 'required|date_format:H:i',
-            'break_start'   => 'nullable|date_format:H:i',
-            'break_end'     => 'nullable|date_format:H:i',
-            'break2_start'  => 'nullable|date_format:H:i',
-            'break2_end'    => 'nullable|date_format:H:i',
-            'for_wna'       => 'boolean',
-            'detect_from'   => 'required|date_format:H:i',
-            'detect_until'  => 'required|date_format:H:i',
-            'is_active'     => 'boolean',
+            'department_id'     => 'nullable|exists:departments,id',
+            'employee_id'       => 'nullable|exists:employees,id',
+            'type_of_shift'     => 'required|string|max:10',
+            'start_time'        => 'required|date_format:H:i',
+            'end_time'          => 'required|date_format:H:i',
+            'break_start'       => 'nullable|date_format:H:i',
+            'break_end'         => 'nullable|date_format:H:i',
+            'break2_start'      => 'nullable|date_format:H:i',
+            'break2_end'        => 'nullable|date_format:H:i',
+            'for_wna'           => 'boolean',
+            'detect_from'       => 'required|date_format:H:i',
+            'detect_until'      => 'required|date_format:H:i',
+            'is_active'         => 'boolean',
+            'applicable_days'   => 'nullable|array',
+            'applicable_days.*' => 'integer|between:1,7',
+            'position_keywords' => 'nullable|string|max:500',
         ]);
 
-        $data['for_wna']   = $request->boolean('for_wna');
-        $data['is_active'] = $request->boolean('is_active', true);
+        $data['for_wna']           = $request->boolean('for_wna');
+        $data['is_active']         = $request->boolean('is_active', true);
+        $data['applicable_days']   = empty($data['applicable_days']) ? null : array_map('intval', $data['applicable_days']);
+        $data['position_keywords'] = $this->parsePositionKeywords($request->input('position_keywords'));
 
         SessionShift::create($data);
 
@@ -90,7 +109,8 @@ class SessionShiftController extends Controller
     public function edit(SessionShift $sessionShift)
     {
         $departments = Department::orderBy('name')->get();
-        return view('hr.session-shifts.form', ['shift' => $sessionShift, 'departments' => $departments]);
+        $employees   = Employee::where('status', 'active')->orderBy('name')->get();
+        return view('hr.session-shifts.form', ['shift' => $sessionShift, 'departments' => $departments, 'employees' => $employees]);
     }
 
     public function update(Request $request, SessionShift $sessionShift)
@@ -98,22 +118,28 @@ class SessionShiftController extends Controller
         $this->normalizeTimeFields($request);
 
         $data = $request->validate([
-            'department_id' => 'nullable|exists:departments,id',
-            'type_of_shift' => 'required|string|max:10',
-            'start_time'    => 'required|date_format:H:i',
-            'end_time'      => 'required|date_format:H:i',
-            'break_start'   => 'nullable|date_format:H:i',
-            'break_end'     => 'nullable|date_format:H:i',
-            'break2_start'  => 'nullable|date_format:H:i',
-            'break2_end'    => 'nullable|date_format:H:i',
-            'for_wna'       => 'boolean',
-            'detect_from'   => 'required|date_format:H:i',
-            'detect_until'  => 'required|date_format:H:i',
-            'is_active'     => 'boolean',
+            'department_id'     => 'nullable|exists:departments,id',
+            'employee_id'       => 'nullable|exists:employees,id',
+            'type_of_shift'     => 'required|string|max:10',
+            'start_time'        => 'required|date_format:H:i',
+            'end_time'          => 'required|date_format:H:i',
+            'break_start'       => 'nullable|date_format:H:i',
+            'break_end'         => 'nullable|date_format:H:i',
+            'break2_start'      => 'nullable|date_format:H:i',
+            'break2_end'        => 'nullable|date_format:H:i',
+            'for_wna'           => 'boolean',
+            'detect_from'       => 'required|date_format:H:i',
+            'detect_until'      => 'required|date_format:H:i',
+            'is_active'         => 'boolean',
+            'applicable_days'   => 'nullable|array',
+            'applicable_days.*' => 'integer|between:1,7',
+            'position_keywords' => 'nullable|string|max:500',
         ]);
 
-        $data['for_wna']   = $request->boolean('for_wna');
-        $data['is_active'] = $request->boolean('is_active', true);
+        $data['for_wna']           = $request->boolean('for_wna');
+        $data['is_active']         = $request->boolean('is_active', true);
+        $data['applicable_days']   = empty($data['applicable_days']) ? null : array_map('intval', $data['applicable_days']);
+        $data['position_keywords'] = $this->parsePositionKeywords($request->input('position_keywords'));
 
         $sessionShift->update($data);
 

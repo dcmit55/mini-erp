@@ -164,6 +164,83 @@
                             </div>
                         </div>
 
+                        {{-- Applicable Days --}}
+                        <div class="mb-4">
+                            <h6 class="fw-medium text-dark mb-1">
+                                <i class="fas fa-calendar-week me-2 text-primary"></i>Applicable Days
+                            </h6>
+                            <p class="text-muted small mb-3">Biarkan kosong jika berlaku setiap hari.</p>
+                            @php
+                                $savedDays = old('applicable_days', isset($shift) ? ($shift->applicable_days ?? []) : []);
+                                $dayLabels = [1=>'Sen',2=>'Sel',3=>'Rab',4=>'Kam',5=>'Jum',6=>'Sab',7=>'Min'];
+                            @endphp
+                            <div class="d-flex gap-2 flex-wrap">
+                                @foreach($dayLabels as $num => $label)
+                                <div class="form-check form-check-inline m-0">
+                                    <input class="form-check-input" type="checkbox"
+                                           name="applicable_days[]" value="{{ $num }}"
+                                           id="day_{{ $num }}"
+                                           {{ in_array($num, array_map('intval', $savedDays)) ? 'checked' : '' }}>
+                                    <label class="form-check-label small fw-medium" for="day_{{ $num }}">{{ $label }}</label>
+                                </div>
+                                @endforeach
+                            </div>
+                            <div class="mt-2 d-flex gap-2">
+                                <button type="button" class="btn btn-outline-secondary btn-sm rounded-2 px-2 py-1" onclick="setDays([1,2,3,4,5])">
+                                    <i class="fas fa-check-double me-1"></i>Sen–Jum
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm rounded-2 px-2 py-1" onclick="setDays([6])">
+                                    Sabtu saja
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm rounded-2 px-2 py-1" onclick="setDays([])">
+                                    Hapus semua
+                                </button>
+                            </div>
+                        </div>
+
+                        {{-- Position Keywords --}}
+                        <div class="mb-4">
+                            <h6 class="fw-medium text-dark mb-1">
+                                <i class="fas fa-user-tag me-2 text-primary"></i>Position Keywords
+                            </h6>
+                            <p class="text-muted small mb-2">
+                                Filter berdasarkan posisi karyawan. Pisahkan dengan koma. Kosongkan jika berlaku untuk semua posisi.
+                            </p>
+                            @php
+                                $savedKeywords = old('position_keywords',
+                                    isset($shift) && $shift->position_keywords
+                                        ? implode(', ', $shift->position_keywords)
+                                        : ''
+                                );
+                            @endphp
+                            <input type="text" name="position_keywords"
+                                   class="form-control border-1 rounded-2 py-2 px-3 @error('position_keywords') is-invalid @enderror"
+                                   value="{{ $savedKeywords }}"
+                                   placeholder="contoh: operator, sewing">
+                            <small class="text-muted">Contoh: <code>operator, sewing</code> — cocok jika posisi karyawan mengandung salah satu kata ini.</small>
+                            @error('position_keywords')<div class="invalid-feedback small">{{ $message }}</div>@enderror
+                        </div>
+
+                        {{-- Employee Override --}}
+                        <div class="mb-4">
+                            <h6 class="fw-medium text-dark mb-1">
+                                <i class="fas fa-user-lock me-2 text-primary"></i>Shift Khusus per Karyawan
+                            </h6>
+                            <p class="text-muted small mb-2">
+                                Opsional. Jika diisi, shift ini hanya berlaku untuk karyawan tersebut (prioritas tertinggi).
+                            </p>
+                            <select name="employee_id" class="form-select border-1 rounded-2 py-2 px-3">
+                                <option value="">— Tidak spesifik (berlaku umum) —</option>
+                                @foreach($employees as $emp)
+                                    <option value="{{ $emp->id }}"
+                                        {{ old('employee_id', $shift->employee_id ?? '') == $emp->id ? 'selected' : '' }}>
+                                        {{ $emp->name }}
+                                        @if($emp->department) ({{ $emp->department->name }}) @endif
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
                         {{-- Active toggle --}}
                         <div class="mb-4">
                             <div class="form-check form-switch">
@@ -213,6 +290,15 @@
     h6.fw-medium i { color: #4f46e5; }
     small.text-muted { font-size: 0.8rem; margin-top: 0.25rem; display: block; }
 </style>
+
+<script>
+function setDays(days) {
+    [1,2,3,4,5,6,7].forEach(function(d) {
+        var cb = document.getElementById('day_' + d);
+        if (cb) cb.checked = days.includes(d);
+    });
+}
+</script>
 
 @if(isset($shift) && $shift->break2_start)
 {{-- Separate form OUTSIDE the main form to avoid nested forms --}}

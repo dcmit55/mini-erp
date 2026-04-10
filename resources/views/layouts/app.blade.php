@@ -46,6 +46,87 @@
 
         <link rel="stylesheet" href="{{ asset('css/custom-app.css') }}">
 
+        <style>
+        /* ── Mobile Sidebar ─────────────────────────────── */
+        @media (max-width: 991.98px) {
+            #sidebarBackdrop {
+                display: none;
+                position: fixed;
+                inset: 0;
+                background: rgba(0,0,0,.45);
+                z-index: 1040;
+                backdrop-filter: blur(2px);
+            }
+
+            #navbarSupportedContent {
+                position: fixed !important;
+                top: 0; left: 0;
+                width: min(280px, 85vw);
+                height: 100vh !important;
+                overflow-y: auto;
+                z-index: 1045;
+                padding: 1rem .75rem 0;
+                border-right: 1px solid var(--bs-border-color);
+                box-shadow: 4px 0 24px rgba(0,0,0,.18);
+                transform: translateX(-100%);
+                transition: transform .28s ease, visibility .28s !important;
+                display: flex !important;
+                flex-direction: column;
+                visibility: hidden;
+                background: var(--bs-body-bg) !important;
+            }
+
+            #navbarSupportedContent.show,
+            #navbarSupportedContent.collapsing {
+                transform: translateX(0) !important;
+                visibility: visible !important;
+                height: 100vh !important;
+            }
+
+            #navbarSupportedContent .dropdown-menu {
+                position: static !important;
+                box-shadow: none !important;
+                border: none;
+                padding: .25rem 0 .25rem 1rem;
+                background: transparent !important;
+            }
+
+            #navbarSupportedContent .navbar-nav .nav-link {
+                padding: .5rem .75rem;
+                border-radius: .375rem;
+            }
+
+            #navbarSupportedContent .navbar-nav .nav-link:hover {
+                background: var(--bs-tertiary-bg);
+            }
+
+            #navbarSupportedContent .navbar-nav {
+                flex-direction: column !important;
+            }
+
+            /* Left nav scrollable, right nav pinned to bottom */
+            #navbarSupportedContent .navbar-nav.me-auto {
+                flex: 1;
+                overflow-y: auto;
+            }
+
+            #navbarSupportedContent .navbar-nav.ms-auto {
+                flex-direction: row !important;
+                align-items: center;
+                gap: .5rem;
+                padding: .75rem .25rem;
+                margin-top: auto;
+                border-top: 1px solid var(--bs-border-color);
+                flex-shrink: 0;
+            }
+        }
+
+        @media (min-width: 992px) {
+            #sidebarBackdrop { display: none !important; }
+            .sidebar-header  { display: none !important; }
+        }
+        </style>
+
         <!-- Apply saved theme immediately to prevent flash -->
         <script>
             (function() {
@@ -61,6 +142,7 @@
 
     <body>
         <div id="app">
+            <div id="sidebarBackdrop"></div>
             <nav id="mainNavbar" class="navbar navbar-expand-lg border-bottom shadow-sm"
                 style="background: var(--bs-body-bg); transition: background-color .2s, border-color .2s;">
                 <div class="container-fluid">
@@ -74,6 +156,11 @@
                     </button>
 
                     <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                        <!-- Sidebar header — mobile only -->
+                        <div class="sidebar-header d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+                            <span class="fw-bold">{{ config('app.name', 'DCM-app') }}</span>
+                            <button type="button" id="sidebarCloseBtn" class="btn-close" aria-label="Close"></button>
+                        </div>
                         <!-- Left Side Of Navbar -->
                         <ul class="navbar-nav me-auto">
                             @if (auth()->check())
@@ -530,20 +617,6 @@
                                                     href="{{ route('purchase-edited.index') }}">
                                                     <i class="fas fa-edit me-2"></i>Purchase Edited
                                                 </a>
-
-                                                <hr class="dropdown-divider">
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item {{ request()->is('admin/kasbon') ? 'active' : '' }}"
-                                                    href="{{ route('kasbon.admin.index') }}">
-                                                    <i class="fas fa-hand-holding-usd me-2"></i>Cash Advance
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item {{ request()->is('admin/kasbon/installments*') ? 'active' : '' }}"
-                                                    href="{{ route('kasbon.admin.installments') }}">
-                                                    <i class="fas fa-calendar-check me-2"></i>Installment Monitoring
-                                                </a>
                                             </li>
                                         </ul>
                                     </li>
@@ -587,12 +660,20 @@
                                                 ->count();
                                         @endphp
                                         <li class="nav-item dropdown">
-                                            <a class="nav-link dropdown-toggle {{ request()->is('employees*') || request()->routeIs('leave_requests.index') || request()->is('attendance*') || request()->routeIs('employee-work-policies.*') || request()->routeIs('timings.*') || request()->routeIs('attendance-logs.*') || request()->routeIs('overtime-requests.*') || request()->routeIs('overtime-pays.*') || request()->routeIs('fingerspot.*') || request()->routeIs('session-shifts.*') ? 'active' : '' }}"
-                                                href="#" id="hrDropdown" role="button" data-bs-toggle="dropdown"
+                                            <a class="nav-link dropdown-toggle {{ request()->is('employees*') || request()->routeIs('leave_requests.index') || request()->is('attendance*') || request()->routeIs('employee-work-policies.*') || request()->routeIs('timings.*') || request()->routeIs('attendance-logs.*') || request()->routeIs('overtime-requests.*') || request()->routeIs('overtime-pays.*') || request()->routeIs('fingerspot.*') || request()->routeIs('session-shifts.*') || request()->routeIs('hr.dashboard') ? 'active' : '' }}"
+                                                href="{{ route('hr.dashboard') }}" id="hrDropdown" role="button" data-bs-toggle="dropdown"
                                                 aria-expanded="false">
                                                 <i></i>HR
                                             </a>
                                             <ul class="dropdown-menu" aria-labelledby="hrDropdown">
+                                                {{-- Dashboard --}}
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->routeIs('hr.dashboard') ? 'active' : '' }}"
+                                                        href="{{ route('hr.dashboard') }}">
+                                                        <i class="fas fa-chart-pie me-2"></i>Dashboard
+                                                    </a>
+                                                </li>
+                                                <li><hr class="dropdown-divider"></li>
                                                 {{-- Karyawan --}}
                                                 <li>
                                                     <a class="dropdown-item {{ request()->is('employees*') ? 'active' : '' }}"
@@ -604,6 +685,12 @@
                                                     <a class="dropdown-item {{ request()->routeIs('attendance-logs.*') ? 'active' : '' }}"
                                                         href="{{ route('attendance-logs.index') }}">
                                                         <i class="fas fa-list-alt me-2"></i>Attendance Logs
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('timings*') ? 'active' : '' }}"
+                                                        href="{{ route('timings.index') }}">
+                                                        <i class="fas fa-stopwatch me-2"></i>Timing Data
                                                     </a>
                                                 </li>
                                                 <li>
@@ -648,17 +735,6 @@
                                                     <a class="dropdown-item {{ request()->routeIs('overtime-pays.*') ? 'active' : '' }}"
                                                         href="{{ route('overtime-pays.index') }}">
                                                         <i class="fas fa-calculator me-2"></i>Overtime Pay
-                                                    </a>
-                                                </li>
-
-                                                {{-- Timing --}}
-                                                <li>
-                                                    <hr class="dropdown-divider">
-                                                </li>
-                                                <li>
-                                                    <a class="dropdown-item {{ request()->is('timings*') ? 'active' : '' }}"
-                                                        href="{{ route('timings.index') }}">
-                                                        <i class="fas fa-stopwatch me-2"></i>Timing Data
                                                     </a>
                                                 </li>
 
@@ -757,30 +833,6 @@
                                 @endif
                             @endif
 
-                            <!-- Kasbon Self-Service (semua role) -->
-                            @auth
-                                <li class="nav-item dropdown">
-                                    <a class="nav-link dropdown-toggle {{ request()->is('pengajuan-kasbon*') || request()->is('cek-kasbon*') ? 'active' : '' }}"
-                                        href="#" id="kasbonSelfDropdown" role="button" data-bs-toggle="dropdown"
-                                        aria-expanded="false">
-                                        <i></i>Kasbon
-                                    </a>
-                                    <ul class="dropdown-menu" aria-labelledby="kasbonSelfDropdown">
-                                        <li>
-                                            <a class="dropdown-item {{ request()->is('pengajuan-kasbon*') ? 'active' : '' }}"
-                                                href="{{ route('kasbon.create') }}">
-                                                <i class="fas fa-hand-holding-usd me-2"></i>Request Kasbon
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item {{ request()->is('cek-kasbon*') ? 'active' : '' }}"
-                                                href="{{ route('kasbon.status') }}">
-                                                <i class="fas fa-search me-2"></i>Cek Status Kasbon
-                                            </a>
-                                        </li>
-                                    </ul>
-                                </li>
-                            @endauth
 
                         </ul>
 
@@ -994,6 +1046,42 @@
         @yield('scripts')
         @stack('scripts')
 
+        <!-- Mobile Sidebar JS -->
+        <script>
+        (function () {
+            var backdrop = document.getElementById('sidebarBackdrop');
+            var sidebar  = document.getElementById('navbarSupportedContent');
+            var closeBtn = document.getElementById('sidebarCloseBtn');
+
+            function closeSidebar() {
+                backdrop.style.display = 'none';
+                var bsCollapse = bootstrap.Collapse.getInstance(sidebar);
+                if (bsCollapse) bsCollapse.hide();
+            }
+
+            sidebar.addEventListener('show.bs.collapse', function () {
+                if (window.innerWidth < 992) backdrop.style.display = 'block';
+            });
+
+            sidebar.addEventListener('hide.bs.collapse', function () {
+                backdrop.style.display = 'none';
+            });
+
+            backdrop.addEventListener('click', closeSidebar);
+
+            if (closeBtn) closeBtn.addEventListener('click', closeSidebar);
+
+            // Close when a non-dropdown link is clicked
+            sidebar.addEventListener('click', function (e) {
+                if (window.innerWidth >= 992) return;
+                var link = e.target.closest('a.nav-link, a.dropdown-item');
+                if (link && !link.classList.contains('dropdown-toggle')) {
+                    closeSidebar();
+                }
+            });
+        })();
+        </script>
+
         <footer class="border-top text-center text-lg-start mt-5"
             style="background: var(--bs-body-bg); color: var(--bs-body-color);">
             <div class="container-fluid">
@@ -1009,106 +1097,125 @@
             <div id="symcore-chatbot" style="position:fixed;bottom:28px;left:28px;z-index:1055;">
 
                 <!-- Floating Toggle Button -->
-                <button id="chatbot-toggle" onclick="chatbotToggle()" title="Symcore AI Assistant"
-                    style="width:56px;height:56px;border-radius:50%;border:none;background:#fff;
-                       color:#1d4ed8;font-size:1.3rem;box-shadow:0 4px 18px rgba(29,78,216,.5);
+                <button id="chatbot-toggle" onclick="chatbotToggle()" title="SymBot — Symcore AI Assistant"
+                    style="width:58px;height:58px;border-radius:50%;border:none;
+                       background:linear-gradient(135deg,#1d4ed8,#6366f1);
                        cursor:pointer;display:flex;align-items:center;justify-content:center;
-                       transition:transform .2s,box-shadow .2s;overflow:hidden;padding:0;"
-                    onmouseenter="this.style.transform='scale(1.08)';this.style.boxShadow='0 6px 24px rgba(29,78,216,.7)'"
-                    onmouseleave="this.style.transform='scale(1)';this.style.boxShadow='0 4px 18px rgba(29,78,216,.5)'">
-                    <img id="chatbot-toggle-icon" src="https://i.ibb.co.com/7t90LZkN/chatbot.webp" alt="AI"
-                        style="width:56px;height:56px;object-fit:cover;border-radius:50%;">
+                       box-shadow:0 4px 20px rgba(99,102,241,.55);
+                       transition:transform .2s,box-shadow .2s;overflow:hidden;padding:0;">
+                    <img id="cb-icon-img" src="https://i.ibb.co.com/7t90LZkN/chatbot.webp" alt="AI"
+                        style="width:58px;height:58px;object-fit:cover;border-radius:50%;display:block;">
+                    <i id="cb-icon-x" class="fas fa-times" style="color:#fff;font-size:1.2rem;display:none;"></i>
                 </button>
+
+                <!-- Unread badge -->
+                <span id="cb-badge" style="display:none;position:absolute;top:-4px;right:-4px;
+                    background:#ef4444;color:#fff;font-size:10px;font-weight:700;
+                    width:18px;height:18px;border-radius:50%;text-align:center;line-height:18px;
+                    border:2px solid #fff;">1</span>
 
                 <!-- Chat Window -->
                 <div id="chatbot-window"
-                    style="display:none;position:absolute;bottom:68px;left:0;width:370px;height:520px;
-                       background:#fff;border-radius:18px;box-shadow:0 8px 40px rgba(0,0,0,.18);
-                       flex-direction:column;overflow:hidden;border:1px solid #e5e7eb;">
+                    style="display:none;position:absolute;bottom:70px;left:0;width:380px;
+                       background:#fff;border-radius:20px;
+                       box-shadow:0 12px 48px rgba(0,0,0,.18),0 2px 8px rgba(0,0,0,.08);
+                       flex-direction:column;overflow:hidden;border:1px solid rgba(99,102,241,.15);">
 
                     <!-- Header -->
-                    <div
-                        style="background:linear-gradient(135deg,#1d4ed8,#3b82f6);padding:14px 16px;
-                            display:flex;align-items:center;justify-content:space-between;">
+                    <div style="background:linear-gradient(135deg,#1d4ed8 0%,#6366f1 100%);padding:14px 16px;
+                            display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
                         <div style="display:flex;align-items:center;gap:10px;">
-                            <div
-                                style="width:36px;height:36px;border-radius:50%;overflow:hidden;
-                                    display:flex;align-items:center;justify-content:center;border:2px solid rgba(255,255,255,.4);">
+                            <div style="position:relative;flex-shrink:0;">
                                 <img src="https://i.ibb.co.com/7t90LZkN/chatbot.webp" alt="SymBot"
-                                    style="width:36px;height:36px;object-fit:cover;border-radius:50%;">
+                                    style="width:38px;height:38px;object-fit:cover;border-radius:50%;
+                                           border:2px solid rgba(255,255,255,.5);">
+                                <span style="position:absolute;bottom:1px;right:1px;width:9px;height:9px;
+                                    background:#4ade80;border-radius:50%;border:2px solid #4338ca;"></span>
                             </div>
                             <div>
-                                <div style="color:#fff;font-weight:600;font-size:.9rem;line-height:1.2;">SymBot</div>
-                                <div style="color:rgba(255,255,255,.75);font-size:.72rem;">
-                                    <span
-                                        style="width:7px;height:7px;background:#4ade80;border-radius:50%;display:inline-block;margin-right:4px;"></span>Online
-                                </div>
+                                <div style="color:#fff;font-weight:700;font-size:.9rem;letter-spacing:.01em;">SymBot</div>
+                                <div style="color:rgba(255,255,255,.7);font-size:.7rem;">AI Assistant · Symcore ERP</div>
                             </div>
                         </div>
-                        <div style="display:flex;align-items:center;gap:8px;">
-                            <!-- Language Selector -->
+                        <div style="display:flex;align-items:center;gap:6px;">
                             <select id="chatbot-lang" onchange="chatbotSetLang(this.value)"
-                                style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);
-                                   border-radius:8px;padding:3px 6px;font-size:.72rem;cursor:pointer;outline:none;">
+                                style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25);
+                                   border-radius:8px;padding:3px 6px;font-size:.7rem;cursor:pointer;outline:none;">
                                 <option value="auto" style="color:#000;">🌐 Auto</option>
-                                <option value="id" style="color:#000;">🇮🇩 ID</option>
-                                <option value="en" style="color:#000;">🇬🇧 EN</option>
-                                <option value="zh" style="color:#000;">🇨🇳 ZH</option>
+                                <option value="id"   style="color:#000;">🇮🇩 ID</option>
+                                <option value="en"   style="color:#000;">🇬🇧 EN</option>
+                                <option value="zh"   style="color:#000;">🇨🇳 ZH</option>
                             </select>
-                            <!-- Clear -->
                             <button onclick="chatbotClear()" title="Clear chat"
                                 style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;
-                                   width:28px;height:28px;cursor:pointer;font-size:.8rem;display:flex;align-items:center;justify-content:center;">
+                                   width:28px;height:28px;cursor:pointer;font-size:.75rem;
+                                   display:flex;align-items:center;justify-content:center;
+                                   transition:background .15s;"
+                                onmouseenter="this.style.background='rgba(255,255,255,.28)'"
+                                onmouseleave="this.style.background='rgba(255,255,255,.15)'">
                                 <i class="fas fa-trash-alt"></i>
                             </button>
-                            <!-- Close -->
                             <button onclick="chatbotToggle()" title="Close"
                                 style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;
-                                   width:28px;height:28px;cursor:pointer;font-size:.85rem;display:flex;align-items:center;justify-content:center;">
+                                   width:28px;height:28px;cursor:pointer;font-size:.85rem;
+                                   display:flex;align-items:center;justify-content:center;
+                                   transition:background .15s;"
+                                onmouseenter="this.style.background='rgba(255,255,255,.28)'"
+                                onmouseleave="this.style.background='rgba(255,255,255,.15)'">
                                 <i class="fas fa-times"></i>
                             </button>
                         </div>
                     </div>
 
+                    <!-- Suggestion chips (shown only when no history) -->
+                    <div id="cb-chips" style="padding:10px 12px 4px;background:#f8f9ff;border-bottom:1px solid #eef0f8;
+                            display:flex;gap:6px;flex-wrap:wrap;flex-shrink:0;">
+                        <span class="cb-chip" onclick="chatbotChip('Stok fur WL-2022 #63 Brown berapa?')">📦 Stok material</span>
+                        <span class="cb-chip" onclick="chatbotChip('Berapa karyawan aktif?')">👥 Data karyawan</span>
+                        <span class="cb-chip" onclick="chatbotChip('Ada berapa cuti yang pending?')">🏖️ Leave pending</span>
+                        <span class="cb-chip" onclick="chatbotChip('Overtime pending bulan ini?')">⏱️ OT pending</span>
+                    </div>
+
                     <!-- Messages Area -->
                     <div id="chatbot-messages"
-                        style="flex:1;overflow-y:auto;padding:14px 14px 6px;display:flex;flex-direction:column;gap:10px;
-                           background:#f8f9fc;">
-                        <!-- Welcome message -->
+                        style="height:380px;overflow-y:auto;padding:14px 14px 6px;
+                               display:flex;flex-direction:column;gap:10px;background:#f8f9ff;">
                         <div class="cb-msg cb-msg-ai">
                             <div class="cb-bubble cb-bubble-ai">
-                                👋 Halo! Saya <strong>Symcore AI</strong>.<br>
-                                Saya bisa membantu Anda dengan informasi sistem, data real-time, atau pertanyaan
-                                umum.<br><br>
-                                <em style="font-size:.8rem;opacity:.75;">Ketik dalam Bahasa Indonesia, English, atau 中文 —
-                                    saya akan menyesuaikan.</em>
+                                👋 Halo! Saya <strong>SymBot</strong>, AI assistant Symcore ERP.<br>
+                                Saya bisa menjawab pertanyaan tentang <strong>stok, karyawan, cuti, lembur</strong>, dan data sistem lainnya secara <em>real-time</em>.<br><br>
+                                <span style="font-size:.78rem;opacity:.7;">Coba klik salah satu topik di atas, atau ketik pertanyaan Anda.</span>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Typing Indicator (hidden by default) -->
-                    <div id="chatbot-typing" style="padding:0 14px 6px;display:none;">
-                        <div class="cb-bubble cb-bubble-ai" style="padding:10px 14px;">
+                    <!-- Typing Indicator -->
+                    <div id="chatbot-typing" style="padding:4px 14px 8px;display:none;background:#f8f9ff;flex-shrink:0;">
+                        <div class="cb-bubble cb-bubble-ai" style="padding:10px 16px;display:inline-flex;">
                             <span class="cb-dots"><span></span><span></span><span></span></span>
                         </div>
                     </div>
 
                     <!-- Input Area -->
-                    <div
-                        style="padding:10px 12px;border-top:1px solid #e5e7eb;background:#fff;display:flex;gap:8px;align-items:flex-end;">
-                        <textarea id="chatbot-input" placeholder="Ketik pesan..." rows="1" onkeydown="chatbotKeydown(event)"
+                    <div style="padding:10px 12px;border-top:1px solid #eef0f8;background:#fff;
+                            display:flex;gap:8px;align-items:flex-end;flex-shrink:0;">
+                        <textarea id="chatbot-input" placeholder="Tanya sesuatu..." rows="1"
+                            onkeydown="chatbotKeydown(event)"
                             oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,96)+'px'"
-                            style="flex:1;resize:none;border:1px solid #e5e7eb;border-radius:12px;padding:9px 12px;
-                               font-size:.85rem;outline:none;font-family:inherit;line-height:1.4;max-height:96px;
-                               transition:border-color .2s;"
-                            onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#e5e7eb'"></textarea>
-                        <button onclick="chatbotSend()" id="chatbot-send-btn"
-                            style="width:38px;height:38px;border-radius:50%;border:none;
-                               background:linear-gradient(135deg,#1d4ed8,#3b82f6);
+                            style="flex:1;resize:none;border:1.5px solid #e0e3ef;border-radius:14px;
+                               padding:9px 13px;font-size:.84rem;outline:none;font-family:inherit;
+                               line-height:1.45;max-height:96px;background:#f8f9ff;color:#1e1e2e;
+                               transition:border-color .2s,background .2s;"
+                            onfocus="this.style.borderColor='#6366f1';this.style.background='#fff';"
+                            onblur="this.style.borderColor='#e0e3ef';this.style.background='#f8f9ff';"></textarea>
+                        <button onclick="chatbotSend()" id="chatbot-send-btn" title="Send (Enter)"
+                            style="width:40px;height:40px;border-radius:50%;border:none;
+                               background:linear-gradient(135deg,#1d4ed8,#6366f1);
                                color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;
-                               flex-shrink:0;transition:opacity .2s;"
-                            title="Send">
-                            <i class="fas fa-paper-plane" style="font-size:.8rem;"></i>
+                               flex-shrink:0;transition:opacity .2s,transform .15s;box-shadow:0 2px 8px rgba(99,102,241,.4);"
+                            onmouseenter="this.style.transform='scale(1.08)'"
+                            onmouseleave="this.style.transform='scale(1)'">
+                            <i class="fas fa-paper-plane" style="font-size:.8rem;margin-left:2px;"></i>
                         </button>
                     </div>
                 </div>
@@ -1116,47 +1223,48 @@
 
             <!-- Chatbot Styles -->
             <style>
-                .cb-msg {
-                    display: flex;
-                }
+                #chatbot-toggle:hover { transform:scale(1.08) !important; box-shadow:0 6px 28px rgba(99,102,241,.7) !important; }
 
-                .cb-msg-user {
-                    justify-content: flex-end;
-                }
-
-                .cb-msg-ai {
-                    justify-content: flex-start;
-                }
+                .cb-msg { display:flex; }
+                .cb-msg-user { justify-content:flex-end; }
+                .cb-msg-ai  { justify-content:flex-start; }
 
                 .cb-bubble {
                     max-width: 82%;
-                    padding: 9px 13px;
-                    border-radius: 16px;
+                    padding: 10px 14px;
+                    border-radius: 18px;
                     font-size: .84rem;
-                    line-height: 1.5;
+                    line-height: 1.55;
                     word-break: break-word;
                 }
-
                 .cb-bubble-ai {
                     background: #fff;
-                    color: #1f2937;
-                    border: 1px solid #e5e7eb;
-                    border-bottom-left-radius: 4px;
-                    box-shadow: 0 1px 3px rgba(0, 0, 0, .06);
+                    color: #1e1e2e;
+                    border: 1px solid #e8eaf6;
+                    border-bottom-left-radius: 5px;
+                    box-shadow: 0 1px 4px rgba(99,102,241,.08);
                 }
-
                 .cb-bubble-user {
-                    background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+                    background: linear-gradient(135deg, #1d4ed8, #6366f1);
                     color: #fff;
-                    border-bottom-right-radius: 4px;
+                    border-bottom-right-radius: 5px;
+                    box-shadow: 0 2px 8px rgba(99,102,241,.3);
                 }
-
                 .cb-time {
-                    font-size: .68rem;
-                    color: #9ca3af;
+                    font-size: .65rem;
+                    color: #adb5bd;
                     margin-top: 3px;
                     text-align: right;
                 }
+
+                /* Suggestion chips */
+                .cb-chip {
+                    display:inline-block;padding:4px 10px;border-radius:20px;
+                    background:#eef0f8;color:#4338ca;font-size:.72rem;font-weight:600;
+                    cursor:pointer;border:1px solid #c7d2fe;transition:background .15s,transform .1s;
+                    white-space:nowrap;
+                }
+                .cb-chip:hover { background:#c7d2fe; transform:translateY(-1px); }
 
                 /* Typing dots */
                 .cb-dots {
@@ -1236,23 +1344,66 @@
                     let cbLang = 'auto';
                     let cbLoading = false;
 
-                    const ROUTE = "{{ route('chatbot.message') }}";
-                    const CSRF = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+                    const ROUTE    = "{{ route('chatbot.message') }}";
+                    const CSRF     = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+                    const LS_KEY   = 'symbot_history_{{ auth()->id() }}';
+                    const MAX_MSGS = 40; // max bubbles kept in storage
 
+                    // ── Persist helpers ──────────────────────────────────────
+                    function cbSave() {
+                        try {
+                            localStorage.setItem(LS_KEY, JSON.stringify(cbHistory.slice(-MAX_MSGS)));
+                        } catch(e) {}
+                    }
+
+                    function cbLoad() {
+                        try {
+                            const raw = localStorage.getItem(LS_KEY);
+                            return raw ? JSON.parse(raw) : [];
+                        } catch(e) { return []; }
+                    }
+
+                    // ── Restore previous messages on page load ───────────────
+                    (function restoreHistory() {
+                        const saved = cbLoad();
+                        if (!saved.length) return;
+                        const box = document.getElementById('chatbot-messages');
+                        box.innerHTML = ''; // clear welcome message
+                        saved.forEach(item => {
+                            chatbotAppend(item.role === 'user' ? 'user' : 'ai', item.content, item.time, true);
+                        });
+                        cbHistory = saved.map(i => ({ role: i.role, content: i.content }));
+                    })();
+
+                    // ── Toggle ───────────────────────────────────────────────
                     window.chatbotToggle = function() {
                         cbOpen = !cbOpen;
-                        const win = document.getElementById('chatbot-window');
-                        const btn = document.getElementById('chatbot-toggle');
+                        const win  = document.getElementById('chatbot-window');
+                        const img  = document.getElementById('cb-icon-img');
+                        const xIco = document.getElementById('cb-icon-x');
+                        const badge = document.getElementById('cb-badge');
                         if (cbOpen) {
                             win.style.display = 'flex';
-                            btn.innerHTML = '<i class="fas fa-times" style="color:#fff;font-size:1.1rem;"></i>';
+                            img.style.display  = 'none';
+                            xIco.style.display = 'block';
+                            if (badge) badge.style.display = 'none';
                             setTimeout(() => document.getElementById('chatbot-input')?.focus(), 100);
                             chatbotScroll();
                         } else {
-                            win.style.display = 'none';
-                            btn.innerHTML =
-                                '<img src="https://i.ibb.co.com/7t90LZkN/chatbot.webp" alt="AI" style="width:56px;height:56px;object-fit:cover;border-radius:50%;">';
+                            win.style.display  = 'none';
+                            img.style.display  = 'block';
+                            xIco.style.display = 'none';
                         }
+                    };
+
+                    // ── Chip shortcut ─────────────────────────────────────────
+                    window.chatbotChip = function(text) {
+                        if (!cbOpen) chatbotToggle();
+                        document.getElementById('chatbot-input').value = text;
+                        chatbotSend();
+                        // hide chips after first use
+                        const chips = document.getElementById('cb-chips');
+                        if (chips) chips.style.display = 'none';
                     };
 
                     window.chatbotSetLang = function(val) {
@@ -1261,14 +1412,18 @@
 
                     window.chatbotClear = function() {
                         cbHistory = [];
+                        try { localStorage.removeItem(LS_KEY); } catch(e) {}
                         const box = document.getElementById('chatbot-messages');
                         box.innerHTML = `
                     <div class="cb-msg cb-msg-ai cb-slide-in">
                         <div class="cb-bubble cb-bubble-ai">
-                            👋 Chat cleared. How can I help you?<br>
-                            <em style="font-size:.8rem;opacity:.75;">Ketik dalam Bahasa Indonesia, English, atau 中文.</em>
+                            🗑️ Chat cleared.<br>
+                            <span style="font-size:.78rem;opacity:.7;">Silakan tanya kembali.</span>
                         </div>
                     </div>`;
+                        // show chips again
+                        const chips = document.getElementById('cb-chips');
+                        if (chips) chips.style.display = 'flex';
                     };
 
                     window.chatbotKeydown = function(e) {
@@ -1287,20 +1442,16 @@
                         input.value = '';
                         input.style.height = 'auto';
 
-                        // Append user bubble
-                        chatbotAppend('user', msg);
-                        cbHistory.push({
-                            role: 'user',
-                            content: msg
-                        });
+                        const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        chatbotAppend('user', msg, now);
+                        cbHistory.push({ role: 'user', content: msg, time: now });
+                        cbSave();
 
-                        // Show typing
                         cbLoading = true;
                         document.getElementById('chatbot-send-btn').style.opacity = '.5';
                         document.getElementById('chatbot-typing').style.display = 'block';
                         chatbotScroll();
 
-                        // Build message with optional language override
                         let fullMsg = msg;
                         if (cbLang !== 'auto') {
                             const langMap = {
@@ -1314,24 +1465,17 @@
                         try {
                             const res = await fetch(ROUTE, {
                                 method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-CSRF-TOKEN': CSRF
-                                },
-                                body: JSON.stringify({
-                                    message: fullMsg,
-                                    history: cbHistory.slice(-10)
-                                }),
+                                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF },
+                                body: JSON.stringify({ message: fullMsg, history: cbHistory.slice(-10) }),
                             });
                             const data = await res.json();
                             const reply = data.reply ?? 'No response received.';
+                            const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
                             document.getElementById('chatbot-typing').style.display = 'none';
-                            chatbotAppend('ai', reply);
-                            cbHistory.push({
-                                role: 'assistant',
-                                content: reply
-                            });
+                            chatbotAppend('ai', reply, replyTime);
+                            cbHistory.push({ role: 'assistant', content: reply, time: replyTime });
+                            cbSave();
                         } catch (err) {
                             document.getElementById('chatbot-typing').style.display = 'none';
                             chatbotAppend('ai', '⚠️ Connection error. Please try again.');
@@ -1342,18 +1486,14 @@
                         }
                     };
 
-                    function chatbotAppend(role, text) {
+                    function chatbotAppend(role, text, time, silent) {
                         const box = document.getElementById('chatbot-messages');
-                        const isAI = role === 'ai';
-                        const now = new Date().toLocaleTimeString([], {
-                            hour: '2-digit',
-                            minute: '2-digit'
-                        });
+                        const isAI = role === 'ai' || role === 'assistant';
+                        const ts   = time ?? new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
                         const div = document.createElement('div');
-                        div.className = `cb-msg cb-msg-${isAI ? 'ai' : 'user'} cb-slide-in`;
+                        div.className = `cb-msg cb-msg-${isAI ? 'ai' : 'user'}` + (silent ? '' : ' cb-slide-in');
 
-                        // Convert markdown-ish: **bold**, newlines
                         let html = text
                             .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
                             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
@@ -1363,10 +1503,10 @@
                         div.innerHTML = `
                     <div>
                         <div class="cb-bubble cb-bubble-${isAI ? 'ai' : 'user'}">${html}</div>
-                        <div class="cb-time">${now}</div>
+                        <div class="cb-time">${ts}</div>
                     </div>`;
                         box.appendChild(div);
-                        chatbotScroll();
+                        if (!silent) chatbotScroll();
                     }
 
                     function chatbotScroll() {
@@ -1375,8 +1515,7 @@
                             if (box) box.scrollTop = box.scrollHeight;
                         }, 50);
                     }
-                })
-                ();
+                })();
             </script>
         @endauth
 

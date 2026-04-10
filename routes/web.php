@@ -66,6 +66,7 @@ use App\Http\Controllers\Hr\FingerprintLogController;
 use App\Http\Controllers\Hr\FingerspotController;
 use App\Http\Controllers\Hr\SessionShiftController;
 use App\Http\Controllers\Hr\SymcoreExportController;
+use App\Http\Controllers\ChatbotController;
 
 /*
 |--------------------------------------------------------------------------
@@ -165,6 +166,9 @@ Route::middleware(['auth'])->group(function () {
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // HR Dashboard
+    Route::get('/hr/dashboard', [\App\Http\Controllers\Hr\HrDashboardController::class, 'index'])->name('hr.dashboard');
 
     // Departments
     Route::resource('departments', DepartmentController::class);
@@ -413,12 +417,12 @@ Route::middleware(['auth'])->group(function () {
 
     // Leave Request - Authenticated only
     Route::get('leave_requests', [LeaveRequestController::class, 'index'])->name('leave_requests.index');
-    Route::get('leave_requests/{id}/edit', [LeaveRequestController::class, 'edit'])->name('leave_requests.edit');
-    Route::put('leave_requests/{id}', [LeaveRequestController::class, 'update'])->name('leave_requests.update');
-    Route::delete('leave_requests/{id}', [LeaveRequestController::class, 'destroy'])->name('leave_requests.destroy');
-    Route::get('leave_requests/{id}', [LeaveRequestController::class, 'show'])->name('leave_requests.show');
-    Route::get('leave_requests/{id}/document/{type}', [LeaveRequestController::class, 'serveDocument'])->name('leave_requests.document');
-    Route::post('leave_requests/{id}/approval', [LeaveRequestController::class, 'updateApproval'])->name('leave_requests.updateApproval');
+    Route::get('leave_requests/{leave}/edit', [LeaveRequestController::class, 'edit'])->name('leave_requests.edit');
+    Route::put('leave_requests/{leave}', [LeaveRequestController::class, 'update'])->name('leave_requests.update');
+    Route::delete('leave_requests/{leave}', [LeaveRequestController::class, 'destroy'])->name('leave_requests.destroy');
+    Route::get('leave_requests/{leave}', [LeaveRequestController::class, 'show'])->name('leave_requests.show');
+    Route::get('leave_requests/{leave}/document/{type}', [LeaveRequestController::class, 'serveDocument'])->name('leave_requests.document');
+    Route::post('leave_requests/{leave}/approval', [LeaveRequestController::class, 'updateApproval'])->name('leave_requests.updateApproval');
     Route::get('leave-approvals/dept', [LeaveRequestController::class, 'deptLeaveApprovals'])->name('leave_requests.dept-approvals');
     Route::get('leave-approvals/hr', [LeaveRequestController::class, 'hrLeaveApprovals'])->name('leave_requests.hr-approvals');
     Route::get('leave-approvals/director', [LeaveRequestController::class, 'directorLeaveApprovals'])->name('leave_requests.director-approvals');

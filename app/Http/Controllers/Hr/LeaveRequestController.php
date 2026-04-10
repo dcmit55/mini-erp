@@ -242,13 +242,11 @@ class LeaveRequestController extends Controller
     } /**
      * Show the form for editing the specified resource.
      */
-    public function edit($id)
+    public function edit(LeaveRequest $leave)
     {
         if (!Auth::check()) {
             return redirect()->route('login')->with('error', 'Please login to edit leave requests.');
         }
-
-        $leave = LeaveRequest::findOrFail($id);
 
         $employees = Employee::with('department')
             ->where('status', 'active')
@@ -265,7 +263,7 @@ class LeaveRequestController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, LeaveRequest $leave)
     {
         if (!Auth::check()) {
             abort(403, 'Unauthorized access.');
@@ -295,8 +293,6 @@ class LeaveRequestController extends Controller
             'leave_time_to'   => 'nullable|date_format:H:i|after:leave_time_from',
         ]);
 
-        $leave = LeaveRequest::findOrFail($id);
-
         // Recalculate approval_dept if type changed
         $deptInApprovalList = in_array(
             optional($employee->department)->name,
@@ -320,7 +316,7 @@ class LeaveRequestController extends Controller
         return redirect()->route('leave_requests.index')->with('success', 'Leave request updated!');
     }
 
-    public function updateApproval(Request $request, $id)
+    public function updateApproval(Request $request, LeaveRequest $leave)
     {
         if (!Auth::check()) {
             if ($request->ajax()) {
@@ -375,7 +371,7 @@ class LeaveRequestController extends Controller
 
         DB::beginTransaction();
         try {
-            $leave = LeaveRequest::with('employee')->findOrFail($id);
+            $leave->load('employee');
 
             // Store previous status
             $previousApprovalDept = $leave->approval_dept;
@@ -720,16 +716,15 @@ class LeaveRequestController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(LeaveRequest $leave)
     {
-        $leave = LeaveRequest::with(['employee.department'])->findOrFail($id);
+        $leave->load('employee.department');
         $leaveTypeLabels = LeaveRequest::getTypeLabels();
         return view('hr.leave_requests.show', compact('leave', 'leaveTypeLabels'));
     }
 
-    public function serveDocument(string $id, string $type)
+    public function serveDocument(LeaveRequest $leave, string $type)
     {
-        $leave = LeaveRequest::findOrFail($id);
         $column = $type === 'mc' ? 'mc_document' : 'doctor_letter';
         $raw = $leave->$column;
 
@@ -761,7 +756,7 @@ class LeaveRequestController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy($id)
+    public function destroy(LeaveRequest $leave)
     {
         if (!Auth::check()) {
             if (request()->ajax()) {
@@ -784,7 +779,6 @@ class LeaveRequestController extends Controller
             return redirect()->route('leave_requests.index')->with('error', 'Only Super Admin and HR Admin can delete leave requests.');
         }
 
-        $leave = LeaveRequest::findOrFail($id);
         $employeeName = $leave->employee->name ?? 'Unknown';
         $leave->delete();
 

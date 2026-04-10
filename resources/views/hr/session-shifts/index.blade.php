@@ -52,6 +52,8 @@
                                     <th class="border-0">Work Hours</th>
                                     <th class="border-0">Break 1</th>
                                     <th class="border-0">Break 2</th>
+                                    <th class="border-0">Days</th>
+                                    <th class="border-0">Employee</th>
                                     <th class="border-0">Status</th>
                                     <th class="border-0 text-center" style="width:160px;">Actions</th>
                                 </tr>
@@ -109,6 +111,35 @@
                                             @endif
                                         </td>
                                         <td>
+                                            @php
+                                                $days = $shift->applicable_days ? array_map('intval', $shift->applicable_days) : null;
+                                                if ($days) sort($days);
+                                                if (!$days) {
+                                                    $dayLabel = ['text' => 'Semua hari', 'class' => 'text-muted small'];
+                                                } elseif ($days === [1,2,3,4,5]) {
+                                                    $dayLabel = ['text' => 'Weekday', 'class' => 'badge', 'style' => 'background:#eef2ff;color:#4f46e5;border:1px solid #c7d2fe;'];
+                                                } elseif ($days === [6]) {
+                                                    $dayLabel = ['text' => 'Saturday', 'class' => 'badge', 'style' => 'background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;'];
+                                                } elseif ($days === [7]) {
+                                                    $dayLabel = ['text' => 'Sunday', 'class' => 'badge', 'style' => 'background:#fef2f2;color:#dc2626;border:1px solid #fecaca;'];
+                                                } else {
+                                                    $dayLabel = ['text' => 'Custom', 'class' => 'badge bg-secondary'];
+                                                }
+                                            @endphp
+                                            @if(isset($dayLabel['style']))
+                                                <span class="{{ $dayLabel['class'] }} px-2 py-1" style="{{ $dayLabel['style'] }}">{{ $dayLabel['text'] }}</span>
+                                            @else
+                                                <span class="{{ $dayLabel['class'] }}">{{ $dayLabel['text'] }}</span>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            @if($shift->employee)
+                                                <span class="small fw-medium">{{ $shift->employee->name }}</span>
+                                            @else
+                                                <span class="text-muted">—</span>
+                                            @endif
+                                        </td>
+                                        <td>
                                             @if($shift->is_active)
                                                 <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
                                                     <i class="fas fa-circle me-1" style="font-size:7px; vertical-align:middle;"></i>Active
@@ -141,7 +172,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="9" class="text-center py-5">
+                                        <td colspan="11" class="text-center py-5">
                                             <div class="text-muted">
                                                 <i class="fas fa-layer-group fa-3x mb-3"></i>
                                                 <h5>No Shifts Defined</h5>

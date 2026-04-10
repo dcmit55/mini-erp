@@ -30,7 +30,7 @@
     </div>
     @endif
 
-    <form method="POST" action="{{ route('leave_requests.update', $leave->id) }}"
+    <form method="POST" action="{{ route('leave_requests.update', $leave) }}"
           id="leaveRequestForm" enctype="multipart/form-data">
         @csrf
         @method('PUT')
