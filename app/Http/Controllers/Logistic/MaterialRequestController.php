@@ -581,7 +581,7 @@ class MaterialRequestController extends Controller
      */
     public function edit(Request $request, $id)
     {
-        $materialRequest = MaterialRequest::with('inventory', 'project', 'internalProject')->findOrFail($id);
+        $materialRequest = MaterialRequest::with('inventory', 'stagingInventory', 'project', 'internalProject')->findOrFail($id);
         $departments = Department::orderBy('name')->get();
         $units = Unit::orderBy('name')->get();
 
@@ -589,10 +589,17 @@ class MaterialRequestController extends Controller
             ->orderBy('name')
             ->get()
             ->map(function ($inventory) {
-                // quantity is already loaded via withComputedStock(), no extra query
                 $inventory->available_quantity = $inventory->quantity;
                 return $inventory;
             });
+
+        // Staging inventories (pending/approved, not processed or already linked to this MR)
+        $stagingInventories = \App\Models\Lark\LarkStagingInventory::where(function ($q) use ($materialRequest) {
+                $q->where('processed', false)
+                  ->orWhere('id', $materialRequest->staging_inventory_id);
+            })
+            ->orderBy('name')
+            ->get(['id', 'name', 'unit', 'quantity', 'received_qty', 'material_code', 'review_status', 'processed']);
 
         $jobOrders = \App\Models\Production\JobOrder::with('project:id,name')
             ->where(function ($q) {
@@ -632,12 +639,13 @@ class MaterialRequestController extends Controller
             compact(
                 'materialRequest',
                 'inventories',
+                'stagingInventories',
                 'jobOrders',
                 'internalProjects',
                 'departments',
                 'units',
                 'filters',
-                'defaultPtDcmDepartmentId', // Tambahkan ini
+                'defaultPtDcmDepartmentId',
             ),
         );
     }
@@ -662,19 +670,26 @@ class MaterialRequestController extends Controller
 
         // Validasi dasar
         $request->validate([
-            'project_type' => 'required|in:client,internal',
-            'inventory_id' => 'required|exists:inventories,id',
-            'qty' => 'required|numeric|min:0.01',
-            'status' => 'required|in:pending,approved,delivered,canceled',
-            'remark' => 'nullable|string',
-            'job_order_id' => 'required',
+            'project_type'       => 'required|in:client,internal',
+            'inventory_source'   => 'required|in:stock,incoming',
+            'qty'                => 'required|numeric|min:0.01',
+            'status'             => 'required|in:pending,approved,delivered,canceled',
+            'remark'             => 'nullable|string',
+            'job_order_id'       => 'required',
         ]);
+
+        // Validasi material berdasarkan source
+        if ($request->inventory_source === 'stock') {
+            $request->validate(['inventory_id' => 'required|exists:inventories,id']);
+        } else {
+            $request->validate(['staging_inventory_id' => 'required|exists:lark_staging_inventories,id']);
+        }
 
         // Validasi conditional berdasarkan tipe proyek
         if ($request->project_type === MaterialRequest::PROJECT_TYPE_CLIENT) {
             $request->validate([
                 'job_order_id' => 'required|exists:job_orders,id',
-                'project_id' => 'required|exists:projects,id',
+                'project_id'   => 'required|exists:projects,id',
             ]);
         } else {
             $request->validate([
@@ -702,30 +717,43 @@ class MaterialRequestController extends Controller
 
         DB::beginTransaction();
         try {
-            // Cek stok inventory dengan lock
-            $inventory = Inventory::where('id', $request->inventory_id)->lockForUpdate()->first();
+            $isIncoming = $request->inventory_source === 'incoming';
 
-            if ($request->qty > $inventory->quantity) {
-                DB::rollBack();
-                $errorMsg = 'Requested quantity cannot exceed available inventory quantity.';
+            // Cek stok inventory dengan lock (hanya untuk source = stock)
+            $inventory = null;
+            if (!$isIncoming) {
+                $inventory = Inventory::where('id', $request->inventory_id)->lockForUpdate()->first();
 
-                if ($request->ajax()) {
-                    return response()->json(['errors' => ['qty' => [$errorMsg]]], 422);
+                if ($request->qty > $inventory->quantity) {
+                    DB::rollBack();
+                    $errorMsg = 'Requested quantity cannot exceed available inventory quantity.';
+
+                    if ($request->ajax()) {
+                        return response()->json(['errors' => ['qty' => [$errorMsg]]], 422);
+                    }
+
+                    return back()
+                        ->withInput()
+                        ->withErrors(['qty' => $errorMsg]);
                 }
-
-                return back()
-                    ->withInput()
-                    ->withErrors(['qty' => $errorMsg]);
             }
 
             // Siapkan data update
             $updateData = [
-                'inventory_id' => $request->inventory_id,
-                'project_type' => $request->project_type,
-                'qty' => $request->qty,
-                'status' => $request->status,
-                'remark' => $request->remark,
+                'inventory_source'    => $request->inventory_source,
+                'project_type'        => $request->project_type,
+                'qty'                 => $request->qty,
+                'status'              => $request->status,
+                'remark'              => $request->remark,
             ];
+
+            if ($isIncoming) {
+                $updateData['staging_inventory_id'] = $request->staging_inventory_id;
+                $updateData['inventory_id']         = null; // akan diisi saat staging di-approve
+            } else {
+                $updateData['inventory_id']          = $request->inventory_id;
+                $updateData['staging_inventory_id']  = null;
+            }
 
             // Set relasi berdasarkan tipe project
             if ($request->project_type === MaterialRequest::PROJECT_TYPE_CLIENT) {
@@ -783,9 +811,13 @@ class MaterialRequestController extends Controller
                 ]);
             }
 
+            $materialLabel = $isIncoming
+                ? ($materialRequest->fresh(['stagingInventory'])->stagingInventory->name ?? 'Incoming Material')
+                : ($inventory->name ?? 'Material');
+
             return redirect()
                 ->route('material_requests.index', $filters)
-                ->with('success', "Material Request for <b>{$inventory->name}</b> updated successfully.");
+                ->with('success', "Material Request for <b>{$materialLabel}</b> updated successfully.");
         } catch (\Exception $e) {
             DB::rollBack();
 

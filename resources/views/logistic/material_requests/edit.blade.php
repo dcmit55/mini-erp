@@ -45,9 +45,9 @@
                     <input type="hidden" name="filter_requested_by" value="{{ request('requested_by') }}">
                     <input type="hidden" name="filter_requested_at" value="{{ request('requested_at') }}">
 
-                    <!-- ========== PROJECT TYPE RADIO ========== -->
+                    <!-- ========== PROJECT TYPE (kiri) + MATERIAL SOURCE (kanan) ========== -->
                     <div class="row mb-3">
-                        <div class="col-12">
+                        <div class="col-lg-6">
                             <label class="fw-bold mb-2">Project Type <span class="text-danger">*</span></label>
                             <div class="d-flex gap-4">
                                 <div class="form-check">
@@ -63,6 +63,27 @@
                                     <label class="form-check-label" for="projectTypeInternal">Internal Project</label>
                                 </div>
                             </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <label class="fw-bold mb-2">Material Source <span class="text-danger">*</span></label>
+                            <div class="d-flex gap-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="inventory_source"
+                                        id="sourceStock" value="stock"
+                                        {{ old('inventory_source', $materialRequest->inventory_source ?? 'stock') == 'stock' ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="sourceStock">Inventory Stock</label>
+                                    <div class="form-text text-muted">From batch inventory</div>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="inventory_source"
+                                        id="sourceIncoming" value="incoming"
+                                        {{ old('inventory_source', $materialRequest->inventory_source) == 'incoming' ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="sourceIncoming">Inventory Incoming</label>
+                                    <div class="form-text text-muted">From Lark Purchasing</div>
+                                </div>
+                            </div>
+                            <input type="hidden" name="inventory_source" id="hiddenInventorySource"
+                                value="{{ old('inventory_source', $materialRequest->inventory_source ?? 'stock') }}">
                         </div>
                     </div>
 
@@ -106,26 +127,46 @@
                         <!-- Kolom Kanan: Material -->
                         <div class="col-lg-6 mb-3">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <label>Material <span class="text-danger">*</span></label>
-                                {{-- <button type="button" class="btn btn-sm btn-outline-primary" id="btnQuickAddMaterial">
-                                + Quick Add Material
-                            </button> --}}
+                                <label id="materialLabel">Material <span class="text-danger">*</span></label>
                             </div>
-                            <select name="inventory_id" id="inventory_id" class="form-select select2"
-                                data-placeholder="Select Material" required>
-                                <option value="">Select Material</option>
-                                @foreach ($inventories as $inv)
-                                    <option value="{{ $inv->id }}" data-unit="{{ $inv->unit }}"
-                                        data-stock="{{ $inv->quantity }}"
-                                        {{ old('inventory_id', $materialRequest->inventory_id) == $inv->id ? 'selected' : '' }}>
-                                        {{ $inv->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            <div id="available-qty" class="form-text d-none"></div>
-                            @error('inventory_id')
-                                <small class="text-danger">{{ $message }}</small>
-                            @enderror
+
+                            {{-- Stock select --}}
+                            <div id="stockMaterialWrapper">
+                                <select name="inventory_id" id="inventory_id" class="form-select select2"
+                                    data-placeholder="Select Material (Stock)">
+                                    <option value="">Select Material</option>
+                                    @foreach ($inventories as $inv)
+                                        <option value="{{ $inv->id }}" data-unit="{{ $inv->unit }}"
+                                            data-stock="{{ $inv->quantity }}"
+                                            {{ old('inventory_id', $materialRequest->inventory_id) == $inv->id ? 'selected' : '' }}>
+                                            {{ $inv->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <div id="available-qty" class="form-text d-none"></div>
+                                @error('inventory_id')
+                                    <small class="text-danger">{{ $message }}</small>
+                                @enderror
+                            </div>
+
+                            {{-- Incoming (staging) select --}}
+                            <div id="incomingMaterialWrapper" style="display:none;">
+                                <select name="staging_inventory_id" id="staging_inventory_id"
+                                    class="form-select select2" data-placeholder="Select Incoming Material" disabled>
+                                    <option value="">Select Incoming Material</option>
+                                    @foreach ($stagingInventories as $si)
+                                        <option value="{{ $si->id }}" data-unit="{{ $si->unit }}"
+                                            data-qty="{{ $si->quantity }}" data-received="{{ $si->received_qty ?? 0 }}"
+                                            {{ old('staging_inventory_id', $materialRequest->staging_inventory_id) == $si->id ? 'selected' : '' }}>
+                                            {{ $si->name }}{{ $si->material_code ? ' (' . $si->material_code . ')' : '' }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <div id="available-incoming-qty" class="form-text d-none"></div>
+                                @error('staging_inventory_id')
+                                    <small class="text-danger">{{ $message }}</small>
+                                @enderror
+                            </div>
                         </div>
                     </div>
 
@@ -138,7 +179,7 @@
                                     class="form-control @error('qty') is-invalid @enderror" step="any" required
                                     value="{{ old('qty', $materialRequest->qty) }}" id="qty">
                                 <span class="input-group-text unit-label">
-                                    {{ $materialRequest->inventory->unit ?? 'unit' }}
+                                    {{ $materialRequest->inventory->unit ?? $materialRequest->stagingInventory->unit ?? 'unit' }}
                                 </span>
                             </div>
                             @error('qty')
@@ -461,6 +502,9 @@
                 '{{ $materialRequest->job_order_id ?? $materialRequest->internal_project_id }}';
             const departments = @json($departments);
             const defaultPtDcmDepartmentId = '{{ $defaultPtDcmDepartmentId ?? '' }}';
+            const currentInventorySource = '{{ old('inventory_source', $materialRequest->inventory_source ?? 'stock') }}';
+            const currentStagingId = '{{ old('staging_inventory_id', $materialRequest->staging_inventory_id) }}';
+            const stagingInventories = @json($stagingInventories);
 
             // ========== RENDER OPSI BERDASARKAN TIPE PROYEK ==========
             function renderClientOptions() {
@@ -550,8 +594,39 @@
                 }
             });
 
-            // ========== UNIT LABEL & AVAILABLE STOCK ==========
+            // ========== MATERIAL SOURCE TOGGLE ==========
+            function toggleMaterialSource() {
+                const isIncoming = $('#sourceIncoming').is(':checked');
+                const $stockWrap = $('#stockMaterialWrapper');
+                const $incomingWrap = $('#incomingMaterialWrapper');
+
+                if (isIncoming) {
+                    $stockWrap.hide();
+                    $incomingWrap.show();
+                    $('#inventory_id').prop('disabled', true).val(null).trigger('change');
+                    $('#staging_inventory_id').prop('disabled', false);
+                    $('#hiddenInventorySource').val('incoming');
+                    // Restore current staging select if exists
+                    if (currentStagingId) {
+                        setTimeout(() => {
+                            $('#staging_inventory_id').val(currentStagingId).trigger('change');
+                        }, 100);
+                    }
+                } else {
+                    $incomingWrap.hide();
+                    $stockWrap.show();
+                    $('#staging_inventory_id').prop('disabled', true).val(null).trigger('change');
+                    $('#inventory_id').prop('disabled', false);
+                    $('#hiddenInventorySource').val('stock');
+                }
+            }
+
+            $('input[name="inventory_source"]').on('change', toggleMaterialSource);
+
+            // ========== UNIT LABEL & AVAILABLE STOCK (Stock) ==========
             $('#inventory_id').on('change', function() {
+                const isIncoming = $('#sourceIncoming').is(':checked');
+                if (isIncoming) return; // jangan update jika incoming aktif
                 const selected = $(this).find(':selected');
                 const unit = selected.data('unit') || 'unit';
                 const stock = selected.data('stock');
@@ -565,6 +640,29 @@
                     $avail.addClass('d-none').text('');
                 }
             }).trigger('change');
+
+            // ========== UNIT LABEL & QTY (Incoming staging) ==========
+            $('#staging_inventory_id').on('change', function() {
+                const selected = $(this).find(':selected');
+                const unit = selected.data('unit') || 'unit';
+                const received = selected.data('received') ?? '';
+                $('.unit-label').text(unit);
+                const $avail = $('#available-incoming-qty');
+                $avail.removeClass('d-none text-danger text-warning text-info');
+                if (selected.val()) {
+                    $avail.addClass('text-info').text(`Received Qty: ${received} ${unit}`).removeClass('d-none');
+                } else {
+                    $avail.addClass('d-none').text('');
+                }
+            });
+
+            // Init: apply saved source state on page load
+            if (currentInventorySource === 'incoming') {
+                $('#sourceIncoming').prop('checked', true);
+            } else {
+                $('#sourceStock').prop('checked', true);
+            }
+            toggleMaterialSource();
 
             // ========== HANDLE FORM SUBMIT DENGAN LOADING ==========
             $('#editMaterialRequestForm').on('submit', function() {
