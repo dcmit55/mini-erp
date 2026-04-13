@@ -46,7 +46,14 @@ class EmployeeController extends Controller
             ->latest()
             ->get();
 
-        return view('hr.employees.index', compact('employees'));
+        // Active SP level per employee (for badge in table)
+        $activeSpMap = \App\Models\Hr\WarningLetter::whereNotIn('status', ['expired', 'rejected'])
+            ->where('valid_until', '>=', now()->toDateString())
+            ->selectRaw('employee_id, MAX(sp_level) as max_sp')
+            ->groupBy('employee_id')
+            ->pluck('max_sp', 'employee_id');
+
+        return view('hr.employees.index', compact('employees', 'activeSpMap'));
     }
 
     public function nearExpired()
@@ -64,7 +71,13 @@ class EmployeeController extends Controller
             return $days >= 0 && $days <= 60;
         })->pluck('id')->toArray();
 
-        return view('hr.employees.index', compact('employees', 'nearExpiredIds'))
+        $activeSpMap = \App\Models\Hr\WarningLetter::whereNotIn('status', ['expired', 'rejected'])
+            ->where('valid_until', '>=', now()->toDateString())
+            ->selectRaw('employee_id, MAX(sp_level) as max_sp')
+            ->groupBy('employee_id')
+            ->pluck('max_sp', 'employee_id');
+
+        return view('hr.employees.index', compact('employees', 'nearExpiredIds', 'activeSpMap'))
             ->with('isNearExpired', true);
     }
 

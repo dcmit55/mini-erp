@@ -322,46 +322,79 @@
 
     <!-- Stop Work Modal with Stage Selection -->
     <div class="modal fade" id="stopWorkModal" tabindex="-1">
-        <div class="modal-dialog modal-sm">
+        <div class="modal-dialog">
             <div class="modal-content">
-                <div class="modal-header bg-warning py-2">
-                    <h6 class="modal-title mb-0"><i class="bi bi-stop-circle me-1"></i>Stop Work Session</h6>
-                    <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button>
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title"><i class="bi bi-stop-circle me-2"></i>Stop Work Session</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <form id="stop-work-form">
-                    <div class="modal-body py-2 px-3">
+                    <div class="modal-body">
                         @csrf
                         <input type="hidden" id="stop-timing-id" name="timing_id">
+                        <input type="hidden" id="stop-job-order-id" name="job_order_id">
 
-                        <div id="stop-session-info" class="alert alert-info py-1 px-2 mb-2 small"></div>
+                        <div id="stop-session-info" class="alert alert-info mb-3"></div>
 
-                        <div class="mb-2">
-                            <label class="form-label small fw-bold mb-1">Measurement Type <span
-                                    class="text-danger">*</span></label>
-                            <select class="form-select form-select-sm" id="stop-measurement-type" name="measurement_type"
+                        <!-- Stage Selection Dropdown (1-10) -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                Select Stage Completed <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select form-select-lg select2-stage" id="stop-stage" name="stage"
                                 required>
-                                @forelse($units as $unit)
-                                    <option value="{{ strtolower($unit->name) }}"
-                                        {{ strtolower($unit->name) === 'pcs' ? 'selected' : '' }}>
-                                        {{ $unit->name }}
-                                    </option>
-                                @empty
-                                    <option value="pcs" selected>Pcs</option>
-                                @endforelse
+                                <option value="">Choose stage...</option>
+                                <option value="1">Design &amp; Prototyping</option>
+                                <option value="2">Structure Approval</option>
+                                <option value="3">Structure &amp; Sample</option>
+                                <option value="4">Visual Review &amp; Paint Prep</option>
+                                <option value="5">Adjustment &amp; Finishing (Structure)</option>
+                                <option value="6">Final Structure Approval</option>
+                                <option value="7">Wrapping &amp; Painting</option>
+                                <option value="8">Wrapping Approval</option>
+                                <option value="9">Finishing &amp; Approval</option>
+                                <option value="10">Final QC &amp; Shipping</option>
                             </select>
+                            <small class="text-muted">Each stage = 10% progress. Select the stage just completed.</small>
                         </div>
 
-                        <div class="mb-2">
-                            <label class="form-label small fw-bold mb-1">Output Quantity <span
-                                    class="text-danger">*</span></label>
-                            <input type="number" class="form-control form-control-sm" id="stop-output-qty"
-                                name="output_qty" min="1" step="0.1" value="1" required>
-                            <small class="text-muted" style="font-size:.68rem;">Minimum 1</small>
+                        <!-- Progress Info -->
+                        <div class="mb-3">
+                            <div class="alert alert-success mb-0">
+                                <strong>Previous Progress:</strong> <span id="previous-progress-display">0</span>%<br>
+                                <strong>Will be updated to:</strong> <span id="current-progress-display"
+                                    class="text-primary fw-bold">0</span>%
+                            </div>
+                        </div>
+
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="form-label fw-bold small">Measurement Type <span
+                                        class="text-danger">*</span></label>
+                                <select class="form-select form-select-sm select2-unit" id="stop-measurement-type"
+                                    name="measurement_type" required>
+                                    @forelse($units as $unit)
+                                        <option value="{{ strtolower($unit->name) }}"
+                                            {{ strtolower($unit->name) === 'pcs' ? 'selected' : '' }}>
+                                            {{ $unit->name }}
+                                        </option>
+                                    @empty
+                                        <option value="pcs" selected>Pcs</option>
+                                    @endforelse
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label fw-bold small">Output Quantity <span
+                                        class="text-danger">*</span></label>
+                                <input type="number" class="form-control form-control-sm" id="stop-output-qty"
+                                    name="output_qty" min="0" step="0.1" value="1" required>
+                                <small class="text-muted" style="font-size:.68rem;">Minimum 0</small>
+                            </div>
                         </div>
                     </div>
-                    <div class="modal-footer py-2">
-                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-warning btn-sm" id="stop-submit-btn">
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-warning" id="stop-submit-btn">
                             <i class="bi bi-stop-circle me-1"></i>Stop & Save
                         </button>
                     </div>
@@ -402,11 +435,21 @@
 @section('scripts')
     <script>
         $(document).ready(function() {
+            // Init Select2 for stage in stop modal
+            $('#stop-stage').select2({
+                theme: 'bootstrap-5',
+                dropdownParent: $('#stopWorkModal'),
+                placeholder: 'Choose stage...',
+                allowClear: true,
+                width: '100%',
+            });
+
             // Init Select2 for measurement type in stop modal
             $('#stop-measurement-type').select2({
                 theme: 'bootstrap-5',
                 dropdownParent: $('#stopWorkModal'),
                 minimumResultsForSearch: Infinity,
+                width: '100%',
             });
 
             // Init Select2 for measurement type in bulk-stop modal
@@ -699,12 +742,46 @@
                 const timingId = $(this).data('timing-id');
                 const employeeName = $(this).data('employee-name');
                 const jobOrder = $(this).data('job-order');
+                const jobOrderId = $(this).data('job-order-id');
+                const previousProgress = parseInt($(this).data('previous-progress')) || 0;
 
                 $('#stop-timing-id').val(timingId);
+                $('#stop-job-order-id').val(jobOrderId);
                 $('#stop-session-info').html(
                     `<strong>Employee:</strong> ${employeeName}<br>
                      <strong>Job Order:</strong> ${jobOrder}`
                 );
+
+                // Show previous progress
+                $('#previous-progress-display').text(previousProgress);
+                $('#current-progress-display').text(previousProgress);
+
+                // Current stage derived from saved progress
+                const currentStage = Math.floor(previousProgress / 10);
+
+                // Reset stage select, then disable stages already passed
+                $('#stop-stage').val('').trigger('change');
+                $('#stop-stage option').each(function() {
+                    const optionValue = parseInt($(this).val());
+                    if (optionValue && optionValue < currentStage) {
+                        $(this).prop('disabled', true);
+                        $(this).text($(this).text().replace(' (Completed)', '') + ' (Completed)');
+                    } else {
+                        $(this).prop('disabled', false);
+                        $(this).text($(this).text().replace(' (Completed)', ''));
+                    }
+                });
+
+                // Pre-select current stage if any
+                if (currentStage > 0) {
+                    $('#stop-stage').val(currentStage).trigger('change');
+                }
+
+                // Live-update progress preview when stage changes
+                $('#stop-stage').off('change.preview').on('change.preview', function() {
+                    const stage = parseInt($(this).val()) || 0;
+                    $('#current-progress-display').text(stage * 10);
+                });
 
                 // Reset to defaults
                 $('#stop-measurement-type').val('pcs').trigger('change');
@@ -722,14 +799,24 @@
                 e.preventDefault();
 
                 const timingId = $('#stop-timing-id').val();
+                const stage = parseInt($('#stop-stage').val());
                 const outputQty = parseFloat($('#stop-output-qty').val());
                 const measureType = $('#stop-measurement-type').val();
 
-                if (!outputQty || outputQty < 1) {
+                if (!stage || stage < 1 || stage > 10) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Stage Required',
+                        text: 'Please select a stage (1–10)'
+                    });
+                    return;
+                }
+
+                if (isNaN(outputQty) || outputQty < 0) {
                     Swal.fire({
                         icon: 'warning',
                         title: 'Invalid Quantity',
-                        text: 'Quantity must be at least 1'
+                        text: 'Please enter a valid output quantity'
                     });
                     return;
                 }
@@ -744,6 +831,7 @@
                     data: {
                         _token: '{{ csrf_token() }}',
                         timing_id: timingId,
+                        stage: stage,
                         output_qty: outputQty,
                         measurement_type: measureType,
                     },

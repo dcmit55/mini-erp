@@ -83,7 +83,7 @@
             <span class="d-flex align-items-center gap-1 text-muted" style="font-size:.8rem;">
                 <span class="rounded-circle bg-success d-inline-block" style="width:7px;height:7px;"></span>
                 {{ \Carbon\Carbon::parse($date)->format('d M Y') }}
-                @if($isToday) · <span class="text-danger fw-semibold">{{ $now->format('H:i') }}</span> @endif
+                @if($isToday) · <span class="text-danger fw-semibold" id="live-clock">{{ $now->format('H:i') }}</span> @endif
             </span>
         </div>
     </div>
@@ -159,13 +159,17 @@
                 {{ $l }}
             </span>
             @endforeach
+            <span class="d-flex align-items-center gap-1" style="font-size:.72rem;color:#495057;">
+                <span class="rounded-1 d-inline-block flex-shrink-0" style="width:14px;height:8px;background:rgba(255,255,255,0.5);border:1px dashed #adb5bd;"></span>
+                Break
+            </span>
             <span class="text-muted" style="font-size:.7rem;border-left:1px solid #dee2e6;padding-left:.75rem;" id="countdown-label">Refresh in 60s</span>
         </div>
     </div>
 
     {{-- ── Timeline ─────────────────────────────────── --}}
     @php
-        $START_HOUR   = 7;
+        $START_HOUR   = 5;
         $TL           = round(24 * 60 * $PX);
         $toDisplayPx  = fn($min) => round((($min - $START_HOUR * 60 + 1440) % 1440) * $PX);
         $nowDisplayPx = $toDisplayPx($currentMinutes);
@@ -190,7 +194,7 @@
                                 <div style="position:absolute; left:{{ $hx }}px; top:0; width:{{ $COL_W }}px; height:100%;
                                             display:flex; align-items:center; justify-content:center;
                                             font-size:.63rem; color:{{ $h >= 7 && $h <= 18 ? '#374151' : '#9ca3af' }};
-                                            font-weight:{{ $h % 6 === 0 ? '700' : '400' }};
+                                            font-weight:400;
                                             border-left:1px solid #e9ecef;">
                                     {{ str_pad($h,2,'0',STR_PAD_LEFT) }}
                                 </div>
@@ -219,18 +223,30 @@
                 {{-- Active / Done rows --}}
                 @foreach($attendances as $att)
                 @php
-                    $inMin   = (int)$att->clock_in->format('H') * 60 + (int)$att->clock_in->format('i');
+                    $inMin    = (int)$att->clock_in->format('H') * 60 + (int)$att->clock_in->format('i');
                     $isActive = is_null($att->clock_out);
 
+                    // Determine shift end from session shift
                     if ($att->sessionShift && $att->sessionShift->end_time) {
-                        $seH = (int) substr($att->sessionShift->end_time, 0, 2);
-                        $seM = (int) substr($att->sessionShift->end_time, 3, 2);
+                        $seH         = (int) substr($att->sessionShift->end_time, 0, 2);
+                        $seM         = (int) substr($att->sessionShift->end_time, 3, 2);
                         $shiftEndMin = $seH * 60 + $seM;
                         if ($shiftEndMin <= $inMin) $shiftEndMin += 1440;
                     } else {
                         $shiftEndMin = $inMin + 480;
                     }
 
+                    // Saturday: override shift end from employee work policy
+                    if ($isSaturday) {
+                        $wp = $workPolicies->get($att->employee_id);
+                        if ($wp && $wp->saturday_end) {
+                            $satEnd    = \Carbon\Carbon::parse($wp->saturday_end);
+                            $satEndMin = $satEnd->hour * 60 + $satEnd->minute;
+                            if ($satEndMin > $inMin) $shiftEndMin = $satEndMin;
+                        }
+                    }
+
+                    // Filled time
                     if ($isActive) {
                         $filledMin = ($isToday && $currentMinutes >= $inMin) ? $currentMinutes : $inMin;
                     } else {
@@ -240,15 +256,76 @@
 
                     $totalDuration  = max(1, $shiftEndMin - $inMin);
                     $filledDuration = max(0, min($filledMin - $inMin, $totalDuration));
-                    $pct            = round($filledDuration / $totalDuration * 100);
-                    $barLeft        = $toDisplayPx($inMin);
-                    $barWidth       = round($totalDuration * $PX);
-                    $shiftLabel     = $att->sessionShift->type_of_shift ?? null;
-                    $clockInStr     = $att->clock_in->format('H:i');
-                    $shiftEndStr    = $att->sessionShift ? substr($att->sessionShift->end_time, 0, 5) : '—';
-                    $clockOutStr    = $isActive ? null : $att->clock_out->format('H:i');
-                    $rowType        = $isActive ? 'row-active' : 'row-done';
-                    $accentColor    = $isActive ? '#0d6efd' : '#198754';
+
+                    // Bar width & fill %
+                    // Active  → bar extends to shift end (OT: stays 100% with different color)
+                    // Done    → bar extends only to clock-out (accurate stop), fill = 100%
+                    if ($isActive) {
+                        $barWidth = round($totalDuration * $PX);
+                        if ($isToday && $currentMinutes >= $shiftEndMin) {
+                            // Past shift end but not clocked out — keep bar full & blue
+                            $pct = 100;
+                        } else {
+                            $pct = round($filledDuration / $totalDuration * 100);
+                        }
+                    } else {
+                        $barWidth = max(6, round(($filledMin - $inMin) * $PX));
+                        $pct      = 100;
+                    }
+
+                    // Right label
+                    if ($isActive && $isToday && $currentMinutes >= $shiftEndMin) {
+                        $extMin     = $currentMinutes - $shiftEndMin;
+                        $extH       = (int) floor($extMin / 60);
+                        $extM       = $extMin % 60;
+                        $rightLabel = '+' . ($extH > 0 ? $extH . 'h ' : '') . $extM . 'm';
+                    } elseif ($isActive && $isToday) {
+                        $remMin     = max(0, $shiftEndMin - $currentMinutes);
+                        $remH       = (int) floor($remMin / 60);
+                        $remM       = $remMin % 60;
+                        $rightLabel = ($remH > 0 ? $remH . 'h ' : '') . $remM . 'm left';
+                    } elseif (!$isActive) {
+                        $wrkMin     = $filledMin - $inMin;
+                        $wrkH       = (int) floor($wrkMin / 60);
+                        $wrkM       = $wrkMin % 60;
+                        $rightLabel = ($wrkH > 0 ? $wrkH . 'h ' : '') . $wrkM . 'm';
+                    } else {
+                        $rightLabel = $att->sessionShift ? substr($att->sessionShift->end_time, 0, 5) : '—';
+                    }
+
+                    $barLeft     = $toDisplayPx($inMin);
+                    $shiftLabel  = $att->sessionShift->type_of_shift ?? null;
+                    $clockInStr  = $att->clock_in->format('H:i');
+                    $shiftEndStr = $att->sessionShift ? substr($att->sessionShift->end_time, 0, 5) : '—';
+                    $clockOutStr = $isActive ? null : $att->clock_out->format('H:i');
+                    $rowType     = $isActive ? 'row-active' : 'row-done';
+                    $accentColor = $isActive ? '#0d6efd' : '#198754';
+
+                    // Calculate break window positions (only if shift has breaks configured)
+                    $breakSegments = [];
+                    if ($att->sessionShift) {
+                        foreach ([
+                            ['start' => $att->sessionShift->break_start,  'end' => $att->sessionShift->break_end],
+                            ['start' => $att->sessionShift->break2_start, 'end' => $att->sessionShift->break2_end],
+                        ] as $brk) {
+                            if ($brk['start'] && $brk['end']) {
+                                $bsH = (int) substr($brk['start'], 0, 2);
+                                $bsM = (int) substr($brk['start'], 3, 2);
+                                $beH = (int) substr($brk['end'],   0, 2);
+                                $beM = (int) substr($brk['end'],   3, 2);
+                                $bStartMin = $bsH * 60 + $bsM;
+                                $bEndMin   = $beH * 60 + $beM;
+                                // Only render break if it falls within the displayed bar range
+                                if ($bStartMin >= $inMin && $bEndMin <= $shiftEndMin && $bEndMin > $bStartMin) {
+                                    $breakSegments[] = [
+                                        'left'  => round(($bStartMin - $inMin) * $PX),
+                                        'width' => round(($bEndMin - $bStartMin) * $PX),
+                                        'label' => substr($brk['start'], 0, 5) . '–' . substr($brk['end'], 0, 5),
+                                    ];
+                                }
+                            }
+                        }
+                    }
                 @endphp
                 <tr class="tl-row {{ $rowType }}" data-emp="{{ strtolower($att->employee->name ?? '') }}">
                     <td class="emp-col py-0 px-3" style="height:52px; vertical-align:middle;">
@@ -277,18 +354,40 @@
                         @endfor
                         @if($isToday)<div class="now-line" style="left:{{ $nowDisplayPx }}px;"></div>@endif
 
-                        <div class="bar-track" style="top:14px; height:24px; left:{{ $barLeft }}px; width:{{ $barWidth }}px;"
-                             title="{{ $att->employee->name }}: {{ $clockInStr }} – {{ $shiftEndStr }} ({{ $pct }}%)">
+                        <div class="bar-track"
+                             style="top:14px; height:24px; left:{{ $barLeft }}px; width:{{ $barWidth }}px;"
+                             title="{{ $att->employee->name }}: {{ $clockInStr }} – {{ $clockOutStr ?? $shiftEndStr }}"
+                             @if($isActive)
+                                 data-live="1"
+                                 data-in-min="{{ $inMin }}"
+                                 data-shift-end-min="{{ $shiftEndMin }}"
+                                 data-total-dur="{{ $totalDuration }}"
+                             @endif>
                             <div class="{{ $isActive ? 'bar-fill-active' : 'bar-fill-done' }}" style="width:{{ $pct }}%;"></div>
                             <span style="position:absolute; left:6px; top:50%; transform:translateY(-50%); font-size:.58rem; font-weight:700; white-space:nowrap; color:{{ $pct > 18 ? '#fff' : '#6b7280' }}; z-index:1;">
                                 {{ $clockInStr }}
                             </span>
-                            <span style="position:absolute; right:6px; top:50%; transform:translateY(-50%); font-size:.58rem; white-space:nowrap; color:{{ $pct > 85 ? '#fff' : '#9ca3af' }}; z-index:1;">
-                                {{ $clockOutStr ?? $shiftEndStr }}
+                            <span class="{{ $isActive ? 'bar-remaining' : '' }}"
+                                  style="position:absolute; right:6px; top:50%; transform:translateY(-50%); font-size:.58rem; white-space:nowrap; color:{{ $pct > 60 ? '#fff' : '#9ca3af' }}; z-index:1;">
+                                {{ $rightLabel }}
                             </span>
-                            @if($isActive && $pct > 1 && $pct < 99)
-                            <div class="pulse-dot" style="left:calc({{ $pct }}% - 5px);"></div>
+                            @if($isActive)
+                            <div class="pulse-dot" style="left:calc({{ $pct }}% - 5px);{{ ($pct <= 1 || $pct >= 99) ? 'display:none;' : '' }}"></div>
                             @endif
+                            @foreach($breakSegments as $bseg)
+                            <div title="Break: {{ $bseg['label'] }}"
+                                 style="position:absolute; top:0; left:{{ $bseg['left'] }}px; width:{{ $bseg['width'] }}px; height:100%;
+                                        background:rgba(255,255,255,0.38); z-index:4;
+                                        border-left:1px dashed rgba(255,255,255,0.65);
+                                        border-right:1px dashed rgba(255,255,255,0.65);">
+                                @if($bseg['width'] >= 20)
+                                <span style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+                                             font-size:.52rem; color:rgba(255,255,255,0.9); white-space:nowrap; pointer-events:none;">
+                                    Break
+                                </span>
+                                @endif
+                            </div>
+                            @endforeach
                         </div>
                     </td>
                 </tr>
@@ -384,9 +483,88 @@
         if (remaining <= 0) window.location.href = window.location.href;
     }
 
-    // Init bar
     if (bar) bar.style.width = '0%';
     setInterval(tick, 1000);
+})();
+
+// ── Real-time bar & clock update ─────────────────────────
+(function () {
+    const START_MIN = 5 * 60; // 05:00 AM
+    const PX        = 1.5;
+    const isToday   = {{ $isToday ? 'true' : 'false' }};
+
+    function toDisplayPx(min) {
+        return Math.round(((min - START_MIN + 1440) % 1440) * PX);
+    }
+
+    function fmt2(n) { return String(n).padStart(2, '0'); }
+
+    function updateLiveBars() {
+        const now        = new Date();
+        const currentMin = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
+
+        // Update live clock in header
+        const clock = document.getElementById('live-clock');
+        if (clock) clock.textContent = fmt2(now.getHours()) + ':' + fmt2(now.getMinutes());
+
+        // Update now-line positions
+        const nowPx = toDisplayPx(Math.floor(currentMin));
+        document.querySelectorAll('.now-line').forEach(function (line) {
+            line.style.left = nowPx + 'px';
+        });
+
+        if (!isToday) return;
+
+        // Update each active bar
+        document.querySelectorAll('.bar-track[data-live]').forEach(function (track) {
+            const inMin       = parseInt(track.dataset.inMin);
+            const shiftEndMin = parseInt(track.dataset.shiftEndMin);
+            const totalDur    = parseInt(track.dataset.totalDur);
+            const isOT        = currentMin >= shiftEndMin;
+
+            const fill     = track.querySelector('.bar-fill-active, .bar-fill-ot');
+            const dot      = track.querySelector('.pulse-dot');
+            const remLabel = track.querySelector('.bar-remaining');
+            const leftSpan = track.querySelectorAll('span')[0];
+
+            const pastShiftEnd = currentMin >= shiftEndMin;
+
+            if (pastShiftEnd) {
+                // Past shift end, not yet clocked out — bar stays blue & full
+                if (fill) { fill.className = 'bar-fill-active'; fill.style.width = '100%'; }
+                if (dot)  dot.style.display = 'none';
+                if (leftSpan) leftSpan.style.color = '#fff';
+                if (remLabel) {
+                    remLabel.style.color = '#fff';
+                    const extMin = Math.ceil(currentMin - shiftEndMin);
+                    const h = Math.floor(extMin / 60);
+                    const m = extMin % 60;
+                    remLabel.textContent = '+' + (h > 0 ? h + 'h ' : '') + m + 'm';
+                }
+            } else {
+                // Normal progress
+                const filledDur = Math.max(0, Math.min(currentMin - inMin, totalDur));
+                const pct       = Math.round(filledDur / totalDur * 100);
+
+                if (fill) { fill.className = 'bar-fill-active'; fill.style.width = pct + '%'; }
+                if (dot) {
+                    dot.style.left    = 'calc(' + pct + '% - 5px)';
+                    dot.style.display = (pct > 1 && pct < 99) ? '' : 'none';
+                }
+                if (leftSpan) leftSpan.style.color = pct > 18 ? '#fff' : '#6b7280';
+                if (remLabel) {
+                    remLabel.style.color = pct > 60 ? '#fff' : '#9ca3af';
+                    const remMin = Math.max(0, Math.ceil(shiftEndMin - currentMin));
+                    const h = Math.floor(remMin / 60);
+                    const m = remMin % 60;
+                    remLabel.textContent = (h > 0 ? h + 'h ' : '') + m + 'm left';
+                }
+            }
+        });
+    }
+
+    setInterval(updateLiveBars, 1000);
+    updateLiveBars();
 })();
 
 document.getElementById('empSearch').addEventListener('input', function () {

@@ -883,4 +883,31 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/{id}/mark-read', [App\Http\Controllers\Admin\FeatureAnnouncementController::class, 'markAsRead'])->name('mark-read');
             Route::post('/{id}/re-broadcast', [App\Http\Controllers\Admin\FeatureAnnouncementController::class, 'reBroadcast'])->name('re-broadcast');
         });
+
+    // ─── Warning Letter Module ─────────────────────────────────────────────────
+    Route::prefix('warning-letters')->name('warning-letters.')->middleware('auth')->group(function () {
+        Route::get('/dashboard', [App\Http\Controllers\Hr\WarningLetterController::class, 'dashboard'])->name('dashboard');
+        Route::get('/',           [App\Http\Controllers\Hr\WarningLetterController::class, 'index'])->name('index');
+        Route::get('/create',     [App\Http\Controllers\Hr\WarningLetterController::class, 'create'])->name('create');
+        Route::post('/',          [App\Http\Controllers\Hr\WarningLetterController::class, 'store'])->name('store');
+        Route::get('/{warningLetter}',        [App\Http\Controllers\Hr\WarningLetterController::class, 'show'])->name('show');
+        Route::get('/{warningLetter}/edit',   [App\Http\Controllers\Hr\WarningLetterController::class, 'edit'])->name('edit');
+        Route::put('/{warningLetter}',        [App\Http\Controllers\Hr\WarningLetterController::class, 'update'])->name('update');
+        Route::delete('/{warningLetter}',     [App\Http\Controllers\Hr\WarningLetterController::class, 'destroy'])->name('destroy');
+        Route::post('/{warningLetter}/approve',     [App\Http\Controllers\Hr\WarningLetterController::class, 'approve'])->name('approve');
+        Route::post('/{warningLetter}/acknowledge', [App\Http\Controllers\Hr\WarningLetterController::class, 'acknowledge'])->name('acknowledge');
+        Route::get('/{warningLetter}/pdf',          [App\Http\Controllers\Hr\WarningLetterController::class, 'pdf'])->name('pdf');
+    });
+
+    // ─── Warning Batches (Bulk) ────────────────────────────────────────────────
+    Route::prefix('warning-batches')->name('warning-batches.')->middleware('auth')->group(function () {
+        Route::get('/',                [App\Http\Controllers\Hr\WarningBatchController::class, 'index'])->name('index');
+        Route::get('/create',          [App\Http\Controllers\Hr\WarningBatchController::class, 'create'])->name('create');
+        Route::post('/',               [App\Http\Controllers\Hr\WarningBatchController::class, 'store'])->name('store');
+        Route::get('/{warningBatch}',  [App\Http\Controllers\Hr\WarningBatchController::class, 'show'])->name('show');
+    });
+
+    // ─── Violation Categories (Master Data) ───────────────────────────────────
+    Route::resource('violation-categories', App\Http\Controllers\Hr\ViolationCategoryController::class)
+        ->middleware('auth');
 });

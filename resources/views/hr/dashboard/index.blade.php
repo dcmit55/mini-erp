@@ -383,8 +383,13 @@
     {{-- Trend Line --}}
     <div class="card">
         <div class="card-title">📈 Daily Attendance Trend — {{ $now->format('F Y') }}</div>
-        <div class="card-sub">Present vs Late vs Alpha per working day</div>
+        <div class="card-sub">Present vs Late vs Alpha (only dates with attendance data)</div>
         <div class="chart-wrap" style="height:280px;"><canvas id="chartAttTrend"></canvas></div>
+        @if($dailyTrend->count() > 0)
+        <div style="margin-top:12px; text-align:center; font-size:10px; color:var(--gray-400);">
+            Showing data from {{ $dailyTrend->first()->day->format('d M Y') }} to {{ $dailyTrend->last()->day->format('d M Y') }}
+        </div>
+        @endif
     </div>
 </div>
 
@@ -491,7 +496,6 @@
     </div>
 </div>
 
-
 </div>{{-- /hrd --}}
 
 {{-- ══════════════ CHARTS ══════════════ --}}
@@ -538,8 +542,7 @@ mkChart('chartEmpType', 'pie', {
     datasets: [{ data:{!! json_encode($byEmploymentType->pluck('total')->values()) !!}, backgroundColor:['#2563eb','#7c3aed','#16a34a','#d97706','#ea580c','#ec4899'], borderWidth:2, borderColor:'#fff', hoverOffset:6 }]
 }, { plugins:{ legend:{display:false}, tooltip:PIE_TOOLTIP } });
 
-
-// 5. Attendance Stacked — Horizontal Bar
+// 4. Attendance Stacked — Horizontal Bar
 mkChart('chartAttendance', 'bar', {
     labels: {!! json_encode($topAbsences->take(10)->map(fn($r) => $r->employee->name ?? '-')->values()) !!},
     datasets: [
@@ -549,47 +552,120 @@ mkChart('chartAttendance', 'bar', {
     ]
 }, { indexAxis:'y', plugins:{legend:{position:'top', labels:{boxWidth:10,font:{size:10}}}}, scales:{ x:{stacked:true, grid:{display:false}}, y:{stacked:true, grid:{display:false}} } });
 
-// 6. Attendance Pie
+// 5. Attendance Pie
 mkChart('chartAttPie', 'pie', {
     labels: ['Present','Late','Alpha','Other'],
     datasets: [{ data:[{{ $attendanceStats->present_count ?? 0 }},{{ $attendanceStats->late_count ?? 0 }},{{ $attendanceStats->alpha_count ?? 0 }},{{ $attendanceStats->other_count ?? 0 }}], backgroundColor:['#16a34a','#d97706','#dc2626','#9ca3af'], borderWidth:2, borderColor:'#fff', hoverOffset:6 }]
 }, { plugins:{ legend:{display:false}, tooltip:PIE_TOOLTIP } });
 
-// 7. Attendance Trend — Line
+// 6. Attendance Trend — Line (HANYA TANGGAL YANG ADA DATA)
 @php
-    $trendLabels  = $dailyTrend->map(fn($r) => $r->day->format('d/M'));
+    $trendLabels  = $dailyTrend->map(fn($r) => $r->day->format('d M'));
     $trendPresent = $dailyTrend->pluck('present');
     $trendLate    = $dailyTrend->pluck('late');
     $trendAlpha   = $dailyTrend->pluck('alpha');
 @endphp
+
+@if($dailyTrend->count() > 0)
 mkChart('chartAttTrend', 'line', {
     labels: {!! json_encode($trendLabels->values()) !!},
     datasets: [
-        { label:'Present', data:{!! json_encode($trendPresent->values()) !!}, borderColor:'#16a34a', backgroundColor:'rgba(22,163,74,.08)', tension:.4, fill:true, pointRadius:4, pointBackgroundColor:'#16a34a' },
-        { label:'Late',    data:{!! json_encode($trendLate->values()) !!},    borderColor:'#d97706', backgroundColor:'rgba(217,119,6,.08)', tension:.4, fill:true, pointRadius:4, pointBackgroundColor:'#d97706' },
-        { label:'Alpha',   data:{!! json_encode($trendAlpha->values()) !!},   borderColor:'#dc2626', backgroundColor:'rgba(220,38,38,.07)', tension:.4, fill:true, pointRadius:4, pointBackgroundColor:'#dc2626' }
+        { 
+            label:'Present', 
+            data:{!! json_encode($trendPresent->values()) !!}, 
+            borderColor:'#16a34a', 
+            backgroundColor:'rgba(22,163,74,.08)', 
+            tension:0.3, 
+            fill:true, 
+            pointRadius:4, 
+            pointHoverRadius:6,
+            pointBackgroundColor:'#16a34a',
+            pointBorderColor:'#fff',
+            pointBorderWidth:2,
+            borderWidth:2
+        },
+        { 
+            label:'Late',    
+            data:{!! json_encode($trendLate->values()) !!},    
+            borderColor:'#d97706', 
+            backgroundColor:'rgba(217,119,6,.08)', 
+            tension:0.3, 
+            fill:true, 
+            pointRadius:4,
+            pointHoverRadius:6,
+            pointBackgroundColor:'#d97706',
+            pointBorderColor:'#fff',
+            pointBorderWidth:2,
+            borderWidth:2
+        },
+        { 
+            label:'Alpha',   
+            data:{!! json_encode($trendAlpha->values()) !!},   
+            borderColor:'#dc2626', 
+            backgroundColor:'rgba(220,38,38,.07)', 
+            tension:0.3, 
+            fill:true, 
+            pointRadius:4,
+            pointHoverRadius:6,
+            pointBackgroundColor:'#dc2626',
+            pointBorderColor:'#fff',
+            pointBorderWidth:2,
+            borderWidth:2
+        }
     ]
-}, { plugins:{legend:{position:'top',labels:{boxWidth:10,font:{size:10}}}}, scales:{ x:{grid:{display:false}, ticks:{font:{size:9}}}, y:{grid:{color:'#f3f4f6'}, beginAtZero:true} } });
+}, { 
+    plugins:{
+        legend:{position:'top', labels:{boxWidth:12, font:{size:10, weight:'bold'}}},
+        tooltip:{ mode:'index', intersect:false }
+    }, 
+    scales:{ 
+        x:{ 
+            grid:{display:false}, 
+            ticks:{ 
+                font:{size:10},
+                maxRotation: 35,
+                minRotation: 35,
+                autoSkip: true,
+                maxTicksLimit: 12
+            } 
+        }, 
+        y:{ 
+            grid:{color:'#f3f4f6', drawBorder:false}, 
+            beginAtZero: true,
+            ticks:{ stepSize: 1, precision: 0 },
+            title:{ display:true, text:'Number of Employees', font:{size:10}, color:'#9ca3af' }
+        } 
+    },
+    elements:{ line:{ borderJoin:'round' } }
+});
+@else
+(function(){
+    const el = document.getElementById('chartAttTrend');
+    if(el && el.parentElement) {
+        el.parentElement.innerHTML = '<div style="height:280px;display:flex;align-items:center;justify-content:center;color:#9ca3af;font-size:12px;">No attendance data available for this month</div>';
+    }
+})();
+@endif
 
-// 8. Leave Status — Pie
+// 7. Leave Status — Pie
 mkChart('chartLeaveStatus', 'pie', {
     labels: ['Approved (HR+Dir)','HR Approved, Dir Pending','Rejected','Pending HR'],
     datasets: [{ data:[{{ $approvedLeaves }},{{ $pendingLeaveDir }},{{ $rejectedLeaves }},{{ $pendingLeaveHr }}], backgroundColor:['#16a34a','#d97706','#dc2626','#9ca3af'], borderWidth:2, borderColor:'#fff', hoverOffset:6 }]
 }, { plugins:{ legend:{display:false}, tooltip:PIE_TOOLTIP } });
 
-// 9. Leave Type — Bar
+// 8. Leave Type — Bar
 mkChart('chartLeaveType', 'bar', {
     labels: {!! json_encode($leaveByType->pluck('type')->values()) !!},
     datasets: [{ label:'Count', data:{!! json_encode($leaveByType->pluck('total')->values()) !!}, backgroundColor:['#2563eb','#7c3aed','#d97706','#ec4899','#16a34a','#9ca3af'], borderRadius:BR }]
 }, { plugins:{legend:{display:false}}, scales:{ x:{grid:{display:false}, ticks:{font:{size:10}}}, y:{grid:{color:'#f3f4f6'}, beginAtZero:true, ticks:{stepSize:1}} } });
 
-// 10. OT Trend — Bar
+// 9. OT Trend — Bar
 mkChart('chartOTTrend', 'bar', {
     labels: {!! json_encode(collect($otMonthlyTrend)->pluck('month')->values()) !!},
     datasets: [{ label:'OT Hours', data:{!! json_encode(collect($otMonthlyTrend)->pluck('hours')->values()) !!}, backgroundColor:'#7c3aed', borderRadius:BR }]
 }, { plugins:{legend:{display:false}}, scales:{ x:{grid:{display:false}}, y:{grid:{color:'#f3f4f6'}, beginAtZero:true} } });
 
-// 11. OT Type — Pie
+// 10. OT Type — Pie
 @php $otLabels = $otByType->pluck('ot_code'); $otData = $otByType->pluck('total'); @endphp
 @if($otByType->isNotEmpty())
 mkChart('chartOTType', 'pie', {

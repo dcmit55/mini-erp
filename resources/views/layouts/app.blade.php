@@ -618,6 +618,21 @@
                                                     <i class="fas fa-edit me-2"></i>Purchase Edited
                                                 </a>
                                             </li>
+                                            <li>
+                                                <hr class="dropdown-divider">
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item {{ request()->is('admin/kasbon') ? 'active' : '' }}"
+                                                    href="{{ route('kasbon.admin.index') }}">
+                                                    <i class="fas fa-hand-holding-usd me-2"></i>Cash Advance
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item {{ request()->is('admin/kasbon/installments*') ? 'active' : '' }}"
+                                                    href="{{ route('kasbon.admin.installments') }}">
+                                                    <i class="fas fa-calendar-check me-2"></i>Installment Monitoring
+                                                </a>
+                                            </li>
                                         </ul>
                                     </li>
                                 @endif
@@ -660,7 +675,7 @@
                                                 ->count();
                                         @endphp
                                         <li class="nav-item dropdown">
-                                            <a class="nav-link dropdown-toggle {{ request()->is('employees*') || request()->routeIs('leave_requests.index') || request()->is('attendance*') || request()->routeIs('employee-work-policies.*') || request()->routeIs('timings.*') || request()->routeIs('attendance-logs.*') || request()->routeIs('overtime-requests.*') || request()->routeIs('overtime-pays.*') || request()->routeIs('fingerspot.*') || request()->routeIs('session-shifts.*') || request()->routeIs('hr.dashboard') ? 'active' : '' }}"
+                                            <a class="nav-link dropdown-toggle {{ request()->is('employees*') || request()->routeIs('leave_requests.index') || request()->is('attendance*') || request()->routeIs('employee-work-policies.*') || request()->routeIs('timings.*') || request()->routeIs('attendance-logs.*') || request()->routeIs('overtime-requests.*') || request()->routeIs('overtime-pays.*') || request()->routeIs('fingerspot.*') || request()->routeIs('session-shifts.*') || request()->routeIs('hr.dashboard') || request()->routeIs('warning-letters.*') || request()->routeIs('warning-batches.*') ? 'active' : '' }}"
                                                 href="{{ route('hr.dashboard') }}" id="hrDropdown" role="button" data-bs-toggle="dropdown"
                                                 aria-expanded="false">
                                                 <i></i>HR
@@ -735,6 +750,15 @@
                                                     <a class="dropdown-item {{ request()->routeIs('overtime-pays.*') ? 'active' : '' }}"
                                                         href="{{ route('overtime-pays.index') }}">
                                                         <i class="fas fa-calculator me-2"></i>Overtime Pay
+                                                    </a>
+                                                </li>
+
+                                                {{-- Warning Letter (SP1–SP4) --}}
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->routeIs('warning-letters.*') || request()->routeIs('warning-batches.*') ? 'active' : '' }}"
+                                                        href="{{ route('warning-letters.dashboard') }}">
+                                                        <i class="bi bi-envelope-exclamation me-2"></i>Warning Letter
                                                     </a>
                                                 </li>
 

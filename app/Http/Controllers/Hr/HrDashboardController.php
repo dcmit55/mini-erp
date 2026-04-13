@@ -113,8 +113,8 @@ class HrDashboardController extends Controller
         $attendanceRate  = $activeEmployees > 0 ? round(($todayAttendance / $activeEmployees) * 100) : 0;
         $attendanceDateLabel = $lastAttendanceDate === $today ? 'Today' : Carbon::parse($lastAttendanceDate)->format('d/m');
 
-        // Daily trend for this month (present/late/alpha per day)
-        $dailyTrend = DailyAttendance::whereBetween('date', [$monthStart, $today])
+        // ── Daily Attendance Trend (HANYA TANGGAL YANG ADA DATA) ──
+        $dailyTrend = DailyAttendance::whereBetween('date', [$monthStart, $monthEnd])
             ->selectRaw("
                 DATE(date) as day,
                 SUM(CASE WHEN status = 'Present' THEN 1 ELSE 0 END) as present,
@@ -122,26 +122,16 @@ class HrDashboardController extends Controller
                 SUM(CASE WHEN status = 'Alpha' THEN 1 ELSE 0 END) as alpha
             ")
             ->groupBy('day')
-            ->orderBy('day')
-            ->get();
-
-        // Fill missing days with zeros
-        $allDays = [];
-        $currentDate = Carbon::parse($monthStart);
-        while ($currentDate <= Carbon::parse($today)) {
-            if ($currentDate->isWeekday()) {
-                $dayKey = $currentDate->toDateString();
-                $existing = $dailyTrend->firstWhere('day', $dayKey);
-                $allDays[] = (object)[
-                    'day' => $currentDate,
-                    'present' => $existing ? $existing->present : 0,
-                    'late' => $existing ? $existing->late : 0,
-                    'alpha' => $existing ? $existing->alpha : 0,
+            ->orderBy('day', 'asc')
+            ->get()
+            ->map(function($item) {
+                return (object)[
+                    'day' => Carbon::parse($item->day),
+                    'present' => $item->present,
+                    'late' => $item->late,
+                    'alpha' => $item->alpha,
                 ];
-            }
-            $currentDate->addDay();
-        }
-        $dailyTrend = collect($allDays);
+            });
 
         // Top absences this month
         $topAbsences = DailyAttendance::with('employee.department')
@@ -191,7 +181,8 @@ class HrDashboardController extends Controller
         $sampleEmployees = $activeEmployeeList->take(10);
         $sampleDates = [];
         $dateLoop = Carbon::parse($monthStart);
-        while ($dateLoop <= Carbon::parse($today)) {
+        $todayDate = Carbon::parse($today);
+        while ($dateLoop <= $todayDate) {
             if ($dateLoop->isWeekday()) {
                 $sampleDates[] = $dateLoop->copy();
             }

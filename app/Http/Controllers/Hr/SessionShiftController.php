@@ -213,10 +213,19 @@ class SessionShiftController extends Controller
         $currentMinutes = $now->hour * 60 + $now->minute;
         $departments    = Department::orderBy('name')->get();
         $isToday        = $date === today()->toDateString();
+        $isSaturday     = Carbon::parse($date)->isoWeekday() === 6;
+
+        // Load work policies for Saturday end-time override
+        $workPolicies = collect();
+        if ($isSaturday && $attendances->isNotEmpty()) {
+            $workPolicies = \App\Models\Hr\EmployeeWorkPolicy::whereIn('employee_id', $attendances->pluck('employee_id'))
+                ->get()
+                ->keyBy('employee_id');
+        }
 
         return view('hr.session-shifts.live-monitor', compact(
             'attendances', 'leaves', 'notClockedIn', 'departments', 'date',
-            'departmentId', 'now', 'currentMinutes', 'isToday'
+            'departmentId', 'now', 'currentMinutes', 'isToday', 'isSaturday', 'workPolicies'
         ));
     }
 }
