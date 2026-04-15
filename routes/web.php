@@ -66,6 +66,7 @@ use App\Http\Controllers\Hr\FingerprintLogController;
 use App\Http\Controllers\Hr\FingerspotController;
 use App\Http\Controllers\Hr\SessionShiftController;
 use App\Http\Controllers\Hr\SymcoreExportController;
+use App\Http\Controllers\ChatbotController;
 
 /*
 |--------------------------------------------------------------------------
@@ -167,6 +168,9 @@ Route::middleware(['auth'])->group(function () {
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // HR Dashboard
+    Route::get('/hr/dashboard', [\App\Http\Controllers\Hr\HrDashboardController::class, 'index'])->name('hr.dashboard');
 
     // Departments
     Route::resource('departments', DepartmentController::class);
@@ -417,12 +421,12 @@ Route::middleware(['auth'])->group(function () {
 
     // Leave Request - Authenticated only
     Route::get('leave_requests', [LeaveRequestController::class, 'index'])->name('leave_requests.index');
-    Route::get('leave_requests/{id}/edit', [LeaveRequestController::class, 'edit'])->name('leave_requests.edit');
-    Route::put('leave_requests/{id}', [LeaveRequestController::class, 'update'])->name('leave_requests.update');
-    Route::delete('leave_requests/{id}', [LeaveRequestController::class, 'destroy'])->name('leave_requests.destroy');
-    Route::get('leave_requests/{id}', [LeaveRequestController::class, 'show'])->name('leave_requests.show');
-    Route::get('leave_requests/{id}/document/{type}', [LeaveRequestController::class, 'serveDocument'])->name('leave_requests.document');
-    Route::post('leave_requests/{id}/approval', [LeaveRequestController::class, 'updateApproval'])->name('leave_requests.updateApproval');
+    Route::get('leave_requests/{leave}/edit', [LeaveRequestController::class, 'edit'])->name('leave_requests.edit');
+    Route::put('leave_requests/{leave}', [LeaveRequestController::class, 'update'])->name('leave_requests.update');
+    Route::delete('leave_requests/{leave}', [LeaveRequestController::class, 'destroy'])->name('leave_requests.destroy');
+    Route::get('leave_requests/{leave}', [LeaveRequestController::class, 'show'])->name('leave_requests.show');
+    Route::get('leave_requests/{leave}/document/{type}', [LeaveRequestController::class, 'serveDocument'])->name('leave_requests.document');
+    Route::post('leave_requests/{leave}/approval', [LeaveRequestController::class, 'updateApproval'])->name('leave_requests.updateApproval');
     Route::get('leave-approvals/dept', [LeaveRequestController::class, 'deptLeaveApprovals'])->name('leave_requests.dept-approvals');
     Route::get('leave-approvals/hr', [LeaveRequestController::class, 'hrLeaveApprovals'])->name('leave_requests.hr-approvals');
     Route::get('leave-approvals/director', [LeaveRequestController::class, 'directorLeaveApprovals'])->name('leave_requests.director-approvals');
@@ -885,4 +889,31 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/{id}/mark-read', [App\Http\Controllers\Admin\FeatureAnnouncementController::class, 'markAsRead'])->name('mark-read');
             Route::post('/{id}/re-broadcast', [App\Http\Controllers\Admin\FeatureAnnouncementController::class, 'reBroadcast'])->name('re-broadcast');
         });
+
+    // ─── Warning Letter Module ─────────────────────────────────────────────────
+    Route::prefix('warning-letters')->name('warning-letters.')->middleware('auth')->group(function () {
+        Route::get('/dashboard', [App\Http\Controllers\Hr\WarningLetterController::class, 'dashboard'])->name('dashboard');
+        Route::get('/',           [App\Http\Controllers\Hr\WarningLetterController::class, 'index'])->name('index');
+        Route::get('/create',     [App\Http\Controllers\Hr\WarningLetterController::class, 'create'])->name('create');
+        Route::post('/',          [App\Http\Controllers\Hr\WarningLetterController::class, 'store'])->name('store');
+        Route::get('/{warningLetter}',        [App\Http\Controllers\Hr\WarningLetterController::class, 'show'])->name('show');
+        Route::get('/{warningLetter}/edit',   [App\Http\Controllers\Hr\WarningLetterController::class, 'edit'])->name('edit');
+        Route::put('/{warningLetter}',        [App\Http\Controllers\Hr\WarningLetterController::class, 'update'])->name('update');
+        Route::delete('/{warningLetter}',     [App\Http\Controllers\Hr\WarningLetterController::class, 'destroy'])->name('destroy');
+        Route::post('/{warningLetter}/approve',     [App\Http\Controllers\Hr\WarningLetterController::class, 'approve'])->name('approve');
+        Route::post('/{warningLetter}/acknowledge', [App\Http\Controllers\Hr\WarningLetterController::class, 'acknowledge'])->name('acknowledge');
+        Route::get('/{warningLetter}/pdf',          [App\Http\Controllers\Hr\WarningLetterController::class, 'pdf'])->name('pdf');
+    });
+
+    // ─── Warning Batches (Bulk) ────────────────────────────────────────────────
+    Route::prefix('warning-batches')->name('warning-batches.')->middleware('auth')->group(function () {
+        Route::get('/',                [App\Http\Controllers\Hr\WarningBatchController::class, 'index'])->name('index');
+        Route::get('/create',          [App\Http\Controllers\Hr\WarningBatchController::class, 'create'])->name('create');
+        Route::post('/',               [App\Http\Controllers\Hr\WarningBatchController::class, 'store'])->name('store');
+        Route::get('/{warningBatch}',  [App\Http\Controllers\Hr\WarningBatchController::class, 'show'])->name('show');
+    });
+
+    // ─── Violation Categories (Master Data) ───────────────────────────────────
+    Route::resource('violation-categories', App\Http\Controllers\Hr\ViolationCategoryController::class)
+        ->middleware('auth');
 });

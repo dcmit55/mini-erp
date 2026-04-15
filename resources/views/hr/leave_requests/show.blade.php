@@ -88,12 +88,12 @@
                 <div class="card-body px-4 py-3">
                     <div class="d-flex gap-2 flex-wrap">
                         @if($leave->mc_document)
-                        <a href="{{ route('leave_requests.document', [$leave->id, 'mc']) }}" target="_blank" class="btn btn-outline-primary btn-sm rounded-2 px-3">
+                        <a href="{{ route('leave_requests.document', [$leave, 'mc']) }}" target="_blank" class="btn btn-outline-primary btn-sm rounded-2 px-3">
                             <i class="fas fa-file-medical me-1"></i> Medical Certificate
                         </a>
                         @endif
                         @if($leave->doctor_letter)
-                        <a href="{{ route('leave_requests.document', [$leave->id, 'doctor']) }}" target="_blank" class="btn btn-outline-info btn-sm rounded-2 px-3">
+                        <a href="{{ route('leave_requests.document', [$leave, 'doctor']) }}" target="_blank" class="btn btn-outline-info btn-sm rounded-2 px-3">
                             <i class="fas fa-file-alt me-1"></i> Doctor Letter
                         </a>
                         @endif

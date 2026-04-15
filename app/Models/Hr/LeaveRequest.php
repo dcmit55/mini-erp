@@ -3,6 +3,7 @@
 namespace App\Models\Hr;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 use App\Models\Hr\Employee;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
@@ -10,7 +11,22 @@ class LeaveRequest extends Model implements AuditableContract
 {
     use \OwenIt\Auditing\Auditable;
 
-    protected $fillable = ['employee_id', 'start_date', 'end_date', 'leave_time_from', 'leave_time_to', 'duration', 'type', 'reason', 'mc_document', 'doctor_letter', 'approval_dept', 'approval_1', 'approval_2'];
+    protected $fillable = ['uid', 'employee_id', 'start_date', 'end_date', 'leave_time_from', 'leave_time_to', 'duration', 'type', 'reason', 'mc_document', 'doctor_letter', 'approval_dept', 'approval_1', 'approval_2'];
+
+    public function getRouteKeyName(): string
+    {
+        return 'uid';
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+        static::creating(function ($model) {
+            if (empty($model->uid)) {
+                $model->uid = (string) Str::uuid();
+            }
+        });
+    }
 
     // Role → Department(s) mapping untuk Level 1 (dept approvals)
     // Value bisa string (single) atau array (multiple departments)

@@ -141,10 +141,14 @@ class AttendanceLogController extends Controller
                         $totalHours   = $clockIn && $clockOut ? $this->calculateHours($clockIn, $clockOut) : null;
                         $sessionShift = null;
                         if ($clockIn && $employee->department_id) {
-                            $sessionShift = SessionShift::detectFromClockIn(
+                            $clockInCarbon = Carbon::parse($clockIn);
+                            $sessionShift  = SessionShift::detectFromClockIn(
                                 $employee->department_id,
-                                Carbon::parse($clockIn)->format('H:i:s'),
-                                $employee->citizenship === 'WNA'
+                                $clockInCarbon->format('H:i:s'),
+                                $employee->citizenship === 'WNA',
+                                $employee->id,
+                                $employee->position,
+                                $clockInCarbon->isoWeekday()
                             );
                         }
 
@@ -264,7 +268,10 @@ class AttendanceLogController extends Controller
                 $shift = \App\Models\Hr\SessionShift::detectFromClockIn(
                     $employee->department_id,
                     \Carbon\Carbon::createFromFormat('H:i', $request->clock_in)->format('H:i:s'),
-                    (bool) $employee->is_wna
+                    (bool) $employee->is_wna,
+                    $employee->id,
+                    $employee->position,
+                    $date->isoWeekday()
                 );
             }
 

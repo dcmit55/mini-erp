@@ -68,7 +68,7 @@ class SymcoreExport implements FromArray, WithStyles, WithEvents
 
         // Kasbon: total outstanding (jumlah_disetujui - total dibayar) untuk kasbon aktif
         $kasbonData = DB::table('kasbon_requests')
-            ->whereIn('status', ['approved', 'disbursed', 'repaying'])
+            ->whereIn('kasbon_requests.status', ['approved', 'disbursed', 'repaying'])
             ->leftJoin('kasbon_installments', 'kasbon_requests.id', '=', 'kasbon_installments.kasbon_id')
             ->select(
                 'kasbon_requests.employee_id',

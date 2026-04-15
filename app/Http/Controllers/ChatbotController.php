@@ -2,206 +2,192 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\ChatbotContextService;
-use App\Services\ChatbotToolService;
+use App\Services\LlmService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\DB;
 
 class ChatbotController extends Controller
 {
-    public function __construct(
-        private ChatbotContextService $contextService,
-        private ChatbotToolService $toolService,
-    ) {}
-
-    // =========================================================
-    // TOOL DEFINITIONS (OpenAI function-calling format)
-    // Setiap tool harus didaftarkan di sini DAN di executeTool()
-    // =========================================================
-    private function getTools(): array
+    public function __construct()
     {
-        return [
-            $this->tool('cari_karyawan', 'Cari info karyawan (nama, posisi, dept, kontak, status)',
-                ['nama' => 'Nama karyawan (sebagian nama)'], ['nama']),
-
-            $this->tool('cek_saldo_cuti', 'Cek saldo & riwayat cuti karyawan',
-                ['nama_karyawan' => 'Nama karyawan'], ['nama_karyawan']),
-
-            $this->tool('get_leave_requests', 'Daftar permohonan cuti. Filter opsional: status (pending/approved/rejected), nama karyawan',
-                ['status' => 'Filter status cuti', 'employee_name' => 'Filter nama karyawan'], []),
-
-            $this->tool('get_overtime_requests', 'Daftar permohonan lembur. Filter opsional: status (draft/submitted/approved/rejected), nama karyawan',
-                ['status' => 'Filter status lembur', 'employee_name' => 'Filter nama karyawan'], []),
-
-            $this->tool('cek_stok_material', 'Cek stok/inventory material: jumlah, category, lokasi, satuan, supplier',
-                ['nama_material' => 'Nama material (sebagian nama)'], ['nama_material']),
-
-            $this->tool('get_material_requests', 'Daftar material request milik user (bukan per job order). Filter: status, keyword',
-                ['status' => 'pending/approved/delivered/canceled', 'keyword' => 'Nama material atau proyek'], []),
-
-            $this->tool('get_purchase_requests', 'Cari purchase request/PO berdasarkan nama material',
-                ['keyword' => 'Nama material atau keyword'], ['keyword']),
-
-            $this->tool('cari_proyek', 'Cari proyek berdasarkan nama, status, stage',
-                ['keyword' => 'Nama atau keyword proyek'], ['keyword']),
-
-            $this->tool('get_job_orders', 'Cari job order berdasarkan ID (JO-XXXXXX), nama, atau proyek',
-                ['keyword' => 'ID atau nama job order'], ['keyword']),
-
-            $this->tool('get_job_order_materials', 'Daftar material yang dibutuhkan untuk satu job order (by ID atau nama JO)',
-                ['keyword' => 'ID atau nama job order'], ['keyword']),
-
-            $this->tool('cek_status_pengiriman', 'Cek status pengiriman berdasarkan waybill atau freight company',
-                ['keyword' => 'Nomor waybill atau nama freight company'], ['keyword']),
-        ];
+        $this->middleware('auth');
     }
 
-    private function tool(string $name, string $description, array $props, array $required): array
+    public function ask(Request $request, LlmService $llm)
     {
-        $properties = [];
-        foreach ($props as $key => $desc) {
-            $properties[$key] = ['type' => 'string', 'description' => $desc];
-        }
-        return [
-            'type'     => 'function',
-            'function' => [
-                'name'        => $name,
-                'description' => $description,
-                'parameters'  => [
-                    'type'       => 'object',
-                    'properties' => $properties,
-                    'required'   => $required,
-                ],
-            ],
-        ];
+        return $this->handleChat($request, $llm);
     }
 
-    // =========================================================
-    // MAIN HANDLER
-    // =========================================================
-    public function message(Request $request)
+    public function message(Request $request, LlmService $llm)
     {
-        $request->validate([
-            'message'           => 'required|string|max:2000',
-            'history'           => 'nullable|array|max:20',
-            'history.*.role'    => 'required|in:user,assistant',
-            'history.*.content' => 'required|string|max:4000',
-        ]);
+        return $this->handleChat($request, $llm);
+    }
 
-        $messages = [['role' => 'system', 'content' => $this->contextService->buildSystemPrompt()]];
+    protected function handleChat(Request $request, LlmService $llm)
+    {
+        $request->validate(['message' => 'required|string|max:1000']);
 
-        foreach (array_slice($request->history ?? [], -10) as $h) {
-            $messages[] = ['role' => $h['role'], 'content' => $h['content']];
+        $message = $request->input('message');
+
+        // Step 1 — ask LLM if it needs a DB query
+        $sql = $this->generateSql($message, $llm);
+
+        // Step 2 — execute the SQL if one was generated (SELECT only)
+        $dbContext = '';
+        if ($sql) {
+            $dbContext = $this->executeSql($sql);
         }
 
-        $messages[] = ['role' => 'user', 'content' => $request->message];
+        // Step 3 — final answer with optional DB context
+        $system = "You are a helpful assistant for a company ERP system called Mini-ERP (PT Symcore). "
+            . "The system covers: Inventory, HR (employees, attendance, leave, overtime), Finance (project costing), Procurement, and Production. "
+            . "Answer clearly and concisely. Respond in the same language the user writes in.";
+
+        if ($dbContext) {
+            $system .= "\n\nThe following data was retrieved from the live database to answer the user's question:\n\n"
+                     . $dbContext
+                     . "\n\nUse this data to give an accurate answer. "
+                     . "If the data is empty or not found, say so honestly.";
+        }
 
         try {
-            // ── Round 1: kirim dengan tools ───────────────────
-            $res1    = $this->callGroq($messages, $this->getTools());
-            $data1   = $res1->json();
-            $choice1 = $data1['choices'][0] ?? null;
-
-            if (!$res1->successful() || !$choice1) {
-                \Log::error('Chatbot Groq API error (round 1)', [
-                    'status' => $res1->status(),
-                    'body'   => $res1->body(),
-                ]);
-                return response()->json(['success' => false, 'reply' => 'API error. Please try again.']);
-            }
-
-            $aiMsg  = $choice1['message'];
-            $reason = $choice1['finish_reason'] ?? '';
-
-            // ── Tool call diminta ──────────────────────────────
-            if ($reason === 'tool_calls' && !empty($aiMsg['tool_calls'])) {
-                $messages[] = $aiMsg;
-
-                foreach ($aiMsg['tool_calls'] as $tc) {
-                    $toolName = $tc['function']['name'];
-                    $args     = json_decode($tc['function']['arguments'] ?? '{}', true) ?? [];
-                    $result   = $this->executeTool($toolName, $args);
-
-                    $messages[] = [
-                        'role'         => 'tool',
-                        'tool_call_id' => $tc['id'],
-                        'content'      => json_encode($result, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT),
-                    ];
-                }
-
-                // ── Round 2: jawaban final (tanpa tools) ──────
-                $res2  = $this->callGroq($messages);
-                $reply = $res2->json('choices.0.message.content') ?? 'No response generated.';
-
-                return response()->json(['success' => true, 'reply' => $reply]);
-            }
-
-            // ── Tidak perlu tool — jawaban langsung ───────────
-            $reply = $aiMsg['content'] ?? 'No response generated.';
-            return response()->json(['success' => true, 'reply' => $reply]);
-
+            $reply = $llm->chat($message, $system);
+            return response()->json(['reply' => $reply]);
         } catch (\Exception $e) {
-            \Log::error('Chatbot exception', ['message' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-            return response()->json(['success' => false, 'reply' => 'Connection error. Please try again.']);
+            return response()->json([
+                'reply' => 'Sorry, the AI assistant is currently unavailable. Please try again later.'
+            ], 500);
         }
     }
 
-    // =========================================================
-    // GROQ API CALLER
-    // =========================================================
-    private function callGroq(array $messages, array $tools = [])
+    /**
+     * Ask the LLM to produce a SQL SELECT query for the user's question.
+     * Returns the SQL string, or null if no query is needed.
+     */
+    protected function generateSql(string $message, LlmService $llm): ?string
     {
-        $payload = [
-            'model'       => config('services.groq.model'),
-            'messages'    => $messages,
-            'max_tokens'  => 1024,
-            'temperature' => 0.7,
-        ];
+        $schema = $this->getSchema();
 
-        if (!empty($tools)) {
-            $payload['tools']                = $tools;
-            $payload['tool_choice']          = 'auto';
-            $payload['parallel_tool_calls']  = false;
+        $prompt = <<<PROMPT
+You are a SQL query generator for a MySQL database.
+
+Given the database schema below and the user's question, decide:
+- If the question requires database data → output ONLY a safe SQL SELECT query (no explanation, no markdown, no code block)
+- If the question does NOT require database data (e.g. general questions, greetings) → output exactly: NO_QUERY
+
+Rules:
+- Only SELECT statements are allowed. Never INSERT, UPDATE, DELETE, DROP, etc.
+- Use LIMIT 20 maximum
+- Use LIKE for name/text searches (case-insensitive)
+- Only use tables and columns from the schema below
+
+DATABASE SCHEMA:
+{$schema}
+
+User question: {$message}
+PROMPT;
+
+        try {
+            $raw = $llm->chat($prompt);
+            $raw = trim($raw);
+
+            // Strip markdown code fences if LLM wraps it
+            $raw = preg_replace('/^```(?:sql)?\s*/i', '', $raw);
+            $raw = preg_replace('/\s*```$/', '', $raw);
+            $raw = trim($raw);
+
+            if (stripos($raw, 'NO_QUERY') !== false || empty($raw)) {
+                return null;
+            }
+
+            // Safety: must start with SELECT
+            if (!preg_match('/^\s*SELECT\b/i', $raw)) {
+                return null;
+            }
+
+            return $raw;
+        } catch (\Exception $e) {
+            return null;
         }
-
-        $client = Http::withHeaders([
-            'Authorization' => 'Bearer ' . config('services.groq.api_key'),
-            'Content-Type'  => 'application/json',
-        ])->timeout(60);
-
-        // Fix SSL verification di local environment (Laragon/XAMPP Windows
-        // tidak selalu punya CA bundle yang dikonfigurasi di php.ini)
-        if (app()->environment('local')) {
-            $client = $client->withOptions(['verify' => false]);
-        }
-
-        return $client->post(config('services.groq.url'), $payload);
     }
 
-    // =========================================================
-    // TOOL DISPATCHER
-    // Setiap tool yang didaftarkan di getTools() harus ada di sini
-    // =========================================================
-    private function executeTool(string $name, array $args): array
+    /**
+     * Execute a SELECT query safely and return results as formatted string.
+     */
+    protected function executeSql(string $sql): string
     {
-        return match ($name) {
-            // HR
-            'cari_karyawan'         => $this->toolService->cariKaryawan($args['nama'] ?? ''),
-            'cek_saldo_cuti'        => $this->toolService->cekSaldoCuti($args['nama_karyawan'] ?? ''),
-            'get_leave_requests'    => $this->toolService->getLeaveRequests($args['status'] ?? '', $args['employee_name'] ?? ''),
-            'get_overtime_requests' => $this->toolService->getOvertimeRequests($args['status'] ?? '', $args['employee_name'] ?? ''),
-            // Logistic / Material
-            'cek_stok_material'     => $this->toolService->cekStokMaterial($args['nama_material'] ?? ''),
-            'get_material_requests' => $this->toolService->getMaterialRequests($args['status'] ?? '', $args['keyword'] ?? ''),
-            // Procurement
-            'get_purchase_requests' => $this->toolService->getPurchaseRequests($args['keyword'] ?? ''),
-            'cek_status_pengiriman' => $this->toolService->cekStatusPengiriman($args['keyword'] ?? ''),
-            // Production / Project
-            'cari_proyek'              => $this->toolService->cariProyek($args['keyword'] ?? ''),
-            'get_job_orders'           => $this->toolService->getJobOrders($args['keyword'] ?? ''),
-            'get_job_order_materials'  => $this->toolService->getJobOrderMaterials($args['keyword'] ?? ''),
-            // Fallback
-            default                 => ['error' => "Tool tidak dikenal: {$name}"],
-        };
+        try {
+            $rows = DB::select($sql);
+
+            if (empty($rows)) {
+                return "Query returned no results.";
+            }
+
+            // Format as plain text table
+            $rows  = array_map(fn($r) => (array) $r, $rows);
+            $keys  = array_keys($rows[0]);
+            $lines = [implode(' | ', $keys)];
+            $lines[] = str_repeat('-', 60);
+            foreach ($rows as $row) {
+                $lines[] = implode(' | ', array_map(fn($v) => $v ?? 'NULL', array_values($row)));
+            }
+
+            return implode("\n", $lines);
+        } catch (\Exception $e) {
+            return "DB query error: " . $e->getMessage();
+        }
+    }
+
+    /**
+     * Compact schema description for the LLM to understand the database.
+     */
+    protected function getSchema(): string
+    {
+        return <<<SCHEMA
+TABLE: inventories
+  id, name (product/material name), material_code, unit, category_id, deleted_at
+
+TABLE: inventory_batches
+  id, inventory_id (FK→inventories.id), batch_number, qty, qty_remaining (current stock), unit_price, received_date, deleted_at
+
+TABLE: categories
+  id, name
+
+TABLE: employees
+  id, name, employee_no, department_id, status (active/terminated), employment_type, gender, citizenship (WNI/WNA), contract_end_date, deleted_at
+
+TABLE: departments
+  id, name
+
+TABLE: daily_attendances
+  id, employee_id (FK→employees.id), date, status (Present/Late/Alpha/Permission/Early Leave), clock_in, clock_out
+
+TABLE: leave_requests
+  id, employee_id (FK→employees.id), type, start_date, end_date, approval_1 (pending/approved/rejected), approval_2 (pending/approved/rejected), created_at
+
+TABLE: overtime_requests
+  id, employee_id (FK→employees.id), start_time, end_time, net_hours, hr_approval_status (pending/approved/rejected), ot_code, created_at
+
+TABLE: goods_in
+  id, inventory_id (FK→inventories.id), qty, unit_price, received_date, po_number, created_at
+
+TABLE: goods_out
+  id, inventory_id (FK→inventories.id), qty, purpose, issued_date, created_at
+
+TABLE: projects
+  id, name, project_code, status, client, start_date, end_date
+
+TABLE: purchase_requests
+  id, project_id, status (draft/pending/approved/rejected), requested_by, created_at
+
+TABLE: job_orders
+  id, project_id, name, status, department_id, deadline, created_at
+
+TABLE: suppliers
+  id, name, contact, email
+
+TABLE: units
+  id, name (e.g. meter, pcs, kg)
+SCHEMA;
     }
 }

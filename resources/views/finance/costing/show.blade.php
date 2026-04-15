@@ -990,12 +990,23 @@
                         @else
                         @endif
 
-                        <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top fw-bold"
-                            style="font-size:.82rem;">
-                            <span>Total Workmanship</span>
-                            <span class="text-body fw-bold">{{ $fmt($totalWorkmanshipIDR) }}</span>
+                        <div class="mt-2 pt-2 border-top">
+                            <div class="d-flex justify-content-between" style="font-size:.78rem; padding:.15rem 0;">
+                                <span class="text-muted">Regular</span>
+                                <span>{{ $fmt($totalNormalWorkmanship) }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between" style="font-size:.78rem; padding:.15rem 0;">
+                                <span style="color:#e67e22;">OT Cost</span>
+                                <span style="{{ $totalOtWorkmanship > 0 ? 'color:#e67e22; font-weight:600;' : 'color:#adb5bd;' }}">
+                                    {{ $totalOtWorkmanship > 0 ? '+ ' . $fmt($totalOtWorkmanship) : $fmt(0) }}
+                                </span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center fw-bold" style="font-size:.82rem; padding-top:.25rem; border-top:1px solid var(--bs-border-color); margin-top:.25rem;">
+                                <span>Total Workmanship</span>
+                                <span class="text-body fw-bold">{{ $fmt($totalWorkmanshipIDR) }}</span>
+                            </div>
+                            <div class="text-end text-muted" style="font-size:.7rem;">{{ $totalLaborHours }} hrs</div>
                         </div>
-                        <div class="text-end text-muted" style="font-size:.7rem;">{{ $totalLaborHours }} hrs</div>
                     </div>
                 </div>
             </div>

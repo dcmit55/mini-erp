@@ -92,6 +92,17 @@ class Kernel extends ConsoleKernel
             ->onFailure(fn() => \Log::error('timing:auto-stop-clockout gagal'));
         // ────────────────────────────────────────────────────────────────────
 
+        // ─── Expire Warning Letters (nightly 23:59 WIB) ──────────────────────
+        // Tandai SP yang sudah melewati valid_until → status = expired
+        // Cek recovery karyawan: jika semua SP expired → karyawan bisa mulai dari SP1 lagi
+        $schedule->command('hr:expire-warning-letters')
+            ->dailyAt('23:59')
+            ->timezone('Asia/Jakarta')
+            ->withoutOverlapping(5)
+            ->onFailure(fn() => \Log::error('hr:expire-warning-letters gagal'))
+            ->onSuccess(fn() => \Log::info('hr:expire-warning-letters selesai'));
+        // ────────────────────────────────────────────────────────────────────
+
     }
 
     /**

@@ -65,11 +65,15 @@ class DailyAttendanceService
 
             $detectedShift = null;
             if ($clockIn && $employee->department_id) {
-                $clockInForShift = Carbon::parse($clockIn)->format('H:i:s');
+                $clockInCarbon   = Carbon::parse($clockIn);
+                $clockInForShift = $clockInCarbon->format('H:i:s');
                 $detectedShift   = SessionShift::detectFromClockIn(
                     $employee->department_id,
                     $clockInForShift,
-                    (bool) $employee->is_wna
+                    (bool) $employee->is_wna,
+                    $employee->id,
+                    $employee->position,
+                    $clockInCarbon->isoWeekday()
                 );
             }
 

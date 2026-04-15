@@ -174,10 +174,10 @@
                                 </td>
                                 <td class="px-3 py-2 text-end">
                                     <div class="d-flex gap-1 justify-content-end">
-                                        <a href="{{ route('leave_requests.show', $leave->id) }}" class="btn btn-outline-info btn-sm rounded-2 px-2 py-1" title="Detail">
+                                        <a href="{{ route('leave_requests.show', $leave) }}" class="btn btn-outline-info btn-sm rounded-2 px-2 py-1" title="Detail">
                                             <i class="fas fa-eye"></i>
                                         </a>
-                                        <form action="{{ route('leave_requests.updateApproval', $leave->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Approve?')">
+                                        <form action="{{ route('leave_requests.updateApproval', $leave) }}" method="POST" class="d-inline" onsubmit="return confirm('Approve?')">
                                             @csrf
                                             <input type="hidden" name="approval_1" value="approved">
                                             <button type="submit" class="btn btn-outline-success btn-sm rounded-2 px-2 py-1" title="Approve">
@@ -185,7 +185,7 @@
                                             </button>
                                         </form>
                                         <button type="button" class="btn btn-outline-danger btn-sm rounded-2 px-2 py-1 reject-btn"
-                                                data-id="{{ $leave->id }}"
+                                                data-id="{{ $leave->uid }}"
                                                 data-employee="{{ $leave->employee->name ?? '' }}"
                                                 data-bs-toggle="modal"
                                                 data-bs-target="#rejectModal"
@@ -246,10 +246,10 @@
                         @endif
                     </div>
                     <div class="d-flex gap-2">
-                        <a href="{{ route('leave_requests.show', $leave->id) }}" class="btn btn-outline-info btn-sm rounded-2 px-2">
+                        <a href="{{ route('leave_requests.show', $leave) }}" class="btn btn-outline-info btn-sm rounded-2 px-2">
                             <i class="fas fa-eye"></i>
                         </a>
-                        <form action="{{ route('leave_requests.updateApproval', $leave->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Approve?')">
+                        <form action="{{ route('leave_requests.updateApproval', $leave) }}" method="POST" class="d-inline" onsubmit="return confirm('Approve?')">
                             @csrf
                             <input type="hidden" name="approval_1" value="approved">
                             <button type="submit" class="btn btn-outline-success btn-sm rounded-2 px-3">
@@ -257,7 +257,7 @@
                             </button>
                         </form>
                         <button type="button" class="btn btn-outline-danger btn-sm rounded-2 px-2 reject-btn"
-                                data-id="{{ $leave->id }}"
+                                data-id="{{ $leave->uid }}"
                                 data-employee="{{ $leave->employee->name ?? '' }}"
                                 data-bs-toggle="modal"
                                 data-bs-target="#rejectModal">
