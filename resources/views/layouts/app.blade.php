@@ -234,37 +234,39 @@
                                             <li>
                                                 <hr class="dropdown-divider">
                                             </li>
-                                            <li class="dropdown-header">Lark Staging Data</li>
-                                            <li>
-                                                <a class="dropdown-item {{ request()->is('lark/staging/bt-sg-courier*') ? 'active' : '' }}"
-                                                    href="{{ route('lark.staging.bt-sg-courier') }}">
-                                                    <i class="fas fa-truck me-2"></i>BT-SG Courier
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item {{ request()->is('lark/staging/sg-bt-courier*') ? 'active' : '' }}"
-                                                    href="{{ route('lark.staging.sg-bt-courier') }}">
-                                                    <i class="fas fa-truck-loading me-2"></i>SG-BT Courier
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item {{ request()->is('lark/staging/bt-sg-items*') ? 'active' : '' }}"
-                                                    href="{{ route('lark.staging.bt-sg-items') }}">
-                                                    <i class="fas fa-box me-2"></i>BT-SG Item Tracking
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item {{ request()->is('lark/staging/sg-bt-items*') ? 'active' : '' }}"
-                                                    href="{{ route('lark.staging.sg-bt-items') }}">
-                                                    <i class="fas fa-boxes me-2"></i>SG-BT Item Tracking
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item {{ request()->is('lark/staging/inventory*') ? 'active' : '' }}"
-                                                    href="{{ route('lark.staging.inventory') }}">
-                                                    <i class="fas fa-filter me-2"></i>Inventory Incoming
-                                                </a>
-                                            </li>
+                                            @if (!in_array(auth()->user()->role, ['general']))
+                                                <li class="dropdown-header">Lark Staging Data</li>
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('lark/staging/bt-sg-courier*') ? 'active' : '' }}"
+                                                        href="{{ route('lark.staging.bt-sg-courier') }}">
+                                                        <i class="fas fa-truck me-2"></i>BT-SG Courier
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('lark/staging/sg-bt-courier*') ? 'active' : '' }}"
+                                                        href="{{ route('lark.staging.sg-bt-courier') }}">
+                                                        <i class="fas fa-truck-loading me-2"></i>SG-BT Courier
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('lark/staging/bt-sg-items*') ? 'active' : '' }}"
+                                                        href="{{ route('lark.staging.bt-sg-items') }}">
+                                                        <i class="fas fa-box me-2"></i>BT-SG Item Tracking
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('lark/staging/sg-bt-items*') ? 'active' : '' }}"
+                                                        href="{{ route('lark.staging.sg-bt-items') }}">
+                                                        <i class="fas fa-boxes me-2"></i>SG-BT Item Tracking
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('lark/staging/inventory*') ? 'active' : '' }}"
+                                                        href="{{ route('lark.staging.inventory') }}">
+                                                        <i class="fas fa-filter me-2"></i>Inventory Incoming
+                                                    </a>
+                                                </li>
+                                            @endif
                                         </ul>
                                     </li>
                                 @endif
@@ -369,7 +371,7 @@
                                         }
                                     @endphp
                                     <li class="nav-item dropdown">
-                                        <a class="nav-link dropdown-toggle {{ request()->is('job-orders*') || request()->is('quick-timer*') || request()->is('material-usage*') || request()->is('employees/*/timing*') || request()->is('material-planning*') || request()->is('overtime-requests*') || request()->routeIs('leave_requests.dept-approvals') ? 'active' : '' }}"
+                                        <a class="nav-link dropdown-toggle {{ request()->is('job-orders*') || request()->is('quick-timer*') || request()->is('material_usage*') || request()->is('employees/*/timing*') || request()->is('material-planning*') || request()->is('overtime-requests*') || request()->routeIs('leave_requests.dept-approvals') ? 'active' : '' }}"
                                             href="#" id="productionsDropdown" role="button"
                                             data-bs-toggle="dropdown" aria-expanded="false">
                                             <i></i>Productions
@@ -388,7 +390,7 @@
                                                 </a>
                                             </li>
                                             <li>
-                                                <a class="dropdown-item {{ request()->is('material-usage*') ? 'active' : '' }}"
+                                                <a class="dropdown-item {{ request()->is('material_usage*') ? 'active' : '' }}"
                                                     href="{{ route('material_usage.index') }}">
                                                     <i class="fas fa-balance-scale me-2"></i>Material Usage
                                                 </a>
@@ -600,57 +602,58 @@
                                                         <i class="fas fa-user-tie me-2"></i>Employees
                                                     </a>
                                                 </li>
-                                                @if(!auth()->user()->isAdminTiming())
-                                                <li>
-                                                    <a class="dropdown-item {{ request()->routeIs('attendance-logs.*') ? 'active' : '' }}"
-                                                        href="{{ route('attendance-logs.index') }}">
-                                                        <i class="fas fa-list-alt me-2"></i>Attendance Logs
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a class="dropdown-item {{ request()->routeIs('leave_requests.index') ? 'active' : '' }}"
-                                                        href="{{ route('leave_requests.index') }}">
-                                                        <i class="fas fa-calendar-minus me-2"></i>Leave Requests
-                                                    </a>
-                                                </li>
+                                                @if (!auth()->user()->isAdminTiming())
+                                                    <li>
+                                                        <a class="dropdown-item {{ request()->routeIs('attendance-logs.*') ? 'active' : '' }}"
+                                                            href="{{ route('attendance-logs.index') }}">
+                                                            <i class="fas fa-list-alt me-2"></i>Attendance Logs
+                                                        </a>
+                                                    </li>
+                                                    <li>
+                                                        <a class="dropdown-item {{ request()->routeIs('leave_requests.index') ? 'active' : '' }}"
+                                                            href="{{ route('leave_requests.index') }}">
+                                                            <i class="fas fa-calendar-minus me-2"></i>Leave Requests
+                                                        </a>
+                                                    </li>
 
-                                                {{-- Approvals --}}
-                                                <li>
-                                                    <hr class="dropdown-divider">
-                                                </li>
-                                                <li>
-                                                    @php $totalLeavePending = ($hrLeavePendingCount ?? 0) + ($directorLeavePendingCount ?? 0); @endphp
-                                                    <a class="dropdown-item d-flex align-items-center justify-content-between {{ request()->routeIs('leave_requests.hr-approvals', 'leave_requests.director-approvals') ? 'active' : '' }}"
-                                                        href="{{ route('leave_requests.hr-approvals') }}">
-                                                        <span><i class="fas fa-user-check me-2"></i>Leave Approvals</span>
-                                                        @if ($totalLeavePending > 0)
-                                                            <span class="badge bg-danger rounded-pill ms-2"
-                                                                style="font-size:0.65rem;">
-                                                                {{ $totalLeavePending > 99 ? '99+' : $totalLeavePending }}
-                                                            </span>
-                                                        @endif
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    @php $totalOvertimePending = ($hrOvertimePendingCount ?? 0) + ($directorOvertimePendingCount ?? 0); @endphp
-                                                    <a class="dropdown-item d-flex align-items-center justify-content-between {{ request()->routeIs('overtime-requests.hr-approvals', 'overtime-requests.director-approvals') ? 'active' : '' }}"
-                                                        href="{{ route('overtime-requests.hr-approvals') }}">
-                                                        <span><i class="fas fa-user-check me-2"></i>Overtime
-                                                            Approvals</span>
-                                                        @if ($totalOvertimePending > 0)
-                                                            <span class="badge bg-danger rounded-pill ms-2"
-                                                                style="font-size:0.65rem;">
-                                                                {{ $totalOvertimePending > 99 ? '99+' : $totalOvertimePending }}
-                                                            </span>
-                                                        @endif
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a class="dropdown-item {{ request()->routeIs('overtime-pays.*') ? 'active' : '' }}"
-                                                        href="{{ route('overtime-pays.index') }}">
-                                                        <i class="fas fa-calculator me-2"></i>Overtime Pay
-                                                    </a>
-                                                </li>
+                                                    {{-- Approvals --}}
+                                                    <li>
+                                                        <hr class="dropdown-divider">
+                                                    </li>
+                                                    <li>
+                                                        @php $totalLeavePending = ($hrLeavePendingCount ?? 0) + ($directorLeavePendingCount ?? 0); @endphp
+                                                        <a class="dropdown-item d-flex align-items-center justify-content-between {{ request()->routeIs('leave_requests.hr-approvals', 'leave_requests.director-approvals') ? 'active' : '' }}"
+                                                            href="{{ route('leave_requests.hr-approvals') }}">
+                                                            <span><i class="fas fa-user-check me-2"></i>Leave
+                                                                Approvals</span>
+                                                            @if ($totalLeavePending > 0)
+                                                                <span class="badge bg-danger rounded-pill ms-2"
+                                                                    style="font-size:0.65rem;">
+                                                                    {{ $totalLeavePending > 99 ? '99+' : $totalLeavePending }}
+                                                                </span>
+                                                            @endif
+                                                        </a>
+                                                    </li>
+                                                    <li>
+                                                        @php $totalOvertimePending = ($hrOvertimePendingCount ?? 0) + ($directorOvertimePendingCount ?? 0); @endphp
+                                                        <a class="dropdown-item d-flex align-items-center justify-content-between {{ request()->routeIs('overtime-requests.hr-approvals', 'overtime-requests.director-approvals') ? 'active' : '' }}"
+                                                            href="{{ route('overtime-requests.hr-approvals') }}">
+                                                            <span><i class="fas fa-user-check me-2"></i>Overtime
+                                                                Approvals</span>
+                                                            @if ($totalOvertimePending > 0)
+                                                                <span class="badge bg-danger rounded-pill ms-2"
+                                                                    style="font-size:0.65rem;">
+                                                                    {{ $totalOvertimePending > 99 ? '99+' : $totalOvertimePending }}
+                                                                </span>
+                                                            @endif
+                                                        </a>
+                                                    </li>
+                                                    <li>
+                                                        <a class="dropdown-item {{ request()->routeIs('overtime-pays.*') ? 'active' : '' }}"
+                                                            href="{{ route('overtime-pays.index') }}">
+                                                            <i class="fas fa-calculator me-2"></i>Overtime Pay
+                                                        </a>
+                                                    </li>
                                                 @endif
 
                                                 {{-- Timing --}}
@@ -664,37 +667,37 @@
                                                     </a>
                                                 </li>
 
-                                                @if(!auth()->user()->isAdminTiming())
-                                                {{-- Fingerspot & Export --}}
-                                                <li>
-                                                    <hr class="dropdown-divider">
-                                                </li>
-                                                <li>
-                                                    <a class="dropdown-item {{ request()->routeIs('fingerspot.*') ? 'active' : '' }}"
-                                                        href="{{ route('fingerspot.index') }}">
-                                                        <i class="fas fa-fingerprint me-2"></i>Fingerspot
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a class="dropdown-item {{ request()->routeIs('symcore-export.*') ? 'active' : '' }}"
-                                                        href="{{ route('symcore-export.index') }}">
-                                                        <i class="fas fa-file-export me-2"></i>Data Export
-                                                    </a>
-                                                </li>
+                                                @if (!auth()->user()->isAdminTiming())
+                                                    {{-- Fingerspot & Export --}}
+                                                    <li>
+                                                        <hr class="dropdown-divider">
+                                                    </li>
+                                                    <li>
+                                                        <a class="dropdown-item {{ request()->routeIs('fingerspot.*') ? 'active' : '' }}"
+                                                            href="{{ route('fingerspot.index') }}">
+                                                            <i class="fas fa-fingerprint me-2"></i>Fingerspot
+                                                        </a>
+                                                    </li>
+                                                    <li>
+                                                        <a class="dropdown-item {{ request()->routeIs('symcore-export.*') ? 'active' : '' }}"
+                                                            href="{{ route('symcore-export.index') }}">
+                                                            <i class="fas fa-file-export me-2"></i>Data Export
+                                                        </a>
+                                                    </li>
 
-                                                {{-- Kebijakan & Shift --}}
-                                                <li>
-                                                    <a class="dropdown-item {{ request()->routeIs('employee-work-policies.*') ? 'active' : '' }}"
-                                                        href="{{ route('employee-work-policies.index') }}">
-                                                        <i class="fas fa-file-alt me-2"></i>Work Policies
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a class="dropdown-item {{ request()->routeIs('session-shifts.*') ? 'active' : '' }}"
-                                                        href="{{ route('session-shifts.index') }}">
-                                                        <i class="fas fa-layer-group me-2"></i>Session Shifts
-                                                    </a>
-                                                </li>
+                                                    {{-- Kebijakan & Shift --}}
+                                                    <li>
+                                                        <a class="dropdown-item {{ request()->routeIs('employee-work-policies.*') ? 'active' : '' }}"
+                                                            href="{{ route('employee-work-policies.index') }}">
+                                                            <i class="fas fa-file-alt me-2"></i>Work Policies
+                                                        </a>
+                                                    </li>
+                                                    <li>
+                                                        <a class="dropdown-item {{ request()->routeIs('session-shifts.*') ? 'active' : '' }}"
+                                                            href="{{ route('session-shifts.index') }}">
+                                                            <i class="fas fa-layer-group me-2"></i>Session Shifts
+                                                        </a>
+                                                    </li>
                                                 @endif
                                             </ul>
                                         </li>

@@ -145,6 +145,12 @@ class JobOrderController extends Controller
                         $imgBtn = '<button type="button" class="btn btn-sm btn-outline-secondary" style="' . $btnStyle . '" title="No image" disabled><i class="bi bi-file-earmark-image"></i></button>';
                     }
 
+                    $isGeneral = auth()->user()->role === 'general';
+
+                    if ($isGeneral) {
+                        return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;min-width:70px;">' . '<a href="' . route('job-orders.show', $jo->id) . '" class="btn btn-sm btn-info" style="' . $btnStyle . '" title="Detail"><i class="bi bi-eye"></i></a>' . $imgBtn . '</div>';
+                    }
+
                     return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;min-width:70px;">' . '<a href="' . route('job-orders.show', $jo->id) . '" class="btn btn-sm btn-info" style="' . $btnStyle . '" title="Detail"><i class="bi bi-eye"></i></a>' . $imgBtn . '<a href="' . route('job-orders.edit', $jo->id) . '" class="btn btn-sm btn-warning" style="' . $btnStyle . '" title="Edit"><i class="bi bi-pencil"></i></a>' . '<form action="' . route('job-orders.destroy', $jo->id) . '" method="POST" style="display:contents;">' . csrf_field() . method_field('DELETE') . '<button type="button" class="btn btn-sm btn-danger btn-delete" style="' . $btnStyle . '" title="Delete"><i class="bi bi-trash3"></i></button>' . '</form>' . '</div>';
                 })
                 ->rawColumns(['description', 'notes', 'countdown_display', 'department_name', 'actions'])

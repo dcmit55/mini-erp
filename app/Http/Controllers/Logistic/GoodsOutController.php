@@ -298,7 +298,8 @@ class GoodsOutController extends Controller
         if ($materialRequest->inventory_source === 'incoming') {
             $staging = $materialRequest->stagingInventory;
             if (!$staging || !$staging->processed) {
-                return redirect()->route('material_requests.index')
+                return redirect()
+                    ->route('material_requests.index')
                     ->with('error', 'Goods Out tidak dapat diproses. Material Request ini menggunakan <b>Inventory Incoming</b> dan staging inventory (<b>' . e($staging->name ?? '-') . '</b>) belum di-approve ke Inventory Batch. Hubungi Admin Logistik.');
             }
             // Jika inventory_id di MR belum terisi (data lama), auto-resolve dari staging
@@ -330,9 +331,7 @@ class GoodsOutController extends Controller
         try {
             // Lock inventory row
             $materialRequest = MaterialRequest::where('id', $request->material_request_id)->lockForUpdate()->first();
-            $inventory = $materialRequest->inventory_id
-                ? Inventory::where('id', $materialRequest->inventory_id)->lockForUpdate()->first()
-                : null;
+            $inventory = $materialRequest->inventory_id ? Inventory::where('id', $materialRequest->inventory_id)->lockForUpdate()->first() : null;
 
             if (!$inventory) {
                 DB::rollBack();
@@ -370,25 +369,19 @@ class GoodsOutController extends Controller
 
             if ($isIncoming && $materialRequest->staging_inventory_id) {
                 // Untuk incoming: pakai HANYA batch Lark yang berasal dari staging ini
-                $specificBatch = \App\Models\Logistic\InventoryBatch::where('inventory_id', $inventory->id)
-                    ->where('source_type', 'lark')
-                    ->where('source_id', $materialRequest->staging_inventory_id)
-                    ->where('qty_remaining', '>', 0)
-                    ->lockForUpdate()
-                    ->first();
+                $specificBatch = \App\Models\Logistic\InventoryBatch::where('inventory_id', $inventory->id)->where('source_type', 'lark')->where('source_id', $materialRequest->staging_inventory_id)->where('qty_remaining', '>', 0)->lockForUpdate()->first();
 
                 if (!$specificBatch || $specificBatch->qty_remaining < $request->quantity) {
                     DB::rollBack();
                     $available = $specificBatch ? $specificBatch->qty_remaining : 0;
-                    return back()->withInput()->with('error',
-                        "Qty tidak mencukupi di batch incoming yang dipilih. Tersedia: {$available}, Diminta: {$request->quantity}");
+                    return back()
+                        ->withInput()
+                        ->with('error', "Qty tidak mencukupi di batch incoming yang dipilih. Tersedia: {$available}, Diminta: {$request->quantity}");
                 }
             }
 
             // Capture primary batch for traceability
-            $primaryBatch = $isIncoming && $specificBatch
-                ? $specificBatch
-                : $inventory->activeBatches()->orderBy('received_date')->orderBy('id')->first();
+            $primaryBatch = $isIncoming && $specificBatch ? $specificBatch : $inventory->activeBatches()->orderBy('received_date')->orderBy('id')->first();
 
             $goodsOut = GoodsOut::create([
                 'material_request_id' => $materialRequest->id,
@@ -406,16 +399,16 @@ class GoodsOutController extends Controller
                 $consumed = $specificBatch->consume($request->quantity);
                 StockUsageBatch::create([
                     'goods_out_id' => $goodsOut->id,
-                    'batch_id'     => $specificBatch->id,
-                    'qty_used'     => $consumed,
+                    'batch_id' => $specificBatch->id,
+                    'qty_used' => $consumed,
                 ]);
             } else {
                 $usedBatches = $inventory->consumeStock($request->quantity);
                 foreach ($usedBatches as $ub) {
                     StockUsageBatch::create([
                         'goods_out_id' => $goodsOut->id,
-                        'batch_id'     => $ub['batch_id'],
-                        'qty_used'     => $ub['qty'],
+                        'batch_id' => $ub['batch_id'],
+                        'qty_used' => $ub['qty'],
                     ]);
                 }
             }
@@ -593,36 +586,28 @@ class GoodsOutController extends Controller
                 $specificBatchBulk = null;
 
                 if ($isMrIncoming && $materialRequest->staging_inventory_id) {
-                    $specificBatchBulk = \App\Models\Logistic\InventoryBatch::where('inventory_id', $inventory->id)
-                        ->where('source_type', 'lark')
-                        ->where('source_id', $materialRequest->staging_inventory_id)
-                        ->where('qty_remaining', '>', 0)
-                        ->lockForUpdate()
-                        ->first();
+                    $specificBatchBulk = \App\Models\Logistic\InventoryBatch::where('inventory_id', $inventory->id)->where('source_type', 'lark')->where('source_id', $materialRequest->staging_inventory_id)->where('qty_remaining', '>', 0)->lockForUpdate()->first();
 
                     if (!$specificBatchBulk || $specificBatchBulk->qty_remaining < $qtyToGoodsOut) {
                         DB::rollBack();
                         $avail = $specificBatchBulk ? $specificBatchBulk->qty_remaining : 0;
-                        return response()->json(['success' => false,
-                            'message' => "Qty tidak mencukupi di batch incoming untuk MR #{$materialRequest->id}. Tersedia: {$avail}"], 422);
+                        return response()->json(['success' => false, 'message' => "Qty tidak mencukupi di batch incoming untuk MR #{$materialRequest->id}. Tersedia: {$avail}"], 422);
                     }
                 }
 
                 // Capture primary batch for traceability
-                $primaryBatch = $isMrIncoming && $specificBatchBulk
-                    ? $specificBatchBulk
-                    : $inventory->activeBatches()->orderBy('received_date')->orderBy('id')->first();
+                $primaryBatch = $isMrIncoming && $specificBatchBulk ? $specificBatchBulk : $inventory->activeBatches()->orderBy('received_date')->orderBy('id')->first();
 
                 // Buat Goods Out
                 $goodsOut = GoodsOut::create([
                     'material_request_id' => $materialRequest->id,
-                    'inventory_id'        => $inventory->id,
-                    'inventory_batch_id'  => $primaryBatch?->id,
-                    'project_id'          => $materialRequest->project_id,
-                    'job_order_id'        => $materialRequest->job_order_id,
-                    'requested_by'        => $materialRequest->requested_by,
-                    'quantity'            => $qtyToGoodsOut,
-                    'remark'              => 'Bulk Goods Out',
+                    'inventory_id' => $inventory->id,
+                    'inventory_batch_id' => $primaryBatch?->id,
+                    'project_id' => $materialRequest->project_id,
+                    'job_order_id' => $materialRequest->job_order_id,
+                    'requested_by' => $materialRequest->requested_by,
+                    'quantity' => $qtyToGoodsOut,
+                    'remark' => 'Bulk Goods Out',
                 ]);
 
                 // Catat batch yang digunakan
@@ -630,16 +615,16 @@ class GoodsOutController extends Controller
                     $consumed = $specificBatchBulk->consume($qtyToGoodsOut);
                     StockUsageBatch::create([
                         'goods_out_id' => $goodsOut->id,
-                        'batch_id'     => $specificBatchBulk->id,
-                        'qty_used'     => $consumed,
+                        'batch_id' => $specificBatchBulk->id,
+                        'qty_used' => $consumed,
                     ]);
                 } else {
                     $usedBatches = $inventory->consumeStock($qtyToGoodsOut);
                     foreach ($usedBatches as $ub) {
                         StockUsageBatch::create([
                             'goods_out_id' => $goodsOut->id,
-                            'batch_id'     => $ub['batch_id'],
-                            'qty_used'     => $ub['qty'],
+                            'batch_id' => $ub['batch_id'],
+                            'qty_used' => $ub['qty'],
                         ]);
                     }
                 }

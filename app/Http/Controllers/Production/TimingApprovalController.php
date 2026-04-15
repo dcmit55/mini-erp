@@ -21,26 +21,30 @@ class TimingApprovalController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = Timing::with(['employee.department', 'project', 'jobOrder', 'approver'])
-                ->where('status', '!=', 'frozen')
-                ->where(function ($q) {
-                    // Include completed/paused sessions OR orphaned 'on progress' sessions (started > 1 hour ago)
-                    $q->whereNotNull('end_time')->orWhere(function ($q2) {
-                        $q2->where('status', 'on progress')->where('tanggal', '<', now()->toDateString());
-                    });
+            $approvalStatus = $request->filled('approval_status') ? $request->approval_status : null;
+
+            $query = Timing::with(['employee.department', 'project', 'jobOrder', 'approver'])->where('status', '!=', 'frozen');
+
+            // For 'paused' filter — show only paused sessions
+            if ($approvalStatus === 'paused') {
+                $query->where('status', 'paused');
+            } elseif ($approvalStatus === 'approved' || $approvalStatus === 'rejected') {
+                // Approved/Rejected: sessions with end_time OR paused sessions that were processed
+                $query->where('approval_status', $approvalStatus);
+            } else {
+                // All Status or pending: include completed/paused/orphaned sessions
+                $query->where(function ($q) {
+                    $q->whereNotNull('end_time')
+                        ->orWhere('status', 'paused')
+                        ->orWhere(function ($q2) {
+                            $q2->where('status', 'on progress')->where('tanggal', '<', now()->toDateString());
+                        });
                 });
 
-            // Filter by approval status / session status
-            if ($request->has('approval_status') && $request->approval_status !== '') {
-                if ($request->approval_status === 'paused') {
-                    // Special filter: show paused sessions regardless of approval_status
-                    $query->where('status', 'paused');
-                } else {
-                    $query->where('approval_status', $request->approval_status);
+                if ($approvalStatus === 'pending') {
+                    $query->where('approval_status', 'pending');
                 }
-            } else {
-                // Default: show pending approval (includes paused sessions awaiting approval)
-                $query->where('approval_status', 'pending');
+                // $approvalStatus === null → no approval_status filter (show all)
             }
 
             // Filter by project
@@ -161,7 +165,12 @@ class TimingApprovalController extends Controller
                 })
                 ->addColumn('approver_info', function ($timing) {
                     if ($timing->approved_by && $timing->approver) {
-                        return '<small>' . $timing->approver->name . '<br>' . $timing->approved_at?->format('d M Y H:i') . '</small>';
+                        try {
+                            $approvedAtStr = $timing->approved_at ? \Carbon\Carbon::parse($timing->approved_at)->format('d M Y H:i') : '-';
+                        } catch (\Exception $e) {
+                            $approvedAtStr = '-';
+                        }
+                        return '<small>' . $timing->approver->name . '<br>' . $approvedAtStr . '</small>';
                     }
                     return '<small class="text-muted">-</small>';
                 })

@@ -63,6 +63,7 @@ class Timing extends Model implements AuditableContract
         'started_at' => 'datetime',
         'paused_at' => 'datetime',
         'stopped_at' => 'datetime',
+        'approved_at' => 'datetime',
         'rate_per_hour' => 'decimal:2',
     ];
 

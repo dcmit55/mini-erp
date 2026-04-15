@@ -114,22 +114,16 @@ class MaterialRequestController extends Controller
                     return $req->inventory->name ?? '(No Material)';
                 })
                 ->addColumn('requested_qty', function ($req) {
-                    $unit = $req->inventory_source === 'incoming'
-                        ? ($req->stagingInventory->unit ?? '')
-                        : ($req->inventory->unit ?? '');
+                    $unit = $req->inventory_source === 'incoming' ? $req->stagingInventory->unit ?? '' : $req->inventory->unit ?? '';
                     return rtrim(rtrim(number_format($req->qty, 2, '.', ''), '0'), '.') . ' ' . $unit;
                 })
                 ->addColumn('remaining_qty', function ($req) {
-                    $unit = $req->inventory_source === 'incoming'
-                        ? ($req->stagingInventory->unit ?? '')
-                        : ($req->inventory->unit ?? '');
+                    $unit = $req->inventory_source === 'incoming' ? $req->stagingInventory->unit ?? '' : $req->inventory->unit ?? '';
                     $remaining = $req->qty - $req->processed_qty;
                     return '<span data-bs-toggle="tooltip" title="' . $unit . '">' . rtrim(rtrim(number_format($remaining, 2, '.', ''), '0'), '.') . '</span>';
                 })
                 ->addColumn('processed_qty', function ($req) {
-                    $unit = $req->inventory_source === 'incoming'
-                        ? ($req->stagingInventory->unit ?? '')
-                        : ($req->inventory->unit ?? '');
+                    $unit = $req->inventory_source === 'incoming' ? $req->stagingInventory->unit ?? '' : $req->inventory->unit ?? '';
                     return '<span data-bs-toggle="tooltip" title="' . $unit . '">' . rtrim(rtrim(number_format($req->processed_qty, 2, '.', ''), '0'), '.') . '</span>';
                 })
                 ->addColumn('requested_by', function ($req) {
@@ -303,14 +297,26 @@ class MaterialRequestController extends Controller
 
     /**
      * AJAX: Get staging inventories for Inventory Incoming source.
+     *
+     * If job_order_id is provided (client project type), filter by the project
+     * associated with that Job Order: staging.project_lark must match project.name.
      */
     public function getStagingInventories(Request $request)
     {
-        $items = LarkStagingInventory::select('id', 'name', 'quantity', 'received_qty', 'unit', 'material_code')
+        $query = LarkStagingInventory::select('id', 'name', 'quantity', 'received_qty', 'unit', 'material_code', 'project_lark')
             ->whereIn('review_status', ['approved', 'pending'])
-            ->where('processed', false)
-            ->orderBy('name')
-            ->get();
+            ->where('processed', false);
+
+        // Filter by JO's project: only show staging items whose project_lark matches the project name
+        if ($request->filled('job_order_id')) {
+            $jobOrder = \App\Models\Production\JobOrder::with('project:id,name')->where('id', $request->job_order_id)->first();
+
+            if ($jobOrder && $jobOrder->project) {
+                $query->where('project_lark', $jobOrder->project->name);
+            }
+        }
+
+        $items = $query->orderBy('name')->get();
 
         return response()->json($items);
     }
@@ -391,14 +397,14 @@ class MaterialRequestController extends Controller
             }
 
             $data = [
-                'inventory_id'        => $inventoryId,
+                'inventory_id' => $inventoryId,
                 'staging_inventory_id' => $inventorySource === 'incoming' ? $request->staging_inventory_id : null,
-                'inventory_source'    => $inventorySource,
-                'project_type'        => $request->project_type,
-                'qty'                 => $request->qty,
-                'processed_qty'       => 0,
-                'requested_by'        => $user->username,
-                'remark'              => $request->remark,
+                'inventory_source' => $inventorySource,
+                'project_type' => $request->project_type,
+                'qty' => $request->qty,
+                'processed_qty' => 0,
+                'requested_by' => $user->username,
+                'remark' => $request->remark,
             ];
 
             if ($request->project_type === MaterialRequest::PROJECT_TYPE_CLIENT) {
@@ -425,14 +431,7 @@ class MaterialRequestController extends Controller
                 ->with('success', "Material Request for <b>{$materialName}</b> (source: {$sourceLabel}) in project <b>{$projectName}</b> created successfully!");
 
             if ($inventorySource === 'incoming') {
-                $redirect = $redirect->with(
-                    'info_incoming',
-                    "Material Request ini menggunakan <b>Inventory Incoming</b> (Lark Staging). " .
-                    "Status MR <b>tidak dapat diubah ke Approved</b> secara langsung — " .
-                    "material <b>{$materialName}</b> harus terlebih dahulu di-review dan di-approve oleh Admin Logistik, " .
-                    "kemudian di-push ke <b>Inventory Batch</b>. Setelah proses tersebut selesai, " .
-                    "MR ini baru dapat diproses ke tahap <b>Goods Out</b>."
-                );
+                $redirect = $redirect->with('info_incoming', 'Material Request ini menggunakan <b>Inventory Incoming</b> (Lark Staging). ' . 'Status MR <b>tidak dapat diubah ke Approved</b> secara langsung — ' . "material <b>{$materialName}</b> harus terlebih dahulu di-review dan di-approve oleh Admin Logistik, " . 'kemudian di-push ke <b>Inventory Batch</b>. Setelah proses tersebut selesai, ' . 'MR ini baru dapat diproses ke tahap <b>Goods Out</b>.');
             }
 
             return $redirect;
@@ -595,9 +594,8 @@ class MaterialRequestController extends Controller
 
         // Staging inventories (pending/approved, not processed or already linked to this MR)
         $stagingInventories = \App\Models\Lark\LarkStagingInventory::where(function ($q) use ($materialRequest) {
-                $q->where('processed', false)
-                  ->orWhere('id', $materialRequest->staging_inventory_id);
-            })
+            $q->where('processed', false)->orWhere('id', $materialRequest->staging_inventory_id);
+        })
             ->orderBy('name')
             ->get(['id', 'name', 'unit', 'quantity', 'received_qty', 'material_code', 'review_status', 'processed']);
 
@@ -634,20 +632,7 @@ class MaterialRequestController extends Controller
             return redirect()->route('material_requests.index', $filters)->with('error', 'You do not have permission to edit this request.');
         }
 
-        return view(
-            'logistic.material_requests.edit',
-            compact(
-                'materialRequest',
-                'inventories',
-                'stagingInventories',
-                'jobOrders',
-                'internalProjects',
-                'departments',
-                'units',
-                'filters',
-                'defaultPtDcmDepartmentId',
-            ),
-        );
+        return view('logistic.material_requests.edit', compact('materialRequest', 'inventories', 'stagingInventories', 'jobOrders', 'internalProjects', 'departments', 'units', 'filters', 'defaultPtDcmDepartmentId'));
     }
     /**
      * Update the specified resource in storage.
@@ -663,19 +648,20 @@ class MaterialRequestController extends Controller
 
         $materialRequest = MaterialRequest::findOrFail($id);
 
-        // Cek quick update
-        if ($request->has('status') && !$request->has('inventory_id')) {
+        // Cek quick update — hanya jika bukan full edit form
+        // Full edit form selalu punya 'qty' dan 'inventory_source'
+        if ($request->has('status') && !$request->has('qty') && !$request->has('inventory_source')) {
             return $this->quickUpdate($request, $id);
         }
 
         // Validasi dasar
         $request->validate([
-            'project_type'       => 'required|in:client,internal',
-            'inventory_source'   => 'required|in:stock,incoming',
-            'qty'                => 'required|numeric|min:0.01',
-            'status'             => 'required|in:pending,approved,delivered,canceled',
-            'remark'             => 'nullable|string',
-            'job_order_id'       => 'required',
+            'project_type' => 'required|in:client,internal',
+            'inventory_source' => 'required|in:stock,incoming',
+            'qty' => 'required|numeric|min:0.01',
+            'status' => 'required|in:pending,approved,delivered,canceled',
+            'remark' => 'nullable|string',
+            'job_order_id' => 'required',
         ]);
 
         // Validasi material berdasarkan source
@@ -689,7 +675,7 @@ class MaterialRequestController extends Controller
         if ($request->project_type === MaterialRequest::PROJECT_TYPE_CLIENT) {
             $request->validate([
                 'job_order_id' => 'required|exists:job_orders,id',
-                'project_id'   => 'required|exists:projects,id',
+                'project_id' => 'required|exists:projects,id',
             ]);
         } else {
             $request->validate([
@@ -740,19 +726,19 @@ class MaterialRequestController extends Controller
 
             // Siapkan data update
             $updateData = [
-                'inventory_source'    => $request->inventory_source,
-                'project_type'        => $request->project_type,
-                'qty'                 => $request->qty,
-                'status'              => $request->status,
-                'remark'              => $request->remark,
+                'inventory_source' => $request->inventory_source,
+                'project_type' => $request->project_type,
+                'qty' => $request->qty,
+                'status' => $request->status,
+                'remark' => $request->remark,
             ];
 
             if ($isIncoming) {
                 $updateData['staging_inventory_id'] = $request->staging_inventory_id;
-                $updateData['inventory_id']         = null; // akan diisi saat staging di-approve
+                $updateData['inventory_id'] = null; // akan diisi saat staging di-approve
             } else {
-                $updateData['inventory_id']          = $request->inventory_id;
-                $updateData['staging_inventory_id']  = null;
+                $updateData['inventory_id'] = $request->inventory_id;
+                $updateData['staging_inventory_id'] = null;
             }
 
             // Set relasi berdasarkan tipe project
@@ -811,9 +797,7 @@ class MaterialRequestController extends Controller
                 ]);
             }
 
-            $materialLabel = $isIncoming
-                ? ($materialRequest->fresh(['stagingInventory'])->stagingInventory->name ?? 'Incoming Material')
-                : ($inventory->name ?? 'Material');
+            $materialLabel = $isIncoming ? $materialRequest->fresh(['stagingInventory'])->stagingInventory->name ?? 'Incoming Material' : $inventory->name ?? 'Material';
 
             return redirect()
                 ->route('material_requests.index', $filters)
@@ -922,15 +906,14 @@ class MaterialRequestController extends Controller
             $staging = $materialRequest->stagingInventory;
             if (!$staging || $staging->review_status !== 'approved' || !$staging->processed) {
                 $stagingName = $staging->name ?? '-';
-                $reason = !$staging
-                    ? 'data staging tidak ditemukan'
-                    : ($staging->review_status !== 'approved'
-                        ? 'belum di-approve oleh Admin Logistik'
-                        : 'belum di-push ke Inventory Batch');
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Material Request ini menggunakan <b>Inventory Incoming</b>. Status tidak dapat diubah ke <b>Approved</b> karena staging inventory (<b>' . e($stagingName) . '</b>) ' . $reason . '.',
-                ], 422);
+                $reason = !$staging ? 'data staging tidak ditemukan' : ($staging->review_status !== 'approved' ? 'belum di-approve oleh Admin Logistik' : 'belum di-push ke Inventory Batch');
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => 'Material Request ini menggunakan <b>Inventory Incoming</b>. Status tidak dapat diubah ke <b>Approved</b> karena staging inventory (<b>' . e($stagingName) . '</b>) ' . $reason . '.',
+                    ],
+                    422,
+                );
             }
         }
 

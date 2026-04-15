@@ -68,8 +68,8 @@
                             <label class="fw-bold mb-2">Material Source <span class="text-danger">*</span></label>
                             <div class="d-flex gap-4">
                                 <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="inventory_source"
-                                        id="sourceStock" value="stock"
+                                    <input class="form-check-input" type="radio" name="inventory_source" id="sourceStock"
+                                        value="stock"
                                         {{ old('inventory_source', $materialRequest->inventory_source ?? 'stock') == 'stock' ? 'checked' : '' }}>
                                     <label class="form-check-label" for="sourceStock">Inventory Stock</label>
                                     <div class="form-text text-muted">From batch inventory</div>
@@ -132,7 +132,7 @@
 
                             {{-- Stock select --}}
                             <div id="stockMaterialWrapper">
-                                <select name="inventory_id" id="inventory_id" class="form-select select2"
+                                <select id="inventory_id" class="form-select select2"
                                     data-placeholder="Select Material (Stock)">
                                     <option value="">Select Material</option>
                                     @foreach ($inventories as $inv)
@@ -143,6 +143,8 @@
                                         </option>
                                     @endforeach
                                 </select>
+                                <input type="hidden" name="inventory_id" id="hiddenInventoryId"
+                                    value="{{ old('inventory_id', $materialRequest->inventory_id) }}">
                                 <div id="available-qty" class="form-text d-none"></div>
                                 @error('inventory_id')
                                     <small class="text-danger">{{ $message }}</small>
@@ -151,8 +153,8 @@
 
                             {{-- Incoming (staging) select --}}
                             <div id="incomingMaterialWrapper" style="display:none;">
-                                <select name="staging_inventory_id" id="staging_inventory_id"
-                                    class="form-select select2" data-placeholder="Select Incoming Material" disabled>
+                                <select id="staging_inventory_id" class="form-select select2"
+                                    data-placeholder="Select Incoming Material">
                                     <option value="">Select Incoming Material</option>
                                     @foreach ($stagingInventories as $si)
                                         <option value="{{ $si->id }}" data-unit="{{ $si->unit }}"
@@ -162,6 +164,8 @@
                                         </option>
                                     @endforeach
                                 </select>
+                                <input type="hidden" name="staging_inventory_id" id="hiddenStagingInventoryId"
+                                    value="{{ old('staging_inventory_id', $materialRequest->staging_inventory_id) }}">
                                 <div id="available-incoming-qty" class="form-text d-none"></div>
                                 @error('staging_inventory_id')
                                     <small class="text-danger">{{ $message }}</small>
@@ -179,7 +183,7 @@
                                     class="form-control @error('qty') is-invalid @enderror" step="any" required
                                     value="{{ old('qty', $materialRequest->qty) }}" id="qty">
                                 <span class="input-group-text unit-label">
-                                    {{ $materialRequest->inventory->unit ?? $materialRequest->stagingInventory->unit ?? 'unit' }}
+                                    {{ $materialRequest->inventory->unit ?? ($materialRequest->stagingInventory->unit ?? 'unit') }}
                                 </span>
                             </div>
                             @error('qty')
@@ -502,7 +506,8 @@
                 '{{ $materialRequest->job_order_id ?? $materialRequest->internal_project_id }}';
             const departments = @json($departments);
             const defaultPtDcmDepartmentId = '{{ $defaultPtDcmDepartmentId ?? '' }}';
-            const currentInventorySource = '{{ old('inventory_source', $materialRequest->inventory_source ?? 'stock') }}';
+            const currentInventorySource =
+                '{{ old('inventory_source', $materialRequest->inventory_source ?? 'stock') }}';
             const currentStagingId = '{{ old('staging_inventory_id', $materialRequest->staging_inventory_id) }}';
             const stagingInventories = @json($stagingInventories);
 
@@ -603,8 +608,7 @@
                 if (isIncoming) {
                     $stockWrap.hide();
                     $incomingWrap.show();
-                    $('#inventory_id').prop('disabled', true).val(null).trigger('change');
-                    $('#staging_inventory_id').prop('disabled', false);
+                    $('#hiddenInventoryId').val(''); // clear stock hidden value
                     $('#hiddenInventorySource').val('incoming');
                     // Restore current staging select if exists
                     if (currentStagingId) {
@@ -615,8 +619,7 @@
                 } else {
                     $incomingWrap.hide();
                     $stockWrap.show();
-                    $('#staging_inventory_id').prop('disabled', true).val(null).trigger('change');
-                    $('#inventory_id').prop('disabled', false);
+                    $('#hiddenStagingInventoryId').val(''); // clear staging hidden value
                     $('#hiddenInventorySource').val('stock');
                 }
             }
@@ -626,10 +629,12 @@
             // ========== UNIT LABEL & AVAILABLE STOCK (Stock) ==========
             $('#inventory_id').on('change', function() {
                 const isIncoming = $('#sourceIncoming').is(':checked');
-                if (isIncoming) return; // jangan update jika incoming aktif
+                if (isIncoming) return;
                 const selected = $(this).find(':selected');
                 const unit = selected.data('unit') || 'unit';
                 const stock = selected.data('stock');
+                // Sync ke hidden input
+                $('#hiddenInventoryId').val(selected.val() || '');
                 $('.unit-label').text(unit);
                 const $avail = $('#available-qty');
                 $avail.removeClass('d-none text-danger text-warning');
@@ -646,11 +651,14 @@
                 const selected = $(this).find(':selected');
                 const unit = selected.data('unit') || 'unit';
                 const received = selected.data('received') ?? '';
+                // Sync ke hidden input
+                $('#hiddenStagingInventoryId').val(selected.val() || '');
                 $('.unit-label').text(unit);
                 const $avail = $('#available-incoming-qty');
                 $avail.removeClass('d-none text-danger text-warning text-info');
                 if (selected.val()) {
-                    $avail.addClass('text-info').text(`Received Qty: ${received} ${unit}`).removeClass('d-none');
+                    $avail.addClass('text-info').text(`Received Qty: ${received} ${unit}`).removeClass(
+                        'd-none');
                 } else {
                     $avail.addClass('d-none').text('');
                 }
@@ -716,7 +724,7 @@
                 submitBtn.prop('disabled', true);
                 submitBtn.html(
                     '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Adding...'
-                    );
+                );
 
                 $.ajax({
                     url: form.attr('action'),
@@ -777,7 +785,7 @@
                         } else {
                             $result.html(
                                 '<span class="text-success">No similar material found. You can proceed to add this material.</span>'
-                                );
+                            );
                         }
                     },
                     error: function() {

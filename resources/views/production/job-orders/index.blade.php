@@ -13,9 +13,11 @@
 
                     <!-- Spacer untuk mendorong tombol ke kanan -->
                     <div class="ms-sm-auto d-flex flex-wrap gap-2">
-                        <a href="{{ route('job-orders.create') }}" class="btn btn-primary btn-sm flex-shrink-0">
-                            <i class="bi bi-plus-circle me-1"></i> Create Job Order
-                        </a>
+                        @if (!in_array(auth()->user()->role, ['general']))
+                            <a href="{{ route('job-orders.create') }}" class="btn btn-primary btn-sm flex-shrink-0">
+                                <i class="bi bi-plus-circle me-1"></i> Create Job Order
+                            </a>
+                        @endif
                         @if (in_array(auth()->user()->role, ['super_admin', 'admin']))
                             <form action="{{ route('job-orders.sync.lark') }}" method="POST" class="d-inline"
                                 id="syncLarkForm">

@@ -153,6 +153,7 @@
                                         </option>
                                     @endforeach
                                 </select>
+                                <div id="incoming-filter-notice" class="form-text text-info d-none"></div>
                                 <div id="available-incoming-qty" class="form-text d-none"></div>
                                 @error('staging_inventory_id')
                                     <small class="text-danger">{{ $message }}</small>
@@ -566,6 +567,10 @@
                 if (!selected.val()) {
                     $infoDisplay.addClass('d-none');
                     $('#hiddenProjectId, #hiddenInternalProjectId').val('');
+                    // Clear filter notice if incoming is active
+                    if ($('input[name="inventory_source"]:checked').val() === 'incoming') {
+                        fetchStagingInventories();
+                    }
                     return;
                 }
 
@@ -591,6 +596,11 @@
                     } else {
                         $infoDisplay.addClass('d-none');
                     }
+                }
+
+                // If source is incoming (client only), re-fetch filtered staging materials
+                if (isClient && $('input[name="inventory_source"]:checked').val() === 'incoming') {
+                    fetchStagingInventories();
                 }
             });
 
@@ -787,6 +797,44 @@
             });
 
             // ========== MATERIAL SOURCE RADIO TOGGLE ==========
+
+            /**
+             * Fetch staging inventories via AJAX.
+             * If source=incoming and a client JO is selected, filter by JO's project.
+             */
+            function fetchStagingInventories(callback) {
+                const isClient = $('#projectTypeClient').is(':checked');
+                const joId = isClient ? ($('#jobOrderSelect').val() || '') : '';
+
+                $.get('{{ route('material_requests.staging_inventories') }}', {
+                    job_order_id: joId
+                }, function(items) {
+                    const $select = $('#staging_inventory_id');
+                    const currentVal = $select.val();
+                    let html = '<option value="">Select Incoming Material</option>';
+                    items.forEach(function(si) {
+                        const code = si.material_code ? ' (' + si.material_code + ')' : '';
+                        const selected = (String(si.id) === String(currentVal)) ? ' selected' : '';
+                        html +=
+                            `<option value="${si.id}" data-unit="${si.unit || ''}" data-qty="${si.quantity}" data-received="${si.received_qty || 0}"${selected}>${si.name}${code}</option>`;
+                    });
+                    $select.html(html).trigger('change.select2');
+
+                    // Show notice if filtered and no results
+                    const $notice = $('#incoming-filter-notice');
+                    if (joId && items.length === 0) {
+                        $notice.text('No incoming materials found for this project.').removeClass('d-none');
+                    } else if (joId && items.length > 0) {
+                        $notice.text(`Showing ${items.length} item(s) for this project.`).removeClass(
+                            'd-none');
+                    } else {
+                        $notice.addClass('d-none').text('');
+                    }
+
+                    if (typeof callback === 'function') callback();
+                });
+            }
+
             function toggleMaterialSource() {
                 const source = $('input[name="inventory_source"]:checked').val();
                 $('#hiddenInventorySource').val(source);
@@ -809,12 +857,15 @@
                     $('#incomingMaterialWrapper').show();
                     $('#inventory_id').prop('disabled', true).prop('required', false);
                     $('#staging_inventory_id').prop('disabled', false).prop('required', true);
-                    if ($('#staging_inventory_id').val()) {
-                        $('#staging_inventory_id').trigger('change');
-                    } else {
-                        $('#available-incoming-qty').addClass('d-none');
-                        $('.unit-label').text('unit');
-                    }
+                    // Fetch (filtered) staging items when switching to incoming
+                    fetchStagingInventories(function() {
+                        if ($('#staging_inventory_id').val()) {
+                            $('#staging_inventory_id').trigger('change');
+                        } else {
+                            $('#available-incoming-qty').addClass('d-none');
+                            $('.unit-label').text('unit');
+                        }
+                    });
                     $('#available-qty').addClass('d-none');
                 }
             }

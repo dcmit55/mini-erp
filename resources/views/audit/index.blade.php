@@ -175,7 +175,7 @@
                             <strong>Warning:</strong> All audit logs older than the specified days will be permanently
                             deleted and cannot be recovered.
                         </div>
-                        
+
                     </form>
                 </div>
                 <div class="modal-footer">
@@ -640,11 +640,31 @@
                     };
                     const badgeClass = eventBadgeClasses[data.event] || 'bg-secondary';
 
-                    let html = `
-                        <div class="mb-3">
-                            <strong>Model:</strong> ${data.model}<br>
-                            <strong>Event:</strong> <span class="badge ${badgeClass}">${data.event}</span><br>
-                            <strong>Date:</strong> ${data.created_at}
+                    // ── Record Identity Banner ─────────────────────────────────
+                    let recordBanner = '';
+                    if (data.record_info) {
+                        const ri = data.record_info;
+                        const labelHtml = ri.label ?
+                            ` &mdash; <span class="fw-semibold">${ri.label}</span>` :
+                            '';
+                        const deletedBadge = ri.deleted ?
+                            ' <span class="badge bg-secondary ms-1">Deleted</span>' :
+                            '';
+                        recordBanner = `
+                            <div class="alert alert-secondary py-2 px-3 mb-3 d-flex align-items-center gap-2" style="font-size:.88rem;">
+                                <i class="bi bi-file-earmark-text text-primary fs-5"></i>
+                                <div>
+                                    <span class="text-muted">Module:</span> <strong>${ri.module}</strong>
+                                    &nbsp;|&nbsp;
+                                    <span class="text-muted">Record ID:</span> <code>${ri.id}</code>${labelHtml}${deletedBadge}
+                                </div>
+                            </div>`;
+                    }
+
+                    let html = recordBanner + `
+                        <div class="mb-3 d-flex gap-3 align-items-center flex-wrap" style="font-size:.88rem;">
+                            <span><strong>Event:</strong> <span class="badge ${badgeClass}">${data.event}</span></span>
+                            <span><strong>Date:</strong> ${data.created_at}</span>
                         </div>
                     `;
 

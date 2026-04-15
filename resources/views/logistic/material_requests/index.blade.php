@@ -144,7 +144,7 @@
                             <th></th>
                             <th style="display:none">ID</th>
                             <th>Job Order</th>
-                            <th>Project Type</th>   <!-- NEW: Kolom Project Type -->
+                            <th>Project Type</th> <!-- NEW: Kolom Project Type -->
                             <th>Project</th>
                             <th>Material</th>
                             <th>Requested Qty</th>
@@ -230,16 +230,16 @@
                         <!-- Left column: Image & QR Code -->
                         <div class="col-md-5">
                             <div id="material-image-container" class="text-center mb-3 p-2 border rounded bg-light">
-                                <img id="material-image" src="" alt="Material Image"
-                                     class="img-fluid rounded" style="max-height: 200px; display: none;">
+                                <img id="material-image" src="" alt="Material Image" class="img-fluid rounded"
+                                    style="max-height: 200px; display: none;">
                                 <div id="no-image-placeholder" class="text-muted py-4" style="display: none;">
                                     <i class="bi bi-image fs-1"></i>
                                     <p>No image available</p>
                                 </div>
                             </div>
                             <div id="material-qr-container" class="text-center p-2 border rounded bg-light">
-                                <img id="material-qr" src="" alt="QR Code"
-                                     class="img-fluid" style="max-height: 120px; display: none;">
+                                <img id="material-qr" src="" alt="QR Code" class="img-fluid"
+                                    style="max-height: 120px; display: none;">
                                 <div id="no-qr-placeholder" class="text-muted py-2" style="display: none;">
                                     <i class="bi bi-qr-code fs-2"></i>
                                     <p>No QR Code</p>
@@ -249,15 +249,42 @@
                         <!-- Right column: Details Table -->
                         <div class="col-md-7">
                             <table class="table table-sm table-borderless">
-                                <tr><th style="width: 35%;">Name:</th><td id="detail-name" class="fw-semibold"></td></tr>
-                                <tr><th>Category:</th><td id="detail-category"></td></tr>
-                                <tr><th>Quantity:</th><td id="detail-quantity"></td></tr>
-                                <tr><th>Unit:</th><td id="detail-unit"></td></tr>
-                                <tr><th>Price:</th><td id="detail-price"></td></tr>
-                                <tr><th>Currency:</th><td id="detail-currency"></td></tr>
-                                <tr><th>Supplier:</th><td id="detail-supplier"></td></tr>
-                                <tr><th>Location:</th><td id="detail-location"></td></tr>
-                                <tr><th>Remark:</th><td id="detail-remark" class="text-wrap"></td></tr>
+                                <tr>
+                                    <th style="width: 35%;">Name:</th>
+                                    <td id="detail-name" class="fw-semibold"></td>
+                                </tr>
+                                <tr>
+                                    <th>Category:</th>
+                                    <td id="detail-category"></td>
+                                </tr>
+                                <tr>
+                                    <th>Quantity:</th>
+                                    <td id="detail-quantity"></td>
+                                </tr>
+                                <tr>
+                                    <th>Unit:</th>
+                                    <td id="detail-unit"></td>
+                                </tr>
+                                <tr>
+                                    <th>Price:</th>
+                                    <td id="detail-price"></td>
+                                </tr>
+                                <tr>
+                                    <th>Currency:</th>
+                                    <td id="detail-currency"></td>
+                                </tr>
+                                <tr>
+                                    <th>Supplier:</th>
+                                    <td id="detail-supplier"></td>
+                                </tr>
+                                <tr>
+                                    <th>Location:</th>
+                                    <td id="detail-location"></td>
+                                </tr>
+                                <tr>
+                                    <th>Remark:</th>
+                                    <td id="detail-remark" class="text-wrap"></td>
+                                </tr>
                             </table>
                         </div>
                     </div>
@@ -401,6 +428,7 @@
         .material-detail-btn {
             transition: all 0.2s;
         }
+
         .material-detail-btn:hover {
             transform: scale(1.1);
         }
@@ -582,7 +610,9 @@
             align-items: center;
             justify-content: center;
         }
-        #no-image-placeholder, #no-qr-placeholder {
+
+        #no-image-placeholder,
+        #no-qr-placeholder {
             text-align: center;
             color: #999;
         }
@@ -1019,13 +1049,14 @@
                 $('#no-image-placeholder').show().find('p').text('Loading...');
                 $('#material-qr').hide();
                 $('#no-qr-placeholder').show().find('p').text('Loading...');
-                $('#detail-name, #detail-category, #detail-quantity, #detail-unit, #detail-price, #detail-currency, #detail-supplier, #detail-location, #detail-remark').text('-');
+                $('#detail-name, #detail-category, #detail-quantity, #detail-unit, #detail-price, #detail-currency, #detail-supplier, #detail-location, #detail-remark')
+                    .text('-');
 
                 $('#materialDetailModal').modal('show');
 
                 // Fetch inventory details
                 $.ajax({
-                    url: '{{ route("material_requests.inventory_detail", "") }}/' + inventoryId,
+                    url: '{{ route('material_requests.inventory_detail', '') }}/' + inventoryId,
                     type: 'GET',
                     dataType: 'json',
                     success: function(data) {
@@ -1046,7 +1077,8 @@
                             $('#no-image-placeholder').hide();
                         } else {
                             $('#material-image').hide();
-                            $('#no-image-placeholder').show().find('p').text('No image available');
+                            $('#no-image-placeholder').show().find('p').text(
+                                'No image available');
                         }
 
                         // Handle QR code

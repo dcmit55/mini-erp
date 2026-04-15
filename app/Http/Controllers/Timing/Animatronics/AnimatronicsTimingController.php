@@ -41,23 +41,13 @@ class AnimatronicsTimingController extends Controller
         }
 
         // Only show employees who have clocked in today and NOT yet clocked out
-        $clockedInToday = AttendanceLog::whereDate('date', today())
-            ->whereNotNull('clock_in')
-            ->whereNull('clock_out')
-            ->pluck('employee_id')
-            ->toArray();
+        $clockedInToday = AttendanceLog::whereDate('date', today())->whereNotNull('clock_in')->whereNull('clock_out')->pluck('employee_id')->toArray();
 
         // Get employees with running sessions for today
         $employeesWithActiveSessions = Timing::running()->today()->pluck('employee_id')->toArray();
 
         // Get active animatronics employees (only clocked-in, exclude those with active sessions)
-        $employees = Employee::where('status', 'active')
-            ->where('department_id', $animatronicsDept->id)
-            ->whereIn('id', $clockedInToday)
-            ->whereNotIn('id', $employeesWithActiveSessions)
-            ->with('department')
-            ->orderBy('name')
-            ->get();
+        $employees = Employee::where('status', 'active')->where('department_id', $animatronicsDept->id)->whereIn('id', $clockedInToday)->whereNotIn('id', $employeesWithActiveSessions)->with('department')->orderBy('name')->get();
 
         // Get Mascot + Animatronics department IDs (shared workload between these departments)
         $sharedDepts = Department::where(function ($q) {
@@ -96,7 +86,9 @@ class AnimatronicsTimingController extends Controller
         // Get positions in animatronics dept
         $positions = Employee::where('status', 'active')->where('department_id', $animatronicsDept->id)->whereNotNull('position')->distinct()->pluck('position')->sort();
 
-        return view('timing.animatronics.index', compact('employees', 'jobOrders', 'activeSessions', 'config', 'positions', 'animatronicsDept', 'employeesWithActiveSessions'));
+        $departments = Department::orderBy('name')->get();
+
+        return view('timing.animatronics.index', compact('employees', 'jobOrders', 'activeSessions', 'config', 'positions', 'animatronicsDept', 'employeesWithActiveSessions', 'departments'));
     }
 
     /**
@@ -153,24 +145,18 @@ class AnimatronicsTimingController extends Controller
                 }
 
                 // Employee must have clocked in today and NOT yet clocked out
-                $hasClockedIn = AttendanceLog::where('employee_id', $employeeId)
-                    ->whereDate('date', $today)
-                    ->whereNotNull('clock_in')
-                    ->whereNull('clock_out')
-                    ->exists()
-                    || DailyAttendance::where('employee_id', $employeeId)
-                    ->whereDate('date', $today)
-                    ->whereNotNull('clock_in')
-                    ->whereNull('clock_out')
-                    ->exists();
+                $hasClockedIn = AttendanceLog::where('employee_id', $employeeId)->whereDate('date', $today)->whereNotNull('clock_in')->whereNull('clock_out')->exists() || DailyAttendance::where('employee_id', $employeeId)->whereDate('date', $today)->whereNotNull('clock_in')->whereNull('clock_out')->exists();
 
                 if (!$hasClockedIn) {
                     $employee = Employee::find($employeeId);
                     DB::rollBack();
-                    return response()->json([
-                        'success' => false,
-                        'message' => "Employee {$employee->name} has not clocked in today. Cannot start timing session.",
-                    ], 422);
+                    return response()->json(
+                        [
+                            'success' => false,
+                            'message' => "Employee {$employee->name} has not clocked in today. Cannot start timing session.",
+                        ],
+                        422,
+                    );
                 }
 
                 // Get employee department
@@ -181,10 +167,13 @@ class AnimatronicsTimingController extends Controller
                 $fingerprintResult = $this->checkFingerprintTapIn($employee, $today->format('Y-m-d'));
                 if ($fingerprintResult === false) {
                     DB::rollBack();
-                    return response()->json([
-                        'success' => false,
-                        'message' => "Employee {$employee->name} has not tapped in on the fingerprint machine today. Cannot start timing session.",
-                    ], 422);
+                    return response()->json(
+                        [
+                            'success' => false,
+                            'message' => "Employee {$employee->name} has not tapped in on the fingerprint machine today. Cannot start timing session.",
+                        ],
+                        422,
+                    );
                 }
 
                 // Prepare department-specific data
@@ -336,9 +325,7 @@ class AnimatronicsTimingController extends Controller
 
             // Calculate net duration in minutes (break time excluded)
             $today = now()->format('Y-m-d');
-            $dur = $timing->start_time
-                ? $this->computeTimingDuration($timing, $today, $timing->start_time, $endTime)
-                : ['net' => 0, 'break' => 0];
+            $dur = $timing->start_time ? $this->computeTimingDuration($timing, $today, $timing->start_time, $endTime) : ['net' => 0, 'break' => 0];
             $durationMinutes = $dur['net'];
 
             // Determine measurement type (dari form untuk timer mode, atau percentage untuk progress mode)
@@ -424,9 +411,7 @@ class AnimatronicsTimingController extends Controller
                 }
 
                 $today2 = now()->format('Y-m-d');
-                $dur2 = $timing->start_time
-                    ? $this->computeTimingDuration($timing, $today2, $timing->start_time, $endTime)
-                    : ['net' => 0, 'break' => 0];
+                $dur2 = $timing->start_time ? $this->computeTimingDuration($timing, $today2, $timing->start_time, $endTime) : ['net' => 0, 'break' => 0];
 
                 $timing->update([
                     'end_time' => $endTime,
@@ -571,9 +556,7 @@ class AnimatronicsTimingController extends Controller
             $today = now()->format('Y-m-d');
 
             // Calculate net duration so far (break time excluded)
-            $durP = $timing->start_time
-                ? $this->computeTimingDuration($timing, $today, $timing->start_time, $pauseTime)
-                : ['net' => 0, 'break' => 0];
+            $durP = $timing->start_time ? $this->computeTimingDuration($timing, $today, $timing->start_time, $pauseTime) : ['net' => 0, 'break' => 0];
             $durationMinutes = $durP['net'];
 
             $deptSpecificData = $timing->department_specific_data ?? [];
@@ -651,14 +634,14 @@ class AnimatronicsTimingController extends Controller
             $deptSpecificData['frozen_duration'] = $frozenDuration;
 
             // Append pause event to log
-            $pauseLog   = $timing->pause_log ?? [];
+            $pauseLog = $timing->pause_log ?? [];
             $pauseLog[] = ['type' => 'manual', 'paused_at' => $frozenAt, 'resumed_at' => null, 'duration_minutes' => null];
 
             $timing->update([
-                'status'                   => 'frozen',
-                'paused_at'                => now(),
+                'status' => 'frozen',
+                'paused_at' => now(),
                 'department_specific_data' => $deptSpecificData,
-                'pause_log'                => $pauseLog,
+                'pause_log' => $pauseLog,
             ]);
 
             DB::commit();
@@ -704,28 +687,30 @@ class AnimatronicsTimingController extends Controller
                 ->first();
 
             if ($otherRunning) {
-                $nowStr      = now()->format('H:i:s');
-                $todayStr    = now()->format('Y-m-d');
-                $otherData   = $otherRunning->department_specific_data ?? [];
-                $frozenDur   = '00:00:00';
+                $nowStr = now()->format('H:i:s');
+                $todayStr = now()->format('Y-m-d');
+                $otherData = $otherRunning->department_specific_data ?? [];
+                $frozenDur = '00:00:00';
                 if ($otherRunning->start_time) {
                     $s2 = Carbon::parse($todayStr . ' ' . $otherRunning->start_time);
                     $e2 = Carbon::parse($todayStr . ' ' . $nowStr);
-                    if ($e2->lt($s2)) $e2->addDay();
+                    if ($e2->lt($s2)) {
+                        $e2->addDay();
+                    }
                     $diff2 = $s2->diff($e2);
-                    $frozenDur = sprintf('%02d:%02d:%02d', $diff2->h + ($diff2->days * 24), $diff2->i, $diff2->s);
+                    $frozenDur = sprintf('%02d:%02d:%02d', $diff2->h + $diff2->days * 24, $diff2->i, $diff2->s);
                 }
-                $otherData['frozen_at']       = $nowStr;
+                $otherData['frozen_at'] = $nowStr;
                 $otherData['frozen_duration'] = $frozenDur;
-                $otherPauseLog   = $otherRunning->pause_log ?? [];
+                $otherPauseLog = $otherRunning->pause_log ?? [];
                 $otherPauseLog[] = ['type' => 'manual', 'paused_at' => $nowStr, 'resumed_at' => null, 'duration_minutes' => null];
                 $otherRunning->update([
-                    'status'                   => 'frozen',
-                    'paused_at'                => now(),
+                    'status' => 'frozen',
+                    'paused_at' => now(),
                     'department_specific_data' => $otherData,
-                    'pause_log'                => $otherPauseLog,
+                    'pause_log' => $otherPauseLog,
                 ]);
-                $autoFrozeName = $otherRunning->jobOrder->name ?? ('Session #' . $otherRunning->id);
+                $autoFrozeName = $otherRunning->jobOrder->name ?? 'Session #' . $otherRunning->id;
             }
 
             $deptSpecificData = $timing->department_specific_data ?? [];
@@ -735,8 +720,8 @@ class AnimatronicsTimingController extends Controller
             [$h, $m, $s] = array_map('intval', explode(':', $frozenDuration));
             $frozenSeconds = $h * 3600 + $m * 60 + $s;
             $newStartTime = now()->subSeconds($frozenSeconds)->format('H:i:s');
-            $pausedMins   = $timing->paused_at ? (int) $timing->paused_at->diffInMinutes(now()) : 0;
-            $resumedAt    = now()->format('H:i:s');
+            $pausedMins = $timing->paused_at ? (int) $timing->paused_at->diffInMinutes(now()) : 0;
+            $resumedAt = now()->format('H:i:s');
 
             // Clean freeze fields
             unset($deptSpecificData['frozen_at'], $deptSpecificData['frozen_duration'], $deptSpecificData['auto_break_paused']);
@@ -746,18 +731,18 @@ class AnimatronicsTimingController extends Controller
             if (!empty($pauseLog)) {
                 $last = &$pauseLog[count($pauseLog) - 1];
                 if ($last['resumed_at'] === null) {
-                    $last['resumed_at']       = $resumedAt;
+                    $last['resumed_at'] = $resumedAt;
                     $last['duration_minutes'] = $pausedMins;
                 }
             }
 
             $timing->update([
-                'status'                   => 'on progress',
-                'start_time'               => $newStartTime,
-                'paused_at'                => null,
-                'total_paused_minutes'     => ($timing->total_paused_minutes ?? 0) + $pausedMins,
+                'status' => 'on progress',
+                'start_time' => $newStartTime,
+                'paused_at' => null,
+                'total_paused_minutes' => ($timing->total_paused_minutes ?? 0) + $pausedMins,
                 'department_specific_data' => $deptSpecificData,
-                'pause_log'                => $pauseLog ?: null,
+                'pause_log' => $pauseLog ?: null,
             ]);
 
             DB::commit();
@@ -768,11 +753,11 @@ class AnimatronicsTimingController extends Controller
             }
 
             return response()->json([
-                'success'        => true,
-                'message'        => $message,
-                'timing_id'      => $timing->id,
+                'success' => true,
+                'message' => $message,
+                'timing_id' => $timing->id,
                 'new_start_time' => $newStartTime,
-                'auto_froze'     => $autoFrozeName,
+                'auto_froze' => $autoFrozeName,
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -788,35 +773,39 @@ class AnimatronicsTimingController extends Controller
     {
         $validated = $request->validate([
             'jo_name' => 'required|string|max:255',
-            'ip_job' => 'required|string|max:255',
             'ip_type' => 'required|string|in:Office,Machine,Testing,Facilities,Store',
             'ip_description' => 'nullable|string',
+            'department_id' => 'required|exists:departments,id',
         ]);
+
+        // ip_job falls back to jo_name if not provided
+        $ipJob = $validated['jo_name'];
 
         try {
             DB::beginTransaction();
 
-            $animatronicsDept = \App\Models\Admin\Department::where('name', 'like', '%animatronics%')->first();
+            $dept = \App\Models\Admin\Department::find($validated['department_id']);
 
-            // 1. Create the InternalProject
+            // 1. Create the InternalProject (same pattern as InternalProjectController::quickStore)
             $internalProject = \App\Models\InternalProject::create([
+                'uid' => strtoupper(substr(md5(uniqid()), 0, 8)),
                 'project' => $validated['ip_type'],
-                'job' => $validated['ip_job'],
+                'job' => $ipJob,
                 'description' => $validated['ip_description'] ?? null,
-                'department_id' => $animatronicsDept?->id,
-                'department' => $animatronicsDept?->name ?? 'Animatronics',
+                'department_id' => $dept?->id,
+                'department' => $dept?->name ?? '',
                 'pic' => auth()->id(),
                 'update_by' => auth()->id(),
             ]);
 
-            // 2. Create the JobOrder with a default/placeholder project
+            // 2. Create the JobOrder linked to the InternalProject
             $defaultProject = \App\Models\Production\Project::orderBy('id')->first();
 
             $jobOrder = \App\Models\Production\JobOrder::create([
                 'name' => $validated['jo_name'],
                 'project_id' => $defaultProject?->id,
-                'department_id' => $animatronicsDept?->id,
-                'description' => 'IP: ' . $internalProject->id . ' - ' . $validated['ip_job'],
+                'department_id' => $dept?->id,
+                'description' => 'IP: ' . $internalProject->id . ' - ' . $ipJob,
                 'source_by' => auth()->id(),
             ]);
 
@@ -830,7 +819,7 @@ class AnimatronicsTimingController extends Controller
                 'job_order' => [
                     'id' => $jobOrder->id,
                     'name' => $jobOrder->name,
-                    'project_name' => $validated['ip_job'] . ' [' . $validated['ip_type'] . ']',
+                    'project_name' => $validated['jo_name'] . ' [' . $validated['ip_type'] . ']',
                     'project_id' => $jobOrder->project_id,
                     'ip_id' => $internalProject->id,
                 ],
@@ -846,15 +835,9 @@ class AnimatronicsTimingController extends Controller
      */
     public function getAvailableEmployees()
     {
-        $animatronicsDept = Department::where('name', 'LIKE', '%animatronic%')
-            ->orWhere('name', 'LIKE', '%animation%')
-            ->first();
+        $animatronicsDept = Department::where('name', 'LIKE', '%animatronic%')->orWhere('name', 'LIKE', '%animation%')->first();
 
-        $clockedInToday = AttendanceLog::whereDate('date', today())
-            ->whereNotNull('clock_in')
-            ->whereNull('clock_out')
-            ->pluck('employee_id')
-            ->toArray();
+        $clockedInToday = AttendanceLog::whereDate('date', today())->whereNotNull('clock_in')->whereNull('clock_out')->pluck('employee_id')->toArray();
 
         $employeesWithActiveSessions = Timing::running()->today()->pluck('employee_id')->toArray();
 
@@ -874,28 +857,33 @@ class AnimatronicsTimingController extends Controller
         if ($animatronicsDept) {
             $frozenSessions = $frozenSessions->filter(fn($t) => $t->employee?->department_id === $animatronicsDept->id);
         }
-        $frozenMap = $frozenSessions->keyBy('employee_id')->map(function ($t) {
-            $d = $t->department_specific_data ?? [];
-            return [
-                'timing_id'       => $t->id,
-                'job_order_name'  => $t->jobOrder->name ?? 'N/A',
-                'frozen_duration' => $d['frozen_duration'] ?? '00:00:00',
-            ];
-        })->toArray();
+        $frozenMap = $frozenSessions
+            ->keyBy('employee_id')
+            ->map(function ($t) {
+                $d = $t->department_specific_data ?? [];
+                return [
+                    'timing_id' => $t->id,
+                    'job_order_name' => $t->jobOrder->name ?? 'N/A',
+                    'frozen_duration' => $d['frozen_duration'] ?? '00:00:00',
+                ];
+            })
+            ->toArray();
 
-        $data = $employees->map(fn($emp) => [
-            'id'            => $emp->id,
-            'name'          => $emp->name,
-            'photo'         => $emp->photo,
-            'position'      => $emp->position,
-            'department_id' => $emp->department_id,
-            'skillset_ids'  => $emp->skillsets->pluck('id')->toArray(),
-            'frozen_info'   => $frozenMap[$emp->id] ?? null,
-        ]);
+        $data = $employees->map(
+            fn($emp) => [
+                'id' => $emp->id,
+                'name' => $emp->name,
+                'photo' => $emp->photo,
+                'position' => $emp->position,
+                'department_id' => $emp->department_id,
+                'skillset_ids' => $emp->skillsets->pluck('id')->toArray(),
+                'frozen_info' => $frozenMap[$emp->id] ?? null,
+            ],
+        );
 
         return response()->json([
-            'success'                     => true,
-            'employees'                   => $data,
+            'success' => true,
+            'employees' => $data,
             'frozen_sessions_by_employee' => $frozenMap,
         ]);
     }

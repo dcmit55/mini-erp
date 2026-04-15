@@ -204,7 +204,7 @@
                                     </select>
                                     <button type="button" class="btn btn-outline-danger btn-sm text-nowrap"
                                         id="quick-add-jo-btn" title="Quick Add Job Order">
-                                        <i class="bi bi-plus-circle me-1"></i>Quick Add
+                                        <i class="bi bi-plus-circle me-1"></i>Quick Add Internal Job
                                     </button>
                                 </div>
 
@@ -302,12 +302,6 @@
                                 placeholder="e.g., Robot Dragon - Build Phase 1" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label fw-bold">Internal Project Job <span
-                                    class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="qa-ip-job"
-                                placeholder="e.g., Body painting - Dragon" required>
-                        </div>
-                        <div class="mb-3">
                             <label class="form-label fw-bold">Project Type <span class="text-danger">*</span></label>
                             <select class="form-select" id="qa-ip-type" required>
                                 <option value="">Select Type...</option>
@@ -317,6 +311,27 @@
                                 <option value="Facilities">Facilities</option>
                                 <option value="Store">Store</option>
                             </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Department <span class="text-danger">*</span></label>
+                            {{-- Static display for non-Testing (PT DCM) --}}
+                            <div id="qa-dept-static" class="form-control bg-light text-muted fst-italic">
+                                PT DCM
+                            </div>
+                            {{-- Dropdown for Testing type --}}
+                            <div id="qa-dept-dropdown-wrap" style="display:none;">
+                                <select class="form-select" id="qa-department-id">
+                                    <option value="">Select Department...</option>
+                                    @foreach ($departments as $dept)
+                                        <option value="{{ $dept->id }}"
+                                            {{ $animatronicsDept && $animatronicsDept->id == $dept->id ? 'selected' : '' }}>
+                                            {{ $dept->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            {{-- Hidden field that gets submitted --}}
+                            <input type="hidden" id="qa-final-dept-id" value="19">
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Description</label>
@@ -959,7 +974,9 @@
                             });
 
                             const cardId = response.timing_id || timingId;
-                            $(`#session-card-${cardId}`).fadeOut(300, function() { $(this).remove(); });
+                            $(`#session-card-${cardId}`).fadeOut(300, function() {
+                                $(this).remove();
+                            });
                             loadActiveSessions();
                             loadAvailableEmployees();
                         }
@@ -980,24 +997,56 @@
             });
 
             // ---- QUICK ADD JOB ORDER ----
+            const QA_PT_DCM_DEPT_ID = 19; // ID 19 = PT DCM (same as create Internal Project)
+            const QA_ANIMATRONICS_DEPT_ID = {{ $animatronicsDept?->id ?? 'null' }};
+
+            function updateQaDepartment() {
+                const type = $('#qa-ip-type').val();
+                const isTesting = (type === 'Testing');
+                if (isTesting) {
+                    $('#qa-dept-static').hide();
+                    $('#qa-dept-dropdown-wrap').show();
+                    // Set hidden to current dropdown value (default = animatronics)
+                    const dropVal = $('#qa-department-id').val() || QA_ANIMATRONICS_DEPT_ID;
+                    $('#qa-final-dept-id').val(dropVal);
+                } else {
+                    $('#qa-dept-static').show();
+                    $('#qa-dept-dropdown-wrap').hide();
+                    $('#qa-final-dept-id').val(QA_PT_DCM_DEPT_ID);
+                }
+            }
+
+            // Sync hidden field when dropdown changes (Testing only)
+            $('#qa-department-id').on('change', function() {
+                if ($('#qa-ip-type').val() === 'Testing') {
+                    $('#qa-final-dept-id').val($(this).val() || QA_ANIMATRONICS_DEPT_ID);
+                }
+            });
+
+            // Trigger on Project Type change
+            $('#qa-ip-type').on('change', updateQaDepartment);
+
             $('#quick-add-jo-btn').on('click', function() {
                 $('#qa-jo-name').val('');
-                $('#qa-ip-job').val('');
                 $('#qa-ip-type').val('');
                 $('#qa-ip-description').val('');
+                // Reset department display to default (PT DCM static)
+                $('#qa-dept-static').show();
+                $('#qa-dept-dropdown-wrap').hide();
+                $('#qa-final-dept-id').val(QA_PT_DCM_DEPT_ID);
                 $('#quickAddJoModal').modal('show');
             });
 
             $('#quick-add-jo-form').on('submit', function(e) {
                 e.preventDefault();
                 const joName = $('#qa-jo-name').val().trim();
-                const ipJob = $('#qa-ip-job').val().trim();
                 const ipType = $('#qa-ip-type').val();
-                if (!joName || !ipJob || !ipType) {
+                const deptId = $('#qa-final-dept-id').val();
+                if (!joName || !ipType || !deptId) {
                     Swal.fire({
                         icon: 'warning',
                         title: 'Required Fields',
-                        text: 'Please fill in Job Order Name, IP Job, and Project Type.'
+                        text: 'Please fill in Job Order Name, Project Type, and Department.'
                     });
                     return;
                 }
@@ -1010,9 +1059,9 @@
                     data: {
                         _token: '{{ csrf_token() }}',
                         jo_name: joName,
-                        ip_job: ipJob,
                         ip_type: ipType,
-                        ip_description: $('#qa-ip-description').val()
+                        ip_description: $('#qa-ip-description').val(),
+                        department_id: deptId
                     },
                     success: function(response) {
                         if (response.success) {
@@ -1133,7 +1182,8 @@
                                 loadAvailableEmployees();
                                 Swal.fire({
                                     icon: 'success',
-                                    title: response.auto_froze ? 'Switched!' : 'Continued!',
+                                    title: response.auto_froze ? 'Switched!' :
+                                        'Continued!',
                                     text: response.message,
                                     timer: 2500,
                                     showConfirmButton: false
@@ -1416,7 +1466,8 @@
                 updateStartButton();
 
                 if (!employees || employees.length === 0) {
-                    $('#employee-cards').html('<div class="alert alert-info">No available employees at this time.</div>');
+                    $('#employee-cards').html(
+                        '<div class="alert alert-info">No available employees at this time.</div>');
                     return;
                 }
 
@@ -1424,15 +1475,15 @@
                 employees.forEach(function(emp) {
                     const frozen = emp.frozen_info;
                     const borderClass = frozen ? 'border-warning' : '';
-                    const pausedBadge = frozen
-                        ? `<span class="position-absolute top-0 start-0 m-1 badge bg-warning text-dark" style="font-size:0.6rem;"><i class="bi bi-pause-circle"></i> PAUSED</span>`
-                        : '';
-                    const pausedDur = frozen
-                        ? `<div class="text-warning" style="font-size:0.65rem;"><i class="bi bi-clock-history"></i> ${frozen.frozen_duration}</div>`
-                        : '';
-                    const photoHtml = emp.photo
-                        ? `<img src="/storage/${emp.photo}" class="rounded-circle mb-1 border" width="44" height="44" style="object-fit:cover;">`
-                        : `<div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center mb-1" style="width:44px;height:44px;"><i class="bi bi-person text-white"></i></div>`;
+                    const pausedBadge = frozen ?
+                        `<span class="position-absolute top-0 start-0 m-1 badge bg-warning text-dark" style="font-size:0.6rem;"><i class="bi bi-pause-circle"></i> PAUSED</span>` :
+                        '';
+                    const pausedDur = frozen ?
+                        `<div class="text-warning" style="font-size:0.65rem;"><i class="bi bi-clock-history"></i> ${frozen.frozen_duration}</div>` :
+                        '';
+                    const photoHtml = emp.photo ?
+                        `<img src="/storage/${emp.photo}" class="rounded-circle mb-1 border" width="44" height="44" style="object-fit:cover;">` :
+                        `<div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center mb-1" style="width:44px;height:44px;"><i class="bi bi-person text-white"></i></div>`;
 
                     html += `
                         <div class="col-md-4 col-sm-6 employee-card-wrapper"
