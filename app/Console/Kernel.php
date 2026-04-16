@@ -71,42 +71,24 @@ class Kernel extends ConsoleKernel
             ->timezone('Asia/Singapore');
 
         // ─── Auto Sync Fingerspot (setiap 5 menit) ──────────────────────────
-        $schedule->command('hr:sync-fingerspot --days=2')
-            ->everyFiveMinutes()
-            ->timezone('Asia/Jakarta')
-            ->withoutOverlapping(4)
-            ->onFailure(fn() => \Log::error('hr:sync-fingerspot gagal'));
+        $schedule->command('hr:sync-fingerspot --days=2')->everyFiveMinutes()->timezone('Asia/Jakarta')->withoutOverlapping(4)->onFailure(fn() => \Log::error('hr:sync-fingerspot gagal'));
         // ────────────────────────────────────────────────────────────────────
 
         // ─── Auto Break Pause/Resume Timing (setiap menit) ──────────────────
-        $schedule->command('timing:auto-break-pause')
-            ->everyMinute()
-            ->timezone('Asia/Jakarta')
-            ->withoutOverlapping(1)
-            ->onFailure(fn() => \Log::error('timing:auto-break-pause gagal'));
+        $schedule->command('timing:auto-break-pause')->everyMinute()->timezone('Asia/Jakarta')->withoutOverlapping(1)->onFailure(fn() => \Log::error('timing:auto-break-pause gagal'));
         // ────────────────────────────────────────────────────────────────────
 
         // ─── Auto Stop Timing saat Clock-Out (setiap 5 menit, safety net) ───
         // Safety net jika webhook fingerspot tidak terkirim (jaringan, downtime).
         // Primary trigger: WebhookController::autoStopTodayTimings() saat tap OUT.
-        $schedule->command('timing:auto-stop-clockout')
-            ->everyFiveMinutes()
-            ->timezone('Asia/Jakarta')
-            ->withoutOverlapping(4)
-            ->onFailure(fn() => \Log::error('timing:auto-stop-clockout gagal'));
+        $schedule->command('timing:auto-stop-clockout')->everyFiveMinutes()->timezone('Asia/Jakarta')->withoutOverlapping(4)->onFailure(fn() => \Log::error('timing:auto-stop-clockout gagal'));
         // ────────────────────────────────────────────────────────────────────
 
         // ─── Expire Warning Letters (nightly 23:59 WIB) ──────────────────────
         // Tandai SP yang sudah melewati valid_until → status = expired
         // Cek recovery karyawan: jika semua SP expired → karyawan bisa mulai dari SP1 lagi
-        $schedule->command('hr:expire-warning-letters')
-            ->dailyAt('23:59')
-            ->timezone('Asia/Jakarta')
-            ->withoutOverlapping(5)
-            ->onFailure(fn() => \Log::error('hr:expire-warning-letters gagal'))
-            ->onSuccess(fn() => \Log::info('hr:expire-warning-letters selesai'));
+        $schedule->command('hr:expire-warning-letters')->dailyAt('23:59')->timezone('Asia/Jakarta')->withoutOverlapping(5)->onFailure(fn() => \Log::error('hr:expire-warning-letters gagal'))->onSuccess(fn() => \Log::info('hr:expire-warning-letters selesai'));
         // ────────────────────────────────────────────────────────────────────
-
     }
 
     /**

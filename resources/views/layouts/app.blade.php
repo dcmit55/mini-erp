@@ -47,84 +47,90 @@
         <link rel="stylesheet" href="{{ asset('css/custom-app.css') }}">
 
         <style>
-        /* ── Mobile Sidebar ─────────────────────────────── */
-        @media (max-width: 991.98px) {
-            #sidebarBackdrop {
-                display: none;
-                position: fixed;
-                inset: 0;
-                background: rgba(0,0,0,.45);
-                z-index: 1040;
-                backdrop-filter: blur(2px);
+            /* ── Mobile Sidebar ─────────────────────────────── */
+            @media (max-width: 991.98px) {
+                #sidebarBackdrop {
+                    display: none;
+                    position: fixed;
+                    inset: 0;
+                    background: rgba(0, 0, 0, .45);
+                    z-index: 1040;
+                    backdrop-filter: blur(2px);
+                }
+
+                #navbarSupportedContent {
+                    position: fixed !important;
+                    top: 0;
+                    left: 0;
+                    width: min(280px, 85vw);
+                    height: 100vh !important;
+                    overflow-y: auto;
+                    z-index: 1045;
+                    padding: 1rem .75rem 0;
+                    border-right: 1px solid var(--bs-border-color);
+                    box-shadow: 4px 0 24px rgba(0, 0, 0, .18);
+                    transform: translateX(-100%);
+                    transition: transform .28s ease, visibility .28s !important;
+                    display: flex !important;
+                    flex-direction: column;
+                    visibility: hidden;
+                    background: var(--bs-body-bg) !important;
+                }
+
+                #navbarSupportedContent.show,
+                #navbarSupportedContent.collapsing {
+                    transform: translateX(0) !important;
+                    visibility: visible !important;
+                    height: 100vh !important;
+                }
+
+                #navbarSupportedContent .dropdown-menu {
+                    position: static !important;
+                    box-shadow: none !important;
+                    border: none;
+                    padding: .25rem 0 .25rem 1rem;
+                    background: transparent !important;
+                }
+
+                #navbarSupportedContent .navbar-nav .nav-link {
+                    padding: .5rem .75rem;
+                    border-radius: .375rem;
+                }
+
+                #navbarSupportedContent .navbar-nav .nav-link:hover {
+                    background: var(--bs-tertiary-bg);
+                }
+
+                #navbarSupportedContent .navbar-nav {
+                    flex-direction: column !important;
+                }
+
+                /* Left nav scrollable, right nav pinned to bottom */
+                #navbarSupportedContent .navbar-nav.me-auto {
+                    flex: 1;
+                    overflow-y: auto;
+                }
+
+                #navbarSupportedContent .navbar-nav.ms-auto {
+                    flex-direction: row !important;
+                    align-items: center;
+                    gap: .5rem;
+                    padding: .75rem .25rem;
+                    margin-top: auto;
+                    border-top: 1px solid var(--bs-border-color);
+                    flex-shrink: 0;
+                }
             }
 
-            #navbarSupportedContent {
-                position: fixed !important;
-                top: 0; left: 0;
-                width: min(280px, 85vw);
-                height: 100vh !important;
-                overflow-y: auto;
-                z-index: 1045;
-                padding: 1rem .75rem 0;
-                border-right: 1px solid var(--bs-border-color);
-                box-shadow: 4px 0 24px rgba(0,0,0,.18);
-                transform: translateX(-100%);
-                transition: transform .28s ease, visibility .28s !important;
-                display: flex !important;
-                flex-direction: column;
-                visibility: hidden;
-                background: var(--bs-body-bg) !important;
-            }
+            @media (min-width: 992px) {
+                #sidebarBackdrop {
+                    display: none !important;
+                }
 
-            #navbarSupportedContent.show,
-            #navbarSupportedContent.collapsing {
-                transform: translateX(0) !important;
-                visibility: visible !important;
-                height: 100vh !important;
+                .sidebar-header {
+                    display: none !important;
+                }
             }
-
-            #navbarSupportedContent .dropdown-menu {
-                position: static !important;
-                box-shadow: none !important;
-                border: none;
-                padding: .25rem 0 .25rem 1rem;
-                background: transparent !important;
-            }
-
-            #navbarSupportedContent .navbar-nav .nav-link {
-                padding: .5rem .75rem;
-                border-radius: .375rem;
-            }
-
-            #navbarSupportedContent .navbar-nav .nav-link:hover {
-                background: var(--bs-tertiary-bg);
-            }
-
-            #navbarSupportedContent .navbar-nav {
-                flex-direction: column !important;
-            }
-
-            /* Left nav scrollable, right nav pinned to bottom */
-            #navbarSupportedContent .navbar-nav.me-auto {
-                flex: 1;
-                overflow-y: auto;
-            }
-
-            #navbarSupportedContent .navbar-nav.ms-auto {
-                flex-direction: row !important;
-                align-items: center;
-                gap: .5rem;
-                padding: .75rem .25rem;
-                margin-top: auto;
-                border-top: 1px solid var(--bs-border-color);
-                flex-shrink: 0;
-            }
-        }
-
-        @media (min-width: 992px) {
-            #sidebarBackdrop { display: none !important; }
-            .sidebar-header  { display: none !important; }
-        }
         </style>
 
         <!-- Apply saved theme immediately to prevent flash -->
@@ -157,7 +163,8 @@
 
                     <div class="collapse navbar-collapse" id="navbarSupportedContent">
                         <!-- Sidebar header — mobile only -->
-                        <div class="sidebar-header d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+                        <div
+                            class="sidebar-header d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
                             <span class="fw-bold">{{ config('app.name', 'DCM-app') }}</span>
                             <button type="button" id="sidebarCloseBtn" class="btn-close" aria-label="Close"></button>
                         </div>
@@ -678,8 +685,8 @@
                                         @endphp
                                         <li class="nav-item dropdown">
                                             <a class="nav-link dropdown-toggle {{ request()->is('employees*') || request()->routeIs('leave_requests.index') || request()->is('attendance*') || request()->routeIs('employee-work-policies.*') || request()->routeIs('timings.*') || request()->routeIs('attendance-logs.*') || request()->routeIs('overtime-requests.*') || request()->routeIs('overtime-pays.*') || request()->routeIs('fingerspot.*') || request()->routeIs('session-shifts.*') || request()->routeIs('hr.dashboard') || request()->routeIs('warning-letters.*') || request()->routeIs('warning-batches.*') ? 'active' : '' }}"
-                                                href="{{ route('hr.dashboard') }}" id="hrDropdown" role="button" data-bs-toggle="dropdown"
-                                                aria-expanded="false">
+                                                href="{{ route('hr.dashboard') }}" id="hrDropdown" role="button"
+                                                data-bs-toggle="dropdown" aria-expanded="false">
                                                 <i></i>HR
                                             </a>
                                             <ul class="dropdown-menu" aria-labelledby="hrDropdown">
@@ -690,7 +697,9 @@
                                                         <i class="fas fa-chart-pie me-2"></i>Dashboard
                                                     </a>
                                                 </li>
-                                                <li><hr class="dropdown-divider"></li>
+                                                <li>
+                                                    <hr class="dropdown-divider">
+                                                </li>
                                                 {{-- Karyawan --}}
                                                 <li>
                                                     <a class="dropdown-item {{ request()->is('employees*') ? 'active' : '' }}"
@@ -759,7 +768,9 @@
                                                 @endif
 
                                                 {{-- Warning Letter (SP1–SP4) --}}
-                                                <li><hr class="dropdown-divider"></li>
+                                                <li>
+                                                    <hr class="dropdown-divider">
+                                                </li>
                                                 <li>
                                                     <a class="dropdown-item {{ request()->routeIs('warning-letters.*') || request()->routeIs('warning-batches.*') ? 'active' : '' }}"
                                                         href="{{ route('warning-letters.dashboard') }}">
@@ -923,14 +934,13 @@
                             @else
                                 {{-- Notification Toggle Button --}}
                                 @auth
-                                <li class="nav-item d-flex align-items-center me-1">
-                                    <button id="notifToggleBtn"
-                                        title="Toggle Notifications"
-                                        class="btn btn-sm border-0 px-2 py-1"
-                                        style="font-size:1.1rem; background:transparent; transition:color .2s;">
-                                        <i id="notifBellIcon" class="bi bi-bell-fill"></i>
-                                    </button>
-                                </li>
+                                    <li class="nav-item d-flex align-items-center me-1">
+                                        <button id="notifToggleBtn" title="Toggle Notifications"
+                                            class="btn btn-sm border-0 px-2 py-1"
+                                            style="font-size:1.1rem; background:transparent; transition:color .2s;">
+                                            <i id="notifBellIcon" class="bi bi-bell-fill"></i>
+                                        </button>
+                                    </li>
                                 @endauth
 
                                 <li class="nav-item dropdown">
@@ -1091,38 +1101,38 @@
 
         <!-- Mobile Sidebar JS -->
         <script>
-        (function () {
-            var backdrop = document.getElementById('sidebarBackdrop');
-            var sidebar  = document.getElementById('navbarSupportedContent');
-            var closeBtn = document.getElementById('sidebarCloseBtn');
+            (function() {
+                var backdrop = document.getElementById('sidebarBackdrop');
+                var sidebar = document.getElementById('navbarSupportedContent');
+                var closeBtn = document.getElementById('sidebarCloseBtn');
 
-            function closeSidebar() {
-                backdrop.style.display = 'none';
-                var bsCollapse = bootstrap.Collapse.getInstance(sidebar);
-                if (bsCollapse) bsCollapse.hide();
-            }
-
-            sidebar.addEventListener('show.bs.collapse', function () {
-                if (window.innerWidth < 992) backdrop.style.display = 'block';
-            });
-
-            sidebar.addEventListener('hide.bs.collapse', function () {
-                backdrop.style.display = 'none';
-            });
-
-            backdrop.addEventListener('click', closeSidebar);
-
-            if (closeBtn) closeBtn.addEventListener('click', closeSidebar);
-
-            // Close when a non-dropdown link is clicked
-            sidebar.addEventListener('click', function (e) {
-                if (window.innerWidth >= 992) return;
-                var link = e.target.closest('a.nav-link, a.dropdown-item');
-                if (link && !link.classList.contains('dropdown-toggle')) {
-                    closeSidebar();
+                function closeSidebar() {
+                    backdrop.style.display = 'none';
+                    var bsCollapse = bootstrap.Collapse.getInstance(sidebar);
+                    if (bsCollapse) bsCollapse.hide();
                 }
-            });
-        })();
+
+                sidebar.addEventListener('show.bs.collapse', function() {
+                    if (window.innerWidth < 992) backdrop.style.display = 'block';
+                });
+
+                sidebar.addEventListener('hide.bs.collapse', function() {
+                    backdrop.style.display = 'none';
+                });
+
+                backdrop.addEventListener('click', closeSidebar);
+
+                if (closeBtn) closeBtn.addEventListener('click', closeSidebar);
+
+                // Close when a non-dropdown link is clicked
+                sidebar.addEventListener('click', function(e) {
+                    if (window.innerWidth >= 992) return;
+                    var link = e.target.closest('a.nav-link, a.dropdown-item');
+                    if (link && !link.classList.contains('dropdown-toggle')) {
+                        closeSidebar();
+                    }
+                });
+            })();
         </script>
 
         <footer class="border-top text-center text-lg-start mt-5"
@@ -1152,7 +1162,8 @@
                 </button>
 
                 <!-- Unread badge -->
-                <span id="cb-badge" style="display:none;position:absolute;top:-4px;right:-4px;
+                <span id="cb-badge"
+                    style="display:none;position:absolute;top:-4px;right:-4px;
                     background:#ef4444;color:#fff;font-size:10px;font-weight:700;
                     width:18px;height:18px;border-radius:50%;text-align:center;line-height:18px;
                     border:2px solid #fff;">1</span>
@@ -1165,14 +1176,16 @@
                        flex-direction:column;overflow:hidden;border:1px solid rgba(99,102,241,.15);">
 
                     <!-- Header -->
-                    <div style="background:linear-gradient(135deg,#1d4ed8 0%,#6366f1 100%);padding:14px 16px;
+                    <div
+                        style="background:linear-gradient(135deg,#1d4ed8 0%,#6366f1 100%);padding:14px 16px;
                             display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
                         <div style="display:flex;align-items:center;gap:10px;">
                             <div style="position:relative;flex-shrink:0;">
                                 <img src="https://i.ibb.co.com/7t90LZkN/chatbot.webp" alt="SymBot"
                                     style="width:38px;height:38px;object-fit:cover;border-radius:50%;
                                            border:2px solid rgba(255,255,255,.5);">
-                                <span style="position:absolute;bottom:1px;right:1px;width:9px;height:9px;
+                                <span
+                                    style="position:absolute;bottom:1px;right:1px;width:9px;height:9px;
                                     background:#4ade80;border-radius:50%;border:2px solid #4338ca;"></span>
                             </div>
                             <div>
@@ -1185,9 +1198,9 @@
                                 style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25);
                                    border-radius:8px;padding:3px 6px;font-size:.7rem;cursor:pointer;outline:none;">
                                 <option value="auto" style="color:#000;">🌐 Auto</option>
-                                <option value="id"   style="color:#000;">🇮🇩 ID</option>
-                                <option value="en"   style="color:#000;">🇬🇧 EN</option>
-                                <option value="zh"   style="color:#000;">🇨🇳 ZH</option>
+                                <option value="id" style="color:#000;">🇮🇩 ID</option>
+                                <option value="en" style="color:#000;">🇬🇧 EN</option>
+                                <option value="zh" style="color:#000;">🇨🇳 ZH</option>
                             </select>
                             <button onclick="chatbotClear()" title="Clear chat"
                                 style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;
@@ -1211,11 +1224,14 @@
                     </div>
 
                     <!-- Suggestion chips (shown only when no history) -->
-                    <div id="cb-chips" style="padding:10px 12px 4px;background:#f8f9ff;border-bottom:1px solid #eef0f8;
+                    <div id="cb-chips"
+                        style="padding:10px 12px 4px;background:#f8f9ff;border-bottom:1px solid #eef0f8;
                             display:flex;gap:6px;flex-wrap:wrap;flex-shrink:0;">
-                        <span class="cb-chip" onclick="chatbotChip('Stok fur WL-2022 #63 Brown berapa?')">📦 Stok material</span>
+                        <span class="cb-chip" onclick="chatbotChip('Stok fur WL-2022 #63 Brown berapa?')">📦 Stok
+                            material</span>
                         <span class="cb-chip" onclick="chatbotChip('Berapa karyawan aktif?')">👥 Data karyawan</span>
-                        <span class="cb-chip" onclick="chatbotChip('Ada berapa cuti yang pending?')">🏖️ Leave pending</span>
+                        <span class="cb-chip" onclick="chatbotChip('Ada berapa cuti yang pending?')">🏖️ Leave
+                            pending</span>
                         <span class="cb-chip" onclick="chatbotChip('Overtime pending bulan ini?')">⏱️ OT pending</span>
                     </div>
 
@@ -1226,8 +1242,10 @@
                         <div class="cb-msg cb-msg-ai">
                             <div class="cb-bubble cb-bubble-ai">
                                 👋 Halo! Saya <strong>SymBot</strong>, AI assistant Symcore ERP.<br>
-                                Saya bisa menjawab pertanyaan tentang <strong>stok, karyawan, cuti, lembur</strong>, dan data sistem lainnya secara <em>real-time</em>.<br><br>
-                                <span style="font-size:.78rem;opacity:.7;">Coba klik salah satu topik di atas, atau ketik pertanyaan Anda.</span>
+                                Saya bisa menjawab pertanyaan tentang <strong>stok, karyawan, cuti, lembur</strong>, dan
+                                data sistem lainnya secara <em>real-time</em>.<br><br>
+                                <span style="font-size:.78rem;opacity:.7;">Coba klik salah satu topik di atas, atau ketik
+                                    pertanyaan Anda.</span>
                             </div>
                         </div>
                     </div>
@@ -1240,10 +1258,10 @@
                     </div>
 
                     <!-- Input Area -->
-                    <div style="padding:10px 12px;border-top:1px solid #eef0f8;background:#fff;
+                    <div
+                        style="padding:10px 12px;border-top:1px solid #eef0f8;background:#fff;
                             display:flex;gap:8px;align-items:flex-end;flex-shrink:0;">
-                        <textarea id="chatbot-input" placeholder="Tanya sesuatu..." rows="1"
-                            onkeydown="chatbotKeydown(event)"
+                        <textarea id="chatbot-input" placeholder="Tanya sesuatu..." rows="1" onkeydown="chatbotKeydown(event)"
                             oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,96)+'px'"
                             style="flex:1;resize:none;border:1.5px solid #e0e3ef;border-radius:14px;
                                padding:9px 13px;font-size:.84rem;outline:none;font-family:inherit;
@@ -1266,11 +1284,22 @@
 
             <!-- Chatbot Styles -->
             <style>
-                #chatbot-toggle:hover { transform:scale(1.08) !important; box-shadow:0 6px 28px rgba(99,102,241,.7) !important; }
+                #chatbot-toggle:hover {
+                    transform: scale(1.08) !important;
+                    box-shadow: 0 6px 28px rgba(99, 102, 241, .7) !important;
+                }
 
-                .cb-msg { display:flex; }
-                .cb-msg-user { justify-content:flex-end; }
-                .cb-msg-ai  { justify-content:flex-start; }
+                .cb-msg {
+                    display: flex;
+                }
+
+                .cb-msg-user {
+                    justify-content: flex-end;
+                }
+
+                .cb-msg-ai {
+                    justify-content: flex-start;
+                }
 
                 .cb-bubble {
                     max-width: 82%;
@@ -1280,19 +1309,22 @@
                     line-height: 1.55;
                     word-break: break-word;
                 }
+
                 .cb-bubble-ai {
                     background: #fff;
                     color: #1e1e2e;
                     border: 1px solid #e8eaf6;
                     border-bottom-left-radius: 5px;
-                    box-shadow: 0 1px 4px rgba(99,102,241,.08);
+                    box-shadow: 0 1px 4px rgba(99, 102, 241, .08);
                 }
+
                 .cb-bubble-user {
                     background: linear-gradient(135deg, #1d4ed8, #6366f1);
                     color: #fff;
                     border-bottom-right-radius: 5px;
-                    box-shadow: 0 2px 8px rgba(99,102,241,.3);
+                    box-shadow: 0 2px 8px rgba(99, 102, 241, .3);
                 }
+
                 .cb-time {
                     font-size: .65rem;
                     color: #adb5bd;
@@ -1302,12 +1334,23 @@
 
                 /* Suggestion chips */
                 .cb-chip {
-                    display:inline-block;padding:4px 10px;border-radius:20px;
-                    background:#eef0f8;color:#4338ca;font-size:.72rem;font-weight:600;
-                    cursor:pointer;border:1px solid #c7d2fe;transition:background .15s,transform .1s;
-                    white-space:nowrap;
+                    display: inline-block;
+                    padding: 4px 10px;
+                    border-radius: 20px;
+                    background: #eef0f8;
+                    color: #4338ca;
+                    font-size: .72rem;
+                    font-weight: 600;
+                    cursor: pointer;
+                    border: 1px solid #c7d2fe;
+                    transition: background .15s, transform .1s;
+                    white-space: nowrap;
                 }
-                .cb-chip:hover { background:#c7d2fe; transform:translateY(-1px); }
+
+                .cb-chip:hover {
+                    background: #c7d2fe;
+                    transform: translateY(-1px);
+                }
 
                 /* Typing dots */
                 .cb-dots {
@@ -1387,23 +1430,25 @@
                     let cbLang = 'auto';
                     let cbLoading = false;
 
-                    const ROUTE    = "{{ route('chatbot.message') }}";
-                    const CSRF     = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
-                    const LS_KEY   = 'symbot_history_{{ auth()->id() }}';
+                    const ROUTE = "{{ route('chatbot.message') }}";
+                    const CSRF = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+                    const LS_KEY = 'symbot_history_{{ auth()->id() }}';
                     const MAX_MSGS = 40; // max bubbles kept in storage
 
                     // ── Persist helpers ──────────────────────────────────────
                     function cbSave() {
                         try {
                             localStorage.setItem(LS_KEY, JSON.stringify(cbHistory.slice(-MAX_MSGS)));
-                        } catch(e) {}
+                        } catch (e) {}
                     }
 
                     function cbLoad() {
                         try {
                             const raw = localStorage.getItem(LS_KEY);
                             return raw ? JSON.parse(raw) : [];
-                        } catch(e) { return []; }
+                        } catch (e) {
+                            return [];
+                        }
                     }
 
                     // ── Restore previous messages on page load ───────────────
@@ -1415,26 +1460,29 @@
                         saved.forEach(item => {
                             chatbotAppend(item.role === 'user' ? 'user' : 'ai', item.content, item.time, true);
                         });
-                        cbHistory = saved.map(i => ({ role: i.role, content: i.content }));
+                        cbHistory = saved.map(i => ({
+                            role: i.role,
+                            content: i.content
+                        }));
                     })();
 
                     // ── Toggle ───────────────────────────────────────────────
                     window.chatbotToggle = function() {
                         cbOpen = !cbOpen;
-                        const win  = document.getElementById('chatbot-window');
-                        const img  = document.getElementById('cb-icon-img');
+                        const win = document.getElementById('chatbot-window');
+                        const img = document.getElementById('cb-icon-img');
                         const xIco = document.getElementById('cb-icon-x');
                         const badge = document.getElementById('cb-badge');
                         if (cbOpen) {
                             win.style.display = 'flex';
-                            img.style.display  = 'none';
+                            img.style.display = 'none';
                             xIco.style.display = 'block';
                             if (badge) badge.style.display = 'none';
                             setTimeout(() => document.getElementById('chatbot-input')?.focus(), 100);
                             chatbotScroll();
                         } else {
-                            win.style.display  = 'none';
-                            img.style.display  = 'block';
+                            win.style.display = 'none';
+                            img.style.display = 'block';
                             xIco.style.display = 'none';
                         }
                     };
@@ -1455,7 +1503,9 @@
 
                     window.chatbotClear = function() {
                         cbHistory = [];
-                        try { localStorage.removeItem(LS_KEY); } catch(e) {}
+                        try {
+                            localStorage.removeItem(LS_KEY);
+                        } catch (e) {}
                         const box = document.getElementById('chatbot-messages');
                         box.innerHTML = `
                     <div class="cb-msg cb-msg-ai cb-slide-in">
@@ -1485,9 +1535,16 @@
                         input.value = '';
                         input.style.height = 'auto';
 
-                        const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        const now = new Date().toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
                         chatbotAppend('user', msg, now);
-                        cbHistory.push({ role: 'user', content: msg, time: now });
+                        cbHistory.push({
+                            role: 'user',
+                            content: msg,
+                            time: now
+                        });
                         cbSave();
 
                         cbLoading = true;
@@ -1508,16 +1565,29 @@
                         try {
                             const res = await fetch(ROUTE, {
                                 method: 'POST',
-                                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF },
-                                body: JSON.stringify({ message: fullMsg, history: cbHistory.slice(-10) }),
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': CSRF
+                                },
+                                body: JSON.stringify({
+                                    message: fullMsg,
+                                    history: cbHistory.slice(-10)
+                                }),
                             });
                             const data = await res.json();
                             const reply = data.reply ?? 'No response received.';
-                            const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                            const replyTime = new Date().toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            });
 
                             document.getElementById('chatbot-typing').style.display = 'none';
                             chatbotAppend('ai', reply, replyTime);
-                            cbHistory.push({ role: 'assistant', content: reply, time: replyTime });
+                            cbHistory.push({
+                                role: 'assistant',
+                                content: reply,
+                                time: replyTime
+                            });
                             cbSave();
                         } catch (err) {
                             document.getElementById('chatbot-typing').style.display = 'none';
@@ -1532,7 +1602,10 @@
                     function chatbotAppend(role, text, time, silent) {
                         const box = document.getElementById('chatbot-messages');
                         const isAI = role === 'ai' || role === 'assistant';
-                        const ts   = time ?? new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        const ts = time ?? new Date().toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
 
                         const div = document.createElement('div');
                         div.className = `cb-msg cb-msg-${isAI ? 'ai' : 'user'}` + (silent ? '' : ' cb-slide-in');
@@ -1558,7 +1631,8 @@
                             if (box) box.scrollTop = box.scrollHeight;
                         }, 50);
                     }
-                })();
+                })
+                ();
             </script>
         @endauth
 
@@ -1567,56 +1641,56 @@
             <!-- PUSHER NOTIFICATIONS + TOGGLE (subscribe/unsubscribe)       -->
             <!-- ============================================================ -->
             <script>
-            (function () {
-                // ── Constants ───────────────────────────────────────────────
-                // KEY: 'notif_enabled' — tab-specific via sessionStorage
-                // Default: ON (null → true), persists through refresh, clears on tab close
-                const NOTIF_KEY        = 'notif_enabled';
-                const userRole         = '{{ auth()->user()->role }}';
-                const userDeptId       = '{{ auth()->user()->department_id ?? '' }}';
-                const adminRoles       = [
-                    'super_admin','admin','admin_logistic','admin_mascot','admin_costume',
-                    'admin_animatronic','admin_finance','admin_hr','admin_procurement'
-                ];
-                const isAdmin = adminRoles.includes(userRole);
+                (function() {
+                    // ── Constants ───────────────────────────────────────────────
+                    // KEY: 'notif_enabled' — tab-specific via sessionStorage
+                    // Default: ON (null → true), persists through refresh, clears on tab close
+                    const NOTIF_KEY = 'notif_enabled';
+                    const userRole = '{{ auth()->user()->role }}';
+                    const userDeptId = '{{ auth()->user()->department_id ?? '' }}';
+                    const adminRoles = [
+                        'super_admin', 'admin', 'admin_logistic', 'admin_mascot', 'admin_costume',
+                        'admin_animatronic', 'admin_finance', 'admin_hr', 'admin_procurement'
+                    ];
+                    const isAdmin = adminRoles.includes(userRole);
 
-                // ── Channel name registry ────────────────────────────────────
-                const channels = {
-                    deptJobOrder    : userDeptId  ? `department.${userDeptId}.job-order-alerts` : null,
-                    globalJobOrder  : isAdmin     ? 'job-order-alerts'                          : null,
-                    deptGoodsOut    : userDeptId  ? `department.${userDeptId}.goods-out-alerts`  : null,
-                    globalGoodsOut  : isAdmin     ? 'goods-out-alerts'                           : null,
-                };
+                    // ── Channel name registry ────────────────────────────────────
+                    const channels = {
+                        deptJobOrder: userDeptId ? `department.${userDeptId}.job-order-alerts` : null,
+                        globalJobOrder: isAdmin ? 'job-order-alerts' : null,
+                        deptGoodsOut: userDeptId ? `department.${userDeptId}.goods-out-alerts` : null,
+                        globalGoodsOut: isAdmin ? 'goods-out-alerts' : null,
+                    };
 
-                // ── Pusher init — exposed on window so other inline scripts can use it
-                window.pusher = new Pusher('{{ env('PUSHER_APP_KEY') }}', {
-                    cluster   : '{{ env('PUSHER_APP_CLUSTER') }}',
-                    encrypted : true,
-                });
+                    // ── Pusher init — exposed on window so other inline scripts can use it
+                    window.pusher = new Pusher('{{ env('PUSHER_APP_KEY') }}', {
+                        cluster: '{{ env('PUSHER_APP_CLUSTER') }}',
+                        encrypted: true,
+                    });
 
-                // ── State helpers ────────────────────────────────────────────
-                // Uses sessionStorage: tab-specific, survives refresh, reset on new tab
-                function isNotifEnabled() {
-                    return sessionStorage.getItem(NOTIF_KEY) !== 'false';
-                }
+                    // ── State helpers ────────────────────────────────────────────
+                    // Uses sessionStorage: tab-specific, survives refresh, reset on new tab
+                    function isNotifEnabled() {
+                        return sessionStorage.getItem(NOTIF_KEY) !== 'false';
+                    }
 
-                // ── Sound + popup helpers ────────────────────────────────────
-                function playSound() {
-                    const audio = new Audio('{{ asset('sounds/notification.mp3') }}');
-                    audio.play().catch(() => {});
-                }
+                    // ── Sound + popup helpers ────────────────────────────────────
+                    function playSound() {
+                        const audio = new Audio('{{ asset('sounds/notification.mp3') }}');
+                        audio.play().catch(() => {});
+                    }
 
-                // ── Handlers ─────────────────────────────────────────────────
-                function handleJobOrderAlert(data) {
-                    if (!isNotifEnabled()) return;
-                    playSound();
+                    // ── Handlers ─────────────────────────────────────────────────
+                    function handleJobOrderAlert(data) {
+                        if (!isNotifEnabled()) return;
+                        playSound();
 
-                    const daysUntil = data.days_until_delivery || 0;
-                    const isUrgent  = daysUntil <= 1;
-                    Swal.fire({
-                        icon              : isUrgent ? 'error' : 'warning',
-                        title             : isUrgent ? 'Urgent: Job Order Delivery!' : 'Job Order Delivery Warning',
-                        html              : `
+                        const daysUntil = data.days_until_delivery || 0;
+                        const isUrgent = daysUntil <= 1;
+                        Swal.fire({
+                            icon: isUrgent ? 'error' : 'warning',
+                            title: isUrgent ? 'Urgent: Job Order Delivery!' : 'Job Order Delivery Warning',
+                            html: `
                             <div class="text-start">
                                 <p><strong>Job Order:</strong> ${data.job_order_name}</p>
                                 <p><strong>Delivery Date:</strong> ${data.delivery_date}</p>
@@ -1629,32 +1703,34 @@
                                 </p>
                                 <p class="text-muted mb-0">${data.message}</p>
                             </div>`,
-                        showCancelButton  : true,
-                        confirmButtonText : '<i class="fas fa-eye me-1"></i> View Job Order',
-                        cancelButtonText  : 'Dismiss',
-                        confirmButtonColor: isUrgent ? '#dc3545' : '#ffc107',
-                        cancelButtonColor : '#6c757d',
-                    }).then(r => { if (r.isConfirmed) window.location.href = `/job-orders/${data.job_order_id}`; });
-
-                    if ('Notification' in window && Notification.permission === 'granted') {
-                        new Notification(isUrgent ? 'Urgent: Job Order Delivery!' : 'Job Order Delivery Warning', {
-                            body              : `${data.job_order_name} — Delivery: ${data.delivery_date} (${data.delivery_display})`,
-                            icon              : '{{ asset('favicon.png') }}',
-                            badge             : '{{ asset('favicon.png') }}',
-                            tag               : `job-order-${data.job_order_id}`,
-                            requireInteraction: isUrgent,
+                            showCancelButton: true,
+                            confirmButtonText: '<i class="fas fa-eye me-1"></i> View Job Order',
+                            cancelButtonText: 'Dismiss',
+                            confirmButtonColor: isUrgent ? '#dc3545' : '#ffc107',
+                            cancelButtonColor: '#6c757d',
+                        }).then(r => {
+                            if (r.isConfirmed) window.location.href = `/job-orders/${data.job_order_id}`;
                         });
+
+                        if ('Notification' in window && Notification.permission === 'granted') {
+                            new Notification(isUrgent ? 'Urgent: Job Order Delivery!' : 'Job Order Delivery Warning', {
+                                body: `${data.job_order_name} — Delivery: ${data.delivery_date} (${data.delivery_display})`,
+                                icon: '{{ asset('favicon.png') }}',
+                                badge: '{{ asset('favicon.png') }}',
+                                tag: `job-order-${data.job_order_id}`,
+                                requireInteraction: isUrgent,
+                            });
+                        }
                     }
-                }
 
-                function handleGoodsOutAlert(data) {
-                    if (!isNotifEnabled()) return;
-                    playSound();
+                    function handleGoodsOutAlert(data) {
+                        if (!isNotifEnabled()) return;
+                        playSound();
 
-                    Swal.fire({
-                        icon              : 'info',
-                        title             : 'Material Issued',
-                        html              : `
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'Material Issued',
+                            html: `
                             <div class="text-start">
                                 <p class="mb-2"><strong>Material:</strong> ${data.material_name}</p>
                                 <p class="mb-2"><strong>Quantity:</strong> ${parseFloat(data.quantity).toFixed(2)} ${data.unit}</p>
@@ -1665,115 +1741,124 @@
                                 <hr>
                                 <p class="text-muted small mb-0">${data.timestamp}</p>
                             </div>`,
-                        showCancelButton  : true,
-                        confirmButtonText : '<i class="fas fa-eye"></i> View Goods Out',
-                        cancelButtonText  : 'Close',
-                        confirmButtonColor: '#0d6efd',
-                        cancelButtonColor : '#6c757d',
-                    }).then(r => { if (r.isConfirmed && data.url) window.location.href = data.url; });
-
-                    if ('Notification' in window && Notification.permission === 'granted') {
-                        new Notification('Material Issued', {
-                            body : `${data.material_name} (${parseFloat(data.quantity).toFixed(2)} ${data.unit}) → ${data.project_name}`,
-                            icon : '{{ asset('favicon.png') }}',
-                            badge: '{{ asset('favicon.png') }}',
-                            tag  : `goods-out-${data.goods_out_id}`,
+                            showCancelButton: true,
+                            confirmButtonText: '<i class="fas fa-eye"></i> View Goods Out',
+                            cancelButtonText: 'Close',
+                            confirmButtonColor: '#0d6efd',
+                            cancelButtonColor: '#6c757d',
+                        }).then(r => {
+                            if (r.isConfirmed && data.url) window.location.href = data.url;
                         });
-                    }
-                }
 
-                // ── Subscribe / Unsubscribe ──────────────────────────────────
-                function subscribeAll() {
-                    if (channels.deptJobOrder) {
-                        window.pusher.subscribe(channels.deptJobOrder)
-                            .bind('job-order.delivery-alert', handleJobOrderAlert);
+                        if ('Notification' in window && Notification.permission === 'granted') {
+                            new Notification('Material Issued', {
+                                body: `${data.material_name} (${parseFloat(data.quantity).toFixed(2)} ${data.unit}) → ${data.project_name}`,
+                                icon: '{{ asset('favicon.png') }}',
+                                badge: '{{ asset('favicon.png') }}',
+                                tag: `goods-out-${data.goods_out_id}`,
+                            });
+                        }
                     }
-                    if (channels.globalJobOrder) {
-                        window.pusher.subscribe(channels.globalJobOrder)
-                            .bind('job-order.delivery-alert', handleJobOrderAlert);
-                    }
-                    if (channels.deptGoodsOut) {
-                        window.pusher.subscribe(channels.deptGoodsOut)
-                            .bind('goods-out.processed', handleGoodsOutAlert);
-                    }
-                    if (channels.globalGoodsOut) {
-                        window.pusher.subscribe(channels.globalGoodsOut)
-                            .bind('goods-out.processed', handleGoodsOutAlert);
-                    }
-                    console.log('[Notif] Subscribed to all channels');
-                }
 
-                function unsubscribeAll() {
-                    Object.values(channels).forEach(ch => {
-                        if (ch) {
-                            try { window.pusher.unsubscribe(ch); } catch(e) {}
+                    // ── Subscribe / Unsubscribe ──────────────────────────────────
+                    function subscribeAll() {
+                        if (channels.deptJobOrder) {
+                            window.pusher.subscribe(channels.deptJobOrder)
+                                .bind('job-order.delivery-alert', handleJobOrderAlert);
+                        }
+                        if (channels.globalJobOrder) {
+                            window.pusher.subscribe(channels.globalJobOrder)
+                                .bind('job-order.delivery-alert', handleJobOrderAlert);
+                        }
+                        if (channels.deptGoodsOut) {
+                            window.pusher.subscribe(channels.deptGoodsOut)
+                                .bind('goods-out.processed', handleGoodsOutAlert);
+                        }
+                        if (channels.globalGoodsOut) {
+                            window.pusher.subscribe(channels.globalGoodsOut)
+                                .bind('goods-out.processed', handleGoodsOutAlert);
+                        }
+                        console.log('[Notif] Subscribed to all channels');
+                    }
+
+                    function unsubscribeAll() {
+                        Object.values(channels).forEach(ch => {
+                            if (ch) {
+                                try {
+                                    window.pusher.unsubscribe(ch);
+                                } catch (e) {}
+                            }
+                        });
+                        console.log('[Notif] Unsubscribed from all channels');
+                    }
+
+                    // ── Initial subscription based on saved preference ───────────
+                    if (isNotifEnabled()) {
+                        subscribeAll();
+                    }
+
+                    // Request browser notification permission
+                    if ('Notification' in window && Notification.permission === 'default') {
+                        Notification.requestPermission();
+                    }
+
+                    // ── Toggle Button Logic ──────────────────────────────────────
+                    function applyToggleUI(enabled) {
+                        const icon = document.getElementById('notifBellIcon');
+                        const btn = document.getElementById('notifToggleBtn');
+                        if (!icon || !btn) return;
+                        if (enabled) {
+                            icon.className = 'bi bi-bell-fill';
+                            btn.style.color = '';
+                            btn.title = 'Notifications ON — click to mute';
+                        } else {
+                            icon.className = 'bi bi-bell-slash-fill';
+                            btn.style.color = '#6c757d';
+                            btn.title = 'Notifications OFF — click to unmute';
+                        }
+                    }
+
+                    function showFeedbackToast(enabled) {
+                        const el = document.createElement('div');
+                        el.textContent = enabled ? '🔔 Notifications enabled' : '🔕 Notifications muted';
+                        el.style.cssText = 'position:fixed;top:68px;right:16px;z-index:9999;' +
+                            'background:#333;color:#fff;padding:6px 14px;border-radius:8px;' +
+                            'font-size:.82rem;opacity:1;transition:opacity .5s;pointer-events:none;';
+                        document.body.appendChild(el);
+                        setTimeout(() => {
+                            el.style.opacity = '0';
+                        }, 1500);
+                        setTimeout(() => {
+                            el.remove();
+                        }, 2100);
+                    }
+
+                    document.addEventListener('DOMContentLoaded', function() {
+                        applyToggleUI(isNotifEnabled());
+
+                        const btn = document.getElementById('notifToggleBtn');
+                        if (btn) {
+                            btn.addEventListener('click', function() {
+                                const newState = !isNotifEnabled();
+                                // sessionStorage: tab-specific, does not affect other tabs
+                                sessionStorage.setItem(NOTIF_KEY, newState ? 'true' : 'false');
+
+                                if (newState) {
+                                    subscribeAll(); // re-subscribe Pusher channels when turning ON
+                                } else {
+                                    unsubscribeAll(); // unsubscribe Pusher channels when turning OFF
+                                }
+
+                                applyToggleUI(newState);
+                                showFeedbackToast(newState);
+                            });
                         }
                     });
-                    console.log('[Notif] Unsubscribed from all channels');
-                }
 
-                // ── Initial subscription based on saved preference ───────────
-                if (isNotifEnabled()) {
-                    subscribeAll();
-                }
-
-                // Request browser notification permission
-                if ('Notification' in window && Notification.permission === 'default') {
-                    Notification.requestPermission();
-                }
-
-                // ── Toggle Button Logic ──────────────────────────────────────
-                function applyToggleUI(enabled) {
-                    const icon = document.getElementById('notifBellIcon');
-                    const btn  = document.getElementById('notifToggleBtn');
-                    if (!icon || !btn) return;
-                    if (enabled) {
-                        icon.className = 'bi bi-bell-fill';
-                        btn.style.color = '';
-                        btn.title = 'Notifications ON — click to mute';
-                    } else {
-                        icon.className = 'bi bi-bell-slash-fill';
-                        btn.style.color = '#6c757d';
-                        btn.title = 'Notifications OFF — click to unmute';
-                    }
-                }
-
-                function showFeedbackToast(enabled) {
-                    const el = document.createElement('div');
-                    el.textContent = enabled ? '🔔 Notifications enabled' : '🔕 Notifications muted';
-                    el.style.cssText = 'position:fixed;top:68px;right:16px;z-index:9999;' +
-                        'background:#333;color:#fff;padding:6px 14px;border-radius:8px;' +
-                        'font-size:.82rem;opacity:1;transition:opacity .5s;pointer-events:none;';
-                    document.body.appendChild(el);
-                    setTimeout(() => { el.style.opacity = '0'; }, 1500);
-                    setTimeout(() => { el.remove(); }, 2100);
-                }
-
-                document.addEventListener('DOMContentLoaded', function () {
-                    applyToggleUI(isNotifEnabled());
-
-                    const btn = document.getElementById('notifToggleBtn');
-                    if (btn) {
-                        btn.addEventListener('click', function () {
-                            const newState = !isNotifEnabled();
-                            // sessionStorage: tab-specific, does not affect other tabs
-                            sessionStorage.setItem(NOTIF_KEY, newState ? 'true' : 'false');
-
-                            if (newState) {
-                                subscribeAll();   // re-subscribe Pusher channels when turning ON
-                            } else {
-                                unsubscribeAll(); // unsubscribe Pusher channels when turning OFF
-                            }
-
-                            applyToggleUI(newState);
-                            showFeedbackToast(newState);
-                        });
-                    }
-                });
-
-                // Expose for any other inline scripts that may need it
-                window.isNotifEnabled = isNotifEnabled;
-            })();
+                    // Expose for any other inline scripts that may need it
+                    window.isNotifEnabled = isNotifEnabled;
+                })
+                ();
             </script>
             <!-- ============================================================ -->
             <!-- END PUSHER NOTIFICATIONS + TOGGLE                           -->
