@@ -417,12 +417,12 @@ class GoodsOutController extends Controller
 
             DB::commit();
 
-            // Trigger Pusher notification AFTER successful commit (non-blocking)
-            try {
-                event(new GoodsOutProcessed($goodsOut));
-            } catch (\Exception $broadcastEx) {
-                \Illuminate\Support\Facades\Log::warning('GoodsOut broadcast failed (non-critical): ' . $broadcastEx->getMessage());
-            }
+            // DISABLED: GoodsOutProcessed popup notification (annoying, disabled by request)
+            // try {
+            //     event(new GoodsOutProcessed($goodsOut));
+            // } catch (\Exception $broadcastEx) {
+            //     \Illuminate\Support\Facades\Log::warning('GoodsOut broadcast failed (non-critical): ' . $broadcastEx->getMessage());
+            // }
 
             return redirect()
                 ->route('goods_out.index')
@@ -650,14 +650,14 @@ class GoodsOutController extends Controller
                 event(new \App\Events\MaterialRequestUpdated($mr, 'status'));
             }
 
-            // Trigger Pusher notifications for each goods out AFTER successful commit
-            foreach ($createdGoodsOuts as $goodsOut) {
-                try {
-                    event(new GoodsOutProcessed($goodsOut));
-                } catch (\Exception $broadcastEx) {
-                    \Illuminate\Support\Facades\Log::warning('GoodsOut bulk broadcast failed (non-critical): ' . $broadcastEx->getMessage());
-                }
-            }
+            // DISABLED: GoodsOutProcessed popup notification (annoying, disabled by request)
+            // foreach ($createdGoodsOuts as $goodsOut) {
+            //     try {
+            //         event(new GoodsOutProcessed($goodsOut));
+            //     } catch (\Exception $broadcastEx) {
+            //         \Illuminate\Support\Facades\Log::warning('GoodsOut bulk broadcast failed (non-critical): ' . $broadcastEx->getMessage());
+            //     }
+            // }
 
             return response()->json(['success' => true, 'message' => 'Bulk Goods Out processed successfully.']);
         } catch (\Exception $e) {
