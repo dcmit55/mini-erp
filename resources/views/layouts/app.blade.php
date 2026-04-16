@@ -593,7 +593,7 @@
                                             <li>
                                                 <a class="dropdown-item {{ request()->is('costing-report*') ? 'active' : '' }}"
                                                     href="{{ route('costing.report') }}">
-                                                    <i class="fas fa-chart-line me-2"></i>Costing Report
+                                                    <i class="fas fa-chart-line me-2"></i>Costing Project
                                                 </a>
                                             </li>
                                             <li>
@@ -921,6 +921,18 @@
 
                             @guest
                             @else
+                                {{-- Notification Toggle Button --}}
+                                @auth
+                                <li class="nav-item d-flex align-items-center me-1">
+                                    <button id="notifToggleBtn"
+                                        title="Toggle Notifications"
+                                        class="btn btn-sm border-0 px-2 py-1"
+                                        style="font-size:1.1rem; background:transparent; transition:color .2s;">
+                                        <i id="notifBellIcon" class="bi bi-bell-fill"></i>
+                                    </button>
+                                </li>
+                                @endauth
+
                                 <li class="nav-item dropdown">
                                     <a id="navbarDropdown" class="nav-link btn dropdown-toggle" href="#"
                                         role="button" data-bs-toggle="dropdown" aria-haspopup="true"
@@ -1552,191 +1564,219 @@
 
         @auth
             <!-- ============================================================ -->
-            <!-- PUSHER NOTIFICATIONS - Job Order Countdown Alerts           -->
+            <!-- PUSHER NOTIFICATIONS + TOGGLE (subscribe/unsubscribe)       -->
             <!-- ============================================================ -->
             <script>
-                (function() {
-                    // Initialize Pusher
-                    const pusher = new Pusher('{{ env('PUSHER_APP_KEY') }}', {
-                        cluster: '{{ env('PUSHER_APP_CLUSTER') }}',
-                        encrypted: true
+            (function () {
+                // ── Constants ───────────────────────────────────────────────
+                // KEY: 'notif_enabled' — tab-specific via sessionStorage
+                // Default: ON (null → true), persists through refresh, clears on tab close
+                const NOTIF_KEY        = 'notif_enabled';
+                const userRole         = '{{ auth()->user()->role }}';
+                const userDeptId       = '{{ auth()->user()->department_id ?? '' }}';
+                const adminRoles       = [
+                    'super_admin','admin','admin_logistic','admin_mascot','admin_costume',
+                    'admin_animatronic','admin_finance','admin_hr','admin_procurement'
+                ];
+                const isAdmin = adminRoles.includes(userRole);
+
+                // ── Channel name registry ────────────────────────────────────
+                const channels = {
+                    deptJobOrder    : userDeptId  ? `department.${userDeptId}.job-order-alerts` : null,
+                    globalJobOrder  : isAdmin     ? 'job-order-alerts'                          : null,
+                    deptGoodsOut    : userDeptId  ? `department.${userDeptId}.goods-out-alerts`  : null,
+                    globalGoodsOut  : isAdmin     ? 'goods-out-alerts'                           : null,
+                };
+
+                // ── Pusher init — exposed on window so other inline scripts can use it
+                window.pusher = new Pusher('{{ env('PUSHER_APP_KEY') }}', {
+                    cluster   : '{{ env('PUSHER_APP_CLUSTER') }}',
+                    encrypted : true,
+                });
+
+                // ── State helpers ────────────────────────────────────────────
+                // Uses sessionStorage: tab-specific, survives refresh, reset on new tab
+                function isNotifEnabled() {
+                    return sessionStorage.getItem(NOTIF_KEY) !== 'false';
+                }
+
+                // ── Sound + popup helpers ────────────────────────────────────
+                function playSound() {
+                    const audio = new Audio('{{ asset('sounds/notification.mp3') }}');
+                    audio.play().catch(() => {});
+                }
+
+                // ── Handlers ─────────────────────────────────────────────────
+                function handleJobOrderAlert(data) {
+                    if (!isNotifEnabled()) return;
+                    playSound();
+
+                    const daysUntil = data.days_until_delivery || 0;
+                    const isUrgent  = daysUntil <= 1;
+                    Swal.fire({
+                        icon              : isUrgent ? 'error' : 'warning',
+                        title             : isUrgent ? 'Urgent: Job Order Delivery!' : 'Job Order Delivery Warning',
+                        html              : `
+                            <div class="text-start">
+                                <p><strong>Job Order:</strong> ${data.job_order_name}</p>
+                                <p><strong>Delivery Date:</strong> ${data.delivery_date}</p>
+                                <p><strong>Time Left:</strong>
+                                    <span class="badge bg-${isUrgent ? 'danger' : 'warning'}">${data.delivery_display}</span>
+                                </p>
+                                <p><strong>Project:</strong> ${data.project_name || '-'}</p>
+                                <p><strong>Departments:</strong><br>
+                                    ${(data.departments||[]).map(d => `<span class="badge bg-secondary me-1">${d}</span>`).join('')}
+                                </p>
+                                <p class="text-muted mb-0">${data.message}</p>
+                            </div>`,
+                        showCancelButton  : true,
+                        confirmButtonText : '<i class="fas fa-eye me-1"></i> View Job Order',
+                        cancelButtonText  : 'Dismiss',
+                        confirmButtonColor: isUrgent ? '#dc3545' : '#ffc107',
+                        cancelButtonColor : '#6c757d',
+                    }).then(r => { if (r.isConfirmed) window.location.href = `/job-orders/${data.job_order_id}`; });
+
+                    if ('Notification' in window && Notification.permission === 'granted') {
+                        new Notification(isUrgent ? 'Urgent: Job Order Delivery!' : 'Job Order Delivery Warning', {
+                            body              : `${data.job_order_name} — Delivery: ${data.delivery_date} (${data.delivery_display})`,
+                            icon              : '{{ asset('favicon.png') }}',
+                            badge             : '{{ asset('favicon.png') }}',
+                            tag               : `job-order-${data.job_order_id}`,
+                            requireInteraction: isUrgent,
+                        });
+                    }
+                }
+
+                function handleGoodsOutAlert(data) {
+                    if (!isNotifEnabled()) return;
+                    playSound();
+
+                    Swal.fire({
+                        icon              : 'info',
+                        title             : 'Material Issued',
+                        html              : `
+                            <div class="text-start">
+                                <p class="mb-2"><strong>Material:</strong> ${data.material_name}</p>
+                                <p class="mb-2"><strong>Quantity:</strong> ${parseFloat(data.quantity).toFixed(2)} ${data.unit}</p>
+                                <p class="mb-2"><strong>Project:</strong> ${data.project_name}</p>
+                                ${data.job_order_name ? `<p class="mb-2"><strong>Job Order:</strong> ${data.job_order_name}</p>` : ''}
+                                <p class="mb-2"><strong>Requested By:</strong> ${data.requested_by}</p>
+                                <p class="mb-2"><strong>Department:</strong> ${data.department_name}</p>
+                                <hr>
+                                <p class="text-muted small mb-0">${data.timestamp}</p>
+                            </div>`,
+                        showCancelButton  : true,
+                        confirmButtonText : '<i class="fas fa-eye"></i> View Goods Out',
+                        cancelButtonText  : 'Close',
+                        confirmButtonColor: '#0d6efd',
+                        cancelButtonColor : '#6c757d',
+                    }).then(r => { if (r.isConfirmed && data.url) window.location.href = data.url; });
+
+                    if ('Notification' in window && Notification.permission === 'granted') {
+                        new Notification('Material Issued', {
+                            body : `${data.material_name} (${parseFloat(data.quantity).toFixed(2)} ${data.unit}) → ${data.project_name}`,
+                            icon : '{{ asset('favicon.png') }}',
+                            badge: '{{ asset('favicon.png') }}',
+                            tag  : `goods-out-${data.goods_out_id}`,
+                        });
+                    }
+                }
+
+                // ── Subscribe / Unsubscribe ──────────────────────────────────
+                function subscribeAll() {
+                    if (channels.deptJobOrder) {
+                        window.pusher.subscribe(channels.deptJobOrder)
+                            .bind('job-order.delivery-alert', handleJobOrderAlert);
+                    }
+                    if (channels.globalJobOrder) {
+                        window.pusher.subscribe(channels.globalJobOrder)
+                            .bind('job-order.delivery-alert', handleJobOrderAlert);
+                    }
+                    if (channels.deptGoodsOut) {
+                        window.pusher.subscribe(channels.deptGoodsOut)
+                            .bind('goods-out.processed', handleGoodsOutAlert);
+                    }
+                    if (channels.globalGoodsOut) {
+                        window.pusher.subscribe(channels.globalGoodsOut)
+                            .bind('goods-out.processed', handleGoodsOutAlert);
+                    }
+                    console.log('[Notif] Subscribed to all channels');
+                }
+
+                function unsubscribeAll() {
+                    Object.values(channels).forEach(ch => {
+                        if (ch) {
+                            try { window.pusher.unsubscribe(ch); } catch(e) {}
+                        }
                     });
+                    console.log('[Notif] Unsubscribed from all channels');
+                }
 
-                    // Get user's departments (assuming user has department_id)
-                    const userDepartmentId = '{{ auth()->user()->department_id ?? '' }}';
-                    const userRole = '{{ auth()->user()->role }}';
+                // ── Initial subscription based on saved preference ───────────
+                if (isNotifEnabled()) {
+                    subscribeAll();
+                }
 
-                    // Subscribe to department-specific channel if user has department
-                    if (userDepartmentId) {
-                        const departmentChannel = pusher.subscribe(`department.${userDepartmentId}.job-order-alerts`);
+                // Request browser notification permission
+                if ('Notification' in window && Notification.permission === 'default') {
+                    Notification.requestPermission();
+                }
 
-                        departmentChannel.bind('job-order.delivery-alert', function(data) {
-                            showCountdownNotification(data);
-                        });
-
-                        console.log(`Subscribed to department.${userDepartmentId}.job-order-alerts`);
+                // ── Toggle Button Logic ──────────────────────────────────────
+                function applyToggleUI(enabled) {
+                    const icon = document.getElementById('notifBellIcon');
+                    const btn  = document.getElementById('notifToggleBtn');
+                    if (!icon || !btn) return;
+                    if (enabled) {
+                        icon.className = 'bi bi-bell-fill';
+                        btn.style.color = '';
+                        btn.title = 'Notifications ON — click to mute';
+                    } else {
+                        icon.className = 'bi bi-bell-slash-fill';
+                        btn.style.color = '#6c757d';
+                        btn.title = 'Notifications OFF — click to unmute';
                     }
+                }
 
-                    // Admin roles subscribe to global alerts
-                    // Include: super_admin, admin, admin_logistic, admin_mascot, admin_costume, etc.
-                    const adminRoles = ['super_admin', 'admin', 'admin_logistic', 'admin_mascot', 'admin_costume',
-                        'admin_animatronic', 'admin_finance', 'admin_hr', 'admin_procurement'
-                    ];
-                    if (adminRoles.includes(userRole)) {
-                        // Subscribe to global job order alerts channel
-                        const globalChannel = pusher.subscribe('job-order-alerts');
+                function showFeedbackToast(enabled) {
+                    const el = document.createElement('div');
+                    el.textContent = enabled ? '🔔 Notifications enabled' : '🔕 Notifications muted';
+                    el.style.cssText = 'position:fixed;top:68px;right:16px;z-index:9999;' +
+                        'background:#333;color:#fff;padding:6px 14px;border-radius:8px;' +
+                        'font-size:.82rem;opacity:1;transition:opacity .5s;pointer-events:none;';
+                    document.body.appendChild(el);
+                    setTimeout(() => { el.style.opacity = '0'; }, 1500);
+                    setTimeout(() => { el.remove(); }, 2100);
+                }
 
-                        globalChannel.bind('job-order.delivery-alert', function(data) {
-                            showCountdownNotification(data);
-                        });
+                document.addEventListener('DOMContentLoaded', function () {
+                    applyToggleUI(isNotifEnabled());
 
-                        console.log('Subscribed to global job-order-alerts channel (admin role)');
-                    }
+                    const btn = document.getElementById('notifToggleBtn');
+                    if (btn) {
+                        btn.addEventListener('click', function () {
+                            const newState = !isNotifEnabled();
+                            // sessionStorage: tab-specific, does not affect other tabs
+                            sessionStorage.setItem(NOTIF_KEY, newState ? 'true' : 'false');
 
-                    function showCountdownNotification(data) {
-                        // Play notification sound
-                        const audio = new Audio('{{ asset('sounds/notification.mp3') }}');
-                        audio.play().catch(e => console.log('Audio play failed:', e));
-
-                        // Determine urgency level based on days
-                        const daysUntil = data.days_until_delivery || 0;
-                        const isUrgent = daysUntil <= 1;
-                        const icon = isUrgent ? 'error' : 'warning';
-                        const title = isUrgent ? 'Urgent: Job Order Delivery!' : 'Job Order Delivery Warning';
-
-                        // Show SweetAlert notification
-                        Swal.fire({
-                            icon: icon,
-                            title: title,
-                            html: `
-                                <div class="text-start">
-                                    <p><strong>Job Order:</strong> ${data.job_order_name}</p>
-                                    <p><strong>Delivery Date:</strong> ${data.delivery_date}</p>
-                                    <p><strong>Time Left:</strong>
-                                        <span class="badge bg-${isUrgent ? 'danger' : 'warning'}">${data.delivery_display}</span>
-                                    </p>
-                                    <p><strong>Project:</strong> ${data.project_name || '-'}</p>
-                                    <p><strong>Departments:</strong><br>
-                                        ${data.departments.map(d => `<span class="badge bg-secondary me-1">${d}</span>`).join('')}
-                                    </p>
-                                    <p class="text-muted mb-0">${data.message}</p>
-                                </div>
-                            `,
-                            showCancelButton: true,
-                            confirmButtonText: '<i class="fas fa-eye me-1"></i> View Job Order',
-                            cancelButtonText: 'Dismiss',
-                            confirmButtonColor: isUrgent ? '#dc3545' : '#ffc107',
-                            cancelButtonColor: '#6c757d',
-                        }).then((result) => {
-                            if (result.isConfirmed) {
-                                // Redirect to job order detail page
-                                window.location.href = `/job-orders/${data.job_order_id}`;
+                            if (newState) {
+                                subscribeAll();   // re-subscribe Pusher channels when turning ON
+                            } else {
+                                unsubscribeAll(); // unsubscribe Pusher channels when turning OFF
                             }
+
+                            applyToggleUI(newState);
+                            showFeedbackToast(newState);
                         });
-
-                        // Show browser notification if permission granted
-                        if ('Notification' in window && Notification.permission === 'granted') {
-                            new Notification(title, {
-                                body: `${data.job_order_name} - Delivery: ${data.delivery_date} (${data.delivery_display})`,
-                                icon: '{{ asset('favicon.png') }}',
-                                badge: '{{ asset('favicon.png') }}',
-                                tag: `job-order-${data.job_order_id}`,
-                                requireInteraction: isUrgent
-                            });
-                        }
                     }
+                });
 
-                    // Request notification permission on page load
-                    if ('Notification' in window && Notification.permission === 'default') {
-                        Notification.requestPermission();
-                    }
-                })
-                ();
-            </script>
-
-            <!-- ============================================================ -->
-            <!-- GOODS OUT PUSHER NOTIFICATIONS                              -->
-            <!-- ============================================================ -->
-            <script>
-                (() => {
-                    const userRole = '{{ auth()->user()->role ?? '' }}';
-                    const userDepartmentId = {{ auth()->user()->department_id ?? 'null' }};
-
-                    // Admin roles that should receive all goods out notifications
-                    const adminRoles = [
-                        'super_admin', 'admin', 'admin_logistic',
-                        'admin_mascot', 'admin_costume', 'admin_animatronic',
-                        'admin_finance', 'admin_hr', 'admin_procurement'
-                    ];
-
-                    const isAdmin = adminRoles.includes(userRole);
-
-                    // Subscribe to department-specific channel
-                    if (userDepartmentId) {
-                        const departmentChannel = pusher.subscribe(`department.${userDepartmentId}.goods-out-alerts`);
-                        departmentChannel.bind('goods-out.processed', handleGoodsOutNotification);
-                        console.log(`Subscribed to department.${userDepartmentId}.goods-out-alerts`);
-                    }
-
-                    // Admins subscribe to global channel
-                    if (isAdmin) {
-                        const globalChannel = pusher.subscribe('goods-out-alerts');
-                        globalChannel.bind('goods-out.processed', handleGoodsOutNotification);
-                        console.log('Subscribed to global goods-out-alerts channel');
-                    }
-
-                    function handleGoodsOutNotification(data) {
-                        console.log('Goods Out notification received:', data);
-
-                        // Play notification sound
-                        const audio = new Audio('{{ asset('sounds/notification.mp3') }}');
-                        audio.play().catch(e => console.log('Audio play failed:', e));
-
-                        // SweetAlert popup
-                        Swal.fire({
-                            icon: 'info',
-                            title: 'Material Issued',
-                            html: `
-                                <div class="text-start">
-                                    <p class="mb-2"><strong>Material:</strong> ${data.material_name}</p>
-                                    <p class="mb-2"><strong>Quantity:</strong> ${parseFloat(data.quantity).toFixed(2)} ${data.unit}</p>
-                                    <p class="mb-2"><strong>Project:</strong> ${data.project_name}</p>
-                                    ${data.job_order_name ? `<p class="mb-2"><strong>Job Order:</strong> ${data.job_order_name}</p>` : ''}
-                                    <p class="mb-2"><strong>Requested By:</strong> ${data.requested_by}</p>
-                                    <p class="mb-2"><strong>Department:</strong> ${data.department_name}</p>
-                                    <hr>
-                                    <p class="text-muted small mb-0">${data.timestamp}</p>
-                                </div>
-                            `,
-                            showCancelButton: true,
-                            confirmButtonText: '<i class="fas fa-eye"></i> View Goods Out',
-                            cancelButtonText: 'Close',
-                            confirmButtonColor: '#0d6efd',
-                            cancelButtonColor: '#6c757d',
-                            customClass: {
-                                popup: 'swal-wide'
-                            }
-                        }).then((result) => {
-                            if (result.isConfirmed && data.url) {
-                                window.location.href = data.url;
-                            }
-                        });
-
-                        // Browser notification
-                        if ('Notification' in window && Notification.permission === 'granted') {
-                            new Notification('Material Issued', {
-                                body: `${data.material_name} (${parseFloat(data.quantity).toFixed(2)} ${data.unit}) → ${data.project_name}`,
-                                icon: '{{ asset('favicon.png') }}',
-                                badge: '{{ asset('favicon.png') }}',
-                                tag: `goods-out-${data.goods_out_id}`,
-                                requireInteraction: false
-                            });
-                        }
-                    }
-                })();
+                // Expose for any other inline scripts that may need it
+                window.isNotifEnabled = isNotifEnabled;
+            })();
             </script>
             <!-- ============================================================ -->
-            <!-- END GOODS OUT PUSHER NOTIFICATIONS                          -->
+            <!-- END PUSHER NOTIFICATIONS + TOGGLE                           -->
             <!-- ============================================================ -->
         @endauth
 

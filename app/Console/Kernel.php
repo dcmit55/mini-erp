@@ -28,7 +28,10 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule)
     {
         // Auto goods-out for approved material requests
-        // Runs twice daily at midnight and noon
+        // DISABLED: 2x24h auto goods-out has been turned off
+        // Risk: auto goods-out used price=0 batches when inventory had no cost data yet
+        // To re-enable, uncomment the block below
+        /*
         $schedule
             ->command('material-request:auto-goods-out')
             ->twiceDaily(0, 12)
@@ -39,6 +42,7 @@ class Kernel extends ConsoleKernel
             ->onSuccess(function () {
                 \Log::info('Auto-goods-out scheduler completed');
             });
+        */
 
         // Check delivery date alerts daily at 8 AM Singapore time
         // Sends Pusher notifications for job orders with delivery_date = today + 2 days

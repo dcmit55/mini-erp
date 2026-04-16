@@ -34428,6 +34428,9 @@ function initializeAudio() {
   });
 }
 function playNotificationSound() {
+  // Respect mute toggle — tab-specific via sessionStorage (default ON)
+  if (sessionStorage.getItem('notif_enabled') === 'false') return;
+
   // Web Audio API
   if (audioContext && audioBuffer) {
     var source = audioContext.createBufferSource();
@@ -34497,6 +34500,8 @@ window.markAnnouncementAsRead = function (announcementId) {
 // --- Toast ---
 function showToast(materialRequest, action) {
   var playSound = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
+  // Respect mute toggle — tab-specific via sessionStorage (default ON)
+  if (sessionStorage.getItem('notif_enabled') === 'false') return;
   var toastContainer = document.getElementById("toast-container");
   var toastTemplate = document.getElementById("toast-template");
   var departmentName = getDepartmentName(materialRequest);

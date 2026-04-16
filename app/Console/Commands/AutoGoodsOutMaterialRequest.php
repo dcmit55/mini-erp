@@ -18,6 +18,23 @@ class AutoGoodsOutMaterialRequest extends Command
 
     public function handle()
     {
+        // ── HARD DISABLED ────────────────────────────────────────────────────
+        // This command has been permanently disabled because the auto goods-out
+        // logic ran with price=0 batches, corrupting project costing data.
+        //
+        // DO NOT re-enable without:
+        //   1. Ensuring all inventory_batches have unit_price > 0 before processing
+        //   2. Adding a unit_price > 0 guard inside this command
+        //   3. Getting explicit sign-off that costing impact has been assessed
+        //
+        // To re-enable, remove the early-return below AND uncomment the
+        // scheduler entry in app/Console/Kernel.php
+        // ────────────────────────────────────────────────────────────────────
+        $this->warn('[AUTO-GOODS-OUT] This command is DISABLED. Exiting without processing.');
+        \Log::warning('AutoGoodsOutMaterialRequest: Command is hard-disabled. No records were processed.');
+        return 0;
+
+        // ────── DISABLED CODE BELOW ──────────────────────────────────────────
         $now = Carbon::now();
         $deadline = $now->copy()->subHours(48);
 
