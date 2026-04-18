@@ -1088,13 +1088,11 @@ class ProjectPurchaseService
             } else {
                 $inventoryData = [
                     'name' => $purchase->new_item_name,
-                    'unit_id' => $purchase->unit_id, // FK ke tabel units (bukan 'unit' string)
+                    'unit_id' => $purchase->unit_id,
+                    'unit' => optional($purchase->unit)->name ?? 'pcs',
                     'supplier_id' => $purchase->supplier_id,
                     'category_id' => $purchase->category_id,
                     'remark' => $purchase->note,
-                    // 'quantity' dan 'price' sudah tidak ada sebagai kolom di inventories
-                    // (dihapus di migration 2026_03_10_000003). Stock kini di inventory_batches.
-                    // 'unit' (string) juga tidak ada di $fillable Inventory — yang ada 'unit_id' (FK).
                 ];
 
                 $newInventory = Inventory::create($inventoryData);

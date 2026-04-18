@@ -22,3 +22,8 @@ npm-debug.log
 yarn-error.log
 /.idea
 /.vscode
+.claude
+database/schema
+app/Services/LlmService.php
+app/Http/Controllers/ChatbotController.php
+D27FEB.env
