@@ -31,12 +31,7 @@ class FingerspotController extends Controller
         $this->reconciler  = $reconciler;
 
         $this->middleware('auth');
-        $this->middleware(function ($request, $next) {
-            if (!in_array(Auth::user()->role, ['super_admin', 'admin_hr', 'admin'])) {
-                abort(403);
-            }
-            return $next($request);
-        });
+        $this->middleware('can:hr.fingerspot.view');
     }
 
     /**

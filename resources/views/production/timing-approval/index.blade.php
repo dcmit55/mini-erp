@@ -165,12 +165,14 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <h6 class="m-0 font-weight-bold text-primary">Timing Sessions</h6>
                     <div>
+                        @can('production.timing.edit')
                         <button type="button" id="btnBulkApprove" class="btn btn-success btn-sm" disabled>
                             <i class="bi bi-check-circle"></i> Bulk Approve
                         </button>
                         <button type="button" id="btnBulkReject" class="btn btn-danger btn-sm" disabled>
                             <i class="bi bi-x-circle"></i> Bulk Reject
                         </button>
+                        @endcan
                     </div>
                 </div>
             </div>

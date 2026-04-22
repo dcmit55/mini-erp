@@ -10,21 +10,15 @@ use Illuminate\Support\Facades\Auth;
 
 class UnitController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+        $this->middleware('can:logistic.inventory.view');
+        $this->middleware('can:logistic.inventory.create')->only(['store']);
+    }
+
     public function store(Request $request)
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            if ($request->ajax()) {
-                return response()->json(
-                    [
-                        'success' => false,
-                        'message' => 'You do not have permission to create units.',
-                    ],
-                    403,
-                );
-            }
-            abort(403, 'You do not have permission to create units.');
-        }
-
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255|unique:units,name',
         ]);

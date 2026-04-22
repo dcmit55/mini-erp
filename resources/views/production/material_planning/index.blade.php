@@ -9,13 +9,13 @@
                         <i class="fas fa-clipboard-check gradient-icon me-2" style="font-size: 1.5rem;"></i>
                         <h2 class="mb-0" style="font-size:1.3rem;">Material Planning List</h2>
                     </div>
-                    @if (auth()->user()->canModifyData() && auth()->user()->role !== 'general')
+                    @can('production.material-planning.create')
                         <div>
                             <a href="{{ route('material_planning.create') }}" class="btn btn-primary">
                                 <i class="fas fa-plus-circle me-1"></i> Add Material Planning
                             </a>
                         </div>
-                    @endif
+                    @endcan
                 </div>
 
                 @if (session('success'))
@@ -199,7 +199,7 @@
                                                 data-project="{{ $projectId }}">
                                                 <i class="fas fa-chevron-down me-1 toggle-icon"></i> Details
                                             </button>
-                                            @if (auth()->user()->role !== 'general')
+                                            @can('production.material-planning.delete')
                                                 <button class="btn btn-sm btn-outline-danger btn-delete-project"
                                                     data-project="{{ $projectId }}"
                                                     data-project-name="{{ $project ? $project->name : 'Unknown Project' }}"
@@ -207,7 +207,7 @@
                                                     title="Delete all materials for this project">
                                                     <i class="fas fa-trash-alt"></i>
                                                 </button>
-                                            @endif
+                                            @endcan
                                         </div>
                                     </td>
                                 </tr>
@@ -348,7 +348,7 @@
                                                                     </small>
                                                                 </td>
                                                                 <td class="text-center">
-                                                                    @if (auth()->user()->role !== 'general')
+                                                                    @can('production.material-planning.delete')
                                                                         <button
                                                                             class="btn btn-sm btn-outline-danger btn-delete-item"
                                                                             data-id="{{ $plan->id }}"
@@ -360,7 +360,7 @@
                                                                         </button>
                                                                     @else
                                                                         <span class="text-muted">-</span>
-                                                                    @endif
+                                                                    @endcan
                                                                 </td>
                                                             </tr>
                                                         @endforeach
@@ -379,12 +379,12 @@
                                             <h5>No material planning data available</h5>
                                             <p class="text-muted">Create your first material planning by clicking the
                                                 button above</p>
-                                            @if (auth()->user()->role !== 'general')
+                                            @can('production.material-planning.create')
                                                 <a href="{{ route('material_planning.create') }}"
                                                     class="btn btn-sm btn-primary">
                                                     <i class="fas fa-plus-circle me-1"></i> Add Material Planning
                                                 </a>
-                                            @endif
+                                            @endcan
                                         </div>
                                     </td>
                                 </tr>

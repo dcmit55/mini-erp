@@ -173,12 +173,14 @@
                             <span id="selectedCount">0</span> PO(s) selected
                         </span>
                         <div class="d-flex gap-2">
+                            @can('procurement.po.approve')
                             <button type="button" class="btn btn-success btn-sm rounded-2 px-3" id="bulkApproveBtn">
                                 <i class="fas fa-check me-1"></i> Approve All
                             </button>
                             <button type="button" class="btn btn-danger btn-sm rounded-2 px-3" id="bulkRejectBtn">
                                 <i class="fas fa-times me-1"></i> Reject All
                             </button>
+                            @endcan
                             <button type="button" class="btn btn-outline-secondary btn-sm rounded-2 px-3" id="clearSelectionBtn">
                                 <i class="fas fa-ban me-1"></i> Clear Selection
                             </button>

@@ -21,25 +21,31 @@
             <h5 class="mb-0 fw-semibold" style="color:#4A25AA;">Employees</h5>
             <small class="text-muted">{{ $allCount }} total &middot; {{ $activeCount }} active</small>
         </div>
-        @if(auth()->user()->canModifyData())
+        @canany(['hr.employees.create', 'hr.employees.import', 'hr.employees.view'])
         <div class="d-flex gap-2">
+            @can('hr.employees.view')
             <a href="{{ route('employees.export', ['status' => request('status', 'all')]) }}"
                class="btn btn-sm btn-outline-success rounded-2">
                 <i class="bi bi-file-earmark-excel me-1"></i>
                 <span class="d-none d-sm-inline">Export</span>
             </a>
+            @endcan
+            @can('hr.employees.import')
             <button type="button" class="btn btn-sm btn-outline-secondary rounded-2"
                 data-bs-toggle="modal" data-bs-target="#importEmployeeModal">
                 <i class="bi bi-upload me-1"></i>
                 <span class="d-none d-sm-inline">Import</span>
             </button>
+            @endcan
+            @can('hr.employees.create')
             <a href="{{ route('employees.create') }}" class="btn btn-sm btn-purple rounded-2">
                 <i class="bi bi-plus-lg me-1"></i>
                 <span class="d-none d-sm-inline">Add Employee</span>
                 <span class="d-sm-none">Add</span>
             </a>
+            @endcan
         </div>
-        @endif
+        @endcanany
     </div>
 
     {{-- Alerts --}}
@@ -302,12 +308,14 @@
                                        data-bs-toggle="tooltip" style="width:28px;height:28px;">
                                         <i class="bi bi-clock"></i>
                                     </a>
-                                    @if(auth()->user()->canModifyData())
+                                    @can('hr.employees.edit')
                                         <a href="{{ route('employees.edit', $employee) }}"
                                            class="btn btn-icon btn-sm text-warning" title="Edit"
                                            data-bs-toggle="tooltip" style="width:28px;height:28px;">
                                             <i class="bi bi-pencil"></i>
                                         </a>
+                                    @endcan
+                                    @can('hr.employees.delete')
                                         <button type="button"
                                             class="btn btn-icon btn-sm text-danger delete-employee-btn"
                                             data-employee-id="{{ $employee->id }}"
@@ -316,7 +324,7 @@
                                             style="width:28px;height:28px;">
                                             <i class="bi bi-trash"></i>
                                         </button>
-                                    @endif
+                                    @endcan
                                 </div>
                             </td>
                         </tr>

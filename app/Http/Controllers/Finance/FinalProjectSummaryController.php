@@ -15,6 +15,7 @@ class FinalProjectSummaryController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
+        $this->middleware('can:finance.costing.view');
     }
 
     public function index(Request $request)

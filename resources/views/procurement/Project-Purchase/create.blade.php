@@ -209,6 +209,10 @@
         opacity: 0.7;
         cursor: not-allowed;
     }
+    .select-readonly {
+        pointer-events: none;
+        background-color: #e9ecef;
+    }
 </style>
 @endsection
 
@@ -382,13 +386,17 @@
                                 <div>
                                     <i class="fas fa-box me-2"></i>Items Information
                                 </div>
+                            </div>
+
+                            <div id="itemsContainer">
+                                <!-- Items will be added via JavaScript -->
+                            </div>
+
+                            <!-- Add Item button (bottom) -->
+                            <div class="d-flex justify-content-end mt-2 mb-1">
                                 <button type="button" class="btn btn-primary btn-sm" id="addItemBtn">
                                     <i class="fas fa-plus me-1"></i>Add Item
                                 </button>
-                            </div>
-                            
-                            <div id="itemsContainer">
-                                <!-- Items will be added via JavaScript -->
                             </div>
 
                             <!-- Grand Total -->
@@ -696,6 +704,7 @@ $(document).ready(function() {
         }
     });
 
+
     // Function to add item
     function addItemRow() {
         const template = document.getElementById('itemRowTemplate').innerHTML;
@@ -741,17 +750,23 @@ $(document).ready(function() {
             const isRestock = $(this).val() === 'restock';
             row.find('.restock-section').toggle(isRestock);
             row.find('.newitem-section').toggle(!isRestock);
-            
+            row.find('.category-select, .unit-select').toggleClass('select-readonly', isRestock);
+
             // Reset values
             if (isRestock) {
                 row.find('.new-item-name').val('');
             } else {
                 row.find('.material-select').val('');
                 row.find('.unit-price').val('');
+                row.find('.category-select').val('');
+                row.find('.unit-select').val('');
             }
-            
+
             setFieldNames();
         });
+
+        // Default type is restock — apply readonly on init
+        row.find('.category-select, .unit-select').addClass('select-readonly');
         
         // Material select — Select2 AJAX (tidak load 4414 option sekaligus)
         const materialSel = row.find('.material-select');
@@ -791,7 +806,7 @@ $(document).ready(function() {
             if (confirm('Delete this item?')) {
                 row.remove();
                 calculateGrandTotal();
-            }
+                    }
         });
         
         // Set initial field names

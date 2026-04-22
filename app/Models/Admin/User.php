@@ -10,13 +10,24 @@ use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 use Illuminate\Support\Facades\Cache;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable implements AuditableContract
 {
     use HasApiTokens, SoftDeletes, \OwenIt\Auditing\Auditable;
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasRoles;
 
-    protected $fillable = ['username', 'password', 'role', 'department_id'];
+    protected $fillable = ['username', 'password', 'role', 'department_id', 'uid'];
+
+    protected static function boot()
+    {
+        parent::boot();
+        static::creating(function ($user) {
+            if (empty($user->uid)) {
+                $user->uid = (string) \Illuminate\Support\Str::uuid();
+            }
+        });
+    }
 
     protected $hidden = ['password', 'remember_token'];
 

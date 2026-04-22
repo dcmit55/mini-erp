@@ -42,6 +42,12 @@ class SessionShiftSeeder extends Seeder
             ->where('name', 'like', '%emilia%')
             ->value('id');
 
+        // Hapus null-dept S10/S13 yang ter-seed salah (seharusnya dept-spesifik, bukan default)
+        DB::table('session_shifts')
+            ->whereNull('department_id')
+            ->whereIn('type_of_shift', ['S10', 'S10S', 'S13', 'S13S'])
+            ->delete();
+
         $shifts = [
 
             // ================================================================
@@ -199,7 +205,7 @@ class SessionShiftSeeder extends Seeder
             [
                 'department_id'     => $mascot,
                 'employee_id'       => null,
-                'type_of_shift'     => 'M10',
+                'type_of_shift'     => 'S10',
                 'start_time'        => '10:00:00',
                 'end_time'          => '19:00:00',
                 'break_start'       => '13:00:00',
@@ -212,11 +218,46 @@ class SessionShiftSeeder extends Seeder
                 'applicable_days'   => [1, 2, 3, 4, 5],
                 'position_keywords' => null,
             ],
-            // Shift siang - Saturday (semua karyawan masuk shift yang sama)
+            // Shift siang - Saturday
             [
                 'department_id'     => $mascot,
                 'employee_id'       => null,
-                'type_of_shift'     => 'M10S',
+                'type_of_shift'     => 'S10S',
+                'start_time'        => '08:00:00',
+                'end_time'          => '13:00:00',
+                'break_start'       => null,
+                'break_end'         => null,
+                'break2_start'      => null,
+                'break2_end'        => null,
+                'for_wna'           => false,
+                'detect_from'       => '07:00:00',
+                'detect_until'      => '09:30:00',
+                'applicable_days'   => [6],
+                'position_keywords' => null,
+            ],
+
+            // Shift sore: 13:00–22:00 - Weekday
+            [
+                'department_id'     => $mascot,
+                'employee_id'       => null,
+                'type_of_shift'     => 'S13',
+                'start_time'        => '13:00:00',
+                'end_time'          => '22:00:00',
+                'break_start'       => '17:00:00',
+                'break_end'         => '18:00:00',
+                'break2_start'      => null,
+                'break2_end'        => null,
+                'for_wna'           => false,
+                'detect_from'       => '11:30:00',
+                'detect_until'      => '14:00:00',
+                'applicable_days'   => [1, 2, 3, 4, 5],
+                'position_keywords' => null,
+            ],
+            // Shift sore - Saturday
+            [
+                'department_id'     => $mascot,
+                'employee_id'       => null,
+                'type_of_shift'     => 'S13S',
                 'start_time'        => '08:00:00',
                 'end_time'          => '13:00:00',
                 'break_start'       => null,
@@ -356,7 +397,7 @@ class SessionShiftSeeder extends Seeder
                 'applicable_days'   => [1, 2, 3, 4, 5],
                 'position_keywords' => null,
             ],
-            // Siang - Saturday (semua pulang jam satu)
+            // Siang - Saturday
             [
                 'department_id'     => $store,
                 'employee_id'       => null,
@@ -391,7 +432,7 @@ class SessionShiftSeeder extends Seeder
                 'applicable_days'   => [1, 2, 3, 4, 5],
                 'position_keywords' => null,
             ],
-            // Sore - Saturday (semua pulang jam satu)
+            // Sore - Saturday
             [
                 'department_id'     => $store,
                 'employee_id'       => null,

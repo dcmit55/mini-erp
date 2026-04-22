@@ -9,11 +9,13 @@
                         <i class="bi bi-megaphone gradient-icon me-2" style="font-size: 1.5rem;"></i>
                         <h2 class="mb-0" style="font-size:1.3rem;">Feature Announcements</h2>
                     </div>
+                    @can('feature.announcement.manage')
                     <div>
                         <a href="{{ route('feature-announcements.create') }}" class="btn btn-primary btn-sm">
                             <i class="bi bi-plus-circle me-1"></i> Create Announcement
                         </a>
                     </div>
+                    @endcan
                 </div>
             </div>
 
@@ -90,6 +92,7 @@
                                             </small>
                                         </td>
                                         <td>
+                                            @can('feature.announcement.manage')
                                             <div class="btn-group btn-group-sm" role="group">
                                                 <button type="button" class="btn btn-outline-success"
                                                     onclick="reBroadcast({{ $announcement->id }})" title="Re-broadcast">
@@ -110,6 +113,7 @@
                                                     </button>
                                                 </form>
                                             </div>
+                                            @endcan
                                         </td>
                                     </tr>
                                 @endforeach
@@ -124,9 +128,11 @@
                     <div class="text-center text-muted py-5">
                         <i class="bi bi-inbox" style="font-size: 3rem;"></i>
                         <p class="mt-3">No feature announcements yet.</p>
+                        @can('feature.announcement.manage')
                         <a href="{{ route('feature-announcements.create') }}" class="btn btn-primary">
                             <i class="bi bi-plus-circle me-1"></i> Create First Announcement
                         </a>
+                        @endcan
                     </div>
                 @endif
             </div>

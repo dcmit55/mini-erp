@@ -364,7 +364,7 @@
                                  data-total-dur="{{ $totalDuration }}"
                              @endif>
                             <div class="{{ $isActive ? 'bar-fill-active' : 'bar-fill-done' }}" style="width:{{ $pct }}%;"></div>
-                            <span style="position:absolute; left:6px; top:50%; transform:translateY(-50%); font-size:.58rem; font-weight:700; white-space:nowrap; color:{{ $pct > 18 ? '#fff' : '#6b7280' }}; z-index:1;">
+                            <span style="position:absolute; left:6px; top:50%; transform:translateY(-50%); font-size:.58rem; font-weight:700; white-space:nowrap; color:#fff; text-shadow:0 0 3px rgba(0,0,0,0.5); z-index:1;">
                                 {{ $clockInStr }}
                             </span>
                             <span class="{{ $isActive ? 'bar-remaining' : '' }}"
@@ -551,7 +551,7 @@
                     dot.style.left    = 'calc(' + pct + '% - 5px)';
                     dot.style.display = (pct > 1 && pct < 99) ? '' : 'none';
                 }
-                if (leftSpan) leftSpan.style.color = pct > 18 ? '#fff' : '#6b7280';
+                if (leftSpan) { leftSpan.style.color = '#fff'; leftSpan.style.textShadow = '0 0 3px rgba(0,0,0,0.5)'; }
                 if (remLabel) {
                     remLabel.style.color = pct > 60 ? '#fff' : '#9ca3af';
                     const remMin = Math.max(0, Math.ceil(shiftEndMin - currentMin));

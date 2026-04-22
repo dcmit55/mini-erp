@@ -8,7 +8,6 @@ use App\Models\Hr\WarningLetter;
 use App\Models\Hr\WarningTemplate;
 use App\Models\Hr\ViolationCategory;
 use App\Models\Hr\WarningLetterAcknowledgment;
-use App\Models\Hr\EmployeePayrollFlag;
 use App\Services\WarningLetterService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -45,7 +44,7 @@ class WarningLetterController extends Controller
 
         $stats = [
             'total_active'  => WarningLetter::active()->count(),
-            'sp4_active'    => WarningLetter::active()->where('sp_level', 4)->count(),
+            'sp3_active'    => WarningLetter::active()->where('sp_level', 3)->count(),
             'expiring_soon' => WarningLetter::active()
                                 ->where('valid_until', '<=', now()->addDays(14)->toDateString())
                                 ->count(),
@@ -170,7 +169,6 @@ class WarningLetterController extends Controller
             'sp1'           => WarningLetter::active()->where('sp_level', 1)->count(),
             'sp2'           => WarningLetter::active()->where('sp_level', 2)->count(),
             'sp3'           => WarningLetter::active()->where('sp_level', 3)->count(),
-            'sp4'           => WarningLetter::active()->where('sp_level', 4)->count(),
             'expiring_soon' => WarningLetter::active()
                                 ->where('valid_until', '<=', now()->addDays(14)->toDateString())
                                 ->count(),
@@ -203,11 +201,8 @@ class WarningLetterController extends Controller
 
         $warningLetter->update(['status' => 'approved']);
 
-        if ($warningLetter->sp_level === 4) {
-            $this->triggerSp4PayrollFlag($warningLetter);
-        }
-
-        return back()->with('success', 'Surat Peringatan telah difinalisasi dan berlaku.');
+        return back()->with('success', 'Surat Peringatan telah difinalisasi dan berlaku.' .
+            ($warningLetter->sp_level === 3 ? ' SP3 adalah peringatan terakhir — gunakan tombol Terminate untuk memproses PHK.' : ''));
     }
 
     // ─── Acknowledgment ──────────────────────────────────────────────────────
@@ -255,7 +250,7 @@ class WarningLetterController extends Controller
             'valid_until'        => $warningLetter->valid_until?->format('d F Y') ?? '-',
         ];
 
-        $pdf = Pdf::loadView('hr.warning-letters.pdf', $data)
+        $pdf = Pdf::loadView('hr.warning-letters.warning_letter', $data)
             ->setPaper('a4', 'portrait');
 
         $filename = "SP{$warningLetter->sp_level}_{$warningLetter->employee->employee_no}_{$warningLetter->issued_date?->format('Ymd')}.pdf";
@@ -263,17 +258,25 @@ class WarningLetterController extends Controller
         return $pdf->download($filename);
     }
 
-    // ─── Private: SP4 Payroll Flag ────────────────────────────────────────────
+    // ─── SP3 Termination ─────────────────────────────────────────────────────
 
-    private function triggerSp4PayrollFlag(WarningLetter $letter): void
+    public function terminateEmployee(WarningLetter $warningLetter)
     {
-        EmployeePayrollFlag::create([
-            'employee_id'       => $letter->employee_id,
-            'type'              => 'SP4_ACTIVE',
-            'warning_letter_id' => $letter->id,
-            'notes'             => "SP4 telah difinalisasi. No. surat: {$letter->letter_number}",
-            'is_resolved'       => false,
-            'created_by'        => auth()->id(),
-        ]);
+        if ($warningLetter->sp_level !== 3) {
+            return back()->with('error', 'Terminasi hanya dapat dilakukan melalui SP3.');
+        }
+        if (!in_array($warningLetter->status, ['approved', 'acknowledged'])) {
+            return back()->with('error', 'Surat peringatan harus sudah difinalisasi sebelum terminasi.');
+        }
+
+        $employee = $warningLetter->employee;
+        if ($employee->status === 'terminated') {
+            return back()->with('error', 'Karyawan sudah berstatus terminated.');
+        }
+
+        $employee->update(['status' => 'terminated']);
+
+        return back()->with('success', "Karyawan {$employee->name} telah di-terminate berdasarkan {$warningLetter->spLabel}.");
     }
+
 }

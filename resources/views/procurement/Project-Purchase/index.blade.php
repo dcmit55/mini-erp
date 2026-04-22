@@ -4,6 +4,37 @@
 @section('title', 'Project Purchase Orders')
 
 @section('styles')
+<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+<style>
+    .select2-container .select2-selection--single {
+        height: 34px !important;
+        border-color: #e2e8f0 !important;
+        border-radius: 6px !important;
+        font-size: 0.8rem;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 32px !important;
+        padding-left: 8px !important;
+        font-size: 0.8rem;
+        color: #334155;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 32px !important;
+    }
+    .select2-container--default .select2-results__option {
+        font-size: 0.8rem;
+    }
+    .select2-dropdown {
+        border-color: #e2e8f0;
+        border-radius: 6px;
+    }
+    .select2-container--default .select2-selection--single:focus,
+    .select2-container--default.select2-container--focus .select2-selection--single {
+        border-color: #4f46e5 !important;
+        box-shadow: 0 0 0 0.15rem rgba(79,70,229,0.1) !important;
+        outline: none;
+    }
+</style>
 <style>
     /* Custom Styling */
     .table th {
@@ -330,10 +361,12 @@
                     <h4 class="mb-0">Indonesia Orders</h4>
                     <p class="text-muted mb-0">Manage your project purchase orders</p>
                 </div>
-                <a href="{{ route('project-purchases.create') }}" 
+                @can('procurement.po.create')
+                <a href="{{ route('project-purchases.create') }}"
                    class="btn btn-primary btn-sm rounded-3 px-4">
                     <i class="fas fa-plus me-2"></i>New PO
                 </a>
+                @endcan
             </div>
 
             <!-- Stats Cards -->
@@ -420,9 +453,9 @@
                 <div class="card-body p-3">
                     <form method="GET" action="{{ route('project-purchases.index') }}">
                         <div class="row g-2">
-                            <div class="col-md-3">
-                                <input type="text" name="search" class="form-control form-control-sm" 
-                                       placeholder="Search PO Number..." 
+                            <div class="col-md-2">
+                                <input type="text" name="search" class="form-control form-control-sm"
+                                       placeholder="Search..."
                                        value="{{ request('search') }}">
                             </div>
                             <div class="col-md-2">
@@ -434,7 +467,7 @@
                                 </select>
                             </div>
                             <div class="col-md-2">
-                                <select name="department_id" class="form-select form-select-sm">
+                                <select name="department_id" id="filterDepartment" class="filter-select2">
                                     <option value="">All Departments</option>
                                     @foreach($departments as $dept)
                                         <option value="{{ $dept->id }}" {{ request('department_id') == $dept->id ? 'selected' : '' }}>
@@ -444,33 +477,7 @@
                                 </select>
                             </div>
                             <div class="col-md-2">
-                                <select name="project_type" class="form-select form-select-sm">
-                                    <option value="">Project Type</option>
-                                    <option value="client" {{ request('project_type') == 'client' ? 'selected' : '' }}>Client Project</option>
-                                    <option value="internal" {{ request('project_type') == 'internal' ? 'selected' : '' }}>Internal Project</option>
-                                </select>
-                            </div>
-                            <div class="col-md-2">
-                                <input type="date" name="date" class="form-control form-control-sm" 
-                                       value="{{ request('date') }}" placeholder="Date">
-                            </div>
-                            <div class="col-md-1">
-                                <button type="submit" class="btn btn-primary btn-sm w-100">
-                                    <i class="fas fa-search"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="row g-2 mt-2">
-                            <div class="col-md-2">
-                                <select name="item_status" class="form-select form-select-sm">
-                                    <option value="">Receipt Status</option>
-                                    <option value="pending" {{ request('item_status') == 'pending' ? 'selected' : '' }}>Pending</option>
-                                    <option value="matched" {{ request('item_status') == 'matched' ? 'selected' : '' }}>Matched</option>
-                                    <option value="not_matched" {{ request('item_status') == 'not_matched' ? 'selected' : '' }}>Not Matched</option>
-                                </select>
-                            </div>
-                            <div class="col-md-2">
-                                <select name="supplier_id" class="form-select form-select-sm">
+                                <select name="supplier_id" id="filterSupplier" class="filter-select2">
                                     <option value="">All Suppliers</option>
                                     @foreach($suppliers as $supplier)
                                         <option value="{{ $supplier->id }}" {{ request('supplier_id') == $supplier->id ? 'selected' : '' }}>
@@ -479,10 +486,32 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-2">
+                                <select name="project_type" class="form-select form-select-sm">
+                                    <option value="">Project Type</option>
+                                    <option value="client" {{ request('project_type') == 'client' ? 'selected' : '' }}>Client</option>
+                                    <option value="internal" {{ request('project_type') == 'internal' ? 'selected' : '' }}>Internal</option>
+                                </select>
+                            </div>
+                            <div class="col-md-1">
+                                <select name="item_status" class="form-select form-select-sm">
+                                    <option value="">Receipt</option>
+                                    <option value="pending" {{ request('item_status') == 'pending' ? 'selected' : '' }}>Pending</option>
+                                    <option value="matched" {{ request('item_status') == 'matched' ? 'selected' : '' }}>Matched</option>
+                                    <option value="not_matched" {{ request('item_status') == 'not_matched' ? 'selected' : '' }}>Not Matched</option>
+                                </select>
+                            </div>
+                            <div class="col-md-1">
+                                <input type="date" name="date" class="form-control form-control-sm"
+                                       value="{{ request('date') }}">
+                            </div>
+                            <div class="col-md-1 d-flex gap-1">
+                                <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
+                                    <i class="fas fa-search"></i>
+                                </button>
                                 @if(request()->anyFilled(['search', 'status', 'department_id', 'project_type', 'date', 'item_status', 'supplier_id']))
-                                <a href="{{ route('project-purchases.index') }}" class="btn btn-sm btn-outline-secondary w-100">
-                                    <i class="fas fa-times"></i> Clear Filters
+                                <a href="{{ route('project-purchases.index') }}" class="btn btn-sm btn-outline-secondary" title="Clear Filters">
+                                    <i class="fas fa-times"></i>
                                 </a>
                                 @endif
                             </div>
@@ -608,6 +637,7 @@
                                                 </a>
                                                 
                                                 <!-- EDIT BUTTON - Hanya jika pending -->
+                                                @can('procurement.po.edit')
                                                 @if($purchase->status == 'pending')
                                                 <a href="{{ route('project-purchases.edit', $purchase->uid) }}"
                                                    class="btn btn-sm btn-outline-primary border-0 px-2 action-btn"
@@ -615,8 +645,10 @@
                                                     <i class="fas fa-edit"></i>
                                                 </a>
                                                 @endif
+                                                @endcan
 
                                                 <!-- DELETE BUTTON - Hanya jika status pending -->
+                                                @can('procurement.po.delete')
                                                 @if($purchase->status == 'pending')
                                                 <form action="{{ route('project-purchases.destroy', $purchase->uid) }}"
                                                       method="POST" class="d-inline"
@@ -640,47 +672,54 @@
                                                     <i class="fas fa-trash"></i>
                                                 </button>
                                                 @endif
+                                                @endcan
 
                                                 <!-- BADGE: Menunggu Persetujuan Hapus -->
                                                 @if($purchase->status == 'deletion_requested')
                                                 <span class="badge bg-warning text-dark" style="font-size:0.7rem;">Menunggu Hapus</span>
                                                 @endif
                                                 
-                                                <!-- APPROVE BUTTON - UNTUK FINANCE (hanya jika pending) -->
-                                                @if($purchase->status == 'pending' && auth()->user() && auth()->user()->role == 'finance')
-                                                <button type="button" 
+                                                <!-- APPROVE BUTTON - (hanya jika pending) -->
+                                                @can('procurement.po.approve')
+                                                @if($purchase->status == 'pending')
+                                                <button type="button"
                                                         class="btn btn-sm btn-outline-success border-0 px-2 action-btn"
-                                                        data-bs-toggle="modal" 
+                                                        data-bs-toggle="modal"
                                                         data-bs-target="#approveModal{{ $purchase->id }}"
                                                         title="Approve PO">
                                                     <i class="fas fa-check"></i>
                                                 </button>
                                                 @endif
-                                                
-                                                <!-- REJECT BUTTON - UNTUK FINANCE (hanya jika pending) -->
-                                                @if($purchase->status == 'pending' && auth()->user() && auth()->user()->role == 'finance')
-                                                <button type="button" 
+                                                @endcan
+
+                                                <!-- REJECT BUTTON - (hanya jika pending) -->
+                                                @can('procurement.po.approve')
+                                                @if($purchase->status == 'pending')
+                                                <button type="button"
                                                         class="btn btn-sm btn-outline-danger border-0 px-2 action-btn"
-                                                        data-bs-toggle="modal" 
+                                                        data-bs-toggle="modal"
                                                         data-bs-target="#rejectModal{{ $purchase->id }}"
                                                         title="Reject PO">
                                                     <i class="fas fa-times"></i>
                                                 </button>
                                                 @endif
-                                                
+                                                @endcan
+
                                                 <!-- RECEIVED BUTTON - Tampil jika status approved dan item belum diterima -->
-                                                @if($purchase->status == 'approved' && in_array($purchase->item_status, ['pending_check', 'pending']) && auth()->user() && in_array(auth()->user()->role, ['super_admin', 'admin', 'inventory', 'admin_logistic', 'procurement']))
-                                                <form action="{{ route('project-purchases.mark-as-received', $purchase->uid) }}" 
+                                                @can('procurement.po.edit')
+                                                @if($purchase->status == 'approved' && in_array($purchase->item_status, ['pending_check', 'pending']))
+                                                <form action="{{ route('project-purchases.mark-as-received', $purchase->uid) }}"
                                                       method="POST" class="d-inline"
                                                       onsubmit="return confirm('Mark this item as received and add to inventory?')">
                                                     @csrf
-                                                    <button type="submit" 
+                                                    <button type="submit"
                                                             class="btn btn-sm btn-outline-success border-0 px-2 action-btn"
                                                             data-bs-toggle="tooltip" title="Mark as Received">
                                                         <i class="fas fa-box-open"></i>
                                                     </button>
                                                 </form>
                                                 @endif
+                                                @endcan
                                                 
                                                 <!-- PRINT BUTTON -->
                                                 <a href="{{ route('project-purchases.print', $purchase->uid) }}" 
@@ -693,7 +732,8 @@
                                     </tr>
                                     
                                     <!-- Approve Modal -->
-                                    @if($purchase->status == 'pending' && auth()->user() && auth()->user()->role == 'finance')
+                                    @can('procurement.po.approve')
+                                    @if($purchase->status == 'pending')
                                     <div class="modal fade" id="approveModal{{ $purchase->id }}" tabindex="-1" aria-hidden="true">
                                         <div class="modal-dialog modal-md">
                                             <div class="modal-content">
@@ -747,9 +787,11 @@
                                         </div>
                                     </div>
                                     @endif
-                                    
+                                    @endcan
+
                                     <!-- Reject Modal -->
-                                    @if($purchase->status == 'pending' && auth()->user() && auth()->user()->role == 'finance')
+                                    @can('procurement.po.approve')
+                                    @if($purchase->status == 'pending')
                                     <div class="modal fade" id="rejectModal{{ $purchase->id }}" tabindex="-1" aria-hidden="true">
                                         <div class="modal-dialog modal-md">
                                             <div class="modal-content">
@@ -795,7 +837,8 @@
                                         </div>
                                     </div>
                                     @endif
-                                    
+                                    @endcan
+
                                 @empty
                                     <tr>
                                         <td colspan="10" class="text-center py-5">
@@ -810,10 +853,12 @@
                                                     </a>
                                                 @else
                                                     <p class="mb-0">Start by creating your first purchase order</p>
-                                                    <a href="{{ route('project-purchases.create') }}" 
+                                                    @can('procurement.po.create')
+                                                    <a href="{{ route('project-purchases.create') }}"
                                                        class="btn btn-outline-primary btn-sm rounded-pill px-4 mt-3">
                                                         <i class="fas fa-plus me-1"></i>Create PO
                                                     </a>
+                                                    @endcan
                                                 @endif
                                             </div>
                                         </td>
@@ -908,7 +953,17 @@
     </div>
 </div>
 
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
 <script>
+$(document).ready(function() {
+    // Select2 for department and supplier filters
+    $('.filter-select2').select2({
+        width: '100%',
+        allowClear: true,
+    });
+});
+
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize tooltips
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));

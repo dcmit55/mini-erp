@@ -15,12 +15,7 @@ class SymcoreExportController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        $this->middleware(function ($request, $next) {
-            if (!in_array(Auth::user()->role, ['super_admin', 'admin_hr', 'admin'])) {
-                abort(403);
-            }
-            return $next($request);
-        });
+        $this->middleware('can:hr.attendance.export');
     }
 
     public function index()

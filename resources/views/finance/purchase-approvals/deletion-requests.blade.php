@@ -91,6 +91,7 @@
                                                title="Lihat Detail">
                                                 <i class="fas fa-eye"></i>
                                             </a>
+                                            @can('procurement.po.delete')
                                             <form action="{{ route('purchase-approvals.approve-deletion', $req['first_item_id']) }}"
                                                   method="POST" class="d-inline"
                                                   onsubmit="return confirm('Setujui penghapusan {{ $req['po_number'] }}? Semua item akan dihapus permanen.')">
@@ -106,6 +107,7 @@
                                                     <i class="fas fa-undo"></i>
                                                 </button>
                                             </form>
+                                            @endcan
                                         </div>
                                     </td>
                                 </tr>

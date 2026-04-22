@@ -110,9 +110,9 @@
                                 <th class="border-0 text-muted fw-normal px-3 py-2 text-center">HR</th>
                                 <th class="border-0 text-muted fw-normal px-3 py-2 text-center">Director</th>
                                 <th class="border-0 text-muted fw-normal px-3 py-2">Submitted</th>
-                                @if($isAuthenticated && in_array($userRole, ['super_admin', 'admin_hr']))
+                                @can('hr.leave.view')
                                 <th class="border-0 text-muted fw-normal px-3 py-2 text-end" style="width:100px;">Actions</th>
-                                @endif
+                                @endcan
                             </tr>
                         </thead>
                         <tbody>
@@ -155,7 +155,7 @@
                                 <td class="px-3 py-2 text-muted small" style="white-space:nowrap;">
                                     {{ $leave->created_at->format('d/m/Y H:i') }}
                                 </td>
-                                @if($isAuthenticated && in_array($userRole, ['super_admin', 'admin_hr']))
+                                @can('hr.leave.view')
                                 <td class="px-3 py-2 text-end">
                                     <div class="d-flex gap-1 justify-content-end">
                                         <a href="{{ route('leave_requests.show', $leave) }}" class="btn btn-outline-info btn-sm rounded-2 px-2 py-1" title="Detail">
@@ -173,7 +173,7 @@
                                         </form>
                                     </div>
                                 </td>
-                                @endif
+                                @endcan
                             </tr>
                             @endforeach
                             @endif
@@ -219,7 +219,7 @@
                         <span class="badge bg-{{ $c1 }} {{ $c1 === 'warning' ? 'text-dark' : '' }}">HR: {{ ucfirst($leave->approval_1) }}</span>
                         <span class="badge bg-{{ $c2 }} {{ $c2 === 'warning' ? 'text-dark' : '' }}">Dir: {{ ucfirst($leave->approval_2) }}</span>
                     </div>
-                    @if($isAuthenticated && in_array($userRole, ['super_admin', 'admin_hr']))
+                    @can('hr.leave.view')
                     <div class="d-flex gap-2">
                         <a href="{{ route('leave_requests.show', $leave) }}" class="btn btn-outline-info btn-sm rounded-2 px-2">
                             <i class="fas fa-eye"></i>
@@ -235,7 +235,7 @@
                             </button>
                         </form>
                     </div>
-                    @endif
+                    @endcan
                 </div>
             </div>
             @endforeach

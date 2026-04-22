@@ -100,7 +100,7 @@
                             <a href="{{ route('inventory.index') }}" class="btn btn-outline-secondary btn-sm">
                                 <i class="fas fa-warehouse me-1"></i> Inventory Stock
                             </a>
-                            @if (in_array(auth()->user()->role, ['super_admin', 'admin', 'admin_logistic']))
+                            @can('lark.staging.approve')
                                 {{-- Approve selected rows (shown only when rows are checked) --}}
                                 <button type="button" class="btn btn-success btn-sm d-none" id="btnBulkApproveSelected">
                                     <i class="bi bi-check2-all me-1"></i>
@@ -126,7 +126,7 @@
                                         <span id="syncStagingText">Sync from Lark</span>
                                     </button>
                                 </form>
-                            @endif
+                            @endcan
                         </div>
                     </div>
                 </div>

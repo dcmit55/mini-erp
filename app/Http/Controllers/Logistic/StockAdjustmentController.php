@@ -14,21 +14,10 @@ use Yajra\DataTables\Facades\DataTables;
 
 class StockAdjustmentController extends Controller
 {
-    // Roles that can view the module
-    private const VIEW_ROLES = ['super_admin', 'admin_logistic', 'admin', 'admin_procurement'];
-    // Roles that can create/store adjustments
-    private const WRITE_ROLES = ['super_admin', 'admin_logistic', 'admin'];
-
     public function __construct()
     {
         $this->middleware('auth');
-        $this->middleware(function ($request, $next) {
-            $role = Auth::user()->role;
-            if (!in_array($role, self::VIEW_ROLES)) {
-                abort(403, 'Unauthorized access to Stock Adjustment module.');
-            }
-            return $next($request);
-        });
+        $this->middleware('can:logistic.stock-adjustment.view');
     }
 
     // ─── Index ────────────────────────────────────────────────────────────────
@@ -78,7 +67,7 @@ class StockAdjustmentController extends Controller
                 ->addColumn('actions', function ($row) {
                     $showUrl = route('stock-adjustments.show', $row->id);
                     $againUrl = route('stock-adjustments.create') . '?inventory_id=' . $row->inventory_id . '&batch_id=' . ($row->batch_id ?? '') . '&type=' . ($row->type === 'initial_stock' ? 'adjustment' : $row->type);
-                    $canWrite = in_array(Auth::user()->role, self::WRITE_ROLES);
+                    $canWrite = Auth::user()->can('logistic.stock-adjustment.create');
                     $btn = '<a href="' . $showUrl . '" class="btn btn-sm btn-outline-info" title="Detail"><i class="bi bi-eye"></i></a>';
                     if ($canWrite) {
                         $btn .= ' <a href="' . $againUrl . '" class="btn btn-sm btn-outline-warning" title="Adjust Again"><i class="bi bi-arrow-repeat"></i></a>';
@@ -312,8 +301,6 @@ class StockAdjustmentController extends Controller
 
     private function authorizeWrite(): void
     {
-        if (!in_array(Auth::user()->role, self::WRITE_ROLES)) {
-            abort(403, 'You do not have permission to create stock adjustments.');
-        }
+        abort_unless(Auth::user()->can('logistic.stock-adjustment.create'), 403, 'You do not have permission to create stock adjustments.');
     }
 }

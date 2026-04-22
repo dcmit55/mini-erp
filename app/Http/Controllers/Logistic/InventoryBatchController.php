@@ -12,6 +12,12 @@ use Yajra\DataTables\Facades\DataTables;
 
 class InventoryBatchController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+        $this->middleware('can:logistic.inventory-batch.view');
+    }
+
     /**
      * Consistent category badge color — same algorithm as InventoryController.
      */

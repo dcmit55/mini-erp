@@ -17,6 +17,13 @@ use Illuminate\Support\Facades\DB;
 
 class MaterialUsageController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+        $this->middleware('can:logistic.material-usage.view');
+        $this->middleware('can:logistic.material-usage.create')->only(['bulkCreate', 'bulkStore']);
+    }
+
     /**
      * Display a listing of material usage records
      */
@@ -303,10 +310,6 @@ class MaterialUsageController extends Controller
      */
     public function bulkCreate()
     {
-        if (!Auth::user()->isSuperAdmin() && !Auth::user()->isLogisticAdmin()) {
-            return redirect()->back()->with('error', 'Permission denied');
-        }
-
         $projects = Project::orderBy('name')->get();
         $jobOrders = \App\Models\Production\JobOrder::orderBy('name')->get();
         $inventories = Inventory::with('category')->orderBy('name')->get();
@@ -319,10 +322,6 @@ class MaterialUsageController extends Controller
      */
     public function bulkStore(Request $request)
     {
-        if (!Auth::user()->isSuperAdmin() && !Auth::user()->isLogisticAdmin()) {
-            return redirect()->back()->with('error', 'Permission denied');
-        }
-
         $validated = $request->validate([
             'items' => 'required|array|min:1',
             'items.*.inventory_id' => 'required|exists:inventories,id',

@@ -230,16 +230,17 @@
                                         </td>
                                         <td class="px-3 py-2 text-end">
                                             <div class="d-flex gap-1 justify-content-end">
-                                                <a href="{{ route('dcm-costings.show', $costing->uid) }}" 
+                                                <a href="{{ route('dcm-costings.show', $costing->uid) }}"
                                                    class="btn btn-outline-info btn-sm rounded-2 px-2 py-1">
                                                     <i class="fas fa-eye"></i>
                                                 </a>
-                                                <a href="{{ route('dcm-costings.edit', $costing->uid) }}" 
+                                                @can('finance.costing.view')
+                                                <a href="{{ route('dcm-costings.edit', $costing->uid) }}"
                                                    class="btn btn-outline-primary btn-sm rounded-2 px-2 py-1">
                                                     <i class="fas fa-edit"></i>
                                                 </a>
-                                                <form action="{{ route('dcm-costings.destroy', $costing->uid) }}" 
-                                                      method="POST" 
+                                                <form action="{{ route('dcm-costings.destroy', $costing->uid) }}"
+                                                      method="POST"
                                                       class="d-inline"
                                                       onsubmit="return confirm('Delete this DCM costing?')">
                                                     @csrf
@@ -248,6 +249,7 @@
                                                         <i class="fas fa-trash"></i>
                                                     </button>
                                                 </form>
+                                                @endcan
                                             </div>
                                         </td>
                                     </tr>

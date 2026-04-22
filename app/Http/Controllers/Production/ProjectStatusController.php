@@ -4,25 +4,17 @@ namespace App\Http\Controllers\Production;
 use App\Http\Controllers\Controller;
 use App\Models\Production\ProjectStatus;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 
 class ProjectStatusController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+        $this->middleware('can:production.project.edit');
+    }
+
     public function store(Request $request)
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            if ($request->ajax()) {
-                return response()->json(
-                    [
-                        'success' => false,
-                        'message' => 'You do not have permission to create project status.',
-                    ],
-                    403,
-                );
-            }
-            return back()->with('error', 'You do not have permission to create project status.');
-        }
-
         $request->validate(['name' => 'required|string|max:255|unique:project_statuses,name']);
         $status = ProjectStatus::create(['name' => $request->name]);
         if ($request->ajax()) {

@@ -133,57 +133,33 @@
                                 <span class="text-muted" style="font-size:.7rem;">(perkiraan, final ditentukan Finance)</span>
                             </div>
 
-                            {{-- Tabel breakdown --}}
-                            <table class="table table-sm table-borderless mb-2" style="font-size:.8rem;">
-                                <thead>
-                                    <tr class="text-muted" style="font-size:.7rem;">
-                                        <th>Komponen</th>
-                                        <th class="text-end">Bulan ke-1</th>
-                                        <th class="text-end" id="est-col-bulan2-header">Bulan ke-2 dst</th>
-                                        <th>Cara Bayar</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td>Cicilan Pokok</td>
-                                        <td class="text-end fw-medium" id="est-pokok">—</td>
-                                        <td class="text-end fw-medium" id="est-pokok2">—</td>
-                                        <td>
-                                            <span class="badge rounded-2" style="background:#0d6efd22;color:#0d6efd;font-size:.65rem;">
-                                                <i class="fas fa-cut me-1"></i>Potong Gaji
-                                            </span>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>Bunga ({{ $defaultRate }}%/bln)</td>
-                                        <td class="text-end fw-medium text-warning" id="est-bunga">—</td>
-                                        <td class="text-end fw-medium text-warning" id="est-bunga2">—</td>
-                                        <td>
-                                            <span class="badge rounded-2" style="background:#dc354522;color:#dc3545;font-size:.65rem;">
-                                                <i class="fas fa-money-bill me-1"></i>Cash ke Finance
-                                            </span>
-                                        </td>
-                                    </tr>
-                                    <tr id="est-row-admin">
-                                        <td>Biaya Admin</td>
-                                        <td class="text-end fw-medium text-info" id="est-admin">Rp {{ number_format($defaultBiayaAdmin, 0, ',', '.') }}</td>
-                                        <td class="text-end text-muted" id="est-admin2">—</td>
-                                        <td>
-                                            <span class="badge rounded-2" style="background:#dc354522;color:#dc3545;font-size:.65rem;">
-                                                <i class="fas fa-money-bill me-1"></i>Cash ke Finance
-                                            </span>
-                                        </td>
-                                    </tr>
-                                    <tr class="border-top fw-semibold">
-                                        <td>Total Dibayar</td>
-                                        <td class="text-end text-success" id="est-total1">—</td>
-                                        <td class="text-end text-success" id="est-total2">—</td>
-                                        <td></td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                            {{-- Tabel dinamis per bulan --}}
+                            <div class="table-responsive">
+                                <table class="table table-sm table-borderless mb-2" style="font-size:.8rem;">
+                                    <thead>
+                                        <tr class="text-muted" style="font-size:.7rem;">
+                                            <th>Bulan</th>
+                                            <th class="text-end">Pokok</th>
+                                            <th class="text-end">Bunga</th>
+                                            <th class="text-end">Admin</th>
+                                            <th class="text-end fw-semibold">Total Cash</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="est-cicilan-tbody"></tbody>
+                                    <tfoot id="est-cicilan-tfoot"></tfoot>
+                                </table>
+                            </div>
 
-                            <div class="rounded-2 px-3 py-2 mt-1" style="background:rgba(220,53,69,0.07);border:1px solid rgba(220,53,69,0.2);font-size:.75rem;">
+                            <div class="d-flex flex-wrap gap-2 mb-2" style="font-size:.72rem;">
+                                <span class="badge rounded-2" style="background:#0d6efd22;color:#0d6efd;">
+                                    <i class="fas fa-cut me-1"></i>Pokok → Potong Gaji
+                                </span>
+                                <span class="badge rounded-2" style="background:#dc354522;color:#dc3545;">
+                                    <i class="fas fa-money-bill me-1"></i>Bunga + Admin → Cash ke Finance
+                                </span>
+                            </div>
+
+                            <div class="rounded-2 px-3 py-2" style="background:rgba(220,53,69,0.07);border:1px solid rgba(220,53,69,0.2);font-size:.75rem;">
                                 <i class="fas fa-info-circle text-danger me-1"></i>
                                 <strong>Perhatian:</strong> Cicilan pokok dipotong langsung dari gaji.
                                 Bunga{{ $defaultBiayaAdmin > 0 ? ' dan biaya admin' : '' }} dibayar <strong>tunai (cash) ke bagian Finance</strong>
@@ -299,34 +275,63 @@ $(document).ready(function () {
         $('#employee_select').trigger('change');
     }
 
-    // ── Estimasi cicilan ─────────────────────────────────────────────────────
+    // ── Estimasi cicilan (reducing balance — mirror PHP generateInstallments) ──
     const BUNGA_RATE  = {{ $defaultRate }};        // % per bulan
-    const BIAYA_ADMIN = {{ $defaultBiayaAdmin }};  // Rp sekali bayar
+    const BIAYA_ADMIN = {{ $defaultBiayaAdmin }};  // Rp sekali bayar bulan ke-1
 
     function rupiah(n) { return 'Rp ' + Math.round(n).toLocaleString('id-ID'); }
+
+    function buildSchedule(jumlah, tenor) {
+        const pokokPerBulan = Math.floor(jumlah / tenor);
+        const pokokTerakhir = jumlah - pokokPerBulan * (tenor - 1);
+        let sisaPokok = jumlah;
+        const rows = [];
+        for (let i = 1; i <= tenor; i++) {
+            const bunga  = Math.round(sisaPokok * BUNGA_RATE / 100);
+            const pokok  = (i === tenor) ? pokokTerakhir : pokokPerBulan;
+            const admin  = (i === 1) ? BIAYA_ADMIN : 0;
+            const cash   = bunga + admin;
+            rows.push({ bulan: i, pokok, bunga, admin, cash, total: pokok + cash });
+            sisaPokok -= pokok;
+        }
+        return rows;
+    }
 
     function updateEstimasi() {
         const jumlah = parseFloat($('#jumlah').val());
         const tenor  = parseInt($('#tenor_bulan').val());
 
         if (jumlah >= 100000 && tenor > 0) {
-            const pokok  = Math.ceil(jumlah / tenor);
-            const bunga  = Math.round(jumlah * BUNGA_RATE / 100);
-            const total1 = pokok + bunga + BIAYA_ADMIN;
-            const total2 = pokok + bunga;
-            const multiMonth = tenor > 1;
+            const schedule = buildSchedule(jumlah, tenor);
+            let totalPokok = 0, totalBunga = 0, totalAdmin = 0, totalCash = 0;
+            const tbody = $('#est-cicilan-tbody').empty();
 
-            $('#est-pokok').text(rupiah(pokok));
-            $('#est-pokok2').text(multiMonth ? rupiah(pokok) : '—');
-            $('#est-bunga').text(rupiah(bunga));
-            $('#est-bunga2').text(multiMonth ? rupiah(bunga) : '—');
-            $('#est-admin').text(rupiah(BIAYA_ADMIN));
-            $('#est-admin2').text('—');
-            $('#est-total1').text(rupiah(total1));
-            $('#est-total2').text(multiMonth ? rupiah(total2) : '—');
+            schedule.forEach(function (row) {
+                totalPokok += row.pokok;
+                totalBunga += row.bunga;
+                totalAdmin += row.admin;
+                totalCash  += row.cash;
+                tbody.append(
+                    '<tr>' +
+                    '<td class="text-muted">ke-' + row.bulan + '</td>' +
+                    '<td class="text-end">' + rupiah(row.pokok) + '</td>' +
+                    '<td class="text-end text-warning">' + (row.bunga > 0 ? rupiah(row.bunga) : '<span class="text-muted">—</span>') + '</td>' +
+                    '<td class="text-end text-info">' + (row.admin > 0 ? rupiah(row.admin) : '<span class="text-muted">—</span>') + '</td>' +
+                    '<td class="text-end fw-medium text-success">' + rupiah(row.cash) + '</td>' +
+                    '</tr>'
+                );
+            });
 
-            $('#est-col-bulan2-header').toggle(multiMonth);
-            $('#est-row-admin').toggle(BIAYA_ADMIN > 0);
+            $('#est-cicilan-tfoot').html(
+                '<tr class="border-top fw-semibold" style="font-size:.75rem;">' +
+                '<td class="text-muted">Total</td>' +
+                '<td class="text-end">' + rupiah(totalPokok) + '</td>' +
+                '<td class="text-end text-warning">' + rupiah(totalBunga) + '</td>' +
+                '<td class="text-end text-info">' + rupiah(totalAdmin) + '</td>' +
+                '<td class="text-end text-success">' + rupiah(totalCash) + '</td>' +
+                '</tr>'
+            );
+
             $('#estimasi-cicilan-wrap').show();
         } else {
             $('#estimasi-cicilan-wrap').hide();

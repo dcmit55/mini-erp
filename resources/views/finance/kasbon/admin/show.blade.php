@@ -92,7 +92,11 @@
                                 @if($kasbon->suku_bunga_persen !== null)
                                 <div class="col-6">
                                     <div class="text-muted" style="font-size:.7rem;">Interest Rate</div>
-                                    <div class="fw-medium">{{ $kasbon->suku_bunga_persen }}% / month (flat)</div>
+                                    @if((float)$kasbon->suku_bunga_persen == 0)
+                                        <div class="fw-medium text-success"><i class="fas fa-ban me-1"></i>No Interest</div>
+                                    @else
+                                        <div class="fw-medium">{{ $kasbon->suku_bunga_persen }}% / month <span class="text-muted" style="font-size:.7rem;">(reducing balance)</span></div>
+                                    @endif
                                 </div>
                                 <div class="col-6">
                                     <div class="text-muted" style="font-size:.7rem;">Admin Fee</div>
@@ -286,13 +290,25 @@
                                         @endforeach
                                     </select>
                                 </div>
-                                <div class="row g-2 mb-3">
+                                {{-- Bunga Toggle --}}
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="tanpaBunga"
+                                               {{ old('tanpa_bunga', false) ? 'checked' : '' }}>
+                                        <label class="form-check-label small fw-medium" for="tanpaBunga">
+                                            Tanpa Bunga <span class="text-muted">(No Interest)</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                {{-- Always-submitted hidden input — overwritten by JS when needed --}}
+                                <input type="hidden" name="suku_bunga_persen" id="sukuBungaHidden" value="{{ old('suku_bunga_persen', $kasbon->suku_bunga_persen ?? 2) }}">
+                                <div id="bungaFields" class="row g-2 mb-3">
                                     <div class="col-6">
-                                        <label class="form-label small fw-medium">Interest Rate (% / month) <span class="text-danger">*</span></label>
+                                        <label class="form-label small fw-medium">Interest Rate (% / month)</label>
                                         <div class="input-group input-group-sm">
-                                            <input type="number" name="suku_bunga_persen" step="0.01" min="0" max="100"
+                                            <input type="number" id="sukuBungaInput" step="0.01" min="0.01" max="100"
                                                    class="form-control @error('suku_bunga_persen') is-invalid @enderror"
-                                                   value="{{ old('suku_bunga_persen', $kasbon->suku_bunga_persen ?? 2) }}" required>
+                                                   value="{{ old('suku_bunga_persen', $kasbon->suku_bunga_persen ?? 2) }}">
                                             <span class="input-group-text">%</span>
                                             @error('suku_bunga_persen')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                         </div>
@@ -306,6 +322,12 @@
                                                    value="{{ old('biaya_admin', $kasbon->biaya_admin ?? 50000) }}" required>
                                             @error('biaya_admin')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                         </div>
+                                    </div>
+                                </div>
+                                {{-- Info shown when no-interest is active --}}
+                                <div id="noBungaInfo" class="mb-3 d-none">
+                                    <div class="alert alert-info py-2 small mb-0">
+                                        <i class="fas fa-info-circle me-1"></i>Cicilan hanya berisi pokok. Tidak ada bunga yang dikenakan.
                                     </div>
                                 </div>
                                 <div class="mb-3">
@@ -405,3 +427,40 @@
 </div>
 
 @endsection
+
+@push('scripts')
+<script>
+(function () {
+    const toggle       = document.getElementById('tanpaBunga');
+    const bungaFields  = document.getElementById('bungaFields');
+    const noBungaInfo  = document.getElementById('noBungaInfo');
+    const visibleInput = document.getElementById('sukuBungaInput');
+    const hiddenInput  = document.getElementById('sukuBungaHidden');
+    const defaultRate  = '{{ old('suku_bunga_persen', $kasbon->suku_bunga_persen ?? 2) }}';
+
+    if (!toggle) return;
+
+    // Keep hidden input in sync with visible input
+    if (visibleInput) {
+        visibleInput.addEventListener('input', function () {
+            hiddenInput.value = this.value;
+        });
+    }
+
+    function applyToggle() {
+        if (toggle.checked) {
+            bungaFields.classList.add('d-none');
+            if (noBungaInfo) noBungaInfo.classList.remove('d-none');
+            hiddenInput.value = '0';
+        } else {
+            bungaFields.classList.remove('d-none');
+            if (noBungaInfo) noBungaInfo.classList.add('d-none');
+            hiddenInput.value = visibleInput ? visibleInput.value || defaultRate : defaultRate;
+        }
+    }
+
+    toggle.addEventListener('change', applyToggle);
+    applyToggle();
+})();
+</script>
+@endpush

@@ -15,6 +15,7 @@ class FeatureAnnouncementController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
+        $this->middleware('can:feature.announcement.manage')->only(['index', 'create', 'store', 'edit', 'update', 'destroy', 'reBroadcast']);
     }
 
     /**
@@ -22,11 +23,6 @@ class FeatureAnnouncementController extends Controller
      */
     public function index()
     {
-        // Only super admin can manage announcements
-        if (!Auth::user()->isSuperAdmin()) {
-            abort(403, 'Unauthorized action.');
-        }
-
         $announcements = FeatureAnnouncement::latest()->withCount('reads')->paginate(15);
 
         return view('admin.feature-announcements.index', compact('announcements'));
@@ -37,10 +33,6 @@ class FeatureAnnouncementController extends Controller
      */
     public function create()
     {
-        if (!Auth::user()->isSuperAdmin()) {
-            abort(403, 'Unauthorized action.');
-        }
-
         $roles = [
             'super_admin' => 'Super Admin',
             'admin_logistic' => 'Admin Logistic',
@@ -64,10 +56,6 @@ class FeatureAnnouncementController extends Controller
      */
     public function store(Request $request)
     {
-        if (!Auth::user()->isSuperAdmin()) {
-            abort(403, 'Unauthorized action.');
-        }
-
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'required|string',
@@ -99,10 +87,6 @@ class FeatureAnnouncementController extends Controller
      */
     public function edit($id)
     {
-        if (!Auth::user()->isSuperAdmin()) {
-            abort(403, 'Unauthorized action.');
-        }
-
         $announcement = FeatureAnnouncement::findOrFail($id);
 
         $roles = [
@@ -128,10 +112,6 @@ class FeatureAnnouncementController extends Controller
      */
     public function update(Request $request, $id)
     {
-        if (!Auth::user()->isSuperAdmin()) {
-            abort(403, 'Unauthorized action.');
-        }
-
         $announcement = FeatureAnnouncement::findOrFail($id);
 
         $validated = $request->validate([
@@ -158,10 +138,6 @@ class FeatureAnnouncementController extends Controller
      */
     public function destroy($id)
     {
-        if (!Auth::user()->isSuperAdmin()) {
-            abort(403, 'Unauthorized action.');
-        }
-
         $announcement = FeatureAnnouncement::findOrFail($id);
         $announcement->delete();
 
@@ -216,10 +192,6 @@ class FeatureAnnouncementController extends Controller
      */
     public function reBroadcast($id)
     {
-        if (!Auth::user()->isSuperAdmin()) {
-            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
-        }
-
         $announcement = FeatureAnnouncement::findOrFail($id);
         $targetUserIds = $announcement->getTargetUserIds();
 

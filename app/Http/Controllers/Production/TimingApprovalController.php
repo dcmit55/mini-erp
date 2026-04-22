@@ -494,15 +494,18 @@ class TimingApprovalController extends Controller
             'end_time' => 'required|date_format:H:i|after:start_time',
             'measurement_value' => 'nullable|numeric|min:0',
             'measurement_type' => 'nullable|string|max:50',
-            'remarks' => 'nullable|string',
+            'remarks'              => 'nullable|string',
+            'break_deducted_minutes' => 'nullable|integer|min:0|max:480',
         ]);
 
         DB::beginTransaction();
         try {
-            // Calculate duration
+            // Calculate duration: gross - manual break deduction
+            // total_paused_minutes (app pause) is kept untouched; only break_deducted_minutes is overridden here
             $start = \Carbon\Carbon::parse($request->tanggal . ' ' . $request->start_time);
             $end = \Carbon\Carbon::parse($request->tanggal . ' ' . $request->end_time);
-            $durationMinutes = $start->diffInMinutes($end);
+            $breakDeducted = (int) ($request->break_deducted_minutes ?? $timing->break_deducted_minutes ?? 0);
+            $durationMinutes = max(0, $start->diffInMinutes($end) - $breakDeducted);
 
             $employeeIds = $request->employee_ids;
             $baseData = [
@@ -516,7 +519,9 @@ class TimingApprovalController extends Controller
                 'duration_minutes' => $durationMinutes,
                 'measurement_value' => $request->measurement_value,
                 'measurement_type' => $request->measurement_type,
-                'remarks' => $request->remarks,
+                'remarks'              => $request->remarks,
+                'break_deducted_minutes' => $breakDeducted,
+                // total_paused_minutes is NOT touched — preserved from original app pause data
             ];
 
             // Update the existing record with the first selected employee

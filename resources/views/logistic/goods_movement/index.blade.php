@@ -51,9 +51,11 @@
                         <a href="{{ route('goods-movement.export') }}" class="btn btn-outline-success btn-sm" title="Export CSV">
                             <i class="bi bi-file-earmark-csv me-1"></i> Export
                         </a>
+                        @can('logistic.goods-out.create')
                         <a href="{{ route('goods-movement.create') }}" class="btn btn-primary btn-sm">
                             <i class="bi bi-plus-circle me-1"></i> Add Movement
                         </a>
+                        @endcan
                     </div>
                 </div>
 
@@ -194,9 +196,11 @@
         }
     </style>
 
+    @can('logistic.goods-out.create')
     <a href="{{ route('goods-movement.create') }}" class="fab" title="Add Movement">
         <i class="bi bi-plus"></i>
     </a>
+    @endcan
 @endsection
 
 @push('scripts')

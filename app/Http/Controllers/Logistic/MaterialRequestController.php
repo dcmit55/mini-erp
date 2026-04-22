@@ -25,6 +25,11 @@ class MaterialRequestController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
+        $this->middleware('can:logistic.material-request.view');
+        $this->middleware('can:logistic.material-request.create')->only(['create', 'store', 'bulkCreate', 'bulkStore']);
+        $this->middleware('can:logistic.material-request.edit')->only(['edit', 'update']);
+        $this->middleware('can:logistic.material-request.view')->only(['destroy']);
+        $this->middleware('can:logistic.material-request.approve')->only(['approve', 'autoGoodsOut', 'quickUpdate']);
     }
 
     /**
@@ -135,10 +140,8 @@ class MaterialRequestController extends Controller
                 })
                 ->addColumn('status', function ($req) {
                     $authUser = auth()->user();
-                    $isAdmin = $authUser->isReadOnlyAdmin();
-                    $isLogisticAdmin = $authUser->isLogisticAdmin();
 
-                    if ($isLogisticAdmin || $isAdmin) {
+                    if ($authUser->can('logistic.material-request.approve')) {
                         return '<select name="status" class="form-select form-select-sm status-select status-select-rounded status-quick-update"
                                 data-id="' .
                             $req->id .
@@ -165,9 +168,10 @@ class MaterialRequestController extends Controller
                 })
                 ->addColumn('actions', function ($req) {
                     $authUser = auth()->user();
-                    $isLogisticAdmin = $authUser->isLogisticAdmin();
-                    $isSuperAdmin = $authUser->isSuperAdmin();
-                    $isAdmin = $authUser->isReadOnlyAdmin();
+                    $canApprove = $authUser->can('logistic.material-request.approve');
+                    $canEdit = $authUser->can('logistic.material-request.edit');
+                    $canDelete = $authUser->can('logistic.material-request.delete');
+                    $canGoodsOut = $authUser->can('logistic.goods-out.create');
                     $isRequestOwner = $authUser->username === $req->requested_by;
 
                     $actions = '<div class="d-flex flex-nowrap gap-1">';
@@ -176,33 +180,34 @@ class MaterialRequestController extends Controller
                         $actions .= '<button type="button" class="btn btn-sm btn-success material-detail-btn" data-id="' . $req->inventory->id . '" title="Material Detail"><i class="bi bi-info-circle"></i></button>';
                     }
 
-                    if ($req->status === 'approved' && $req->status !== 'canceled' && $req->qty - $req->processed_qty > 0 && ($isLogisticAdmin || $isAdmin)) {
+                    if ($req->status === 'approved' && $req->status !== 'canceled' && $req->qty - $req->processed_qty > 0 && $canGoodsOut) {
                         $actions .= '<a href="' . route('goods_out.create_with_id', $req->id) . '" class="btn btn-sm btn-success" title="Goods Out"><i class="bi bi-box-arrow-right"></i></a>';
                     }
 
-                    if ($req->status === 'pending' && ($isRequestOwner || $isLogisticAdmin || $isAdmin)) {
+                    if ($req->status === 'pending' && ($isRequestOwner || $canEdit)) {
                         $actions .= '<a href="' . route('material_requests.edit', $req->id) . '" class="btn btn-sm btn-warning" title="Edit"><i class="bi bi-pencil-square"></i></a>';
                     }
 
-                    $canDelete = false;
+                    $showDelete = false;
                     $deleteTooltip = 'Delete';
 
                     if (in_array($req->status, ['approved', 'delivered'])) {
-                        if ($isSuperAdmin || $isAdmin) {
-                            $canDelete = true;
-                            $deleteTooltip = 'Delete (Super Admin Only)';
+                        if ($canDelete) {
+                            $showDelete = true;
+                            $deleteTooltip = 'Delete';
                         }
                     } elseif ($req->status === 'pending') {
-                        if ($isRequestOwner || $isSuperAdmin || $isAdmin) {
-                            $canDelete = true;
-                            $deleteTooltip = $isRequestOwner ? 'Delete Your Request' : 'Delete (Super Admin)';
+                        if ($isRequestOwner || $canDelete) {
+                            $showDelete = true;
+                            $deleteTooltip = $isRequestOwner ? 'Delete Your Request' : 'Delete';
                         }
                     } elseif ($req->status === 'canceled') {
-                        if ($isRequestOwner || $isLogisticAdmin || $isSuperAdmin || $isAdmin) {
-                            $canDelete = true;
-                            $deleteTooltip = $isRequestOwner ? 'Delete Your Canceled Request' : ($isLogisticAdmin ? 'Delete Canceled Request (Logistic Admin)' : 'Delete Canceled Request (Super Admin)');
+                        if ($isRequestOwner || $canDelete || $canApprove) {
+                            $showDelete = true;
+                            $deleteTooltip = $isRequestOwner ? 'Delete Your Canceled Request' : 'Delete Canceled Request';
                         }
                     }
+                    $canDelete = $showDelete;
 
                     if ($canDelete) {
                         $actions .=
@@ -326,10 +331,6 @@ class MaterialRequestController extends Controller
      */
     public function store(Request $request)
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            abort(403, 'You do not have permission to create material requests.');
-        }
-
         // inventory_source: 'stock' (inventories table) or 'incoming' (lark_staging_inventories)
         $inventorySource = $request->input('inventory_source', 'stock');
 
@@ -476,10 +477,6 @@ class MaterialRequestController extends Controller
      */
     public function bulkStore(Request $request)
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            abort(403, 'You do not have permission to create material requests.');
-        }
-
         // Validasi dasar per baris
         $request->validate([
             'requests.*.project_type' => 'required|in:client,internal',
@@ -628,7 +625,7 @@ class MaterialRequestController extends Controller
             return redirect()->route('material_requests.index')->with('error', 'Only pending requests can be edited.');
         }
 
-        if (auth()->user()->username !== $materialRequest->requested_by && !auth()->user()->isLogisticAdmin() && !auth()->user()->isReadOnlyAdmin()) {
+        if (auth()->user()->username !== $materialRequest->requested_by && !auth()->user()->can('logistic.material-request.edit')) {
             return redirect()->route('material_requests.index', $filters)->with('error', 'You do not have permission to edit this request.');
         }
 
@@ -639,13 +636,6 @@ class MaterialRequestController extends Controller
      */
     public function update(Request $request, $id)
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            if ($request->ajax()) {
-                return response()->json(['error' => 'You do not have permission to edit material requests.'], 403);
-            }
-            abort(403, 'You do not have permission to edit material requests.');
-        }
-
         $materialRequest = MaterialRequest::findOrFail($id);
 
         // Cek quick update — hanya jika bukan full edit form
@@ -883,20 +873,12 @@ class MaterialRequestController extends Controller
      */
     public function quickUpdate(Request $request, $id)
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            return response()->json(['success' => false, 'message' => 'You do not have permission to update status.'], 403);
-        }
-
         $request->validate(['status' => 'required|in:pending,approved,delivered,canceled']);
 
         $materialRequest = MaterialRequest::with('stagingInventory')->findOrFail($id);
 
         if ($materialRequest->status === 'delivered') {
             return response()->json(['success' => false, 'message' => 'Delivered requests cannot be updated.'], 422);
-        }
-
-        if (!auth()->user()->isLogisticAdmin()) {
-            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
         }
 
         $oldStatus = $materialRequest->status;
@@ -960,10 +942,6 @@ class MaterialRequestController extends Controller
      */
     public function destroy(Request $request, $id)
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            abort(403, 'You do not have permission to delete material requests.');
-        }
-
         $materialRequest = MaterialRequest::findOrFail($id);
 
         $filters = [
@@ -976,20 +954,19 @@ class MaterialRequestController extends Controller
         $filters = array_filter($filters, fn($v) => !is_null($v) && $v !== '');
 
         $authUser = auth()->user();
-        $isSuperAdmin = $authUser->isSuperAdmin();
-        $isLogisticAdmin = $authUser->isLogisticAdmin();
+        $canDelete = $authUser->can('logistic.material-request.delete');
         $isRequestOwner = $authUser->username === $materialRequest->requested_by;
 
         if (in_array($materialRequest->status, ['approved', 'delivered'])) {
-            if (!$isSuperAdmin) {
-                return redirect()->route('material_requests.index', $filters)->with('error', 'Only Super Admin can delete approved or delivered requests.');
+            if (!$canDelete) {
+                return redirect()->route('material_requests.index', $filters)->with('error', 'Only Admin can delete approved or delivered requests.');
             }
         } elseif ($materialRequest->status === 'pending') {
-            if (!$isRequestOwner && !$isSuperAdmin) {
-                return redirect()->route('material_requests.index', $filters)->with('error', 'Only request owner or Super Admin can delete pending requests.');
+            if (!$isRequestOwner && !$canDelete) {
+                return redirect()->route('material_requests.index', $filters)->with('error', 'Only request owner or Admin can delete pending requests.');
             }
         } elseif ($materialRequest->status === 'canceled') {
-            if (!$isRequestOwner && !$isLogisticAdmin && !$isSuperAdmin) {
+            if (!$isRequestOwner && !$canDelete) {
                 return redirect()->route('material_requests.index', $filters)->with('error', 'You do not have permission to delete this canceled request.');
             }
         }
@@ -1010,10 +987,6 @@ class MaterialRequestController extends Controller
      */
     public function sendReminder($id)
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            abort(403, 'You do not have permission to send reminders material requests.');
-        }
-
         $request = MaterialRequest::findOrFail($id);
 
         if (!in_array($request->status, ['pending', 'approved']) || $request->processed_qty >= $request->qty) {

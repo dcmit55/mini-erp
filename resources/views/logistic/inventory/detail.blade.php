@@ -564,7 +564,7 @@
                                                     <i class="fas fa-dollar-sign me-2 text-muted"></i>Price Information
                                                 </th>
                                                 <td>
-                                                    @if (in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance', 'admin_procurement', 'admin']))
+                                                    @can('logistic.inventory.edit')
                                                         <div class="row">
                                                             <div class="col-md-4">
                                                                 <small class="text-muted">Unit Price:</small><br>
@@ -599,7 +599,7 @@
                                                         </div>
                                                     @else
                                                         <span class="text-muted">Access restricted</span>
-                                                    @endif
+                                                    @endcan
                                                 </td>
                                             </tr>
                                             <tr>

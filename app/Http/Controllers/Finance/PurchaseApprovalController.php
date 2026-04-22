@@ -13,6 +13,12 @@ use Illuminate\Support\Facades\Log;
 
 class PurchaseApprovalController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+        $this->middleware('can:procurement.po.approve');
+    }
+
     /**
      * Display a listing of purchases pending finance approval
      */
@@ -140,8 +146,9 @@ class PurchaseApprovalController extends Controller
      */
     public function approve(Request $request, $id)
     {
+        abort_unless(Auth::user()->can('procurement.po.approve'), 403);
         \Log::info("=== APPROVE PURCHASE ID: {$id} ===");
-        
+
         try {
             $request->validate([
                 'finance_notes' => 'nullable|string|max:1000',
@@ -205,8 +212,9 @@ class PurchaseApprovalController extends Controller
      */
     public function reject(Request $request, $id)
     {
+        abort_unless(Auth::user()->can('procurement.po.approve'), 403);
         \Log::info("=== REJECT PURCHASE ID: {$id} ===");
-        
+
         try {
             $request->validate([
                 'finance_notes' => 'required|string|min:5|max:1000',
@@ -260,6 +268,7 @@ class PurchaseApprovalController extends Controller
      */
     public function bulkApprove(Request $request)
     {
+        abort_unless(Auth::user()->can('procurement.po.approve'), 403);
         $request->validate([
             'purchase_ids' => 'required|array',
             'purchase_ids.*' => 'exists:indo_purchases,id',
@@ -529,6 +538,7 @@ class PurchaseApprovalController extends Controller
      */
     public function approveDeletion(Request $request, $id)
     {
+        abort_unless(Auth::user()->can('procurement.po.approve'), 403);
         try {
             $purchase = ProjectPurchase::where('is_current', 1)->findOrFail($id);
 
@@ -567,6 +577,7 @@ class PurchaseApprovalController extends Controller
      */
     public function rejectDeletion(Request $request, $id)
     {
+        abort_unless(Auth::user()->can('procurement.po.approve'), 403);
         try {
             $purchase = ProjectPurchase::where('is_current', 1)->findOrFail($id);
 

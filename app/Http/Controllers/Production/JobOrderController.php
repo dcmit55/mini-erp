@@ -145,7 +145,7 @@ class JobOrderController extends Controller
                         $imgBtn = '<button type="button" class="btn btn-sm btn-outline-secondary" style="' . $btnStyle . '" title="No image" disabled><i class="bi bi-file-earmark-image"></i></button>';
                     }
 
-                    $isGeneral = auth()->user()->role === 'general';
+                    $isGeneral = !auth()->user()->can('production.jo.edit');
 
                     if ($isGeneral) {
                         return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;min-width:70px;">' . '<a href="' . route('job-orders.show', $jo->id) . '" class="btn btn-sm btn-info" style="' . $btnStyle . '" title="Detail"><i class="bi bi-eye"></i></a>' . $imgBtn . '</div>';
@@ -371,7 +371,7 @@ class JobOrderController extends Controller
      */
     public function getLarkRawData(LarkJobOrderSyncService $syncService)
     {
-        if (!auth()->user()->isSuperAdmin()) {
+        if (!auth()->user()->can('production.jo.delete')) {
             abort(403, 'Unauthorized');
         }
 

@@ -17,10 +17,12 @@
                                 </h1>
                             </div>
                             <div class="d-flex gap-2">
+                                @can('hr.employees.edit')
                                 <a href="{{ route('employees.edit', $employee) }}" class="btn btn-warning"
                                     title="Edit Employee">
                                     <i class="bi bi-pencil"></i>
                                 </a>
+                                @endcan
                                 <a href="{{ route('employees.timing', $employee) }}" class="btn btn-info"
                                     title="View Timings">
                                     <i class="bi bi-clock"></i>

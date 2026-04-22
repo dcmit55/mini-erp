@@ -13,10 +13,12 @@
 
                     <!-- Spacer untuk mendorong tombol ke kanan -->
                     <div class="ms-lg-auto d-flex flex-wrap gap-2">
+                        @can('production.project.create')
                         <a href="{{ route('projects.create') }}" class="btn btn-primary btn-sm flex-shrink-0">
                             <i class="bi bi-plus-circle me-1"></i> Create Project
                         </a>
-                        @if (in_array(auth()->user()->role, ['super_admin', 'admin']))
+                        @endcan
+                        @can('production.project.edit')
                             <form action="{{ route('projects.sync.lark') }}" method="POST" class="d-inline"
                                 id="syncLarkForm">
                                 @csrf
@@ -27,7 +29,7 @@
                                     <span id="syncText">Sync from Lark</span>
                                 </button>
                             </form>
-                        @endif
+                        @endcan
                         <a href="{{ route('projects.export', request()->query()) }}"
                             class="btn btn-outline-success btn-sm flex-shrink-0">
                             <i class="bi bi-file-earmark-excel me-1"></i> Export
@@ -165,10 +167,7 @@
                                         {{-- <a href="{{ route('projects.edit', $project) }}" class="btn btn-sm btn-warning"
                                             data-bs-toggle="tooltip" data-bs-placement="bottom" title="Edit"><i
                                                 class="bi bi-pencil-square"></i></a> --}}
-                                        @if (auth()->user()->username === $project->created_by ||
-                                                // permission action delete data project
-                                                auth()->user()->role === 'super_admin' ||
-                                                auth()->user()->role === 'admin')
+                                        @if (auth()->user()->username === $project->created_by || auth()->user()->can('production.project.delete'))
                                             <form action="{{ route('projects.destroy', $project) }}" method="POST"
                                                 class="delete-form">
                                                 @csrf

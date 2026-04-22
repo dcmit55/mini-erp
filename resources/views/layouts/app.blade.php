@@ -149,7 +149,7 @@
     <body>
         <div id="app">
             <div id="sidebarBackdrop"></div>
-            <nav id="mainNavbar" class="navbar navbar-expand-lg border-bottom shadow-sm"
+            <nav id="mainNavbar" class="navbar navbar-expand-lg border-bottom shadow-sm sticky-top"
                 style="background: var(--bs-body-bg); transition: background-color .2s, border-color .2s;">
                 <div class="container-fluid">
                     <a class="navbar-brand fw-bold" href="{{ url('/') }}">
@@ -213,18 +213,7 @@
                                 @endphp
 
                                 <!-- Projects Menu -->
-                                @if (in_array(auth()->user()->role, [
-                                        'super_admin',
-                                        'admin_mascot',
-                                        'admin_costume',
-                                        'admin_logistic',
-                                        'admin_finance',
-                                        'admin_procurement',
-                                        'admin_animatronic',
-                                        'admin_hr',
-                                        'admin',
-                                        'general',
-                                    ]))
+                                @can('production.project.view')
                                     <li class="nav-item dropdown">
                                         <a class="nav-link dropdown-toggle {{ request()->is('projects*') || request()->is('internal-projects*') || request()->is('job-order-type-gradings*') ? 'active' : '' }}"
                                             href="#" id="projectsDropdown" role="button"
@@ -255,21 +244,10 @@
                                             </li>
                                         </ul>
                                     </li>
-                                @endif
+                                @endcan
 
                                 <!-- Logistics Dropdown -->
-                                @if (in_array(auth()->user()->role, [
-                                        'super_admin',
-                                        'admin_mascot',
-                                        'admin_costume',
-                                        'admin_logistic',
-                                        'admin_finance',
-                                        'admin_procurement',
-                                        'admin_animatronic',
-                                        'admin_hr',
-                                        'admin',
-                                        'general',
-                                    ]))
+                                @canany(['logistic.inventory.view', 'logistic.inventory-batch.view', 'logistic.stock-adjustment.view', 'logistic.material-request.view', 'logistic.goods-out.view', 'logistic.goods-in.view', 'logistic.material-usage.view', 'lark.staging.view'])
                                     <li class="nav-item dropdown">
                                         <a class="nav-link dropdown-toggle {{ isDropdownActive($logisticsPrefixes) ? 'active' : '' }}"
                                             href="#" id="logisticsDropdown" role="button"
@@ -277,58 +255,72 @@
                                             <i></i>Logistics
                                         </a>
                                         <ul class="dropdown-menu" aria-labelledby="logisticsDropdown">
-                                            <li>
-                                                <a class="dropdown-item {{ request()->is('inventory') || (request()->is('inventory/*') && !request()->is('inventory-batch*')) ? 'active' : '' }}"
-                                                    href="{{ route('inventory.index') }}">
-                                                    <i class="fas fa-boxes me-2"></i>Inventory Stock
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item {{ request()->is('inventory-batch*') ? 'active' : '' }}"
-                                                    href="{{ route('inventory-batch.index') }}">
-                                                    <i class="fas fa-layer-group me-2"></i>Inventory Batches
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item {{ request()->is('stock-adjustments*') ? 'active' : '' }}"
-                                                    href="{{ route('stock-adjustments.index') }}">
-                                                    <i class="bi bi-sliders me-2"></i>Stock Adjustment
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item {{ request()->is('material_requests*') ? 'active' : '' }}"
-                                                    href="{{ route('material_requests.index') }}">
-                                                    <i class="fas fa-clipboard-list me-2"></i>Material Request
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item {{ request()->is('goods_out*') ? 'active' : '' }}"
-                                                    href="{{ route('goods_out.index') }}">
-                                                    <i class="fas fa-arrow-right me-2"></i>Goods Out
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item {{ request()->is('goods_in*') ? 'active' : '' }}"
-                                                    href="{{ route('goods_in.index') }}">
-                                                    <i class="fas fa-arrow-left me-2"></i>Goods In
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item {{ request()->is('material_usage*') ? 'active' : '' }}"
-                                                    href="{{ route('material_usage.index') }}">
-                                                    <i class="fas fa-balance-scale me-2"></i>Material Usage
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item {{ request()->is('goods-movement*') ? 'active' : '' }}"
-                                                    href="{{ route('goods-movement.index') }}">
-                                                    <i class="fas fa-exchange-alt me-2"></i>Goods Movement
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <hr class="dropdown-divider">
-                                            </li>
-                                            @if (!in_array(auth()->user()->role, ['general']))
+                                            @can('logistic.inventory.view')
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('inventory') || (request()->is('inventory/*') && !request()->is('inventory-batch*')) ? 'active' : '' }}"
+                                                        href="{{ route('inventory.index') }}">
+                                                        <i class="fas fa-boxes me-2"></i>Inventory Stock
+                                                    </a>
+                                                </li>
+                                            @endcan
+                                            @can('logistic.inventory-batch.view')
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('inventory-batch*') ? 'active' : '' }}"
+                                                        href="{{ route('inventory-batch.index') }}">
+                                                        <i class="fas fa-layer-group me-2"></i>Inventory Batches
+                                                    </a>
+                                                </li>
+                                            @endcan
+                                            @can('logistic.stock-adjustment.view')
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('stock-adjustments*') ? 'active' : '' }}"
+                                                        href="{{ route('stock-adjustments.index') }}">
+                                                        <i class="bi bi-sliders me-2"></i>Stock Adjustment
+                                                    </a>
+                                                </li>
+                                            @endcan
+                                            @can('logistic.material-request.view')
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('material_requests*') ? 'active' : '' }}"
+                                                        href="{{ route('material_requests.index') }}">
+                                                        <i class="fas fa-clipboard-list me-2"></i>Material Request
+                                                    </a>
+                                                </li>
+                                            @endcan
+                                            @can('logistic.goods-out.view')
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('goods_out*') ? 'active' : '' }}"
+                                                        href="{{ route('goods_out.index') }}">
+                                                        <i class="fas fa-arrow-right me-2"></i>Goods Out
+                                                    </a>
+                                                </li>
+                                            @endcan
+                                            @can('logistic.goods-in.view')
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('goods_in*') ? 'active' : '' }}"
+                                                        href="{{ route('goods_in.index') }}">
+                                                        <i class="fas fa-arrow-left me-2"></i>Goods In
+                                                    </a>
+                                                </li>
+                                            @endcan
+                                            @can('logistic.material-usage.view')
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('material_usage*') ? 'active' : '' }}"
+                                                        href="{{ route('material_usage.index') }}">
+                                                        <i class="fas fa-balance-scale me-2"></i>Material Usage
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('goods-movement*') ? 'active' : '' }}"
+                                                        href="{{ route('goods-movement.index') }}">
+                                                        <i class="fas fa-exchange-alt me-2"></i>Goods Movement
+                                                    </a>
+                                                </li>
+                                            @endcan
+                                            @can('lark.staging.view')
+                                                <li>
+                                                    <hr class="dropdown-divider">
+                                                </li>
                                                 <li class="dropdown-header">Lark Staging Data</li>
                                                 <li>
                                                     <a class="dropdown-item {{ request()->is('lark/staging/bt-sg-courier*') ? 'active' : '' }}"
@@ -360,20 +352,13 @@
                                                         <i class="fas fa-filter me-2"></i>Inventory Incoming
                                                     </a>
                                                 </li>
-                                            @endif
+                                            @endcan
                                         </ul>
                                     </li>
-                                @endif
+                                @endcanany
 
                                 <!-- Procurement Dropdown -->
-                                @if (in_array(auth()->user()->role, [
-                                        'super_admin',
-                                        'admin_procurement',
-                                        'admin_hr',
-                                        'admin',
-                                        'admin_logistic',
-                                        'admin_finance',
-                                    ]))
+                                @canany(['procurement.po.view', 'procurement.supplier.view', 'procurement.shipping.view'])
                                     <li class="nav-item dropdown">
                                         <a class="nav-link dropdown-toggle {{ isDropdownActive($procurementPrefixes) ? 'active' : '' }}"
                                             href="#" id="procurementDropdown" role="button"
@@ -381,60 +366,56 @@
                                             <i></i>Procurement
                                         </a>
                                         <ul class="dropdown-menu" aria-labelledby="procurementDropdown">
-                                            <li>
-                                                <a class="dropdown-item {{ request()->is('project-purchases*') ? 'active' : '' }}"
-                                                    href="{{ route('project-purchases.index') }}">
-                                                    <i class="fas fa-file-invoice me-2"></i>Indo Purchase
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item {{ request()->is('suppliers*') ? 'active' : '' }}"
-                                                    href="{{ route('suppliers.index') }}">
-                                                    <i class="fas fa-truck me-2"></i>Suppliers
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item {{ request()->is('purchase_requests*') ? 'active' : '' }}"
-                                                    href="{{ route('purchase_requests.index') }}">
-                                                    <i class="fas fa-clipboard-check me-2"></i>Purchase Request
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item {{ request()->is('pre-shippings*') ? 'active' : '' }}"
-                                                    href="{{ route('pre-shippings.index') }}">
-                                                    <i class="fas fa-shipping-fast me-2"></i>Pre Shippings
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item {{ request()->is('shipping-management*') ? 'active' : '' }}"
-                                                    href="{{ route('shipping-management.index') }}">
-                                                    <i class="fas fa-ship me-2"></i>Shipping Management
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item {{ request()->is('goods-receive*') ? 'active' : '' }}"
-                                                    href="{{ route('goods-receive.index') }}">
-                                                    <i class="fas fa-box-open me-2"></i>Goods Receive
-                                                </a>
-                                            </li>
+                                            @can('procurement.po.view')
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('project-purchases*') ? 'active' : '' }}"
+                                                        href="{{ route('project-purchases.index') }}">
+                                                        <i class="fas fa-file-invoice me-2"></i>Indo Purchase
+                                                    </a>
+                                                </li>
+                                            @endcan
+                                            @can('procurement.supplier.view')
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('suppliers*') ? 'active' : '' }}"
+                                                        href="{{ route('suppliers.index') }}">
+                                                        <i class="fas fa-truck me-2"></i>Suppliers
+                                                    </a>
+                                                </li>
+                                            @endcan
+                                            @can('procurement.po.view')
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('purchase_requests*') ? 'active' : '' }}"
+                                                        href="{{ route('purchase_requests.index') }}">
+                                                        <i class="fas fa-clipboard-check me-2"></i>Purchase Request
+                                                    </a>
+                                                </li>
+                                            @endcan
+                                            @can('procurement.shipping.view')
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('pre-shippings*') ? 'active' : '' }}"
+                                                        href="{{ route('pre-shippings.index') }}">
+                                                        <i class="fas fa-shipping-fast me-2"></i>Pre Shippings
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('shipping-management*') ? 'active' : '' }}"
+                                                        href="{{ route('shipping-management.index') }}">
+                                                        <i class="fas fa-ship me-2"></i>Shipping Management
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('goods-receive*') ? 'active' : '' }}"
+                                                        href="{{ route('goods-receive.index') }}">
+                                                        <i class="fas fa-box-open me-2"></i>Goods Receive
+                                                    </a>
+                                                </li>
+                                            @endcan
                                         </ul>
                                     </li>
-                                @endif
+                                @endcanany
 
                                 <!-- Productions Dropdown -->
-                                @if (in_array(auth()->user()->role, [
-                                        'super_admin',
-                                        'admin_mascot',
-                                        'admin_costume',
-                                        'admin_logistic',
-                                        'admin_finance',
-                                        'admin_procurement',
-                                        'admin_animatronic',
-                                        'admin_hr',
-                                        'admin',
-                                        'general',
-                                        'timing',
-                                    ]))
+                                @canany(['production.jo.view', 'production.material-planning.view', 'logistic.material-request.view', 'logistic.material-usage.view', 'hr.overtime.view'])
                                     @php
                                         $deptLeavePendingCount = 0;
                                         $deptMap = \App\Models\Hr\LeaveRequest::DEPT_ROLE_MAP ?? [];
@@ -471,37 +452,46 @@
                                             <i></i>Productions
                                         </a>
                                         <ul class="dropdown-menu" aria-labelledby="productionsDropdown">
-                                            <li>
-                                                <a class="dropdown-item {{ request()->is('job-orders*') ? 'active' : '' }}"
-                                                    href="{{ route('job-orders.index') }}">
-                                                    <i class="fas fa-tasks me-2"></i>Job Order
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item {{ request()->is('material_requests*') ? 'active' : '' }}"
-                                                    href="{{ route('material_requests.index') }}">
-                                                    <i class="fas fa-clipboard-list me-2"></i>Material Request
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item {{ request()->is('material_usage*') ? 'active' : '' }}"
-                                                    href="{{ route('material_usage.index') }}">
-                                                    <i class="fas fa-balance-scale me-2"></i>Material Usage
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item {{ request()->is('material-planning*') ? 'active' : '' }}"
-                                                    href="{{ route('material_planning.index') }}">
-                                                    <i class="fas fa-calendar-alt me-2"></i>Material Planning
-                                                </a>
-                                            </li>
-                                            <!-- Tambahan Overtime Requests -->
-                                            <li>
-                                                <a class="dropdown-item {{ request()->routeIs('overtime-requests.*') ? 'active' : '' }}"
-                                                    href="{{ route('overtime-requests.index') }}">
-                                                    <i class="fas fa-hourglass-half me-2"></i>Overtime Requests
-                                                </a>
-                                            </li>
+                                            @can('production.jo.view')
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('job-orders*') ? 'active' : '' }}"
+                                                        href="{{ route('job-orders.index') }}">
+                                                        <i class="fas fa-tasks me-2"></i>Job Order
+                                                    </a>
+                                                </li>
+                                            @endcan
+                                            @can('logistic.material-request.view')
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('material_requests*') ? 'active' : '' }}"
+                                                        href="{{ route('material_requests.index') }}">
+                                                        <i class="fas fa-clipboard-list me-2"></i>Material Request
+                                                    </a>
+                                                </li>
+                                            @endcan
+                                            @can('logistic.material-usage.view')
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('material_usage*') ? 'active' : '' }}"
+                                                        href="{{ route('material_usage.index') }}">
+                                                        <i class="fas fa-balance-scale me-2"></i>Material Usage
+                                                    </a>
+                                                </li>
+                                            @endcan
+                                            @can('production.material-planning.view')
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('material-planning*') ? 'active' : '' }}"
+                                                        href="{{ route('material_planning.index') }}">
+                                                        <i class="fas fa-calendar-alt me-2"></i>Material Planning
+                                                    </a>
+                                                </li>
+                                            @endcan
+                                            @can('hr.overtime.view')
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->routeIs('overtime-requests.*') ? 'active' : '' }}"
+                                                        href="{{ route('overtime-requests.index') }}">
+                                                        <i class="fas fa-hourglass-half me-2"></i>Overtime Requests
+                                                    </a>
+                                                </li>
+                                            @endcan
                                             @if (isset($deptMap[$deptRole]) || in_array($deptRole, ['super_admin', 'admin']))
                                                 <li>
                                                     <hr class="dropdown-divider">
@@ -519,18 +509,10 @@
                                             @endif
                                         </ul>
                                     </li>
-                                @endif
+                                @endcanany
 
                                 <!-- Timing Menu (Dedicated) -->
-                                @if (in_array(auth()->user()->role, [
-                                        'super_admin',
-                                        'admin_mascot',
-                                        'admin_costume',
-                                        'admin_animatronic',
-                                        'admin_hr',
-                                        'admin',
-                                        'timing',
-                                    ]))
+                                @can('production.timing.view')
                                     <li class="nav-item dropdown">
                                         <a class="nav-link dropdown-toggle {{ request()->is('costume-timing*') || request()->is('animatronics-timing*') || request()->is('mascot-timing*') || request()->is('timing-monitor*') ? 'active' : '' }}"
                                             href="#" id="timingDropdown" role="button"
@@ -573,10 +555,10 @@
                                             </li>
                                         </ul>
                                     </li>
-                                @endif
+                                @endcan
 
                                 <!-- Finances Dropdown -->
-                                @if (in_array(auth()->user()->role, ['super_admin', 'admin_finance', 'admin', 'admin_logistic', 'admin_procurement']))
+                                @canany(['finance.costing.view', 'finance.currency.view', 'procurement.po.approve', 'finance.purchase-edited.view', 'finance.kasbon.view'])
                                     <li class="nav-item dropdown">
                                         <a class="nav-link dropdown-toggle {{ request()->is('currencies*') ||
                                         request()->is('costing-report*') ||
@@ -591,12 +573,15 @@
                                             <i></i>Finances
                                         </a>
                                         <ul class="dropdown-menu" aria-labelledby="financesDropdown">
+                                            @can('finance.currency.view')
                                             <li>
                                                 <a class="dropdown-item {{ request()->is('currencies*') ? 'active' : '' }}"
                                                     href="{{ route('currencies.index') }}">
                                                     <i class="fas fa-money-bill me-2"></i>Currency
                                                 </a>
                                             </li>
+                                            @endcan
+                                            @can('finance.costing.view')
                                             <li>
                                                 <a class="dropdown-item {{ request()->is('costing-report*') ? 'active' : '' }}"
                                                     href="{{ route('costing.report') }}">
@@ -615,18 +600,24 @@
                                                     <i class="fas fa-file-invoice-dollar me-2"></i>DCM Costing
                                                 </a>
                                             </li>
+                                            @endcan
+                                            @can('procurement.po.approve')
                                             <li>
                                                 <a class="dropdown-item {{ request()->is('purchase-approvals*') ? 'active' : '' }}"
                                                     href="{{ route('purchase-approvals.index') }}">
                                                     <i class="fas fa-clipboard-check me-2"></i>Purchase Approvals
                                                 </a>
                                             </li>
+                                            @endcan
+                                            @can('finance.purchase-edited.view')
                                             <li>
                                                 <a class="dropdown-item {{ request()->is('purchase-edited*') ? 'active' : '' }}"
                                                     href="{{ route('purchase-edited.index') }}">
                                                     <i class="fas fa-edit me-2"></i>Purchase Edited
                                                 </a>
                                             </li>
+                                            @endcan
+                                            @can('finance.kasbon.view')
                                             <li>
                                                 <hr class="dropdown-divider">
                                             </li>
@@ -642,13 +633,14 @@
                                                     <i class="fas fa-calendar-check me-2"></i>Installment Monitoring
                                                 </a>
                                             </li>
+                                            @endcan
                                         </ul>
                                     </li>
-                                @endif
+                                @endcanany
 
                                 <!-- HR Dropdown (DIPERBARUI) -->
                                 @auth
-                                    @if (in_array(auth()->user()->role, ['super_admin', 'admin_hr', 'admin', 'timing']))
+                                    @can('hr.employees.view')
                                         @php
                                             $hrOvertimePendingCount = \App\Models\Hr\OvertimeRequest::whereIn(
                                                 'status',
@@ -707,7 +699,7 @@
                                                         <i class="fas fa-user-tie me-2"></i>Employees
                                                     </a>
                                                 </li>
-                                                @if (!auth()->user()->isAdminTiming())
+                                                @can('hr.attendance.view')
                                                     <li>
                                                         <a class="dropdown-item {{ request()->routeIs('attendance-logs.*') ? 'active' : '' }}"
                                                             href="{{ route('attendance-logs.index') }}">
@@ -765,7 +757,7 @@
                                                             <i class="fas fa-calculator me-2"></i>Overtime Pay
                                                         </a>
                                                     </li>
-                                                @endif
+                                                @endcan
 
                                                 {{-- Warning Letter (SP1–SP4) --}}
                                                 <li>
@@ -778,7 +770,7 @@
                                                     </a>
                                                 </li>
 
-                                                @if (!auth()->user()->isAdminTiming())
+                                                @can('hr.attendance.view')
                                                     {{-- Fingerspot & Export --}}
                                                     <li>
                                                         <hr class="dropdown-divider">
@@ -809,10 +801,10 @@
                                                             <i class="fas fa-layer-group me-2"></i>Session Shifts
                                                         </a>
                                                     </li>
-                                                @endif
+                                                @endcan
                                             </ul>
                                         </li>
-                                    @endif
+                                    @endcan
                                 @endauth
 
                                 {{-- Guest Access - Show Leave Request link in navigation for non-authenticated users --}}
@@ -826,7 +818,7 @@
                                 @endguest
 
                                 <!-- Admin Dropdown -->
-                                @if (in_array(auth()->user()->role, ['super_admin', 'admin']))
+                                @can('admin.users.view')
                                     <li class="nav-item dropdown">
                                         <a class="nav-link dropdown-toggle {{ request()->is('users*') || request()->is('departments*') || request()->routeIs('trash.index') || request()->is('audit*') ? 'active' : '' }}"
                                             href="#" id="adminDropdown" role="button"
@@ -853,7 +845,7 @@
                                                 </a>
                                             </li>
                                             <!-- Audit Log (only for super_admin) -->
-                                            @if (Auth::check() && Auth::user()->isSuperAdmin())
+                                            @can('admin.audit.view')
                                                 <li>
                                                     <hr class="dropdown-divider">
                                                 </li>
@@ -869,10 +861,16 @@
                                                         <i class="bi bi-megaphone-fill me-2"></i>Announcements
                                                     </a>
                                                 </li>
-                                            @endif
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('admin/roles*') ? 'active' : '' }}"
+                                                        href="{{ route('admin.roles.index') }}">
+                                                        <i class="bi bi-shield-lock-fill me-2"></i>Role & Permissions
+                                                    </a>
+                                                </li>
+                                            @endcan
                                         </ul>
                                     </li>
-                                @endif
+                                @endcan
                             @endif
 
 
@@ -1170,7 +1168,8 @@
 
                 <!-- Chat Window -->
                 <div id="chatbot-window"
-                    style="display:none;position:absolute;bottom:70px;left:0;width:380px;
+                    style="display:none;position:fixed;top:0;left:0;width:380px;
+                       max-height:calc(100vh - 20px);
                        background:#fff;border-radius:20px;
                        box-shadow:0 12px 48px rgba(0,0,0,.18),0 2px 8px rgba(0,0,0,.08);
                        flex-direction:column;overflow:hidden;border:1px solid rgba(99,102,241,.15);">
@@ -1237,7 +1236,7 @@
 
                     <!-- Messages Area -->
                     <div id="chatbot-messages"
-                        style="height:380px;overflow-y:auto;padding:14px 14px 6px;
+                        style="flex:1;min-height:120px;max-height:380px;overflow-y:auto;padding:14px 14px 6px;
                                display:flex;flex-direction:column;gap:10px;background:#f8f9ff;">
                         <div class="cb-msg cb-msg-ai">
                             <div class="cb-bubble cb-bubble-ai">
@@ -1420,6 +1419,25 @@
                 .cb-slide-in {
                     animation: cb-slide-in .25s ease;
                 }
+
+                /* ── Mobile responsive ── */
+                @media (max-width: 480px) {
+                    #chatbot-window {
+                        width: calc(100vw - 16px) !important;
+                        border-radius: 16px !important;
+                    }
+                    #chatbot-messages {
+                        max-height: calc(100vh - 230px) !important;
+                    }
+                    .cb-bubble {
+                        max-width: 90%;
+                        font-size: .82rem;
+                    }
+                    .cb-chip {
+                        font-size: .70rem;
+                        padding: 3px 8px;
+                    }
+                }
             </style>
 
             <!-- Chatbot Script -->
@@ -1475,6 +1493,7 @@
                         const badge = document.getElementById('cb-badge');
                         if (cbOpen) {
                             win.style.display = 'flex';
+                            if (window._cbUpdateWindowSide) window._cbUpdateWindowSide();
                             img.style.display = 'none';
                             xIco.style.display = 'block';
                             if (badge) badge.style.display = 'none';
@@ -1633,6 +1652,164 @@
                     }
                 })
                 ();
+
+                // ── Draggable AssistiveTouch — snap to left/right edge ───────
+                (function () {
+                    const el     = document.getElementById('symcore-chatbot');
+                    const toggle = el.querySelector('#chatbot-toggle');
+                    const SNAP   = 16;   // px from screen edge when snapped
+                    const THRESH = 6;    // px movement to classify as drag vs click
+
+                    let dragging = false, hasDragged = false;
+                    let startX, startY, origLeft, origBottom;
+                    let currentSide = 'right';
+
+                    // ── Persist ───────────────────────────────────────────────
+                    const POS_KEY = 'symbot_pos_v2';
+                    function savePos(side, bottom) {
+                        try { localStorage.setItem(POS_KEY, JSON.stringify({ side, bottom })); } catch(e) {}
+                    }
+                    function loadPos() {
+                        try { return JSON.parse(localStorage.getItem(POS_KEY)); } catch(e) { return null; }
+                    }
+
+                    // ── Snap button to a side ─────────────────────────────────
+                    function applySnap(side, bottom, animate) {
+                        currentSide = side;
+                        const maxBottom = window.innerHeight - el.offsetHeight - SNAP;
+                        const safeBottom = Math.max(SNAP, Math.min(maxBottom, bottom));
+                        el.style.transition = animate
+                            ? 'left .28s cubic-bezier(.25,.8,.25,1), right .28s cubic-bezier(.25,.8,.25,1), bottom .28s cubic-bezier(.25,.8,.25,1)'
+                            : 'none';
+                        el.style.top = 'auto';
+                        el.style.bottom = safeBottom + 'px';
+                        if (side === 'right') {
+                            el.style.right = SNAP + 'px';
+                            el.style.left  = 'auto';
+                        } else {
+                            el.style.left  = SNAP + 'px';
+                            el.style.right = 'auto';
+                        }
+                        savePos(side, safeBottom);
+                        updateWindowSide();
+                    }
+
+                    // ── Chat window direction ─────────────────────────────────
+                    function updateWindowSide() {
+                        const win = document.getElementById('chatbot-window');
+                        if (!win) return;
+
+                        const btnRect = el.getBoundingClientRect();
+                        const winW    = win.offsetWidth  || 380; // actual width (CSS handles mobile sizing)
+                        const winH    = win.offsetHeight || 520; // actual height (constrained by max-height)
+                        const vW      = window.innerWidth;
+                        const vH      = window.innerHeight;
+                        const gap     = 10;
+                        const edge    = 8;
+
+                        // Horizontal: center on narrow screens; align to button side on desktop
+                        let left;
+                        if (vW <= 480) {
+                            left = Math.max(edge, Math.round((vW - winW) / 2));
+                        } else {
+                            left = (currentSide === 'right')
+                                ? btnRect.right - winW
+                                : btnRect.left;
+                            left = Math.max(edge, Math.min(vW - winW - edge, left));
+                        }
+
+                        // Vertical: prefer above button; fall back to below; always clamp
+                        const spaceAbove = btnRect.top  - gap;
+                        const spaceBelow = vH - btnRect.bottom - gap;
+                        let top;
+                        if (spaceAbove >= winH || spaceAbove > spaceBelow) {
+                            top = btnRect.top - winH - gap;
+                            top = Math.max(edge, top);
+                        } else {
+                            top = btnRect.bottom + gap;
+                            top = Math.min(vH - winH - edge, top);
+                            top = Math.max(edge, top);
+                        }
+
+                        win.style.left   = left + 'px';
+                        win.style.right  = 'auto';
+                        win.style.top    = top  + 'px';
+                        win.style.bottom = 'auto';
+                    }
+
+                    // Expose so chatbotToggle can call it
+                    window._cbUpdateWindowSide = updateWindowSide;
+
+                    // ── Init position ─────────────────────────────────────────
+                    const saved = loadPos();
+                    applySnap(saved ? saved.side : 'right', saved ? saved.bottom : 28, false);
+
+                    // ── Drag handlers ─────────────────────────────────────────
+                    function onStart(cx, cy) {
+                        dragging   = true;
+                        hasDragged = false;
+                        startX = cx; startY = cy;
+                        const r    = el.getBoundingClientRect();
+                        origLeft   = r.left;
+                        origBottom = window.innerHeight - r.bottom;
+                        el.style.transition = 'none';
+                        el.style.left  = origLeft + 'px';
+                        el.style.right = 'auto';
+                        document.body.style.userSelect = 'none';
+                    }
+
+                    function onMove(cx, cy) {
+                        if (!dragging) return;
+                        const dx = cx - startX, dy = cy - startY;
+                        if (!hasDragged && (Math.abs(dx) > THRESH || Math.abs(dy) > THRESH)) {
+                            hasDragged = true;
+                        }
+                        if (!hasDragged) return;
+                        const newLeft   = Math.max(0, Math.min(window.innerWidth  - el.offsetWidth,  origLeft   + dx));
+                        const newBottom = Math.max(0, Math.min(window.innerHeight - el.offsetHeight, origBottom - dy));
+                        el.style.left   = newLeft   + 'px';
+                        el.style.bottom = newBottom + 'px';
+                    }
+
+                    function onEnd() {
+                        if (!dragging) return;
+                        dragging = false;
+                        document.body.style.userSelect = '';
+
+                        if (!hasDragged) {
+                            // Pure click → fire toggle
+                            el.style.transition = '';
+                            window.chatbotToggle();
+                            return;
+                        }
+
+                        // Snap to nearest side
+                        const r      = el.getBoundingClientRect();
+                        const centerX = r.left + el.offsetWidth / 2;
+                        const side    = centerX > window.innerWidth / 2 ? 'right' : 'left';
+                        const bottom  = window.innerHeight - r.bottom;
+                        applySnap(side, bottom, true);
+                    }
+
+                    // Remove inline onclick — handled in onEnd
+                    toggle.removeAttribute('onclick');
+
+                    // Mouse
+                    toggle.addEventListener('mousedown', e => { e.preventDefault(); onStart(e.clientX, e.clientY); });
+                    document.addEventListener('mousemove', e => { onMove(e.clientX, e.clientY); });
+                    document.addEventListener('mouseup',   () => { onEnd(); });
+
+                    // Touch
+                    toggle.addEventListener('touchstart', e => {
+                        const t = e.touches[0]; onStart(t.clientX, t.clientY);
+                    }, { passive: true });
+                    document.addEventListener('touchmove', e => {
+                        if (!dragging) return;
+                        e.preventDefault();
+                        const t = e.touches[0]; onMove(t.clientX, t.clientY);
+                    }, { passive: false });
+                    document.addEventListener('touchend', () => { onEnd(); });
+                })();
             </script>
         @endauth
 

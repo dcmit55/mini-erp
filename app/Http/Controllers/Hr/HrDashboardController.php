@@ -17,12 +17,7 @@ class HrDashboardController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        $this->middleware(function ($request, $next) {
-            if (!in_array(Auth::user()->role, ['super_admin', 'admin_hr', 'admin'])) {
-                abort(403);
-            }
-            return $next($request);
-        });
+        $this->middleware('can:hr.dashboard.view');
     }
 
     public function index()
@@ -86,40 +81,59 @@ class HrDashboardController extends Controller
             ->orderBy('contract_end_date')
             ->get();
 
-        // Get all active employees for attendance heatmap sample
+        $excludeDeptId = 17; // Party Point — gedung berbeda, tidak diikutkan di HR attendance
+
+        // Get all active employees for attendance heatmap sample (exclude Party Point)
         $activeEmployeeList = Employee::with('department')
             ->where('status', 'active')
+            ->where('department_id', '!=', $excludeDeptId)
             ->limit(15)
             ->get();
 
-        // ── Attendance Metrics (this month) ──────────────────────────────────
+        // ── Attendance Metrics (this month, exclude Party Point) ─────────────
         $attendanceStats = DailyAttendance::whereBetween('date', [$monthStart, $monthEnd])
+            ->join('employees', 'daily_attendances.employee_id', '=', 'employees.id')
+            ->where('employees.department_id', '!=', $excludeDeptId)
+            ->whereNull('employees.deleted_at')
             ->selectRaw("
-                SUM(CASE WHEN status = 'Present' THEN 1 ELSE 0 END) as present_count,
-                SUM(CASE WHEN status = 'Late'    THEN 1 ELSE 0 END) as late_count,
-                SUM(CASE WHEN status = 'Alpha'   THEN 1 ELSE 0 END) as alpha_count,
-                SUM(CASE WHEN status NOT IN ('Present','Late','Alpha') THEN 1 ELSE 0 END) as other_count,
+                SUM(CASE WHEN daily_attendances.status = 'Present' THEN 1 ELSE 0 END) as present_count,
+                SUM(CASE WHEN daily_attendances.status = 'Late'    THEN 1 ELSE 0 END) as late_count,
+                SUM(CASE WHEN daily_attendances.status = 'Alpha'   THEN 1 ELSE 0 END) as alpha_count,
+                SUM(CASE WHEN daily_attendances.status NOT IN ('Present','Late','Alpha') THEN 1 ELSE 0 END) as other_count,
                 COUNT(*) as total_count
             ")
             ->first();
 
         // Today's attendance — fall back to last recorded day if today has no data yet
-        $lastAttendanceDate = DailyAttendance::whereDate('date', $today)->exists()
+        $lastAttendanceDate = DailyAttendance::join('employees', 'daily_attendances.employee_id', '=', 'employees.id')
+            ->where('employees.department_id', '!=', $excludeDeptId)
+            ->whereNull('employees.deleted_at')
+            ->whereDate('daily_attendances.date', $today)
+            ->exists()
             ? $today
-            : (DailyAttendance::max('date') ?? $today);
-        $todayAttendance = DailyAttendance::whereDate('date', $lastAttendanceDate)
-            ->whereIn('status', ['Present', 'Late'])
+            : (DailyAttendance::join('employees', 'daily_attendances.employee_id', '=', 'employees.id')
+                ->where('employees.department_id', '!=', $excludeDeptId)
+                ->whereNull('employees.deleted_at')
+                ->max('daily_attendances.date') ?? $today);
+        $todayAttendance = DailyAttendance::join('employees', 'daily_attendances.employee_id', '=', 'employees.id')
+            ->where('employees.department_id', '!=', $excludeDeptId)
+            ->whereNull('employees.deleted_at')
+            ->whereDate('daily_attendances.date', $lastAttendanceDate)
+            ->whereIn('daily_attendances.status', ['Present', 'Late'])
             ->count();
         $attendanceRate  = $activeEmployees > 0 ? round(($todayAttendance / $activeEmployees) * 100) : 0;
         $attendanceDateLabel = $lastAttendanceDate === $today ? 'Today' : Carbon::parse($lastAttendanceDate)->format('d/m');
 
-        // ── Daily Attendance Trend (HANYA TANGGAL YANG ADA DATA) ──
-        $dailyTrend = DailyAttendance::whereBetween('date', [$monthStart, $monthEnd])
+        // ── Daily Attendance Trend (exclude Party Point) ─────────────────────
+        $dailyTrend = DailyAttendance::whereBetween('daily_attendances.date', [$monthStart, $monthEnd])
+            ->join('employees', 'daily_attendances.employee_id', '=', 'employees.id')
+            ->where('employees.department_id', '!=', $excludeDeptId)
+            ->whereNull('employees.deleted_at')
             ->selectRaw("
-                DATE(date) as day,
-                SUM(CASE WHEN status = 'Present' THEN 1 ELSE 0 END) as present,
-                SUM(CASE WHEN status = 'Late' THEN 1 ELSE 0 END) as late,
-                SUM(CASE WHEN status = 'Alpha' THEN 1 ELSE 0 END) as alpha
+                DATE(daily_attendances.date) as day,
+                SUM(CASE WHEN daily_attendances.status = 'Present' THEN 1 ELSE 0 END) as present,
+                SUM(CASE WHEN daily_attendances.status = 'Late' THEN 1 ELSE 0 END) as late,
+                SUM(CASE WHEN daily_attendances.status = 'Alpha' THEN 1 ELSE 0 END) as alpha
             ")
             ->groupBy('day')
             ->orderBy('day', 'asc')
@@ -133,22 +147,30 @@ class HrDashboardController extends Controller
                 ];
             });
 
-        // Top absences this month
+        // Top absences this month (active, exclude Party Point)
         $topAbsences = DailyAttendance::with('employee.department')
-            ->whereBetween('date', [$monthStart, $monthEnd])
-            ->where('status', 'Alpha')
-            ->selectRaw('employee_id, COUNT(*) as alpha_count')
-            ->groupBy('employee_id')
+            ->join('employees', 'daily_attendances.employee_id', '=', 'employees.id')
+            ->whereBetween('daily_attendances.date', [$monthStart, $monthEnd])
+            ->where('daily_attendances.status', 'Alpha')
+            ->where('employees.status', 'active')
+            ->where('employees.department_id', '!=', $excludeDeptId)
+            ->whereNull('employees.deleted_at')
+            ->selectRaw('daily_attendances.employee_id, COUNT(*) as alpha_count')
+            ->groupBy('daily_attendances.employee_id')
             ->orderByDesc('alpha_count')
             ->limit(10)
             ->get();
 
-        // Top late this month
+        // Top late this month (active, exclude Party Point)
         $topLate = DailyAttendance::with('employee.department')
-            ->whereBetween('date', [$monthStart, $monthEnd])
-            ->where('status', 'Late')
-            ->selectRaw('employee_id, COUNT(*) as late_count')
-            ->groupBy('employee_id')
+            ->join('employees', 'daily_attendances.employee_id', '=', 'employees.id')
+            ->whereBetween('daily_attendances.date', [$monthStart, $monthEnd])
+            ->where('daily_attendances.status', 'Late')
+            ->where('employees.status', 'active')
+            ->where('employees.department_id', '!=', $excludeDeptId)
+            ->whereNull('employees.deleted_at')
+            ->selectRaw('daily_attendances.employee_id, COUNT(*) as late_count')
+            ->groupBy('daily_attendances.employee_id')
             ->orderByDesc('late_count')
             ->limit(10)
             ->get();

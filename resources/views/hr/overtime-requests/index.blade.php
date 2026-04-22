@@ -12,10 +12,12 @@
                     <h4 class="mb-0">Overtime Requests</h4>
                     <p class="text-muted mb-0">Manage employee overtime requests</p>
                 </div>
-                <a href="{{ route('overtime-requests.create') }}" 
+                @can('hr.overtime.create')
+                <a href="{{ route('overtime-requests.create') }}"
                    class="btn btn-primary rounded-3 px-4">
                     <i class="fas fa-plus me-2"></i>New Request
                 </a>
+                @endcan
             </div>
 
             <!-- Stats Cards -->
@@ -285,6 +287,7 @@
                                                 </a>
 
                                                 <!-- Edit Button (not for rejected) -->
+                                                @can('hr.overtime.create')
                                                 @if($req->status !== 'rejected')
                                                 <a href="{{ route('overtime-requests.edit', $req->uid) }}"
                                                    class="btn btn-sm btn-outline-primary border-0 px-2 action-btn"
@@ -292,8 +295,10 @@
                                                     <i class="fas fa-edit"></i>
                                                 </a>
                                                 @endif
+                                                @endcan
 
                                                 <!-- Delete Button (only for draft) -->
+                                                @can('hr.overtime.create')
                                                 @if($req->status == 'draft')
                                                 <form action="{{ route('overtime-requests.destroy', $req->uid) }}"
                                                       method="POST" class="d-inline"
@@ -307,6 +312,7 @@
                                                     </button>
                                                 </form>
                                                 @endif
+                                                @endcan
 
                                             </div>
                                         </td>

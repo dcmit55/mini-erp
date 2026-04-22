@@ -9,6 +9,7 @@ use App\Models\Hr\AttendanceLog;
 use App\Models\Hr\DailyAttendance;
 use App\Models\Hr\LeaveRequest;
 use App\Models\Hr\SessionShift;
+use App\Models\Admin\Department;
 use App\Imports\AttendancesImport;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Auth;
@@ -26,13 +27,7 @@ class AttendanceLogController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        $this->middleware(function ($request, $next) {
-            $rolesAllowed = ['super_admin', 'admin_hr', 'admin'];
-            if (!in_array(Auth::user()->role, $rolesAllowed)) {
-                abort(403);
-            }
-            return $next($request);
-        });
+        $this->middleware('can:hr.attendance.view');
     }
 
     /**
@@ -40,7 +35,8 @@ class AttendanceLogController extends Controller
      */
     public function index(Request $request)
     {
-        $search = $request->input('search', '');
+        $search       = $request->input('search', '');
+        $departmentId = $request->input('department_id');
 
         $employeesQuery = Employee::where('status', 'active');
         if (!empty($search)) {
@@ -49,7 +45,11 @@ class AttendanceLogController extends Controller
                   ->orWhere('employee_no', 'LIKE', "%{$search}%");
             });
         }
-        $employees = $employeesQuery->orderBy('name')->get();
+        if ($departmentId) {
+            $employeesQuery->where('department_id', $departmentId);
+        }
+        $employees   = $employeesQuery->orderBy('name')->get();
+        $departments = Department::orderBy('name')->get();
 
         if ($request->has('all')) {
             $datesWithData = AttendanceLog::select('date')->distinct()->pluck('date')->toArray();
@@ -210,7 +210,7 @@ class AttendanceLogController extends Controller
             }
         }
 
-        return view('hr.attendance-logs.index', compact('attendancesPaginated', 'employees', 'latestImportSource', 'search'));
+        return view('hr.attendance-logs.index', compact('attendancesPaginated', 'employees', 'departments', 'latestImportSource', 'search', 'departmentId'));
     }
 
     private function calculateHours($clockIn, $clockOut)

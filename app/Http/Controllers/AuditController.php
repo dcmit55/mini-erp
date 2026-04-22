@@ -13,14 +13,8 @@ class AuditController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-
-        // Audit hanya untuk super_admin
-        $this->middleware(function ($request, $next) {
-            if (!Auth::user()->isSuperAdmin()) {
-                abort(403, 'Access denied. Super admin only.');
-            }
-            return $next($request);
-        });
+        $this->middleware('can:admin.audit.view');
+        $this->middleware('can:admin.audit.delete')->only(['destroy', 'bulkDelete', 'deleteByDateRange', 'purgeOldLogs']);
     }
 
     public function index(Request $request)

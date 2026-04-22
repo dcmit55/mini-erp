@@ -25,13 +25,7 @@ class ProjectCostingController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        $this->middleware(function ($request, $next) {
-            $rolesAllowed = ['super_admin', 'admin_finance', 'admin'];
-            if (!in_array(Auth::user()->role, $rolesAllowed)) {
-                abort(403, 'Unauthorized');
-            }
-            return $next($request);
-        });
+        $this->middleware('can:finance.costing.view');
     }
 
     public function index(Request $request)
@@ -495,7 +489,7 @@ class ProjectCostingController extends Controller
         $maxDate = $timingDates->max();
 
         $otRequests = OvertimeRequest::whereIn('employee_id', $employeeIds)
-            ->whereIn('status', ['approved', 'submitted'])
+            ->where('status', 'approved')
             // Only OT dates that overlap with this project's work period
             ->when($minDate, fn($q) => $q->whereDate('start_time', '>=', $minDate))
             ->when($maxDate, fn($q) => $q->whereDate('start_time', '<=', $maxDate))

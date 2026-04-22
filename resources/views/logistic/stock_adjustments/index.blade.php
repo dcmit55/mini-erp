@@ -9,11 +9,11 @@
                 <h4 class="mb-0 fw-bold"><i class="bi bi-sliders me-2 text-warning"></i>Stock Adjustment</h4>
                 <small class="text-muted">Kelola penyesuaian stok: Initial Stock dan Adjustment</small>
             </div>
-            @if (in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin']))
+            @can('logistic.stock-adjustment.create')
                 <a href="{{ route('stock-adjustments.create') }}" class="btn btn-primary">
                     <i class="bi bi-plus-circle me-1"></i>New Adjustment
                 </a>
-            @endif
+            @endcan
         </div>
 
         @if (session('success'))

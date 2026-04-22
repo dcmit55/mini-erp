@@ -10,14 +10,14 @@
                         <i class="fas fa-coins gradient-icon me-2" style="font-size: 1.5rem;"></i>
                         <h2 class="mb-0 flex-shrink-0" style="font-size:1.3rem;">Currency List</h2>
                     </div>
-                    @if (in_array(auth()->user()->role, ['super_admin', 'admin_finance', 'admin_logistic', 'admin']))
+                    @can('finance.currency.edit')
                         <div class="align-self-start align-self-md-center">
                             <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal"
                                 data-bs-target="#currencyModal">
                                 <i class="bi bi-plus-circle me-1"></i> Create Currency
                             </button>
                         </div>
-                    @endif
+                    @endcan
                 </div>
                 <p class="text-muted mb-3">All currencies listed here are converted to Indonesian Rupiah (IDR) for
                     consistency.</p>
@@ -63,6 +63,7 @@
                                 <td>{{ number_format($currency->exchange_rate ?? 0, 2, ',', '.') }} IDR</td>
                                 <td>{{ \Carbon\Carbon::parse($currency->updated_at)->translatedFormat('d F Y, H:i') }}</td>
                                 <td>
+                                    @can('finance.currency.edit')
                                     <div class="d-flex flex-wrap gap-1">
                                         <button type="button" class="btn btn-sm btn-primary edit-currency-btn"
                                             data-id="{{ $currency->id }}" data-name="{{ $currency->name }}"
@@ -77,6 +78,7 @@
                                                 title="Delete"><i class="bi bi-trash3-fill"></i></button>
                                         </form>
                                     </div>
+                                    @endcan
                                 </td>
                             </tr>
                         @endforeach

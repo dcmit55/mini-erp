@@ -25,12 +25,16 @@ class AuthServiceProvider extends ServiceProvider
     {
         $this->registerPolicies();
 
+        // Super admin bypass — melewati semua permission check Spatie
+        Gate::before(function ($user, $ability) {
+            if ($user->role === 'super_admin') {
+                return true;
+            }
+        });
+
         // Gate for Log Viewer (opcodesio/log-viewer)
-        // Allow access only for super_admin in production
         Gate::define('viewLogViewer', function ($user) {
             return $user->role === 'super_admin';
         });
-
-        //
     }
 }

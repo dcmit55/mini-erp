@@ -20,12 +20,12 @@
                 </div>
                 <div class="d-flex gap-2 align-items-center">
                     <div id="syncStatusBadge" class="d-none small"></div>
-                    @if(in_array(auth()->user()->role, ['super_admin', 'admin']))
+                    @can('production.jo.edit')
                         <button type="button" class="btn btn-sm btn-outline-primary px-3" id="syncBtn"
                             data-sync-url="{{ route('job-order-type-gradings.sync') }}">
                             <i class="fas fa-sync-alt me-1"></i> Sync from Lark
                         </button>
-                    @endif
+                    @endcan
                 </div>
             </div>
 
@@ -198,11 +198,11 @@
                                                     </a>
                                                 @else
                                                     <p class="small">Start by syncing data from Lark</p>
-                                                    @if(in_array(auth()->user()->role, ['super_admin', 'admin']))
+                                                    @can('production.jo.edit')
                                                         <button type="button" class="btn btn-sm btn-outline-primary px-4" id="syncBtnEmpty">
                                                             <i class="fas fa-sync-alt me-1"></i>Sync from Lark
                                                         </button>
-                                                    @endif
+                                                    @endcan
                                                 @endif
                                             </div>
                                         </td>

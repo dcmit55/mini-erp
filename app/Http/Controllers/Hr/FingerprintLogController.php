@@ -11,7 +11,7 @@ class FingerprintLogController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        $this->middleware('role:super_admin,admin_hr,admin');
+        $this->middleware('can:hr.fingerspot.view');
     }
 
     public function index(Request $request)

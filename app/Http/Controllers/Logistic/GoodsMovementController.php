@@ -21,6 +21,7 @@ class GoodsMovementController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
+        $this->middleware('can:logistic.goods-out.view');
     }
 
     public function index(Request $request)

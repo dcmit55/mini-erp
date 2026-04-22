@@ -3,107 +3,186 @@
 @section('title', 'Warning Letter Dashboard')
 
 @section('content')
-<div class="container-fluid py-4">
+<div class="container-fluid py-3">
     <div class="row justify-content-center">
         <div class="col-12">
 
-            <div class="d-flex justify-content-between align-items-center mb-4">
+            {{-- Header --}}
+            <div class="d-flex justify-content-between align-items-center mb-3">
                 <div>
-                    <h4 class="mb-0 fw-bold">Warning Letter Dashboard</h4>
-                    <small class="text-muted">Monitor active SPs, approvals, and expiry</small>
+                    <h5 class="text-dark mb-1 mt-2">Warning Letter Dashboard</h5>
+                    <p class="text-muted small mb-0">Monitor active SPs, approvals, and expiry</p>
                 </div>
                 <div class="d-flex gap-2">
-                    <a href="{{ route('warning-batches.create') }}" class="btn btn-outline-primary btn-sm">
-                        <i class="bi bi-people-fill me-1"></i> Bulk SP
+                    <a href="{{ route('warning-letters.index') }}"
+                       class="btn btn-outline-secondary btn-sm rounded-2 px-3">
+                        <i class="fas fa-list me-1"></i>All Letters
                     </a>
-                    <a href="{{ route('warning-letters.create') }}" class="btn btn-primary btn-sm">
-                        <i class="bi bi-plus-circle me-1"></i> New SP
+                    @can('hr.warning-batch.create')
+                    <a href="{{ route('warning-batches.create') }}"
+                       class="btn btn-outline-primary btn-sm rounded-2 px-3">
+                        <i class="fas fa-users me-1"></i>Bulk SP
                     </a>
+                    @endcan
+                    @can('hr.warning-letter.create')
+                    <a href="{{ route('warning-letters.create') }}"
+                       class="btn btn-primary btn-sm rounded-2 px-3">
+                        <i class="fas fa-plus me-1"></i>New SP
+                    </a>
+                    @endcan
                 </div>
             </div>
 
-            {{-- SP Level Overview --}}
-            <div class="row g-3 mb-4">
-                <div class="col-6 col-md-2">
-                    <div class="card border-0 shadow-sm rounded-3 text-center p-3">
-                        <div class="text-muted small mb-1">Total Active</div>
-                        <div class="fs-2 fw-bold text-primary">{{ $stats['total_active'] }}</div>
+            {{-- Stats --}}
+            <div class="row g-2 mb-3">
+                <div class="col-md-2 col-6">
+                    <div class="card border-0 shadow-sm rounded-3 h-100">
+                        <div class="card-body p-3">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-primary bg-opacity-10 rounded-2 p-2 me-3">
+                                    <i class="fas fa-file-alt text-primary"></i>
+                                </div>
+                                <div>
+                                    <h6 class="text-muted small mb-1">Total Active</h6>
+                                    <h4 class="mb-0">{{ $stats['total_active'] }}</h4>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="col-6 col-md-2">
-                    <div class="card border-0 shadow-sm rounded-3 text-center p-3 border-top border-3 border-info">
-                        <div class="text-muted small mb-1">Active SP1</div>
-                        <div class="fs-2 fw-bold text-info">{{ $stats['sp1'] }}</div>
+                <div class="col-md-2 col-6">
+                    <div class="card border-0 shadow-sm rounded-3 h-100">
+                        <div class="card-body p-3">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-info bg-opacity-10 rounded-2 p-2 me-3">
+                                    <i class="fas fa-file-alt text-info"></i>
+                                </div>
+                                <div>
+                                    <h6 class="text-muted small mb-1">Active SP1</h6>
+                                    <h4 class="mb-0 text-info">{{ $stats['sp1'] }}</h4>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="col-6 col-md-2">
-                    <div class="card border-0 shadow-sm rounded-3 text-center p-3 border-top border-3 border-warning">
-                        <div class="text-muted small mb-1">Active SP2</div>
-                        <div class="fs-2 fw-bold text-warning">{{ $stats['sp2'] }}</div>
+                <div class="col-md-2 col-6">
+                    <div class="card border-0 shadow-sm rounded-3 h-100">
+                        <div class="card-body p-3">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-warning bg-opacity-10 rounded-2 p-2 me-3">
+                                    <i class="fas fa-file-alt text-warning"></i>
+                                </div>
+                                <div>
+                                    <h6 class="text-muted small mb-1">Active SP2</h6>
+                                    <h4 class="mb-0 text-warning">{{ $stats['sp2'] }}</h4>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="col-6 col-md-2">
-                    <div class="card border-0 shadow-sm rounded-3 text-center p-3 border-top border-3" style="border-color:#fd7e14!important">
-                        <div class="text-muted small mb-1">Active SP3</div>
-                        <div class="fs-2 fw-bold" style="color:#fd7e14">{{ $stats['sp3'] }}</div>
+                <div class="col-md-2 col-6">
+                    <div class="card border-0 shadow-sm rounded-3 h-100">
+                        <div class="card-body p-3">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-danger bg-opacity-10 rounded-2 p-2 me-3">
+                                    <i class="fas fa-exclamation-triangle text-danger"></i>
+                                </div>
+                                <div>
+                                    <h6 class="text-muted small mb-1">Active SP3</h6>
+                                    <h4 class="mb-0 text-danger">{{ $stats['sp3'] }}</h4>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="col-6 col-md-2">
-                    <div class="card border-0 shadow-sm rounded-3 text-center p-3 border-top border-3 border-danger">
-                        <div class="text-muted small mb-1">Active SP4</div>
-                        <div class="fs-2 fw-bold text-danger">{{ $stats['sp4'] }}</div>
+                <div class="col-md-2 col-6">
+                    <div class="card border-0 shadow-sm rounded-3 h-100" style="border-left:3px solid #ef4444 !important;">
+                        <div class="card-body p-3">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-danger bg-opacity-10 rounded-2 p-2 me-3">
+                                    <i class="fas fa-user-times text-danger"></i>
+                                </div>
+                                <div>
+                                    <h6 class="text-muted small mb-1">Terminated</h6>
+                                    <h4 class="mb-0 text-danger">{{ \App\Models\Hr\Employee::where('status','terminated')->count() }}</h4>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="col-6 col-md-2">
-                    <div class="card border-0 shadow-sm rounded-3 text-center p-3 border-top border-3 border-warning">
-                        <div class="text-muted small mb-1">Expiring (14d)</div>
-                        <div class="fs-2 fw-bold text-warning">{{ $stats['expiring_soon'] }}</div>
+                <div class="col-md-2 col-6">
+                    <div class="card border-0 shadow-sm rounded-3 h-100">
+                        <div class="card-body p-3">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-warning bg-opacity-10 rounded-2 p-2 me-3">
+                                    <i class="fas fa-clock text-warning"></i>
+                                </div>
+                                <div>
+                                    <h6 class="text-muted small mb-1">Expiring (14d)</h6>
+                                    <h4 class="mb-0 text-warning">{{ $stats['expiring_soon'] }}</h4>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
+            {{-- Main Content --}}
             <div class="row g-3">
 
-                {{-- Left: Recent Active SP --}}
+                {{-- Recent Active SPs --}}
                 <div class="col-lg-7">
-                    <div class="card border-0 shadow-sm rounded-3 h-100">
-                        <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
-                            <span class="fw-semibold">Recent Active SPs</span>
-                            <a href="{{ route('warning-letters.index') }}" class="btn btn-sm btn-outline-secondary">View All</a>
+                    <div class="card border-0 shadow-sm rounded-3 overflow-hidden h-100">
+                        <div class="card-header bg-light border-bottom d-flex justify-content-between align-items-center px-3 py-2">
+                            <span class="small text-dark fw-medium">
+                                <i class="fas fa-file-alt me-2 text-primary"></i>Recent Active SPs
+                            </span>
+                            <a href="{{ route('warning-letters.index') }}"
+                               class="btn btn-outline-secondary btn-sm rounded-2 px-2 py-1"
+                               style="font-size:0.75rem;">View All</a>
                         </div>
                         <div class="card-body p-0">
                             <div class="table-responsive">
-                                <table class="table table-hover align-middle mb-0">
-                                    <thead class="table-light">
+                                <table class="table table-hover mb-0">
+                                    <thead class="bg-light">
                                         <tr>
-                                            <th class="px-3">Employee</th>
-                                            <th>SP</th>
-                                            <th>Category</th>
-                                            <th>Valid Until</th>
-                                            <th>Status</th>
+                                            <th class="border-0 small text-dark fw-medium px-3 py-2">Employee</th>
+                                            <th class="border-0 small text-dark fw-medium px-3 py-2">SP</th>
+                                            <th class="border-0 small text-dark fw-medium px-3 py-2">Category</th>
+                                            <th class="border-0 small text-dark fw-medium px-3 py-2">Valid Until</th>
+                                            <th class="border-0 small text-dark fw-medium px-3 py-2">Status</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         @forelse($recentLetters as $letter)
-                                        <tr onclick="window.location='{{ route('warning-letters.show', $letter) }}'" style="cursor:pointer">
-                                            <td class="px-3">
-                                                <div class="fw-semibold small">{{ $letter->employee->name }}</div>
-                                                <div class="text-muted" style="font-size:11px">{{ $letter->employee->department?->name }}</div>
+                                        <tr class="border-top" onclick="window.location='{{ route('warning-letters.show', $letter) }}'" style="cursor:pointer;">
+                                            <td class="px-3 py-2">
+                                                <div class="fw-medium" style="font-size:0.84rem;">{{ $letter->employee->name }}</div>
+                                                <div class="text-muted" style="font-size:0.72rem;">{{ $letter->employee->department?->name }}</div>
                                             </td>
-                                            <td>
-                                                @php $c=[1=>'info',2=>'warning',3=>'warning',4=>'danger']; @endphp
-                                                <span class="badge bg-{{ $c[$letter->sp_level]??'secondary' }} {{ in_array($letter->sp_level,[2,3])?'text-dark':'' }}">SP{{ $letter->sp_level }}</span>
+                                            <td class="px-3 py-2">
+                                                @php $spC=[1=>'info',2=>'warning',3=>'warning',4=>'danger']; $sc=$spC[$letter->sp_level]??'secondary'; @endphp
+                                                <span class="badge bg-{{ $sc }} bg-opacity-10 text-{{ $sc }} border border-{{ $sc }} border-opacity-25 rounded-2 px-2 {{ in_array($letter->sp_level,[2,3])?'text-dark':'' }}">
+                                                    SP{{ $letter->sp_level }}
+                                                </span>
                                             </td>
-                                            <td><small>{{ Str::limit($letter->violationCategory->name, 20) }}</small></td>
-                                            <td>
-                                                <small class="{{ $letter->valid_until && $letter->valid_until->diffInDays(now()) <= 14 ? 'text-danger fw-semibold' : '' }}">
+                                            <td class="px-3 py-2 small text-muted">{{ Str::limit($letter->violationCategory->name, 22) }}</td>
+                                            <td class="px-3 py-2 small">
+                                                <span class="{{ $letter->valid_until && $letter->valid_until->diffInDays(now()) <= 14 ? 'text-danger fw-medium' : 'text-muted' }}">
                                                     {{ $letter->valid_until?->format('d/m/Y') ?? '—' }}
-                                                </small>
+                                                </span>
                                             </td>
-                                            <td><span class="badge bg-{{ $letter->statusColor }}">{{ $letter->statusLabel }}</span></td>
+                                            <td class="px-3 py-2">
+                                                @php $sBg = \App\Models\Hr\WarningLetter::STATUS_COLORS[$letter->status] ?? 'secondary'; @endphp
+                                                <span class="badge bg-{{ $sBg }} bg-opacity-10 text-{{ $sBg }} border border-{{ $sBg }} border-opacity-25 rounded-2 px-2" style="font-size:0.72rem;">
+                                                    {{ $letter->statusLabel }}
+                                                </span>
+                                            </td>
                                         </tr>
                                         @empty
-                                        <tr><td colspan="5" class="text-center py-3 text-muted">No active SPs.</td></tr>
+                                        <tr>
+                                            <td colspan="5" class="text-center py-4 text-muted small">No active SPs.</td>
+                                        </tr>
                                         @endforelse
                                     </tbody>
                                 </table>
@@ -112,22 +191,27 @@
                     </div>
                 </div>
 
-                {{-- Right: Expiring Soon --}}
+                {{-- Expiring Soon --}}
                 <div class="col-lg-5">
-                    <div class="card border-0 shadow-sm rounded-3 h-100">
-                        <div class="card-header bg-transparent fw-semibold text-warning">
-                            <i class="bi bi-clock-history me-1"></i> Expiring Soon (30 days)
+                    <div class="card border-0 shadow-sm rounded-3 overflow-hidden h-100">
+                        <div class="card-header bg-light border-bottom px-3 py-2">
+                            <span class="small text-dark fw-medium">
+                                <i class="fas fa-clock me-2 text-warning"></i>Expiring Soon (30 days)
+                            </span>
                         </div>
                         <div class="card-body p-0">
                             @forelse($expiringSoon as $letter)
                             <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom">
                                 <div>
-                                    <div class="fw-semibold small">{{ $letter->employee->name }}</div>
-                                    <div class="text-muted" style="font-size:11px">{{ $letter->employee->department?->name }} — SP{{ $letter->sp_level }}</div>
+                                    <div class="fw-medium" style="font-size:0.84rem;">{{ $letter->employee->name }}</div>
+                                    <div class="text-muted" style="font-size:0.72rem;">
+                                        {{ $letter->employee->department?->name }} —
+                                        <span class="badge bg-warning bg-opacity-10 text-dark border border-warning border-opacity-25 rounded-2 px-1" style="font-size:0.65rem;">SP{{ $letter->sp_level }}</span>
+                                    </div>
                                 </div>
                                 <div class="text-end">
-                                    <div class="text-danger small fw-semibold">{{ $letter->valid_until->format('d/m/Y') }}</div>
-                                    <div class="text-muted" style="font-size:11px">{{ $letter->valid_until->diffForHumans() }}</div>
+                                    <div class="text-danger small fw-medium">{{ $letter->valid_until->format('d/m/Y') }}</div>
+                                    <div class="text-muted" style="font-size:0.72rem;">{{ $letter->valid_until->diffForHumans() }}</div>
                                 </div>
                             </div>
                             @empty
@@ -139,36 +223,45 @@
 
             </div>
 
-            {{-- Bottom: Quick links --}}
-            <div class="row g-3 mt-1">
+            {{-- Quick Links --}}
+            <div class="row g-2 mt-1">
                 <div class="col-md-4">
-                    <a href="{{ route('warning-letters.index', ['status' => 'draft']) }}" class="card border-0 shadow-sm rounded-3 text-decoration-none text-dark p-3 d-block">
+                    <a href="{{ route('warning-letters.index', ['status' => 'draft']) }}"
+                       class="card border-0 shadow-sm rounded-3 text-decoration-none p-3 d-block">
                         <div class="d-flex align-items-center">
-                            <div class="bg-secondary rounded-3 p-2 me-3"><i class="bi bi-file-earmark-text fs-5 text-white"></i></div>
+                            <div class="bg-secondary bg-opacity-10 rounded-2 p-2 me-3">
+                                <i class="fas fa-pencil-alt text-secondary"></i>
+                            </div>
                             <div>
-                                <div class="fw-semibold">Draft SP</div>
+                                <div class="fw-medium text-dark" style="font-size:0.88rem;">Draft SP</div>
                                 <div class="text-muted small">Not yet finalized</div>
                             </div>
                         </div>
                     </a>
                 </div>
                 <div class="col-md-4">
-                    <a href="{{ route('warning-batches.index') }}" class="card border-0 shadow-sm rounded-3 text-decoration-none text-dark p-3 d-block">
+                    <a href="{{ route('warning-batches.index') }}"
+                       class="card border-0 shadow-sm rounded-3 text-decoration-none p-3 d-block">
                         <div class="d-flex align-items-center">
-                            <div class="bg-primary rounded-3 p-2 me-3"><i class="bi bi-people-fill fs-5 text-white"></i></div>
+                            <div class="bg-primary bg-opacity-10 rounded-2 p-2 me-3">
+                                <i class="fas fa-users text-primary"></i>
+                            </div>
                             <div>
-                                <div class="fw-semibold">{{ $stats['total_batches'] }} Batches</div>
+                                <div class="fw-medium text-dark" style="font-size:0.88rem;">{{ $stats['total_batches'] }} Batches</div>
                                 <div class="text-muted small">Bulk generation history</div>
                             </div>
                         </div>
                     </a>
                 </div>
                 <div class="col-md-4">
-                    <a href="{{ route('violation-categories.index') }}" class="card border-0 shadow-sm rounded-3 text-decoration-none text-dark p-3 d-block">
+                    <a href="{{ route('violation-categories.index') }}"
+                       class="card border-0 shadow-sm rounded-3 text-decoration-none p-3 d-block">
                         <div class="d-flex align-items-center">
-                            <div class="bg-secondary rounded-3 p-2 me-3"><i class="bi bi-tags-fill fs-5 text-white"></i></div>
+                            <div class="bg-info bg-opacity-10 rounded-2 p-2 me-3">
+                                <i class="fas fa-tags text-info"></i>
+                            </div>
                             <div>
-                                <div class="fw-semibold">Violation Categories</div>
+                                <div class="fw-medium text-dark" style="font-size:0.88rem;">Violation Categories</div>
                                 <div class="text-muted small">Manage violation categories</div>
                             </div>
                         </div>
@@ -180,3 +273,20 @@
     </div>
 </div>
 @endsection
+
+<style>
+.btn { font-size: 0.9rem; font-weight: 500; }
+.btn-primary { background-color: #4f46e5; border-color: #4f46e5; }
+.btn-primary:hover { background-color: #4338ca; border-color: #4338ca; }
+.table-hover tbody tr:hover { background-color: rgba(79,70,229,.04); }
+.badge { font-size: 0.75rem; font-weight: 500; }
+.card { background: #fff; border: 1px solid #e2e8f0; }
+.bg-light { background-color: #f8fafc !important; }
+.text-muted { color: #6b7280 !important; }
+.text-dark { color: #374151 !important; }
+.text-primary { color: #4f46e5 !important; }
+.rounded-2 { border-radius: .5rem !important; }
+.rounded-3 { border-radius: .75rem !important; }
+.table td, .table th { vertical-align: middle; }
+.fw-medium { font-weight: 500 !important; }
+</style>

@@ -16,13 +16,8 @@ class GoodsReceiveController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        $allowedRoles = ['super_admin', 'admin_procurement', 'admin_logistic', 'admin'];
-        $this->middleware(function ($request, $next) use ($allowedRoles) {
-            if (!in_array(auth()->user()->role, $allowedRoles)) {
-                abort(403, 'Unauthorized');
-            }
-            return $next($request);
-        });
+        $this->middleware('can:procurement.shipping.view');
+        $this->middleware('can:procurement.shipping.edit')->only(['store', 'update', 'destroy']);
     }
 
     public function index()
@@ -35,16 +30,6 @@ class GoodsReceiveController extends Controller
 
     public function store(Request $request)
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            return response()->json(
-                [
-                    'success' => false,
-                    'message' => 'You do not have permission to create goods receive.',
-                ],
-                403,
-            );
-        }
-
         // Validasi
         $request->validate([
             'shipping_id' => 'required|exists:shippings,id',

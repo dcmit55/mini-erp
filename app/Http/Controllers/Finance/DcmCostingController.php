@@ -12,6 +12,12 @@ use Illuminate\Support\Str;
 
 class DcmCostingController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+        $this->middleware('can:finance.costing.view');
+    }
+
     /**
      * Display a listing of DCM costings
      */

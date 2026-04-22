@@ -22,15 +22,9 @@ class GoodsOutController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-
-        // Admin (role 'admin') bisa akses halaman, tapi tidak bisa submit/delete
-        $this->middleware(function ($request, $next) {
-            $writeRoutes = ['goods_out.create_with_id', 'goods_out.store', 'goods_out.create_independent', 'goods_out.store_independent', 'goods_out.bulk', 'goods_out.edit', 'goods_out.update', 'goods_out.destroy'];
-            if (in_array($request->route()->getName(), $writeRoutes) && !in_array(Auth::user()->role, ['admin_logistic', 'super_admin'])) {
-                abort(403, 'You do not have permission to modify goods out data.');
-            }
-            return $next($request);
-        })->only(['store', 'storeIndependent', 'bulkGoodsOut', 'update', 'destroy']);
+        $this->middleware('can:logistic.goods-out.view');
+        $this->middleware('can:logistic.goods-out.create')->only(['create', 'store', 'storeIndependent', 'bulkGoodsOut', 'createWithId']);
+        $this->middleware('can:logistic.goods-out.edit')->only(['edit', 'update', 'destroy']);
     }
 
     public function index(Request $request)
@@ -190,7 +184,7 @@ class GoodsOutController extends Controller
         $buttons = '<div class="d-flex flex-nowrap gap-1">';
 
         // Edit button - only for admin_logistic and super_admin
-        if (in_array(auth()->user()->role, ['admin_logistic', 'super_admin', 'admin'])) {
+        if (auth()->user()->can('logistic.goods-out.edit')) {
             $buttons .=
                 '<a href="' .
                 route('goods_out.edit', $goodsOut->id) .

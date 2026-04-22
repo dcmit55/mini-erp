@@ -12,9 +12,11 @@
                     <h4 class="mb-0">Bulk Warning Letter</h4>
                     <p class="text-muted mb-0">Bulk warning letter generation history</p>
                 </div>
+                @can('hr.warning-batch.create')
                 <a href="{{ route('warning-batches.create') }}" class="btn btn-primary rounded-3 px-4">
                     <i class="fas fa-plus me-2"></i>Create Bulk SP
                 </a>
+                @endcan
             </div>
 
             <div class="card border-0 shadow-sm">

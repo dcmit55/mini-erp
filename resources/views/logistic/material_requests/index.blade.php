@@ -13,13 +13,15 @@
 
                     <!-- Tombol aksi -->
                     <div class="ms-sm-auto d-flex flex-wrap gap-2">
+                        @can('logistic.material-request.create')
                         <a href="{{ route('material_requests.create') }}" class="btn btn-primary btn-sm flex-shrink-0">
                             <i class="bi bi-plus-circle me-1"></i> Create Request
                         </a>
                         <a href="{{ route('material_requests.bulk_create') }}" class="btn btn-info btn-sm flex-shrink-0">
                             <i class="bi bi-plus-circle me-1"></i> Bulk Request
                         </a>
-                        @if (auth()->user()->isLogisticAdmin() || auth()->user()->isReadOnlyAdmin())
+                        @endcan
+                        @can('logistic.material-request.approve')
                             <span id="bulk-goods-out-tooltip-wrapper" data-bs-toggle="tooltip" data-bs-placement="bottom"
                                 title="To perform Bulk Goods Out, please select material requests with Approved status.">
                                 <button id="bulk-goods-out-btn" class="btn btn-success btn-sm flex-shrink-0" disabled>
@@ -28,10 +30,12 @@
                                     <span id="bulk-goods-out-count" class="badge bg-light text-dark ms-1 d-none">0</span>
                                 </button>
                             </span>
-                        @endif
+                        @endcan
+                        @can('logistic.material-request.export')
                         <a href="#" id="export-btn" class="btn btn-outline-success btn-sm flex-shrink-0">
                             <i class="bi bi-file-earmark-excel me-1"></i> Export
                         </a>
+                        @endcan
                     </div>
                 </div>
 

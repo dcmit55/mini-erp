@@ -22,9 +22,8 @@ class LeaveRequestController extends Controller
 {
     public function __construct(private ApprovalService $approvalService)
     {
-        // Allow guest access only for create & store
-        // Index requires authentication
         $this->middleware('auth')->except(['create', 'store']);
+        $this->middleware('can:hr.leave.view')->except(['create', 'store']);
     }
 
     /**
@@ -265,14 +264,6 @@ class LeaveRequestController extends Controller
      */
     public function update(Request $request, LeaveRequest $leave)
     {
-        if (!Auth::check()) {
-            abort(403, 'Unauthorized access.');
-        }
-
-        if (Auth::user()->isReadOnlyAdmin()) {
-            abort(403, 'You do not have permission to update leave requests.');
-        }
-
         // Validate employee is active
         $employee = Employee::with('department')->findOrFail($request->employee_id);
 
@@ -323,13 +314,6 @@ class LeaveRequestController extends Controller
                 return response()->json(['success' => false, 'message' => 'Unauthorized access.'], 403);
             }
             abort(403, 'Unauthorized access.');
-        }
-
-        if (Auth::user()->isReadOnlyAdmin()) {
-            if ($request->ajax()) {
-                return response()->json(['success' => false, 'message' => 'You do not have permission to approve leave requests.'], 403);
-            }
-            abort(403, 'You do not have permission to approve leave requests.');
         }
 
         $userRole = Auth::user()->role;
@@ -615,7 +599,7 @@ class LeaveRequestController extends Controller
         $level1AllowedRoles = $level1Matrix ? $level1Matrix->getAllowedRoles() : ['admin_hr'];
         $level1AllowedRoles[] = 'super_admin';
 
-        if (!in_array(Auth::user()->role, $level1AllowedRoles)) {
+        if (!Auth::user()->can('hr.leave.view')) {
             abort(403, 'You do not have permission to access HR Leave Approvals.');
         }
 
@@ -668,7 +652,7 @@ class LeaveRequestController extends Controller
         $level2AllowedRoles = $level2Matrix ? $level2Matrix->getAllowedRoles() : ['director', 'admin_hr'];
         $level2AllowedRoles[] = 'super_admin';
 
-        if (!in_array(Auth::user()->role, $level2AllowedRoles)) {
+        if (!Auth::user()->can('hr.leave.view')) {
             abort(403, 'You do not have permission to access Director Leave Approvals.');
         }
 
@@ -758,25 +742,11 @@ class LeaveRequestController extends Controller
      */
     public function destroy(LeaveRequest $leave)
     {
-        if (!Auth::check()) {
-            if (request()->ajax()) {
-                return response()->json(['success' => false, 'message' => 'Unauthorized access.'], 403);
-            }
-            abort(403, 'Unauthorized access.');
-        }
-
-        if (Auth::user()->isReadOnlyAdmin()) {
+        if (!Auth::user()->can('hr.leave.view')) {
             if (request()->ajax()) {
                 return response()->json(['success' => false, 'message' => 'You do not have permission to delete leave requests.'], 403);
             }
-            abort(403, 'You do not have permission to delete leave requests.');
-        }
-
-        if (!in_array(Auth::user()->role, ['super_admin', 'admin_hr'])) {
-            if (request()->ajax()) {
-                return response()->json(['success' => false, 'message' => 'Only Super Admin and HR Admin can delete leave requests.'], 403);
-            }
-            return redirect()->route('leave_requests.index')->with('error', 'Only Super Admin and HR Admin can delete leave requests.');
+            return redirect()->route('leave_requests.index')->with('error', 'You do not have permission to delete leave requests.');
         }
 
         $employeeName = $leave->employee->name ?? 'Unknown';

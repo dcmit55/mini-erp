@@ -19,7 +19,11 @@ use App\Services\ApprovalService;
 
 class OvertimeRequestController extends Controller
 {
-    public function __construct(private ApprovalService $approvalService) {}
+    public function __construct(private ApprovalService $approvalService)
+    {
+        $this->middleware('auth');
+        $this->middleware('can:hr.overtime.view')->only(['index', 'show', 'hrApprovals', 'attendanceComparison']);
+    }
 
     /**
      * Display a listing of the resource.
@@ -413,7 +417,7 @@ class OvertimeRequestController extends Controller
      */
     public function hrApprovals(Request $request)
     {
-        if (!in_array(auth()->user()->role, ['hr', 'admin_hr', 'super_admin'])) {
+        if (!auth()->user()->can('hr.overtime.view')) {
             abort(403);
         }
 
@@ -525,7 +529,7 @@ class OvertimeRequestController extends Controller
      */
     public function attendanceComparison(Request $request)
     {
-        if (!in_array(auth()->user()->role, ['hr', 'admin_hr', 'super_admin', 'admin'])) {
+        if (!auth()->user()->can('hr.overtime.view')) {
             abort(403);
         }
 
@@ -599,7 +603,7 @@ class OvertimeRequestController extends Controller
      */
     public function updateAttendance(Request $request, OvertimeRequest $overtimeRequest)
     {
-        if (!in_array(auth()->user()->role, ['hr', 'admin_hr', 'super_admin'])) {
+        if (!auth()->user()->can('hr.attendance.edit')) {
             abort(403);
         }
 
@@ -648,7 +652,7 @@ class OvertimeRequestController extends Controller
      */
     public function togglePass(Request $request, OvertimeRequest $overtimeRequest)
     {
-        if (!in_array(auth()->user()->role, ['hr', 'admin_hr', 'super_admin'])) {
+        if (!auth()->user()->can('hr.attendance.edit')) {
             abort(403);
         }
 

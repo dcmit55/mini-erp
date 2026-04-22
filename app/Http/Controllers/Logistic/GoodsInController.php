@@ -20,15 +20,9 @@ class GoodsInController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-
-        // Allow admin to access create/edit/delete pages, but block submit
-        $this->middleware(function ($request, $next) {
-            $writeRoutes = ['goods_in.store', 'goods_in.store_independent', 'goods_in.update', 'goods_in.destroy'];
-            if (in_array($request->route()->getName(), $writeRoutes) && auth()->user()->isReadOnlyAdmin()) {
-                abort(403, 'You do not have permission to submit or delete Goods In data.');
-            }
-            return $next($request);
-        })->only(['store', 'storeIndependent', 'update', 'destroy']);
+        $this->middleware('can:logistic.goods-in.view');
+        $this->middleware('can:logistic.goods-in.create')->only(['create', 'store', 'storeIndependent']);
+        $this->middleware('can:logistic.goods-in.edit')->only(['edit', 'update', 'destroy']);
     }
 
     // Server-side processing untuk index
@@ -164,7 +158,7 @@ class GoodsInController extends Controller
         $buttons = '<div class="d-flex flex-nowrap gap-1">';
 
         // Edit button
-        if (auth()->user()->username === $goodsIn->returned_by || in_array(auth()->user()->role, ['admin_logistic', 'super_admin', 'admin_finance', 'admin'])) {
+        if (auth()->user()->username === $goodsIn->returned_by || auth()->user()->can('logistic.goods-in.edit')) {
             $buttons .=
                 '<a href="' .
                 route('goods_in.edit', $goodsIn->id) .
@@ -174,7 +168,7 @@ class GoodsInController extends Controller
         }
 
         // Delete button - only for independent goods in (not linked to goods out)
-        if (!$goodsIn->goods_out_id && in_array(auth()->user()->role, ['admin_logistic', 'super_admin', 'admin_finance', 'admin'])) {
+        if (!$goodsIn->goods_out_id && auth()->user()->can('logistic.goods-in.edit')) {
             $buttons .=
                 '<button type="button" class="btn btn-sm btn-danger btn-delete"
                 data-id="' .

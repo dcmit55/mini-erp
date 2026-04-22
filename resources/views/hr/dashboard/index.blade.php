@@ -267,7 +267,7 @@
     <div class="card">
         <div class="card-title">Employees by Department</div>
         <div class="card-sub">Active employee count per department</div>
-        <div class="chart-wrap" style="height:230px;"><canvas id="chartDept"></canvas></div>
+        <div class="chart-wrap" style="height:320px;"><canvas id="chartDept"></canvas></div>
     </div>
     <div class="card">
         <div class="card-title">Employment Type</div>
@@ -534,7 +534,7 @@ mkChart('chartEmpStatus', 'pie', {
 mkChart('chartDept', 'bar', {
     labels: {!! json_encode($byDepartmentActive->pluck('name')->values()) !!},
     datasets: [{ label:'Active', data:{!! json_encode($byDepartmentActive->pluck('employees_count')->values()) !!}, backgroundColor:['#7c3aed','#2563eb','#16a34a','#d97706','#ea580c','#ec4899','#06b6d4','#f97316'], borderRadius:BR, borderSkipped:false }]
-}, { indexAxis:'y', plugins:{legend:{display:false}}, scales:{ x:{grid:{display:false}, ticks:{stepSize:10}}, y:{grid:{display:false}} } });
+}, { indexAxis:'y', maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ x:{grid:{display:false}, ticks:{stepSize:1, precision:0}}, y:{grid:{display:false}, ticks:{autoSkip:false, font:{size:8}}} } });
 
 // 3. Contract Type — Pie
 mkChart('chartEmpType', 'pie', {

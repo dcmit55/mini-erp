@@ -10,11 +10,14 @@ use Illuminate\Http\Request;
 
 class OvertimePayController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+        $this->middleware('can:hr.overtime.view');
+    }
+
     public function index(Request $request)
     {
-        if (!in_array(auth()->user()->role, ['hr', 'admin_hr', 'super_admin', 'admin'])) {
-            abort(403);
-        }
 
         $query = OvertimePayDetail::with(['overtimeRequest', 'employee']);
 
@@ -40,10 +43,6 @@ class OvertimePayController extends Controller
 
     public function create()
     {
-        if (!in_array(auth()->user()->role, ['hr', 'admin_hr', 'super_admin', 'admin'])) {
-            abort(403);
-        }
-
         $pendingRequests = OvertimeRequest::with('employee')
             ->where('status', 'approved')
             ->whereDoesntHave('payDetail')
@@ -55,10 +54,6 @@ class OvertimePayController extends Controller
 
     public function store(Request $request)
     {
-        if (!in_array(auth()->user()->role, ['hr', 'admin_hr', 'super_admin', 'admin'])) {
-            abort(403);
-        }
-
         $request->validate([
             'request_ids'   => 'required|array|min:1',
             'request_ids.*' => 'exists:overtime_requests,id',

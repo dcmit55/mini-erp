@@ -183,6 +183,13 @@ Route::middleware(['auth'])->group(function () {
     // Users
     Route::resource('users', UserController::class);
 
+    // Role & Permission Management (super_admin only)
+    Route::prefix('admin/roles')->name('admin.roles.')->middleware('can:admin.users.edit')->group(function () {
+        Route::get('/',              [App\Http\Controllers\Admin\RoleController::class, 'index'])->name('index');
+        Route::get('/{role}/edit',   [App\Http\Controllers\Admin\RoleController::class, 'edit'])->name('edit');
+        Route::put('/{role}',        [App\Http\Controllers\Admin\RoleController::class, 'update'])->name('update');
+    });
+
     // Material Usage
     Route::resource('material_usage', MaterialUsageController::class);
     Route::get('/material-usage/export', [MaterialUsageController::class, 'export'])->name('material_usage.export');
@@ -900,9 +907,10 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/{warningLetter}/edit',   [App\Http\Controllers\Hr\WarningLetterController::class, 'edit'])->name('edit');
         Route::put('/{warningLetter}',        [App\Http\Controllers\Hr\WarningLetterController::class, 'update'])->name('update');
         Route::delete('/{warningLetter}',     [App\Http\Controllers\Hr\WarningLetterController::class, 'destroy'])->name('destroy');
-        Route::post('/{warningLetter}/approve',     [App\Http\Controllers\Hr\WarningLetterController::class, 'approve'])->name('approve');
-        Route::post('/{warningLetter}/acknowledge', [App\Http\Controllers\Hr\WarningLetterController::class, 'acknowledge'])->name('acknowledge');
-        Route::get('/{warningLetter}/pdf',          [App\Http\Controllers\Hr\WarningLetterController::class, 'pdf'])->name('pdf');
+        Route::post('/{warningLetter}/approve',            [App\Http\Controllers\Hr\WarningLetterController::class, 'approve'])->name('approve');
+        Route::post('/{warningLetter}/acknowledge',        [App\Http\Controllers\Hr\WarningLetterController::class, 'acknowledge'])->name('acknowledge');
+        Route::post('/{warningLetter}/terminate-employee', [App\Http\Controllers\Hr\WarningLetterController::class, 'terminateEmployee'])->name('terminate-employee');
+        Route::get('/{warningLetter}/pdf',                 [App\Http\Controllers\Hr\WarningLetterController::class, 'pdf'])->name('pdf');
     });
 
     // ─── Warning Batches (Bulk) ────────────────────────────────────────────────

@@ -11,6 +11,12 @@ use Illuminate\Support\Str;
 
 class PurchaseEditedController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+        $this->middleware('can:finance.purchase-edited.view');
+    }
+
     /**
      * Display list of edited purchases
      */

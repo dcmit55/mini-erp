@@ -13,11 +13,11 @@
 
                     <!-- Spacer to push buttons to the right -->
                     <div class="ms-sm-auto d-flex flex-wrap gap-2">
-                        @if (in_array(Auth::user()->role, ['admin_logistic', 'super_admin', 'admin']))
+                        @can('logistic.goods-out.create')
                             <a href="{{ route('goods_out.create_independent') }}" class="btn btn-success btn-sm">
                                 <i class="bi bi-plus-circle me-1"></i> Create
                             </a>
-                        @endif
+                        @endcan
                         <a href="{{ route('goods_out.export', request()->query()) }}"
                             class="btn btn-outline-success btn-sm">
                             <i class="bi bi-file-earmark-excel me-1"></i> Export

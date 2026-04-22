@@ -12,6 +12,8 @@ class SkillsetController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
+        $this->middleware('can:hr.employees.view');
+        $this->middleware('can:hr.employees.edit')->only(['store']);
     }
 
     /**
@@ -19,16 +21,6 @@ class SkillsetController extends Controller
      */
     public function store(Request $request)
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            return response()->json(
-                [
-                    'success' => false,
-                    'message' => 'You do not have permission to add skillsets.',
-                ],
-                403,
-            );
-        }
-
         $request->validate([
             'name' => 'required|string|max:255|unique:skillsets,name',
             'category' => 'nullable|string|max:255',

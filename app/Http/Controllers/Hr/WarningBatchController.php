@@ -13,7 +13,10 @@ class WarningBatchController extends Controller
 {
     public function __construct(
         private WarningLetterService $wlService,
-    ) {}
+    ) {
+        $this->middleware('auth');
+        $this->middleware('can:hr.warnings.view');
+    }
 
     public function index()
     {

@@ -16,13 +16,7 @@ class UserController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        $this->middleware(function ($request, $next) {
-            $rolesAllowed = ['super_admin'];
-            if (!in_array(Auth::user()->role, $rolesAllowed)) {
-                abort(403, 'Unauthorized');
-            }
-            return $next($request);
-        });
+        $this->middleware('can:admin.users.view');
     }
 
     public function index()
@@ -62,6 +56,9 @@ class UserController extends Controller
 
         // Cache password hash untuk tracking perubahan
         $user->cachePasswordHash();
+
+        // Sync ke Spatie roles
+        $user->syncRoles([$validated['role']]);
 
         return redirect()
             ->route('users.index')
@@ -103,6 +100,9 @@ class UserController extends Controller
         }
 
         $user->save();
+
+        // Sync ke Spatie roles
+        $user->syncRoles([$request->role]);
 
         // Jika password diubah, hapus semua session user
         if ($passwordChanged) {

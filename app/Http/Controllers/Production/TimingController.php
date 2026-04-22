@@ -25,6 +25,8 @@ class TimingController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
+        $this->middleware('can:production.timing.view');
+        $this->middleware('can:production.timing.edit')->only(['create', 'storeMultiple', 'edit', 'update', 'destroy', 'import', 'downloadTemplate']);
     }
 
     public function index(Request $request)
@@ -139,7 +141,7 @@ class TimingController extends Controller
 
                     // Actions column
                     $authUser = auth()->user();
-                    $canEdit = $authUser->isSuperAdmin() || $authUser->isLogisticAdmin() || $authUser->isAdminTiming() || $authUser->id == $timing->employee_id;
+                    $canEdit = $authUser->can('production.timing.edit') || $authUser->id == $timing->employee_id;
                     $canDelete = $authUser->isSuperAdmin();
 
                     if ($canEdit) {
@@ -184,10 +186,6 @@ class TimingController extends Controller
 
     public function create()
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            abort(403, 'You do not have permission to create timing data.');
-        }
-
         $projects = Project::with(['parts', 'departments'])->get();
 
         // HANYA ambil employee yang statusnya 'active'
@@ -201,10 +199,6 @@ class TimingController extends Controller
 
     public function storeMultiple(Request $request)
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            return redirect()->route('timings.index')->with('error', 'You do not have permission to create timing data.');
-        }
-
         $attributes = [];
         $timings = $request->input('timings', []);
         foreach ($timings as $i => $timing) {
@@ -345,10 +339,6 @@ class TimingController extends Controller
 
     public function import(Request $request)
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            return redirect()->route('timings.index')->with('error', 'You do not have permission to import timing data.');
-        }
-
         $request->validate([
             'xls_file' => 'required|mimes:xls,xlsx',
         ]);
@@ -730,10 +720,6 @@ class TimingController extends Controller
 
     public function update(Request $request, Timing $timing)
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            return redirect()->route('timings.index')->with('error', 'You do not have permission to update timing data.');
-        }
-
         $attributes = [
             'tanggal' => 'Date',
             'project_id' => 'Project',

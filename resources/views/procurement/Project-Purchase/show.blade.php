@@ -213,7 +213,7 @@
                                         </td>
                                         @if($purchase->status == 'approved')
                                         <td class="text-center">
-                                            @if(in_array($item->item_status, ['pending', 'pending_check']) && auth()->user() && in_array(auth()->user()->role, ['super_admin', 'admin', 'inventory', 'admin_logistic', 'procurement']))
+                                            @if(in_array($item->item_status, ['pending', 'pending_check']) && auth()->user()->can('procurement.po.edit'))
                                                 <form action="{{ route('project-purchases.mark-as-received', $item->uid) }}" 
                                                       method="POST" class="d-inline"
                                                       onsubmit="return confirm('Mark this item as received and add to inventory?')">
@@ -416,21 +416,21 @@
                                         <i class="fas fa-edit me-1"></i>Edit
                                     </a>
                                     
-                                    @if(auth()->user() && auth()->user()->role == 'finance')
-                                    <button type="button" 
+                                    @can('procurement.po.approve')
+                                    <button type="button"
                                             class="btn btn-success rounded-2 px-3 btn-sm"
-                                            data-bs-toggle="modal" 
+                                            data-bs-toggle="modal"
                                             data-bs-target="#approveModal">
                                         <i class="fas fa-check me-1"></i>Approve
                                     </button>
-                                    
-                                    <button type="button" 
+
+                                    <button type="button"
                                             class="btn btn-danger rounded-2 px-3 btn-sm"
-                                            data-bs-toggle="modal" 
+                                            data-bs-toggle="modal"
                                             data-bs-target="#rejectModal">
                                         <i class="fas fa-times me-1"></i>Reject
                                     </button>
-                                    @endif
+                                    @endcan
                                 @endif
                             </div>
                         </div>
@@ -443,7 +443,7 @@
 </div>
 
 <!-- Approve Modal -->
-@if($purchase->status == 'pending' && auth()->user() && auth()->user()->role == 'finance')
+@if($purchase->status == 'pending' && auth()->user()->can('procurement.po.approve'))
 <div class="modal fade" id="approveModal" tabindex="-1">
     <div class="modal-dialog modal-md">
         <div class="modal-content">

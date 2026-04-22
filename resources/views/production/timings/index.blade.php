@@ -23,6 +23,7 @@
                         <a href="{{ route('costume-timing.index') }}" class="btn btn-outline-secondary btn-sm">
                             <i class="fas fa-cut me-1"></i> Costume Timing
                         </a>
+                        @can('production.timing.edit')
                         <a href="{{ route('timings.create') }}" class="btn btn-primary btn-sm flex-shrink-0">
                             <i class="bi bi-plus-circle me-1"></i> Input Timing
                         </a>
@@ -31,6 +32,7 @@
                             data-bs-target="#importModal">
                             <i class="bi bi-filetype-xls me-1"></i> Import
                         </button>
+                        @endcan
                         <!-- Export Button -->
                         <button type="button" id="export-btn" class="btn btn-outline-success btn-sm flex-shrink-0">
                             <i class="bi bi-file-earmark-excel me-1"></i> Export
@@ -254,29 +256,21 @@
 
                                 {{-- Actions --}}
                                 <td class="text-nowrap">
-                                    @if (auth()->user()->isSuperAdmin() ||
-                                            auth()->user()->isLogisticAdmin() ||
-                                            auth()->user()->isAdminTiming() ||
-                                            auth()->user()->id == $timing->employee_id)
+                                    @can('production.timing.edit')
                                         <a href="{{ route('timings.edit', $timing->id) }}" class="btn btn-sm btn-primary"
                                             title="Edit">
                                             <i class="bi bi-pencil-fill"></i>
                                         </a>
-
-                                        @if (auth()->user()->isSuperAdmin())
-                                            <form action="{{ route('timings.destroy', $timing->id) }}" method="POST"
-                                                class="d-inline"
-                                                onsubmit="return confirm('Are you sure you want to delete this timing record?')">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn btn-sm btn-danger" title="Delete">
-                                                    <i class="bi bi-trash-fill"></i>
-                                                </button>
-                                            </form>
-                                        @endif
-                                    @else
-                                        <span class="text-muted">-</span>
-                                    @endif
+                                        <form action="{{ route('timings.destroy', $timing->id) }}" method="POST"
+                                            class="d-inline"
+                                            onsubmit="return confirm('Are you sure you want to delete this timing record?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-danger" title="Delete">
+                                                <i class="bi bi-trash-fill"></i>
+                                            </button>
+                                        </form>
+                                    @endcan
                                 </td>
                             </tr>
                         @empty

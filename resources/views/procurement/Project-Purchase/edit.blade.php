@@ -304,6 +304,10 @@
     .select2-container--default .select2-selection--single .select2-selection__arrow {
         height: 40px;
     }
+    .select-readonly {
+        pointer-events: none;
+        background-color: #e9ecef;
+    }
 </style>
 @endsection
 
@@ -505,11 +509,6 @@
                                     <i class="fas fa-box me-2"></i>Items Information
                                     <span class="badge bg-primary ms-2">{{ $poItems->count() }}</span>
                                 </div>
-                                @if($purchase->status == 'pending')
-                                <button type="button" class="btn btn-primary btn-sm" id="addItemBtn">
-                                    <i class="fas fa-plus me-1"></i>Add Item
-                                </button>
-                                @endif
                             </div>
                             
                             <div id="itemsContainer">
@@ -723,6 +722,15 @@
                                 </div>
                             </template>
 
+                            @if($purchase->status == 'pending')
+                            <!-- Add Item button (bottom) -->
+                            <div class="d-flex justify-content-end mt-2 mb-1">
+                                <button type="button" class="btn btn-primary btn-sm" id="addItemBtn">
+                                    <i class="fas fa-plus me-1"></i>Add Item
+                                </button>
+                            </div>
+                            @endif
+
                             <!-- Grand Total -->
                             <div class="row mt-3">
                                 <div class="col-md-12">
@@ -883,7 +891,14 @@
 $(document).ready(function() {
     // Initialize Select2
     $('.select2').select2({ width: '100%' });
-    
+
+    // Apply readonly to category/unit for existing restock items
+    $('.item-row').each(function() {
+        if ($(this).find('.purchase-type').val() === 'restock') {
+            $(this).find('.category-select, .unit-select').addClass('select-readonly');
+        }
+    });
+
     let newItemIndex = {{ $poItems->count() }};
     const elements = {
         clientProjectSection: $('#clientProjectSection'),
@@ -1047,14 +1062,16 @@ $(document).ready(function() {
     });
 
     // Add New Item
-    $('#addItemBtn').click(function() {
+    function addNewItem() {
         const template = document.getElementById('itemRowTemplate').innerHTML;
         const newRow = template.replace(/__INDEX__/g, newItemIndex)
                                .replace(/__INDEX_PLUS_ONE__/g, newItemIndex + 1);
         $('#itemsContainer').append(newRow);
         initializeNewRow(newItemIndex);
         newItemIndex++;
-    });
+    }
+
+    $('#addItemBtn').click(addNewItem);
 
     // Initialize new row
     function initializeNewRow(index) {
@@ -1065,16 +1082,22 @@ $(document).ready(function() {
             const isRestock = $(this).val() === 'restock';
             row.find('.restock-section').toggle(isRestock);
             row.find('.newitem-section').toggle(!isRestock);
-            
+            row.find('.category-select, .unit-select').toggleClass('select-readonly', isRestock);
+
             // Reset values
             if (isRestock) {
                 row.find('input[name*="new_item_name"]').val('');
             } else {
                 row.find('.material-select').val('');
                 row.find('.unit-price').val('');
+                row.find('.category-select').val('');
+                row.find('.unit-select').val('');
             }
         });
-        
+
+        // Default type is restock — apply readonly on init
+        row.find('.category-select, .unit-select').addClass('select-readonly');
+
         // Material select — pakai Select2 AJAX
         initMaterialSelect2(row.find('.material-select'));
         

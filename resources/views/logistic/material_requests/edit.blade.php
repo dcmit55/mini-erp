@@ -220,7 +220,7 @@
                         <div class="col-lg-12 mb-3">
                             <label>Status</label>
                             <select name="status" class="form-select"
-                                {{ !in_array(auth()->user()->role, ['admin_logistic', 'super_admin']) ? 'disabled' : '' }}>
+                                {{ !auth()->user()->can('logistic.material-request.approve') ? 'disabled' : '' }}>
                                 <option value="pending" {{ $materialRequest->status === 'pending' ? 'selected' : '' }}>
                                     Pending</option>
                                 <option value="approved" {{ $materialRequest->status === 'approved' ? 'selected' : '' }}>
@@ -228,9 +228,9 @@
                                 <option value="canceled" {{ $materialRequest->status === 'canceled' ? 'selected' : '' }}>
                                     Canceled</option>
                             </select>
-                            @if (!in_array(auth()->user()->role, ['admin_logistic', 'super_admin']))
+                            @cannot('logistic.material-request.approve')
                                 <input type="hidden" name="status" value="{{ $materialRequest->status }}">
-                            @endif
+                            @endcannot
                         </div>
                     </div>
 

@@ -13,12 +13,12 @@
 
                     <!-- Spacer untuk mendorong tombol ke kanan -->
                     <div class="ms-sm-auto d-flex flex-wrap gap-2">
-                        @if (!in_array(auth()->user()->role, ['general']))
+                        @can('production.jo.create')
                             <a href="{{ route('job-orders.create') }}" class="btn btn-primary btn-sm flex-shrink-0">
                                 <i class="bi bi-plus-circle me-1"></i> Create Job Order
                             </a>
-                        @endif
-                        @if (in_array(auth()->user()->role, ['super_admin', 'admin']))
+                        @endcan
+                        @can('production.jo.edit')
                             <form action="{{ route('job-orders.sync.lark') }}" method="POST" class="d-inline"
                                 id="syncLarkForm">
                                 @csrf
@@ -29,10 +29,12 @@
                                     <span id="syncText">Sync from Lark</span>
                                 </button>
                             </form>
-                        @endif
+                        @endcan
+                        @can('production.jo.export')
                         <a href="#" id="export-btn" class="btn btn-outline-success btn-sm flex-shrink-0">
                             <i class="bi bi-file-earmark-excel me-1"></i> Export
                         </a>
+                        @endcan
                     </div>
                 </div>
 

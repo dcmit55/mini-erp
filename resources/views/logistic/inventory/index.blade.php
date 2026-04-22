@@ -140,25 +140,27 @@
 
                     <div class="ms-lg-auto">
                         <div class="d-flex flex-wrap gap-2 align-items-center justify-content-lg-end">
-                            @if (auth()->user()->isLogisticAdmin() || auth()->user()->isReadOnlyAdmin())
+                            @can('logistic.inventory.create')
                                 <a href="{{ route('inventory.create') }}" class="btn btn-primary btn-sm">
                                     <i class="bi bi-plus-circle me-1"></i>
                                     <span class="d-none d-sm-inline">Create Inventory</span>
                                     <span class="d-sm-none">Add</span>
                                 </a>
+                            @endcan
+                            @can('logistic.inventory.import')
                                 <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal"
                                     data-bs-target="#importModal">
                                     <i class="bi bi-filetype-xls me-1"></i> Import
                                 </button>
-                            @endif
-                            @if (in_array(auth()->user()->role, ['super_admin', 'admin']))
+                            @endcan
+                            @can('lark.staging.approve')
                                 <a href="{{ route('lark.staging.inventory') }}" class="btn btn-info btn-sm flex-shrink-0"
                                     data-bs-toggle="tooltip" data-bs-placement="bottom"
                                     title="Review & approve data purchase dari Lark sebelum masuk ke inventory stock">
                                     <i class="fas fa-filter me-1"></i>
                                     <span>Lark Staging</span>
                                 </a>
-                            @endif
+                            @endcan
                             <button type="button" id="export-btn" class="btn btn-outline-success btn-sm">
                                 <i class="bi bi-file-earmark-excel me-1"></i> Export
                             </button>
@@ -197,12 +199,12 @@
                                 @endforeach
                             </select>
                         </div>
-                        @if (in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance', 'admin_procurement', 'admin']))
+                        @can('logistic.inventory.edit')
                             <div class="col-md-2">
                                 <input type="text" id="materialCodeFilter" class="form-control form-control-sm"
                                     placeholder="Search Material Code...">
                             </div>
-                        @endif
+                        @endcan
                         <div class="col-md-2">
                             <select id="supplierFilter" class="form-select form-select-sm select2">
                                 <option value="">All Suppliers</option>

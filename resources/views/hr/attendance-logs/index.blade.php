@@ -14,12 +14,16 @@
                     </a>
                 </div>
                 <div class="d-flex gap-2">
+                    @can('hr.attendance.edit')
                     <button type="button" class="btn btn-sm btn-outline-primary px-3" data-bs-toggle="modal" data-bs-target="#importModal">
                         <i class="fas fa-upload me-1"></i> Import
                     </button>
+                    @endcan
+                    @can('hr.attendance.export')
                     <a href="{{ route('attendance-logs.export') }}?{{ http_build_query(request()->except('page')) }}" class="btn btn-sm btn-outline-success px-3">
                         <i class="fas fa-download me-1"></i> Export
                     </a>
+                    @endcan
                 </div>
             </div>
 
@@ -37,6 +41,17 @@
                                 <input type="date" name="end_date" class="form-control form-control-sm" value="{{ request('end_date') }}">
                             </div>
                             <div class="col-md-2">
+                                <label class="form-label mb-1" style="font-size:0.75rem;color:#6b7280;">Department</label>
+                                <select name="department_id" class="form-select form-select-sm">
+                                    <option value="">All Departments</option>
+                                    @foreach($departments as $dept)
+                                        <option value="{{ $dept->id }}" {{ request('department_id') == $dept->id ? 'selected' : '' }}>
+                                            {{ $dept->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-2">
                                 <label class="form-label mb-1" style="font-size:0.75rem;color:#6b7280;">Employee</label>
                                 <select name="employee_id" class="form-select form-select-sm">
                                     <option value="">All Employees</option>
@@ -47,22 +62,32 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-2">
                                 <label class="form-label mb-1" style="font-size:0.75rem;color:#6b7280;">Search</label>
                                 <input type="text" name="search" class="form-control form-control-sm" placeholder="Search name or NIK..." value="{{ request('search') }}">
                             </div>
-                            <div class="col-md-3 d-flex gap-1">
+                            <div class="col-md-2 d-flex gap-1 align-items-end">
                                 <button type="submit" class="btn btn-sm btn-primary px-3">
                                     <i class="fas fa-filter"></i> Filter
                                 </button>
-                                @if(request()->anyFilled(['start_date', 'end_date', 'employee_id', 'search']))
-                                    <a href="{{ route('attendance-logs.index') }}" class="btn btn-sm btn-outline-secondary px-3">
-                                        <i class="fas fa-times"></i> Clear
+                                @if(request()->anyFilled(['start_date', 'end_date', 'department_id', 'employee_id', 'search']))
+                                    <a href="{{ route('attendance-logs.index') }}" class="btn btn-sm btn-outline-secondary px-2">
+                                        <i class="fas fa-times"></i>
                                     </a>
                                 @endif
-                                <a href="{{ route('attendance-logs.index', ['all' => 1]) }}" class="btn btn-sm btn-outline-info px-3 {{ request()->has('all') ? 'active' : '' }}" title="Show all data">
-                                    <i class="fas fa-list"></i> All
+                                <a href="{{ route('attendance-logs.index', ['all' => 1]) }}" class="btn btn-sm btn-outline-info px-2 {{ request()->has('all') ? 'active' : '' }}" title="Show all data">
+                                    <i class="fas fa-list"></i>
                                 </a>
+                            </div>
+                        </div>
+                        <div class="row g-2 mt-1 align-items-center">
+                            <div class="col-auto">
+                                <label class="form-label mb-0 me-2" style="font-size:0.75rem;color:#6b7280;">UI Scale:</label>
+                                <select id="uiScaleSelect" class="form-select form-select-sm d-inline-block w-auto">
+                                    <option value="normal">Normal</option>
+                                    <option value="compact">Compact</option>
+                                    <option value="large">Large</option>
+                                </select>
                             </div>
                         </div>
                     </form>
@@ -158,8 +183,9 @@
                                         </td>
                                         <td>{{ $item->remarks ? \Illuminate\Support\Str::limit($item->remarks, 20) : '-' }}</td>
                                         <td class="pe-3">
+                                            @can('hr.attendance.edit')
                                             <button type="button" class="btn btn-sm btn-outline-primary border-0 px-3 py-1"
-                                                data-bs-toggle="modal" 
+                                                data-bs-toggle="modal"
                                                 data-bs-target="#editModal"
                                                 data-employee-id="{{ $item->employee->id }}"
                                                 data-date="{{ $item->date->format('Y-m-d') }}"
@@ -169,6 +195,7 @@
                                                 data-remarks="{{ $item->remarks }}">
                                                 <i class="fas fa-edit me-1"></i>Edit
                                             </button>
+                                            @endcan
                                         </td>
                                     </tr>
                                 @empty
@@ -513,5 +540,18 @@ $(document).ready(function() {
         $('#editBtn').prop('disabled', false);
     });
 });
+
+// UI Scale
+(function () {
+    const scales = { normal: '0.875rem', compact: '0.75rem', large: '1rem' };
+    const sel = document.getElementById('uiScaleSelect');
+    const saved = localStorage.getItem('attlog_ui_scale') || 'normal';
+    sel.value = saved;
+    document.querySelectorAll('table tbody tr').forEach(r => r.style.fontSize = scales[saved]);
+    sel.addEventListener('change', function () {
+        localStorage.setItem('attlog_ui_scale', this.value);
+        document.querySelectorAll('table tbody tr').forEach(r => r.style.fontSize = scales[this.value]);
+    });
+})();
 </script>
 @endpush

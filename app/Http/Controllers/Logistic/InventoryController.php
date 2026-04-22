@@ -62,16 +62,10 @@ class InventoryController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        // Batasi create/edit/delete HANYA untuk super_admin & admin_logistic
-        $this->middleware(function ($request, $next) {
-            $restrictedRoles = ['super_admin', 'admin_logistic', 'admin_finance', 'admin_procurement', 'admin'];
-            $restrictedRoutes = ['inventory.create', 'inventory.import', 'inventory.edit', 'inventory.destroy', 'inventory.store', 'inventory.update'];
-
-            if (in_array($request->route()->getName(), $restrictedRoutes) && !in_array(Auth::user()->role, $restrictedRoles)) {
-                abort(403, 'You do not have permission to modify inventory data.');
-            }
-            return $next($request);
-        })->only(['create', 'store', 'import', 'edit', 'update', 'destroy']);
+        $this->middleware('can:logistic.inventory.view');
+        $this->middleware('can:logistic.inventory.create')->only(['create', 'store', 'storeQuick', 'import']);
+        $this->middleware('can:logistic.inventory.edit')->only(['edit', 'update']);
+        $this->middleware('can:logistic.inventory.delete')->only(['destroy']);
     }
 
     public function index(Request $request)
@@ -290,8 +284,8 @@ class InventoryController extends Controller
                 'name' => '<div class="fw-semibold">' . $inventory->name . '</div>',
                 'category' => $categoryBadge,
                 'stock' => '<span class="fw-semibold">' . number_format($inventory->quantity, 2) . '</span>' . ($inventory->unit ? ' <span class="text-muted">' . $inventory->unit . '</span>' : ''),
-                'domestic_freight' => in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance', 'admin']) ? '<span class="fw-semibold text-info">' . $domesticFreightValue . '</span> ' . $currencyName : '',
-                'international_freight' => in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance', 'admin']) ? '<span class="fw-semibold text-warning">' . $internationalFreightValue . '</span> ' . $currencyName : '',
+                'domestic_freight' => auth()->user()->can('logistic.inventory.edit') ? '<span class="fw-semibold text-info">' . $domesticFreightValue . '</span> ' . $currencyName : '',
+                'international_freight' => auth()->user()->can('logistic.inventory.edit') ? '<span class="fw-semibold text-warning">' . $internationalFreightValue . '</span> ' . $currencyName : '',
                 'supplier' => $inventory->supplier ? $inventory->supplier->name : '-',
                 'location' => $inventory->location ? $inventory->location->name : '-',
                 'project_lark' => $inventory->project_lark ?? '<span class="text-muted">-</span>',
@@ -346,7 +340,7 @@ class InventoryController extends Controller
                      </button>';
 
         // Edit & Delete buttons (hanya untuk admin)
-        if (in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_procurement', 'admin_finance', 'admin'])) {
+        if (auth()->user()->can('logistic.inventory.edit')) {
             $buttons .=
                 '<a href="' .
                 route('inventory.edit', $inventory->id) .
@@ -452,7 +446,7 @@ class InventoryController extends Controller
         $fileName .= '_' . Carbon::now()->format('Y-m-d') . '.xlsx';
 
         // Update InventoryExport untuk menerima role info
-        $showCurrencyAndPrice = in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance', 'admin']);
+        $showCurrencyAndPrice = auth()->user()->can('logistic.inventory.edit');
 
         return Excel::download(new InventoryExport($inventories, $showCurrencyAndPrice), $fileName);
     }
@@ -472,10 +466,6 @@ class InventoryController extends Controller
 
     public function store(Request $request)
     {
-        if (auth()->user()->role === 'admin') {
-            return redirect()->back()->with('error', 'You do not have permission to submit inventory data.');
-        }
-
         $request->validate([
             'name' => 'required|string|max:255|unique:inventories,name,NULL,id,deleted_at,NULL',
             'category_id' => 'required|exists:categories,id',
@@ -526,16 +516,6 @@ class InventoryController extends Controller
 
     public function storeQuick(Request $request)
     {
-        if (auth()->user()->role === 'admin') {
-            return response()->json(
-                [
-                    'success' => false,
-                    'message' => 'You do not have permission to store inventory data.',
-                ],
-                403,
-            );
-        }
-
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255|unique:inventories,name,NULL,id,deleted_at,NULL',
             'quantity' => 'required|numeric|min:0',
@@ -613,10 +593,6 @@ class InventoryController extends Controller
 
     public function update(Request $request, Inventory $inventory)
     {
-        if (auth()->user()->role === 'admin') {
-            return redirect()->back()->with('error', 'You do not have permission to edit inventory data.');
-        }
-
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:inventories,name,' . $inventory->id . ',id,deleted_at,NULL',
             'category_id' => 'required|exists:categories,id',
@@ -669,10 +645,6 @@ class InventoryController extends Controller
 
     public function import(Request $request)
     {
-        if (auth()->user()->role === 'admin') {
-            return redirect()->back()->with('error', 'You do not have permission to import inventory data.');
-        }
-
         $request->validate([
             'xls_file' => 'required|mimes:xls,xlsx',
         ]);
@@ -811,16 +783,6 @@ class InventoryController extends Controller
 
     public function destroy($id)
     {
-        if (auth()->user()->role === 'admin') {
-            return response()->json(
-                [
-                    'success' => false,
-                    'message' => 'You do not have permission to delete inventory data.',
-                ],
-                403,
-            );
-        }
-
         $inventory = Inventory::findOrFail($id);
         $name = $inventory->name;
         $inventory->delete();

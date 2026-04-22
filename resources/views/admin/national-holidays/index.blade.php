@@ -20,9 +20,11 @@
                             @endif
                         </select>
                     </form>
+                    @can('admin.holidays.edit')
                     <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addHolidayModal">
                         <i class="fas fa-plus me-1"></i> Tambah
                     </button>
+                    @endcan
                 </div>
             </div>
 
@@ -70,6 +72,7 @@
                         </td>
                         <td class="text-center">
                             <div class="d-flex gap-1 justify-content-center">
+                                @can('admin.holidays.edit')
                                 <button type="button"
                                         class="btn btn-sm btn-outline-secondary"
                                         onclick="openEditModal({{ $h->id }}, '{{ $h->date->format('Y-m-d') }}', @json($h->name), {{ $h->is_joint_leave ? 1 : 0 }})">
@@ -83,6 +86,7 @@
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </form>
+                                @endcan
                             </div>
                         </td>
                     </tr>

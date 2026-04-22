@@ -17,10 +17,12 @@
                     <p class="text-muted small mb-0">PO Number: {{ $costing->po_number }}</p>
                 </div>
                 <div class="d-flex gap-2">
-                    <a href="{{ route('dcm-costings.edit', ['costing' => $costing->uid]) }}" 
+                    @can('finance.costing.view')
+                    <a href="{{ route('dcm-costings.edit', ['costing' => $costing->uid]) }}"
                        class="btn btn-primary btn-sm rounded-2 px-3">
                         <i class="fas fa-edit me-1"></i>Edit
                     </a>
+                    @endcan
                     @if($costing->purchase)
                     <a href="{{ route('project-purchases.show', $costing->purchase->uid) }}"
                        target="_blank"

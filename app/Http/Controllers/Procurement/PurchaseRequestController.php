@@ -22,6 +22,10 @@ class PurchaseRequestController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
+        $this->middleware('can:procurement.po.view');
+        $this->middleware('can:procurement.po.create')->only(['create', 'store', 'bulkStoreHandsontable', 'storeFromPlanning']);
+        $this->middleware('can:procurement.po.edit')->only(['edit', 'update', 'quickUpdate']);
+        $this->middleware('can:procurement.po.delete')->only(['destroy']);
     }
 
     /**
@@ -144,7 +148,7 @@ class PurchaseRequestController extends Controller
             $purchaseRequests = $query->skip($start)->take($length)->get();
 
             // Check if user can view unit price
-            $canViewUnitPrice = in_array(auth()->user()->role, ['super_admin', 'admin', 'admin_procurement', 'admin_logistic', 'admin_finance']);
+            $canViewUnitPrice = auth()->user()->can('procurement.po.view');
 
             // Format data for DataTables
             $data = [];
@@ -491,7 +495,7 @@ class PurchaseRequestController extends Controller
 
     private function formatSupplierSelect($pr)
     {
-        $canEdit = in_array(auth()->user()->role, ['super_admin', 'admin_procurement', 'admin_logistic', 'admin_finance', 'admin']);
+        $canEdit = auth()->user()->can('procurement.po.edit');
 
         if (!$canEdit) {
             // Read-only: tampilkan nama supplier tanpa indicator
@@ -525,7 +529,7 @@ class PurchaseRequestController extends Controller
 
     private function formatPriceInput($pr)
     {
-        $canEdit = in_array(auth()->user()->role, ['super_admin', 'admin_procurement', 'admin_logistic', 'admin_finance', 'admin']);
+        $canEdit = auth()->user()->can('procurement.po.edit');
 
         if (!$canEdit) {
             return $pr->price_per_unit ? number_format($pr->price_per_unit, 2) : '-';
@@ -545,7 +549,7 @@ class PurchaseRequestController extends Controller
 
     private function formatCurrencySelect($pr)
     {
-        $canEdit = in_array(auth()->user()->role, ['super_admin', 'admin_procurement', 'admin_logistic', 'admin_finance', 'admin']);
+        $canEdit = auth()->user()->can('procurement.po.edit');
 
         if (!$canEdit) {
             return $pr->currency ? $pr->currency->name : '-';
@@ -562,7 +566,7 @@ class PurchaseRequestController extends Controller
 
     private function formatApprovalSelect($pr)
     {
-        $canEdit = in_array(auth()->user()->role, ['super_admin', 'admin_procurement', 'admin_logistic', 'admin_finance', 'admin']);
+        $canEdit = auth()->user()->can('procurement.po.edit');
 
         if (!$canEdit) {
             return '<span class="badge ' .
@@ -585,7 +589,7 @@ class PurchaseRequestController extends Controller
 
     private function formatDeliveryDateInput($pr)
     {
-        $canEdit = in_array(auth()->user()->role, ['super_admin', 'admin_procurement']);
+        $canEdit = auth()->user()->can('procurement.po.approve');
 
         if (!$canEdit) {
             return $pr->delivery_date ? $pr->delivery_date->format('d M Y') : '-';
@@ -647,10 +651,6 @@ class PurchaseRequestController extends Controller
      */
     public function store(Request $request)
     {
-        if (auth()->user()->isReadOnlyAdmin()) {
-            return redirect()->back()->with('error', 'You do not have permission to modify purchase requests.');
-        }
-
         // Validasi dasar struktur request
         $request->validate([
             'requests' => 'required|array|min:1',
@@ -805,10 +805,6 @@ class PurchaseRequestController extends Controller
      */
     public function bulkStoreHandsontable(Request $request)
     {
-        if (auth()->user()->isReadOnlyAdmin()) {
-            return response()->json(['success' => false, 'message' => 'You do not have permission.'], 403);
-        }
-
         $validated = $request->validate([
             'items' => 'required|array|min:1',
             'items.*.type' => 'required|in:new_material,restock',
@@ -912,10 +908,6 @@ class PurchaseRequestController extends Controller
      */
     public function update(Request $request, $id)
     {
-        if (auth()->user()->isReadOnlyAdmin()) {
-            return redirect()->back()->with('error', 'You do not have permission to modify purchase requests.');
-        }
-
         $request->validate([
             'type' => 'required|in:new_material,restock',
             'material_name' => 'required_if:type,new_material',
@@ -967,15 +959,6 @@ class PurchaseRequestController extends Controller
 
     public function quickUpdate(Request $request, $id)
     {
-        if (auth()->user()->isReadOnlyAdmin()) {
-            return response()->json(
-                [
-                    'success' => false,
-                    'message' => 'You do not have permission to modify purchase requests.',
-                ],
-                403,
-            );
-        }
 
         $request->validate([
             'material_name' => 'nullable|string|max:255',
@@ -1064,10 +1047,6 @@ class PurchaseRequestController extends Controller
 
     public function destroy($id)
     {
-        if (auth()->user()->isReadOnlyAdmin()) {
-            return redirect()->back()->with('error', 'You do not have permission to modify purchase requests.');
-        }
-
         try {
             $purchaseRequest = PurchaseRequest::findOrFail($id);
             $name = $purchaseRequest->material_name;

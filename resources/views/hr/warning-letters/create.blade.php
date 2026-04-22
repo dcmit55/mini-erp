@@ -3,138 +3,153 @@
 @section('title', 'New Warning Letter')
 
 @section('content')
-<div class="container-fluid py-4">
+<div class="container-fluid py-3">
     <div class="row justify-content-center">
-        <div class="col-lg-8">
+        <div class="col-12 col-xl-7">
 
-            <div class="d-flex align-items-center mb-4">
-                <a href="{{ route('warning-letters.index') }}" class="btn btn-sm btn-outline-secondary me-3">
-                    <i class="bi bi-arrow-left"></i>
-                </a>
+            {{-- Header --}}
+            <div class="d-flex justify-content-between align-items-center mb-3">
                 <div>
-                    <h4 class="mb-0 fw-bold">New Warning Letter</h4>
-                    <small class="text-muted">SP level is determined automatically based on the employee's history</small>
+                    <a href="{{ route('warning-letters.index') }}"
+                       class="btn btn-outline-secondary btn-sm rounded-2 px-3">
+                        <i class="fas fa-arrow-left me-1"></i>Back
+                    </a>
+                    <h5 class="text-dark mb-1 mt-2">New Warning Letter</h5>
+                    <p class="text-muted small mb-0">SP level ditentukan otomatis berdasarkan riwayat karyawan</p>
                 </div>
             </div>
 
+            {{-- Flash --}}
             @if(session('error'))
-                <div class="alert alert-danger alert-dismissible fade show">
-                    {{ session('error') }}
+                <div class="alert alert-danger alert-dismissible fade show mb-3">
+                    <i class="fas fa-exclamation-circle me-2"></i>{{ session('error') }}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             @endif
 
-            {{-- SP Level Auto-Suggest Banner --}}
+            {{-- SP Banner --}}
             @if($terminationFlag)
-                <div class="alert alert-danger d-flex align-items-center mb-4">
-                    <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
+                <div class="alert mb-3 d-flex align-items-start gap-2 border-0 rounded-3"
+                     style="background:#fef2f2;border-left:4px solid #ef4444 !important;">
+                    <i class="fas fa-exclamation-triangle text-danger mt-1"></i>
                     <div>
-                        <strong>This employee has an active SP4.</strong><br>
-                        The next violation must be processed through a <strong>Termination of Employment</strong> procedure, not a new SP.
+                        <div class="fw-medium text-danger">Karyawan ini memiliki SP3 aktif — Peringatan Terakhir.</div>
+                        <div class="text-muted small">SP3 adalah batas maksimum. Karyawan ini harus diproses melalui prosedur <strong>Terminasi (PHK)</strong> — buka detail SP3 dan gunakan tombol <strong>Terminate</strong>.</div>
                     </div>
                 </div>
             @elseif($suggestedSpLevel)
                 @php
-                    $spColors = [1=>'info', 2=>'warning', 3=>'orange', 4=>'danger'];
-                    $spColor  = $spColors[$suggestedSpLevel] ?? 'secondary';
+                    $bannerMap = [
+                        1 => ['bg'=>'#eff6ff','border'=>'#3b82f6','text'=>'#1d4ed8'],
+                        2 => ['bg'=>'#fefce8','border'=>'#eab308','text'=>'#854d0e'],
+                        3 => ['bg'=>'#fef2f2','border'=>'#ef4444','text'=>'#991b1b'],
+                    ];
+                    $bm = $bannerMap[$suggestedSpLevel] ?? ['bg'=>'#f8fafc','border'=>'#94a3b8','text'=>'#475569'];
                 @endphp
-                <div class="alert alert-{{ $spColor === 'orange' ? 'warning' : $spColor }} d-flex align-items-center mb-4">
-                    <i class="bi bi-info-circle-fill fs-5 me-3"></i>
-                    <div>
+                <div class="mb-3 d-flex align-items-start gap-2 rounded-3 p-3 border"
+                     style="background:{{ $bm['bg'] }};border-color:{{ $bm['border'] }}30 !important;border-left:4px solid {{ $bm['border'] }} !important;">
+                    <i class="fas fa-info-circle mt-1" style="color:{{ $bm['border'] }};"></i>
+                    <div class="small" style="color:{{ $bm['text'] }};">
                         @if($activeSpLevel)
-                            This employee has an <strong>active SP{{ $activeSpLevel }}</strong>. A new violation will result in
+                            Karyawan ini memiliki <strong>SP{{ $activeSpLevel }} aktif</strong>. Pelanggaran baru akan menghasilkan
                         @else
-                            This employee has no prior SP. This violation will result in
+                            Karyawan ini belum memiliki SP sebelumnya. Pelanggaran ini akan menghasilkan
                         @endif
                         <strong>SP{{ $suggestedSpLevel }}</strong>.
+                        @if($suggestedSpLevel === 3)
+                            <br><strong>⚠ SP3 adalah peringatan terakhir.</strong> Setelah difinalisasi, karyawan dapat langsung di-terminate.
+                        @endif
                     </div>
                 </div>
             @endif
 
-            <div class="card border-0 shadow-sm rounded-3">
-                <div class="card-body p-4">
+            {{-- Form Card --}}
+            <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
+                <div class="card-body p-3">
                     <form method="POST" action="{{ route('warning-letters.store') }}" id="formCreateWL">
                         @csrf
 
-                        {{-- Employee --}}
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Employee <span class="text-danger">*</span></label>
-                            <select name="employee_id" id="employeeSelect" class="form-select select2-employee @error('employee_id') is-invalid @enderror" required>
-                                <option value="">-- Select Employee --</option>
-                                @foreach($employees as $emp)
-                                    <option value="{{ $emp->id }}"
-                                        {{ old('employee_id', request('employee_id')) == $emp->id ? 'selected' : '' }}>
-                                        {{ $emp->employee_no }} — {{ $emp->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('employee_id')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                            <small class="text-muted">After selecting an employee, the SP level will be suggested automatically.</small>
+                        <div class="row g-3">
+                            {{-- Employee --}}
+                            <div class="col-12">
+                                <label class="form-label small text-muted mb-1">Employee <span class="text-danger">*</span></label>
+                                <select name="employee_id" id="employeeSelect"
+                                    class="form-select form-select-sm border-1 rounded-2 select2-employee @error('employee_id') is-invalid @enderror" required>
+                                    <option value="">-- Pilih Karyawan --</option>
+                                    @foreach($employees as $emp)
+                                        <option value="{{ $emp->id }}"
+                                            {{ old('employee_id', request('employee_id')) == $emp->id ? 'selected' : '' }}>
+                                            {{ $emp->employee_no }} — {{ $emp->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('employee_id')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                                <div class="form-text">Setelah memilih, SP level akan disarankan otomatis.</div>
+                            </div>
+
+                            {{-- Category --}}
+                            <div class="col-md-6">
+                                <label class="form-label small text-muted mb-1">Kategori Pelanggaran <span class="text-danger">*</span></label>
+                                <select name="violation_cat_id"
+                                    class="form-select form-select-sm border-1 rounded-2 @error('violation_cat_id') is-invalid @enderror" required>
+                                    <option value="">-- Pilih Kategori --</option>
+                                    @foreach($violationCategories as $cat)
+                                        <option value="{{ $cat->id }}" {{ old('violation_cat_id') == $cat->id ? 'selected' : '' }}>
+                                            {{ $cat->name }} ({{ $cat->severity }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('violation_cat_id')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            {{-- Date --}}
+                            <div class="col-md-6">
+                                <label class="form-label small text-muted mb-1">Tanggal Pelanggaran <span class="text-danger">*</span></label>
+                                <input type="date" name="violation_date"
+                                    class="form-control form-control-sm border-1 rounded-2 @error('violation_date') is-invalid @enderror"
+                                    value="{{ old('violation_date', date('Y-m-d')) }}"
+                                    max="{{ date('Y-m-d') }}" required>
+                                @error('violation_date')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            {{-- Reason --}}
+                            <div class="col-12">
+                                <label class="form-label small text-muted mb-1">Deskripsi Pelanggaran <span class="text-danger">*</span></label>
+                                <textarea name="reason" rows="4"
+                                    class="form-control form-control-sm border-1 rounded-2 @error('reason') is-invalid @enderror"
+                                    placeholder="Jelaskan kronologi dan detail pelanggaran..."
+                                    required>{{ old('reason') }}</textarea>
+                                @error('reason')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            {{-- Template --}}
+                            <div class="col-12">
+                                <label class="form-label small text-muted mb-1">Template Surat</label>
+                                <select name="template_id" class="form-select form-select-sm border-1 rounded-2">
+                                    <option value="">-- Default template sesuai SP level --</option>
+                                    @foreach($templates as $tmpl)
+                                        <option value="{{ $tmpl->id }}" {{ old('template_id') == $tmpl->id ? 'selected' : '' }}>
+                                            SP{{ $tmpl->sp_level }} — {{ $tmpl->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
                         </div>
 
-                        {{-- Violation Category --}}
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Violation Category <span class="text-danger">*</span></label>
-                            <select name="violation_cat_id" class="form-select @error('violation_cat_id') is-invalid @enderror" required>
-                                <option value="">-- Select Category --</option>
-                                @foreach($violationCategories as $cat)
-                                    <option value="{{ $cat->id }}"
-                                        {{ old('violation_cat_id') == $cat->id ? 'selected' : '' }}>
-                                        {{ $cat->name }}
-                                        <span class="text-muted">({{ $cat->severity }})</span>
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('violation_cat_id')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-
-                        {{-- Violation Date --}}
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Violation Date <span class="text-danger">*</span></label>
-                            <input type="date" name="violation_date"
-                                class="form-control @error('violation_date') is-invalid @enderror"
-                                value="{{ old('violation_date', date('Y-m-d')) }}"
-                                max="{{ date('Y-m-d') }}" required>
-                            @error('violation_date')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-
-                        {{-- Reason --}}
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Violation Description <span class="text-danger">*</span></label>
-                            <textarea name="reason" rows="4"
-                                class="form-control @error('reason') is-invalid @enderror"
-                                placeholder="Describe the violation in detail..."
-                                required>{{ old('reason') }}</textarea>
-                            @error('reason')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-
-                        {{-- Template --}}
-                        <div class="mb-4">
-                            <label class="form-label fw-semibold">Letter Template</label>
-                            <select name="template_id" class="form-select @error('template_id') is-invalid @enderror">
-                                <option value="">-- Use default template based on SP level --</option>
-                                @foreach($templates as $tmpl)
-                                    <option value="{{ $tmpl->id }}"
-                                        {{ old('template_id') == $tmpl->id ? 'selected' : '' }}>
-                                        SP{{ $tmpl->sp_level }} — {{ $tmpl->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-
-                        <div class="d-flex gap-2 justify-content-end">
-                            <a href="{{ route('warning-letters.index') }}" class="btn btn-outline-secondary">Cancel</a>
+                        <div class="d-flex gap-2 justify-content-end border-top mt-3 pt-3">
+                            <a href="{{ route('warning-letters.index') }}"
+                               class="btn btn-outline-secondary btn-sm rounded-2 px-3">Batal</a>
                             @if(!$terminationFlag)
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="bi bi-save me-1"></i> Save as Draft
+                                <button type="submit" class="btn btn-primary btn-sm rounded-2 px-4">
+                                    <i class="fas fa-save me-1"></i>Simpan sebagai Draft
                                 </button>
                             @endif
                         </div>
@@ -145,7 +160,6 @@
         </div>
     </div>
 </div>
-
 @endsection
 
 @push('scripts')
@@ -153,17 +167,27 @@
 $(function () {
     $('.select2-employee').select2({
         theme: 'bootstrap-5',
-        placeholder: '-- Search or select employee --',
+        placeholder: '-- Cari atau pilih karyawan --',
         allowClear: true,
     });
-
-    // Auto-reload page when employee is selected to update SP suggestion
     $('#employeeSelect').on('change', function () {
         const val = $(this).val();
-        if (val) {
-            window.location.href = '{{ route('warning-letters.create') }}?employee_id=' + val;
-        }
+        if (val) window.location.href = '{{ route('warning-letters.create') }}?employee_id=' + val;
     });
 });
 </script>
 @endpush
+
+<style>
+.form-control, .form-select { border-color: #e2e8f0; font-size: 0.9rem; }
+.form-control:focus, .form-select:focus { border-color: #4f46e5; box-shadow: 0 0 0 0.2rem rgba(79,70,229,.1); }
+.btn { font-size: 0.9rem; font-weight: 500; }
+.btn-primary { background-color: #4f46e5; border-color: #4f46e5; }
+.btn-primary:hover { background-color: #4338ca; border-color: #4338ca; }
+.card { background: #fff; border: 1px solid #e2e8f0; }
+.text-muted { color: #6b7280 !important; }
+.text-dark { color: #374151 !important; }
+.rounded-2 { border-radius: .5rem !important; }
+.rounded-3 { border-radius: .75rem !important; }
+.fw-medium { font-weight: 500 !important; }
+</style>

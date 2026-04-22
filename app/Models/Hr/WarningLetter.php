@@ -28,8 +28,7 @@ class WarningLetter extends Model
     const SP_LABELS = [
         1 => 'SP1 — First Warning',
         2 => 'SP2 — Second Warning',
-        3 => 'SP3 — Third Warning',
-        4 => 'SP4 — Final Warning',
+        3 => 'SP3 — Final Warning',
     ];
 
     const STATUS_LABELS = [

@@ -25,10 +25,9 @@ class WarningLetterService
      *   - NULL  → SP1
      *   - SP1   → SP2
      *   - SP2   → SP3
-     *   - SP3   → SP4
-     *   - SP4   → throw RuntimeException (flag untuk Termination)
+     *   - SP3   → throw RuntimeException (SP3 adalah final, wajib terminasi)
      *
-     * @throws RuntimeException jika SP4 masih aktif (wajib proses PHK)
+     * @throws RuntimeException jika SP3 masih aktif (wajib proses Terminasi)
      */
     public function determineSpLevel(int $employeeId): int
     {
@@ -41,9 +40,9 @@ class WarningLetterService
             return 1;
         }
 
-        if ($currentMax >= 4) {
+        if ($currentMax >= 3) {
             throw new RuntimeException(
-                "Karyawan memiliki SP4 yang masih aktif. Proses ini harus dialihkan ke Pemutusan Hubungan Kerja (PHK)."
+                "Karyawan memiliki SP3 yang masih aktif. SP3 adalah peringatan terakhir — karyawan ini harus diproses untuk Terminasi (PHK)."
             );
         }
 

@@ -13,7 +13,7 @@
                     #{{ $stockAdjustment->id }}</h4>
                 <small class="text-muted">{{ $stockAdjustment->created_at->format('d M Y H:i') }}</small>
             </div>
-            @if (in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin']))
+            @can('logistic.stock-adjustment.create')
                 @php
                     $againType = $stockAdjustment->type === 'initial_stock' ? 'adjustment' : $stockAdjustment->type;
                     $againUrl =
@@ -28,7 +28,7 @@
                 <a href="{{ $againUrl }}" class="btn btn-sm btn-warning">
                     <i class="bi bi-arrow-repeat me-1"></i>Adjust Again
                 </a>
-            @endif
+            @endcan
         </div>
 
         <div class="row justify-content-center">

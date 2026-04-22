@@ -12,7 +12,7 @@
                 <a href="{{ route('attendance-logs.index') }}" class="btn btn-sm btn-outline-secondary px-3">
                     <i class="fas fa-arrow-left me-1"></i><span class="d-none d-sm-inline"> Back</span>
                 </a>
-                @if(in_array(auth()->user()->role, ['super_admin','admin_hr','admin']))
+                @can('hr.attendance.edit')
                 <div class="d-flex gap-2">
                     <a href="{{ route('national-holidays.index') }}" class="btn btn-sm btn-outline-secondary px-3">
                         <i class="fas fa-flag me-1"></i><span class="d-none d-sm-inline"> National Holidays</span><span class="d-inline d-sm-none"> Nat.Hol</span>
@@ -21,7 +21,7 @@
                         <i class="fas fa-calendar-plus me-1"></i><span class="d-none d-sm-inline"> Company Holidays</span><span class="d-inline d-sm-none"> Co.Hol</span>
                     </button>
                 </div>
-                @endif
+                @endcan
             </div>
 
             {{-- Month Navigator --}}
@@ -146,6 +146,7 @@
                                                 $record = $dailiesMap->get($emp->id . '_' . $info['date'])?->first();
                                                 $status = $record?->status;
 
+                                                $initial = '';
                                                 if ($info['isSunday']) {
                                                     $cellClass = 'cell-sunday';
                                                     $tooltip   = 'Minggu';
@@ -163,21 +164,24 @@
                                                 } elseif (!$status) {
                                                     $cellClass = 'cell-empty';
                                                     $tooltip   = 'No data';
+                                                    $initial   = '';
                                                 } else {
-                                                    [$cellClass, $tooltip] = match($status) {
-                                                        'Present'                      => ['cell-present',     'Present'],
-                                                        'Late'                         => ['cell-late',        'Late'],
-                                                        'Alpha'                        => ['cell-alpha',       'Alpha'],
-                                                        'Annual Leave'                 => ['cell-annual',      'Annual Leave'],
-                                                        'Sick Leave'                   => ['cell-sick',        'Sick Leave'],
-                                                        'Unpaid Leave'                 => ['cell-unpaid',      'Unpaid Leave'],
-                                                        'Early Leave'                  => ['cell-leave-other', 'Early Leave'],
-                                                        'Permission Out'               => ['cell-leave-other', 'Permission Out'],
-                                                        default                        => ['cell-leave-other', $status],
+                                                    [$cellClass, $tooltip, $initial] = match($status) {
+                                                        'Present'        => ['cell-present',     'Present',        'P'],
+                                                        'Late'           => ['cell-late',        'Late',           'L'],
+                                                        'Alpha'          => ['cell-alpha',       'Alpha',          'A'],
+                                                        'Annual Leave'   => ['cell-annual',      'Annual Leave',   'Lv'],
+                                                        'Sick Leave'     => ['cell-sick',        'Sick Leave',     'Sk'],
+                                                        'Unpaid Leave'   => ['cell-unpaid',      'Unpaid Leave',   'Up'],
+                                                        'Early Leave'    => ['cell-leave-other', 'Early Leave',    'El'],
+                                                        'Permission Out' => ['cell-leave-other', 'Permission Out', 'Po'],
+                                                        default          => ['cell-leave-other', $status,          'Ot'],
                                                     };
                                                 }
                                             @endphp
-                                            <td class="att-cell {{ $cellClass }}" title="{{ $tooltip }}"></td>
+                                            <td class="att-cell {{ $cellClass }}" title="{{ $tooltip }}">
+                                                @if(!empty($initial))<span class="att-initial">{{ $initial }}</span>@endif
+                                            </td>
                                         @endfor
                                         {{-- Summary counts --}}
                                         <td class="text-center fw-semibold count-present">{{ $s['present'] + $s['late'] }}</td>
@@ -196,7 +200,7 @@
 </div>
 
 {{-- Modal: Edit National Holiday --}}
-@if(in_array(auth()->user()->role, ['super_admin','admin_hr','admin']))
+@can('hr.attendance.edit')
 <div class="modal fade" id="editNationalHolidayModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered" style="max-width:420px;">
         <div class="modal-content">
@@ -234,10 +238,10 @@
         </div>
     </div>
 </div>
-@endif
+@endcan
 
 {{-- Modal: Quick Date Holiday Toggle --}}
-@if(in_array(auth()->user()->role, ['super_admin','admin_hr','admin']))
+@can('hr.attendance.edit')
 <div class="modal fade" id="dateHolidayModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered" style="max-width:420px;">
         <div class="modal-content">
@@ -292,10 +296,10 @@
         </div>
     </div>
 </div>
-@endif
+@endcan
 
 {{-- Modal: Company Holidays --}}
-@if(in_array(auth()->user()->role, ['super_admin','admin_hr','admin']))
+@can('hr.attendance.edit')
 <div class="modal fade" id="manageHolidayModal" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
@@ -400,7 +404,7 @@
         </div>
     </div>
 </div>
-@endif
+@endcan
 
 <style>
 /* Scrollable grid */
@@ -479,13 +483,24 @@
 .day-company-paid_leave_deduction { background: #fbcfe8 !important; color: #9d174d !important; }
 .day-company-unpaid            { background: #fcd34d !important; color: #92400e !important; }
 
-/* Attendance cells — color only, no text */
+/* Attendance cells */
 .att-cell {
     padding: 0 !important;
     cursor: default;
     min-width: 28px;
     width: 28px;
     height: 28px;
+    text-align: center;
+    vertical-align: middle;
+    position: relative;
+}
+.att-initial {
+    font-size: 0.55rem;
+    font-weight: 700;
+    color: rgba(0,0,0,0.45);
+    line-height: 1;
+    display: block;
+    text-align: center;
 }
 
 .cell-present     { background: #bbf7d0 !important; }
@@ -617,7 +632,7 @@ $(document).ready(function () {
 
 
     // Click on date header to quick-manage holiday (HR only)
-    @if(in_array(auth()->user()->role, ['super_admin','admin_hr','admin']))
+    @can('hr.attendance.edit')
     $(document).on('click', '.day-clickable', function () {
         var date        = $(this).data('date');
         var nationalId  = $(this).data('national-id');
@@ -766,7 +781,7 @@ $(document).ready(function () {
             }
         });
     });
-    @endif
+    @endcan
 
     // Row highlight on name cell click
     $(document).on('click', '.summary-row .name-col', function () {

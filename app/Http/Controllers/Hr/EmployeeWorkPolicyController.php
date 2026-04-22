@@ -17,12 +17,8 @@ class EmployeeWorkPolicyController extends Controller
 {
     public function __construct()
     {
-        $this->middleware(function ($request, $next) {
-            if (Auth::user()->isReadOnlyAdmin()) {
-                abort(403, 'Unauthorized access to HR module.');
-            }
-            return $next($request);
-        });
+        $this->middleware('auth');
+        $this->middleware('can:hr.attendance.edit');
     }
 
     /**
@@ -30,10 +26,6 @@ class EmployeeWorkPolicyController extends Controller
      */
     public function index(Request $request)
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            abort(403, 'You do not have permission to view all work policies.');
-        }
-
         $query = EmployeeWorkPolicy::with('employee');
 
         if ($request->filled('search')) {

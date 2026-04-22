@@ -16,9 +16,11 @@
                     <a href="{{ route('session-shifts.live-monitor') }}" class="btn btn-sm btn-outline-success">
                         <i class="fas fa-satellite-dish me-1"></i> Live Monitor
                     </a>
+                    @can('hr.attendance.edit')
                     <a href="{{ route('session-shifts.create') }}" class="btn btn-sm btn-primary">
                         <i class="fas fa-plus me-1"></i> Add Shift
                     </a>
+                    @endcan
                 </div>
             </div>
 
@@ -152,6 +154,7 @@
                                         </td>
                                         <td class="text-center">
                                             <div class="d-flex justify-content-center gap-1">
+                                                @can('hr.attendance.edit')
                                                 <a href="{{ route('session-shifts.edit', $shift) }}"
                                                    class="btn btn-sm btn-outline-primary border-0 px-2 py-1 action-btn"
                                                    data-bs-toggle="tooltip" title="Edit">
@@ -167,6 +170,7 @@
                                                         <i class="fas fa-trash"></i>
                                                     </button>
                                                 </form>
+                                                @endcan
                                             </div>
                                         </td>
                                     </tr>

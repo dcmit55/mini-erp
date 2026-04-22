@@ -9,9 +9,11 @@
                         <i class="fa-solid fa-building gradient-icon me-3" style="font-size: 1.5rem;"></i>
                         <h2 class="mb-0 flex-shrink-0" style="font-size:1.3rem;">Departments</h2>
                     </div>
+                    @can('admin.departments.edit')
                     <a href="{{ route('departments.create') }}" class="btn btn-primary btn-sm">
                         <i class="bi bi-plus-circle"></i> New Department
                     </a>
+                    @endcan
                 </div>
 
                 @if (session('success'))
@@ -51,6 +53,7 @@
                                     <td>{{ $department->name }}</td>
                                     <td>
                                         <div class="d-flex gap-2">
+                                            @can('admin.departments.edit')
                                             <a href="{{ route('departments.edit', $department->uid) }}"
                                                 class="btn btn-warning btn-sm">
                                                 <i class="fa-solid fa-pen-to-square"></i> Edit
@@ -63,6 +66,7 @@
                                                     <i class="fa-solid fa-trash"></i> Delete
                                                 </button>
                                             </form>
+                                            @endcan
                                         </div>
                                     </td>
                                 </tr>
