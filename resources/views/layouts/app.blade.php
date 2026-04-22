@@ -122,6 +122,12 @@
                 }
             }
 
+            @media (max-width: 991.98px) {
+                #mainNavbar {
+                    z-index: 1050;
+                }
+            }
+
             @media (min-width: 992px) {
                 #sidebarBackdrop {
                     display: none !important;
