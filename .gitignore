@@ -28,6 +28,6 @@ app/Services/LlmService.php
 app/Http/Controllers/ChatbotController.php
 syifawork.md
 .gitignore
-D27FEB.env
+D27FEB.env
 
 /public/kasbon/dokumen/*.pdf

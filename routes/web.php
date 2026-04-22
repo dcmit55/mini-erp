@@ -930,6 +930,20 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // ─── Warning Batches (Bulk) ────────────────────────────────────────────────
+            Route::get('/dashboard', [App\Http\Controllers\Hr\WarningLetterController::class, 'dashboard'])->name('dashboard');
+            Route::get('/',           [App\Http\Controllers\Hr\WarningLetterController::class, 'index'])->name('index');
+            Route::get('/create',     [App\Http\Controllers\Hr\WarningLetterController::class, 'create'])->name('create');
+            Route::post('/',          [App\Http\Controllers\Hr\WarningLetterController::class, 'store'])->name('store');
+            Route::get('/{warningLetter}',        [App\Http\Controllers\Hr\WarningLetterController::class, 'show'])->name('show');
+            Route::get('/{warningLetter}/edit',   [App\Http\Controllers\Hr\WarningLetterController::class, 'edit'])->name('edit');
+            Route::put('/{warningLetter}',        [App\Http\Controllers\Hr\WarningLetterController::class, 'update'])->name('update');
+            Route::delete('/{warningLetter}',     [App\Http\Controllers\Hr\WarningLetterController::class, 'destroy'])->name('destroy');
+            Route::post('/{warningLetter}/approve',            [App\Http\Controllers\Hr\WarningLetterController::class, 'approve'])->name('approve');
+            Route::post('/{warningLetter}/acknowledge',        [App\Http\Controllers\Hr\WarningLetterController::class, 'acknowledge'])->name('acknowledge');
+            Route::post('/{warningLetter}/terminate-employee', [App\Http\Controllers\Hr\WarningLetterController::class, 'terminateEmployee'])->name('terminate-employee');
+            Route::get('/{warningLetter}/pdf',                 [App\Http\Controllers\Hr\WarningLetterController::class, 'pdf'])->name('pdf');
+        });    // ─── Warning Batches (Bulk) ────────────────────────────────────────────────
+>>>>>>> d5c8a94 (feat: integrate Spatie role/permission + multi-module UI improvements)
     Route::prefix('warning-batches')
         ->name('warning-batches.')
         ->middleware('auth')
