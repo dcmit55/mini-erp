@@ -5,11 +5,13 @@ namespace App\Http\Controllers\Logistic;
 use App\Http\Controllers\Controller;
 use App\Models\Logistic\MaterialRequest;
 use App\Models\Logistic\Inventory;
+use App\Models\Logistic\InventoryBatch;
 use App\Models\Production\Project;
 use App\Models\Admin\Department;
 use App\Models\Logistic\Unit;
 use App\Models\InternalProject;
 use App\Models\Lark\LarkStagingInventory;
+use App\Models\Procurement\ProjectPurchase;
 use Illuminate\Http\Request;
 use App\Events\MaterialRequestUpdated;
 use App\Models\Admin\User;
@@ -38,7 +40,7 @@ class MaterialRequestController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = MaterialRequest::with(['inventory:id,name,unit', 'stagingInventory:id,name,unit,review_status,processed', 'project:id,name,department_id', 'internalProject:id,project,job,department_id', 'jobOrder:id,name,project_id', 'user:id,username,department_id', 'user.department:id,name'])->latest();
+            $query = MaterialRequest::with(['inventory:id,name,unit', 'stagingInventory:id,name,unit,review_status,processed', 'indoPurchase:id,new_item_name,material_id,unit_id,quantity,purchase_type,status,item_status,created_at,po_number', 'indoPurchase.material:id,name,material_code,unit', 'indoPurchase.unit:id,name', 'project:id,name,department_id', 'internalProject:id,project,job,department_id', 'jobOrder:id,name,project_id', 'user:id,username,department_id', 'user.department:id,name'])->latest();
 
             // Apply filters
             if ($request->filled('project')) {
@@ -62,6 +64,14 @@ class MaterialRequestController extends Controller
             }
             if ($request->filled('requested_at')) {
                 $query->whereDate('created_at', $request->requested_at);
+            }
+            // Filter by purchase source (indo_purchase / international)
+            if ($request->filled('purchase_source')) {
+                if ($request->purchase_source === 'indo_purchase') {
+                    $query->whereNotNull('indo_purchase_id');
+                } elseif ($request->purchase_source === 'international') {
+                    $query->whereNotNull('staging_inventory_id');
+                }
             }
 
             // Custom search
@@ -108,22 +118,51 @@ class MaterialRequestController extends Controller
                 })
                 ->addColumn('material_name', function ($req) {
                     if ($req->inventory_source === 'incoming') {
-                        // Incoming source: ambil nama dari staging inventory
+                        // Indo purchase source
+                        if ($req->indo_purchase_id && $req->indoPurchase) {
+                            $p = $req->indoPurchase;
+                            if ($p->purchase_type === 'restock' && $p->material) {
+                                $name = $p->material->name;
+                            } else {
+                                $name = $p->new_item_name ?? '(No Material)';
+                            }
+                            $poStatus = ucfirst($p->status ?? '-');
+                            $receiptStatus = ucfirst($p->item_status ?? '-');
+                            $badge = '<span class="badge bg-warning-subtle text-warning border border-warning-subtle me-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Indo Purchase | PO: ' . e($p->po_number ?? '-') . '"><i class="bi bi-bag-check"></i></span>';
+                            return $badge . e($name);
+                        }
+                        // Lark staging source
                         $stagingName = $req->stagingInventory->name ?? null;
                         if ($stagingName) {
-                            return '<span class="badge bg-success-subtle text-success border border-success-subtle me-1" title="Inventory Incoming"><i class="bi bi-box-arrow-in-down"></i></span>' . e($stagingName);
+                            return '<span class="badge bg-success-subtle text-success border border-success-subtle me-1" title="International Purchase"><i class="bi bi-box-arrow-in-down"></i></span>' . e($stagingName);
                         }
                         return '(No Material)';
                     }
-                    // Stock source: ambil dari relasi inventory
+                    // Stock source
                     return $req->inventory->name ?? '(No Material)';
                 })
                 ->addColumn('requested_qty', function ($req) {
-                    $unit = $req->inventory_source === 'incoming' ? $req->stagingInventory->unit ?? '' : $req->inventory->unit ?? '';
+                    if ($req->inventory_source === 'incoming') {
+                        if ($req->indo_purchase_id && $req->indoPurchase) {
+                            $unit = optional($req->indoPurchase->unit)->name ?? '';
+                        } else {
+                            $unit = $req->stagingInventory->unit ?? '';
+                        }
+                    } else {
+                        $unit = $req->inventory->unit ?? '';
+                    }
                     return rtrim(rtrim(number_format($req->qty, 2, '.', ''), '0'), '.') . ' ' . $unit;
                 })
                 ->addColumn('remaining_qty', function ($req) {
-                    $unit = $req->inventory_source === 'incoming' ? $req->stagingInventory->unit ?? '' : $req->inventory->unit ?? '';
+                    if ($req->inventory_source === 'incoming') {
+                        if ($req->indo_purchase_id && $req->indoPurchase) {
+                            $unit = optional($req->indoPurchase->unit)->name ?? '';
+                        } else {
+                            $unit = $req->stagingInventory->unit ?? '';
+                        }
+                    } else {
+                        $unit = $req->inventory->unit ?? '';
+                    }
                     $remaining = $req->qty - $req->processed_qty;
                     return '<span data-bs-toggle="tooltip" title="' . $unit . '">' . rtrim(rtrim(number_format($remaining, 2, '.', ''), '0'), '.') . '</span>';
                 })
@@ -301,6 +340,86 @@ class MaterialRequestController extends Controller
     }
 
     /**
+     * AJAX: Get unified incoming materials (lark_staging + indo_purchases)
+     * filtered by the project associated with the given Job Order.
+     * Returns empty array if no job_order_id provided.
+     */
+    public function getIncomingMaterials(Request $request)
+    {
+        if (!$request->filled('job_order_id')) {
+            return response()->json([]);
+        }
+
+        $jobOrder = \App\Models\Production\JobOrder::with('project:id,name')->where('id', $request->job_order_id)->first();
+
+        if (!$jobOrder || !$jobOrder->project) {
+            return response()->json([]);
+        }
+
+        $project = $jobOrder->project;
+        $projectName = $project->name;
+        $projectId = $project->id;
+
+        // 1) Lark Staging Inventories — filter by project_lark = project name
+        $stagingItems = LarkStagingInventory::select('id', 'name', 'quantity', 'received_qty', 'unit', 'material_code')
+            ->whereIn('review_status', ['approved', 'pending'])
+            ->where('processed', false)
+            ->where('project_lark', $projectName)
+            ->orderBy('name')
+            ->get()
+            ->map(
+                fn($s) => [
+                    'id' => 'lsi_' . $s->id,
+                    'real_id' => $s->id,
+                    'source' => 'lark_staging',
+                    'name' => $s->name,
+                    'material_code' => $s->material_code ?? '',
+                    'quantity' => floatval($s->quantity) + floatval($s->received_qty ?? 0),
+                    'unit' => $s->unit ?? '',
+                ],
+            );
+
+        // 2) Indo Purchases — receipt pending, project-scoped (PO can be pending or approved)
+        $joId = $request->job_order_id;
+        $indoItems = ProjectPurchase::with(['unit', 'material:id,name,material_code,unit'])
+            ->where(function ($q) use ($projectId, $joId) {
+                // Match by project OR by specific JO (items linked directly to the JO)
+                $q->where('project_id', $projectId)->orWhere('job_order_id', $joId);
+            })
+            ->whereIn('status', ['pending', 'approved']) // PO pending OR approved
+            ->whereIn('item_status', ['pending', 'pending_check']) // receipt not done yet
+            ->where('is_current', true)
+            ->orderBy('id')
+            ->get()
+            ->map(function ($p) {
+                // Prefer inventory name for restock, new_item_name for new items
+                if ($p->isRestock() && $p->material) {
+                    $name = $p->material->name;
+                    $materialCode = $p->material->material_code ?? '';
+                    $unit = $p->unit ? $p->unit->name : $p->material->unit ?? '';
+                } else {
+                    $name = $p->new_item_name ?? 'Unknown Item';
+                    $materialCode = '';
+                    $unit = $p->unit ? $p->unit->name : '';
+                }
+
+                return [
+                    'id' => 'ip_' . $p->id,
+                    'real_id' => $p->id,
+                    'source' => 'indo_purchase',
+                    'name' => $name,
+                    'material_code' => $materialCode,
+                    'quantity' => floatval($p->quantity ?? 0),
+                    'unit' => $unit,
+                ];
+            });
+
+        $all = $stagingItems->concat($indoItems)->values();
+
+        return response()->json($all);
+    }
+
+    /**
      * AJAX: Get staging inventories for Inventory Incoming source.
      *
      * If job_order_id is provided (client project type), filter by the project
@@ -348,7 +467,7 @@ class MaterialRequestController extends Controller
             ]);
         } else {
             $request->validate([
-                'staging_inventory_id' => 'required|exists:lark_staging_inventories,id',
+                'staging_inventory_id' => 'required|string',
             ]);
         }
 
@@ -368,6 +487,11 @@ class MaterialRequestController extends Controller
 
         DB::beginTransaction();
         try {
+            $stagingInventoryId = null;
+            $indoPurchaseId = null;
+            $materialName = '';
+            $inventoryId = null;
+
             if ($inventorySource === 'stock') {
                 // Source: Inventory Stock (batch inventory)
                 $inventory = Inventory::where('id', $request->inventory_id)->lockForUpdate()->first();
@@ -382,24 +506,57 @@ class MaterialRequestController extends Controller
                 $materialName = $inventory->name;
                 $inventoryId = $inventory->id;
             } else {
-                // Source: Inventory Incoming (lark_staging_inventories)
-                $staging = LarkStagingInventory::where('id', $request->staging_inventory_id)->lockForUpdate()->first();
-                $availableQty = floatval($staging->quantity) + floatval($staging->received_qty ?? 0);
+                // Source: Inventory Incoming — parse prefixed ID (lsi_X = lark staging, ip_X = indo purchase)
+                $rawId = $request->staging_inventory_id;
+                $stagingInventoryId = null;
+                $indoPurchaseId = null;
 
-                if ($request->qty > $availableQty) {
-                    DB::rollBack();
-                    return back()
-                        ->withInput()
-                        ->withErrors(['qty' => 'Requested quantity cannot exceed available incoming inventory quantity (' . $availableQty . ' ' . $staging->unit . ').']);
+                if (str_starts_with($rawId, 'ip_')) {
+                    $indoPurchaseId = (int) substr($rawId, 3);
+                    $purchase = ProjectPurchase::where('id', $indoPurchaseId)->lockForUpdate()->first();
+                    if (!$purchase) {
+                        DB::rollBack();
+                        return back()
+                            ->withInput()
+                            ->withErrors(['staging_inventory_id' => 'Indo purchase item not found.']);
+                    }
+                    $availableQty = floatval($purchase->quantity ?? 0);
+                    $unitName = optional($purchase->unit)->name ?? '';
+                    if ($request->qty > $availableQty) {
+                        DB::rollBack();
+                        return back()
+                            ->withInput()
+                            ->withErrors(['qty' => 'Requested quantity cannot exceed available indo purchase quantity (' . $availableQty . ' ' . $unitName . ').']);
+                    }
+                    $materialName = $purchase->material_name;
+                } else {
+                    // lsi_ prefix or legacy plain ID
+                    $lsiId = str_starts_with($rawId, 'lsi_') ? (int) substr($rawId, 4) : (int) $rawId;
+                    $staging = LarkStagingInventory::where('id', $lsiId)->lockForUpdate()->first();
+                    if (!$staging) {
+                        DB::rollBack();
+                        return back()
+                            ->withInput()
+                            ->withErrors(['staging_inventory_id' => 'Staging inventory item not found.']);
+                    }
+                    $availableQty = floatval($staging->quantity) + floatval($staging->received_qty ?? 0);
+                    if ($request->qty > $availableQty) {
+                        DB::rollBack();
+                        return back()
+                            ->withInput()
+                            ->withErrors(['qty' => 'Requested quantity cannot exceed available incoming inventory quantity (' . $availableQty . ' ' . $staging->unit . ').']);
+                    }
+                    $stagingInventoryId = $staging->id;
+                    $materialName = $staging->name;
                 }
 
-                $materialName = $staging->name;
                 $inventoryId = null; // no batch inventory link
             }
 
             $data = [
                 'inventory_id' => $inventoryId,
-                'staging_inventory_id' => $inventorySource === 'incoming' ? $request->staging_inventory_id : null,
+                'staging_inventory_id' => $inventorySource === 'incoming' ? $stagingInventoryId ?? null : null,
+                'indo_purchase_id' => $inventorySource === 'incoming' ? $indoPurchaseId ?? null : null,
                 'inventory_source' => $inventorySource,
                 'project_type' => $request->project_type,
                 'qty' => $request->qty,
@@ -422,7 +579,11 @@ class MaterialRequestController extends Controller
 
             DB::commit();
 
-            event(new MaterialRequestUpdated($materialRequest, 'created'));
+            try {
+                event(new MaterialRequestUpdated($materialRequest, 'created'));
+            } catch (\Exception $broadcastEx) {
+                \Illuminate\Support\Facades\Log::warning('MaterialRequest broadcast failed (store): ' . $broadcastEx->getMessage());
+            }
 
             $projectName = $materialRequest->project_name;
             $sourceLabel = $inventorySource === 'stock' ? 'Inventory Stock' : 'Inventory Incoming';
@@ -577,7 +738,7 @@ class MaterialRequestController extends Controller
      */
     public function edit(Request $request, $id)
     {
-        $materialRequest = MaterialRequest::with('inventory', 'stagingInventory', 'project', 'internalProject')->findOrFail($id);
+        $materialRequest = MaterialRequest::with('inventory', 'stagingInventory', 'indoPurchase', 'indoPurchase.material', 'indoPurchase.unit', 'project', 'internalProject')->findOrFail($id);
         $departments = Department::orderBy('name')->get();
         $units = Unit::orderBy('name')->get();
 
@@ -658,7 +819,8 @@ class MaterialRequestController extends Controller
         if ($request->inventory_source === 'stock') {
             $request->validate(['inventory_id' => 'required|exists:inventories,id']);
         } else {
-            $request->validate(['staging_inventory_id' => 'required|exists:lark_staging_inventories,id']);
+            // Accept lsi_X (lark staging), ip_X (indo purchase), or plain integer ID
+            $request->validate(['staging_inventory_id' => 'required|string']);
         }
 
         // Validasi conditional berdasarkan tipe proyek
@@ -714,6 +876,32 @@ class MaterialRequestController extends Controller
                 }
             }
 
+            // Parse incoming material: lsi_X = lark staging, ip_X = indo purchase, plain int = legacy lark staging
+            $newStagingInventoryId = null;
+            $newIndoPurchaseId = null;
+            if ($isIncoming) {
+                $rawId = $request->staging_inventory_id;
+                if (str_starts_with($rawId, 'ip_')) {
+                    $newIndoPurchaseId = (int) substr($rawId, 3);
+                    if (!ProjectPurchase::where('id', $newIndoPurchaseId)->exists()) {
+                        DB::rollBack();
+                        return back()
+                            ->withInput()
+                            ->withErrors(['staging_inventory_id' => 'Indo purchase item not found.']);
+                    }
+                } else {
+                    $lsiId = str_starts_with($rawId, 'lsi_') ? (int) substr($rawId, 4) : (int) $rawId;
+                    $stagingCheck = LarkStagingInventory::where('id', $lsiId)->first();
+                    if (!$stagingCheck) {
+                        DB::rollBack();
+                        return back()
+                            ->withInput()
+                            ->withErrors(['staging_inventory_id' => 'Staging inventory item not found.']);
+                    }
+                    $newStagingInventoryId = $stagingCheck->id;
+                }
+            }
+
             // Siapkan data update
             $updateData = [
                 'inventory_source' => $request->inventory_source,
@@ -724,11 +912,13 @@ class MaterialRequestController extends Controller
             ];
 
             if ($isIncoming) {
-                $updateData['staging_inventory_id'] = $request->staging_inventory_id;
-                $updateData['inventory_id'] = null; // akan diisi saat staging di-approve
+                $updateData['staging_inventory_id'] = $newStagingInventoryId;
+                $updateData['indo_purchase_id'] = $newIndoPurchaseId;
+                $updateData['inventory_id'] = null;
             } else {
                 $updateData['inventory_id'] = $request->inventory_id;
                 $updateData['staging_inventory_id'] = null;
+                $updateData['indo_purchase_id'] = null;
             }
 
             // Set relasi berdasarkan tipe project
@@ -753,8 +943,12 @@ class MaterialRequestController extends Controller
 
             DB::commit();
 
-            // Trigger event
-            event(new MaterialRequestUpdated($materialRequest, 'updated'));
+            // Trigger event (wrapped to prevent broadcast failures killing the redirect)
+            try {
+                event(new MaterialRequestUpdated($materialRequest, 'updated'));
+            } catch (\Exception $broadcastEx) {
+                \Illuminate\Support\Facades\Log::warning('MaterialRequest broadcast failed (update): ' . $broadcastEx->getMessage());
+            }
 
             // REVISION:             // CRITICAL FIX: Auto goods-out when approving material for already-delivered job order
             // REVISION:             if ($request->status === 'approved' && $oldStatus !== 'approved') {
@@ -787,7 +981,17 @@ class MaterialRequestController extends Controller
                 ]);
             }
 
-            $materialLabel = $isIncoming ? $materialRequest->fresh(['stagingInventory'])->stagingInventory->name ?? 'Incoming Material' : $inventory->name ?? 'Material';
+            if ($isIncoming) {
+                $freshMR = $materialRequest->fresh(['stagingInventory', 'indoPurchase', 'indoPurchase.material']);
+                if ($freshMR->indo_purchase_id && $freshMR->indoPurchase) {
+                    $ip = $freshMR->indoPurchase;
+                    $materialLabel = $ip->purchase_type === 'restock' && $ip->material ? $ip->material->name : $ip->new_item_name ?? 'Incoming Material';
+                } else {
+                    $materialLabel = $freshMR->stagingInventory->name ?? 'Incoming Material';
+                }
+            } else {
+                $materialLabel = $inventory->name ?? 'Material';
+            }
 
             return redirect()
                 ->route('material_requests.index', $filters)
@@ -883,19 +1087,32 @@ class MaterialRequestController extends Controller
 
         $oldStatus = $materialRequest->status;
 
-        // Validasi: incoming source tidak bisa di-approve jika staging belum push ke inventory batch
+        // Validasi: incoming source tidak bisa di-approve jika material belum siap
         if ($request->status === 'approved' && $materialRequest->inventory_source === 'incoming') {
-            $staging = $materialRequest->stagingInventory;
-            if (!$staging || $staging->review_status !== 'approved' || !$staging->processed) {
-                $stagingName = $staging->name ?? '-';
-                $reason = !$staging ? 'data staging tidak ditemukan' : ($staging->review_status !== 'approved' ? 'belum di-approve oleh Admin Logistik' : 'belum di-push ke Inventory Batch');
-                return response()->json(
-                    [
-                        'success' => false,
-                        'message' => 'Material Request ini menggunakan <b>Inventory Incoming</b>. Status tidak dapat diubah ke <b>Approved</b> karena staging inventory (<b>' . e($stagingName) . '</b>) ' . $reason . '.',
-                    ],
-                    422,
-                );
+            if ($materialRequest->indo_purchase_id) {
+                // Indo Purchase: PO must be approved, receipt received/done, and material must be in inventory batch
+                $purchase = ProjectPurchase::find($materialRequest->indo_purchase_id);
+                if (!$purchase) {
+                    return response()->json(['success' => false, 'message' => 'Data PO tidak ditemukan.'], 422);
+                }
+                if ($purchase->status !== 'approved') {
+                    return response()->json(['success' => false, 'message' => 'Material Request tidak dapat di-Approve. Status PO <b>' . e($purchase->po_number ?? '-') . '</b> belum Approved (status saat ini: <b>' . ucfirst($purchase->status) . '</b>).'], 422);
+                }
+                if (!in_array($purchase->item_status, ['received', 'done', 'matched'])) {
+                    return response()->json(['success' => false, 'message' => 'Material Request tidak dapat di-Approve. Penerimaan barang untuk PO <b>' . e($purchase->po_number ?? '-') . '</b> belum selesai (receipt status: <b>' . ucfirst($purchase->item_status) . '</b>).'], 422);
+                }
+                $existsInBatch = InventoryBatch::where('source_type', InventoryBatch::SOURCE_INDO_PURCHASE)->where('source_id', $purchase->id)->exists();
+                if (!$existsInBatch) {
+                    return response()->json(['success' => false, 'message' => 'Material Request tidak dapat di-Approve. Material dari PO <b>' . e($purchase->po_number ?? '-') . '</b> belum masuk ke Inventory Batch.'], 422);
+                }
+            } else {
+                // Lark staging: must be reviewed/approved and pushed to inventory batch
+                $staging = $materialRequest->stagingInventory;
+                if (!$staging || $staging->review_status !== 'approved' || !$staging->processed) {
+                    $stagingName = $staging->name ?? '-';
+                    $reason = !$staging ? 'data staging tidak ditemukan' : ($staging->review_status !== 'approved' ? 'belum di-approve oleh Admin Logistik' : 'belum di-push ke Inventory Batch');
+                    return response()->json(['success' => false, 'message' => 'Material Request ini menggunakan <b>Inventory Incoming</b>. Status tidak dapat diubah ke <b>Approved</b> karena staging inventory (<b>' . e($stagingName) . '</b>) ' . $reason . '.'], 422);
+                }
             }
         }
 
@@ -905,7 +1122,11 @@ class MaterialRequestController extends Controller
         }
         $materialRequest->update($updateData);
 
-        event(new MaterialRequestUpdated($materialRequest, 'status'));
+        try {
+            event(new MaterialRequestUpdated($materialRequest, 'status'));
+        } catch (\Exception $broadcastEx) {
+            \Illuminate\Support\Facades\Log::warning('MaterialRequest broadcast failed (quickUpdate): ' . $broadcastEx->getMessage());
+        }
 
         // CRITICAL FIX: Auto goods-out when approving material for already-delivered job order
         // COMMENTED OUT - UNDER REVISION

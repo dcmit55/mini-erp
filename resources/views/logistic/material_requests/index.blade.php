@@ -107,7 +107,7 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-1">
                             <select id="filter-status" name="status" class="form-select form-select-sm select2">
                                 <option value="">All Status</option>
                                 <option value="pending">Pending</option>
@@ -122,6 +122,14 @@
                                 @foreach ($users as $user)
                                     <option value="{{ $user->username }}">{{ ucfirst($user->username) }}</option>
                                 @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <select id="filter-purchase-source" name="purchase_source"
+                                class="form-select form-select-sm select2">
+                                <option value="">All Material Sources</option>
+                                <option value="indo_purchase">Indo Purchase</option>
+                                <option value="international">International Purchase</option>
                             </select>
                         </div>
                         <div class="col-md-2">
@@ -644,6 +652,7 @@
                         d.requested_by = $('#filter-requested-by').val();
                         d.requested_at = $('#filter-requested-at').val();
                         d.custom_search = $('#custom-search').val();
+                        d.purchase_source = $('#filter-purchase-source').val();
                     },
                     error: function(xhr, error, thrown) {
                         console.error('DataTables AJAX Error:', {
@@ -778,11 +787,11 @@
                 table.draw();
             }, 300);
 
-            $('#filter-project, #filter-job-order, #filter-project-type, #filter-material, #filter-status, #filter-requested-by, #filter-requested-at, #custom-search')
+            $('#filter-project, #filter-job-order, #filter-project-type, #filter-material, #filter-status, #filter-requested-by, #filter-purchase-source, #filter-requested-at, #custom-search')
                 .on('change input', debouncedFilter);
 
             $('#reset-filters').on('click', function() {
-                $('#filter-project, #filter-job-order, #filter-project-type, #filter-material, #filter-status, #filter-requested-by, #filter-requested-at, #custom-search')
+                $('#filter-project, #filter-job-order, #filter-project-type, #filter-material, #filter-status, #filter-requested-by, #filter-purchase-source, #filter-requested-at, #custom-search')
                     .val('').trigger('change');
                 table.draw();
             });
@@ -798,6 +807,7 @@
                     status: $('#filter-status').val(),
                     requested_by: $('#filter-requested-by').val(),
                     requested_at: $('#filter-requested-at').val(),
+                    purchase_source: $('#filter-purchase-source').val(),
                     search: $('#custom-search').val()
                 };
                 const query = $.param(params);

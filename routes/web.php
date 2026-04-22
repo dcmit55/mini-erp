@@ -214,6 +214,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/inventory-batch', [\App\Http\Controllers\Logistic\InventoryBatchController::class, 'index'])->name('inventory-batch.index');
     Route::get('/inventory-batch/stock-value', [\App\Http\Controllers\Logistic\InventoryBatchController::class, 'batchStockValue'])->name('inventory-batch.stock-value');
     Route::get('/inventory-batch/by-inventory/{id}', [\App\Http\Controllers\Logistic\InventoryBatchController::class, 'byInventory'])->name('inventory-batch.by-inventory');
+    Route::get('/inventory-batch/fix-zero-price', [\App\Http\Controllers\Logistic\InventoryBatchController::class, 'fixZeroPriceIndex'])->name('inventory-batch.fix-zero-price');
+    Route::post('/inventory-batch/fix-zero-price/{batch}', [\App\Http\Controllers\Logistic\InventoryBatchController::class, 'fixZeroPriceUpdate'])->name('inventory-batch.fix-zero-price.update');
+    Route::get('/inventory-batch/fix-zero-price', [\App\Http\Controllers\Logistic\InventoryBatchController::class, 'fixZeroPriceIndex'])->name('inventory-batch.fix-zero-price');
+    Route::post('/inventory-batch/fix-zero-price/{batch}', [\App\Http\Controllers\Logistic\InventoryBatchController::class, 'fixZeroPriceUpdate'])->name('inventory-batch.fix-zero-price.update');
 
     // Stock Adjustments
     Route::get('/stock-adjustments/batches', [\App\Http\Controllers\Logistic\StockAdjustmentController::class, 'getBatches'])->name('stock-adjustments.batches');
@@ -308,6 +312,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/material_requests/bulk_details', [MaterialRequestController::class, 'bulkDetails'])->name('material_requests.bulk_details');
     Route::post('/material_requests/bulk_details', [MaterialRequestController::class, 'bulkDetails'])->name('material_requests.bulk_details.post');
     Route::post('/material_requests/{id}/quick-update', [MaterialRequestController::class, 'quickUpdate'])->name('material_requests.quick_update');
+    // AJAX: Unified incoming materials (lark_staging + indo_purchases) per Job Order
+    Route::get('/material_requests/incoming-materials', [MaterialRequestController::class, 'getIncomingMaterials'])->name('material_requests.incoming_materials');
 
     // Material Planning
     Route::middleware(['auth'])->group(function () {
@@ -516,6 +522,16 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/monitor/running', [MascotMonitorController::class, 'getRunning'])->name('monitor.running');
             Route::get('/monitor/clocked-in', [MascotMonitorController::class, 'getClockedIn'])->name('monitor.clocked-in');
             Route::post('/bulk-stop', [MascotTimingController::class, 'bulkStop'])->name('bulk-stop');
+        });
+
+    // Timing Planner — plan employees per Job Order (admin mascot / admin costume)
+    Route::prefix('timing-planner')
+        ->name('timing-planner.')
+        ->group(function () {
+            Route::get('/', [\App\Http\Controllers\Timing\TimingPlannerController::class, 'index'])->name('index');
+            Route::post('/save', [\App\Http\Controllers\Timing\TimingPlannerController::class, 'savePlan'])->name('save');
+            Route::post('/clear', [\App\Http\Controllers\Timing\TimingPlannerController::class, 'clearPlan'])->name('clear');
+            Route::get('/plan/{jobOrderId}', [\App\Http\Controllers\Timing\TimingPlannerController::class, 'getPlan'])->name('get');
         });
 
     // Timing Session Detail - Shared detail page for any timing session
@@ -914,14 +930,16 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // ─── Warning Batches (Bulk) ────────────────────────────────────────────────
-    Route::prefix('warning-batches')->name('warning-batches.')->middleware('auth')->group(function () {
-        Route::get('/',                [App\Http\Controllers\Hr\WarningBatchController::class, 'index'])->name('index');
-        Route::get('/create',          [App\Http\Controllers\Hr\WarningBatchController::class, 'create'])->name('create');
-        Route::post('/',               [App\Http\Controllers\Hr\WarningBatchController::class, 'store'])->name('store');
-        Route::get('/{warningBatch}',  [App\Http\Controllers\Hr\WarningBatchController::class, 'show'])->name('show');
-    });
+    Route::prefix('warning-batches')
+        ->name('warning-batches.')
+        ->middleware('auth')
+        ->group(function () {
+            Route::get('/', [App\Http\Controllers\Hr\WarningBatchController::class, 'index'])->name('index');
+            Route::get('/create', [App\Http\Controllers\Hr\WarningBatchController::class, 'create'])->name('create');
+            Route::post('/', [App\Http\Controllers\Hr\WarningBatchController::class, 'store'])->name('store');
+            Route::get('/{warningBatch}', [App\Http\Controllers\Hr\WarningBatchController::class, 'show'])->name('show');
+        });
 
     // ─── Violation Categories (Master Data) ───────────────────────────────────
-    Route::resource('violation-categories', App\Http\Controllers\Hr\ViolationCategoryController::class)
-        ->middleware('auth');
+    Route::resource('violation-categories', App\Http\Controllers\Hr\ViolationCategoryController::class)->middleware('auth');
 });

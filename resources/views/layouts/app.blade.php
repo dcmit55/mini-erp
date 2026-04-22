@@ -1139,11 +1139,114 @@
             })();
         </script>
 
-        <footer class="border-top text-center text-lg-start mt-5"
-            style="background: var(--bs-body-bg); color: var(--bs-body-color);">
-            <div class="container-fluid">
-                <div class="row">
+        {{-- ============================================================ --}}
+        {{-- FOOTER                                                        --}}
+        {{-- ============================================================ --}}
+        <footer
+            style="
+            background: linear-gradient(160deg, #0a0f1e 0%, #111827 50%, #0a0f1e 100%);
+            border-top: 1px solid rgba(99,102,241,.3);
+            color: #94a3b8;
+            font-size: 0.76rem;
+            margin-top: 3rem;
+            position: relative;
+            overflow: hidden;
+        ">
+            {{-- Top accent glow line --}}
+            <div
+                style="position:absolute;top:0;left:0;right:0;height:2px;
+                background:linear-gradient(90deg,transparent 0%,#4f46e5 20%,#8b5cf6 50%,#4f46e5 80%,transparent 100%);
+                opacity:.8;">
+            </div>
+
+            <div class="container-fluid px-3 px-md-4 py-3">
+
+                {{-- Row 1: Main info (3 cols on desktop, stack on mobile) --}}
+                <div class="row align-items-center g-3 pb-2" style="border-bottom:1px solid rgba(255,255,255,.05);">
+
+                    {{-- LEFT: Brand + copyright --}}
+                    <div class="col-12 col-md-4">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <div
+                                style="width:26px;height:26px;border-radius:6px;flex-shrink:0;
+                                background:linear-gradient(135deg,#4f46e5,#8b5cf6);
+                                display:flex;align-items:center;justify-content:center;">
+                                <i class="bi bi-cpu-fill" style="color:#fff;font-size:.78rem;"></i>
+                            </div>
+                            <span class="fw-bold" style="color:#e2e8f0;font-size:.9rem;letter-spacing:.4px;">
+                                Symcore ERP
+                            </span>
+                            <span
+                                style="
+                                background:rgba(99,102,241,.18);border:1px solid rgba(99,102,241,.4);
+                                color:#a5b4fc;border-radius:4px;padding:1px 6px;
+                                font-size:.65rem;font-weight:700;letter-spacing:.6px;">
+                                v{{ config('app.version', '2.0.0') }}
+                            </span>
+                        </div>
+                        <div style="color:#475569;line-height:1.6;">
+                            &copy; {{ date('Y') }}
+                            <span style="color:#94a3b8;font-weight:500;">
+                                {{ config('app.company', 'PT The Costume Magnifique') }}
+                            </span>
+                            <br class="d-none d-sm-block d-md-none">
+                            <span class="d-inline d-sm-none d-md-inline">&nbsp;&mdash;&nbsp;</span>
+                            All rights reserved.
+                        </div>
+                    </div>
+
+                    {{-- CENTER: Dev lineage --}}
+                    <div class="col-12 col-md-4 text-md-center">
+                        <div class="d-inline-flex flex-column align-items-center gap-1 px-3 py-2 rounded-3 w-100 w-md-auto"
+                            style="background:rgba(99,102,241,.07);border:1px solid rgba(99,102,241,.18);
+                            max-width:280px;">
+
+                            <div class="d-flex align-items-center gap-1" style="font-size:.68rem;color:#334155;">
+                                <i class="bi bi-people" style="font-size:.62rem;"></i>
+                                <span>Originally built {{ config('app.build_year', '2025') }} by DCMIT Gen 1</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-1" style="font-size:.68rem;color:#334155;">
+                                <i class="bi bi-arrow-right" style="font-size:.58rem;"></i>
+                                <span>Continued by {{ config('app.developer', 'DCMIT Gen 2') }}
+                                    ({{ date('Y') }})</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- RIGHT: Tech stack --}}
+                    <div class="col-12 col-md-4">
+                        <div class="d-flex flex-wrap justify-content-md-end align-items-center gap-2">
+                            <span class="d-inline-flex align-items-center gap-1"
+                                style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);
+                                color:#6ee7b7;border-radius:20px;padding:3px 10px;white-space:nowrap;">
+                                <i class="bi bi-shield-check" style="font-size:.7rem;"></i> Symcore
+                            </span>
+                            <span class="d-inline-flex align-items-center gap-1"
+                                style="background:rgba(251,146,60,.08);border:1px solid rgba(251,146,60,.2);
+                                color:#fed7aa;border-radius:20px;padding:3px 10px;white-space:nowrap;">
+                                <i class="bi bi-box-fill" style="font-size:.7rem;"></i>
+                                Laravel {{ Illuminate\Foundation\Application::VERSION }}
+                            </span>
+                        </div>
+                    </div>
+
                 </div>
+
+                {{-- Row 2: Bottom bar — build info + small note --}}
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-1 pt-2"
+                    style="color:#334155;">
+                    <span>
+                        Build&nbsp;
+                        <span style="color:#4f4f6b;font-variant-numeric:tabular-nums;">
+                            {{ config('app.build_year', '2025') }}.{{ date('m') }}
+                        </span>
+                        &nbsp;&bull;&nbsp; {{ config('app.name', 'Symcore') }} is a proprietary internal ERP system.
+                    </span>
+                    <span style="color:#1e293b;">
+                        <i class="bi bi-lock-fill me-1" style="font-size:.65rem;"></i>Internal use only
+                    </span>
+                </div>
+
             </div>
         </footer>
 

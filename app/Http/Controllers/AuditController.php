@@ -23,7 +23,22 @@ class AuditController extends Controller
             return $this->getDataTablesData($request);
         }
 
-        return view('audit.index');
+        // Load distinct auditable_type values from the DB for the dynamic filter dropdown
+        $auditableTypes = \OwenIt\Auditing\Models\Audit::query()
+            ->whereNotNull('auditable_type')
+            ->distinct()
+            ->orderBy('auditable_type')
+            ->pluck('auditable_type')
+            ->map(
+                fn($type) => [
+                    'value' => $type,
+                    'label' => class_basename($type),
+                ],
+            )
+            ->sortBy('label')
+            ->values();
+
+        return view('audit.index', compact('auditableTypes'));
     }
 
     private function getDataTablesData(Request $request)

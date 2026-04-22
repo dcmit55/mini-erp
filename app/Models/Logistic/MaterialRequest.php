@@ -19,7 +19,7 @@ class MaterialRequest extends Model implements Auditable
     const PROJECT_TYPE_CLIENT = 'client';
     const PROJECT_TYPE_INTERNAL = 'internal';
 
-    protected $fillable = ['inventory_id', 'staging_inventory_id', 'inventory_source', 'project_type', 'project_id', 'internal_project_id', 'job_order_id', 'qty', 'processed_qty', 'requested_by', 'status', 'remark', 'approved_at'];
+    protected $fillable = ['inventory_id', 'staging_inventory_id', 'indo_purchase_id', 'inventory_source', 'project_type', 'project_id', 'internal_project_id', 'job_order_id', 'qty', 'processed_qty', 'requested_by', 'status', 'remark', 'approved_at'];
 
     protected $casts = [
         'qty' => 'decimal:2',
@@ -30,7 +30,7 @@ class MaterialRequest extends Model implements Auditable
         'deleted_at' => 'datetime',
     ];
 
-    protected $auditInclude = ['inventory_id', 'staging_inventory_id', 'inventory_source', 'project_type', 'project_id', 'internal_project_id', 'job_order_id', 'qty', 'processed_qty', 'status', 'remark', 'requested_by', 'approved_at'];
+    protected $auditInclude = ['inventory_id', 'staging_inventory_id', 'indo_purchase_id', 'inventory_source', 'project_type', 'project_id', 'internal_project_id', 'job_order_id', 'qty', 'processed_qty', 'status', 'remark', 'requested_by', 'approved_at'];
 
     protected $auditTimestamps = true;
 
@@ -43,6 +43,11 @@ class MaterialRequest extends Model implements Auditable
     public function stagingInventory()
     {
         return $this->belongsTo(\App\Models\Lark\LarkStagingInventory::class, 'staging_inventory_id');
+    }
+
+    public function indoPurchase()
+    {
+        return $this->belongsTo(\App\Models\Procurement\ProjectPurchase::class, 'indo_purchase_id');
     }
 
     public function project()

@@ -79,7 +79,7 @@
                                     <label class="form-check-label" for="sourceIncoming">
                                         </i>Inventory Incoming
                                     </label>
-                                    <div class="form-text text-muted">From Lark Purchasing</div>
+                                    <div class="form-text text-muted">From Purchasing</div>
                                 </div>
                             </div>
                             <input type="hidden" name="inventory_source" id="hiddenInventorySource"
@@ -172,7 +172,9 @@
                                     value="{{ old('qty') }}">
                                 <span class="input-group-text unit-label">unit</span>
                             </div>
-
+                            @error('qty')
+                                <small class="text-danger">{{ $message }}</small>
+                            @enderror
                         </div>
                         <div class="col-lg-6 mb-3">
                             <label>Remark (Optional)</label>
@@ -515,6 +517,13 @@
             const departments = @json($departments);
             const defaultPtDcmDepartmentId = '{{ $defaultPtDcmDepartmentId ?? '' }}';
 
+            // ========== OLD INPUT RESTORE (after validation failure) ==========
+            const oldJobOrderId = '{{ old('job_order_id') }}';
+            const oldProjectType = '{{ old('project_type', 'client') }}';
+            const oldInventorySource = '{{ old('inventory_source', 'stock') }}';
+            const oldStagingId = '{{ old('staging_inventory_id') }}';
+            const oldInventoryId = '{{ old('inventory_id') }}';
+
             // ========== RENDER OPSI BERDASARKAN TIPE PROYEK ==========
             function renderClientOptions() {
                 let html = '<option value="">Select Job Order</option>';
@@ -538,24 +547,36 @@
                 $('#jobOrderLabel').text('Job Order (Internal)');
             }
 
-            function toggleProjectType() {
+            function toggleProjectType(preserveOld) {
                 const isClient = $('#projectTypeClient').is(':checked');
                 if (isClient) {
                     renderClientOptions();
-                    $('#hiddenProjectId, #hiddenInternalProjectId').val('');
-                    $('#projectInfoDisplay').addClass('d-none');
                     $('#btnAddInternalProject').addClass('d-none');
                 } else {
                     renderInternalOptions();
-                    $('#hiddenProjectId, #hiddenInternalProjectId').val('');
-                    $('#projectInfoDisplay').addClass('d-none');
                     $('#btnAddInternalProject').removeClass('d-none');
                 }
-                $('#jobOrderSelect').trigger('change.select2');
+
+                // Restore old job order value if present (after validation failure)
+                const joToRestore = preserveOld !== false && oldJobOrderId ? oldJobOrderId : null;
+                if (joToRestore) {
+                    setTimeout(() => {
+                        $('#jobOrderSelect').val(joToRestore).trigger('change');
+                    }, 50);
+                } else {
+                    $('#hiddenProjectId, #hiddenInternalProjectId').val('');
+                    $('#projectInfoDisplay').addClass('d-none');
+                    $('#jobOrderSelect').trigger('change.select2');
+                }
             }
 
-            $('input[name="project_type"]').on('change', toggleProjectType);
-            toggleProjectType();
+            $('input[name="project_type"]').on('change', function() {
+                toggleProjectType(false);
+            });
+
+            // Restore old project type selection, then render options with old JO
+            $('input[name="project_type"][value="' + oldProjectType + '"]').prop('checked', true);
+            toggleProjectType(true);
 
             // ========== HANDLE SAAT JOB ORDER DIPILIH ==========
             $('#jobOrderSelect').on('change', function() {
@@ -569,7 +590,7 @@
                     $('#hiddenProjectId, #hiddenInternalProjectId').val('');
                     // Clear filter notice if incoming is active
                     if ($('input[name="inventory_source"]:checked').val() === 'incoming') {
-                        fetchStagingInventories();
+                        fetchIncomingMaterials();
                     }
                     return;
                 }
@@ -598,9 +619,9 @@
                     }
                 }
 
-                // If source is incoming (client only), re-fetch filtered staging materials
+                // If source is incoming (client only), re-fetch filtered incoming materials
                 if (isClient && $('input[name="inventory_source"]:checked').val() === 'incoming') {
-                    fetchStagingInventories();
+                    fetchIncomingMaterials();
                 }
             });
 
@@ -799,36 +820,68 @@
             // ========== MATERIAL SOURCE RADIO TOGGLE ==========
 
             /**
-             * Fetch staging inventories via AJAX.
-             * If source=incoming and a client JO is selected, filter by JO's project.
+             * Fetch unified incoming materials (lark_staging + indo_purchases) via AJAX.
+             * Rule: hide/disable if no JO selected. Filter by JO's project.
              */
-            function fetchStagingInventories(callback) {
+            function fetchIncomingMaterials(callback) {
                 const isClient = $('#projectTypeClient').is(':checked');
                 const joId = isClient ? ($('#jobOrderSelect').val() || '') : '';
+                const $select = $('#staging_inventory_id');
+                const $notice = $('#incoming-filter-notice');
 
-                $.get('{{ route('material_requests.staging_inventories') }}', {
+                // Rule 1: no JO → clear and show placeholder
+                if (!joId) {
+                    $select.html('<option value="">— Select a Job Order first —</option>').trigger(
+                        'change.select2');
+                    $select.prop('disabled', true).prop('required', false);
+                    $notice.text('Please select a Job Order to see available incoming materials.').removeClass(
+                        'd-none');
+                    $('#available-incoming-qty').addClass('d-none');
+                    if (typeof callback === 'function') callback();
+                    return;
+                }
+
+                // JO selected — enable select and fetch
+                $select.prop('disabled', false).prop('required', true);
+
+                $.get('{{ route('material_requests.incoming_materials') }}', {
                     job_order_id: joId
                 }, function(items) {
-                    const $select = $('#staging_inventory_id');
-                    const currentVal = $select.val();
-                    let html = '<option value="">Select Incoming Material</option>';
-                    items.forEach(function(si) {
-                        const code = si.material_code ? ' (' + si.material_code + ')' : '';
-                        const selected = (String(si.id) === String(currentVal)) ? ' selected' : '';
-                        html +=
-                            `<option value="${si.id}" data-unit="${si.unit || ''}" data-qty="${si.quantity}" data-received="${si.received_qty || 0}"${selected}>${si.name}${code}</option>`;
+                    // Use current select value or old input value for restoring selection
+                    const currentVal = $select.val() || oldStagingId;
+
+                    // Group into optgroups
+                    let stagingHtml = '';
+                    let indoHtml = '';
+
+                    items.forEach(function(item) {
+                        const code = item.material_code ? ' (' + item.material_code + ')' : '';
+                        const selected = (String(item.id) === String(currentVal)) ? ' selected' :
+                            '';
+                        const opt =
+                            `<option value="${item.id}" data-unit="${item.unit || ''}" data-qty="${item.quantity}" data-received="0" data-source="${item.source}"${selected}>${item.name}${code}</option>`;
+                        if (item.source === 'lark_staging') {
+                            stagingHtml += opt;
+                        } else {
+                            indoHtml += opt;
+                        }
                     });
+
+                    let html = '<option value="">Select Incoming Material</option>';
+                    if (stagingHtml) html +=
+                        `<optgroup label="International Purchase">${stagingHtml}</optgroup>`;
+                    if (indoHtml) html += `<optgroup label="Indo Purchase">${indoHtml}</optgroup>`;
+
                     $select.html(html).trigger('change.select2');
 
-                    // Show notice if filtered and no results
-                    const $notice = $('#incoming-filter-notice');
-                    if (joId && items.length === 0) {
+                    if (items.length === 0) {
                         $notice.text('No incoming materials found for this project.').removeClass('d-none');
-                    } else if (joId && items.length > 0) {
-                        $notice.text(`Showing ${items.length} item(s) for this project.`).removeClass(
-                            'd-none');
                     } else {
-                        $notice.addClass('d-none').text('');
+                        const stagingCount = items.filter(i => i.source === 'lark_staging').length;
+                        const indoCount = items.filter(i => i.source === 'indo_purchase').length;
+                        $notice.text(
+                            `${items.length} item(s): ${stagingCount} International Purchase, ${indoCount} Indo Purchase.`
+                        ).removeClass('d-none');
                     }
 
                     if (typeof callback === 'function') callback();
@@ -857,8 +910,8 @@
                     $('#incomingMaterialWrapper').show();
                     $('#inventory_id').prop('disabled', true).prop('required', false);
                     $('#staging_inventory_id').prop('disabled', false).prop('required', true);
-                    // Fetch (filtered) staging items when switching to incoming
-                    fetchStagingInventories(function() {
+                    // Fetch (filtered) incoming materials when switching to incoming
+                    fetchIncomingMaterials(function() {
                         if ($('#staging_inventory_id').val()) {
                             $('#staging_inventory_id').trigger('change');
                         } else {
@@ -871,7 +924,16 @@
             }
 
             $('input[name="inventory_source"]').on('change', toggleMaterialSource);
-            toggleMaterialSource(); // init on page load
+
+            // Restore old inventory source
+            $('input[name="inventory_source"][value="' + oldInventorySource + '"]').prop('checked', true);
+
+            // If restoring incoming + old JO, delay init so JO select is populated first
+            if (oldInventorySource === 'incoming' && oldJobOrderId) {
+                setTimeout(() => toggleMaterialSource(), 150);
+            } else {
+                toggleMaterialSource();
+            }
 
             // ========== TOAST NOTIFICATION HELPER ==========
             function showMaterialNotif(message, type) {

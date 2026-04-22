@@ -200,16 +200,16 @@
 
         /* ── Overhead bar ── */
         /* .overhead-bar {
-                        display: flex;
-                        align-items: center;
-                        gap: 1rem;
-                        padding: .6rem 1rem;
-                        border-radius: 10px;
-                        background: rgba(108, 92, 231, .06);
-                        border: 1px solid rgba(108, 92, 231, .12);
-                        margin-top: .75rem;
-                        font-size: .78rem;
-                    } */
+                            display: flex;
+                            align-items: center;
+                            gap: 1rem;
+                            padding: .6rem 1rem;
+                            border-radius: 10px;
+                            background: rgba(108, 92, 231, .06);
+                            border: 1px solid rgba(108, 92, 231, .12);
+                            margin-top: .75rem;
+                            font-size: .78rem;
+                        } */
 
         .overhead-bar .ob-chip {
             background: rgba(108, 92, 231, .12);
@@ -561,6 +561,18 @@
                 Lark photos synced · dept-specific source
             </span>
         </nav>
+
+        {{-- ── WIP Warning Banner ── --}}
+        @if (str_contains($project->project_status ?? '', 'WIP'))
+            <div class="alert alert-warning d-flex align-items-center gap-2 mb-3" role="alert">
+                <i class="fas fa-hammer fa-lg"></i>
+                <div>
+                    <strong>Project masih WIP</strong> — Data costing mungkin belum lengkap.
+                    Status saat ini: <span class="badge bg-warning text-dark">{{ $project->project_status }}</span>
+                    Costing ini bersifat <em>preview</em> dan dapat berubah.
+                </div>
+            </div>
+        @endif
 
         {{-- ── Hero card ── --}}
         <div class="hero-card">
@@ -997,11 +1009,13 @@
                             </div>
                             <div class="d-flex justify-content-between" style="font-size:.78rem; padding:.15rem 0;">
                                 <span style="color:#e67e22;">OT Cost</span>
-                                <span style="{{ $totalOtWorkmanship > 0 ? 'color:#e67e22; font-weight:600;' : 'color:#adb5bd;' }}">
+                                <span
+                                    style="{{ $totalOtWorkmanship > 0 ? 'color:#e67e22; font-weight:600;' : 'color:#adb5bd;' }}">
                                     {{ $totalOtWorkmanship > 0 ? '+ ' . $fmt($totalOtWorkmanship) : $fmt(0) }}
                                 </span>
                             </div>
-                            <div class="d-flex justify-content-between align-items-center fw-bold" style="font-size:.82rem; padding-top:.25rem; border-top:1px solid var(--bs-border-color); margin-top:.25rem;">
+                            <div class="d-flex justify-content-between align-items-center fw-bold"
+                                style="font-size:.82rem; padding-top:.25rem; border-top:1px solid var(--bs-border-color); margin-top:.25rem;">
                                 <span>Total Workmanship</span>
                                 <span class="text-body fw-bold">{{ $fmt($totalWorkmanshipIDR) }}</span>
                             </div>

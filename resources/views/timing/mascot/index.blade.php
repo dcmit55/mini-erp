@@ -11,6 +11,11 @@
                 <a href="{{ route('mascot-timing.monitor') }}" class="btn btn-primary btn-sm">
                     <i class="fas fa-tv me-1"></i> Mascot Monitor
                 </a>
+                @if (auth()->user()->isTimingPlanningAdmin())
+                    <a href="{{ route('timing-planner.index') }}" class="btn btn-success btn-sm">
+                        <i class="bi bi-calendar2-check me-1"></i> Timing Planner
+                    </a>
+                @endif
                 <a href="{{ route('timings.index') }}" class="btn btn-outline-primary btn-sm">
                     <i class="bi bi-table me-1"></i> View All Timings
                 </a>
@@ -42,10 +47,99 @@
                         <form id="mascot-timer-form">
                             @csrf
 
-                            <!-- STEP 1: Select Employees -->
+                            <!-- STEP 1: Select Job Order (Card UI) -->
                             <div class="mb-4">
                                 <label class="form-label fw-bold">
-                                    <span class="badge bg-warning text-dark me-2">1</span>Select Employees (Multiple)
+                                    <span class="badge bg-warning text-dark me-2">1</span>Select Job Order
+                                </label>
+                                <div class="mb-2">
+                                    <input type="text" id="jo-search" class="form-control form-control-sm"
+                                        placeholder="Search job order or project...">
+                                </div>
+                                <div id="jo-cards" class="row g-2" style="max-height: 280px; overflow-y: auto;">
+                                    @forelse($jobOrders as $jo)
+                                        @php
+                                            $deliveryDate = $jo->delivery_date
+                                                ? \Carbon\Carbon::parse($jo->delivery_date)
+                                                : null;
+                                            $daysLeft = $deliveryDate
+                                                ? (int) now()
+                                                    ->startOfDay()
+                                                    ->diffInDays($deliveryDate->copy()->startOfDay(), false)
+                                                : null;
+                                            $lastEmps = $lastEmployeesPerJo[$jo->id] ?? [];
+                                            $plannedEmps = $plannedEmployeesPerJo[$jo->id] ?? [];
+                                            $hasPlan = !empty($plannedEmps);
+                                        @endphp
+                                        <div class="col-md-4 col-sm-6 jo-card-wrapper"
+                                            data-jo-name="{{ strtolower($jo->name) }}"
+                                            data-jo-project="{{ strtolower($jo->project->name ?? '') }}">
+                                            <div class="card jo-card border-2 h-100 {{ $hasPlan ? 'border-success' : '' }}"
+                                                data-job-order-id="{{ $jo->id }}"
+                                                data-project-name="{{ $jo->project->name ?? 'N/A' }}"
+                                                data-planned-employees='@json($plannedEmps)'
+                                                data-last-employees='@json($lastEmps)'
+                                                style="cursor:pointer; transition: all 0.3s;">
+                                                <div class="card-body p-2">
+                                                    <h6 class="mb-1 fw-bold lh-sm" style="font-size:0.78rem;">
+                                                        {{ $jo->name }}</h6>
+                                                    <div class="text-muted mb-1" style="font-size:0.68rem;">
+                                                        <i class="bi bi-folder2 me-1"></i>{{ $jo->project->name ?? 'N/A' }}
+                                                    </div>
+                                                    @if ($deliveryDate)
+                                                        @if ($daysLeft < 0)
+                                                            <span class="badge bg-danger" style="font-size:0.6rem;"><i
+                                                                    class="bi bi-exclamation-triangle-fill me-1"></i>OVERDUE
+                                                                {{ abs($daysLeft) }}d</span>
+                                                        @elseif($daysLeft === 0)
+                                                            <span class="badge bg-danger" style="font-size:0.6rem;"><i
+                                                                    class="bi bi-alarm-fill me-1"></i>DUE TODAY</span>
+                                                        @elseif($daysLeft <= 3)
+                                                            <span class="badge bg-warning text-dark"
+                                                                style="font-size:0.6rem;"><i
+                                                                    class="bi bi-clock-fill me-1"></i>{{ $daysLeft }}d
+                                                                left</span>
+                                                        @else
+                                                            <span class="badge bg-info text-dark"
+                                                                style="font-size:0.6rem;"><i
+                                                                    class="bi bi-calendar-check me-1"></i>{{ $daysLeft }}d
+                                                                left</span>
+                                                        @endif
+                                                        <div class="text-muted mt-1" style="font-size:0.62rem;">
+                                                            {{ $deliveryDate->format('d M Y') }}</div>
+                                                    @else
+                                                        <span class="badge bg-secondary" style="font-size:0.6rem;">No
+                                                            deadline</span>
+                                                    @endif
+                                                    @if ($hasPlan)
+                                                        <div class="mt-1 text-success fw-semibold"
+                                                            style="font-size:0.62rem;"><i
+                                                                class="bi bi-calendar2-check-fill me-1"></i>Plan:
+                                                            {{ count($plannedEmps) }} emp(s)</div>
+                                                    @elseif(!empty($lastEmps))
+                                                        <div class="mt-1 text-muted" style="font-size:0.62rem;"><i
+                                                                class="bi bi-people-fill me-1"></i>Last:
+                                                            {{ count($lastEmps) }} emp(s)</div>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @empty
+                                        <div class="col-12">
+                                            <div class="alert alert-warning mb-0">No active job orders found.</div>
+                                        </div>
+                                    @endforelse
+                                </div>
+                                <div class="mt-2">
+                                    <small id="jo-selected-info" class="text-muted fst-italic">No job order selected</small>
+                                </div>
+                                <input type="hidden" id="job-order-hidden" name="job_order_id">
+                            </div>
+
+                            <!-- STEP 2: Select Employees -->
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">
+                                    <span class="badge bg-warning text-dark me-2">2</span>Select Employees (Multiple)
                                 </label>
 
                                 <!-- Employee Search -->
@@ -54,7 +148,8 @@
                                         <span class="input-group-text"><i class="bi bi-search"></i></span>
                                         <input type="text" id="employee-search" class="form-control form-control-sm"
                                             placeholder="Search by name or position...">
-                                        <button type="button" id="select-all-btn" class="btn btn-outline-warning btn-sm">
+                                        <button type="button" id="select-all-btn"
+                                            class="btn btn-outline-warning btn-sm">
                                             <i class="bi bi-check-all"></i> All Visible
                                         </button>
                                         <button type="button" id="deselect-all-btn"
@@ -76,7 +171,7 @@
                                     @endforeach
                                 </div>
 
-                                <div id="employee-cards">
+                                <div id="employee-cards" style="max-height: 340px; overflow-y: auto; padding-right: 2px;">
                                     @if ($employees->isEmpty())
                                         <div class="alert alert-warning">
                                             No active mascot employees found. Please add employees to mascot department
@@ -91,12 +186,10 @@
                                                     data-department-id="{{ $employee->department_id }}"
                                                     data-position="{{ $employee->position }}"
                                                     data-name="{{ strtolower($employee->name) }}"
-                                                    @if($frozenInfo)
-                                                        data-has-paused="true"
+                                                    @if ($frozenInfo) data-has-paused="true"
                                                         data-paused-job-order="{{ $frozenInfo['job_order_name'] }}"
                                                         data-paused-duration="{{ $frozenInfo['frozen_duration'] }}"
-                                                        data-paused-timing-id="{{ $frozenInfo['timing_id'] }}"
-                                                    @endif>
+                                                        data-paused-timing-id="{{ $frozenInfo['timing_id'] }}" @endif>
                                                     <div class="card employee-card h-100 border-2 {{ $frozenInfo ? 'border-warning' : '' }}"
                                                         data-employee-id="{{ $employee->id }}"
                                                         style="cursor: pointer; transition: all 0.3s;">
@@ -108,7 +201,9 @@
                                                                     id="emp-{{ $employee->id }}">
                                                             </div>
                                                             @if ($frozenInfo)
-                                                                <span class="position-absolute top-0 start-0 m-1 badge bg-warning text-dark" style="font-size:0.6rem;">
+                                                                <span
+                                                                    class="position-absolute top-0 start-0 m-1 badge bg-warning text-dark"
+                                                                    style="font-size:0.6rem;">
                                                                     <i class="bi bi-pause-circle"></i> PAUSED
                                                                 </span>
                                                             @endif
@@ -125,7 +220,8 @@
                                                             <h6 class="mb-0 small lh-sm">{{ $employee->name }}</h6>
                                                             @if ($frozenInfo)
                                                                 <div class="text-warning" style="font-size:0.65rem;">
-                                                                    <i class="bi bi-clock-history"></i> {{ $frozenInfo['frozen_duration'] }}
+                                                                    <i class="bi bi-clock-history"></i>
+                                                                    {{ $frozenInfo['frozen_duration'] }}
                                                                 </div>
                                                             @endif
                                                         </div>
@@ -144,35 +240,18 @@
                                 </div>
                             </div>
 
-                            <!-- STEP 2: Select Job Order -->
-                            <div class="mb-4">
-                                <label class="form-label fw-bold">
-                                    <span class="badge bg-warning text-dark me-2">2</span>Select Job Order
-                                </label>
-                                <select class="form-select select2" id="job-order-select" name="job_order_id" required>
-                                    <option value="">Choose Job Order...</option>
-                                    @foreach ($jobOrders as $jo)
-                                        <option value="{{ $jo->id }}"
-                                            data-project-name="{{ $jo->project->name ?? 'N/A' }}"
-                                            data-job-order-name="{{ $jo->name }}">
-                                            {{ $jo->name }} ({{ $jo->project->name ?? 'N/A' }})
-                                        </option>
-                                    @endforeach
-                                </select>
-
-                                <!-- Job Order Progress Info -->
-                                <div id="job-order-info" class="mt-3 p-3 bg-light rounded d-none">
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <small class="text-muted d-block">Project:</small>
-                                            <strong id="project-name-display">-</strong>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <small class="text-muted d-block">Current Progress:</small>
-                                            <strong id="current-progress-display" class="text-success">0%</strong>
-                                            <span class="badge bg-info ms-2">Stage <span
-                                                    id="current-stage-display">0</span></span>
-                                        </div>
+                            <!-- Job Order Progress Info (shown after JO card selected) -->
+                            <div id="job-order-info" class="mb-3 p-2 bg-light rounded d-none">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <small class="text-muted d-block">Project:</small>
+                                        <strong id="project-name-display">-</strong>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <small class="text-muted d-block">Current Progress:</small>
+                                        <strong id="current-progress-display" class="text-success">0%</strong>
+                                        <span class="badge bg-info ms-2">Stage <span
+                                                id="current-stage-display">0</span></span>
                                     </div>
                                 </div>
                             </div>
@@ -189,7 +268,7 @@
                             <button type="submit" class="btn btn-success btn-lg w-100" id="start-work-btn">
                                 <i class="bi bi-play-circle-fill me-2"></i>
                                 <span id="btn-text">START WORK</span>
-                                <span id="btn-info" class="small">(Select employees, job order & task first)</span>
+                                <span id="btn-info" class="small">(Select job order, employees & task first)</span>
                             </button>
                         </form>
                     </div>
@@ -322,6 +401,19 @@
             background: linear-gradient(135deg, #f9d423 0%, #ff4e50 100%);
         }
 
+        .jo-card.jo-selected {
+            border-color: #ff9800 !important;
+            background: linear-gradient(135deg, rgba(249, 212, 35, 0.15) 0%, rgba(255, 78, 80, 0.1) 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(249, 212, 35, 0.4);
+        }
+
+        .jo-card:hover:not(.jo-selected) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+            border-color: #ffc107 !important;
+        }
+
         .employee-card.selected {
             border-color: #ff9800 !important;
             background: linear-gradient(135deg, rgba(249, 212, 35, 0.1) 0%, rgba(255, 78, 80, 0.1) 100%);
@@ -367,14 +459,6 @@
             let selectedEmployees = [];
             let selectedJobOrder = null;
 
-            // Initialize Select2
-            $('#job-order-select').select2({
-                theme: 'bootstrap-5',
-                placeholder: 'Choose Job Order...',
-                allowClear: true,
-                width: '100%'
-            });
-
             // Initialize Select2 for Stop modal — Stage
             $('#stop-stage').select2({
                 theme: 'bootstrap-5',
@@ -413,6 +497,91 @@
                     $(this).prop('checked', false).trigger('change');
                 });
             });
+
+            // ── JO Card Search ────────────────────────────────────────────────
+            $('#jo-search').on('input', function() {
+                const q = $(this).val().toLowerCase().trim();
+                $('.jo-card-wrapper').each(function() {
+                    const name = $(this).data('jo-name') || '';
+                    const proj = $(this).data('jo-project') || '';
+                    $(this).toggle(!q || name.includes(q) || proj.includes(q));
+                });
+            });
+
+            // ── JO Card Click — select JO + pre-populate employees ────────────
+            $(document).on('click', '.jo-card', function() {
+                const $card = $(this);
+                const joId = $card.data('job-order-id');
+                const projectName = $card.data('project-name');
+                const plannedEmployees = $card.data('planned-employees') || [];
+                const lastEmployees = $card.data('last-employees') || [];
+                const joName = $card.find('h6').first().text().trim();
+
+                // Toggle deselect if same card clicked
+                if ($card.hasClass('jo-selected')) {
+                    deselectJobOrder();
+                    return;
+                }
+
+                // Select this JO card
+                $('.jo-card').removeClass('jo-selected');
+                $card.addClass('jo-selected');
+                selectedJobOrder = joId;
+                $('#job-order-hidden').val(joId);
+                $('#project-name-display').text(projectName);
+                $('#jo-selected-info').html(
+                    `<span class="badge bg-warning text-dark"><i class="bi bi-check-circle me-1"></i>${joName}</span>`
+                );
+
+                // Load JO progress info
+                loadJobOrderInfo(joId);
+                $('#job-order-info').removeClass('d-none');
+
+                // Smart pre-selection:
+                // PRIORITY 1 — planned employees (Timing Planner)
+                // PRIORITY 2 — last session employees (fallback)
+                const autoSource = plannedEmployees.length > 0 ? plannedEmployees : lastEmployees;
+                const sourceLabel = plannedEmployees.length > 0 ?
+                    '📅 dari <strong>Timing Plan</strong>' :
+                    '🕐 dari <strong>sesi terakhir</strong>';
+
+                if (autoSource.length > 0) {
+                    $('.employee-checkbox:checked').prop('checked', false).trigger('change');
+                    selectedEmployees = [];
+
+                    let autoSelected = 0;
+                    autoSource.forEach(function(empId) {
+                        const $cb = $('#emp-' + empId);
+                        if ($cb.length && !$cb.prop('disabled')) {
+                            $cb.prop('checked', true).trigger('change');
+                            autoSelected++;
+                        }
+                    });
+
+                    if (autoSelected > 0) {
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'Karyawan Otomatis Dipilih',
+                            html: `<strong>${autoSelected}</strong> karyawan dipilih otomatis ${sourceLabel}.<br><small class="text-muted">Bisa diubah manual jika diperlukan.</small>`,
+                            timer: 2500,
+                            showConfirmButton: false,
+                            toast: true,
+                            position: 'top-end'
+                        });
+                    }
+                }
+
+                updateStartButton();
+            });
+
+            function deselectJobOrder() {
+                selectedJobOrder = null;
+                $('#job-order-hidden').val('');
+                $('.jo-card').removeClass('jo-selected');
+                $('#jo-selected-info').text('No job order selected');
+                $('#job-order-info').addClass('d-none');
+                updateStartButton();
+            }
 
             // Skillset filter buttons
             let activeSkillset = 'all';
@@ -479,24 +648,6 @@
                 updateStartButton();
             });
 
-            // Job order selection handler
-            $('#job-order-select').on('change', function() {
-                const selected = $(this).find(':selected');
-                selectedJobOrder = $(this).val();
-
-                if (selectedJobOrder) {
-                    const projectName = selected.data('project-name');
-                    $('#project-name-display').text(projectName);
-
-                    // Load job order progress info
-                    loadJobOrderInfo(selectedJobOrder);
-                    $('#job-order-info').removeClass('d-none');
-                } else {
-                    $('#job-order-info').addClass('d-none');
-                }
-
-                updateStartButton();
-            });
 
             // Load job order current progress
             function loadJobOrderInfo(jobOrderId) {
@@ -574,14 +725,17 @@
                 // Check if any selected employees have a paused session
                 const pausedWarnings = [];
                 selectedEmployees.forEach(empId => {
-                    const wrapper = $(`.employee-card-wrapper[data-has-paused="true"]`).filter(function() {
-                        return $(this).find('.employee-checkbox').val() == empId;
-                    });
+                    const wrapper = $(`.employee-card-wrapper[data-has-paused="true"]`).filter(
+                        function() {
+                            return $(this).find('.employee-checkbox').val() == empId;
+                        });
                     if (wrapper.length) {
                         const jobOrder = wrapper.data('paused-job-order');
                         const duration = wrapper.data('paused-duration');
                         const empName = wrapper.find('h6').text().trim();
-                        pausedWarnings.push(`<li><strong>${empName}</strong> — masih ada sesi PAUSED: <em>${jobOrder}</em> (${duration})</li>`);
+                        pausedWarnings.push(
+                            `<li><strong>${empName}</strong> — masih ada sesi PAUSED: <em>${jobOrder}</em> (${duration})</li>`
+                            );
                     }
                 });
 
@@ -632,15 +786,16 @@
                             response.timings.forEach(function(timing) {
                                 $(`.employee-card[data-employee-id="${timing.employee_id}"]`)
                                     .closest('.employee-card-wrapper')
-                                    .fadeOut(300, function() { $(this).remove(); });
+                                    .fadeOut(300, function() {
+                                        $(this).remove();
+                                    });
                             });
 
                             // Reset form
                             $('#mascot-timer-form')[0].reset();
                             $('.employee-card').removeClass('selected');
                             $('.employee-checkbox').prop('checked', false);
-                            $('#job-order-info').addClass('d-none');
-                            $('#job-order-select').val('').trigger('change');
+                            deselectJobOrder();
                             selectedEmployees = [];
                             selectedJobOrder = null;
 
@@ -681,7 +836,8 @@
                 $('#stop-job-order-id').val(jobOrderId);
                 $('#stop-work-form').data('current-employee-id', employeeId);
 
-                let sessionInfoHtml = `<strong>Employee:</strong> ${employeeName}<br><strong>Job Order:</strong> ${jobOrder}`;
+                let sessionInfoHtml =
+                    `<strong>Employee:</strong> ${employeeName}<br><strong>Job Order:</strong> ${jobOrder}`;
                 if (employeeId && frozenSessionsByEmployee[employeeId]) {
                     const frozen = frozenSessionsByEmployee[employeeId];
                     sessionInfoHtml += `<div class="alert alert-warning mt-2 mb-0 py-2">
@@ -790,7 +946,8 @@
                         if (response.success) {
                             $('#stopWorkModal').modal('hide');
 
-                            const frozen = stoppingEmployeeId ? frozenSessionsByEmployee[stoppingEmployeeId] : null;
+                            const frozen = stoppingEmployeeId ? frozenSessionsByEmployee[
+                                stoppingEmployeeId] : null;
                             if (frozen) {
                                 Swal.fire({
                                     icon: 'info',
@@ -815,7 +972,9 @@
                                 });
                             }
 
-                            $(`#session-card-${timingId}`).fadeOut(300, function() { $(this).remove(); });
+                            $(`#session-card-${timingId}`).fadeOut(300, function() {
+                                $(this).remove();
+                            });
                             loadActiveSessions();
                             loadAvailableEmployees();
                         }
@@ -886,18 +1045,36 @@
                     $.ajax({
                         url: '{{ route('mascot-timing.freeze') }}',
                         method: 'POST',
-                        data: { _token: '{{ csrf_token() }}', timing_id: timingId },
+                        data: {
+                            _token: '{{ csrf_token() }}',
+                            timing_id: timingId
+                        },
                         success: function(r) {
                             if (r.success) {
                                 loadActiveSessions();
                                 loadAvailableEmployees();
-                                Swal.fire({ icon: 'success', title: 'Paused!', text: r.message, timer: 1800, showConfirmButton: false });
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Paused!',
+                                    text: r.message,
+                                    timer: 1800,
+                                    showConfirmButton: false
+                                });
                             } else {
-                                Swal.fire({ icon: 'error', title: 'Error', text: r.message });
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: r.message
+                                });
                             }
                         },
                         error: function(xhr) {
-                            Swal.fire({ icon: 'error', title: 'Error', text: xhr.responseJSON?.message || 'Failed to pause.' });
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: xhr.responseJSON?.message ||
+                                    'Failed to pause.'
+                            });
                         }
                     });
                 });
@@ -919,18 +1096,37 @@
                     $.ajax({
                         url: '{{ route('mascot-timing.unfreeze') }}',
                         method: 'POST',
-                        data: { _token: '{{ csrf_token() }}', timing_id: timingId },
+                        data: {
+                            _token: '{{ csrf_token() }}',
+                            timing_id: timingId
+                        },
                         success: function(r) {
                             if (r.success) {
                                 loadActiveSessions();
                                 loadAvailableEmployees();
-                                Swal.fire({ icon: 'success', title: r.auto_froze ? 'Switched!' : 'Continued!', text: r.message, timer: 2500, showConfirmButton: false });
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: r.auto_froze ? 'Switched!' :
+                                        'Continued!',
+                                    text: r.message,
+                                    timer: 2500,
+                                    showConfirmButton: false
+                                });
                             } else {
-                                Swal.fire({ icon: 'error', title: 'Error', text: r.message });
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: r.message
+                                });
                             }
                         },
                         error: function(xhr) {
-                            Swal.fire({ icon: 'error', title: 'Error', text: xhr.responseJSON?.message || 'Failed to continue.' });
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: xhr.responseJSON?.message ||
+                                    'Failed to continue.'
+                            });
                         }
                     });
                 });
@@ -967,29 +1163,29 @@
                 sessions.forEach(session => {
                     const isFrozen = session.is_frozen || false;
                     const isAutoBreak = session.auto_break_paused || false;
-                    const photo = session.employee_photo
-                        ? `<img src="/storage/${session.employee_photo}" class="rounded-circle me-2" width="40" height="40" style="object-fit: cover;">`
-                        : `<div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center me-2" style="width:40px;height:40px;"><i class="bi bi-person text-white"></i></div>`;
+                    const photo = session.employee_photo ?
+                        `<img src="/storage/${session.employee_photo}" class="rounded-circle me-2" width="40" height="40" style="object-fit: cover;">` :
+                        `<div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center me-2" style="width:40px;height:40px;"><i class="bi bi-person text-white"></i></div>`;
 
-                    const statusBadge = isFrozen
-                        ? `<span class="badge bg-warning text-dark me-1"><i class="bi bi-pause-circle"></i> PAUSED${isAutoBreak ? ' (BREAK)' : ''}</span>`
-                        : `<span class="badge bg-success me-1">RUNNING</span>`;
+                    const statusBadge = isFrozen ?
+                        `<span class="badge bg-warning text-dark me-1"><i class="bi bi-pause-circle"></i> PAUSED${isAutoBreak ? ' (BREAK)' : ''}</span>` :
+                        `<span class="badge bg-success me-1">RUNNING</span>`;
 
-                    const durationHtml = isFrozen
-                        ? `<span class="fs-5 fw-bold text-warning">${session.frozen_duration || '00:00:00'}</span>`
-                        : `<span class="duration-display fs-5 fw-bold text-success" data-start-time="${session.start_time}" data-session-id="${session.id}">00:00:00</span>`;
+                    const durationHtml = isFrozen ?
+                        `<span class="fs-5 fw-bold text-warning">${session.frozen_duration || '00:00:00'}</span>` :
+                        `<span class="duration-display fs-5 fw-bold text-success" data-start-time="${session.start_time}" data-session-id="${session.id}">00:00:00</span>`;
 
                     const cardBorder = isFrozen ? 'border-warning border-2' : '';
 
-                    const actionBtns = isFrozen
-                        ? `<div class="d-grid">
+                    const actionBtns = isFrozen ?
+                        `<div class="d-grid">
                                <button class="btn btn-success btn-sm unfreeze-work-btn"
                                    data-timing-id="${session.id}"
                                    data-employee-name="${session.employee_name}">
                                    <i class="bi bi-play-circle me-1"></i>Continue
                                </button>
-                           </div>`
-                        : `<div class="d-flex gap-2">
+                           </div>` :
+                        `<div class="d-flex gap-2">
                                <button class="btn btn-warning btn-sm freeze-work-btn flex-shrink-0"
                                    data-timing-id="${session.id}"
                                    data-employee-name="${session.employee_name}">
@@ -1062,27 +1258,29 @@
                 updateStartButton();
 
                 if (!employees || employees.length === 0) {
-                    $('#employee-cards').html('<div class="alert alert-info">No available employees at this time.</div>');
+                    $('#employee-cards').html(
+                        '<div class="alert alert-info">No available employees at this time.</div>');
                     return;
                 }
 
                 let html = '<div class="row g-2">';
                 employees.forEach(function(emp) {
                     const frozen = emp.frozen_info;
-                    const skillsetIds = emp.skillset_ids && emp.skillset_ids.length ? ',' + emp.skillset_ids.join(',') + ',' : ',';
+                    const skillsetIds = emp.skillset_ids && emp.skillset_ids.length ? ',' + emp.skillset_ids
+                        .join(',') + ',' : ',';
                     const borderClass = frozen ? 'border-warning' : '';
-                    const pausedAttrs = frozen
-                        ? `data-has-paused="true" data-paused-job-order="${frozen.job_order_name}" data-paused-duration="${frozen.frozen_duration}" data-paused-timing-id="${frozen.timing_id}"`
-                        : '';
-                    const pausedBadge = frozen
-                        ? `<span class="position-absolute top-0 start-0 m-1 badge bg-warning text-dark" style="font-size:0.6rem;"><i class="bi bi-pause-circle"></i> PAUSED</span>`
-                        : '';
-                    const pausedDur = frozen
-                        ? `<div class="text-warning" style="font-size:0.65rem;"><i class="bi bi-clock-history"></i> ${frozen.frozen_duration}</div>`
-                        : '';
-                    const photoHtml = emp.photo
-                        ? `<img src="/storage/${emp.photo}" class="rounded-circle mb-1 border" width="44" height="44" style="object-fit:cover;">`
-                        : `<div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center mb-1" style="width:44px;height:44px;"><i class="bi bi-person text-white"></i></div>`;
+                    const pausedAttrs = frozen ?
+                        `data-has-paused="true" data-paused-job-order="${frozen.job_order_name}" data-paused-duration="${frozen.frozen_duration}" data-paused-timing-id="${frozen.timing_id}"` :
+                        '';
+                    const pausedBadge = frozen ?
+                        `<span class="position-absolute top-0 start-0 m-1 badge bg-warning text-dark" style="font-size:0.6rem;"><i class="bi bi-pause-circle"></i> PAUSED</span>` :
+                        '';
+                    const pausedDur = frozen ?
+                        `<div class="text-warning" style="font-size:0.65rem;"><i class="bi bi-clock-history"></i> ${frozen.frozen_duration}</div>` :
+                        '';
+                    const photoHtml = emp.photo ?
+                        `<img src="/storage/${emp.photo}" class="rounded-circle mb-1 border" width="44" height="44" style="object-fit:cover;">` :
+                        `<div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center mb-1" style="width:44px;height:44px;"><i class="bi bi-person text-white"></i></div>`;
 
                     html += `
                         <div class="col-md-4 col-sm-6 employee-card-wrapper"

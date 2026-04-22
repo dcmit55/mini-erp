@@ -93,6 +93,7 @@
             flex-direction: row;
             background: #fff;
             min-height: 170px;
+            position: relative;
         }
 
         .project-card:hover {
@@ -100,6 +101,32 @@
             box-shadow: 0 8px 28px rgba(108, 92, 231, .15);
             color: inherit;
             text-decoration: none;
+        }
+
+        /* ── WIP card styles ── */
+        .pc-wip-card {
+            border: 2px solid #ffc107 !important;
+            box-shadow: 0 2px 14px rgba(255, 193, 7, .25) !important;
+        }
+
+        .pc-wip-card:hover {
+            box-shadow: 0 8px 28px rgba(255, 193, 7, .35) !important;
+        }
+
+        .pc-wip-ribbon {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 10;
+            background: #ffc107;
+            color: #212529;
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 3px 9px;
+            border-radius: 20px;
+            letter-spacing: .04em;
+            pointer-events: none;
+            white-space: nowrap;
         }
 
         /* ── Left: photo panel (fixed width, stretches full card height) ── */
@@ -537,7 +564,18 @@
             <div class="card-body py-3 px-4">
                 <form id="filter-form" method="GET" action="{{ route('costing.report') }}"
                     class="row g-2 align-items-end">
-                    <div class="col-lg-3">
+                    <div class="col-lg-2">
+                        <label class="form-label small text-muted mb-1">Status</label>
+                        <select id="filter-status" name="project_status" class="form-select form-select-sm">
+                            <option value="all" {{ request('project_status', 'all') === 'all' ? 'selected' : '' }}>All
+                                (WIP + Delivered)</option>
+                            <option value="delivered" {{ request('project_status') === 'delivered' ? 'selected' : '' }}>✅
+                                Delivered Only</option>
+                            <option value="wip" {{ request('project_status') === 'wip' ? 'selected' : '' }}>🔨 WIP Only
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-lg-2">
                         <label class="form-label small text-muted mb-1">Project Name</label>
                         <input type="text" id="search-input" name="search" class="form-control form-control-sm"
                             placeholder="Search project name…" value="{{ request('search') }}">
@@ -713,12 +751,23 @@
                         $joWithImages = $project->jobOrders->filter(fn($jo) => !empty($jo->final_image))->values();
                         $carouselId = 'joCarousel-' . $project->id;
                         $firstJoImg = $joWithImages->first()?->final_image;
+
+                        // WIP detection
+                        $isWip = str_contains($project->project_status ?? '', 'WIP');
                     @endphp
 
                     <div class="col-xl-4 col-lg-6 col-md-12 col-sm-12">
-                        <div class="pc-card-wrapper">
+                        <div class="pc-card-wrapper {{ $isWip ? 'pc-wip-wrapper' : '' }}">
 
-                            <a href="{{ route('costing.detail', $project->id) }}" class="project-card">
+                            <a href="{{ route('costing.detail', $project->id) }}"
+                                class="project-card {{ $isWip ? 'pc-wip-card' : '' }}">
+
+                                {{-- WIP ribbon badge --}}
+                                @if ($isWip)
+                                    <span class="pc-wip-ribbon" title="Status: {{ $project->project_status }}">
+                                        <i class="fas fa-hammer me-1"></i>WIP
+                                    </span>
+                                @endif
 
                                 {{-- ══ LEFT: photo panel (click to open Fancybox) ══ --}}
                                 <div class="pc-photo-panel {{ $bgClass }}">

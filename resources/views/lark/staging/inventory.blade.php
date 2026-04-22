@@ -171,8 +171,12 @@
                         </select>
                     </div>
                     <div class="col-md-4">
-                        <input type="text" id="filterProject" class="form-control form-control-sm"
-                            placeholder="Filter by Project...">
+                        <select id="filterProject" class="form-select form-select-sm select2-project">
+                            <option value="">All Projects</option>
+                            @foreach ($larkProjects as $proj)
+                                <option value="{{ $proj }}">{{ $proj }}</option>
+                            @endforeach
+                        </select>
                     </div>
                     <div class="col-md-2 d-flex align-items-center">
                         <button type="button" id="btnResetFilter" class="btn btn-outline-secondary btn-sm">
@@ -313,6 +317,13 @@
                 width: '100%'
             });
 
+            $('#filterProject').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'All Projects',
+                allowClear: true,
+                width: '100%'
+            });
+
             // DataTable
             var table = $('#stagingInventoryTable').DataTable({
                 processing: true,
@@ -420,17 +431,13 @@
                 table.ajax.reload();
             });
 
-            var filterProjectTimer;
-            $('#filterProject').on('input', function() {
-                clearTimeout(filterProjectTimer);
-                filterProjectTimer = setTimeout(function() {
-                    table.ajax.reload();
-                }, 400);
+            $('#filterProject').on('change', function() {
+                table.ajax.reload();
             });
 
             $('#btnResetFilter').on('click', function() {
                 $('#filterReviewStatus').val('').trigger('change');
-                $('#filterProject').val('');
+                $('#filterProject').val(null).trigger('change');
                 table.ajax.reload();
             });
 

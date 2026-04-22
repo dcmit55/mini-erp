@@ -12,7 +12,7 @@ class InventoryBatch extends Model
 
     protected $table = 'inventory_batches';
 
-    protected $fillable = ['batch_number', 'inventory_id', 'qty', 'qty_remaining', 'unit_price', 'currency_id', 'received_date', 'source_type', 'source_id', 'notes'];
+    protected $fillable = ['batch_number', 'inventory_id', 'qty', 'qty_remaining', 'unit_price', 'currency_id', 'received_date', 'source_type', 'source_id', 'notes', 'waybill'];
 
     protected $casts = [
         'id' => 'integer',

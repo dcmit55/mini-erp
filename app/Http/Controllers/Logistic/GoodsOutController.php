@@ -286,25 +286,64 @@ class GoodsOutController extends Controller
 
     public function create($materialRequestId)
     {
-        $materialRequest = MaterialRequest::with('inventory', 'stagingInventory', 'project', 'internalProject')->findOrFail($materialRequestId);
+        $materialRequest = MaterialRequest::with('inventory', 'stagingInventory', 'indoPurchase.unit', 'project', 'internalProject')->findOrFail($materialRequestId);
 
-        // Jika incoming source, pastikan staging sudah processed (approved ke Inventory Batch)
+        // Jika incoming source, pastikan material sudah siap sebelum Goods Out
         if ($materialRequest->inventory_source === 'incoming') {
-            $staging = $materialRequest->stagingInventory;
-            if (!$staging || !$staging->processed) {
-                return redirect()
-                    ->route('material_requests.index')
-                    ->with('error', 'Goods Out tidak dapat diproses. Material Request ini menggunakan <b>Inventory Incoming</b> dan staging inventory (<b>' . e($staging->name ?? '-') . '</b>) belum di-approve ke Inventory Batch. Hubungi Admin Logistik.');
+            // ── Gate: Indo Purchase source ──────────────────────────────────
+            if ($materialRequest->indo_purchase_id) {
+                $purchase = $materialRequest->indoPurchase;
+                if (!$purchase) {
+                    return redirect()->route('material_requests.index')->with('error', 'Goods Out tidak dapat diproses. Data Indo Purchase tidak ditemukan.');
+                }
+                $poOk = in_array($purchase->status, ['approved', 'received']);
+                $receiptOk = in_array($purchase->item_status, ['received', 'approved', 'done', 'matched']);
+                if (!$poOk || !$receiptOk) {
+                    $poStatus = ucfirst($purchase->status ?? '-');
+                    $receiptStatus = ucfirst($purchase->item_status ?? '-');
+                    return redirect()
+                        ->route('material_requests.index')
+                        ->with('error', "Goods Out tidak dapat diproses. Material Request ini menggunakan <b>Indo Purchase</b>. PO Status harus <b>Approved</b> dan Receipt Status harus <b>Received</b> terlebih dahulu. (PO saat ini: <b>{$poStatus}</b>, Receipt: <b>{$receiptStatus}</b>)");
+                }
+
+                // ── Auto-resolve inventory_id if not yet linked (existing data) ──
+                if (!$materialRequest->inventory_id) {
+                    $resolvedInventoryId = null;
+                    if ($purchase->purchase_type === 'restock' && $purchase->material_id) {
+                        $resolvedInventoryId = $purchase->material_id;
+                    } else {
+                        // new_item: find inventory created from this purchase batch
+                        $batch = \App\Models\Logistic\InventoryBatch::where('source_type', 'indo_purchase')->where('source_id', $purchase->id)->first();
+                        if ($batch) {
+                            $resolvedInventoryId = $batch->inventory_id;
+                        }
+                    }
+                    if ($resolvedInventoryId) {
+                        $materialRequest->inventory_id = $resolvedInventoryId;
+                        $materialRequest->save();
+                        $materialRequest->setRelation('inventory', \App\Models\Logistic\Inventory::find($resolvedInventoryId));
+                    }
+                }
             }
-            // Jika inventory_id di MR belum terisi (data lama), auto-resolve dari staging
-            if (!$materialRequest->inventory_id && $staging->processed) {
-                $resolvedInventory = \App\Models\Logistic\Inventory::whereHas('batches', function ($q) use ($staging) {
-                    $q->where('source_type', 'lark')->where('source_id', $staging->id);
-                })->first();
-                if ($resolvedInventory) {
-                    $materialRequest->inventory_id = $resolvedInventory->id;
-                    $materialRequest->save();
-                    $materialRequest->setRelation('inventory', $resolvedInventory);
+
+            // ── Gate: Lark Staging source ────────────────────────────────────
+            $staging = $materialRequest->stagingInventory;
+            if (!$materialRequest->indo_purchase_id) {
+                if (!$staging || !$staging->processed) {
+                    return redirect()
+                        ->route('material_requests.index')
+                        ->with('error', 'Goods Out tidak dapat diproses. Material Request ini menggunakan <b>Inventory Incoming</b> dan staging inventory (<b>' . e($staging->name ?? '-') . '</b>) belum di-approve ke Inventory Batch. Hubungi Admin Logistik.');
+                }
+                // Jika inventory_id di MR belum terisi (data lama), auto-resolve dari staging
+                if (!$materialRequest->inventory_id && $staging->processed) {
+                    $resolvedInventory = \App\Models\Logistic\Inventory::whereHas('batches', function ($q) use ($staging) {
+                        $q->where('source_type', 'lark')->where('source_id', $staging->id);
+                    })->first();
+                    if ($resolvedInventory) {
+                        $materialRequest->inventory_id = $resolvedInventory->id;
+                        $materialRequest->save();
+                        $materialRequest->setRelation('inventory', $resolvedInventory);
+                    }
                 }
             }
         }
@@ -325,6 +364,24 @@ class GoodsOutController extends Controller
         try {
             // Lock inventory row
             $materialRequest = MaterialRequest::where('id', $request->material_request_id)->lockForUpdate()->first();
+
+            // ── Auto-resolve inventory_id for indo_purchase MRs if not yet linked ──
+            if (!$materialRequest->inventory_id && $materialRequest->indo_purchase_id) {
+                $purchase = $materialRequest->indoPurchase;
+                if ($purchase) {
+                    if ($purchase->purchase_type === 'restock' && $purchase->material_id) {
+                        $materialRequest->inventory_id = $purchase->material_id;
+                        $materialRequest->save();
+                    } else {
+                        $batch = \App\Models\Logistic\InventoryBatch::where('source_type', 'indo_purchase')->where('source_id', $purchase->id)->first();
+                        if ($batch) {
+                            $materialRequest->inventory_id = $batch->inventory_id;
+                            $materialRequest->save();
+                        }
+                    }
+                }
+            }
+
             $inventory = $materialRequest->inventory_id ? Inventory::where('id', $materialRequest->inventory_id)->lockForUpdate()->first() : null;
 
             if (!$inventory) {

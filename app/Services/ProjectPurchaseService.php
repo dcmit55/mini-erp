@@ -453,6 +453,7 @@ class ProjectPurchaseService
             'purchase_type' => 'required|in:restock,new_item',
             'quantity' => 'required|numeric|min:0.01',
             'unit_price' => 'required|numeric|min:0',
+            'currency_id' => 'nullable|exists:currencies,id',
         ];
 
         // Validasi berdasarkan purchase_type
@@ -673,6 +674,7 @@ class ProjectPurchaseService
             'purchase_type' => $data['purchase_type'],
             'quantity' => $data['quantity'],
             'unit_price' => $data['unit_price'],
+            'currency_id' => $data['currency_id'] ?? 2, // Default IDR
             'department_id' => $data['department_id'] ?? null, // Bisa null
             'supplier_id' => $data['supplier_id'],
             'is_offline_order' => $data['is_offline_order'] ?? false,
@@ -747,6 +749,7 @@ class ProjectPurchaseService
                 'quantity' => $quantity,
                 'actual_quantity' => $data['actual_quantity'] ?? $purchase->actual_quantity,
                 'unit_price' => $unitPrice,
+                'currency_id' => $data['currency_id'] ?? ($purchase->currency_id ?? 2),
                 'department_id' => $data['department_id'] ?? $purchase->department_id,
                 'project_type' => $data['project_type'] ?? $purchase->project_type,
                 'project_id' => $this->handleProjectId($purchase, $data),
@@ -1070,13 +1073,18 @@ class ProjectPurchaseService
                         'qty' => $newQty,
                         'qty_remaining' => $newQty,
                         'unit_price' => $purchase->unit_price ?? 0,
-                        'currency_id' => $inventory->currency_id,
+                        'currency_id' => $purchase->currency_id ?? ($inventory->currency_id ?? 2),
                         'received_date' => now()->toDateString(),
                         'source_type' => \App\Models\Logistic\InventoryBatch::SOURCE_INDO_PURCHASE,
                         'source_id' => $purchase->id,
                     ]);
                     $inventory->updated_at = now();
                     $inventory->save();
+
+                    // ── Link inventory_id back to the linked MaterialRequest ──
+                    \App\Models\Logistic\MaterialRequest::where('indo_purchase_id', $purchase->id)
+                        ->whereNull('inventory_id')
+                        ->update(['inventory_id' => $inventory->id]);
 
                     Log::info('Inventory updated for restock', [
                         'material_id' => $inventory->id,
@@ -1089,7 +1097,7 @@ class ProjectPurchaseService
                 $inventoryData = [
                     'name' => $purchase->new_item_name,
                     'unit_id' => $purchase->unit_id,
-                    'unit' => optional($purchase->unit)->name ?? 'pcs',
+                    'unit' => $purchase->unit_id ? optional($purchase->unit)->name ?? '' : '',
                     'supplier_id' => $purchase->supplier_id,
                     'category_id' => $purchase->category_id,
                     'remark' => $purchase->note,
@@ -1105,12 +1113,17 @@ class ProjectPurchaseService
                         'qty' => $purchase->quantity,
                         'qty_remaining' => $purchase->quantity,
                         'unit_price' => $purchase->unit_price ?? 0,
-                        'currency_id' => $newInventory->currency_id,
+                        'currency_id' => $purchase->currency_id ?? ($newInventory->currency_id ?? 2),
                         'received_date' => now()->toDateString(),
                         'source_type' => \App\Models\Logistic\InventoryBatch::SOURCE_INDO_PURCHASE,
                         'source_id' => $purchase->id,
                     ]);
                 }
+
+                // ── Link inventory_id back to the linked MaterialRequest ──
+                \App\Models\Logistic\MaterialRequest::where('indo_purchase_id', $purchase->id)
+                    ->whereNull('inventory_id')
+                    ->update(['inventory_id' => $newInventory->id]);
 
                 Log::info('New inventory item created', [
                     'inventory_id' => $newInventory->id,

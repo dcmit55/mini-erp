@@ -13,51 +13,11 @@ class ProjectPurchase extends Model
 
     protected $table = 'indo_purchases';
 
-    protected $fillable = [
-        'uid',
-        'po_number',
-        'date',
-        'project_type',
-        'purchase_type',
-        'material_id',
-        'new_item_name',
-        'quantity',
-        'actual_quantity',
-        'unit_price',
-        'department_id',
-        'project_id',
-        'internal_project_id',
-        'job_order_id',
-        'category_id',
-        'unit_id',
-        'supplier_id',
-        'is_offline_order',
-        'pic_id',
-        'resi_number',
-        'total_price',
-        'freight',
-        'invoice_total',
-        'status',
-        'item_status',
-        'note',
-        'finance_notes',
-        'deletion_reason',
-        'deletion_requested_by',
-        'deletion_requested_at',
-        'deletion_approved_by',
-        'deletion_approved_at',
-        'checked_at',
-        'checked_by',
-        'approved_at',
-        'approved_by',
-        'received_at',
-        'received_by',
-        'revision_at',
-        'is_current',
-    ];
+    protected $fillable = ['uid', 'po_number', 'date', 'project_type', 'purchase_type', 'material_id', 'new_item_name', 'quantity', 'actual_quantity', 'unit_price', 'currency_id', 'department_id', 'project_id', 'internal_project_id', 'job_order_id', 'category_id', 'unit_id', 'supplier_id', 'is_offline_order', 'pic_id', 'resi_number', 'total_price', 'freight', 'invoice_total', 'status', 'item_status', 'note', 'finance_notes', 'deletion_reason', 'deletion_requested_by', 'deletion_requested_at', 'deletion_approved_by', 'deletion_approved_at', 'checked_at', 'checked_by', 'approved_at', 'approved_by', 'received_at', 'received_by', 'revision_at', 'is_current'];
 
     protected $casts = [
         'date' => 'date',
+        'currency_id' => 'integer',
         'quantity' => 'decimal:2',
         'actual_quantity' => 'decimal:2',
         'unit_price' => 'decimal:2',
@@ -72,41 +32,12 @@ class ProjectPurchase extends Model
         'is_current' => 'boolean',
     ];
 
-    protected $appends = [
-        'formatted_date',
-        'formatted_unit_price',
-        'formatted_total_price',
-        'formatted_freight',
-        'formatted_invoice_total',
-        'formatted_checked_at',
-        'formatted_approved_at',
-        'formatted_received_at',
-        'formatted_revision_at',
-        'material_name',
-        'status_badge_class',
-        'item_status_badge_class',
-        'status_text',
-        'item_status_text',
-        'purchase_type_text',
-        'project_type_text',
-        'project_name',
-        'job_name',
-        'is_offline_order_text',
-        'has_revisions',
-        'is_latest_revision',
-        'revision_number',
-        'total_revisions',
-        'revision_info',
-        'pic_username',
-        'checker_username',
-        'approver_username',
-        'receiver_username',
-    ];
+    protected $appends = ['formatted_date', 'formatted_unit_price', 'formatted_total_price', 'formatted_freight', 'formatted_invoice_total', 'formatted_checked_at', 'formatted_approved_at', 'formatted_received_at', 'formatted_revision_at', 'material_name', 'status_badge_class', 'item_status_badge_class', 'status_text', 'item_status_text', 'purchase_type_text', 'project_type_text', 'project_name', 'job_name', 'is_offline_order_text', 'has_revisions', 'is_latest_revision', 'revision_number', 'total_revisions', 'revision_info', 'pic_username', 'checker_username', 'approver_username', 'receiver_username'];
 
     // ============================================
     // RELATIONSHIPS
     // ============================================
-    
+
     public function material()
     {
         return $this->belongsTo(\App\Models\Logistic\Inventory::class, 'material_id');
@@ -142,6 +73,11 @@ class ProjectPurchase extends Model
         return $this->belongsTo(\App\Models\Logistic\Unit::class, 'unit_id');
     }
 
+    public function currency()
+    {
+        return $this->belongsTo(\App\Models\Finance\Currency::class, 'currency_id');
+    }
+
     public function supplier()
     {
         return $this->belongsTo(\App\Models\Procurement\Supplier::class, 'supplier_id');
@@ -175,7 +111,7 @@ class ProjectPurchase extends Model
     // ============================================
     // SCOPES
     // ============================================
-    
+
     public function scopeCurrent($query)
     {
         return $query->where(function ($q) {
@@ -185,8 +121,7 @@ class ProjectPurchase extends Model
 
     public function scopeByPoNumber($query, $poNumber)
     {
-        return $query->where('po_number', $poNumber)
-                     ->orderBy('created_at', 'desc');
+        return $query->where('po_number', $poNumber)->orderBy('created_at', 'desc');
     }
 
     public function scopeRevisionsOnly($query)
@@ -282,66 +217,76 @@ class ProjectPurchase extends Model
     // ============================================
     // ACCESSORS
     // ============================================
-    
+
     private function safeToString($value, $default = 'N/A')
     {
         if (is_null($value)) {
             return $default;
         }
-        
+
         if (is_string($value) || is_numeric($value)) {
             return (string) $value;
         }
-        
+
         if (is_object($value)) {
             if (method_exists($value, '__toString')) {
                 return $value->__toString();
             }
-            
+
             if (method_exists($value, 'value')) {
                 return (string) $value->value();
             }
-            
+
             if (method_exists($value, 'name')) {
                 return $value->name();
             }
-            
+
             if (property_exists($value, 'value')) {
                 return (string) $value->value;
             }
-            
+
             if (property_exists($value, 'name')) {
                 return (string) $value->name;
             }
-            
+
             try {
                 return (string) $value;
             } catch (\Exception $e) {
                 return $default;
             }
         }
-        
+
         return $default;
+    }
+
+    protected function currencySymbol(): string
+    {
+        // Use loaded relation if available, otherwise default to IDR
+        if ($this->relationLoaded('currency') && $this->currency) {
+            return $this->currency->name . ' ';
+        }
+        // Fallback: IDR is the default for indo_purchases
+        return 'IDR ';
     }
 
     public function getFormattedInvoiceTotalAttribute()
     {
-        return 'Rp ' . number_format($this->invoice_total, 0, ',', '.');
+        return $this->currencySymbol() . number_format($this->invoice_total, 0, ',', '.');
     }
 
     public function getFormattedUnitPriceAttribute()
     {
-        return 'Rp ' . number_format($this->unit_price, 0, ',', '.');
+        return $this->currencySymbol() . number_format($this->unit_price, 0, ',', '.');
     }
 
     public function getFormattedTotalPriceAttribute()
     {
-        return 'Rp ' . number_format($this->total_price, 0, ',', '.');
+        return $this->currencySymbol() . number_format($this->total_price, 0, ',', '.');
     }
 
     public function getFormattedFreightAttribute()
     {
-        return $this->freight ? 'Rp ' . number_format($this->freight, 0, ',', '.') : '-';
+        return $this->freight ? $this->currencySymbol() . number_format($this->freight, 0, ',', '.') : '-';
     }
 
     public function getFormattedDateAttribute()
@@ -375,7 +320,7 @@ class ProjectPurchase extends Model
             'client' => 'Client Project',
             'internal' => 'Internal Project',
         ];
-        
+
         return $types[$this->project_type] ?? 'Unknown';
     }
 
@@ -386,17 +331,16 @@ class ProjectPurchase extends Model
                 return $this->safeToString($this->project->name, 'N/A');
             }
             return $this->project_id ? "Project ID: {$this->project_id}" : 'N/A';
-            
         } elseif ($this->project_type === 'internal') {
             if ($this->internalProject && is_object($this->internalProject)) {
                 $project = $this->safeToString($this->internalProject->project, 'N/A');
                 $department = $this->safeToString($this->internalProject->department, 'N/A');
-                
+
                 return $project . ' - ' . $department;
             }
             return $this->internal_project_id ? "Internal Project ID: {$this->internal_project_id}" : 'N/A';
         }
-        
+
         return 'N/A';
     }
 
@@ -407,14 +351,13 @@ class ProjectPurchase extends Model
                 return $this->safeToString($this->jobOrder->name, 'N/A');
             }
             return $this->job_order_id ? "Job Order: {$this->job_order_id}" : 'N/A';
-            
         } elseif ($this->project_type === 'internal') {
             if ($this->internalProject && is_object($this->internalProject)) {
                 return $this->safeToString($this->internalProject->job, 'N/A');
             }
             return 'N/A';
         }
-        
+
         return 'N/A';
     }
 
@@ -428,10 +371,8 @@ class ProjectPurchase extends Model
         if (!$this->po_number) {
             return false;
         }
-        
-        return self::where('po_number', $this->po_number)
-            ->where('id', '!=', $this->id)
-            ->exists();
+
+        return self::where('po_number', $this->po_number)->where('id', '!=', $this->id)->exists();
     }
 
     public function getIsLatestRevisionAttribute()
@@ -444,10 +385,8 @@ class ProjectPurchase extends Model
         if (!$this->po_number) {
             return 1;
         }
-        
-        return self::where('po_number', $this->po_number)
-               ->where('created_at', '<=', $this->created_at)
-               ->count();
+
+        return self::where('po_number', $this->po_number)->where('created_at', '<=', $this->created_at)->count();
     }
 
     public function getTotalRevisionsAttribute()
@@ -455,7 +394,7 @@ class ProjectPurchase extends Model
         if (!$this->po_number) {
             return 1;
         }
-        
+
         return self::where('po_number', $this->po_number)->count();
     }
 
@@ -503,7 +442,7 @@ class ProjectPurchase extends Model
         } elseif ($this->isNewItem()) {
             return $this->new_item_name ?? 'Unknown New Item';
         }
-        
+
         return 'Unknown Material';
     }
 
@@ -514,7 +453,7 @@ class ProjectPurchase extends Model
             'approved' => 'badge bg-success',
             'rejected' => 'badge bg-danger',
         ];
-        
+
         return $classes[$this->status] ?? 'badge bg-secondary';
     }
 
@@ -526,7 +465,7 @@ class ProjectPurchase extends Model
             'matched' => 'badge bg-success',
             'not_matched' => 'badge bg-danger',
         ];
-        
+
         return $classes[$this->item_status] ?? 'badge bg-secondary';
     }
 
@@ -537,7 +476,7 @@ class ProjectPurchase extends Model
             'approved' => 'Approved',
             'rejected' => 'Rejected',
         ];
-        
+
         return $statuses[$this->status] ?? 'Unknown';
     }
 
@@ -549,7 +488,7 @@ class ProjectPurchase extends Model
             'matched' => 'Matched',
             'not_matched' => 'Not Matched',
         ];
-        
+
         return $statuses[$this->item_status] ?? 'Unknown';
     }
 
@@ -559,14 +498,14 @@ class ProjectPurchase extends Model
             'restock' => 'Restock',
             'new_item' => 'Item Baru',
         ];
-        
+
         return $types[$this->purchase_type] ?? 'Unknown';
     }
 
     // ============================================
     // BUSINESS LOGIC METHODS
     // ============================================
-    
+
     public function canEdit()
     {
         return $this->status === 'pending' || $this->status === 'approved';
@@ -664,7 +603,7 @@ class ProjectPurchase extends Model
         if (!is_null($this->is_offline_order)) {
             return $this->is_offline_order;
         }
-        
+
         return $this->supplier && is_object($this->supplier) && strtolower($this->supplier->name) === 'offline order';
     }
 
@@ -696,36 +635,26 @@ class ProjectPurchase extends Model
     // ============================================
     // REVISION METHODS
     // ============================================
-    
+
     public function getPreviousRevision()
     {
-        return self::where('po_number', $this->po_number)
-                   ->where('created_at', '<', $this->created_at)
-                   ->orderBy('created_at', 'desc')
-                   ->first();
+        return self::where('po_number', $this->po_number)->where('created_at', '<', $this->created_at)->orderBy('created_at', 'desc')->first();
     }
 
     public function getNextRevision()
     {
-        return self::where('po_number', $this->po_number)
-                   ->where('created_at', '>', $this->created_at)
-                   ->orderBy('created_at', 'asc')
-                   ->first();
+        return self::where('po_number', $this->po_number)->where('created_at', '>', $this->created_at)->orderBy('created_at', 'asc')->first();
     }
 
     public function getAllRevisions()
     {
-        return self::where('po_number', $this->po_number)
-                   ->orderBy('created_at', 'desc')
-                   ->get();
+        return self::where('po_number', $this->po_number)->orderBy('created_at', 'desc')->get();
     }
 
     public function isFirstRevision()
     {
-        $first = self::where('po_number', $this->po_number)
-                    ->orderBy('created_at', 'asc')
-                    ->first();
-                    
+        $first = self::where('po_number', $this->po_number)->orderBy('created_at', 'asc')->first();
+
         return $first && $first->id == $this->id;
     }
 
@@ -737,7 +666,7 @@ class ProjectPurchase extends Model
     // ============================================
     // HELPER METHODS
     // ============================================
-    
+
     public function markAsChecked($userId, $status = 'matched')
     {
         $this->checked_at = now();
@@ -814,7 +743,7 @@ class ProjectPurchase extends Model
             // }
 
             $purchase->is_current = true;
-            
+
             if (!$purchase->revision_at) {
                 $purchase->revision_at = null;
             }
@@ -824,43 +753,40 @@ class ProjectPurchase extends Model
             if ($purchase->quantity && $purchase->unit_price) {
                 $purchase->total_price = $purchase->quantity * $purchase->unit_price;
             }
-            
+
             if ($purchase->total_price) {
                 $purchase->invoice_total = $purchase->total_price + ($purchase->freight ?? 0);
             }
-            
-            if ($purchase->exists && $purchase->isDirty('is_current') && 
-                $purchase->getOriginal('is_current') == true && 
-                $purchase->is_current == false) {
-                
+
+            if ($purchase->exists && $purchase->isDirty('is_current') && $purchase->getOriginal('is_current') == true && $purchase->is_current == false) {
                 $purchase->revision_at = now();
             }
-            
+
             if (!$purchase->pic_id && auth()->check()) {
                 $purchase->pic_id = auth()->id();
             }
-            
+
             if (!$purchase->item_status) {
                 $purchase->item_status = 'pending_check';
             }
-            
+
             if (!$purchase->status) {
                 $purchase->status = 'pending';
             }
-            
+
             if (!$purchase->project_type) {
                 $purchase->project_type = 'client';
             }
-            
+
             if (!$purchase->purchase_type) {
                 $purchase->purchase_type = 'restock';
             }
-            
+
             if (!is_bool($purchase->is_offline_order)) {
                 $purchase->is_offline_order = (bool) $purchase->is_offline_order;
             }
         });
-        
+
         // Revision logic (mark old record as not current) is handled
         // in ProjectPurchaseService::updatePurchase(), NOT here.
         // Previously this event set all other items with same PO to is_current=0,

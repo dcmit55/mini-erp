@@ -30,8 +30,19 @@ class ProjectCostingController extends Controller
 
     public function index(Request $request)
     {
-        // Rule: tampilkan semua project dengan project_status = 'Delivered' (tanpa filter stage)
-        $query = Project::where('project_status', 'Delivered');
+        // Rule: tampilkan project Delivered + WIP (WIP ditandai secara visual di view)
+        // Default = both. Filter by project_status when explicitly requested.
+        $statusFilter = $request->input('project_status', 'all');
+        $query = Project::where(function ($q) use ($statusFilter) {
+            if ($statusFilter === 'delivered') {
+                $q->where('project_status', 'Delivered');
+            } elseif ($statusFilter === 'wip') {
+                $q->where('project_status', 'LIKE', '%WIP%');
+            } else {
+                // all: Delivered OR WIP
+                $q->where('project_status', 'Delivered')->orWhere('project_status', 'LIKE', '%WIP%');
+            }
+        });
 
         // Search filter
         if ($request->has('search') && $request->search !== null) {
@@ -76,7 +87,7 @@ class ProjectCostingController extends Controller
         }
 
         $projects = $query
-            ->with(['departments', 'jobOrders' => fn($q) => $q->select('id', 'project_id', 'name', 'department_id', 'final_image'), 'jobOrders.materialRequests', 'jobOrders.department'])
+            ->with(['departments', 'jobOrders' => fn($q) => $q->select('id', 'project_id', 'name', 'department_id', 'final_image'), 'jobOrders.department'])
             ->orderByDesc('deadline') // Sort by deadline descending
             ->orderByDesc('created_at') // Then by created_at
             ->paginate(12); // 12 = 3 cols × 4 rows (xl), fits clean grid
@@ -166,19 +177,35 @@ class ProjectCostingController extends Controller
             }
         }
 
-        // Get unique type_dept values from closed/delivered projects
-        $rawDeptValues = Project::where('project_status', 'Delivered')->whereNotNull('type_dept')->where('type_dept', '!=', '')->pluck('type_dept');
+        // Get unique type_dept values from delivered/WIP projects
+        $rawDeptValues = Project::where(function ($q) {
+            $q->where('project_status', 'Delivered')->orWhere('project_status', 'LIKE', '%WIP%');
+        })
+            ->whereNotNull('type_dept')
+            ->where('type_dept', '!=', '')
+            ->pluck('type_dept');
         $departments = $rawDeptValues->flatMap(fn($v) => array_map('trim', explode(',', $v)))->filter()->unique()->sort()->values();
 
         // Get unique individual sales names (field may contain comma-separated values)
-        $rawSales = Project::where('project_status', 'Delivered')->whereNotNull('sales')->pluck('sales');
+        $rawSales = Project::where(function ($q) {
+            $q->where('project_status', 'Delivered')->orWhere('project_status', 'LIKE', '%WIP%');
+        })
+            ->whereNotNull('sales')
+            ->pluck('sales');
         $salesOptions = $rawSales->flatMap(fn($s) => array_map('trim', explode(',', $s)))->filter()->unique()->sort()->values();
 
         // Get all job orders for filter dropdown
         $jobOrders = \App\Models\Production\JobOrder::select('id', 'name')->orderBy('name')->get();
 
         // Get unique months from deadline for filter dropdown
-        $deadlineMonths = Project::where('project_status', 'Delivered')->whereNotNull('deadline')->selectRaw('DATE_FORMAT(deadline, "%Y-%m") as month')->distinct()->orderByDesc('month')->pluck('month');
+        $deadlineMonths = Project::where(function ($q) {
+            $q->where('project_status', 'Delivered')->orWhere('project_status', 'LIKE', '%WIP%');
+        })
+            ->whereNotNull('deadline')
+            ->selectRaw('DATE_FORMAT(deadline, "%Y-%m") as month')
+            ->distinct()
+            ->orderByDesc('month')
+            ->pluck('month');
 
         return view('finance.costing.index', compact('projects', 'departments', 'salesOptions', 'jobOrders', 'deadlineMonths', 'cardSummaries'));
     }
@@ -188,9 +215,12 @@ class ProjectCostingController extends Controller
      */
     public function showDetail($project_id)
     {
-        $project = Project::where('id', $project_id)->where('project_status', 'Delivered')->firstOrFail();
+        $project = Project::where('id', $project_id)
+            ->where(function ($q) {
+                $q->where('project_status', 'Delivered')->orWhere('project_status', 'LIKE', '%WIP%');
+            })
+            ->firstOrFail();
         $project->load(['departments', 'jobOrders' => fn($q) => $q->select('id', 'project_id', 'name', 'department_id', 'final_image'), 'jobOrders.department']);
-
         // ── Material Usages ──
         $usages = MaterialUsage::where('project_id', $project_id)
             ->with(['inventory.currency', 'inventory.unit', 'inventory.batches', 'jobOrder'])
@@ -391,7 +421,11 @@ class ProjectCostingController extends Controller
      */
     public function showMaterialDetail($project_id)
     {
-        $project = Project::where('id', $project_id)->where('project_status', 'Delivered')->firstOrFail();
+        $project = Project::where('id', $project_id)
+            ->where(function ($q) {
+                $q->where('project_status', 'Delivered')->orWhere('project_status', 'LIKE', '%WIP%');
+            })
+            ->firstOrFail();
         $project->load(['departments', 'jobOrders']);
 
         $usages = MaterialUsage::where('project_id', $project_id)
@@ -470,7 +504,11 @@ class ProjectCostingController extends Controller
      */
     public function showWorkmanshipDetail($project_id)
     {
-        $project = Project::where('id', $project_id)->where('project_status', 'Delivered')->firstOrFail();
+        $project = Project::where('id', $project_id)
+            ->where(function ($q) {
+                $q->where('project_status', 'Delivered')->orWhere('project_status', 'LIKE', '%WIP%');
+            })
+            ->firstOrFail();
         $project->load(['departments', 'jobOrders']);
 
         $timings = \App\Models\Production\Timing::where('project_id', $project_id)
@@ -744,7 +782,11 @@ class ProjectCostingController extends Controller
      */
     public function showFreightDetail($project_id)
     {
-        $project = Project::where('id', $project_id)->where('project_status', 'Delivered')->firstOrFail();
+        $project = Project::where('id', $project_id)
+            ->where(function ($q) {
+                $q->where('project_status', 'Delivered')->orWhere('project_status', 'LIKE', '%WIP%');
+            })
+            ->firstOrFail();
         $project->load(['departments', 'jobOrders']);
 
         // Use the SAME getCourierCosts() as the main detail page
@@ -768,7 +810,11 @@ class ProjectCostingController extends Controller
     public function viewCosting($project_id)
     {
         // Hanya project dengan project_status=Delivered yang bisa di-view costing
-        $project = Project::where('id', $project_id)->where('project_status', 'Delivered')->firstOrFail();
+        $project = Project::where('id', $project_id)
+            ->where(function ($q) {
+                $q->where('project_status', 'Delivered')->orWhere('project_status', 'LIKE', '%WIP%');
+            })
+            ->firstOrFail();
 
         // Ambil semua material usage untuk project dengan eager load jobOrder
         $usages = MaterialUsage::where('project_id', $project_id)
@@ -806,9 +852,12 @@ class ProjectCostingController extends Controller
             })
             ->values();
 
+        // Pre-build actual cost map from StockUsageBatch (exact batch price per GoodsOut)
+        $actualCostMap = $this->buildActualCostMap($project_id);
+
         // Hitung total biaya per material dengan rumus baru dan konversi ke IDR
         $materials = $usages
-            ->map(function ($usage) {
+            ->map(function ($usage) use ($actualCostMap) {
                 $inventory = $usage->inventory;
 
                 // Guard: inventory may be null (orphaned usage row or soft-deleted item)
@@ -816,10 +865,6 @@ class ProjectCostingController extends Controller
                     return null;
                 }
 
-                $unitPrice = $inventory->price ?? 0;
-                $domesticFreight = $inventory->unit_domestic_freight_cost ?? 0;
-                $internationalFreight = $inventory->unit_international_freight_cost ?? 0;
-                $totalUnitCost = $unitPrice + $domesticFreight + $internationalFreight;
                 $usedQty = $usage->used_quantity ?? 0;
 
                 // Unit name: prefer unit relation (FK), fall back to varchar field
@@ -830,10 +875,29 @@ class ProjectCostingController extends Controller
                     $unitName = $inventory->unit;
                 }
 
-                $currency = $inventory->currency ?? (object) ['name' => 'IDR', 'exchange_rate' => 1];
-                $exchangeRate = $currency->exchange_rate ?? 1;
-                $totalCost = $totalUnitCost * $usedQty;
-                $totalCostInIDR = $totalCost * $exchangeRate;
+                // ── Use actual batch cost if available, else fall back to weighted avg ──
+                $costKey = $inventory->id . '_' . ($usage->job_order_id ?? 'null');
+                $batchCostData = $actualCostMap[$costKey] ?? null;
+
+                if ($batchCostData && $batchCostData['has_batch_data']) {
+                    // Actual cost: sum of (qty_used × batch.unit_price × batch.currency.rate)
+                    $totalCostInIDR = $batchCostData['total_cost_idr'];
+                    $unitPriceIDR = $usedQty > 0 ? round($totalCostInIDR / $usedQty, 4) : 0;
+                    $totalUnitCost = $unitPriceIDR;
+                    $unitPrice = $unitPriceIDR;
+                    $currency = (object) ['name' => 'IDR', 'exchange_rate' => 1];
+                    $totalCost = $totalCostInIDR;
+                } else {
+                    // Fallback: weighted average across all active batches
+                    $unitPrice = $inventory->price ?? 0;
+                    $domesticFreight = $inventory->unit_domestic_freight_cost ?? 0;
+                    $internationalFreight = $inventory->unit_international_freight_cost ?? 0;
+                    $totalUnitCost = $unitPrice + $domesticFreight + $internationalFreight;
+                    $currency = $inventory->currency ?? (object) ['name' => 'IDR', 'exchange_rate' => 1];
+                    $exchangeRate = $currency->exchange_rate ?? 1;
+                    $totalCost = $totalUnitCost * $usedQty;
+                    $totalCostInIDR = $totalCost * $exchangeRate;
+                }
 
                 return (object) [
                     'job_order_name' => $usage->jobOrder?->name ?? 'No Job Order',
@@ -886,7 +950,11 @@ class ProjectCostingController extends Controller
     public function exportCosting($project_id)
     {
         // Hanya project dengan project_status=Delivered yang bisa di-export
-        $project = Project::where('id', $project_id)->where('project_status', 'Delivered')->firstOrFail();
+        $project = Project::where('id', $project_id)
+            ->where(function ($q) {
+                $q->where('project_status', 'Delivered')->orWhere('project_status', 'LIKE', '%WIP%');
+            })
+            ->firstOrFail();
 
         // ── 1. Material Cost rows ─────────────────────────────────────────────
         $usages = MaterialUsage::where('project_id', $project_id)
@@ -894,8 +962,11 @@ class ProjectCostingController extends Controller
             ->orderBy('job_order_id')
             ->get();
 
+        // Pre-build actual cost map from StockUsageBatch for this project
+        $actualCostMap = $this->buildActualCostMap($project_id);
+
         $materialRows = $usages
-            ->map(function ($usage) {
+            ->map(function ($usage) use ($actualCostMap) {
                 $inv = $usage->inventory;
 
                 // Guard: inventory may be null (orphaned usage row or soft-deleted item)
@@ -903,14 +974,28 @@ class ProjectCostingController extends Controller
                     return null;
                 }
 
-                $unitPrice = $inv->price ?? 0;
-                $domFreight = $inv->unit_domestic_freight_cost ?? 0;
-                $intFreight = $inv->unit_international_freight_cost ?? 0;
-                $totalUnit = $unitPrice + $domFreight + $intFreight;
                 $qty = $usage->used_quantity ?? 0;
-                $currency = $inv->currency ?? (object) ['name' => 'IDR', 'exchange_rate' => 1];
-                $rate = $currency->exchange_rate ?? 1;
-                $totalIdr = $totalUnit * $qty * $rate;
+
+                // ── Use actual batch cost if available ──
+                $costKey = $inv->id . '_' . ($usage->job_order_id ?? 'null');
+                $batchCostData = $actualCostMap[$costKey] ?? null;
+
+                if ($batchCostData && $batchCostData['has_batch_data']) {
+                    $totalIdr = $batchCostData['total_cost_idr'];
+                    $unitPrice = $qty > 0 ? round($totalIdr / $qty, 4) : 0;
+                    $domFreight = 0;
+                    $intFreight = 0;
+                    $totalUnit = $unitPrice;
+                    $currency = (object) ['name' => 'IDR', 'exchange_rate' => 1];
+                } else {
+                    $unitPrice = $inv->price ?? 0;
+                    $domFreight = $inv->unit_domestic_freight_cost ?? 0;
+                    $intFreight = $inv->unit_international_freight_cost ?? 0;
+                    $totalUnit = $unitPrice + $domFreight + $intFreight;
+                    $currency = $inv->currency ?? (object) ['name' => 'IDR', 'exchange_rate' => 1];
+                    $rate = $currency->exchange_rate ?? 1;
+                    $totalIdr = $totalUnit * $qty * $rate;
+                }
 
                 // Unit name: prefer unit relation, fall back to varchar field
                 $unitName = 'N/A';
@@ -1109,15 +1194,12 @@ class ProjectCostingController extends Controller
                 ->with(['inventory.currency', 'inventory.unit', 'jobOrder'])
                 ->get();
 
-            // Calculate costs per material
-            $materials = $usages->map(function ($usage) {
-                $inventory = $usage->inventory;
+            // Pre-build actual cost map from StockUsageBatch
+            $actualCostMap = $this->buildActualCostMap($project_id);
 
-                // RUMUS: Unit Price + Domestic Freight + International Freight
-                $unitPrice = $inventory->price ?? 0;
-                $domesticFreight = $inventory->unit_domestic_freight_cost ?? 0;
-                $internationalFreight = $inventory->unit_international_freight_cost ?? 0;
-                $totalUnitCost = $unitPrice + $domesticFreight + $internationalFreight;
+            // Calculate costs per material
+            $materials = $usages->map(function ($usage) use ($actualCostMap) {
+                $inventory = $usage->inventory;
 
                 $usedQty = $usage->used_quantity ?? 0;
 
@@ -1136,11 +1218,29 @@ class ProjectCostingController extends Controller
                     $unitName = $inventory->unit;
                 }
 
-                $currency = $inventory->currency ?? (object) ['name' => 'N/A', 'exchange_rate' => 1];
-                $exchangeRate = $currency->exchange_rate ?? 1;
+                // ── Use actual batch cost if available ──
+                $costKey = $inventory->id . '_' . ($usage->job_order_id ?? 'null');
+                $batchCostData = $actualCostMap[$costKey] ?? null;
 
-                $totalCost = $totalUnitCost * $usedQty;
-                $totalCostInIDR = $totalCost * $exchangeRate;
+                if ($batchCostData && $batchCostData['has_batch_data']) {
+                    $totalCostInIDR = $batchCostData['total_cost_idr'];
+                    $unitPrice = $usedQty > 0 ? round($totalCostInIDR / $usedQty, 4) : 0;
+                    $domesticFreight = 0;
+                    $internationalFreight = 0;
+                    $totalUnitCost = $unitPrice;
+                    $currency = (object) ['name' => 'IDR', 'exchange_rate' => 1];
+                    $totalCost = $totalCostInIDR;
+                } else {
+                    // Fallback: weighted average
+                    $unitPrice = $inventory->price ?? 0;
+                    $domesticFreight = $inventory->unit_domestic_freight_cost ?? 0;
+                    $internationalFreight = $inventory->unit_international_freight_cost ?? 0;
+                    $totalUnitCost = $unitPrice + $domesticFreight + $internationalFreight;
+                    $currency = $inventory->currency ?? (object) ['name' => 'N/A', 'exchange_rate' => 1];
+                    $exchangeRate = $currency->exchange_rate ?? 1;
+                    $totalCost = $totalUnitCost * $usedQty;
+                    $totalCostInIDR = $totalCost * $exchangeRate;
+                }
 
                 return [
                     'job_order_name' => $usage->jobOrder ? $usage->jobOrder->name : 'No Job Order',
@@ -1253,6 +1353,47 @@ class ProjectCostingController extends Controller
             'total_idr' => $totalIdr,
             'couriers' => $groups,
         ];
+    }
+
+    /**
+     * Build a map of ACTUAL material costs (IDR) from StockUsageBatch records.
+     * Uses the exact batch unit_price × batch currency exchange_rate actually consumed
+     * during Goods Out — no weighted average across unrelated batches.
+     *
+     * Key: "{inventory_id}_{job_order_id|null}"
+     * Value: ['total_cost_idr' => float, 'has_batch_data' => bool]
+     *
+     * Falls back gracefully: if a GoodsOut has no StockUsageBatch rows the cost
+     * contribution from that GoodsOut is 0 (caller should fall back to inventory->price).
+     */
+    private function buildActualCostMap(int $projectId): array
+    {
+        $goodsOuts = \App\Models\Logistic\GoodsOut::where('project_id', $projectId)
+            ->whereNull('deleted_at')
+            ->with(['stockUsageBatches.batch.currency'])
+            ->get();
+
+        $map = [];
+
+        foreach ($goodsOuts as $go) {
+            $key = $go->inventory_id . '_' . ($go->job_order_id ?? 'null');
+
+            if (!isset($map[$key])) {
+                $map[$key] = ['total_cost_idr' => 0.0, 'has_batch_data' => false];
+            }
+
+            foreach ($go->stockUsageBatches as $sub) {
+                $batch = $sub->batch;
+                if (!$batch) {
+                    continue;
+                }
+                $rate = $batch->currency?->exchange_rate ?? 1;
+                $map[$key]['total_cost_idr'] += (float) $sub->qty_used * (float) $batch->unit_price * (float) $rate;
+                $map[$key]['has_batch_data'] = true;
+            }
+        }
+
+        return $map;
     }
 }
 

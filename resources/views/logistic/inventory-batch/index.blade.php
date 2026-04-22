@@ -127,7 +127,7 @@
         <div class="filter-bar mb-3">
             <div class="row g-2 align-items-end">
                 <div class="col-md-3">
-                    <label class="form-label form-label-sm mb-1">Material</label>
+
                     <select id="filter_inventory" class="form-select form-select-sm select2">
                         <option value="">All Materials</option>
                         @foreach ($inventories as $inv)
@@ -136,7 +136,7 @@
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label form-label-sm mb-1">Category</label>
+
                     <select id="filter_category" class="form-select form-select-sm select2-category">
                         <option value="">All Categories</option>
                         @foreach ($categories as $cat)
@@ -145,7 +145,7 @@
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label form-label-sm mb-1">Source</label>
+
                     <select id="filter_source" class="form-select form-select-sm">
                         <option value="">All Sources</option>
                         @foreach ($sourceTypes as $val => $label)
@@ -154,7 +154,7 @@
                     </select>
                 </div>
                 <div class="col-md-1">
-                    <label class="form-label form-label-sm mb-1">Status</label>
+
                     <select id="filter_status" class="form-select form-select-sm">
                         <option value="">All</option>
                         <option value="active">Active</option>
@@ -168,6 +168,11 @@
                 <div class="col-md-2">
                     <label class="form-label form-label-sm mb-1">Date To</label>
                     <input type="date" id="filter_date_to" class="form-control form-control-sm">
+                </div>
+                <div class="col-md-2">
+
+                    <input type="text" id="filter_waybill" class="form-control form-control-sm"
+                        placeholder="Search waybill...">
                 </div>
                 <div class="col-md-1">
                     <button id="btn_reset" class="btn btn-outline-secondary btn-sm w-100">
@@ -189,6 +194,7 @@
                                 <th>Material</th>
                                 <th>Category</th>
                                 <th>Received Date</th>
+                                <th>Waybill</th>
                                 <th>Source</th>
                                 <th>Qty In</th>
                                 <th>Qty Remaining</th>
@@ -235,6 +241,7 @@
                         d.status = $('#filter_status').val();
                         d.date_from = $('#filter_date_from').val();
                         d.date_to = $('#filter_date_to').val();
+                        d.waybill = $('#filter_waybill').val();
                     }
                 },
                 columns: [{
@@ -260,6 +267,12 @@
                     {
                         data: 'received_date_fmt',
                         name: 'received_date'
+                    },
+                    {
+                        data: 'waybill_display',
+                        name: 'waybill',
+                        orderable: true,
+                        searchable: true
                     },
                     {
                         data: 'source_badge',
@@ -313,12 +326,16 @@
             $('#filter_date_from, #filter_date_to').on('change', function() {
                 table.draw();
             });
+            $('#filter_waybill').on('input', function() {
+                table.draw();
+            });
 
             // Reset filters
             $('#btn_reset').on('click', function() {
                 $('#filter_inventory, #filter_category').val(null).trigger('change');
                 $('#filter_source, #filter_status').val('');
                 $('#filter_date_from, #filter_date_to').val('');
+                $('#filter_waybill').val('');
                 table.draw();
                 loadBatchStockValue();
             });

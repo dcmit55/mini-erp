@@ -454,17 +454,17 @@ class ProjectPurchaseController extends Controller
             ProjectPurchase::where('po_number', $purchase->po_number)
                 ->where('is_current', 1)
                 ->update([
-                    'status'                 => 'deletion_requested',
-                    'deletion_reason'        => $request->deletion_reason,
-                    'deletion_requested_by'  => auth()->id(),
-                    'deletion_requested_at'  => now(),
+                    'status' => 'deletion_requested',
+                    'deletion_reason' => $request->deletion_reason,
+                    'deletion_requested_by' => auth()->id(),
+                    'deletion_requested_at' => now(),
                 ]);
 
             DB::commit();
 
-            return redirect()->route('project-purchases.index')
+            return redirect()
+                ->route('project-purchases.index')
                 ->with('success', 'Permintaan hapus untuk Purchase ' . $purchase->po_number . ' telah dikirim ke Finance.');
-
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Request deletion error: ' . $e->getMessage());
@@ -636,16 +636,19 @@ class ProjectPurchaseController extends Controller
 
             $formData = $this->getFormDropdowns();
 
-            return view('procurement.Project-Purchase.edit', array_merge($formData, [
-                'purchase' => $purchase,
-                'poItems' => $poItems,
-                'revisions' => $revisions,
-                'revision_info' => [
-                    'total_revisions' => $revisions->count(),
-                    'current_revision_id' => $purchase->id,
-                    'revision_number' => $revisions->where('created_at', '<=', $purchase->created_at)->count(),
-                ],
-            ]));
+            return view(
+                'procurement.Project-Purchase.edit',
+                array_merge($formData, [
+                    'purchase' => $purchase,
+                    'poItems' => $poItems,
+                    'revisions' => $revisions,
+                    'revision_info' => [
+                        'total_revisions' => $revisions->count(),
+                        'current_revision_id' => $purchase->id,
+                        'revision_number' => $revisions->where('created_at', '<=', $purchase->created_at)->count(),
+                    ],
+                ]),
+            );
         } catch (\Exception $e) {
             Log::error('Edit error: ' . $e->getMessage());
             return redirect()->route('project-purchases.index')->with('error', 'Terjadi kesalahan saat memuat halaman edit.');
@@ -1016,13 +1019,15 @@ class ProjectPurchaseController extends Controller
             ->orderBy('name')
             ->limit(50)
             ->get()
-            ->map(fn($m) => [
-                'id'          => $m->id,
-                'text'        => $m->name,
-                'unit_id'     => $m->unit_id,
-                'unit_name'   => $m->unit->name ?? '',
-                'category_id' => $m->category_id,
-            ]);
+            ->map(
+                fn($m) => [
+                    'id' => $m->id,
+                    'text' => $m->name,
+                    'unit_id' => $m->unit_id,
+                    'unit_name' => $m->unit->name ?? '',
+                    'category_id' => $m->category_id,
+                ],
+            );
 
         return response()->json(['results' => $items]);
     }
@@ -1034,59 +1039,50 @@ class ProjectPurchaseController extends Controller
      */
     private function getFormDropdowns(): array
     {
-        $jobOrders = Cache::remember('pp_job_orders', 300, fn() =>
-            JobOrder::with(['department:id,name', 'project:id,name'])
+        $jobOrders = Cache::remember(
+            'pp_job_orders',
+            300,
+            fn() => JobOrder::with(['department:id,name', 'project:id,name'])
                 ->select('id', 'name', 'department_id', 'project_id')
                 ->get()
-                ->map(fn($jo) => [
-                    'id'              => $jo->id,
-                    'name'            => $jo->name,
-                    'department_id'   => $jo->department_id,
-                    'department_name' => $jo->department->name ?? 'N/A',
-                    'project_id'      => $jo->project_id,
-                    'project_name'    => $jo->project->name ?? 'N/A',
-                ])
+                ->map(
+                    fn($jo) => [
+                        'id' => $jo->id,
+                        'name' => $jo->name,
+                        'department_id' => $jo->department_id,
+                        'department_name' => $jo->department->name ?? 'N/A',
+                        'project_id' => $jo->project_id,
+                        'project_name' => $jo->project->name ?? 'N/A',
+                    ],
+                ),
         );
 
-        $suppliers = Cache::remember('pp_suppliers', 600, fn() =>
-            Supplier::select('id', 'name')->orderBy('name')->get()
-        );
+        $suppliers = Cache::remember('pp_suppliers', 600, fn() => Supplier::select('id', 'name')->orderBy('name')->get());
 
-        $supplierLocations = Cache::remember('pp_supplier_locations', 600, fn() =>
-            \App\Models\Procurement\LocationSupplier::select('id', 'name')->get()
-        );
+        $supplierLocations = Cache::remember('pp_supplier_locations', 600, fn() => \App\Models\Procurement\LocationSupplier::select('id', 'name')->get());
 
-        $departments = Cache::remember('pp_departments', 600, fn() =>
-            Department::select('id', 'name')->orderBy('name')->get()
-        );
+        $departments = Cache::remember('pp_departments', 600, fn() => Department::select('id', 'name')->orderBy('name')->get());
 
-        $projects = Cache::remember('pp_projects', 300, fn() =>
-            Project::select('id', 'name')->orderBy('name')->get()
-        );
+        $projects = Cache::remember('pp_projects', 300, fn() => Project::select('id', 'name')->orderBy('name')->get());
 
-        $internalProjects = Cache::remember('pp_internal_projects', 600, fn() =>
-            InternalProject::select('id', 'project', 'job', 'department', 'department_id', 'description')
-                ->orderBy('project')
-                ->get()
-        );
+        $internalProjects = Cache::remember('pp_internal_projects', 600, fn() => InternalProject::select('id', 'project', 'job', 'department', 'department_id', 'description')->orderBy('project')->get());
 
-        $categories = Cache::remember('pp_categories', 3600, fn() =>
-            Category::select('id', 'name')->orderBy('name')->get()
-        );
+        $categories = Cache::remember('pp_categories', 3600, fn() => Category::select('id', 'name')->orderBy('name')->get());
 
-        $units = Cache::remember('pp_units', 3600, fn() =>
-            Unit::select('id', 'name')->orderBy('name')->get()
-        );
+        $units = Cache::remember('pp_units', 3600, fn() => Unit::select('id', 'name')->orderBy('name')->get());
+
+        $currencies = Cache::remember('pp_currencies', 3600, fn() => \App\Models\Finance\Currency::select('id', 'name')->orderBy('name')->get());
 
         return [
-            'jobOrders'          => $jobOrders,
-            'suppliers'          => $suppliers,
-            'supplierLocations'  => $supplierLocations,
-            'departments'        => $departments,
-            'projects'           => $projects,
-            'internal_projects'  => $internalProjects,
-            'categories'         => $categories,
-            'units'              => $units,
+            'jobOrders' => $jobOrders,
+            'suppliers' => $suppliers,
+            'supplierLocations' => $supplierLocations,
+            'departments' => $departments,
+            'projects' => $projects,
+            'internal_projects' => $internalProjects,
+            'categories' => $categories,
+            'units' => $units,
+            'currencies' => $currencies,
         ];
     }
 }

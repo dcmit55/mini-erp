@@ -99,6 +99,14 @@ class User extends Authenticatable implements AuditableContract
         return !$this->isReadOnlyAdmin() && !$this->isTimingRole();
     }
 
+    /**
+     * Can manage timing plans (Timing Planner module)
+     */
+    public function isTimingPlanningAdmin()
+    {
+        return in_array($this->role, ['super_admin', 'admin_mascot', 'admin_costume']);
+    }
+
     public function isRequestOwner($username)
     {
         return $this->username === $username;

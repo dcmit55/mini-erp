@@ -69,6 +69,7 @@ class StagingInventoryApprovalService
                             'received_date' => now()->toDateString(),
                             'source_type' => InventoryBatch::SOURCE_LARK,
                             'source_id' => $staging->id,
+                            'waybill' => $staging->international_waybill ?? null,
                         ]);
                         $batchId = $batch->id;
                     } finally {

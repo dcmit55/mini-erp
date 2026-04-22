@@ -156,16 +156,42 @@
                                 <select id="staging_inventory_id" class="form-select select2"
                                     data-placeholder="Select Incoming Material">
                                     <option value="">Select Incoming Material</option>
-                                    @foreach ($stagingInventories as $si)
-                                        <option value="{{ $si->id }}" data-unit="{{ $si->unit }}"
-                                            data-qty="{{ $si->quantity }}" data-received="{{ $si->received_qty ?? 0 }}"
-                                            {{ old('staging_inventory_id', $materialRequest->staging_inventory_id) == $si->id ? 'selected' : '' }}>
-                                            {{ $si->name }}{{ $si->material_code ? ' (' . $si->material_code . ')' : '' }}
-                                        </option>
-                                    @endforeach
+                                    {{-- Indo Purchase option (shown only when MR is linked to an indo purchase) --}}
+                                    @if ($materialRequest->indo_purchase_id && $materialRequest->indoPurchase)
+                                        @php
+                                            $ip = $materialRequest->indoPurchase;
+                                            $ipName =
+                                                $ip->purchase_type === 'restock' && $ip->material
+                                                    ? $ip->material->name
+                                                    : $ip->new_item_name ?? 'Unknown Item';
+                                            $ipUnit =
+                                                optional($ip->unit)->name ?? (optional($ip->material)->unit ?? '');
+                                            $ipValue = 'ip_' . $ip->id;
+                                        @endphp
+                                        <optgroup label="Indo Purchase">
+                                            <option value="{{ $ipValue }}" data-unit="{{ $ipUnit }}"
+                                                data-qty="{{ $ip->quantity }}" data-received="0"
+                                                {{ old('staging_inventory_id', $ipValue) === $ipValue ? 'selected' : '' }}>
+                                                {{ $ipName }}{{ $ip->po_number ? ' (PO: ' . $ip->po_number . ')' : '' }}
+                                            </option>
+                                        </optgroup>
+                                    @endif
+                                    {{-- Lark Staging options --}}
+                                    @if ($stagingInventories->isNotEmpty())
+                                        <optgroup label="International Purchase (Lark Staging)">
+                                            @foreach ($stagingInventories as $si)
+                                                <option value="{{ $si->id }}" data-unit="{{ $si->unit }}"
+                                                    data-qty="{{ $si->quantity }}"
+                                                    data-received="{{ $si->received_qty ?? 0 }}"
+                                                    {{ old('staging_inventory_id', $materialRequest->staging_inventory_id) == $si->id ? 'selected' : '' }}>
+                                                    {{ $si->name }}{{ $si->material_code ? ' (' . $si->material_code . ')' : '' }}
+                                                </option>
+                                            @endforeach
+                                        </optgroup>
+                                    @endif
                                 </select>
                                 <input type="hidden" name="staging_inventory_id" id="hiddenStagingInventoryId"
-                                    value="{{ old('staging_inventory_id', $materialRequest->staging_inventory_id) }}">
+                                    value="{{ old('staging_inventory_id', $materialRequest->indo_purchase_id ? 'ip_' . $materialRequest->indo_purchase_id : $materialRequest->staging_inventory_id) }}">
                                 <div id="available-incoming-qty" class="form-text d-none"></div>
                                 @error('staging_inventory_id')
                                     <small class="text-danger">{{ $message }}</small>

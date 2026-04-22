@@ -412,7 +412,7 @@ class LarkStagingController extends Controller
 
             // Filter by project
             if ($request->filled('project')) {
-                $query->where('project_lark', 'like', '%' . $request->project . '%');
+                $query->where('project_lark', $request->project);
             }
 
             return DataTables::of($query)
@@ -504,8 +504,9 @@ class LarkStagingController extends Controller
         $lastSync = LarkStagingInventory::max('last_sync_at');
         $units = Unit::orderBy('name')->get();
         $categories = Category::orderBy('name')->get();
+        $larkProjects = LarkStagingInventory::whereNotNull('project_lark')->where('project_lark', '!=', '')->distinct()->orderBy('project_lark')->pluck('project_lark');
 
-        return view('lark.staging.inventory', compact('stats', 'lastSync', 'units', 'categories'));
+        return view('lark.staging.inventory', compact('stats', 'lastSync', 'units', 'categories', 'larkProjects'));
     }
 
     /**

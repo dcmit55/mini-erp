@@ -69,6 +69,10 @@ class InventoryBatchController extends Controller
                 });
             }
 
+            if ($request->filled('waybill')) {
+                $query->where('waybill', 'like', '%' . $request->waybill . '%');
+            }
+
             $query->orderBy('created_at', 'desc');
 
             return DataTables::of($query)
@@ -125,7 +129,13 @@ class InventoryBatchController extends Controller
                     return '<span class="badge ' . $cls . '">' . $label . '</span>';
                 })
                 ->addColumn('received_date_fmt', fn($b) => $b->received_date ? $b->received_date->format('d M Y') : '-')
-                ->rawColumns(['qty_remaining_formatted', 'status_badge', 'source_badge', 'category_name'])
+                ->addColumn('waybill_display', function ($b) {
+                    if (!$b->waybill) {
+                        return '<span class="text-muted">-</span>';
+                    }
+                    return '<span class="badge bg-light text-dark border font-monospace">' . e($b->waybill) . '</span>';
+                })
+                ->rawColumns(['qty_remaining_formatted', 'status_badge', 'source_badge', 'category_name', 'waybill_display'])
                 ->make(true);
         }
 
@@ -172,6 +182,83 @@ class InventoryBatchController extends Controller
             'total_idr' => (float) $totalIdr,
             'total_idr_formatted' => 'IDR ' . number_format((float) $totalIdr, 0, ',', '.'),
         ]);
+    }
+
+    /**
+     * Fix Zero-Price Batches — Admin Tool
+     * Lists all batches where unit_price = 0 so admin can correct them.
+     * Each correction is logged via audit (OwenIt) on InventoryBatch.
+     */
+    public function fixZeroPriceIndex(Request $request)
+    {
+        $authUser = auth()->user();
+        if (!$authUser->isSuperAdmin() && !$authUser->isLogisticAdmin()) {
+            abort(403, 'Access denied. Super Admin or Logistic Admin only.');
+        }
+
+        $batches = InventoryBatch::with(['inventory.category', 'inventory.currency', 'currency'])
+            ->whereNull('deleted_at')
+            ->where('unit_price', '=', 0)
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        // For each batch, count how many goods_out consumed from it (via stock_usage_batches)
+        $batchIds = $batches->pluck('id')->toArray();
+        $usageCounts = [];
+        if (!empty($batchIds)) {
+            $usageCounts = DB::table('stock_usage_batches')->whereIn('batch_id', $batchIds)->selectRaw('batch_id, SUM(qty_used) as total_used, COUNT(*) as usage_count')->groupBy('batch_id')->get()->keyBy('batch_id')->toArray();
+        }
+
+        $currencies = \App\Models\Finance\Currency::orderBy('name')->get(['id', 'name']);
+
+        return view('logistic.inventory-batch.fix-zero-price', compact('batches', 'usageCounts', 'currencies'));
+    }
+
+    /**
+     * Update unit_price for a single zero-price batch.
+     * Automatically triggers recalculation for all costing (weighted avg price is computed on-the-fly).
+     */
+    public function fixZeroPriceUpdate(Request $request, int $batch)
+    {
+        $authUser = auth()->user();
+        if (!$authUser->isSuperAdmin() && !$authUser->isLogisticAdmin()) {
+            abort(403, 'Access denied.');
+        }
+
+        $request->validate([
+            'unit_price' => 'required|numeric|min:0.0001',
+            'reason' => 'required|string|max:500',
+            'currency_id' => 'nullable|integer|exists:currencies,id',
+        ]);
+
+        $inventoryBatch = InventoryBatch::whereNull('deleted_at')->where('unit_price', 0)->findOrFail($batch);
+
+        $oldPrice = $inventoryBatch->unit_price;
+        $newPrice = $request->unit_price;
+
+        DB::beginTransaction();
+        try {
+            $updateData = [
+                'unit_price' => $newPrice,
+                'notes' => trim(($inventoryBatch->notes ? $inventoryBatch->notes . ' | ' : '') . '[FIX] ' . now()->format('Y-m-d H:i') . ' by ' . $authUser->username . ': price changed from 0 to ' . $newPrice . '. Reason: ' . $request->reason),
+            ];
+            if ($request->filled('currency_id')) {
+                $updateData['currency_id'] = (int) $request->currency_id;
+            }
+            $inventoryBatch->update($updateData);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Batch <strong>{$inventoryBatch->batch_number}</strong> updated: price set to {$newPrice}.",
+                'new_price' => $newPrice,
+                'batch_number' => $inventoryBatch->batch_number,
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
     }
 
     /**

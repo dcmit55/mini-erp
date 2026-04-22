@@ -43,19 +43,9 @@
                         <div class="col-md-3">
                             <select id="modelFilter" class="form-select form-select-sm select2">
                                 <option value="">All Models</option>
-                                <option value="App\Models\Logistic\Inventory">Inventory</option>
-                                <option value="App\Models\Logistic\MaterialRequest">Material Request</option>
-                                <option value="App\Models\Logistic\GoodsOut">Goods Out</option>
-                                <option value="App\Models\Logistic\GoodsIn">Goods In</option>
-                                <option value="App\Models\Production\Project">Project</option>
-                                <option value="App\Models\Production\ProjectPart">Project Part</option>
-                                <option value="App\Models\Admin\User">User</option>
-                                <option value="App\Models\Hr\Employee">Employee</option>
-                                <option value="App\Models\Finance\Currency">Currency</option>
-                                <option value="App\Models\Procurement\PurchaseRequest">Purchase Request</option>
-                                <option value="App\Models\Production\MaterialPlanning">Material Planning</option>
-                                <option value="App\Models\Procurement\Supplier">Supplier</option>
-                                <option value="App\Models\Hr\LeaveRequest">Leave Request</option>
+                                @foreach ($auditableTypes as $type)
+                                    <option value="{{ $type['value'] }}">{{ $type['label'] }}</option>
+                                @endforeach
                             </select>
                         </div>
                         <div class="col-md-2">
@@ -119,8 +109,7 @@
     </div>
 
     <!-- Delete by Date Range Modal -->
-    <div class="modal fade" id="deleteByDateModal" tabindex="-1" aria-labelledby="deleteByDateLabel"
-        aria-hidden="true">
+    <div class="modal fade" id="deleteByDateModal" tabindex="-1" aria-labelledby="deleteByDateLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header bg-warning">
