@@ -246,7 +246,7 @@ class CostumeTimingController extends Controller
                 $employee = Employee::find($employeeId);
 
                 // Fingerprint validation: enrolled employees must have tapped IN today
-                $fingerprintResult = $this->checkFingerprintTapIn($employee, $today->format('Y-m-d'));
+                $fingerprintResult = $bypassAttendance ? true : $this->checkFingerprintTapIn($employee, $today->format('Y-m-d'));
                 if ($fingerprintResult === false) {
                     DB::rollBack();
                     return response()->json(
