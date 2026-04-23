@@ -212,6 +212,7 @@ class MaterialRequestController extends Controller
                     $canDelete = $authUser->can('logistic.material-request.delete');
                     $canGoodsOut = $authUser->can('logistic.goods-out.create');
                     $isRequestOwner = $authUser->username === $req->requested_by;
+                    $isSuperAdmin = $authUser->isSuperAdmin();
 
                     $actions = '<div class="d-flex flex-nowrap gap-1">';
 
