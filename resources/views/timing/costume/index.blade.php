@@ -599,7 +599,10 @@
                     });
 
                     if (plannedSessionType) {
-                        $(`input[name="session_type"][value="${plannedSessionType}"]`).prop('checked', true);
+                        $('input[name="session_type"]').prop('checked', false); // uncheck all first
+                        $(`input[name="session_type"][value="${plannedSessionType}"]`)
+                            .prop('checked', true)
+                            .trigger('change');
                         $('#plan-session-badge').removeClass('d-none');
                     } else {
                         $('#plan-session-badge').addClass('d-none');

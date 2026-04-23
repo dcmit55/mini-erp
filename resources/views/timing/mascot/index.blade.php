@@ -622,23 +622,12 @@
                     }
                 });
 
-                // Show per-employee planned tasks on employee cards
-                $('.employee-card-wrapper').each(function() {
-                    const $wrapper = $(this);
-                    const empId = $wrapper.find('.employee-checkbox').val();
-                    const empTask = plannedTasksByEmp[empId];
-                    const $label = $wrapper.find('.emp-plan-task');
-                    if (empTask) {
-                        $label.find('.emp-plan-task-text').text(empTask);
-                        $label.removeClass('d-none');
-                    } else {
-                        $label.addClass('d-none');
-                    }
-                });
-
                 // Auto-fill Session Type from plan
                 if (plannedSessionType) {
-                    $(`input[name="session_type"][value="${plannedSessionType}"]`).prop('checked', true);
+                    $('input[name="session_type"]').prop('checked', false); // uncheck all first
+                    $(`input[name="session_type"][value="${plannedSessionType}"]`)
+                        .prop('checked', true)
+                        .trigger('change');
                     $('#plan-session-badge').removeClass('d-none');
                 } else {
                     $('#plan-session-badge').addClass('d-none');
