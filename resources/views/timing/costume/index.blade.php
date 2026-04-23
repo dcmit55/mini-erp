@@ -160,11 +160,15 @@
                                 <select class="form-select select2" id="job-order-select" name="job_order_id" required>
                                     <option value="">Choose Job Order...</option>
                                     @foreach ($jobOrders as $jo)
+                                        @php $joplan = $plannedDataPerJo[$jo->id] ?? null; @endphp
                                         <option value="{{ $jo->id }}" data-project-id="{{ $jo->project_id }}"
                                             data-project-name="{{ $jo->project->name ?? 'N/A' }}"
                                             data-department="{{ $jo->department->name ?? 'N/A' }}"
-                                            data-job-order-name="{{ $jo->name }}">
-                                            {{ $jo->name }} ({{ $jo->project->name ?? 'N/A' }})
+                                            data-job-order-name="{{ $jo->name }}"
+                                            data-planned-stage="{{ $joplan['stage'] ?? '' }}"
+                                            data-planned-session-type="{{ $joplan['session_type'] ?? '' }}"
+                                            data-planned-employees='@json($joplan['employee_ids'] ?? [])'>
+                                            {{ $jo->name }} ({{ $jo->project->name ?? 'N/A' }}){{ $joplan ? ' 📅' : '' }}
                                         </option>
                                     @endforeach
                                 </select>
@@ -192,7 +196,9 @@
                                 <div class="row g-3">
                                     <div class="col-md-6">
                                         <label class="form-label small">Step/Process <span
-                                                class="text-danger">*</span></label>
+                                                class="text-danger">*</span>
+                                            <span id="plan-task-badge" class="badge bg-success ms-1 d-none"><i class="bi bi-calendar2-check-fill me-1"></i>From Plan</span>
+                                        </label>
                                         <input type="text" class="form-control" id="step-input" name="step"
                                             placeholder="e.g., Cutting, Sewing" required>
                                     </div>
@@ -209,6 +215,7 @@
                                 <label class="form-label fw-bold">
                                     <span class="badge bg-secondary me-2">4</span>Session Type <span
                                         class="text-danger">*</span>
+                                    <span id="plan-session-badge" class="badge bg-success ms-1 d-none"><i class="bi bi-calendar2-check-fill me-1"></i>From Plan</span>
                                 </label>
                                 <div class="d-flex gap-3">
                                     <div class="form-check flex-fill">
@@ -558,8 +565,54 @@
                     $('#project-name-display').text(projectName);
                     $('#department-name-display').text(departmentName);
                     $('#project-info').removeClass('d-none');
+
+                    // Auto-fill from plan
+                    const plannedStage = selectedOption.data('planned-stage') || '';
+                    const plannedSessionType = selectedOption.data('planned-session-type') || '';
+                    const plannedEmpIds = selectedOption.data('planned-employees') || [];
+
+                    if (plannedStage) {
+                        $('#step-input').val(plannedStage);
+                        $('#plan-task-badge').removeClass('d-none');
+                    } else {
+                        $('#plan-task-badge').addClass('d-none');
+                    }
+
+                    if (plannedSessionType) {
+                        $(`input[name="session_type"][value="${plannedSessionType}"]`).prop('checked', true);
+                        $('#plan-session-badge').removeClass('d-none');
+                    } else {
+                        $('#plan-session-badge').addClass('d-none');
+                    }
+
+                    // Auto-select planned employees
+                    if (Array.isArray(plannedEmpIds) && plannedEmpIds.length > 0) {
+                        $('.employee-checkbox:checked').prop('checked', false).trigger('change');
+                        selectedEmployees = [];
+                        let autoSelected = 0;
+                        plannedEmpIds.forEach(function(empId) {
+                            const $cb = $(`.employee-checkbox[value="${empId}"]`);
+                            if ($cb.length && !$cb.prop('disabled')) {
+                                $cb.prop('checked', true).trigger('change');
+                                autoSelected++;
+                            }
+                        });
+                        if (autoSelected > 0) {
+                            Swal.fire({
+                                icon: 'info',
+                                title: 'Karyawan Otomatis Dipilih',
+                                html: `<strong>${autoSelected}</strong> karyawan dipilih dari 📅 <strong>Timing Plan</strong>.<br><small class="text-muted">Bisa diubah manual.</small>`,
+                                timer: 2500,
+                                showConfirmButton: false,
+                                toast: true,
+                                position: 'top-end'
+                            });
+                        }
+                    }
                 } else {
                     $('#project-info').addClass('d-none');
+                    $('#plan-task-badge').addClass('d-none');
+                    $('#plan-session-badge').addClass('d-none');
                 }
 
                 updateStartButton();

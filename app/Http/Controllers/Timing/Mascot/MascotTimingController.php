@@ -90,9 +90,21 @@ class MascotTimingController extends Controller
         // Planned employees per JO (from timing planner) — PRIORITY 1
         $joIds = $jobOrders->pluck('id')->toArray();
         $plannedEmployeesPerJo = [];
+        $plannedDataPerJo = []; // includes stage & session_type
         if (!empty($joIds)) {
-            $plans = JobOrderTimingPlan::whereIn('job_order_id', $joIds)->select('job_order_id', 'employee_id')->get();
-            $plannedEmployeesPerJo = $plans->groupBy('job_order_id')->map(fn($rows) => $rows->pluck('employee_id')->toArray())->toArray();
+            $plans = JobOrderTimingPlan::whereIn('job_order_id', $joIds)
+                ->select('job_order_id', 'employee_id', 'stage', 'session_type')
+                ->get();
+            $plansByJo = $plans->groupBy('job_order_id');
+            foreach ($plansByJo as $joId => $rows) {
+                $plannedEmployeesPerJo[$joId] = $rows->pluck('employee_id')->toArray();
+                $first = $rows->first();
+                $plannedDataPerJo[$joId] = [
+                    'employee_ids'  => $rows->pluck('employee_id')->toArray(),
+                    'stage'         => $first->stage ?? '',
+                    'session_type'  => $first->session_type ?? '',
+                ];
+            }
         }
 
         // Last employees per job order (from most recent timing session) — PRIORITY 2 (fallback)
@@ -145,7 +157,7 @@ class MascotTimingController extends Controller
 
         $units = Unit::orderBy('name')->get();
 
-        return view('timing.mascot.index', compact('employees', 'employeesBySkillset', 'jobOrders', 'activeSessions', 'mascotDept', 'positions', 'employeesWithActiveSessions', 'units', 'frozenSessionsByEmployee', 'lastEmployeesPerJo', 'plannedEmployeesPerJo'));
+        return view('timing.mascot.index', compact('employees', 'employeesBySkillset', 'jobOrders', 'activeSessions', 'mascotDept', 'positions', 'employeesWithActiveSessions', 'units', 'frozenSessionsByEmployee', 'lastEmployeesPerJo', 'plannedEmployeesPerJo', 'plannedDataPerJo'));
     }
 
     // Rename khusus Mascot

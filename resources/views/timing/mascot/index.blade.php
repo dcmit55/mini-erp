@@ -68,7 +68,8 @@
                                                     ->diffInDays($deliveryDate->copy()->startOfDay(), false)
                                                 : null;
                                             $lastEmps = $lastEmployeesPerJo[$jo->id] ?? [];
-                                            $plannedEmps = $plannedEmployeesPerJo[$jo->id] ?? [];
+                                            $planData  = $plannedDataPerJo[$jo->id] ?? null;
+                                            $plannedEmps = $planData['employee_ids'] ?? [];
                                             $hasPlan = !empty($plannedEmps);
                                         @endphp
                                         <div class="col-md-4 col-sm-6 jo-card-wrapper"
@@ -79,6 +80,8 @@
                                                 data-project-name="{{ $jo->project->name ?? 'N/A' }}"
                                                 data-planned-employees='@json($plannedEmps)'
                                                 data-last-employees='@json($lastEmps)'
+                                                data-planned-stage="{{ $planData['stage'] ?? '' }}"
+                                                data-planned-session-type="{{ $planData['session_type'] ?? '' }}"
                                                 style="cursor:pointer; transition: all 0.3s;">
                                                 <div class="card-body p-2">
                                                     <h6 class="mb-1 fw-bold lh-sm" style="font-size:0.78rem;">
@@ -260,6 +263,7 @@
                             <div class="mb-4">
                                 <label class="form-label fw-bold">
                                     <span class="badge bg-warning text-dark me-2">3</span>Task Description
+                                    <span id="plan-task-badge" class="badge bg-success ms-1 d-none"><i class="bi bi-calendar2-check-fill me-1"></i>From Plan</span>
                                 </label>
                                 <input type="text" class="form-control" id="task-input" name="task"
                                     placeholder="e.g., Sculpting, Painting, Assembly, etc." required>
@@ -270,6 +274,7 @@
                                 <label class="form-label fw-bold">
                                     <span class="badge bg-warning text-dark me-2">4</span>Session Type <span
                                         class="text-danger">*</span>
+                                    <span id="plan-session-badge" class="badge bg-success ms-1 d-none"><i class="bi bi-calendar2-check-fill me-1"></i>From Plan</span>
                                 </label>
                                 <div class="d-flex gap-3">
                                     <div class="form-check flex-fill">
@@ -564,6 +569,8 @@
                 const projectName = $card.data('project-name');
                 const plannedEmployees = $card.data('planned-employees') || [];
                 const lastEmployees = $card.data('last-employees') || [];
+                const plannedStage = $card.data('planned-stage') || '';
+                const plannedSessionType = $card.data('planned-session-type') || '';
                 const joName = $card.find('h6').first().text().trim();
 
                 // Toggle deselect if same card clicked
@@ -585,6 +592,22 @@
                 // Load JO progress info
                 loadJobOrderInfo(joId);
                 $('#job-order-info').removeClass('d-none');
+
+                // Auto-fill Task (stage) from plan
+                if (plannedStage) {
+                    $('#task-input').val(plannedStage);
+                    $('#plan-task-badge').removeClass('d-none');
+                } else {
+                    $('#plan-task-badge').addClass('d-none');
+                }
+
+                // Auto-fill Session Type from plan
+                if (plannedSessionType) {
+                    $(`input[name="session_type"][value="${plannedSessionType}"]`).prop('checked', true);
+                    $('#plan-session-badge').removeClass('d-none');
+                } else {
+                    $('#plan-session-badge').addClass('d-none');
+                }
 
                 // Smart pre-selection:
                 // PRIORITY 1 — planned employees (Timing Planner)
@@ -629,6 +652,8 @@
                 $('.jo-card').removeClass('jo-selected');
                 $('#jo-selected-info').text('No job order selected');
                 $('#job-order-info').addClass('d-none');
+                $('#plan-task-badge').addClass('d-none');
+                $('#plan-session-badge').addClass('d-none');
                 updateStartButton();
             }
 

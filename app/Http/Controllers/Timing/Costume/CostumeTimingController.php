@@ -14,6 +14,7 @@ use App\Models\Hr\Employee;
 use App\Models\Hr\Skillset;
 use App\Models\Admin\Department;
 use App\Models\Logistic\Unit;
+use App\Models\Production\JobOrderTimingPlan;
 use App\Services\Timing\TimingBreakService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -111,6 +112,23 @@ class CostumeTimingController extends Controller
             ->orderBy('start_time', 'desc')
             ->get();
 
+        // Planned data per JO (from timing planner)
+        $joIds = $jobOrders->pluck('id')->toArray();
+        $plannedDataPerJo = [];
+        if (!empty($joIds)) {
+            $plans = JobOrderTimingPlan::whereIn('job_order_id', $joIds)
+                ->select('job_order_id', 'employee_id', 'stage', 'session_type')
+                ->get();
+            foreach ($plans->groupBy('job_order_id') as $joId => $rows) {
+                $first = $rows->first();
+                $plannedDataPerJo[$joId] = [
+                    'employee_ids' => $rows->pluck('employee_id')->toArray(),
+                    'stage'        => $first->stage ?? '',
+                    'session_type' => $first->session_type ?? '',
+                ];
+            }
+}
+
         // Frozen sessions keyed by employee_id so the view can show paused indicators
         $frozenSessions = Timing::where('status', 'frozen')->today()->withRelations()->get();
         $frozenSessionsByEmployee = $frozenSessions
@@ -127,7 +145,7 @@ class CostumeTimingController extends Controller
 
         $units = Unit::orderBy('name')->get();
 
-        return view('timing.costume.index', compact('employees', 'employeesBySkillset', 'jobOrders', 'activeSessions', 'departments', 'positions', 'employeesWithActiveSessions', 'units', 'frozenSessionsByEmployee'));
+        return view('timing.costume.index', compact('employees', 'employeesBySkillset', 'jobOrders', 'activeSessions', 'departments', 'positions', 'employeesWithActiveSessions', 'units', 'frozenSessionsByEmployee', 'plannedDataPerJo'));
     }
 
     /**
