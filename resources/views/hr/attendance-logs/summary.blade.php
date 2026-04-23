@@ -45,6 +45,10 @@
                 <a href="{{ route('session-shifts.live-monitor', ['from' => 'summary']) }}" class="btn btn-sm btn-outline-success px-2 px-sm-3">
                     <i class="fas fa-satellite-dish me-sm-1"></i><span class="d-none d-sm-inline">Live Monitor</span>
                 </a>
+                <a href="{{ route('attendance-logs.summary.export', array_merge(['month' => $month, 'year' => $year], $departmentId ? ['department_id' => $departmentId] : [])) }}"
+                   class="btn btn-sm btn-outline-success px-2 px-sm-3">
+                    <i class="fas fa-file-excel me-sm-1"></i><span class="d-none d-sm-inline">Export Excel</span>
+                </a>
                 <div style="min-width:180px;">
                     <input type="text" id="empSearchSummary" class="form-select form-select-sm"
                            placeholder="Search employee..." autocomplete="off">
@@ -64,19 +68,20 @@
             {{-- Legend (horizontal scroll on mobile) --}}
             <div class="legend-scroll-wrap mb-2 mb-md-3">
                 <div class="d-flex gap-2 align-items-center legend-inner">
-                    <span class="legend-box" style="background:#bbf7d0;border:1.5px solid #22c55e;"></span><small class="legend-text">Present</small>
-                    <span class="legend-box" style="background:#fde68a;border:1.5px solid #f59e0b;"></span><small class="legend-text">Late</small>
-                    <span class="legend-box" style="background:#fca5a5;border:1.5px solid #ef4444;"></span><small class="legend-text">Alpha</small>
-                    <span class="legend-box" style="background:#bfdbfe;border:1.5px solid #3b82f6;"></span><small class="legend-text">Ann.Leave</small>
-                    <span class="legend-box" style="background:#a5f3fc;border:1.5px solid #06b6d4;"></span><small class="legend-text">Sick</small>
-                    <span class="legend-box" style="background:#c4b5fd;border:1.5px solid #8b5cf6;"></span><small class="legend-text">Oth.Leave</small>
-                    <span class="legend-box" style="background:#e0e7ff;border:1.5px solid #6366f1;"></span><small class="legend-text">Unpaid</small>
-                    <span class="legend-box" style="background:#cbd5e1;border:1.5px solid #94a3b8;"></span><small class="legend-text">Sun</small>
-                    <span class="legend-box" style="background:#fed7aa;border:1.5px solid #f97316;"></span><small class="legend-text">Nat.Hol</small>
-                    <span class="legend-box" style="background:#99f6e4;border:1.5px solid #14b8a6;"></span><small class="legend-text">Co.Hol</small>
-                    <span class="legend-box" style="background:#fbcfe8;border:1.5px solid #ec4899;"></span><small class="legend-text">Hol-Ded</small>
+                    <span class="legend-box" style="background:#86efac;border:1.5px solid #16a34a;"></span><small class="legend-text">Present</small>
+                    <span class="legend-box" style="background:#fde047;border:1.5px solid #ca8a04;"></span><small class="legend-text">Late</small>
+                    <span class="legend-box" style="background:#fb923c;border:1.5px solid #ea580c;"></span><small class="legend-text">Less Hours</small>
+                    <span class="legend-box" style="background:#f87171;border:1.5px solid #dc2626;"></span><small class="legend-text">Alpha</small>
+                    <span class="legend-box" style="background:#93c5fd;border:1.5px solid #2563eb;"></span><small class="legend-text">Ann.Leave</small>
+                    <span class="legend-box" style="background:#67e8f9;border:1.5px solid #0891b2;"></span><small class="legend-text">Sick</small>
+                    <span class="legend-box" style="background:#a78bfa;border:1.5px solid #7c3aed;"></span><small class="legend-text">Oth.Leave</small>
+                    <span class="legend-box" style="background:#a5b4fc;border:1.5px solid #4f46e5;"></span><small class="legend-text">Unpaid</small>
+                    <span class="legend-box" style="background:#94a3b8;border:1.5px solid #475569;"></span><small class="legend-text">Sun</small>
+                    <span class="legend-box" style="background:#fda4af;border:1.5px solid #e11d48;"></span><small class="legend-text">Nat.Hol</small>
+                    <span class="legend-box" style="background:#5eead4;border:1.5px solid #0d9488;"></span><small class="legend-text">Co.Hol</small>
+                    <span class="legend-box" style="background:#f9a8d4;border:1.5px solid #db2777;"></span><small class="legend-text">Hol-Ded</small>
                     <span class="legend-box" style="background:#fcd34d;border:1.5px solid #d97706;"></span><small class="legend-text">Hol-Unp</small>
-                    <span class="legend-box" style="background:#fafafa;border:1.5px solid #e5e7eb;"></span><small class="legend-text">No Data</small>
+                    <span class="legend-box" style="background:#f1f5f9;border:1.5px solid #cbd5e1;"></span><small class="legend-text">No Data</small>
                 </div>
             </div>
 
@@ -112,10 +117,10 @@
                                             {{ $d }}
                                         </th>
                                     @endfor
-                                    <th class="text-center summary-header" style="min-width:46px;background:#bbf7d0;color:#166534;">P</th>
-                                    <th class="text-center summary-header" style="min-width:46px;background:#fde68a;color:#92400e;">L</th>
-                                    <th class="text-center summary-header" style="min-width:46px;background:#fca5a5;color:#991b1b;">A</th>
-                                    <th class="text-center summary-header" style="min-width:46px;background:#bfdbfe;color:#1e40af;">Cuti</th>
+                                    <th class="text-center summary-header" style="min-width:46px;background:#86efac;color:#14532d;">P</th>
+                                    <th class="text-center summary-header" style="min-width:46px;background:#fde047;color:#713f12;">L</th>
+                                    <th class="text-center summary-header" style="min-width:46px;background:#f87171;color:#7f1d1d;">A</th>
+                                    <th class="text-center summary-header" style="min-width:46px;background:#93c5fd;color:#1e3a8a;">Cuti</th>
                                 </tr>
                                 <tr>
                                     @for ($d = 1; $d <= $daysInMonth; $d++)
@@ -127,10 +132,10 @@
                                             {{ $info['dayName'] }}
                                         </th>
                                     @endfor
-                                    <th class="text-center" style="font-size:0.65rem;background:#bbf7d0;color:#166534;">Present</th>
-                                    <th class="text-center" style="font-size:0.65rem;background:#fde68a;color:#92400e;">Late</th>
-                                    <th class="text-center" style="font-size:0.65rem;background:#fca5a5;color:#991b1b;">Alpha</th>
-                                    <th class="text-center" style="font-size:0.65rem;background:#bfdbfe;color:#1e40af;">Leave</th>
+                                    <th class="text-center" style="font-size:0.65rem;background:#86efac;color:#14532d;">Present</th>
+                                    <th class="text-center" style="font-size:0.65rem;background:#fde047;color:#713f12;">Late</th>
+                                    <th class="text-center" style="font-size:0.65rem;background:#f87171;color:#7f1d1d;">Alpha</th>
+                                    <th class="text-center" style="font-size:0.65rem;background:#93c5fd;color:#1e3a8a;">Leave</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -167,15 +172,17 @@
                                                     $initial   = '';
                                                 } else {
                                                     [$cellClass, $tooltip, $initial] = match($status) {
-                                                        'Present'        => ['cell-present',     'Present',        'P'],
-                                                        'Late'           => ['cell-late',        'Late',           'L'],
-                                                        'Alpha'          => ['cell-alpha',       'Alpha',          'A'],
-                                                        'Annual Leave'   => ['cell-annual',      'Annual Leave',   'Lv'],
-                                                        'Sick Leave'     => ['cell-sick',        'Sick Leave',     'Sk'],
-                                                        'Unpaid Leave'   => ['cell-unpaid',      'Unpaid Leave',   'Up'],
-                                                        'Early Leave'    => ['cell-leave-other', 'Early Leave',    'El'],
-                                                        'Permission Out' => ['cell-leave-other', 'Permission Out', 'Po'],
-                                                        default          => ['cell-leave-other', $status,          'Ot'],
+                                                        'Present'          => ['cell-present',    'Present',        'P'],
+                                                        'Late'             => ['cell-late',       'Late',           'L'],
+                                                        'Less Hours'       => ['cell-less-hours', 'Less Hours',     'LH'],
+                                                        'Late, Less Hours' => ['cell-late',       'Late+Less Hours','L+LH'],
+                                                        'Alpha'            => ['cell-alpha',      'Alpha',          'A'],
+                                                        'Annual Leave'     => ['cell-annual',     'Annual Leave',   'Lv'],
+                                                        'Sick Leave'       => ['cell-sick',       'Sick Leave',     'Sk'],
+                                                        'Unpaid Leave'     => ['cell-unpaid',     'Unpaid Leave',   'Up'],
+                                                        'Early Leave'      => ['cell-leave-other','Early Leave',    'EL'],
+                                                        'Permission Out'   => ['cell-leave-other','Permission Out', 'Po'],
+                                                        default            => ['cell-leave-other', $status,         'Ot'],
                                                     };
                                                 }
                                             @endphp
@@ -477,10 +484,10 @@
 .summary-header { min-width: 40px; }
 
 /* Day header background states */
-.day-sunday   { background: #cbd5e1 !important; color: #475569 !important; }
-.day-national { background: #fed7aa !important; color: #c2410c !important; }
-.day-company-free              { background: #99f6e4 !important; color: #0f766e !important; }
-.day-company-paid_leave_deduction { background: #fbcfe8 !important; color: #9d174d !important; }
+.day-sunday   { background: #94a3b8 !important; color: #1e293b !important; }
+.day-national { background: #fda4af !important; color: #9f1239 !important; }
+.day-company-free              { background: #5eead4 !important; color: #134e4a !important; }
+.day-company-paid_leave_deduction { background: #f9a8d4 !important; color: #9d174d !important; }
 .day-company-unpaid            { background: #fcd34d !important; color: #92400e !important; }
 
 /* Attendance cells */
@@ -503,19 +510,20 @@
     text-align: center;
 }
 
-.cell-present     { background: #bbf7d0 !important; }
-.cell-late        { background: #fde68a !important; }
-.cell-alpha       { background: #fca5a5 !important; }
-.cell-annual      { background: #bfdbfe !important; }
-.cell-sick        { background: #a5f3fc !important; }
-.cell-unpaid      { background: #e0e7ff !important; }
-.cell-leave-other { background: #c4b5fd !important; }
-.cell-sunday      { background: #cbd5e1 !important; }
-.cell-national    { background: #fed7aa !important; }
-.cell-company-free   { background: #99f6e4 !important; }
-.cell-company-paid   { background: #fbcfe8 !important; }
+.cell-present     { background: #86efac !important; }
+.cell-late        { background: #fde047 !important; }
+.cell-less-hours  { background: #fb923c !important; }
+.cell-alpha       { background: #f87171 !important; }
+.cell-annual      { background: #93c5fd !important; }
+.cell-sick        { background: #67e8f9 !important; }
+.cell-unpaid      { background: #a5b4fc !important; }
+.cell-leave-other { background: #a78bfa !important; }
+.cell-sunday      { background: #94a3b8 !important; }
+.cell-national    { background: #fda4af !important; }
+.cell-company-free   { background: #5eead4 !important; }
+.cell-company-paid   { background: #f9a8d4 !important; }
 .cell-company-unpaid { background: #fcd34d !important; }
-.cell-empty       { background: #ffffff !important; }
+.cell-empty       { background: #f1f5f9 !important; }
 
 /* Summary count columns */
 .count-present { color: #166534; font-size:0.75rem; }

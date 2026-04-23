@@ -28,21 +28,23 @@ class SessionShiftSeeder extends Seeder
         $costume      = $dept['DCM Costume']      ?? null;
         $mascot       = $dept['DCM Mascot']       ?? null;
         $animatronics = $dept['DCM Animatronics'] ?? null;
+        $opstech      = $dept['OpsTech']          ?? null;
         $finance      = $dept['Finance']          ?? null;
+        $store        = $dept['Store']            ?? null;
+        $logistic     = $dept['Logistic']         ?? null;
+        $hrga         = $dept['HRGA']             ?? null;
 
-        $store    = $dept['Store'] ?? null;
-        $logistic = $dept['Logistic'] ?? null;
-        $hrga     = $dept['HRGA']    ?? null;
+        // Chef, Security, CS semuanya di dept HRGA — dibedakan oleh position_keywords
         $chef     = $hrga;
         $security = $hrga;
         $cs       = $hrga;
 
-        // Lookup Emilia's employee ID
+        // Lookup Emilia's employee ID (Finance, shift khusus)
         $emiliaId = DB::table('employees')
             ->where('name', 'like', '%emilia%')
             ->value('id');
 
-        // Hapus null-dept S10/S13 yang ter-seed salah (seharusnya dept-spesifik, bukan default)
+        // Hapus global S10/S13 yang ter-seed salah (seharusnya dept-spesifik)
         DB::table('session_shifts')
             ->whereNull('department_id')
             ->whereIn('type_of_shift', ['S10', 'S10S', 'S13', 'S13S'])
@@ -51,9 +53,8 @@ class SessionShiftSeeder extends Seeder
         $shifts = [
 
             // ================================================================
-            // DEFAULT — fallback untuk semua department yang tidak punya shift spesifik
+            // DEFAULT — fallback A9 untuk semua dept yang tidak punya shift spesifik
             // ================================================================
-            // Weekday
             [
                 'department_id'     => null,
                 'employee_id'       => null,
@@ -70,7 +71,6 @@ class SessionShiftSeeder extends Seeder
                 'applicable_days'   => [1, 2, 3, 4, 5],
                 'position_keywords' => null,
             ],
-            // Saturday
             [
                 'department_id'     => null,
                 'employee_id'       => null,
@@ -90,9 +90,11 @@ class SessionShiftSeeder extends Seeder
 
             // ================================================================
             // DCM COSTUME
+            // WNI: C8 (08:00–16:00) untuk operator/sewing, A9 (08:00–17:00) sisanya
+            // Sabtu: semua pulang 13:00
             // ================================================================
 
-            // Operator & Sewing: 08:00–16:00 (pulang lebih awal) - Weekday
+            // C8 — Operator, Sewing, dsb — Weekday
             [
                 'department_id'     => $costume,
                 'employee_id'       => null,
@@ -105,11 +107,11 @@ class SessionShiftSeeder extends Seeder
                 'break2_end'        => null,
                 'for_wna'           => false,
                 'detect_from'       => '07:00:00',
-                'detect_until'      => '09:30:00',
+                'detect_until'      => '14:00:00',
                 'applicable_days'   => [1, 2, 3, 4, 5],
                 'position_keywords' => ['operator', 'sewing', 'sewer', 'embroidery', 'handstitching'],
             ],
-            // Operator & Sewing - Saturday
+            // C8 — Saturday
             [
                 'department_id'     => $costume,
                 'employee_id'       => null,
@@ -122,12 +124,12 @@ class SessionShiftSeeder extends Seeder
                 'break2_end'        => null,
                 'for_wna'           => false,
                 'detect_from'       => '07:00:00',
-                'detect_until'      => '09:30:00',
+                'detect_until'      => '12:00:00',
                 'applicable_days'   => [6],
                 'position_keywords' => ['operator', 'sewing', 'sewer', 'embroidery', 'handstitching'],
             ],
 
-            // Cutting, Leader, Finishing, Design: 08:00–17:00 - Weekday
+            // A9 — Cutter, Leader, Finishing, Designer — Weekday
             [
                 'department_id'     => $costume,
                 'employee_id'       => null,
@@ -140,11 +142,11 @@ class SessionShiftSeeder extends Seeder
                 'break2_end'        => null,
                 'for_wna'           => false,
                 'detect_from'       => '07:00:00',
-                'detect_until'      => '09:30:00',
+                'detect_until'      => '14:00:00',
                 'applicable_days'   => [1, 2, 3, 4, 5],
-                'position_keywords' => ['cutter', 'drafter', 'leader', 'lead', 'finishing', 'designer', 'packing'],
+                'position_keywords' => ['cutter', 'drafter', 'leader', 'lead', 'finishing', 'designer', 'packing', 'supervisor'],
             ],
-            // Cutting, Leader, Finishing, Design - Saturday
+            // A9 — Saturday
             [
                 'department_id'     => $costume,
                 'employee_id'       => null,
@@ -157,16 +159,18 @@ class SessionShiftSeeder extends Seeder
                 'break2_end'        => null,
                 'for_wna'           => false,
                 'detect_from'       => '07:00:00',
-                'detect_until'      => '09:30:00',
+                'detect_until'      => '12:00:00',
                 'applicable_days'   => [6],
-                'position_keywords' => ['cutter', 'drafter', 'leader', 'lead', 'finishing', 'designer', 'packing'],
+                'position_keywords' => ['cutter', 'drafter', 'leader', 'lead', 'finishing', 'designer', 'packing', 'supervisor'],
             ],
 
             // ================================================================
-            // DCM MASCOT
+            // DCM MASCOT — WNI
+            // Pagi A9 (08:00–17:00) | Siang M10/S10 (10:00–19:00) | Sore B9/S13 (13:00–22:00)
+            // Sabtu: semua 08:00–13:00
             // ================================================================
 
-            // Shift pagi: 08:00–17:00 - Weekday
+            // A9 — Pagi — Weekday
             [
                 'department_id'     => $mascot,
                 'employee_id'       => null,
@@ -183,7 +187,7 @@ class SessionShiftSeeder extends Seeder
                 'applicable_days'   => [1, 2, 3, 4, 5],
                 'position_keywords' => null,
             ],
-            // Shift pagi - Saturday
+            // A9S — Saturday
             [
                 'department_id'     => $mascot,
                 'employee_id'       => null,
@@ -201,7 +205,42 @@ class SessionShiftSeeder extends Seeder
                 'position_keywords' => null,
             ],
 
-            // Shift siang: 10:00–19:00 - Weekday
+            // M10 — Siang rotasi M — Weekday
+            [
+                'department_id'     => $mascot,
+                'employee_id'       => null,
+                'type_of_shift'     => 'M10',
+                'start_time'        => '10:00:00',
+                'end_time'          => '19:00:00',
+                'break_start'       => '13:00:00',
+                'break_end'         => '14:00:00',
+                'break2_start'      => null,
+                'break2_end'        => null,
+                'for_wna'           => false,
+                'detect_from'       => '09:30:00',
+                'detect_until'      => '11:30:00',
+                'applicable_days'   => [1, 2, 3, 4, 5],
+                'position_keywords' => null,
+            ],
+            // M10S — Saturday
+            [
+                'department_id'     => $mascot,
+                'employee_id'       => null,
+                'type_of_shift'     => 'M10S',
+                'start_time'        => '08:00:00',
+                'end_time'          => '13:00:00',
+                'break_start'       => null,
+                'break_end'         => null,
+                'break2_start'      => null,
+                'break2_end'        => null,
+                'for_wna'           => false,
+                'detect_from'       => '07:00:00',
+                'detect_until'      => '09:30:00',
+                'applicable_days'   => [6],
+                'position_keywords' => null,
+            ],
+
+            // S10 — Siang rotasi S — Weekday
             [
                 'department_id'     => $mascot,
                 'employee_id'       => null,
@@ -218,7 +257,7 @@ class SessionShiftSeeder extends Seeder
                 'applicable_days'   => [1, 2, 3, 4, 5],
                 'position_keywords' => null,
             ],
-            // Shift siang - Saturday
+            // S10S — Saturday
             [
                 'department_id'     => $mascot,
                 'employee_id'       => null,
@@ -236,7 +275,42 @@ class SessionShiftSeeder extends Seeder
                 'position_keywords' => null,
             ],
 
-            // Shift sore: 13:00–22:00 - Weekday
+            // B9 — Sore, break 18:00–19:00 — Weekday
+            [
+                'department_id'     => $mascot,
+                'employee_id'       => null,
+                'type_of_shift'     => 'B9',
+                'start_time'        => '13:00:00',
+                'end_time'          => '22:00:00',
+                'break_start'       => '18:00:00',
+                'break_end'         => '19:00:00',
+                'break2_start'      => null,
+                'break2_end'        => null,
+                'for_wna'           => false,
+                'detect_from'       => '11:30:00',
+                'detect_until'      => '14:00:00',
+                'applicable_days'   => [1, 2, 3, 4, 5],
+                'position_keywords' => null,
+            ],
+            // B9S — Saturday
+            [
+                'department_id'     => $mascot,
+                'employee_id'       => null,
+                'type_of_shift'     => 'B9S',
+                'start_time'        => '08:00:00',
+                'end_time'          => '13:00:00',
+                'break_start'       => null,
+                'break_end'         => null,
+                'break2_start'      => null,
+                'break2_end'        => null,
+                'for_wna'           => false,
+                'detect_from'       => '07:00:00',
+                'detect_until'      => '09:30:00',
+                'applicable_days'   => [6],
+                'position_keywords' => null,
+            ],
+
+            // S13 — Sore, break 17:00–18:00 — Weekday
             [
                 'department_id'     => $mascot,
                 'employee_id'       => null,
@@ -253,7 +327,7 @@ class SessionShiftSeeder extends Seeder
                 'applicable_days'   => [1, 2, 3, 4, 5],
                 'position_keywords' => null,
             ],
-            // Shift sore - Saturday
+            // S13S — Saturday
             [
                 'department_id'     => $mascot,
                 'employee_id'       => null,
@@ -271,7 +345,12 @@ class SessionShiftSeeder extends Seeder
                 'position_keywords' => null,
             ],
 
-            // WNA Mascot A12: 08:00–20:00 - Weekday
+            // ================================================================
+            // DCM MASCOT — WNA
+            // A12 (08:00–20:00) | B12 (10:00–22:00) | Sabtu: 08:00–13:00
+            // ================================================================
+
+            // A12 — Weekday
             [
                 'department_id'     => $mascot,
                 'employee_id'       => null,
@@ -288,7 +367,7 @@ class SessionShiftSeeder extends Seeder
                 'applicable_days'   => [1, 2, 3, 4, 5],
                 'position_keywords' => null,
             ],
-            // WNA Mascot A12 - Saturday
+            // A12S — Saturday
             [
                 'department_id'     => $mascot,
                 'employee_id'       => null,
@@ -306,7 +385,7 @@ class SessionShiftSeeder extends Seeder
                 'position_keywords' => null,
             ],
 
-            // WNA Mascot B12: 10:00–22:00 - Weekday
+            // B12 — Weekday
             [
                 'department_id'     => $mascot,
                 'employee_id'       => null,
@@ -323,7 +402,7 @@ class SessionShiftSeeder extends Seeder
                 'applicable_days'   => [1, 2, 3, 4, 5],
                 'position_keywords' => null,
             ],
-            // WNA Mascot B12 - Saturday
+            // B12S — Saturday
             [
                 'department_id'     => $mascot,
                 'employee_id'       => null,
@@ -342,10 +421,90 @@ class SessionShiftSeeder extends Seeder
             ],
 
             // ================================================================
-            // STORE & LOGISTIC
+            // OPSTECH — A9 (08:00–17:00), detect diperlebar s/d 10:30
+            // karena jam masuk bisa lebih fleksibel
             // ================================================================
 
-            // Pagi: 08:00–17:00 - Weekday
+            // A9 — Weekday
+            [
+                'department_id'     => $opstech,
+                'employee_id'       => null,
+                'type_of_shift'     => 'A9',
+                'start_time'        => '08:00:00',
+                'end_time'          => '17:00:00',
+                'break_start'       => '12:00:00',
+                'break_end'         => '13:00:00',
+                'break2_start'      => null,
+                'break2_end'        => null,
+                'for_wna'           => false,
+                'detect_from'       => '07:00:00',
+                'detect_until'      => '10:30:00',
+                'applicable_days'   => [1, 2, 3, 4, 5],
+                'position_keywords' => null,
+            ],
+            // A9S — Saturday
+            [
+                'department_id'     => $opstech,
+                'employee_id'       => null,
+                'type_of_shift'     => 'A9S',
+                'start_time'        => '08:00:00',
+                'end_time'          => '13:00:00',
+                'break_start'       => null,
+                'break_end'         => null,
+                'break2_start'      => null,
+                'break2_end'        => null,
+                'for_wna'           => false,
+                'detect_from'       => '07:00:00',
+                'detect_until'      => '09:30:00',
+                'applicable_days'   => [6],
+                'position_keywords' => null,
+            ],
+
+            // ================================================================
+            // DCM ANIMATRONICS — A9 (08:00–17:00), detect diperlebar s/d 10:30
+            // ================================================================
+
+            // A9 — Weekday
+            [
+                'department_id'     => $animatronics,
+                'employee_id'       => null,
+                'type_of_shift'     => 'A9',
+                'start_time'        => '08:00:00',
+                'end_time'          => '17:00:00',
+                'break_start'       => '12:00:00',
+                'break_end'         => '13:00:00',
+                'break2_start'      => null,
+                'break2_end'        => null,
+                'for_wna'           => false,
+                'detect_from'       => '07:00:00',
+                'detect_until'      => '10:30:00',
+                'applicable_days'   => [1, 2, 3, 4, 5],
+                'position_keywords' => null,
+            ],
+            // A9S — Saturday
+            [
+                'department_id'     => $animatronics,
+                'employee_id'       => null,
+                'type_of_shift'     => 'A9S',
+                'start_time'        => '08:00:00',
+                'end_time'          => '13:00:00',
+                'break_start'       => null,
+                'break_end'         => null,
+                'break2_start'      => null,
+                'break2_end'        => null,
+                'for_wna'           => false,
+                'detect_from'       => '07:00:00',
+                'detect_until'      => '09:30:00',
+                'applicable_days'   => [6],
+                'position_keywords' => null,
+            ],
+
+            // ================================================================
+            // STORE & LOGISTIC — A9 / S10 / S13
+            // Sabtu: semua 08:00–13:00
+            // ================================================================
+
+            // Store — Pagi
             [
                 'department_id'     => $store,
                 'employee_id'       => null,
@@ -362,7 +521,6 @@ class SessionShiftSeeder extends Seeder
                 'applicable_days'   => [1, 2, 3, 4, 5],
                 'position_keywords' => null,
             ],
-            // Pagi - Saturday (semua pulang jam satu)
             [
                 'department_id'     => $store,
                 'employee_id'       => null,
@@ -379,8 +537,7 @@ class SessionShiftSeeder extends Seeder
                 'applicable_days'   => [6],
                 'position_keywords' => null,
             ],
-
-            // Siang: 10:00–19:00 - Weekday
+            // Store — Siang
             [
                 'department_id'     => $store,
                 'employee_id'       => null,
@@ -397,7 +554,6 @@ class SessionShiftSeeder extends Seeder
                 'applicable_days'   => [1, 2, 3, 4, 5],
                 'position_keywords' => null,
             ],
-            // Siang - Saturday
             [
                 'department_id'     => $store,
                 'employee_id'       => null,
@@ -414,8 +570,7 @@ class SessionShiftSeeder extends Seeder
                 'applicable_days'   => [6],
                 'position_keywords' => null,
             ],
-
-            // Sore: 13:00–22:00 - Weekday
+            // Store — Sore
             [
                 'department_id'     => $store,
                 'employee_id'       => null,
@@ -432,7 +587,6 @@ class SessionShiftSeeder extends Seeder
                 'applicable_days'   => [1, 2, 3, 4, 5],
                 'position_keywords' => null,
             ],
-            // Sore - Saturday
             [
                 'department_id'     => $store,
                 'employee_id'       => null,
@@ -450,7 +604,7 @@ class SessionShiftSeeder extends Seeder
                 'position_keywords' => null,
             ],
 
-            // Logistic sama dengan Store
+            // Logistic — sama dengan Store
             [
                 'department_id'     => $logistic,
                 'employee_id'       => null,
@@ -549,7 +703,7 @@ class SessionShiftSeeder extends Seeder
             ],
 
             // ================================================================
-            // CHEF — Senin–Jumat
+            // CHEF (HRGA) — Senin–Jumat 06:00–15:00 | Sabtu 06:00–12:00
             // ================================================================
             [
                 'department_id'     => $chef,
@@ -567,8 +721,6 @@ class SessionShiftSeeder extends Seeder
                 'applicable_days'   => [1, 2, 3, 4, 5],
                 'position_keywords' => ['chef'],
             ],
-
-            // CHEF — Sabtu
             [
                 'department_id'     => $chef,
                 'employee_id'       => null,
@@ -587,7 +739,7 @@ class SessionShiftSeeder extends Seeder
             ],
 
             // ================================================================
-            // SECURITY — Senin–Jumat
+            // SECURITY (HRGA) — Weekday 08:00–22:00 | Sabtu 08:00–13:00
             // ================================================================
             [
                 'department_id'     => $security,
@@ -605,8 +757,6 @@ class SessionShiftSeeder extends Seeder
                 'applicable_days'   => [1, 2, 3, 4, 5],
                 'position_keywords' => ['security', 'securty'],
             ],
-
-            // SECURITY — Sabtu
             [
                 'department_id'     => $security,
                 'employee_id'       => null,
@@ -625,7 +775,7 @@ class SessionShiftSeeder extends Seeder
             ],
 
             // ================================================================
-            // CLEANING SERVICE — Senin–Jumat
+            // CLEANING SERVICE (HRGA) — Weekday 08:00–22:00 | Sabtu 08:00–13:00
             // ================================================================
             [
                 'department_id'     => $cs,
@@ -643,8 +793,6 @@ class SessionShiftSeeder extends Seeder
                 'applicable_days'   => [1, 2, 3, 4, 5],
                 'position_keywords' => ['cleaning', 'house keeping'],
             ],
-
-            // CLEANING SERVICE — Sabtu
             [
                 'department_id'     => $cs,
                 'employee_id'       => null,
@@ -665,7 +813,8 @@ class SessionShiftSeeder extends Seeder
         ];
 
         // ================================================================
-        // EMILIA (Finance) — shift individual, hanya jika ditemukan di DB
+        // EMILIA (Finance) — shift individual per-karyawan
+        // Weekday 08:30–17:30 | Sabtu 08:30–13:30
         // ================================================================
         if ($emiliaId) {
             $shifts[] = [

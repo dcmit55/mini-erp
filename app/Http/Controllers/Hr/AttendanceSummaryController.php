@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Hr;
 
+use App\Exports\AttendanceSummaryExport;
 use App\Http\Controllers\Controller;
 use App\Models\Admin\Department;
 use App\Models\Hr\CompanyHoliday;
@@ -11,9 +12,16 @@ use App\Models\NationalHoliday;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Maatwebsite\Excel\Facades\Excel;
 
 class AttendanceSummaryController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+        $this->middleware('can:hr.attendance.view');
+    }
+
     public function index(Request $request)
     {
         // If no month/year specified, default to last month that has data
@@ -95,13 +103,15 @@ class AttendanceSummaryController extends Controller
                 if (!$record) continue;
 
                 match($record->status) {
-                    'Present'      => $counts['present']++,
-                    'Late'         => $counts['late']++,
-                    'Alpha'        => $counts['alpha']++,
-                    'Annual Leave' => $counts['annual']++,
-                    'Sick Leave'   => $counts['sick']++,
-                    'Unpaid Leave' => $counts['unpaid']++,
-                    default        => $counts['leave_other']++,
+                    'Present'          => $counts['present']++,
+                    'Less Hours'       => $counts['present']++,
+                    'Late'             => $counts['late']++,
+                    'Late, Less Hours' => $counts['late']++,
+                    'Alpha'            => $counts['alpha']++,
+                    'Annual Leave'     => $counts['annual']++,
+                    'Sick Leave'       => $counts['sick']++,
+                    'Unpaid Leave'     => $counts['unpaid']++,
+                    default            => $counts['leave_other']++,
                 };
             }
             $summary[$emp->id] = $counts;
@@ -119,6 +129,82 @@ class AttendanceSummaryController extends Controller
             'dayInfo', 'summary', 'companyHolidaysList', 'startOfMonth',
             'departments', 'departmentId'
         ));
+    }
+
+    public function exportExcel(Request $request)
+    {
+        $month = (int) $request->input('month', now()->month);
+        $year  = (int) $request->input('year',  now()->year);
+        $month = max(1, min(12, $month));
+        $year  = max(2020, min(2099, $year));
+
+        $startOfMonth = Carbon::create($year, $month, 1)->startOfDay();
+        $daysInMonth  = $startOfMonth->daysInMonth;
+
+        $departmentId = $request->input('department_id');
+
+        $employeeQuery = Employee::where('status', 'active')->orderBy('name');
+        if ($departmentId) {
+            $employeeQuery->where('department_id', $departmentId);
+        }
+        $employees = $employeeQuery->get(['id', 'name', 'employee_no', 'department_id']);
+
+        $nationalHolidays = NationalHoliday::forYear($year)
+            ->nationalOnly()
+            ->get()
+            ->keyBy(fn($h) => Carbon::parse($h->date)->format('Y-m-d'));
+
+        $companyHolidays = CompanyHoliday::forMonth($year, $month)
+            ->get()
+            ->keyBy(fn($h) => $h->date->format('Y-m-d'));
+
+        $dailiesMap = DailyAttendance::whereYear('date', $year)
+            ->whereMonth('date', $month)
+            ->get(['employee_id', 'date', 'status'])
+            ->groupBy(fn($d) => $d->employee_id . '_' . $d->date->format('Y-m-d'));
+
+        $dayInfo = [];
+        for ($d = 1; $d <= $daysInMonth; $d++) {
+            $date    = Carbon::create($year, $month, $d);
+            $dateStr = $date->format('Y-m-d');
+            $dayInfo[$d] = [
+                'date'     => $dateStr,
+                'dayName'  => $date->isoFormat('dd'),
+                'isSunday' => $date->dayOfWeek === Carbon::SUNDAY,
+                'national' => $nationalHolidays->get($dateStr),
+                'company'  => $companyHolidays->get($dateStr),
+            ];
+        }
+
+        $summary = [];
+        foreach ($employees as $emp) {
+            $counts = ['present' => 0, 'late' => 0, 'alpha' => 0, 'annual' => 0, 'sick' => 0, 'leave_other' => 0, 'unpaid' => 0];
+            for ($d = 1; $d <= $daysInMonth; $d++) {
+                $info = $dayInfo[$d];
+                if ($info['isSunday'] || $info['national'] !== null || $info['company']) continue;
+                $record = $dailiesMap->get($emp->id . '_' . $info['date'])?->first();
+                if (!$record) continue;
+                match($record->status) {
+                    'Present'          => $counts['present']++,
+                    'Less Hours'       => $counts['present']++,
+                    'Late'             => $counts['late']++,
+                    'Late, Less Hours' => $counts['late']++,
+                    'Alpha'            => $counts['alpha']++,
+                    'Annual Leave'     => $counts['annual']++,
+                    'Sick Leave'       => $counts['sick']++,
+                    'Unpaid Leave'     => $counts['unpaid']++,
+                    default            => $counts['leave_other']++,
+                };
+            }
+            $summary[$emp->id] = $counts;
+        }
+
+        $filename = 'attendance-summary-' . $year . '-' . str_pad($month, 2, '0', STR_PAD_LEFT) . '.xlsx';
+
+        return Excel::download(
+            new AttendanceSummaryExport($employees, $daysInMonth, $dayInfo, $dailiesMap, $summary, $month, $year),
+            $filename
+        );
     }
 
     public function storeHoliday(Request $request)

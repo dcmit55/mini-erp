@@ -786,6 +786,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/attendance-logs', [AttendanceLogController::class, 'index'])->name('attendance-logs.index');
     Route::get('/attendance-logs/summary', [AttendanceSummaryController::class, 'index'])->name('attendance-logs.summary');
+    Route::get('/attendance-logs/summary/export', [AttendanceSummaryController::class, 'exportExcel'])->name('attendance-logs.summary.export');
     Route::post('/attendance-logs/company-holidays', [AttendanceSummaryController::class, 'storeHoliday'])->name('attendance-logs.company-holidays.store');
     Route::delete('/attendance-logs/company-holidays/{companyHoliday}', [AttendanceSummaryController::class, 'destroyHoliday'])->name('attendance-logs.company-holidays.destroy');
     Route::post('/attendance-logs/national-holidays', [AttendanceSummaryController::class, 'storeNationalHoliday'])->name('attendance-logs.national-holidays.store');

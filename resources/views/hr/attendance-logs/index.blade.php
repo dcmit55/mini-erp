@@ -176,6 +176,9 @@
                                                     'Excused' => 'bg-info',
                                                     'Sick Leave' => 'bg-info',
                                                     'Annual Leave' => 'bg-primary',
+                                                    'Less Hours' => 'bg-orange text-white',
+                                                    'Late, Less Hours' => 'bg-warning text-dark',
+                                                    'Early Leave' => 'bg-indigo text-white',
                                                     'Alpha' => 'bg-danger',
                                                 ][$item->status] ?? 'bg-secondary';
                                             @endphp
@@ -329,6 +332,8 @@
                         <select name="status" id="edit_status" class="form-select form-select-sm">
                             <option value="Present">Present</option>
                             <option value="Late">Late</option>
+                            <option value="Less Hours">Less Hours</option>
+                            <option value="Early Leave">Early Leave (Approved)</option>
                             <option value="Excused">Excused</option>
                             <option value="Sick Leave">Sick Leave</option>
                             <option value="Annual Leave">Annual Leave</option>

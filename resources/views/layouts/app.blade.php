@@ -712,12 +712,16 @@
                                                             <i class="fas fa-list-alt me-2"></i>Attendance Logs
                                                         </a>
                                                     </li>
+                                                @endcan
+                                                @can('production.timing.view')
                                                     <li>
                                                         <a class="dropdown-item {{ request()->is('timings*') ? 'active' : '' }}"
                                                             href="{{ route('timings.index') }}">
                                                             <i class="fas fa-stopwatch me-2"></i>Timing Data
                                                         </a>
                                                     </li>
+                                                @endcan
+                                                @can('hr.attendance.view')
                                                     <li>
                                                         <a class="dropdown-item {{ request()->routeIs('leave_requests.index') ? 'active' : '' }}"
                                                             href="{{ route('leave_requests.index') }}">
