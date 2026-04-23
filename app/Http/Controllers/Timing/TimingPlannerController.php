@@ -87,9 +87,9 @@ class TimingPlannerController extends Controller
             'job_order_id' => 'required|exists:job_orders,id',
             'rows' => 'required|array|min:1',
             'rows.*.employee_id' => 'required|exists:employees,id',
-            'rows.*.start_time' => 'nullable|date_format:H:i',
-            'rows.*.stage' => 'nullable|string|max:100',
-            'rows.*.session_type' => 'nullable|in:mass_production,repair',
+            'rows.*.task' => 'required|string|max:255',
+            'rows.*.stage' => 'required|string|max:100',
+            'rows.*.session_type' => 'required|in:mass_production,repair',
         ]);
 
         $joId = $request->job_order_id;
@@ -110,7 +110,7 @@ class TimingPlannerController extends Controller
                 $rows[] = [
                     'job_order_id' => $joId,
                     'employee_id' => $empId,
-                    'start_time' => $row['start_time'] ?? null,
+                    'task' => $row['task'] ?? null,
                     'stage' => $row['stage'] ?? null,
                     'session_type' => $row['session_type'] ?? 'mass_production',
                     'created_by' => $userId,
@@ -168,7 +168,7 @@ class TimingPlannerController extends Controller
                     'id' => $p->employee_id,
                     'name' => $p->employee->name ?? 'N/A',
                     'position' => $p->employee->position ?? '',
-                    'start_time' => $p->start_time ? substr($p->start_time, 0, 5) : '',
+                    'task' => $p->task ?? '',
                     'stage' => $p->stage ?? '',
                     'session_type' => $p->session_type ?? 'mass_production',
                 ],

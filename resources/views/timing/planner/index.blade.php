@@ -128,7 +128,7 @@
                                         ->map(function ($p) {
                                             return [
                                                 'employee_id' => $p->employee_id,
-                                                'start_time' => $p->start_time ? substr($p->start_time, 0, 5) : '',
+                                                'task' => $p->task ?? '',
                                                 'stage' => $p->stage ?? '',
                                                 'session_type' => $p->session_type ?? '',
                                             ];
@@ -335,7 +335,7 @@
                 name: '',
                 position: '',
                 department: '',
-                start_time: '',
+                task: '',
                 stage: defaultStage,
                 session_type: '',
                 emp_id: null
@@ -343,7 +343,7 @@
             const MIN_ROWS = 10;
 
             function buildTableData(plannedRows, defaultStage = '') {
-                // plannedRows: [{employee_id, start_time, stage, session_type}] or plain id array (legacy)
+                // plannedRows: [{employee_id, task, stage, session_type}] or plain id array (legacy)
                 const rows = plannedRows
                     .map(r => {
                         const id = typeof r === 'object' ? r.employee_id : r;
@@ -353,7 +353,7 @@
                             name: emp.name,
                             position: emp.position,
                             department: emp.department,
-                            start_time: typeof r === 'object' ? (r.start_time || '') : '',
+                            task: typeof r === 'object' ? (r.task || '') : '',
                             stage: typeof r === 'object' ? (r.stage || defaultStage) : defaultStage,
                             session_type: typeof r === 'object' ? (r.session_type || '') : '',
                             emp_id: emp.id
@@ -401,7 +401,7 @@
                     if (!empId) return;
                     result.push({
                         employee_id: empId,
-                        start_time: row.start_time || '',
+                        task: row.task || '',
                         stage: row.stage || '',
                         session_type: row.session_type || '',
                     });
@@ -433,7 +433,7 @@
                     height: 360,
                     stretchH: 'all',
                     rowHeaders: true,
-                    colHeaders: ['Employee Name', 'Position', 'Department', 'Start Time', 'Stage',
+                    colHeaders: ['Employee Name', 'Position', 'Department', 'Task', 'Stage',
                         'Session Type'
                     ],
                     columns: [{
@@ -458,16 +458,16 @@
                             className: 'htDimmed'
                         },
                         {
-                            data: 'start_time',
+                            data: 'task',
                             type: 'text',
-                            editor: 'nativeTime',
+                            placeholder: 'e.g., Sculpting, Sewing...',
                             renderer(hotInstance, td, row, col, prop, value) {
                                 Handsontable.renderers.TextRenderer.apply(this, arguments);
                                 td.textContent = value || '';
-                                td.style.color = value ? '#0d6efd' : '#aaa';
-                                td.style.fontFamily = 'monospace';
+                                td.style.color = value ? '#333' : '#aaa';
+                                if (!value) td.textContent = 'e.g., Sculpting...';
                             },
-                            width: 100,
+                            width: 160,
                         },
                         {
                             data: 'stage',
@@ -614,7 +614,7 @@
                         const clears = [];
                         for (let i = 0; i < n; i++) {
                             clears.push([i, 'name', ''], [i, 'position', ''], [i, 'department', ''], [i,
-                                'start_time', ''
+                                'task', ''
                             ], [i, 'stage', '']);
                             empIdMap[i] = null;
                         }
@@ -626,12 +626,26 @@
             /* ── Save ── */
             $('#btn-save-plan').on('click', function() {
                 if (!selectedJoId) return;
-                const empIds = getValidEmpIds();
                 const planRows = getValidRows();
+                const empIds = getValidEmpIds();
                 if (planRows.length === 0) {
+                    Swal.fire({ icon: 'warning', title: 'Input minimal 1 karyawan' });
+                    return;
+                }
+                // Validate required fields per row
+                const missing = [];
+                planRows.forEach((row, i) => {
+                    const fields = [];
+                    if (!row.task) fields.push('Task');
+                    if (!row.stage) fields.push('Stage');
+                    if (!row.session_type) fields.push('Session Type');
+                    if (fields.length) missing.push(`Row ${i + 1}: ${fields.join(', ')}`);
+                });
+                if (missing.length) {
                     Swal.fire({
                         icon: 'warning',
-                        title: 'Input minimal 1 karyawan'
+                        title: 'Data belum lengkap',
+                        html: `Kolom berikut harus diisi:<br><ul class="text-start mt-2">${missing.map(m => `<li>${m}</li>`).join('')}</ul>`,
                     });
                     return;
                 }

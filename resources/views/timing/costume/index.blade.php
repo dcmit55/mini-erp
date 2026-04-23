@@ -165,7 +165,7 @@
                                             data-project-name="{{ $jo->project->name ?? 'N/A' }}"
                                             data-department="{{ $jo->department->name ?? 'N/A' }}"
                                             data-job-order-name="{{ $jo->name }}"
-                                            data-planned-stage="{{ $joplan['stage'] ?? '' }}"
+                                            data-planned-task="{{ $joplan['task'] ?? '' }}"
                                             data-planned-session-type="{{ $joplan['session_type'] ?? '' }}"
                                             data-planned-employees='@json($joplan['employee_ids'] ?? [])'>
                                             {{ $jo->name }} ({{ $jo->project->name ?? 'N/A' }}){{ $joplan ? ' 📅' : '' }}
@@ -567,12 +567,12 @@
                     $('#project-info').removeClass('d-none');
 
                     // Auto-fill from plan
-                    const plannedStage = selectedOption.data('planned-stage') || '';
+                    const plannedTask = selectedOption.data('planned-task') || '';
                     const plannedSessionType = selectedOption.data('planned-session-type') || '';
                     const plannedEmpIds = selectedOption.data('planned-employees') || [];
 
-                    if (plannedStage) {
-                        $('#step-input').val(plannedStage);
+                    if (plannedTask) {
+                        $('#step-input').val(plannedTask);
                         $('#plan-task-badge').removeClass('d-none');
                     } else {
                         $('#plan-task-badge').addClass('d-none');

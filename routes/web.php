@@ -184,11 +184,14 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('users', UserController::class);
 
     // Role & Permission Management (super_admin only)
-    Route::prefix('admin/roles')->name('admin.roles.')->middleware('can:admin.users.edit')->group(function () {
-        Route::get('/',              [App\Http\Controllers\Admin\RoleController::class, 'index'])->name('index');
-        Route::get('/{role}/edit',   [App\Http\Controllers\Admin\RoleController::class, 'edit'])->name('edit');
-        Route::put('/{role}',        [App\Http\Controllers\Admin\RoleController::class, 'update'])->name('update');
-    });
+    Route::prefix('admin/roles')
+        ->name('admin.roles.')
+        ->middleware('can:admin.users.edit')
+        ->group(function () {
+            Route::get('/', [App\Http\Controllers\Admin\RoleController::class, 'index'])->name('index');
+            Route::get('/{role}/edit', [App\Http\Controllers\Admin\RoleController::class, 'edit'])->name('edit');
+            Route::put('/{role}', [App\Http\Controllers\Admin\RoleController::class, 'update'])->name('update');
+        });
 
     // Material Usage
     Route::resource('material_usage', MaterialUsageController::class);
@@ -915,20 +918,23 @@ Route::middleware(['auth'])->group(function () {
         });
 
     // ─── Warning Letter Module ─────────────────────────────────────────────────
-    Route::prefix('warning-letters')->name('warning-letters.')->middleware('auth')->group(function () {
-        Route::get('/dashboard', [App\Http\Controllers\Hr\WarningLetterController::class, 'dashboard'])->name('dashboard');
-        Route::get('/',           [App\Http\Controllers\Hr\WarningLetterController::class, 'index'])->name('index');
-        Route::get('/create',     [App\Http\Controllers\Hr\WarningLetterController::class, 'create'])->name('create');
-        Route::post('/',          [App\Http\Controllers\Hr\WarningLetterController::class, 'store'])->name('store');
-        Route::get('/{warningLetter}',        [App\Http\Controllers\Hr\WarningLetterController::class, 'show'])->name('show');
-        Route::get('/{warningLetter}/edit',   [App\Http\Controllers\Hr\WarningLetterController::class, 'edit'])->name('edit');
-        Route::put('/{warningLetter}',        [App\Http\Controllers\Hr\WarningLetterController::class, 'update'])->name('update');
-        Route::delete('/{warningLetter}',     [App\Http\Controllers\Hr\WarningLetterController::class, 'destroy'])->name('destroy');
-        Route::post('/{warningLetter}/approve',            [App\Http\Controllers\Hr\WarningLetterController::class, 'approve'])->name('approve');
-        Route::post('/{warningLetter}/acknowledge',        [App\Http\Controllers\Hr\WarningLetterController::class, 'acknowledge'])->name('acknowledge');
-        Route::post('/{warningLetter}/terminate-employee', [App\Http\Controllers\Hr\WarningLetterController::class, 'terminateEmployee'])->name('terminate-employee');
-        Route::get('/{warningLetter}/pdf',                 [App\Http\Controllers\Hr\WarningLetterController::class, 'pdf'])->name('pdf');
-    });
+    Route::prefix('warning-letters')
+        ->name('warning-letters.')
+        ->middleware('auth')
+        ->group(function () {
+            Route::get('/dashboard', [App\Http\Controllers\Hr\WarningLetterController::class, 'dashboard'])->name('dashboard');
+            Route::get('/', [App\Http\Controllers\Hr\WarningLetterController::class, 'index'])->name('index');
+            Route::get('/create', [App\Http\Controllers\Hr\WarningLetterController::class, 'create'])->name('create');
+            Route::post('/', [App\Http\Controllers\Hr\WarningLetterController::class, 'store'])->name('store');
+            Route::get('/{warningLetter}', [App\Http\Controllers\Hr\WarningLetterController::class, 'show'])->name('show');
+            Route::get('/{warningLetter}/edit', [App\Http\Controllers\Hr\WarningLetterController::class, 'edit'])->name('edit');
+            Route::put('/{warningLetter}', [App\Http\Controllers\Hr\WarningLetterController::class, 'update'])->name('update');
+            Route::delete('/{warningLetter}', [App\Http\Controllers\Hr\WarningLetterController::class, 'destroy'])->name('destroy');
+            Route::post('/{warningLetter}/approve', [App\Http\Controllers\Hr\WarningLetterController::class, 'approve'])->name('approve');
+            Route::post('/{warningLetter}/acknowledge', [App\Http\Controllers\Hr\WarningLetterController::class, 'acknowledge'])->name('acknowledge');
+            Route::post('/{warningLetter}/terminate-employee', [App\Http\Controllers\Hr\WarningLetterController::class, 'terminateEmployee'])->name('terminate-employee');
+            Route::get('/{warningLetter}/pdf', [App\Http\Controllers\Hr\WarningLetterController::class, 'pdf'])->name('pdf');
+        });
 
     // ─── Warning Batches (Bulk) ────────────────────────────────────────────────
     Route::prefix('warning-batches')

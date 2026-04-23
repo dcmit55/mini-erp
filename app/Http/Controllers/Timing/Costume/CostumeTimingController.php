@@ -123,6 +123,7 @@ class CostumeTimingController extends Controller
                 $first = $rows->first();
                 $plannedDataPerJo[$joId] = [
                     'employee_ids' => $rows->pluck('employee_id')->toArray(),
+                    'task'         => $first->task ?? '',
                     'stage'        => $first->stage ?? '',
                     'session_type' => $first->session_type ?? '',
                 ];

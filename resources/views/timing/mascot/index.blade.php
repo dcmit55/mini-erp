@@ -80,7 +80,7 @@
                                                 data-project-name="{{ $jo->project->name ?? 'N/A' }}"
                                                 data-planned-employees='@json($plannedEmps)'
                                                 data-last-employees='@json($lastEmps)'
-                                                data-planned-stage="{{ $planData['stage'] ?? '' }}"
+                                                data-planned-task="{{ $planData['task'] ?? '' }}"
                                                 data-planned-session-type="{{ $planData['session_type'] ?? '' }}"
                                                 style="cursor:pointer; transition: all 0.3s;">
                                                 <div class="card-body p-2">
@@ -570,6 +570,7 @@
                 const plannedEmployees = $card.data('planned-employees') || [];
                 const lastEmployees = $card.data('last-employees') || [];
                 const plannedStage = $card.data('planned-stage') || '';
+                const plannedTask = $card.data('planned-task') || '';
                 const plannedSessionType = $card.data('planned-session-type') || '';
                 const joName = $card.find('h6').first().text().trim();
 
@@ -593,9 +594,9 @@
                 loadJobOrderInfo(joId);
                 $('#job-order-info').removeClass('d-none');
 
-                // Auto-fill Task (stage) from plan
-                if (plannedStage) {
-                    $('#task-input').val(plannedStage);
+                // Auto-fill Task from plan
+                if (plannedTask) {
+                    $('#task-input').val(plannedTask);
                     $('#plan-task-badge').removeClass('d-none');
                 } else {
                     $('#plan-task-badge').addClass('d-none');
