@@ -33,6 +33,8 @@ class TimingMonitorController extends Controller
         // Calculate statistics
         $totalRunning = Timing::running()->today()->count();
         $totalEmployees = Timing::running()->today()->distinct('employee_id')->count();
+        $totalMassProduction = Timing::running()->today()->where('session_type', 'mass_production')->count();
+        $totalRepair = Timing::running()->today()->where('session_type', 'repair')->count();
 
         // Get costume timing running count
         $costumeRunning = Timing::running()
@@ -58,7 +60,7 @@ class TimingMonitorController extends Controller
             })
             ->count();
 
-        return view('timing.monitor.index', compact('runningSessions', 'totalRunning', 'totalEmployees', 'costumeRunning', 'animatronicsRunning', 'mascotRunning'));
+        return view('timing.monitor.index', compact('runningSessions', 'totalRunning', 'totalEmployees', 'totalMassProduction', 'totalRepair', 'costumeRunning', 'animatronicsRunning', 'mascotRunning'));
     }
 
     /**

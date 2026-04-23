@@ -41,7 +41,9 @@ class AnimatronicsTimingController extends Controller
         }
 
         // Only show employees who have clocked in today and NOT yet clocked out
-        $clockedInToday = AttendanceLog::whereDate('date', today())->whereNotNull('clock_in')->whereNull('clock_out')->pluck('employee_id')->toArray();
+        // ⚠️ Set TIMING_BYPASS_ATTENDANCE=true in .env to bypass attendance check (backup for fingerprint issues)
+        $bypassAttendance = (bool) env('TIMING_BYPASS_ATTENDANCE', false);
+        $clockedInToday = $bypassAttendance ? Employee::where('status', 'active')->where('department_id', $animatronicsDept->id)->pluck('id')->toArray() : AttendanceLog::whereDate('date', today())->whereNotNull('clock_in')->whereNull('clock_out')->pluck('employee_id')->toArray();
 
         // Get employees with running sessions for today
         $employeesWithActiveSessions = Timing::running()->today()->pluck('employee_id')->toArray();
@@ -145,7 +147,9 @@ class AnimatronicsTimingController extends Controller
                 }
 
                 // Employee must have clocked in today and NOT yet clocked out
-                $hasClockedIn = AttendanceLog::where('employee_id', $employeeId)->whereDate('date', $today)->whereNotNull('clock_in')->whereNull('clock_out')->exists() || DailyAttendance::where('employee_id', $employeeId)->whereDate('date', $today)->whereNotNull('clock_in')->whereNull('clock_out')->exists();
+                // ⚠️ Set TIMING_BYPASS_ATTENDANCE=true in .env to bypass (backup for fingerprint issues)
+                $bypassAttendance = (bool) env('TIMING_BYPASS_ATTENDANCE', false);
+                $hasClockedIn = $bypassAttendance || AttendanceLog::where('employee_id', $employeeId)->whereDate('date', $today)->whereNotNull('clock_in')->whereNull('clock_out')->exists() || DailyAttendance::where('employee_id', $employeeId)->whereDate('date', $today)->whereNotNull('clock_in')->whereNull('clock_out')->exists();
 
                 if (!$hasClockedIn) {
                     $employee = Employee::find($employeeId);
@@ -837,7 +841,8 @@ class AnimatronicsTimingController extends Controller
     {
         $animatronicsDept = Department::where('name', 'LIKE', '%animatronic%')->orWhere('name', 'LIKE', '%animation%')->first();
 
-        $clockedInToday = AttendanceLog::whereDate('date', today())->whereNotNull('clock_in')->whereNull('clock_out')->pluck('employee_id')->toArray();
+        $bypassAttendance = (bool) env('TIMING_BYPASS_ATTENDANCE', false);
+        $clockedInToday = $bypassAttendance ? Employee::where('status', 'active')->where('department_id', $animatronicsDept->id)->pluck('id')->toArray() : AttendanceLog::whereDate('date', today())->whereNotNull('clock_in')->whereNull('clock_out')->pluck('employee_id')->toArray();
 
         $employeesWithActiveSessions = Timing::running()->today()->pluck('employee_id')->toArray();
 

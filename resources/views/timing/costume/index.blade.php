@@ -98,12 +98,10 @@
                                                     data-department-id="{{ $employee->department_id }}"
                                                     data-position="{{ $employee->position }}"
                                                     data-name="{{ strtolower($employee->name) }}"
-                                                    @if($frozenInfo)
-                                                        data-has-paused="true"
+                                                    @if ($frozenInfo) data-has-paused="true"
                                                         data-paused-job-order="{{ $frozenInfo['job_order_name'] }}"
                                                         data-paused-duration="{{ $frozenInfo['frozen_duration'] }}"
-                                                        data-paused-timing-id="{{ $frozenInfo['timing_id'] }}"
-                                                    @endif>
+                                                        data-paused-timing-id="{{ $frozenInfo['timing_id'] }}" @endif>
                                                     <div class="card employee-card h-100 border-2 {{ $frozenInfo ? 'border-warning' : '' }}"
                                                         data-employee-id="{{ $employee->id }}"
                                                         style="cursor: pointer; transition: all 0.3s;">
@@ -115,7 +113,9 @@
                                                                     id="emp-{{ $employee->id }}">
                                                             </div>
                                                             @if ($frozenInfo)
-                                                                <span class="position-absolute top-0 start-0 m-1 badge bg-warning text-dark" style="font-size:0.6rem;">
+                                                                <span
+                                                                    class="position-absolute top-0 start-0 m-1 badge bg-warning text-dark"
+                                                                    style="font-size:0.6rem;">
                                                                     <i class="bi bi-pause-circle"></i> PAUSED
                                                                 </span>
                                                             @endif
@@ -132,7 +132,8 @@
                                                             <h6 class="mb-0 small lh-sm">{{ $employee->name }}</h6>
                                                             @if ($frozenInfo)
                                                                 <div class="text-warning" style="font-size:0.65rem;">
-                                                                    <i class="bi bi-clock-history"></i> {{ $frozenInfo['frozen_duration'] }}
+                                                                    <i class="bi bi-clock-history"></i>
+                                                                    {{ $frozenInfo['frozen_duration'] }}
                                                                 </div>
                                                             @endif
                                                         </div>
@@ -199,6 +200,44 @@
                                         <label class="form-label small">Part/Component</label>
                                         <input type="text" class="form-control" id="parts-input" name="parts"
                                             placeholder="e.g., Body, Head (optional)">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- STEP 4: Session Type -->
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">
+                                    <span class="badge bg-secondary me-2">4</span>Session Type <span
+                                        class="text-danger">*</span>
+                                </label>
+                                <div class="d-flex gap-3">
+                                    <div class="form-check flex-fill">
+                                        <input class="form-check-input" type="radio" name="session_type"
+                                            id="type-mass-production" value="mass_production" checked>
+                                        <label
+                                            class="form-check-label d-flex align-items-center gap-2 p-2 border rounded w-100 cursor-pointer session-type-label"
+                                            for="type-mass-production" style="cursor:pointer;">
+                                            <span class="badge bg-success fs-6"><i
+                                                    class="bi bi-grid-3x3-gap-fill"></i></span>
+                                            <div>
+                                                <strong class="d-block">Mass Production</strong>
+                                                <small class="text-muted">Produksi massal / normal</small>
+                                            </div>
+                                        </label>
+                                    </div>
+                                    <div class="form-check flex-fill">
+                                        <input class="form-check-input" type="radio" name="session_type"
+                                            id="type-repair" value="repair">
+                                        <label
+                                            class="form-check-label d-flex align-items-center gap-2 p-2 border rounded w-100 cursor-pointer session-type-label"
+                                            for="type-repair" style="cursor:pointer;">
+                                            <span class="badge bg-warning text-dark fs-6"><i
+                                                    class="bi bi-tools"></i></span>
+                                            <div>
+                                                <strong class="d-block">Repair</strong>
+                                                <small class="text-muted">Perbaikan / rework unit</small>
+                                            </div>
+                                        </label>
                                     </div>
                                 </div>
                             </div>
@@ -291,6 +330,22 @@
         .btn-xs {
             padding: 0.15rem 0.5rem;
             font-size: 0.72rem;
+        }
+
+        /* Session Type Radio Visual Feedback */
+        .form-check-input[name="session_type"]:checked+.session-type-label {
+            border-color: #0d6efd !important;
+            background-color: #f0f4ff;
+        }
+
+        .form-check-input[value="mass_production"]:checked+.session-type-label {
+            border-color: #198754 !important;
+            background-color: #f0fff4;
+        }
+
+        .form-check-input[value="repair"]:checked+.session-type-label {
+            border-color: #fd7e14 !important;
+            background-color: #fff8f0;
         }
 
         .gradient-icon {
@@ -551,14 +606,17 @@
                 // Check if any selected employees have a paused session
                 const pausedWarnings = [];
                 selectedEmployees.forEach(empId => {
-                    const wrapper = $(`.employee-card-wrapper[data-has-paused="true"]`).filter(function() {
-                        return $(this).find('.employee-checkbox').val() == empId;
-                    });
+                    const wrapper = $(`.employee-card-wrapper[data-has-paused="true"]`).filter(
+                        function() {
+                            return $(this).find('.employee-checkbox').val() == empId;
+                        });
                     if (wrapper.length) {
                         const jobOrder = wrapper.data('paused-job-order');
                         const duration = wrapper.data('paused-duration');
                         const empName = wrapper.find('h6').text().trim();
-                        pausedWarnings.push(`<li><strong>${empName}</strong> — masih ada sesi PAUSED: <em>${jobOrder}</em> (${duration})</li>`);
+                        pausedWarnings.push(
+                            `<li><strong>${empName}</strong> — masih ada sesi PAUSED: <em>${jobOrder}</em> (${duration})</li>`
+                            );
                     }
                 });
 
@@ -589,7 +647,8 @@
                     job_order_id: selectedJobOrder,
                     step: $('#step-input').val(),
                     parts: $('#parts-input').val(),
-                    output_qty: $('#output-qty-input').val()
+                    output_qty: $('#output-qty-input').val(),
+                    session_type: $('input[name="session_type"]:checked').val()
                 };
 
                 // Disable button and show loading
@@ -734,7 +793,8 @@
                             $('#stopWorkModal').modal('hide');
 
                             // Check if stopping employee has a paused session
-                            const frozen = stoppingEmployeeId ? frozenSessionsByEmployee[stoppingEmployeeId] : null;
+                            const frozen = stoppingEmployeeId ? frozenSessionsByEmployee[
+                                stoppingEmployeeId] : null;
 
                             if (frozen) {
                                 Swal.fire({
@@ -762,7 +822,9 @@
 
                             // Remove the specific card and refresh both panels
                             const cardId = response.timing_id || timingId;
-                            $(`#session-card-${cardId}`).fadeOut(300, function() { $(this).remove(); });
+                            $(`#session-card-${cardId}`).fadeOut(300, function() {
+                                $(this).remove();
+                            });
                             loadActiveSessions();
                             loadAvailableEmployees();
                         }
@@ -796,29 +858,51 @@
                     $.ajax({
                         url: '{{ route('costume-timing.freeze') }}',
                         method: 'POST',
-                        data: { _token: '{{ csrf_token() }}', timing_id: timingId },
+                        data: {
+                            _token: '{{ csrf_token() }}',
+                            timing_id: timingId
+                        },
                         success: function(r) {
                             if (r.success) {
                                 // Track this employee as having a frozen session
-                                const card = $(`.session-card[data-session-id="${timingId}"]`);
-                                const empId = card.find('.stop-work-btn').data('employee-id');
-                                const joName = card.find('.stop-work-btn').data('job-order');
+                                const card = $(
+                                    `.session-card[data-session-id="${timingId}"]`);
+                                const empId = card.find('.stop-work-btn').data(
+                                    'employee-id');
+                                const joName = card.find('.stop-work-btn').data(
+                                    'job-order');
                                 if (empId) {
                                     frozenSessionsByEmployee[empId] = {
                                         timing_id: timingId,
                                         job_order_name: joName || 'N/A',
-                                        frozen_duration: r.frozen_duration || '00:00:00',
+                                        frozen_duration: r.frozen_duration ||
+                                            '00:00:00',
                                     };
                                 }
                                 loadActiveSessions();
                                 loadAvailableEmployees();
-                                Swal.fire({ icon: 'success', title: 'Paused!', text: r.message, timer: 1800, showConfirmButton: false });
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Paused!',
+                                    text: r.message,
+                                    timer: 1800,
+                                    showConfirmButton: false
+                                });
                             } else {
-                                Swal.fire({ icon: 'error', title: 'Error', text: r.message });
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: r.message
+                                });
                             }
                         },
                         error: function(xhr) {
-                            Swal.fire({ icon: 'error', title: 'Error', text: xhr.responseJSON?.message || 'Failed to pause.' });
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: xhr.responseJSON?.message ||
+                                    'Failed to pause.'
+                            });
                         }
                     });
                 });
@@ -840,22 +924,43 @@
                     $.ajax({
                         url: '{{ route('costume-timing.unfreeze') }}',
                         method: 'POST',
-                        data: { _token: '{{ csrf_token() }}', timing_id: timingId },
+                        data: {
+                            _token: '{{ csrf_token() }}',
+                            timing_id: timingId
+                        },
                         success: function(r) {
                             if (r.success) {
                                 // Remove from frozen tracking
-                                const card = $(`.session-card[data-session-id="${timingId}"]`);
-                                const empId = card.find('.stop-work-btn').data('employee-id');
+                                const card = $(
+                                    `.session-card[data-session-id="${timingId}"]`);
+                                const empId = card.find('.stop-work-btn').data(
+                                    'employee-id');
                                 if (empId) delete frozenSessionsByEmployee[empId];
                                 loadActiveSessions();
                                 loadAvailableEmployees();
-                                Swal.fire({ icon: 'success', title: r.auto_froze ? 'Switched!' : 'Continued!', text: r.message, timer: 2500, showConfirmButton: false });
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: r.auto_froze ? 'Switched!' :
+                                        'Continued!',
+                                    text: r.message,
+                                    timer: 2500,
+                                    showConfirmButton: false
+                                });
                             } else {
-                                Swal.fire({ icon: 'error', title: 'Error', text: r.message });
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: r.message
+                                });
                             }
                         },
                         error: function(xhr) {
-                            Swal.fire({ icon: 'error', title: 'Error', text: xhr.responseJSON?.message || 'Failed to continue.' });
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: xhr.responseJSON?.message ||
+                                    'Failed to continue.'
+                            });
                         }
                     });
                 });
@@ -1129,14 +1234,14 @@
                         const isFrozen = timing.is_frozen || false;
                         const isAutoBreak = timing.auto_break_paused || false;
                         const cardBorder = isFrozen ? 'border-warning border-2' : '';
-                        const statusBadge = isFrozen
-                            ? `<span class="badge bg-warning text-dark me-1"><i class="bi bi-pause-circle"></i> PAUSED${isAutoBreak ? ' (BREAK)' : ''}</span>`
-                            : `<span class="badge bg-success me-1">RUNNING</span>`;
-                        const durationHtml = isFrozen
-                            ? `<span class="fs-5 fw-bold text-warning">${timing.frozen_duration || '00:00:00'}</span>`
-                            : `<span class="duration-display fs-5 fw-bold text-success" data-start-time="${timing.start_time}" data-session-id="${timing.id}">${timing.duration || '00:00:00'}</span>`;
-                        const actionBtns = isFrozen
-                            ? `<div class="d-flex gap-2">
+                        const statusBadge = isFrozen ?
+                            `<span class="badge bg-warning text-dark me-1"><i class="bi bi-pause-circle"></i> PAUSED${isAutoBreak ? ' (BREAK)' : ''}</span>` :
+                            `<span class="badge bg-success me-1">RUNNING</span>`;
+                        const durationHtml = isFrozen ?
+                            `<span class="fs-5 fw-bold text-warning">${timing.frozen_duration || '00:00:00'}</span>` :
+                            `<span class="duration-display fs-5 fw-bold text-success" data-start-time="${timing.start_time}" data-session-id="${timing.id}">${timing.duration || '00:00:00'}</span>`;
+                        const actionBtns = isFrozen ?
+                            `<div class="d-flex gap-2">
                                    <button class="btn btn-success btn-sm flex-grow-1 unfreeze-work-btn"
                                        data-timing-id="${timing.id}"
                                        data-employee-name="${timing.employee_name}">
@@ -1149,8 +1254,8 @@
                                        data-job-order="${timing.job_order_name}">
                                        <i class="bi bi-stop-circle me-1"></i>Stop
                                    </button>
-                               </div>`
-                            : `<div class="d-flex gap-2">
+                               </div>` :
+                            `<div class="d-flex gap-2">
                                    <button class="btn btn-warning btn-sm freeze-work-btn flex-shrink-0"
                                        data-timing-id="${timing.id}"
                                        data-employee-name="${timing.employee_name}">
@@ -1392,27 +1497,29 @@
                 updateStartButton();
 
                 if (!employees || employees.length === 0) {
-                    $('#employee-cards').html('<div class="alert alert-info">No available employees at this time.</div>');
+                    $('#employee-cards').html(
+                        '<div class="alert alert-info">No available employees at this time.</div>');
                     return;
                 }
 
                 let html = '<div class="row g-2">';
                 employees.forEach(function(emp) {
                     const frozen = emp.frozen_info;
-                    const skillsetIds = emp.skillset_ids && emp.skillset_ids.length ? ',' + emp.skillset_ids.join(',') + ',' : ',';
+                    const skillsetIds = emp.skillset_ids && emp.skillset_ids.length ? ',' + emp.skillset_ids
+                        .join(',') + ',' : ',';
                     const borderClass = frozen ? 'border-warning' : '';
-                    const pausedAttrs = frozen
-                        ? `data-has-paused="true" data-paused-job-order="${frozen.job_order_name}" data-paused-duration="${frozen.frozen_duration}" data-paused-timing-id="${frozen.timing_id}"`
-                        : '';
-                    const pausedBadge = frozen
-                        ? `<span class="position-absolute top-0 start-0 m-1 badge bg-warning text-dark" style="font-size:0.6rem;"><i class="bi bi-pause-circle"></i> PAUSED</span>`
-                        : '';
-                    const pausedDur = frozen
-                        ? `<div class="text-warning" style="font-size:0.65rem;"><i class="bi bi-clock-history"></i> ${frozen.frozen_duration}</div>`
-                        : '';
-                    const photoHtml = emp.photo
-                        ? `<img src="/storage/${emp.photo}" class="rounded-circle mb-1 border" width="44" height="44" style="object-fit:cover;">`
-                        : `<div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center mb-1" style="width:44px;height:44px;"><i class="bi bi-person text-white"></i></div>`;
+                    const pausedAttrs = frozen ?
+                        `data-has-paused="true" data-paused-job-order="${frozen.job_order_name}" data-paused-duration="${frozen.frozen_duration}" data-paused-timing-id="${frozen.timing_id}"` :
+                        '';
+                    const pausedBadge = frozen ?
+                        `<span class="position-absolute top-0 start-0 m-1 badge bg-warning text-dark" style="font-size:0.6rem;"><i class="bi bi-pause-circle"></i> PAUSED</span>` :
+                        '';
+                    const pausedDur = frozen ?
+                        `<div class="text-warning" style="font-size:0.65rem;"><i class="bi bi-clock-history"></i> ${frozen.frozen_duration}</div>` :
+                        '';
+                    const photoHtml = emp.photo ?
+                        `<img src="/storage/${emp.photo}" class="rounded-circle mb-1 border" width="44" height="44" style="object-fit:cover;">` :
+                        `<div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center mb-1" style="width:44px;height:44px;"><i class="bi bi-person text-white"></i></div>`;
 
                     html += `
                         <div class="col-md-4 col-sm-6 employee-card-wrapper"

@@ -67,8 +67,37 @@
             </div>
         </div>
 
+        <!-- Session Type Summary -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <div class="card shadow-sm session-mass-production">
+                    <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-bold" style="font-size:.85rem;"><i
+                                    class="bi bi-grid-3x3-gap-fill me-2 text-secondary"></i>Mass Production</div>
+                            <small class="text-muted">Sesi running produksi massal</small>
+                        </div>
+                        <h2 class="mb-0 text-secondary fw-bold">{{ $totalMassProduction }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card shadow-sm session-repair">
+                    <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-bold" style="font-size:.85rem;"><i class="bi bi-tools me-2"
+                                    style="color:#e65100;"></i>Repair</div>
+                            <small class="text-muted">Sesi running perbaikan / rework</small>
+                        </div>
+                        <h2 class="mb-0 fw-bold" style="color:#e65100;">{{ $totalRepair }}</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Clocked-In Employees (fingerprint scan today, no active session) -->
-        <div id="clocked-in-panel" class="card shadow-sm border-0 mb-4" style="display:none; border-left:4px solid #fda085 !important;">
+        <div id="clocked-in-panel" class="card shadow-sm border-0 mb-4"
+            style="display:none; border-left:4px solid #fda085 !important;">
             <div class="card-header d-flex align-items-center justify-content-between py-2"
                 style="background:linear-gradient(135deg,#f6d365 0%,#fda085 100%);">
                 <div class="d-flex align-items-center gap-2">
@@ -76,7 +105,8 @@
                     <span class="fw-bold text-white" style="font-size:.88rem;">Hadir — Belum Ada Sesi</span>
                     <span class="badge bg-white text-dark ms-1" id="clocked-in-count" style="font-size:.73rem;">0</span>
                 </div>
-                <small class="text-white opacity-75" style="font-size:.7rem;">Sudah clock-in via fingerprint · belum start timing</small>
+                <small class="text-white opacity-75" style="font-size:.7rem;">Sudah clock-in via fingerprint · belum start
+                    timing</small>
             </div>
             <div class="card-body py-2 px-3">
                 <div id="clocked-in-list" class="d-flex flex-wrap gap-2"></div>
@@ -96,7 +126,8 @@
                         <div class="d-flex align-items-center gap-2">
                             <div class="form-check mb-0">
                                 <input class="form-check-input group-select-all" type="checkbox"
-                                    data-group="{{ Str::slug($jobOrderName) }}" id="grp-all-{{ Str::slug($jobOrderName) }}"
+                                    data-group="{{ Str::slug($jobOrderName) }}"
+                                    id="grp-all-{{ Str::slug($jobOrderName) }}"
                                     title="Select all employees in this project">
                                 <label class="form-check-label text-white small fw-normal"
                                     for="grp-all-{{ Str::slug($jobOrderName) }}">Select All</label>
@@ -114,9 +145,19 @@
                                     $deptData = $session->department_specific_data ?? [];
                                     $isFrozen = $session->isFrozen();
                                     $isAutoBreak = !empty($deptData['auto_break_paused']);
+                                    $sessionType = $session->session_type ?? 'mass_production';
+                                    $isRepair = $sessionType === 'repair';
+                                    if ($isFrozen) {
+                                        $sessionClass = 'session-frozen';
+                                    } elseif ($isRepair) {
+                                        $sessionClass = 'session-repair';
+                                    } else {
+                                        $sessionClass = 'session-mass-production';
+                                    }
                                 @endphp
                                 <div class="col-4 col-md-2 session-col">
-                                    <div class="card {{ $isFrozen ? 'border border-2 border-info' : 'border' }} session-card h-100" id="session-{{ $session->id }}">
+                                    <div class="card {{ $sessionClass }} session-card h-100"
+                                        id="session-{{ $session->id }}">
                                         <div class="card-body p-1 d-flex flex-column">
                                             <!-- Checkbox -->
                                             <div class="form-check mb-2">
@@ -143,10 +184,12 @@
                                                 <div>
                                                     @if ($isFrozen)
                                                         <span class="badge bg-info text-dark" style="font-size:0.57rem;">
-                                                            <i class="bi bi-pause-circle me-1"></i>PAUSED{{ $isAutoBreak ? ' (BREAK)' : '' }}
+                                                            <i
+                                                                class="bi bi-pause-circle me-1"></i>PAUSED{{ $isAutoBreak ? ' (BREAK)' : '' }}
                                                         </span>
                                                     @else
-                                                        <span class="badge bg-success" style="font-size:0.57rem;">RUNNING</span>
+                                                        <span class="badge bg-success"
+                                                            style="font-size:0.57rem;">RUNNING</span>
                                                     @endif
                                                 </div>
                                                 <div class="fw-semibold mt-1 lh-sm" style="font-size:0.65rem;">
@@ -162,7 +205,8 @@
                                                         style="font-family:'Courier New',monospace;font-size:0.76rem;">
                                                         {{ $deptData['frozen_duration'] ?? '00:00:00' }}
                                                     </span>
-                                                    <br><small class="text-muted" style="font-size:0.55rem;">&#9208; Paused</small>
+                                                    <br><small class="text-muted" style="font-size:0.55rem;">&#9208;
+                                                        Paused</small>
                                                 @else
                                                     <span class="duration-display fw-bold text-success"
                                                         style="font-family:'Courier New',monospace;font-size:0.76rem;"
@@ -390,6 +434,21 @@
             transition: transform 0.2s, box-shadow 0.2s;
         }
 
+        .session-card.session-mass-production {
+            background-color: #fff;
+            border-left: 5px solid #aaa !important;
+        }
+
+        .session-card.session-repair {
+            background-color: #fff3e0;
+            border-left: 5px solid #e65100 !important;
+        }
+
+        .session-card.session-frozen {
+            background-color: #e3f2fd;
+            border-left: 5px solid #0277bd !important;
+        }
+
         .session-card:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
@@ -458,7 +517,8 @@
 
                             // Reload if session count changes
                             const cardCount = $('.session-card').length;
-                            const newCount = (response.statistics.total_running || 0) + (response.statistics.total_frozen || 0);
+                            const newCount = (response.statistics.total_running || 0) + (response
+                                .statistics.total_frozen || 0);
                             if (cardCount !== newCount) {
                                 location.reload();
                             }
@@ -487,13 +547,13 @@
                         if (!r.success) return;
                         $('#clocked-in-count').text(r.count || 0);
                         const panel = $('#clocked-in-panel');
-                        const list  = $('#clocked-in-list');
+                        const list = $('#clocked-in-list');
                         if (r.count > 0) {
                             let html = '';
                             r.employees.forEach(function(emp) {
-                                const av = emp.photo
-                                    ? `<img src="/storage/${emp.photo}" class="rounded-circle" width="32" height="32" style="object-fit:cover;">`
-                                    : `<div class="rounded-circle d-inline-flex align-items-center justify-content-center fw-bold text-white flex-shrink-0" style="width:32px;height:32px;background:linear-gradient(135deg,#f6d365,#fda085);font-size:.72rem;">${emp.initials}</div>`;
+                                const av = emp.photo ?
+                                    `<img src="/storage/${emp.photo}" class="rounded-circle" width="32" height="32" style="object-fit:cover;">` :
+                                    `<div class="rounded-circle d-inline-flex align-items-center justify-content-center fw-bold text-white flex-shrink-0" style="width:32px;height:32px;background:linear-gradient(135deg,#f6d365,#fda085);font-size:.72rem;">${emp.initials}</div>`;
                                 html += `<div class="d-flex align-items-center gap-2 p-2 rounded" style="background:rgba(0,0,0,.03);border:1px solid rgba(0,0,0,.07);">
                                     ${av}
                                     <div>
@@ -659,17 +719,37 @@
                     $.ajax({
                         url: '{{ route('costume-timing.freeze') }}',
                         method: 'POST',
-                        data: { _token: '{{ csrf_token() }}', timing_id: timingId },
+                        data: {
+                            _token: '{{ csrf_token() }}',
+                            timing_id: timingId
+                        },
                         success: function(r) {
                             if (r.success) {
-                                Swal.fire({ icon: 'success', title: 'Paused!', text: r.message, timer: 1800, showConfirmButton: false });
-                                setTimeout(function() { location.reload(); }, 1900);
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Paused!',
+                                    text: r.message,
+                                    timer: 1800,
+                                    showConfirmButton: false
+                                });
+                                setTimeout(function() {
+                                    location.reload();
+                                }, 1900);
                             } else {
-                                Swal.fire({ icon: 'error', title: 'Error', text: r.message });
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: r.message
+                                });
                             }
                         },
                         error: function(xhr) {
-                            Swal.fire({ icon: 'error', title: 'Error', text: xhr.responseJSON?.message || 'Failed to pause.' });
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: xhr.responseJSON?.message ||
+                                    'Failed to pause.'
+                            });
                         }
                     });
                 });
@@ -682,7 +762,8 @@
                 Swal.fire({
                     icon: 'question',
                     title: 'Resume Session?',
-                    html: 'Timer for <strong>' + empName + '</strong> will resume from where it was paused.',
+                    html: 'Timer for <strong>' + empName +
+                        '</strong> will resume from where it was paused.',
                     showCancelButton: true,
                     confirmButtonColor: '#198754',
                     confirmButtonText: '<i class="bi bi-play-circle"></i> Resume',
@@ -692,17 +773,37 @@
                     $.ajax({
                         url: '{{ route('costume-timing.unfreeze') }}',
                         method: 'POST',
-                        data: { _token: '{{ csrf_token() }}', timing_id: timingId },
+                        data: {
+                            _token: '{{ csrf_token() }}',
+                            timing_id: timingId
+                        },
                         success: function(r) {
                             if (r.success) {
-                                Swal.fire({ icon: 'success', title: 'Resumed!', text: r.message, timer: 1800, showConfirmButton: false });
-                                setTimeout(function() { location.reload(); }, 1900);
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Resumed!',
+                                    text: r.message,
+                                    timer: 1800,
+                                    showConfirmButton: false
+                                });
+                                setTimeout(function() {
+                                    location.reload();
+                                }, 1900);
                             } else {
-                                Swal.fire({ icon: 'error', title: 'Error', text: r.message });
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: r.message
+                                });
                             }
                         },
                         error: function(xhr) {
-                            Swal.fire({ icon: 'error', title: 'Error', text: xhr.responseJSON?.message || 'Failed to resume.' });
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: xhr.responseJSON?.message ||
+                                    'Failed to resume.'
+                            });
                         }
                     });
                 });

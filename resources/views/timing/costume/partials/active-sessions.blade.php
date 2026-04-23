@@ -43,8 +43,22 @@ if ($totalMinutes > 0 && $session->start_time) {
             $isFrozen = $session->isFrozen();
             $deptData = $session->department_specific_data ?? [];
             $isAutoBreak = !empty($deptData['auto_break_paused']);
+            $sessionType = $session->session_type ?? 'mass_production';
+            $isRepair = $sessionType === 'repair';
+
+            // Color scheme: repair = orange border, mass_production = green border
+            $cardBorderClass = $isFrozen
+                ? 'border-warning border-2'
+                : ($isRepair
+                    ? 'border-orange border-2'
+                    : 'border-success border-2');
+            $runningBadgeClass = $isRepair ? 'bg-orange' : 'bg-success';
+            $runningBadgeStyle = $isRepair ? 'background-color:#fd7e14!important;' : '';
+            $durationColorClass = $isRepair ? '' : 'text-success';
+            $durationStyle = $isRepair ? 'color:#fd7e14;' : '';
         @endphp
-        <div class="card session-card mb-3 {{ $isFrozen ? 'border-warning border-2' : '' }}" id="session-card-{{ $session->id }}" data-session-id="{{ $session->id }}">
+        <div class="card session-card mb-3 {{ $cardBorderClass }}" id="session-card-{{ $session->id }}"
+            data-session-id="{{ $session->id }}">
             <div class="card-body p-3">
                 {{-- Employee Info Header --}}
                 <div class="d-flex align-items-center mb-2">
@@ -60,9 +74,14 @@ if ($totalMinutes > 0 && $session->start_time) {
                     <div class="flex-grow-1">
                         <h6 class="mb-0">
                             @if ($isFrozen)
-                                <span class="badge bg-warning text-dark me-1"><i class="bi bi-pause-circle"></i> PAUSED{{ $isAutoBreak ? ' (BREAK)' : '' }}</span>
+                                <span class="badge bg-warning text-dark me-1"><i class="bi bi-pause-circle"></i>
+                                    PAUSED{{ $isAutoBreak ? ' (BREAK)' : '' }}</span>
+                            @elseif ($isRepair)
+                                <span class="badge me-1" style="background-color:#fd7e14;"><i class="bi bi-tools"></i>
+                                    REPAIR</span>
                             @else
-                                <span class="badge bg-success me-1">RUNNING</span>
+                                <span class="badge bg-success me-1"><i class="bi bi-grid-3x3-gap-fill"></i> MASS
+                                    PROD</span>
                             @endif
                             {{ $session->employee->name }}
                         </h6>
@@ -71,8 +90,9 @@ if ($totalMinutes > 0 && $session->start_time) {
                     @if ($isFrozen)
                         <span class="fs-5 fw-bold text-warning">{{ $deptData['frozen_duration'] ?? '00:00:00' }}</span>
                     @else
-                        <span class="duration-display fs-5 fw-bold text-success"
-                            data-start-time="{{ $session->start_time }}" data-session-id="{{ $session->id }}">
+                        <span class="duration-display fs-5 fw-bold {{ $durationColorClass }}"
+                            style="{{ $durationStyle }}" data-start-time="{{ $session->start_time }}"
+                            data-session-id="{{ $session->id }}">
                             00:00:00
                         </span>
                     @endif
@@ -121,8 +141,8 @@ if ($totalMinutes > 0 && $session->start_time) {
 
                 {{-- Individual Stop Button --}}
                 <div class="d-flex gap-2">
-                    <button class="btn btn-danger btn-sm stop-work-btn flex-grow-1" data-timing-id="{{ $session->id }}"
-                        data-employee-id="{{ $session->employee_id }}"
+                    <button class="btn btn-danger btn-sm stop-work-btn flex-grow-1"
+                        data-timing-id="{{ $session->id }}" data-employee-id="{{ $session->employee_id }}"
                         data-employee-name="{{ $session->employee->name }}"
                         data-job-order="{{ $session->jobOrder->name ?? $session->job_order_id }}">
                         <i class="bi bi-stop-circle me-1"></i>STOP WORK & ENTER QTY
@@ -136,4 +156,3 @@ if ($totalMinutes > 0 && $session->start_time) {
         </div>
     @endforeach
 @endif
-

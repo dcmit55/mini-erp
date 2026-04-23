@@ -43,6 +43,8 @@ class MascotMonitorController extends Controller
         $totalRunning = $runningSessions->where('status', 'on progress')->count();
         $totalFrozen = $runningSessions->where('status', 'frozen')->count();
         $totalEmployees = $runningSessions->unique('employee_id')->count();
+        $totalMassProduction = $runningSessions->where('status', 'on progress')->where('session_type', 'mass_production')->count();
+        $totalRepair = $runningSessions->where('status', 'on progress')->where('session_type', 'repair')->count();
 
         // Group by project for better organization
         $groupedSessions = $runningSessions->groupBy(function ($timing) {
@@ -51,7 +53,7 @@ class MascotMonitorController extends Controller
 
         $units = Unit::orderBy('name')->get();
 
-        return view('timing.mascot.monitor', compact('runningSessions', 'groupedSessions', 'totalRunning', 'totalFrozen', 'totalEmployees', 'mascotDept', 'units'));
+        return view('timing.mascot.monitor', compact('runningSessions', 'groupedSessions', 'totalRunning', 'totalFrozen', 'totalEmployees', 'totalMassProduction', 'totalRepair', 'mascotDept', 'units'));
     }
 
     /**
@@ -70,27 +72,21 @@ class MascotMonitorController extends Controller
             ->pluck('employee_id')
             ->toArray();
 
-        $employees = AttendanceLog::whereDate('date', today())
-            ->whereNotNull('clock_in')
-            ->whereHas('employee', fn($q) => $q
-                ->where('department_id', $dept->id)
-                ->whereNotIn('id', $activeEmployeeIds))
-            ->with('employee')
-            ->orderBy('clock_in')
-            ->get()
-            ->map(fn($log) => [
-                'id'       => $log->employee->id,
-                'name'     => $log->employee->name,
+        $employees = AttendanceLog::whereDate('date', today())->whereNotNull('clock_in')->whereHas('employee', fn($q) => $q->where('department_id', $dept->id)->whereNotIn('id', $activeEmployeeIds))->with('employee')->orderBy('clock_in')->get()->map(
+            fn($log) => [
+                'id' => $log->employee->id,
+                'name' => $log->employee->name,
                 'position' => $log->employee->position ?? '—',
-                'photo'    => $log->employee->photo,
+                'photo' => $log->employee->photo,
                 'clock_in' => optional($log->clock_in)->format('H:i'),
                 'initials' => strtoupper(substr($log->employee->name, 0, 1)),
-            ]);
+            ],
+        );
 
         return response()->json([
-            'success'   => true,
+            'success' => true,
             'employees' => $employees,
-            'count'     => $employees->count(),
+            'count' => $employees->count(),
         ]);
     }
 
@@ -143,10 +139,8 @@ class MascotMonitorController extends Controller
                     'start_time' => $timing->start_time,
                     'is_frozen' => $isFrozen,
                     'auto_break_paused' => !empty($deptData['auto_break_paused']),
-                    'frozen_duration' => $isFrozen ? ($deptData['frozen_duration'] ?? '00:00:00') : null,
-                    'duration' => $isFrozen
-                        ? ($deptData['frozen_duration'] ?? '00:00:00')
-                        : $timing->getDurationAttribute(),
+                    'frozen_duration' => $isFrozen ? $deptData['frozen_duration'] ?? '00:00:00' : null,
+                    'duration' => $isFrozen ? $deptData['frozen_duration'] ?? '00:00:00' : $timing->getDurationAttribute(),
                     'tracking_mode' => $trackingMode,
                     'current_progress' => $deptData['current_progress'] ?? 0,
                     'stage' => $deptData['stage'] ?? 0,

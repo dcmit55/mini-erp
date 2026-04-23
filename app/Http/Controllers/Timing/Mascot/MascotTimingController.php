@@ -204,6 +204,7 @@ class MascotTimingController extends Controller
             'employees.*' => 'exists:employees,id',
             'job_order_id' => 'required|exists:job_orders,id',
             'task' => 'required|string|max:255', // Task description instead of 'step'
+            'session_type' => 'required|in:mass_production,repair',
         ]);
 
         try {
@@ -245,8 +246,8 @@ class MascotTimingController extends Controller
                 }
 
                 // Employee must have clocked in today and NOT yet clocked out
-                // ⚠️ TESTING MODE: bypassed when TIMING_BYPASS_ATTENDANCE=true in .env
-                $bypassAttendance = config('app.debug') && env('TIMING_BYPASS_ATTENDANCE', false);
+                // ⚠️ Set TIMING_BYPASS_ATTENDANCE=true in .env to bypass attendance check (backup for fingerprint issues)
+                $bypassAttendance = (bool) env('TIMING_BYPASS_ATTENDANCE', false);
                 $hasClockedIn = $bypassAttendance || AttendanceLog::where('employee_id', $employeeId)->whereDate('date', $today)->whereNotNull('clock_in')->whereNull('clock_out')->exists() || DailyAttendance::where('employee_id', $employeeId)->whereDate('date', $today)->whereNotNull('clock_in')->whereNull('clock_out')->exists();
 
                 if (!$hasClockedIn) {
@@ -312,6 +313,7 @@ class MascotTimingController extends Controller
                     'measurement_type' => 'percentage', // Stage-based progress (use percentage from enum)
                     'measurement_value' => 0, // Will be set on stop
                     'status' => 'on progress',
+                    'session_type' => $validated['session_type'],
                     'remarks' => null,
                     'department_specific_data' => $deptSpecificData,
                 ]);
@@ -329,6 +331,7 @@ class MascotTimingController extends Controller
                     'project_name' => $jobOrder->project->name ?? 'N/A',
                     'task' => $timing->step,
                     'start_time' => $timing->start_time,
+                    'session_type' => $timing->session_type,
                     'duration' => '00:00:00',
                     'previous_stage' => $previousStage,
                     'previous_progress' => $previousProgress,

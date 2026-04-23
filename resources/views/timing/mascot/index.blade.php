@@ -265,6 +265,44 @@
                                     placeholder="e.g., Sculpting, Painting, Assembly, etc." required>
                             </div>
 
+                            <!-- STEP 4: Session Type -->
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">
+                                    <span class="badge bg-warning text-dark me-2">4</span>Session Type <span
+                                        class="text-danger">*</span>
+                                </label>
+                                <div class="d-flex gap-3">
+                                    <div class="form-check flex-fill">
+                                        <input class="form-check-input" type="radio" name="session_type"
+                                            id="type-mass-production" value="mass_production" checked>
+                                        <label
+                                            class="form-check-label d-flex align-items-center gap-2 p-2 border rounded w-100 session-type-label"
+                                            for="type-mass-production" style="cursor:pointer;">
+                                            <span class="badge bg-success fs-6"><i
+                                                    class="bi bi-grid-3x3-gap-fill"></i></span>
+                                            <div>
+                                                <strong class="d-block">Mass Production</strong>
+
+                                            </div>
+                                        </label>
+                                    </div>
+                                    <div class="form-check flex-fill">
+                                        <input class="form-check-input" type="radio" name="session_type"
+                                            id="type-repair" value="repair">
+                                        <label
+                                            class="form-check-label d-flex align-items-center gap-2 p-2 border rounded w-100 session-type-label"
+                                            for="type-repair" style="cursor:pointer;">
+                                            <span class="badge bg-warning text-dark fs-6"><i
+                                                    class="bi bi-tools"></i></span>
+                                            <div>
+                                                <strong class="d-block">Repair</strong>
+
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
                             <button type="submit" class="btn btn-success btn-lg w-100" id="start-work-btn">
                                 <i class="bi bi-play-circle-fill me-2"></i>
                                 <span id="btn-text">START WORK</span>
@@ -387,6 +425,17 @@
         .btn-xs {
             padding: 0.15rem 0.5rem;
             font-size: 0.72rem;
+        }
+
+        /* Session Type Radio Visual Feedback */
+        .form-check-input[value="mass_production"]:checked+.session-type-label {
+            border-color: #198754 !important;
+            background-color: #f0fff4;
+        }
+
+        .form-check-input[value="repair"]:checked+.session-type-label {
+            border-color: #fd7e14 !important;
+            background-color: #fff8f0;
         }
 
         /* Gradient icon */
@@ -735,7 +784,7 @@
                         const empName = wrapper.find('h6').text().trim();
                         pausedWarnings.push(
                             `<li><strong>${empName}</strong> — masih ada sesi PAUSED: <em>${jobOrder}</em> (${duration})</li>`
-                            );
+                        );
                     }
                 });
 
@@ -770,7 +819,8 @@
                         _token: '{{ csrf_token() }}',
                         employees: selectedEmployees,
                         job_order_id: selectedJobOrder,
-                        task: task
+                        task: task,
+                        session_type: $('input[name="session_type"]:checked').val()
                     },
                     success: function(response) {
                         if (response.success) {

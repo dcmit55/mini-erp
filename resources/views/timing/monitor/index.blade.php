@@ -90,6 +90,34 @@
             </div>
         </div>
 
+        <!-- Session Type Summary -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <div class="card shadow-sm session-mass-production">
+                    <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-bold" style="font-size:.85rem;"><i
+                                    class="bi bi-grid-3x3-gap-fill me-2 text-secondary"></i>Mass Production</div>
+                            <small class="text-muted">Sesi running produksi massal</small>
+                        </div>
+                        <h2 class="mb-0 text-secondary fw-bold">{{ $totalMassProduction }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card shadow-sm session-repair">
+                    <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-bold" style="font-size:.85rem;"><i class="bi bi-tools me-2"
+                                    style="color:#e65100;"></i>Repair</div>
+                            <small class="text-muted">Sesi running perbaikan / rework</small>
+                        </div>
+                        <h2 class="mb-0 fw-bold" style="color:#e65100;">{{ $totalRepair }}</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Running Sessions by Department -->
         @if ($runningSessions->count() > 0)
             @foreach ($runningSessions as $departmentName => $sessions)
@@ -117,8 +145,14 @@
                     <div class="card-body">
                         <div class="row g-2">
                             @foreach ($sessions as $session)
+                                @php
+                                    $sessionType = $session->session_type ?? 'mass_production';
+                                    $isRepair = $sessionType === 'repair';
+                                    $sessionClass = $isRepair ? 'session-repair' : 'session-mass-production';
+                                @endphp
                                 <div class="col-md-4 col-lg-3 col-xl-2">
-                                    <div class="card border session-card shadow-sm" id="session-{{ $session->id }}">
+                                    <div class="card {{ $sessionClass }} session-card shadow-sm"
+                                        id="session-{{ $session->id }}">
                                         <div class="card-body p-2">
                                             <!-- Header: Photo, Name, Status -->
                                             <div class="d-flex align-items-center mb-2">
@@ -154,7 +188,8 @@
                                             <div class="job-info">
                                                 <div class="mb-1">
                                                     <div class="d-flex">
-                                                        <strong class="me-2" style="min-width: 60px;">Job Order :</strong>
+                                                        <strong class="me-2" style="min-width: 60px;">Job Order
+                                                            :</strong>
                                                         <div class="text-truncate flex-grow-1"
                                                             title="{{ $session->jobOrder->name ?? 'N/A' }}">
                                                             {{ $session->jobOrder->name ?? 'N/A' }}</div>
@@ -280,6 +315,16 @@
             transition: transform 0.2s, box-shadow 0.2s;
             border-radius: 10px;
             height: 100%;
+        }
+
+        .session-card.session-mass-production {
+            background-color: #fff;
+            border-left: 5px solid #aaa !important;
+        }
+
+        .session-card.session-repair {
+            background-color: #fff3e0;
+            border-left: 5px solid #e65100 !important;
         }
 
         .session-card:hover {

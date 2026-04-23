@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Timing;
 use App\Http\Controllers\Controller;
 use App\Models\Production\JobOrder;
 use App\Models\Production\JobOrderTimingPlan;
+use App\Models\Production\Timing;
 use App\Models\Hr\Employee;
 use App\Models\Admin\Department;
 use Illuminate\Http\Request;
@@ -68,7 +69,10 @@ class TimingPlannerController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('timing.planner.index', compact('jobOrders', 'plans', 'employees'));
+        // Last completed stage per JO (from timings.department_specific_data->current_stage)
+        $lastStages = Timing::whereIn('job_order_id', $joIds)->whereNotNull('department_specific_data')->orderByDesc('updated_at')->get()->groupBy('job_order_id')->map(fn($group) => $group->first()->department_specific_data['current_stage'] ?? 0)->toArray();
+
+        return view('timing.planner.index', compact('jobOrders', 'plans', 'employees', 'lastStages'));
     }
 
     /**
@@ -85,6 +89,7 @@ class TimingPlannerController extends Controller
             'rows.*.employee_id' => 'required|exists:employees,id',
             'rows.*.start_time' => 'nullable|date_format:H:i',
             'rows.*.stage' => 'nullable|string|max:100',
+            'rows.*.session_type' => 'nullable|in:mass_production,repair',
         ]);
 
         $joId = $request->job_order_id;
@@ -107,6 +112,7 @@ class TimingPlannerController extends Controller
                     'employee_id' => $empId,
                     'start_time' => $row['start_time'] ?? null,
                     'stage' => $row['stage'] ?? null,
+                    'session_type' => $row['session_type'] ?? 'mass_production',
                     'created_by' => $userId,
                     'created_at' => now(),
                     'updated_at' => now(),
@@ -164,6 +170,7 @@ class TimingPlannerController extends Controller
                     'position' => $p->employee->position ?? '',
                     'start_time' => $p->start_time ? substr($p->start_time, 0, 5) : '',
                     'stage' => $p->stage ?? '',
+                    'session_type' => $p->session_type ?? 'mass_production',
                 ],
             ),
             'updated_at' => $plans->max('updated_at')?->format('d M Y H:i') ?? null,

@@ -130,6 +130,7 @@
                                                 'employee_id' => $p->employee_id,
                                                 'start_time' => $p->start_time ? substr($p->start_time, 0, 5) : '',
                                                 'stage' => $p->stage ?? '',
+                                                'session_type' => $p->session_type ?? '',
                                             ];
                                         })
                                         ->values()
@@ -140,6 +141,7 @@
                                     <div class="jo-planner-card p-2 h-100 {{ $hasPlan ? 'has-plan' : '' }}"
                                         data-jo-id="{{ $jo->id }}" data-jo-label="{{ $jo->name }}"
                                         data-project="{{ $jo->project->name ?? 'N/A' }}"
+                                        data-last-stage="{{ $lastStages[$jo->id] ?? 0 }}"
                                         data-planned-ids='@json($currentPlan->pluck('employee_id')->toArray())'
                                         data-planned-rows='@json($plannedRowsData)'>
 
@@ -316,18 +318,32 @@
             let selectedJoId = null;
             let hotInstance = null;
 
-            const EMPTY_ROW = () => ({
+            const ALL_STAGES = [
+                '1: Design & Prototyping',
+                '2: Structure Approval',
+                '3: Structure & Sample',
+                '4: Visual Review & Paint Prep',
+                '5: Adjustment & Finishing (Structure)',
+                '6: Final Structure Approval',
+                '7: Wrapping & Painting',
+                '8: Wrapping Approval',
+                '9: Finishing & Approval',
+                '10: Final QC & Shipping',
+            ];
+
+            const EMPTY_ROW = (defaultStage = '') => ({
                 name: '',
                 position: '',
                 department: '',
                 start_time: '',
-                stage: '',
+                stage: defaultStage,
+                session_type: '',
                 emp_id: null
             });
             const MIN_ROWS = 10;
 
-            function buildTableData(plannedRows) {
-                // plannedRows: [{employee_id, start_time, stage}] or plain id array (legacy)
+            function buildTableData(plannedRows, defaultStage = '') {
+                // plannedRows: [{employee_id, start_time, stage, session_type}] or plain id array (legacy)
                 const rows = plannedRows
                     .map(r => {
                         const id = typeof r === 'object' ? r.employee_id : r;
@@ -338,13 +354,14 @@
                             position: emp.position,
                             department: emp.department,
                             start_time: typeof r === 'object' ? (r.start_time || '') : '',
-                            stage: typeof r === 'object' ? (r.stage || '') : '',
+                            stage: typeof r === 'object' ? (r.stage || defaultStage) : defaultStage,
+                            session_type: typeof r === 'object' ? (r.session_type || '') : '',
                             emp_id: emp.id
                         };
                     })
                     .filter(Boolean);
                 // Pad to MIN_ROWS
-                while (rows.length < MIN_ROWS) rows.push(EMPTY_ROW());
+                while (rows.length < MIN_ROWS) rows.push(EMPTY_ROW(defaultStage));
                 return rows;
             }
 
@@ -386,13 +403,24 @@
                         employee_id: empId,
                         start_time: row.start_time || '',
                         stage: row.stage || '',
+                        session_type: row.session_type || '',
                     });
                 });
                 return result;
             }
 
-            function initHOT(plannedIds) {
-                const tableData = buildTableData(plannedIds);
+            function initHOT(plannedIds, lastStage = 0) {
+                // Compute allowed stages: 1 step back from lastStage, current, all forward
+                // lastStage = 0 means no history → show all stages
+                const minStageNum = lastStage > 1 ? lastStage - 1 : (lastStage === 1 ? 1 : 0);
+                const stageSource = lastStage > 0 ?
+                    ['', ...ALL_STAGES.slice(minStageNum - 1)] :
+                    ['', ...ALL_STAGES];
+
+                // Default pre-fill: the last stage of the JO (so planner opens on current stage)
+                const defaultStage = lastStage > 0 ? ALL_STAGES[lastStage - 1] : '';
+
+                const tableData = buildTableData(plannedIds, defaultStage);
 
                 if (hotInstance) {
                     hotInstance.destroy();
@@ -405,7 +433,9 @@
                     height: 360,
                     stretchH: 'all',
                     rowHeaders: true,
-                    colHeaders: ['Employee Name', 'Position', 'Department', 'Start Time', 'Stage'],
+                    colHeaders: ['Employee Name', 'Position', 'Department', 'Start Time', 'Stage',
+                        'Session Type'
+                    ],
                     columns: [{
                             data: 'name',
                             type: 'autocomplete',
@@ -441,8 +471,36 @@
                         },
                         {
                             data: 'stage',
-                            type: 'text',
-                            width: 120,
+                            type: 'dropdown',
+                            source: stageSource,
+                            allowInvalid: false,
+                            width: 220,
+                        },
+                        {
+                            data: 'session_type',
+                            type: 'dropdown',
+                            source: ['', 'mass_production', 'repair'],
+                            allowInvalid: false,
+                            renderer(hotInstance, td, row, col, prop, value) {
+                                Handsontable.renderers.TextRenderer.apply(this, arguments);
+                                if (value === 'repair') {
+                                    td.style.background = '#fff3e0';
+                                    td.style.color = '#e65100';
+                                    td.style.fontWeight = '600';
+                                    td.textContent = 'Repair';
+                                } else if (value === 'mass_production') {
+                                    td.style.background = '';
+                                    td.style.color = '#198754';
+                                    td.style.fontWeight = '600';
+                                    td.textContent = 'Mass Production';
+                                } else {
+                                    td.style.background = '#fffde7';
+                                    td.style.color = '#999';
+                                    td.style.fontWeight = '400';
+                                    td.textContent = '— select type —';
+                                }
+                            },
+                            width: 140,
                         },
                     ],
                     manualColResize: true,
@@ -520,7 +578,8 @@
                 $('#plan-placeholder').addClass('d-none');
                 $('#plan-editor-area').removeClass('d-none');
 
-                initHOT($card.data('planned-rows') || $card.data('planned-ids') || []);
+                initHOT($card.data('planned-rows') || $card.data('planned-ids') || [], $card.data(
+                    'last-stage') || 0);
             });
 
             /* ── Toolbar ── */

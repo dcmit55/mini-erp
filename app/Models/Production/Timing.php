@@ -49,6 +49,7 @@ class Timing extends Model implements AuditableContract
         'stop_reason',
         'pause_log',
         'rate_per_hour',
+        'session_type',
     ];
 
     protected $casts = [
