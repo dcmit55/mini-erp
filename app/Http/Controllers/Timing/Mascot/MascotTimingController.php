@@ -72,7 +72,7 @@ class MascotTimingController extends Controller
             ->toArray();
 
         // Job Orders: filter by Mascot/Animatronics department (via pivot or direct) + status != Delivered
-        // Sorted by delivery_date ascending (closest deadline first), nulls last
+        // Sorted: DUE TODAY first, then upcoming by date, OVERDUE last, nulls last
         $jobOrders = JobOrder::with(['project', 'department'])
             ->whereNull('deleted_at')
             ->where(function ($q) {
@@ -83,8 +83,13 @@ class MascotTimingController extends Controller
                     $dq->whereIn('departments.id', $sharedDepts);
                 });
             })
-            ->orderByRaw('CASE WHEN delivery_date IS NULL THEN 1 ELSE 0 END ASC')
-            ->orderBy('delivery_date', 'asc')
+            ->orderByRaw('CASE
+                WHEN delivery_date IS NULL THEN 2
+                WHEN DATE(delivery_date) < CURDATE() THEN 3
+                ELSE 1
+            END ASC')
+            ->orderByRaw('CASE WHEN delivery_date IS NOT NULL AND DATE(delivery_date) >= CURDATE() THEN delivery_date END ASC')
+            ->orderByRaw('CASE WHEN delivery_date IS NOT NULL AND DATE(delivery_date) < CURDATE() THEN delivery_date END DESC')
             ->get();
 
         // Planned employees per JO (from timing planner) — PRIORITY 1
@@ -93,7 +98,7 @@ class MascotTimingController extends Controller
         $plannedDataPerJo = []; // includes stage & session_type
         if (!empty($joIds)) {
             $plans = JobOrderTimingPlan::whereIn('job_order_id', $joIds)
-                ->select('job_order_id', 'employee_id', 'stage', 'session_type')
+                ->select('job_order_id', 'employee_id', 'task', 'stage', 'session_type')
                 ->get();
             $plansByJo = $plans->groupBy('job_order_id');
             foreach ($plansByJo as $joId => $rows) {
@@ -102,6 +107,7 @@ class MascotTimingController extends Controller
                 $plannedDataPerJo[$joId] = [
                     'employee_ids'  => $rows->pluck('employee_id')->toArray(),
                     'task'          => $first->task ?? '',
+                    'task_per_emp'  => $rows->pluck('task', 'employee_id')->toArray(),
                     'stage'         => $first->stage ?? '',
                     'session_type'  => $first->session_type ?? '',
                 ];
@@ -216,9 +222,15 @@ class MascotTimingController extends Controller
             'employees' => 'required|array|min:1',
             'employees.*' => 'exists:employees,id',
             'job_order_id' => 'required|exists:job_orders,id',
-            'task' => 'required|string|max:255', // Task description instead of 'step'
+            'task' => 'nullable|string|max:255',
+            'tasks' => 'nullable|array',
+            'tasks.*' => 'nullable|string|max:255',
             'session_type' => 'required|in:mass_production,repair',
         ]);
+
+        // Build per-employee task map: tasks[emp_id] overrides task global
+        $taskMap = $validated['tasks'] ?? [];
+        $defaultTask = $validated['task'] ?? 'N/A';
 
         try {
             DB::beginTransaction();
@@ -318,7 +330,7 @@ class MascotTimingController extends Controller
                     'tanggal' => $today,
                     'job_order_id' => $validated['job_order_id'],
                     'project_id' => $jobOrder->project_id,
-                    'step' => $validated['task'], // Store task in step field
+                    'step' => $taskMap[$employeeId] ?? $defaultTask, // Per-employee task
                     'parts' => 'N/A', // Not used in mascot timing
                     'employee_id' => $employeeId,
                     'start_time' => $startTime,

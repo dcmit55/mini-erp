@@ -130,6 +130,7 @@
                                                                 </div>
                                                             @endif
                                                             <h6 class="mb-0 small lh-sm">{{ $employee->name }}</h6>
+                                                            <div class="emp-plan-task text-success d-none" style="font-size:0.6rem; line-height:1.2; margin-top:2px;"><i class="bi bi-clipboard2-check me-1"></i><span class="emp-plan-task-text"></span></div>
                                                             @if ($frozenInfo)
                                                                 <div class="text-warning" style="font-size:0.65rem;">
                                                                     <i class="bi bi-clock-history"></i>
@@ -166,6 +167,7 @@
                                             data-department="{{ $jo->department->name ?? 'N/A' }}"
                                             data-job-order-name="{{ $jo->name }}"
                                             data-planned-task="{{ $joplan['task'] ?? '' }}"
+                                            data-planned-tasks-by-emp='@json($joplan['task_per_emp'] ?? [])'
                                             data-planned-session-type="{{ $joplan['session_type'] ?? '' }}"
                                             data-planned-employees='@json($joplan['employee_ids'] ?? [])'>
                                             {{ $jo->name }} ({{ $jo->project->name ?? 'N/A' }}){{ $joplan ? ' 📅' : '' }}
@@ -410,6 +412,7 @@
         $(document).ready(function() {
             let selectedEmployees = [];
             let selectedJobOrder = null;
+            let currentTasksByEmp = {}; // Per-employee planned tasks from plan
 
             // Initialize Select2 for job order
             $('#job-order-select').select2({
@@ -568,8 +571,12 @@
 
                     // Auto-fill from plan
                     const plannedTask = selectedOption.data('planned-task') || '';
+                    const plannedTasksByEmp = selectedOption.data('planned-tasks-by-emp') || {};
                     const plannedSessionType = selectedOption.data('planned-session-type') || '';
                     const plannedEmpIds = selectedOption.data('planned-employees') || [];
+
+                    // Store globally for form submission
+                    currentTasksByEmp = plannedTasksByEmp;
 
                     if (plannedTask) {
                         $('#step-input').val(plannedTask);
@@ -577,6 +584,19 @@
                     } else {
                         $('#plan-task-badge').addClass('d-none');
                     }
+
+                    // Show per-employee planned tasks on employee cards
+                    $('.employee-card-wrapper').each(function() {
+                        const empId = $(this).find('.employee-checkbox').val();
+                        const empTask = plannedTasksByEmp[empId];
+                        const $label = $(this).find('.emp-plan-task');
+                        if (empTask) {
+                            $label.find('.emp-plan-task-text').text(empTask);
+                            $label.removeClass('d-none');
+                        } else {
+                            $label.addClass('d-none');
+                        }
+                    });
 
                     if (plannedSessionType) {
                         $(`input[name="session_type"][value="${plannedSessionType}"]`).prop('checked', true);
@@ -613,6 +633,8 @@
                     $('#project-info').addClass('d-none');
                     $('#plan-task-badge').addClass('d-none');
                     $('#plan-session-badge').addClass('d-none');
+                    currentTasksByEmp = {};
+                    $('.emp-plan-task').addClass('d-none');
                 }
 
                 updateStartButton();
@@ -694,11 +716,20 @@
             });
 
             function doStartSession() {
+                const stepVal = $('#step-input').val();
+
+                // Build tasks per employee: use plan task if available, else global step input
+                const tasksPayload = {};
+                selectedEmployees.forEach(empId => {
+                    tasksPayload[empId] = currentTasksByEmp[empId] || stepVal;
+                });
+
                 const formData = {
                     _token: $('input[name="_token"]').val(),
                     employees: selectedEmployees,
                     job_order_id: selectedJobOrder,
-                    step: $('#step-input').val(),
+                    step: stepVal,
+                    tasks: tasksPayload,
                     parts: $('#parts-input').val(),
                     output_qty: $('#output-qty-input').val(),
                     session_type: $('input[name="session_type"]:checked').val()

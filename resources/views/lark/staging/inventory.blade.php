@@ -83,7 +83,7 @@
                     <div class="d-flex align-items-center">
                         <i class="fas fa-filter gradient-icon me-2" style="font-size: 1.5rem;"></i>
                         <div>
-                            <h2 class="mb-0 flex-shrink-0" style="font-size:1.3rem;">Inventory Incoming</h2>
+                            <h2 class="mb-0 flex-shrink-0" style="font-size:1.3rem;">International Purchase</h2>
                             @if ($lastSync)
                                 <small class="text-muted">
                                     <i class="bi bi-clock me-1"></i>Last sync:

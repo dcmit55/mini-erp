@@ -41,6 +41,7 @@ class TimingPlannerController extends Controller
             ->toArray();
 
         // Active JOs (not Delivered)
+        // Sorted: DUE TODAY first, then upcoming by date, OVERDUE last, nulls last
         $jobOrders = JobOrder::with(['project', 'department'])
             ->whereNull('deleted_at')
             ->where(function ($q) {
@@ -51,8 +52,13 @@ class TimingPlannerController extends Controller
                     $dq->whereIn('departments.id', $sharedDepts);
                 });
             })
-            ->orderByRaw('CASE WHEN delivery_date IS NULL THEN 1 ELSE 0 END ASC')
-            ->orderBy('delivery_date', 'asc')
+            ->orderByRaw('CASE
+                WHEN delivery_date IS NULL THEN 2
+                WHEN DATE(delivery_date) < CURDATE() THEN 3
+                ELSE 1
+            END ASC')
+            ->orderByRaw('CASE WHEN delivery_date IS NOT NULL AND DATE(delivery_date) >= CURDATE() THEN delivery_date END ASC')
+            ->orderByRaw('CASE WHEN delivery_date IS NOT NULL AND DATE(delivery_date) < CURDATE() THEN delivery_date END DESC')
             ->get();
 
         // Load existing plans keyed by job_order_id

@@ -117,13 +117,14 @@ class CostumeTimingController extends Controller
         $plannedDataPerJo = [];
         if (!empty($joIds)) {
             $plans = JobOrderTimingPlan::whereIn('job_order_id', $joIds)
-                ->select('job_order_id', 'employee_id', 'stage', 'session_type')
+                ->select('job_order_id', 'employee_id', 'task', 'stage', 'session_type')
                 ->get();
             foreach ($plans->groupBy('job_order_id') as $joId => $rows) {
                 $first = $rows->first();
                 $plannedDataPerJo[$joId] = [
                     'employee_ids' => $rows->pluck('employee_id')->toArray(),
                     'task'         => $first->task ?? '',
+                    'task_per_emp' => $rows->pluck('task', 'employee_id')->toArray(),
                     'stage'        => $first->stage ?? '',
                     'session_type' => $first->session_type ?? '',
                 ];
@@ -202,10 +203,16 @@ class CostumeTimingController extends Controller
             'employees' => 'required|array|min:1',
             'employees.*' => 'exists:employees,id',
             'job_order_id' => 'required|exists:job_orders,id',
-            'step' => 'required|string|max:255',
+            'step' => 'nullable|string|max:255',
+            'tasks' => 'nullable|array',
+            'tasks.*' => 'nullable|string|max:255',
             'parts' => 'nullable|string|max:255',
             'session_type' => 'required|in:mass_production,repair',
         ]);
+
+        // Build per-employee task map
+        $taskMap = $validated['tasks'] ?? [];
+        $defaultTask = $validated['step'] ?? 'N/A';
 
         try {
             DB::beginTransaction();
@@ -281,7 +288,7 @@ class CostumeTimingController extends Controller
                     'tanggal' => $today,
                     'job_order_id' => $validated['job_order_id'],
                     'project_id' => $jobOrder->project_id,
-                    'step' => $validated['step'],
+                    'step' => $taskMap[$employeeId] ?? $defaultTask, // Per-employee task
                     'parts' => $validated['parts'] ?? 'No Part',
                     'employee_id' => $employeeId,
                     'start_time' => $startTime,

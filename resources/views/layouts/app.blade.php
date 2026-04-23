@@ -327,7 +327,23 @@
                                                 <li>
                                                     <hr class="dropdown-divider">
                                                 </li>
-                                                <li class="dropdown-header">Lark Staging Data</li>
+                                                <li class="dropdown-header">Inventory Incoming</li>
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('project-purchases*') ? 'active' : '' }}"
+                                                        href="{{ route('project-purchases.index') }}">
+                                                        <i class="fas fa-file-invoice-dollar me-2"></i>Indo Purchase
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('lark/staging/inventory*') ? 'active' : '' }}"
+                                                        href="{{ route('lark.staging.inventory') }}">
+                                                        <i class="fas fa-globe me-2"></i>International Purchase
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <hr class="dropdown-divider">
+                                                </li>
+                                                <li class="dropdown-header">Lark Staging</li>
                                                 <li>
                                                     <a class="dropdown-item {{ request()->is('lark/staging/bt-sg-courier*') ? 'active' : '' }}"
                                                         href="{{ route('lark.staging.bt-sg-courier') }}">
@@ -350,12 +366,6 @@
                                                     <a class="dropdown-item {{ request()->is('lark/staging/sg-bt-items*') ? 'active' : '' }}"
                                                         href="{{ route('lark.staging.sg-bt-items') }}">
                                                         <i class="fas fa-boxes me-2"></i>SG-BT Item Tracking
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a class="dropdown-item {{ request()->is('lark/staging/inventory*') ? 'active' : '' }}"
-                                                        href="{{ route('lark.staging.inventory') }}">
-                                                        <i class="fas fa-filter me-2"></i>Inventory Incoming
                                                     </a>
                                                 </li>
                                             @endcan
