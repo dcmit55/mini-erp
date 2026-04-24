@@ -569,9 +569,9 @@
                         <select id="filter-status" name="project_status" class="form-select form-select-sm">
                             <option value="all" {{ request('project_status', 'all') === 'all' ? 'selected' : '' }}>All
                                 (WIP + Delivered)</option>
-                            <option value="delivered" {{ request('project_status') === 'delivered' ? 'selected' : '' }}>✅
+                            <option value="delivered" {{ request('project_status') === 'delivered' ? 'selected' : '' }}>
                                 Delivered Only</option>
-                            <option value="wip" {{ request('project_status') === 'wip' ? 'selected' : '' }}>🔨 WIP Only
+                            <option value="wip" {{ request('project_status') === 'wip' ? 'selected' : '' }}>WIP Only
                             </option>
                         </select>
                     </div>
@@ -635,10 +635,10 @@
                         </div>
                     </div>
                     <div class="col-lg-1 d-flex gap-1">
-                        <button id="filter-btn" type="submit" class="btn btn-sm btn-primary rounded-pill flex-fill">
+                        {{-- <button id="filter-btn" type="submit" class="btn btn-sm btn-primary rounded-pill flex-fill">
                             <span class="spinner-border spinner-border-sm d-none me-1" role="status"></span>
                             <i class="fas fa-search"></i>
-                        </button>
+                        </button> --}}
                         <a href="{{ route('costing.report') }}"
                             class="btn btn-sm btn-outline-secondary btn-reset-filter flex-fill text-center"
                             title="Reset Filters">
