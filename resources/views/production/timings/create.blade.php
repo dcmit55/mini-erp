@@ -335,11 +335,15 @@
 
                 let $newRow = $lastRow.clone();
 
-                let prevDate = $lastRow.find('input[name$="[tanggal]"]').val();
-                let prevProject = $lastRow.find('select[name$="[project_id]"]').val();
-                let prevJobOrder = $lastRow.find('select[name$="[job_order_id]"]').val();
-                let prevStart = $lastRow.find('input[name$="[start_time]"]').val();
-                let prevEnd = $lastRow.find('input[name$="[end_time]"]').val();
+                // Capture values to copy from last row (BEFORE clone index remapping)
+                let prevDate       = $lastRow.find('input[name$="[tanggal]"]').val();
+                let prevProject    = $lastRow.find('select[name$="[project_id]"]').val();
+                let prevJobOrder   = $lastRow.find('select[name$="[job_order_id]"]').val();
+                let prevStart      = $lastRow.find('input[name$="[start_time]"]').val();
+                let prevEnd        = $lastRow.find('input[name$="[end_time]"]').val();
+                let prevStep       = $lastRow.find('input[name$="[step]"]').val();
+                let prevParts      = $lastRow.find('input[name$="[parts]"]').val();
+                let prevSessionType = $lastRow.find('select[name$="[session_type]"]').val();
 
                 $newRow.find('input, select').each(function() {
                     let name = $(this).attr('name');
@@ -357,13 +361,19 @@
                         $(this).val(prevStart);
                     } else if ($(this).is('[name$="[end_time]"]')) {
                         $(this).val(prevEnd);
+                    } else if ($(this).is('[name$="[step]"]')) {
+                        $(this).val(prevStep);          // ✅ Copy step
+                    } else if ($(this).is('[name$="[parts]"]')) {
+                        $(this).val(prevParts);         // ✅ Copy parts
+                    } else if ($(this).is('[name$="[session_type]"]')) {
+                        $(this).val(prevSessionType);   // ✅ Copy session type
+                    } else if ($(this).is('[name$="[employee_id]"]')) {
+                        $(this).val(null);              // ✅ Reset employee — must reselect
                     } else if ($(this).is('[name$="[duration_minutes]"]')) {
                         $(this).val('');
                     } else if ($(this).is('[name$="[measurement_type]"]')) {
                         $(this).val('');
                     } else if ($(this).is('[name$="[measurement_value]"]')) {
-                        $(this).val('');
-                    } else if (!$(this).is('select')) {
                         $(this).val('');
                     }
                 });

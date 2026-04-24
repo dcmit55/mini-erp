@@ -131,6 +131,7 @@
                                                             @endif
                                                             <h6 class="mb-0 small lh-sm">{{ $employee->name }}</h6>
                                                             <div class="emp-plan-task text-success d-none" style="font-size:0.6rem; line-height:1.2; margin-top:2px;"><i class="bi bi-clipboard2-check me-1"></i><span class="emp-plan-task-text"></span></div>
+                                                            <div class="emp-plan-session d-none" style="font-size:0.6rem; line-height:1.2; margin-top:1px;"><span class="emp-plan-session-badge badge"></span></div>
                                                             @if ($frozenInfo)
                                                                 <div class="text-warning" style="font-size:0.65rem;">
                                                                     <i class="bi bi-clock-history"></i>
@@ -169,6 +170,7 @@
                                             data-planned-task="{{ $joplan['task'] ?? '' }}"
                                             data-planned-tasks-by-emp='@json($joplan['task_per_emp'] ?? [])'
                                             data-planned-session-type="{{ $joplan['session_type'] ?? '' }}"
+                                            data-planned-session-types-by-emp='@json($joplan['session_type_per_emp'] ?? [])'
                                             data-planned-employees='@json($joplan['employee_ids'] ?? [])'>
                                             {{ $jo->name }} ({{ $jo->project->name ?? 'N/A' }}){{ $joplan ? ' 📅' : '' }}
                                         </option>
@@ -413,6 +415,7 @@
             let selectedEmployees = [];
             let selectedJobOrder = null;
             let currentTasksByEmp = {}; // Per-employee planned tasks from plan
+            let currentSessionTypesByEmp = {}; // Per-employee planned session_type from plan
 
             // Initialize Select2 for job order
             $('#job-order-select').select2({
@@ -573,10 +576,12 @@
                     const plannedTask = selectedOption.data('planned-task') || '';
                     const plannedTasksByEmp = selectedOption.data('planned-tasks-by-emp') || {};
                     const plannedSessionType = selectedOption.data('planned-session-type') || '';
+                    const plannedSessionTypesByEmp = selectedOption.data('planned-session-types-by-emp') || {};
                     const plannedEmpIds = selectedOption.data('planned-employees') || [];
 
                     // Store globally for form submission
                     currentTasksByEmp = plannedTasksByEmp;
+                    currentSessionTypesByEmp = plannedSessionTypesByEmp;
 
                     if (plannedTask) {
                         $('#step-input').val(plannedTask);
@@ -585,7 +590,7 @@
                         $('#plan-task-badge').addClass('d-none');
                     }
 
-                    // Show per-employee planned tasks on employee cards
+                    // Show per-employee planned tasks AND session types on employee cards
                     $('.employee-card-wrapper').each(function() {
                         const empId = $(this).find('.employee-checkbox').val();
                         const empTask = plannedTasksByEmp[empId];
@@ -595,6 +600,18 @@
                             $label.removeClass('d-none');
                         } else {
                             $label.addClass('d-none');
+                        }
+                        const empSession = plannedSessionTypesByEmp[empId];
+                        const $sessionDiv = $(this).find('.emp-plan-session');
+                        if (empSession) {
+                            const isMass = empSession === 'mass_production';
+                            $sessionDiv.find('.emp-plan-session-badge')
+                                .removeClass('bg-success bg-warning text-dark')
+                                .addClass(isMass ? 'bg-success' : 'bg-warning text-dark')
+                                .text(isMass ? 'Mass Prod' : 'Repair');
+                            $sessionDiv.removeClass('d-none');
+                        } else {
+                            $sessionDiv.addClass('d-none');
                         }
                     });
 
@@ -637,7 +654,9 @@
                     $('#plan-task-badge').addClass('d-none');
                     $('#plan-session-badge').addClass('d-none');
                     currentTasksByEmp = {};
+                    currentSessionTypesByEmp = {};
                     $('.emp-plan-task').addClass('d-none');
+                    $('.emp-plan-session').addClass('d-none');
                 }
 
                 updateStartButton();
@@ -720,11 +739,14 @@
 
             function doStartSession() {
                 const stepVal = $('#step-input').val();
+                const globalSessionType = $('input[name="session_type"]:checked').val();
 
-                // Build tasks per employee: use plan task if available, else global step input
+                // Build tasks and session_types per employee from plan (fallback to global)
                 const tasksPayload = {};
+                const sessionTypesPayload = {};
                 selectedEmployees.forEach(empId => {
                     tasksPayload[empId] = currentTasksByEmp[empId] || stepVal;
+                    sessionTypesPayload[empId] = currentSessionTypesByEmp[empId] || globalSessionType;
                 });
 
                 const formData = {
@@ -735,7 +757,8 @@
                     tasks: tasksPayload,
                     parts: $('#parts-input').val(),
                     output_qty: $('#output-qty-input').val(),
-                    session_type: $('input[name="session_type"]:checked').val()
+                    session_type: globalSessionType,
+                    session_types: sessionTypesPayload
                 };
 
                 // Disable button and show loading

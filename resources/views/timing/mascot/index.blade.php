@@ -83,6 +83,7 @@
                                                 data-planned-task="{{ $planData['task'] ?? '' }}"
                                                 data-planned-tasks-by-emp='@json($planData['task_per_emp'] ?? [])'
                                                 data-planned-session-type="{{ $planData['session_type'] ?? '' }}"
+                                                data-planned-session-types-by-emp='@json($planData['session_type_per_emp'] ?? [])'
                                                 style="cursor:pointer; transition: all 0.3s;">
                                                 <div class="card-body p-2">
                                                     <h6 class="mb-1 fw-bold lh-sm" style="font-size:0.78rem;">
@@ -223,6 +224,7 @@
                                                             @endif
                                                             <h6 class="mb-0 small lh-sm">{{ $employee->name }}</h6>
                                                             <div class="emp-plan-task text-success d-none" style="font-size:0.6rem; line-height:1.2; margin-top:2px;"><i class="bi bi-clipboard2-check me-1"></i><span class="emp-plan-task-text"></span></div>
+                                                            <div class="emp-plan-session d-none" style="font-size:0.6rem; line-height:1.2; margin-top:1px;"><span class="emp-plan-session-badge badge"></span></div>
                                                             @if ($frozenInfo)
                                                                 <div class="text-warning" style="font-size:0.65rem;">
                                                                     <i class="bi bi-clock-history"></i>
@@ -515,6 +517,7 @@
             let selectedEmployees = [];
             let selectedJobOrder = null;
             let currentTasksByEmp = {}; // Per-employee planned tasks from plan
+            let currentSessionTypesByEmp = {}; // Per-employee planned session_type from plan
 
             // Initialize Select2 for Stop modal — Stage
             $('#stop-stage').select2({
@@ -576,10 +579,12 @@
                 const plannedTask = $card.data('planned-task') || '';
                 const plannedTasksByEmp = $card.data('planned-tasks-by-emp') || {};
                 const plannedSessionType = $card.data('planned-session-type') || '';
+                const plannedSessionTypesByEmp = $card.data('planned-session-types-by-emp') || {};
                 const joName = $card.find('h6').first().text().trim();
 
                 // Store globally for form submission
                 currentTasksByEmp = plannedTasksByEmp;
+                currentSessionTypesByEmp = plannedSessionTypesByEmp;
 
                 // Toggle deselect if same card clicked
                 if ($card.hasClass('jo-selected')) {
@@ -619,6 +624,19 @@
                         $label.removeClass('d-none');
                     } else {
                         $label.addClass('d-none');
+                    }
+                    // Show per-employee session type badge
+                    const empSession = plannedSessionTypesByEmp[empId];
+                    const $sessionDiv = $(this).find('.emp-plan-session');
+                    if (empSession) {
+                        const isMass = empSession === 'mass_production';
+                        $sessionDiv.find('.emp-plan-session-badge')
+                            .removeClass('bg-success bg-warning text-dark')
+                            .addClass(isMass ? 'bg-success' : 'bg-warning text-dark')
+                            .text(isMass ? 'Mass Prod' : 'Repair');
+                        $sessionDiv.removeClass('d-none');
+                    } else {
+                        $sessionDiv.addClass('d-none');
                     }
                 });
 
@@ -673,14 +691,16 @@
             function deselectJobOrder() {
                 selectedJobOrder = null;
                 currentTasksByEmp = {};
+                currentSessionTypesByEmp = {};
                 $('#job-order-hidden').val('');
                 $('.jo-card').removeClass('jo-selected');
                 $('#jo-selected-info').text('No job order selected');
                 $('#job-order-info').addClass('d-none');
                 $('#plan-task-badge').addClass('d-none');
                 $('#plan-session-badge').addClass('d-none');
-                // Clear per-employee task labels
+                // Clear per-employee task and session labels
                 $('.emp-plan-task').addClass('d-none');
+                $('.emp-plan-session').addClass('d-none');
                 updateStartButton();
             }
 
@@ -866,8 +886,10 @@
 
                 // Build tasks per employee: use plan task if available, else global task input
                 const tasksPayload = {};
+                const sessionTypesPayload = {};
                 selectedEmployees.forEach(empId => {
                     tasksPayload[empId] = currentTasksByEmp[empId] || task;
+                    sessionTypesPayload[empId] = currentSessionTypesByEmp[empId] || $('input[name="session_type"]:checked').val();
                 });
 
                 $.ajax({
@@ -879,7 +901,8 @@
                         job_order_id: selectedJobOrder,
                         task: task,
                         tasks: tasksPayload,
-                        session_type: $('input[name="session_type"]:checked').val()
+                        session_type: $('input[name="session_type"]:checked').val(),
+                        session_types: sessionTypesPayload
                     },
                     success: function(response) {
                         if (response.success) {

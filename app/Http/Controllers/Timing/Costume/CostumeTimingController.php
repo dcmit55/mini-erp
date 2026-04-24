@@ -127,6 +127,7 @@ class CostumeTimingController extends Controller
                     'task_per_emp' => $rows->pluck('task', 'employee_id')->toArray(),
                     'stage'        => $first->stage ?? '',
                     'session_type' => $first->session_type ?? '',
+                    'session_type_per_emp' => $rows->pluck('session_type', 'employee_id')->toArray(),
                 ];
             }
 }
@@ -208,11 +209,16 @@ class CostumeTimingController extends Controller
             'tasks.*' => 'nullable|string|max:255',
             'parts' => 'nullable|string|max:255',
             'session_type' => 'required|in:mass_production,repair',
+            'session_types' => 'nullable|array',
+            'session_types.*' => 'nullable|in:mass_production,repair',
         ]);
 
         // Build per-employee task map
         $taskMap = $validated['tasks'] ?? [];
         $defaultTask = $validated['step'] ?? 'N/A';
+        // Build per-employee session_type map
+        $sessionTypeMap = $validated['session_types'] ?? [];
+        $defaultSessionType = $validated['session_type'];
 
         try {
             DB::beginTransaction();
@@ -296,7 +302,7 @@ class CostumeTimingController extends Controller
                     'measurement_type' => 'pcs', // Default pcs, will be updated on stop
                     'measurement_value' => 0,
                     'status' => 'on progress',
-                    'session_type' => $validated['session_type'],
+                    'session_type' => $sessionTypeMap[$employeeId] ?? $defaultSessionType, // Per-employee session_type
                     'remarks' => null,
                 ]);
 

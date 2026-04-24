@@ -105,11 +105,12 @@ class MascotTimingController extends Controller
                 $plannedEmployeesPerJo[$joId] = $rows->pluck('employee_id')->toArray();
                 $first = $rows->first();
                 $plannedDataPerJo[$joId] = [
-                    'employee_ids'  => $rows->pluck('employee_id')->toArray(),
-                    'task'          => $first->task ?? '',
-                    'task_per_emp'  => $rows->pluck('task', 'employee_id')->toArray(),
-                    'stage'         => $first->stage ?? '',
-                    'session_type'  => $first->session_type ?? '',
+                    'employee_ids'      => $rows->pluck('employee_id')->toArray(),
+                    'task'              => $first->task ?? '',
+                    'task_per_emp'      => $rows->pluck('task', 'employee_id')->toArray(),
+                    'stage'             => $first->stage ?? '',
+                    'session_type'      => $first->session_type ?? '',
+                    'session_type_per_emp' => $rows->pluck('session_type', 'employee_id')->toArray(),
                 ];
             }
         }
@@ -226,11 +227,16 @@ class MascotTimingController extends Controller
             'tasks' => 'nullable|array',
             'tasks.*' => 'nullable|string|max:255',
             'session_type' => 'required|in:mass_production,repair',
+            'session_types' => 'nullable|array',
+            'session_types.*' => 'nullable|in:mass_production,repair',
         ]);
 
         // Build per-employee task map: tasks[emp_id] overrides task global
         $taskMap = $validated['tasks'] ?? [];
         $defaultTask = $validated['task'] ?? 'N/A';
+        // Build per-employee session_type map: session_types[emp_id] overrides global session_type
+        $sessionTypeMap = $validated['session_types'] ?? [];
+        $defaultSessionType = $validated['session_type'];
 
         try {
             DB::beginTransaction();
@@ -338,7 +344,7 @@ class MascotTimingController extends Controller
                     'measurement_type' => 'percentage', // Stage-based progress (use percentage from enum)
                     'measurement_value' => 0, // Will be set on stop
                     'status' => 'on progress',
-                    'session_type' => $validated['session_type'],
+                    'session_type' => $sessionTypeMap[$employeeId] ?? $defaultSessionType, // Per-employee session_type
                     'remarks' => null,
                     'department_specific_data' => $deptSpecificData,
                 ]);
