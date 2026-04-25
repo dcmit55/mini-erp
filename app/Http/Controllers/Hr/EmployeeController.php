@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use App\Models\Hr\Employee;
 use App\Models\Admin\Department;
 use App\Models\Hr\Skillset;
+use App\Models\Hr\SessionShift;
 use App\Models\Hr\EmployeeDocument;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -86,11 +87,11 @@ class EmployeeController extends Controller
 
     public function create()
     {
-        [$departments, $skillsets, $skillCategories, $proficiencyOptions] = $this->getFormData();
+        [$departments, $skillsets, $skillCategories, $proficiencyOptions, $sessionShifts] = $this->getFormData();
         $documentTypes = EmployeeDocument::getDocumentTypes();
         $employmentTypes = Employee::getEmploymentTypeOptions();
 
-        return view('hr.employees.create', compact('departments', 'documentTypes', 'employmentTypes', 'skillsets', 'skillCategories', 'proficiencyOptions'));
+        return view('hr.employees.create', compact('departments', 'documentTypes', 'employmentTypes', 'skillsets', 'skillCategories', 'proficiencyOptions', 'sessionShifts'));
     }
 
     public function store(Request $request)
@@ -134,6 +135,7 @@ class EmployeeController extends Controller
             'document_types.*' => 'nullable|string',
             'document_names.*' => 'nullable|string|max:255',
             'document_descriptions.*' => 'nullable|string',
+            'default_shift_id' => 'nullable|exists:session_shifts,id',
             'skillsets' => 'nullable|array',
             'skillsets.*' => 'exists:skillsets,id',
             'skillset_proficiency' => 'nullable|array',
@@ -142,7 +144,7 @@ class EmployeeController extends Controller
             'skillset_acquired_date.*' => 'nullable|date',
         ]);
 
-        $employeeData = $request->only(['employee_no', 'name', 'username', 'employment_type', 'position', 'department_id', 'email', 'phone', 'address', 'gender', 'ktp_id', 'place_of_birth', 'date_of_birth', 'rekening', 'hire_date', 'contract_end_date', 'salary', 'saldo_cuti', 'status', 'notes']);
+        $employeeData = $request->only(['employee_no', 'name', 'username', 'employment_type', 'position', 'department_id', 'default_shift_id', 'email', 'phone', 'address', 'gender', 'ktp_id', 'place_of_birth', 'date_of_birth', 'rekening', 'hire_date', 'contract_end_date', 'salary', 'saldo_cuti', 'status', 'notes']);
 
         // Handle photo upload
         if ($request->hasFile('photo')) {
@@ -192,6 +194,7 @@ class EmployeeController extends Controller
     {
         $employee->load([
             'department',
+            'defaultShift',
             'documents',
             'skillsets',
             'timings' => function ($query) {
@@ -275,12 +278,12 @@ class EmployeeController extends Controller
 
     public function edit(Employee $employee)
     {
-        [$departments, $skillsets, $skillCategories, $proficiencyOptions] = $this->getFormData();
+        [$departments, $skillsets, $skillCategories, $proficiencyOptions, $sessionShifts] = $this->getFormData();
         $documentTypes = EmployeeDocument::getDocumentTypes();
         $employmentTypes = Employee::getEmploymentTypeOptions();
         $employee->load('documents', 'skillsets');
 
-        return view('hr.employees.edit', compact('employee', 'departments', 'documentTypes', 'employmentTypes', 'skillsets', 'skillCategories', 'proficiencyOptions'));
+        return view('hr.employees.edit', compact('employee', 'departments', 'documentTypes', 'employmentTypes', 'skillsets', 'skillCategories', 'proficiencyOptions', 'sessionShifts'));
     }
 
     /** Shared form data — cached 10 menit karena jarang berubah */
@@ -297,10 +300,21 @@ class EmployeeController extends Controller
                 ->get(),
         );
 
+        $sessionShifts = Cache::remember(
+            'form_session_shifts',
+            600,
+            fn() => SessionShift::with('department')
+                ->where('is_active', true)
+                ->orderByRaw('department_id IS NULL DESC')
+                ->orderBy('department_id')
+                ->orderBy('type_of_shift')
+                ->get(),
+        );
+
         $skillCategories = Skillset::getCategoryOptions();
         $proficiencyOptions = Skillset::getProficiencyOptions();
 
-        return [$departments, $skillsets, $skillCategories, $proficiencyOptions];
+        return [$departments, $skillsets, $skillCategories, $proficiencyOptions, $sessionShifts];
     }
 
     public function update(Request $request, Employee $employee)
@@ -349,6 +363,7 @@ class EmployeeController extends Controller
             'document_types.*' => 'nullable|string',
             'document_names.*' => 'nullable|string|max:255',
             'document_descriptions.*' => 'nullable|string',
+            'default_shift_id' => 'nullable|exists:session_shifts,id',
             'skillsets' => 'nullable|array',
             'skillsets.*' => 'exists:skillsets,id',
             'skillset_proficiency' => 'nullable|array',
@@ -357,7 +372,7 @@ class EmployeeController extends Controller
             'skillset_acquired_date.*' => 'nullable|date',
         ]);
 
-        $employeeData = $request->only(['employee_no', 'name', 'username', 'employment_type', 'position', 'department_id', 'email', 'phone', 'address', 'gender', 'ktp_id', 'place_of_birth', 'date_of_birth', 'rekening', 'hire_date', 'contract_end_date', 'salary', 'saldo_cuti', 'status', 'notes']);
+        $employeeData = $request->only(['employee_no', 'name', 'username', 'employment_type', 'position', 'department_id', 'default_shift_id', 'email', 'phone', 'address', 'gender', 'ktp_id', 'place_of_birth', 'date_of_birth', 'rekening', 'hire_date', 'contract_end_date', 'salary', 'saldo_cuti', 'status', 'notes']);
 
         // Handle photo upload
         if ($request->hasFile('photo')) {

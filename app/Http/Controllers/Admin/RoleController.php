@@ -28,6 +28,30 @@ class RoleController extends Controller
         return view('admin.roles.index', compact('roles'));
     }
 
+    public function create()
+    {
+        $allPermissions = Permission::orderBy('name')->get()->groupBy(function ($p) {
+            return explode('.', $p->name)[0];
+        });
+        return view('admin.roles.create', compact('allPermissions'));
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'name' => ['required', 'string', 'max:100', 'regex:/^[a-z0-9_]+$/', 'unique:roles,name'],
+        ], [
+            'name.regex'  => 'Role name hanya boleh berisi huruf kecil, angka, dan underscore.',
+            'name.unique' => 'Role name sudah digunakan.',
+        ]);
+
+        $role = Role::create(['name' => $request->name, 'guard_name' => 'web']);
+        $role->syncPermissions($request->input('permissions', []));
+
+        return redirect()->route('admin.roles.index')
+            ->with('success', "Role <strong>{$role->name}</strong> berhasil dibuat.");
+    }
+
     public function edit(Role $role)
     {
         $allPermissions = Permission::orderBy('name')->get()->groupBy(function ($p) {

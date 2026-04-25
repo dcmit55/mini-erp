@@ -19,7 +19,7 @@ class Employee extends Model implements AuditableContract
 
     protected $fillable = [
         'employee_no', 'name', 'employment_type', 'citizenship', 'photo', 'position',
-        'department_id', 'email', 'phone', 'address', 'gender', 'ktp_id',
+        'department_id', 'default_shift_id', 'email', 'phone', 'address', 'gender', 'ktp_id',
         'place_of_birth', 'date_of_birth', 'rekening', 'hire_date',
         'contract_end_date', 'salary', 'saldo_cuti', 'status', 'notes',
         'username', 'uid', 'device_registered_at', 'biometric_enrolled_at',
@@ -170,6 +170,11 @@ class Employee extends Model implements AuditableContract
     public function department()
     {
         return $this->belongsTo(\App\Models\Admin\Department::class);
+    }
+
+    public function defaultShift()
+    {
+        return $this->belongsTo(\App\Models\Hr\SessionShift::class, 'default_shift_id');
     }
 
     public function documents()

@@ -189,6 +189,8 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('can:admin.users.edit')
         ->group(function () {
             Route::get('/', [App\Http\Controllers\Admin\RoleController::class, 'index'])->name('index');
+            Route::get('/create', [App\Http\Controllers\Admin\RoleController::class, 'create'])->name('create');
+            Route::post('/', [App\Http\Controllers\Admin\RoleController::class, 'store'])->name('store');
             Route::get('/{role}/edit', [App\Http\Controllers\Admin\RoleController::class, 'edit'])->name('edit');
             Route::put('/{role}', [App\Http\Controllers\Admin\RoleController::class, 'update'])->name('update');
         });

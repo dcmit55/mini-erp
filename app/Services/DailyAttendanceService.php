@@ -18,7 +18,7 @@ class DailyAttendanceService
      */
     public function generateForEmployee(Employee $employee, Carbon $date, $updatedBy = null): void
     {
-        $employee->loadMissing('department');
+        $employee->loadMissing(['department', 'defaultShift']);
         $dateStr = $date->format('Y-m-d');
         $this->processEmployee($employee, $dateStr, $updatedBy);
     }
@@ -27,7 +27,7 @@ class DailyAttendanceService
     {
         Log::info("===== GENERATING DAILY FOR DATE: " . $date->format('Y-m-d') . " =====");
 
-        $employees = Employee::with('department')->where('status', 'active')->get();
+        $employees = Employee::with(['department', 'defaultShift'])->where('status', 'active')->get();
         $dateStr   = $date->format('Y-m-d');
 
         foreach ($employees as $employee) {
@@ -64,7 +64,9 @@ class DailyAttendanceService
             $clockOut = $logs->max('clock_out');
 
             $detectedShift = null;
-            if ($clockIn && $employee->department_id) {
+            if ($employee->default_shift_id) {
+                $detectedShift = $employee->defaultShift;
+            } elseif ($clockIn && $employee->department_id) {
                 $clockInCarbon   = Carbon::parse($clockIn);
                 $clockInForShift = $clockInCarbon->format('H:i:s');
                 $detectedShift   = SessionShift::detectFromClockIn(
@@ -167,16 +169,17 @@ class DailyAttendanceService
 
     /**
      * Kembalikan shift default berdasarkan nama departemen karyawan.
-     *  - Costume   → c8
-     *  - Lainnya   → a9
+     *  - DCM Costume → COSTUME
+     *  - Lainnya     → GENERAL
      */
     private function getFallbackShift(Employee $employee): ?SessionShift
     {
         $deptName    = strtolower($employee->department?->name ?? '');
-        $typeOfShift = str_contains($deptName, 'costume') ? 'c8' : 'a9';
+        $typeOfShift = str_contains($deptName, 'costume') ? 'COSTUME' : 'GENERAL';
 
         if (! array_key_exists($typeOfShift, $this->shiftFallbackCache)) {
             $this->shiftFallbackCache[$typeOfShift] = SessionShift::where('type_of_shift', $typeOfShift)
+                ->whereNull('department_id')
                 ->where('is_active', true)
                 ->first();
         }

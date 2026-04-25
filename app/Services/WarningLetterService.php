@@ -60,34 +60,19 @@ class WarningLetterService
             ->max('sp_level');
     }
 
-    // ─── Letter Number Generator ──────────────────────────────────────────────
+    // ─── SP Level Detection ───────────────────────────────────────────────────
 
     /**
-     * Generate nomor surat yang unik dengan format:
-     *   SP/{spLevel}/{DEPT}/{YYYY}/{NNN}
-     *   Contoh: SP/2/PROD/2026/003
-     *
-     * Sequence dihitung per kombinasi spLevel + dept + tahun.
+     * Baca SP level dari nomor surat yang diisi user.
+     * Mengenali berbagai format: SP1, SP2, SP3, SP/1, SP-1, SP 1, dll.
+     * Return null jika tidak terdeteksi.
      */
-    public function generateLetterNumber(int $spLevel, string $deptName, Carbon $issuedDate): string
+    public function detectSpLevelFromLetterNumber(string $letterNumber): ?int
     {
-        $deptCode = strtoupper(substr(preg_replace('/[^a-zA-Z]/', '', $deptName), 0, 4));
-        $year     = $issuedDate->format('Y');
-        $prefix   = "SP/{$spLevel}/{$deptCode}/{$year}/";
-
-        // Hitung sequence terakhir untuk kombinasi ini (termasuk soft-deleted)
-        $last = WarningLetter::withTrashed()
-            ->where('letter_number', 'like', $prefix . '%')
-            ->orderByDesc('letter_number')
-            ->value('letter_number');
-
-        $sequence = 1;
-        if ($last) {
-            $parts    = explode('/', $last);
-            $sequence = (int) end($parts) + 1;
+        if (preg_match('/\bSP[-\s\/]?([123])\b/i', $letterNumber, $matches)) {
+            return (int) $matches[1];
         }
-
-        return $prefix . str_pad($sequence, 3, '0', STR_PAD_LEFT);
+        return null;
     }
 
     // ─── Single Warning Letter ────────────────────────────────────────────────
@@ -109,11 +94,26 @@ class WarningLetterService
             $employee = Employee::with('department')->findOrFail($data['employee_id']);
             $deptName = $employee->department?->name ?? 'GEN';
 
-            $spLevel   = $data['sp_level'] ?? $this->determineSpLevel($employee->id);
+            // Jika user menyertakan nomor surat sendiri, baca SP level dari sana
+            if (!empty($data['letter_number'])) {
+                $letterNumber  = $data['letter_number'];
+                $detectedLevel = $this->detectSpLevelFromLetterNumber($letterNumber);
+                $spLevel       = $detectedLevel ?? ($data['sp_level'] ?? $this->determineSpLevel($employee->id));
+            } else {
+                $spLevel      = $data['sp_level'] ?? $this->determineSpLevel($employee->id);
+                $deptCode     = strtoupper(substr(preg_replace('/[^a-zA-Z]/', '', $deptName), 0, 4));
+                $year         = Carbon::today()->format('Y');
+                $prefix       = "SP/{$spLevel}/{$deptCode}/{$year}/";
+                $last         = WarningLetter::withTrashed()
+                    ->where('letter_number', 'like', $prefix . '%')
+                    ->orderByDesc('letter_number')
+                    ->value('letter_number');
+                $seq          = $last ? ((int) end(explode('/', $last)) + 1) : 1;
+                $letterNumber = $prefix . str_pad($seq, 3, '0', STR_PAD_LEFT);
+            }
+
             $issuedDate = Carbon::today();
             $validUntil = $issuedDate->copy()->addDays(180);
-
-            $letterNumber = $this->generateLetterNumber($spLevel, $deptName, $issuedDate);
 
             $templateId = $data['template_id']
                 ?? WarningTemplate::forLevel($spLevel)->value('id');

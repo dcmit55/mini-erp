@@ -41,6 +41,31 @@
                         @csrf @method('PUT')
 
                         <div class="row g-3">
+
+                            {{-- Nomor Surat --}}
+                            <div class="col-12">
+                                <label class="form-label small text-muted mb-1">
+                                    Nomor Surat <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" name="letter_number" id="letterNumberInput"
+                                    class="form-control form-control-sm border-1 rounded-2 @error('letter_number') is-invalid @enderror"
+                                    placeholder="Contoh: 076 /DCM-SP-1/III/2026"
+                                    value="{{ old('letter_number', $warningLetter->letter_number) }}"
+                                    autocomplete="off"
+                                    required>
+                                <div class="form-text">
+                                    SP level dibaca otomatis. Sistem mengenali <strong>SP-1</strong>, <strong>SP-2</strong>, <strong>SP-3</strong> di mana saja dalam nomor surat.
+                                </div>
+                                @error('letter_number')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            {{-- Live banner --}}
+                            <div class="col-12 pt-0 mt-0">
+                                <div id="spDetectedBanner"></div>
+                            </div>
+
                             {{-- Employee (readonly) --}}
                             <div class="col-12">
                                 <label class="form-label small text-muted mb-1">Employee</label>
@@ -136,3 +161,45 @@
 .rounded-3 { border-radius: .75rem !important; }
 .fw-medium { font-weight: 500 !important; }
 </style>
+
+@push('scripts')
+<script>
+$(function () {
+    const bannerCfg = {
+        1: { bg:'#eff6ff', border:'#3b82f6', text:'#1d4ed8', label:'SP1 — First Warning',  icon:'fa-info-circle' },
+        2: { bg:'#fefce8', border:'#eab308', text:'#854d0e', label:'SP2 — Second Warning', icon:'fa-exclamation-circle' },
+        3: { bg:'#fef2f2', border:'#ef4444', text:'#991b1b', label:'SP3 — Final Warning',  icon:'fa-exclamation-triangle' },
+    };
+
+    function detectSp(val) {
+        const m = val.match(/\bSP[-\s\/]?([123])\b/i);
+        return m ? parseInt(m[1]) : null;
+    }
+
+    function updateBanner(level) {
+        const $b = $('#spDetectedBanner');
+        if (!level) {
+            $b.html('<div class="small text-danger"><i class="fas fa-exclamation-circle me-1"></i>SP level tidak terdeteksi. Pastikan nomor surat mengandung SP1, SP2, atau SP3.</div>');
+            return;
+        }
+        const c = bannerCfg[level];
+        const extra = level === 3 ? '<br><strong>⚠ SP3 adalah peringatan terakhir.</strong>' : '';
+        $b.html(
+            `<div class="d-flex align-items-start gap-2 rounded-3 p-2 px-3 border"
+                  style="background:${c.bg};border-color:${c.border}30 !important;border-left:4px solid ${c.border} !important;font-size:0.82rem;">
+                <i class="fas ${c.icon} mt-1" style="color:${c.border};"></i>
+                <div style="color:${c.text};">
+                    Terdeteksi sebagai <strong>${c.label}</strong>. SP level akan diperbarui.${extra}
+                </div>
+             </div>`
+        );
+    }
+
+    updateBanner(detectSp($('#letterNumberInput').val()));
+
+    $('#letterNumberInput').on('input', function () {
+        updateBanner(detectSp($(this).val()));
+    });
+});
+</script>
+@endpush

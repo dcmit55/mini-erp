@@ -135,10 +135,10 @@ class SessionShift extends Model implements AuditableContract
         if ($candidates->isNotEmpty()) return $candidates->first();
 
         // 4. Fallback ke shift default (department_id = NULL)
+        // Tidak filter for_wna — null-dept shifts berlaku untuk semua karyawan.
         return self::whereNull('department_id')
             ->whereNull('employee_id')
             ->where('is_active', true)
-            ->where('for_wna', $isWna)
             ->where('detect_from', '<=', $time)
             ->where('detect_until', '>', $time)
             ->get()

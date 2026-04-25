@@ -3,47 +3,54 @@
 @section('title', 'Attendance Daily')
 
 @section('content')
-<div class="container-fluid py-4">
+<div class="container-fluid py-3 py-md-4">
     <div class="row justify-content-center">
         <div class="col-12">
+
             <!-- Header -->
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <a href="{{ route('attendance-logs.summary') }}" class="btn btn-sm btn-outline-primary px-3">
-                        <i class="fas fa-chart-bar me-1"></i> Attendance Summary
-                    </a>
-                </div>
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                <a href="{{ route('attendance-logs.summary') }}" class="btn btn-sm btn-outline-primary px-3">
+                    <i class="fas fa-chart-bar me-1"></i>
+                    <span class="d-none d-sm-inline">Attendance Summary</span>
+                    <span class="d-sm-none">Summary</span>
+                </a>
                 <div class="d-flex gap-2">
                     @can('hr.attendance.edit')
                     <button type="button" class="btn btn-sm btn-outline-primary px-3" data-bs-toggle="modal" data-bs-target="#importModal">
-                        <i class="fas fa-upload me-1"></i> Import
+                        <i class="fas fa-upload"></i>
+                        <span class="d-none d-sm-inline ms-1">Import</span>
                     </button>
                     @endcan
                     @can('hr.attendance.export')
                     <a href="{{ route('attendance-logs.export') }}?{{ http_build_query(request()->except('page')) }}" class="btn btn-sm btn-outline-success px-3">
-                        <i class="fas fa-download me-1"></i> Export
+                        <i class="fas fa-download"></i>
+                        <span class="d-none d-sm-inline ms-1">Export</span>
                     </a>
                     @endcan
                 </div>
             </div>
 
-            <!-- Filter + Search -->
-            <div class="card border-0 shadow-sm mb-4">
+            <!-- Filter -->
+            <div class="card border-0 shadow-sm mb-3">
                 <div class="card-body p-3">
-                    <form method="GET" action="{{ route('attendance-logs.index') }}">
+                    <form method="GET" action="{{ route('attendance-logs.index') }}" id="attlog-filter-form">
+                        <input type="hidden" id="input-start-date" name="start_date" value="{{ request('start_date') }}">
+                        <input type="hidden" id="input-end-date"   name="end_date"   value="{{ request('end_date') }}">
+
                         <div class="row g-2 align-items-end">
-                            <div class="col-md-2">
-                                <label class="form-label mb-1" style="font-size:0.75rem;color:#6b7280;">Start Date</label>
-                                <input type="date" name="start_date" class="form-control form-control-sm" value="{{ request('start_date') }}">
+                            <div class="col-12 col-md-3">
+                                <label class="form-label mb-1" style="font-size:0.75rem;color:#6b7280;">
+                                    <i class="fas fa-calendar-alt me-1 opacity-50"></i>Date Range
+                                </label>
+                                <input type="text" id="attlog-date-range"
+                                    class="form-control form-control-sm"
+                                    placeholder="All dates"
+                                    readonly style="cursor:pointer;background:#fff;">
                             </div>
-                            <div class="col-md-2">
-                                <label class="form-label mb-1" style="font-size:0.75rem;color:#6b7280;">End Date</label>
-                                <input type="date" name="end_date" class="form-control form-control-sm" value="{{ request('end_date') }}">
-                            </div>
-                            <div class="col-md-2">
+                            <div class="col-6 col-md-2">
                                 <label class="form-label mb-1" style="font-size:0.75rem;color:#6b7280;">Department</label>
-                                <select name="department_id" class="form-select form-select-sm">
-                                    <option value="">All Departments</option>
+                                <select name="department_id" id="filter-dept" class="form-select form-select-sm auto-submit">
+                                    <option value="">All Dept.</option>
                                     @foreach($departments as $dept)
                                         <option value="{{ $dept->id }}" {{ request('department_id') == $dept->id ? 'selected' : '' }}>
                                             {{ $dept->name }}
@@ -51,9 +58,9 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-6 col-md-3">
                                 <label class="form-label mb-1" style="font-size:0.75rem;color:#6b7280;">Employee</label>
-                                <select name="employee_id" class="form-select form-select-sm">
+                                <select name="employee_id" id="filter-emp" class="form-select form-select-sm auto-submit">
                                     <option value="">All Employees</option>
                                     @foreach($employees as $emp)
                                         <option value="{{ $emp->id }}" {{ request('employee_id') == $emp->id ? 'selected' : '' }}>
@@ -62,32 +69,34 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-12 col-md-2">
                                 <label class="form-label mb-1" style="font-size:0.75rem;color:#6b7280;">Search</label>
-                                <input type="text" name="search" class="form-control form-control-sm" placeholder="Search name or NIK..." value="{{ request('search') }}">
+                                <div class="position-relative">
+                                    <input type="text" name="search" id="filter-search"
+                                        class="form-control form-control-sm pe-4"
+                                        placeholder="Name or NIK…"
+                                        value="{{ request('search') }}"
+                                        autocomplete="off">
+                                    <span id="search-spinner"
+                                        class="position-absolute top-50 end-0 translate-middle-y pe-2 d-none"
+                                        style="pointer-events:none;">
+                                        <span class="spinner-border spinner-border-sm text-secondary" style="width:.7rem;height:.7rem;border-width:1.5px;"></span>
+                                    </span>
+                                </div>
                             </div>
-                            <div class="col-md-2 d-flex gap-1 align-items-end">
-                                <button type="submit" class="btn btn-sm btn-primary px-3">
-                                    <i class="fas fa-filter"></i> Filter
-                                </button>
+                            <div class="col-12 col-md-auto d-flex gap-2 align-items-end justify-content-end">
                                 @if(request()->anyFilled(['start_date', 'end_date', 'department_id', 'employee_id', 'search']))
-                                    <a href="{{ route('attendance-logs.index') }}" class="btn btn-sm btn-outline-secondary px-2">
-                                        <i class="fas fa-times"></i>
+                                    <a href="{{ route('attendance-logs.index') }}"
+                                        class="btn btn-sm btn-outline-secondary px-3"
+                                        title="Clear all filters">
+                                        <i class="fas fa-times me-1"></i>Reset
                                     </a>
                                 @endif
-                                <a href="{{ route('attendance-logs.index', ['all' => 1]) }}" class="btn btn-sm btn-outline-info px-2 {{ request()->has('all') ? 'active' : '' }}" title="Show all data">
+                                <a href="{{ route('attendance-logs.index', ['all' => 1]) }}"
+                                    class="btn btn-sm btn-outline-info px-2 {{ request()->has('all') ? 'active' : '' }}"
+                                    title="Show all data">
                                     <i class="fas fa-list"></i>
                                 </a>
-                            </div>
-                        </div>
-                        <div class="row g-2 mt-1 align-items-center">
-                            <div class="col-auto">
-                                <label class="form-label mb-0 me-2" style="font-size:0.75rem;color:#6b7280;">UI Scale:</label>
-                                <select id="uiScaleSelect" class="form-select form-select-sm d-inline-block w-auto">
-                                    <option value="normal">Normal</option>
-                                    <option value="compact">Compact</option>
-                                    <option value="large">Large</option>
-                                </select>
                             </div>
                         </div>
                     </form>
@@ -96,40 +105,43 @@
 
             <!-- Info Bar -->
             @if(request()->has('all'))
-                <div class="alert alert-secondary py-2 small d-flex align-items-center" role="alert">
-                    <i class="fas fa-eye me-2"></i> Showing all data. 
-                    <a href="{{ route('attendance-logs.index') }}" class="alert-link ms-2">Back to today</a>.
+                <div class="alert alert-secondary py-2 small d-flex align-items-center mb-3" role="alert">
+                    <i class="fas fa-eye me-2 flex-shrink-0"></i>
+                    <span>Showing all data. <a href="{{ route('attendance-logs.index') }}" class="alert-link">Back to today</a>.</span>
                 </div>
             @elseif(request()->filled('start_date') && request()->filled('end_date'))
-                <div class="alert alert-info py-2 small d-flex align-items-center" role="alert">
-                    <i class="fas fa-calendar-alt me-2"></i> Filtering from {{ request('start_date') }} to {{ request('end_date') }}.
+                <div class="alert alert-info py-2 small d-flex align-items-center mb-3" role="alert">
+                    <i class="fas fa-calendar-alt me-2 flex-shrink-0"></i>
+                    <span>{{ request('start_date') }} &rarr; {{ request('end_date') }}</span>
                 </div>
             @elseif($latestImportSource)
-                <div class="alert alert-info py-2 small d-flex align-items-center" role="alert">
-                    <i class="fas fa-clock me-2"></i> Showing latest import: <strong>{{ $latestImportSource }}</strong>. 
-                    <a href="{{ route('attendance-logs.index', ['all' => 1]) }}" class="alert-link ms-2">View all</a>.
+                <div class="alert alert-info py-2 small d-flex align-items-center mb-3" role="alert">
+                    <i class="fas fa-clock me-2 flex-shrink-0"></i>
+                    <span>Latest import: <strong>{{ $latestImportSource }}</strong>.
+                    <a href="{{ route('attendance-logs.index', ['all' => 1]) }}" class="alert-link ms-1">View all</a>.</span>
                 </div>
             @else
-                <div class="alert alert-warning py-2 small d-flex align-items-center" role="alert">
-                    <i class="fas fa-exclamation-triangle me-2"></i> No data yet. Please import first.
+                <div class="alert alert-warning py-2 small d-flex align-items-center mb-3" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2 flex-shrink-0"></i>
+                    <span>No data yet. Please import first.</span>
                 </div>
             @endif
 
-            <!-- Tabel -->
-            <div class="card border-0 shadow-sm">
-                <div class="card-body p-0">
-                    @if(session('success'))
-                        <div class="alert alert-success border-0 rounded-0 m-0 d-flex align-items-center px-4 py-3">
-                            <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
-                            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
-                        </div>
-                    @endif
+            @if(session('success'))
+                <div class="alert alert-success d-flex align-items-center py-2 small mb-3">
+                    <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
+                    <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+                </div>
+            @endif
 
+            <!-- ═══ DESKTOP TABLE (md+) ═══ -->
+            <div class="card border-0 shadow-sm d-none d-md-block">
+                <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-sm table-hover align-middle mb-0">
                             <thead class="table-light small">
                                 <tr>
-                                    <th class="border-0 ps-4" style="width: 60px;">No</th>
+                                    <th class="border-0 ps-4" style="width:50px;">No</th>
                                     <th class="border-0">Date</th>
                                     <th class="border-0">NIK</th>
                                     <th class="border-0">Name</th>
@@ -144,6 +156,19 @@
                             </thead>
                             <tbody class="small">
                                 @forelse($attendancesPaginated as $item)
+                                    @php
+                                        $badgeClass = [
+                                            'Present'         => 'bg-success',
+                                            'Late'            => 'bg-warning text-dark',
+                                            'Excused'         => 'bg-info',
+                                            'Sick Leave'      => 'bg-info',
+                                            'Annual Leave'    => 'bg-primary',
+                                            'Less Hours'      => 'bg-orange text-white',
+                                            'Late, Less Hours'=> 'bg-warning text-dark',
+                                            'Early Leave'     => 'bg-indigo text-white',
+                                            'Alpha'           => 'bg-danger',
+                                        ][$item->status] ?? 'bg-secondary';
+                                    @endphp
                                     <tr id="row-{{ $item->employee->id }}-{{ $item->date->format('Y-m-d') }}">
                                         <td class="ps-4">
                                             <span class="table-number">
@@ -165,34 +190,18 @@
                                                 <span class="text-muted">—</span>
                                             @endif
                                         </td>
-                                        <td>{{ $item->clock_in ? $item->clock_in->format('H:i') : '-' }}</td>
+                                        <td>{{ $item->clock_in  ? $item->clock_in->format('H:i')  : '-' }}</td>
                                         <td>{{ $item->clock_out ? $item->clock_out->format('H:i') : '-' }}</td>
                                         <td>{{ $item->total_hours ? number_format($item->total_hours, 2) : '-' }}</td>
-                                        <td>
-                                            @php
-                                                $badgeClass = [
-                                                    'Present' => 'bg-success',
-                                                    'Late' => 'bg-warning text-dark',
-                                                    'Excused' => 'bg-info',
-                                                    'Sick Leave' => 'bg-info',
-                                                    'Annual Leave' => 'bg-primary',
-                                                    'Less Hours' => 'bg-orange text-white',
-                                                    'Late, Less Hours' => 'bg-warning text-dark',
-                                                    'Early Leave' => 'bg-indigo text-white',
-                                                    'Alpha' => 'bg-danger',
-                                                ][$item->status] ?? 'bg-secondary';
-                                            @endphp
-                                            <span class="badge {{ $badgeClass }} px-3 py-1">{{ $item->status }}</span>
-                                        </td>
+                                        <td><span class="badge {{ $badgeClass }} px-2 py-1">{{ $item->status }}</span></td>
                                         <td>{{ $item->remarks ? \Illuminate\Support\Str::limit($item->remarks, 20) : '-' }}</td>
                                         <td class="pe-3">
                                             @can('hr.attendance.edit')
                                             <button type="button" class="btn btn-sm btn-outline-primary border-0 px-3 py-1"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#editModal"
+                                                data-bs-toggle="modal" data-bs-target="#editModal"
                                                 data-employee-id="{{ $item->employee->id }}"
                                                 data-date="{{ $item->date->format('Y-m-d') }}"
-                                                data-clock-in="{{ $item->clock_in ? $item->clock_in->format('H:i') : '' }}"
+                                                data-clock-in="{{ $item->clock_in  ? $item->clock_in->format('H:i')  : '' }}"
                                                 data-clock-out="{{ $item->clock_out ? $item->clock_out->format('H:i') : '' }}"
                                                 data-status="{{ $item->status }}"
                                                 data-remarks="{{ $item->remarks }}">
@@ -203,9 +212,9 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="10" class="text-center py-5">
+                                        <td colspan="11" class="text-center py-5">
                                             <div class="text-muted">
-                                                <i class="fas fa-calendar-times fa-3x mb-3"></i>
+                                                <i class="fas fa-calendar-times fa-3x mb-3 d-block"></i>
                                                 <h6>No Attendance Data Found</h6>
                                                 @if(request()->anyFilled(['start_date', 'end_date', 'employee_id', 'search']))
                                                     <p class="small">Try adjusting your filters</p>
@@ -229,24 +238,141 @@
 
                 @if($attendancesPaginated->hasPages())
                 <div class="card-footer bg-white border-0 py-3 px-4">
-                    <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                         <div class="text-muted small">
                             Showing {{ $attendancesPaginated->firstItem() }} to {{ $attendancesPaginated->lastItem() }} of {{ $attendancesPaginated->total() }} entries
                         </div>
-                        <div>
-                            {{ $attendancesPaginated->appends(request()->query())->links('pagination::bootstrap-4') }}
-                        </div>
+                        {{ $attendancesPaginated->appends(request()->query())->links('pagination::bootstrap-4') }}
                     </div>
                 </div>
                 @endif
             </div>
+
+            <!-- ═══ MOBILE CARDS (< md) ═══ -->
+            <div class="d-md-none">
+                @forelse($attendancesPaginated as $item)
+                    @php
+                        $badgeClass = [
+                            'Present'         => 'bg-success',
+                            'Late'            => 'bg-warning text-dark',
+                            'Excused'         => 'bg-info',
+                            'Sick Leave'      => 'bg-info',
+                            'Annual Leave'    => 'bg-primary',
+                            'Less Hours'      => 'bg-orange text-white',
+                            'Late, Less Hours'=> 'bg-warning text-dark',
+                            'Early Leave'     => 'bg-indigo text-white',
+                            'Alpha'           => 'bg-danger',
+                        ][$item->status] ?? 'bg-secondary';
+                    @endphp
+                    <div class="attlog-mobile-card mb-2"
+                         id="row-{{ $item->employee->id }}-{{ $item->date->format('Y-m-d') }}">
+
+                        <!-- Top row: date + status + action -->
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="text-muted" style="font-size:0.72rem;font-weight:600;letter-spacing:.02em;">
+                                <i class="fas fa-calendar-day me-1"></i>{{ $item->date->format('d M Y') }}
+                            </span>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge {{ $badgeClass }} px-2 py-1" style="font-size:0.68rem;">
+                                    {{ $item->status }}
+                                </span>
+                                @can('hr.attendance.edit')
+                                <button type="button"
+                                    class="btn btn-sm btn-outline-primary border-0 px-2 py-0"
+                                    style="font-size:0.75rem;line-height:1.6;"
+                                    data-bs-toggle="modal" data-bs-target="#editModal"
+                                    data-employee-id="{{ $item->employee->id }}"
+                                    data-date="{{ $item->date->format('Y-m-d') }}"
+                                    data-clock-in="{{ $item->clock_in  ? $item->clock_in->format('H:i')  : '' }}"
+                                    data-clock-out="{{ $item->clock_out ? $item->clock_out->format('H:i') : '' }}"
+                                    data-status="{{ $item->status }}"
+                                    data-remarks="{{ $item->remarks }}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                @endcan
+                            </div>
+                        </div>
+
+                        <!-- Employee name + NIK -->
+                        <div class="fw-semibold" style="font-size:0.88rem;color:#1e293b;">
+                            {{ $item->employee->name }}
+                        </div>
+                        <div class="text-muted mb-2" style="font-size:0.7rem;">
+                            {{ $item->employee->employee_no }}
+                        </div>
+
+                        <!-- Clock In / Out / Hours -->
+                        <div class="d-flex align-items-center gap-3" style="font-size:0.78rem;">
+                            <span>
+                                <i class="fas fa-sign-in-alt me-1" style="color:#16a34a;font-size:0.7rem;"></i>
+                                {{ $item->clock_in ? $item->clock_in->format('H:i') : '—' }}
+                            </span>
+                            <span>
+                                <i class="fas fa-sign-out-alt me-1" style="color:#dc2626;font-size:0.7rem;"></i>
+                                {{ $item->clock_out ? $item->clock_out->format('H:i') : '—' }}
+                            </span>
+                            @if($item->total_hours)
+                            <span class="ms-auto text-muted" style="font-size:0.72rem;">
+                                <i class="fas fa-clock me-1 opacity-50"></i>{{ number_format($item->total_hours, 2) }}h
+                            </span>
+                            @endif
+                        </div>
+
+                        <!-- Shift & Remarks -->
+                        @if($item->session_shift || $item->remarks)
+                        <div class="mt-2 d-flex align-items-center gap-2 flex-wrap">
+                            @if($item->session_shift)
+                                <span class="badge bg-soft-primary text-primary px-2 py-1 fw-semibold" style="font-size:0.65rem;"
+                                      title="{{ $item->session_shift->start_time }} – {{ $item->session_shift->end_time }}">
+                                    {{ $item->session_shift->type_of_shift }}
+                                </span>
+                            @endif
+                            @if($item->remarks)
+                                <span class="text-muted" style="font-size:0.7rem;">
+                                    <i class="fas fa-comment-alt me-1 opacity-50"></i>{{ \Illuminate\Support\Str::limit($item->remarks, 35) }}
+                                </span>
+                            @endif
+                        </div>
+                        @endif
+
+                    </div>
+                @empty
+                    <div class="text-center py-5 text-muted">
+                        <i class="fas fa-calendar-times fa-3x mb-3 d-block"></i>
+                        <h6>No Attendance Data Found</h6>
+                        @if(request()->anyFilled(['start_date', 'end_date', 'employee_id', 'search']))
+                            <p class="small">Try adjusting your filters</p>
+                            <a href="{{ route('attendance-logs.index') }}" class="btn btn-sm btn-outline-primary px-4">
+                                <i class="fas fa-times me-1"></i>Clear Filters
+                            </a>
+                        @else
+                            <p class="small">Start by importing data</p>
+                            <button type="button" class="btn btn-sm btn-outline-primary px-4" data-bs-toggle="modal" data-bs-target="#importModal">
+                                <i class="fas fa-upload me-1"></i>Import Data
+                            </button>
+                        @endif
+                    </div>
+                @endforelse
+
+                @if($attendancesPaginated->hasPages())
+                <div class="py-3">
+                    <div class="text-muted small text-center mb-2">
+                        Showing {{ $attendancesPaginated->firstItem() }}–{{ $attendancesPaginated->lastItem() }} of {{ $attendancesPaginated->total() }}
+                    </div>
+                    <div class="d-flex justify-content-center">
+                        {{ $attendancesPaginated->appends(request()->query())->links('pagination::bootstrap-4') }}
+                    </div>
+                </div>
+                @endif
+            </div>
+
         </div>
     </div>
 </div>
 
 <!-- Modal Import -->
 <div class="modal fade" id="importModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header py-2">
                 <h6 class="modal-title">Import Attendance Logs</h6>
@@ -267,18 +393,13 @@
                         <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%">Processing...</div>
                     </div>
                     <div id="importResult" class="mt-2 small"></div>
-                    
                     <div id="failedRowsContainer" class="mt-3 d-none">
                         <h6 class="small fw-bold">Failed Rows:</h6>
-                        <div class="table-responsive" style="max-height: 300px;">
+                        <div class="table-responsive" style="max-height: 250px;">
                             <table class="table table-sm table-bordered small">
                                 <thead class="table-light">
                                     <tr>
-                                        <th>Name</th>
-                                        <th>Date</th>
-                                        <th>Clock In</th>
-                                        <th>Clock Out</th>
-                                        <th>Error</th>
+                                        <th>Name</th><th>Date</th><th>Clock In</th><th>Clock Out</th><th>Error</th>
                                     </tr>
                                 </thead>
                                 <tbody id="failedRowsBody"></tbody>
@@ -318,11 +439,11 @@
                         <input type="text" class="form-control form-control-sm" id="edit_date_display" readonly>
                     </div>
                     <div class="row">
-                        <div class="col-md-6 mb-2">
+                        <div class="col-6 mb-2">
                             <label for="edit_clock_in" class="form-label small">Clock In</label>
                             <input type="time" name="clock_in" id="edit_clock_in" class="form-control form-control-sm">
                         </div>
-                        <div class="col-md-6 mb-2">
+                        <div class="col-6 mb-2">
                             <label for="edit_clock_out" class="form-label small">Clock Out</label>
                             <input type="time" name="clock_out" id="edit_clock_out" class="form-control form-control-sm">
                         </div>
@@ -355,121 +476,132 @@
     </div>
 </div>
 
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <style>
+    /* ── Flatpickr compact ── */
+    .flatpickr-calendar {
+        font-size: 0.72rem !important;
+        width: auto !important;
+    }
+    .flatpickr-months { padding: 4px 0 2px; }
+    .flatpickr-month  { height: 28px !important; }
+    .flatpickr-current-month {
+        font-size: 0.8rem !important;
+        padding-top: 4px !important;
+    }
+    .flatpickr-current-month .numInputWrapper { width: 4.5ch !important; }
+    .flatpickr-weekday  { font-size: 0.65rem !important; }
+    .flatpickr-day {
+        max-width: 28px !important;
+        height: 26px !important;
+        line-height: 26px !important;
+        font-size: 0.7rem !important;
+        border-radius: 4px !important;
+        margin: 1px !important;
+    }
+    .flatpickr-days .dayContainer {
+        min-width: 210px !important;
+        max-width: 210px !important;
+        width: 210px !important;
+    }
+    .flatpickr-rContainer   { display: inline-block; }
+    .flatpickr-innerContainer { gap: 8px; }
+    .flatpickr-day.inRange {
+        background: rgba(79,70,229,.12) !important;
+        border-color: transparent !important;
+        color: #333 !important;
+        box-shadow: -3px 0 0 rgba(79,70,229,.12), 3px 0 0 rgba(79,70,229,.12) !important;
+    }
+    .flatpickr-day.startRange,
+    .flatpickr-day.endRange {
+        background: #4f46e5 !important;
+        border-color: #4f46e5 !important;
+    }
+    .flatpickr-day:hover { background: rgba(79,70,229,.2) !important; }
+
+    /* ── Desktop table ── */
     .table-number {
         display: inline-block;
-        width: 30px;
-        height: 30px;
-        line-height: 30px;
-        background-color: #eef2ff;
-        color: #4f46e5;
-        border-radius: 6px;
-        font-weight: 600;
-        font-size: 0.8rem;
-        text-align: center;
-        transition: all 0.2s;
+        width: 28px; height: 28px; line-height: 28px;
+        background: #eef2ff; color: #4f46e5;
+        border-radius: 6px; font-weight: 600;
+        font-size: 0.78rem; text-align: center;
+        transition: all .2s;
     }
-    
-    tr:hover .table-number {
-        background-color: #4f46e5;
-        color: white;
-    }
-
+    tr:hover .table-number { background: #4f46e5; color: #fff; }
     .table th {
-        font-weight: 600;
-        font-size: 0.7rem;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: #64748b;
-        padding: 0.75rem 0.5rem;
+        font-weight: 600; font-size: 0.7rem;
+        text-transform: uppercase; letter-spacing: .05em;
+        color: #64748b; padding: .65rem .5rem;
         border-bottom: 2px solid #e2e8f0;
     }
+    .table td { padding: .65rem .5rem; border-bottom: 1px solid #f1f5f9; }
+    .table tbody tr:hover { background: #f8fafc; }
 
-    .table td {
-        padding: 0.75rem 0.5rem;
-        border-bottom: 1px solid #f1f5f9;
+    /* ── Mobile cards ── */
+    .attlog-mobile-card {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 12px 14px;
+        box-shadow: 0 1px 4px rgba(0,0,0,.04);
     }
 
-    .table tbody tr:hover {
-        background-color: #f8fafc;
-    }
+    /* ── General ── */
+    .btn-sm           { font-size: 0.75rem; }
+    .badge            { font-weight: 500; font-size: 0.7rem; }
+    .form-control-sm,
+    .form-select-sm   { font-size: 0.75rem; }
+    .alert            { border-radius: 0.25rem; }
 
-    .btn-sm {
-        font-size: 0.75rem;
-    }
-
-    .badge {
-        font-weight: 500;
-        font-size: 0.7rem;
-    }
-
-    .form-control-sm, .form-select-sm {
-        font-size: 0.75rem;
-    }
-
-    .alert {
-        border-radius: 0.25rem;
+    /* ── Mobile pagination center ── */
+    @media (max-width: 767.98px) {
+        .pagination { justify-content: center; flex-wrap: wrap; }
+        .page-item .page-link { font-size: 0.75rem; padding: .25rem .5rem; }
     }
 </style>
 @endsection
 
 @push('scripts')
 <script>
-$(document).ready(function() {
-    // Import form handler
-    $('#importForm').on('submit', function(e) {
-        e.preventDefault();
-        var formData = new FormData(this);
-        var $btn = $('#importBtn');
-        var $progress = $('#importProgress');
-        var $result = $('#importResult');
-        var $failedContainer = $('#failedRowsContainer');
-        var $failedBody = $('#failedRowsBody');
+$(document).ready(function () {
 
+    // Import
+    $('#importForm').on('submit', function (e) {
+        e.preventDefault();
+        var $btn = $('#importBtn'), $progress = $('#importProgress'),
+            $result = $('#importResult'), $failedContainer = $('#failedRowsContainer'),
+            $failedBody = $('#failedRowsBody');
         $btn.prop('disabled', true);
         $progress.removeClass('d-none');
         $result.html('');
         $failedContainer.addClass('d-none');
         $failedBody.empty();
-
         $.ajax({
             url: "{{ route('attendance-logs.import.store') }}",
-            type: "POST",
-            data: formData,
-            processData: false,
-            contentType: false,
-            success: function(response) {
+            type: 'POST', data: new FormData(this),
+            processData: false, contentType: false,
+            success: function (response) {
                 $progress.addClass('d-none');
                 $result.html('<div class="alert alert-success py-1 px-2 mb-0">' + response.message + '</div>');
-                setTimeout(function() {
+                setTimeout(function () {
                     $('#importModal').modal('hide');
-                    if (response.redirect_url) {
-                        window.location.href = response.redirect_url;
-                    } else {
-                        location.reload();
-                    }
+                    if (response.redirect_url) window.location.href = response.redirect_url;
+                    else location.reload();
                 }, 1500);
             },
-            error: function(xhr) {
+            error: function (xhr) {
                 $progress.addClass('d-none');
                 if (xhr.responseJSON && xhr.responseJSON.failed_rows && xhr.responseJSON.failed_rows.length > 0) {
-                    var failedRows = xhr.responseJSON.failed_rows;
-                    $.each(failedRows, function(index, item) {
-                        var row = item.row;
-                        $failedBody.append('<tr>' +
-                            '<td>' + (row.name || '-') + '</td>' +
-                            '<td>' + (row.date || '-') + '</td>' +
-                            '<td>' + (row.clock_in || '-') + '</td>' +
-                            '<td>' + (row.clock_out || '-') + '</td>' +
-                            '<td class="text-danger">' + item.error + '</td>' +
-                            '</tr>');
+                    $.each(xhr.responseJSON.failed_rows, function (i, item) {
+                        var r = item.row;
+                        $failedBody.append('<tr><td>' + (r.name||'-') + '</td><td>' + (r.date||'-') + '</td><td>' +
+                            (r.clock_in||'-') + '</td><td>' + (r.clock_out||'-') + '</td><td class="text-danger">' + item.error + '</td></tr>');
                     });
                     $failedContainer.removeClass('d-none');
-                    var message = xhr.responseJSON.message || 'Import completed with errors.';
-                    $result.html('<div class="alert alert-warning py-1 px-2 mb-0">' + message + '</div>');
+                    $result.html('<div class="alert alert-warning py-1 px-2 mb-0">' + (xhr.responseJSON.message || 'Import completed with errors.') + '</div>');
                 } else {
-                    var errorMsg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Upload failed.';
-                    $result.html('<div class="alert alert-danger py-1 px-2 mb-0">' + errorMsg + '</div>');
+                    $result.html('<div class="alert alert-danger py-1 px-2 mb-0">' + ((xhr.responseJSON && xhr.responseJSON.message) || 'Upload failed.') + '</div>');
                 }
                 $btn.prop('disabled', false);
             }
@@ -485,56 +617,56 @@ $(document).ready(function() {
         $('#importBtn').prop('disabled', false);
     });
 
-    // Edit modal handler
-    $('#editModal').on('show.bs.modal', function (event) {
-        var button = $(event.relatedTarget);
-        var employeeId = button.data('employee-id');
-        var date = button.data('date');
-        var clockIn = button.data('clock-in');
-        var clockOut = button.data('clock-out');
-        var status = button.data('status');
-        var remarks = button.data('remarks');
-
-        var modal = $(this);
-        modal.find('#edit_employee_id').val(employeeId);
-        modal.find('#edit_date').val(date);
-        var row = $('#row-' + employeeId + '-' + date);
-        var empName = row.find('td:eq(3)').text();
-        modal.find('#edit_employee_name').val(empName);
-        modal.find('#edit_date_display').val(date);
-        modal.find('#edit_clock_in').val(clockIn);
-        modal.find('#edit_clock_out').val(clockOut);
-        modal.find('#edit_status').val(status);
-        modal.find('#edit_remarks').val(remarks);
+    // Auto-submit: select dropdowns
+    $('.auto-submit').on('change', function () {
+        $('#attlog-filter-form').submit();
     });
 
-    $('#editForm').on('submit', function(e) {
+    // Auto-submit: search with debounce
+    var searchTimer;
+    $('#filter-search').on('input', function () {
+        clearTimeout(searchTimer);
+        var $spinner = $('#search-spinner');
+        $spinner.removeClass('d-none');
+        searchTimer = setTimeout(function () {
+            $('#attlog-filter-form').submit();
+        }, 500);
+    });
+
+    // Edit modal
+    $('#editModal').on('show.bs.modal', function (event) {
+        var btn = $(event.relatedTarget);
+        var employeeId = btn.data('employee-id'), date = btn.data('date');
+        $(this).find('#edit_employee_id').val(employeeId);
+        $(this).find('#edit_date').val(date);
+        var row = $('#row-' + employeeId + '-' + date);
+        // desktop row: td:eq(3); mobile card: .fw-semibold text
+        var empName = row.is('tr') ? row.find('td:eq(3)').text().trim()
+                                   : row.find('.fw-semibold').first().text().trim();
+        $(this).find('#edit_employee_name').val(empName);
+        $(this).find('#edit_date_display').val(date);
+        $(this).find('#edit_clock_in').val(btn.data('clock-in'));
+        $(this).find('#edit_clock_out').val(btn.data('clock-out'));
+        $(this).find('#edit_status').val(btn.data('status'));
+        $(this).find('#edit_remarks').val(btn.data('remarks'));
+    });
+
+    $('#editForm').on('submit', function (e) {
         e.preventDefault();
-        var employeeId = $('#edit_employee_id').val();
-        var date = $('#edit_date').val();
-        var formData = $(this).serialize();
-        var $btn = $('#editBtn');
-        var $result = $('#editResult');
-
+        var employeeId = $('#edit_employee_id').val(), date = $('#edit_date').val();
+        var $btn = $('#editBtn'), $result = $('#editResult');
         $btn.prop('disabled', true);
-        $result.html('<div class="text-info small">Saving...</div>');
-
+        $result.html('<div class="text-info small">Saving…</div>');
         $.ajax({
-            url: "{{ route('attendance-logs.update', ['employeeId' => ':employeeId', 'date' => ':date']) }}"
-                .replace(':employeeId', employeeId)
-                .replace(':date', date),
-            type: "POST",
-            data: formData,
-            success: function(response) {
-                $result.html('<div class="alert alert-success py-1 px-2 mb-0">Data saved successfully.</div>');
-                setTimeout(function() {
-                    $('#editModal').modal('hide');
-                    location.reload();
-                }, 1000);
+            url: "{{ route('attendance-logs.update', ['employeeId' => ':eid', 'date' => ':d']) }}"
+                .replace(':eid', employeeId).replace(':d', date),
+            type: 'POST', data: $(this).serialize(),
+            success: function () {
+                $result.html('<div class="alert alert-success py-1 px-2 mb-0">Saved.</div>');
+                setTimeout(function () { $('#editModal').modal('hide'); location.reload(); }, 1000);
             },
-            error: function(xhr) {
-                var errorMsg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Failed to save.';
-                $result.html('<div class="alert alert-danger py-1 px-2 mb-0">' + errorMsg + '</div>');
+            error: function (xhr) {
+                $result.html('<div class="alert alert-danger py-1 px-2 mb-0">' + ((xhr.responseJSON && xhr.responseJSON.message) || 'Failed to save.') + '</div>');
                 $btn.prop('disabled', false);
             }
         });
@@ -545,17 +677,40 @@ $(document).ready(function() {
         $('#editBtn').prop('disabled', false);
     });
 });
-
-// UI Scale
+</script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
 (function () {
-    const scales = { normal: '0.875rem', compact: '0.75rem', large: '1rem' };
-    const sel = document.getElementById('uiScaleSelect');
-    const saved = localStorage.getItem('attlog_ui_scale') || 'normal';
-    sel.value = saved;
-    document.querySelectorAll('table tbody tr').forEach(r => r.style.fontSize = scales[saved]);
-    sel.addEventListener('change', function () {
-        localStorage.setItem('attlog_ui_scale', this.value);
-        document.querySelectorAll('table tbody tr').forEach(r => r.style.fontSize = scales[this.value]);
+    var startVal = document.getElementById('input-start-date').value;
+    var endVal   = document.getElementById('input-end-date').value;
+    var isMobile = window.innerWidth < 768;
+
+    flatpickr('#attlog-date-range', {
+        mode: 'range',
+        dateFormat: 'Y-m-d',
+        showMonths: isMobile ? 1 : 2,
+        defaultDate: (startVal && endVal) ? [startVal, endVal]
+                   : (startVal ? [startVal] : []),
+        onChange: function (dates) {
+            if (dates.length === 0) {
+                document.getElementById('input-start-date').value = '';
+                document.getElementById('input-end-date').value   = '';
+            } else if (dates.length === 1) {
+                document.getElementById('input-start-date').value = flatpickr.formatDate(dates[0], 'Y-m-d');
+                document.getElementById('input-end-date').value   = '';
+            } else {
+                document.getElementById('input-start-date').value = flatpickr.formatDate(dates[0], 'Y-m-d');
+                document.getElementById('input-end-date').value   = flatpickr.formatDate(dates[1], 'Y-m-d');
+                document.getElementById('attlog-filter-form').submit();
+            }
+        },
+        onClose: function (dates) {
+            if (dates.length === 1) {
+                document.getElementById('input-start-date').value = flatpickr.formatDate(dates[0], 'Y-m-d');
+                document.getElementById('input-end-date').value   = '';
+                document.getElementById('attlog-filter-form').submit();
+            }
+        }
     });
 })();
 </script>

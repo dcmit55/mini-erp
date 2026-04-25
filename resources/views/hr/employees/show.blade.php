@@ -166,6 +166,22 @@
                                 </div>
                             </div>
 
+                            <div class="col-md-6 mb-3">
+                                <label class="fw-semibold text-muted small">Default Shift</label>
+                                <div class="fw-medium">
+                                    @if ($employee->defaultShift)
+                                        <span class="badge bg-secondary">
+                                            {{ $employee->defaultShift->type_of_shift }}
+                                        </span>
+                                        <small class="text-muted ms-1">
+                                            {{ \Carbon\Carbon::parse($employee->defaultShift->start_time)->format('H:i') }}–{{ \Carbon\Carbon::parse($employee->defaultShift->end_time)->format('H:i') }}
+                                        </small>
+                                    @else
+                                        <span class="text-muted fst-italic">Auto-detect</span>
+                                    @endif
+                                </div>
+                            </div>
+
                             <!-- Gender & KTP ID -->
                             <div class="col-md-6 mb-3">
                                 <label class="fw-semibold text-muted small">Gender</label>

@@ -81,16 +81,29 @@ class WarningLetterController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
+            'letter_number'    => 'required|string|max:120|unique:warning_letters,letter_number',
             'employee_id'      => 'required|exists:employees,id',
             'violation_cat_id' => 'required|exists:violation_categories,id',
             'violation_date'   => 'required|date|before_or_equal:today',
             'reason'           => 'required|string|min:10',
             'template_id'      => 'nullable|exists:warning_templates,id',
+        ], [
+            'letter_number.required' => 'Nomor surat wajib diisi.',
+            'letter_number.unique'   => 'Nomor surat ini sudah digunakan.',
         ]);
+
+        // Verifikasi SP level yang terbaca dari nomor surat
+        $detectedSpLevel = $this->wlService->detectSpLevelFromLetterNumber($validated['letter_number']);
+        if ($detectedSpLevel === null) {
+            return back()->withInput()->with('error',
+                'SP level tidak terdeteksi dari nomor surat. Pastikan nomor surat mengandung "SP1", "SP2", atau "SP3".'
+            );
+        }
 
         try {
             $letter = $this->wlService->createSingle(array_merge($validated, [
                 'created_by' => auth()->id(),
+                'sp_level'   => $detectedSpLevel,
             ]));
         } catch (\RuntimeException $e) {
             return back()->withInput()->with('error', $e->getMessage());
@@ -138,13 +151,25 @@ class WarningLetterController extends Controller
         }
 
         $validated = $request->validate([
+            'letter_number'    => 'required|string|max:120|unique:warning_letters,letter_number,' . $warningLetter->id,
             'violation_cat_id' => 'required|exists:violation_categories,id',
             'violation_date'   => 'required|date|before_or_equal:today',
             'reason'           => 'required|string|min:10',
             'template_id'      => 'nullable|exists:warning_templates,id',
+        ], [
+            'letter_number.required' => 'Nomor surat wajib diisi.',
+            'letter_number.unique'   => 'Nomor surat ini sudah digunakan.',
         ]);
 
-        $warningLetter->update($validated);
+        // Sinkronkan sp_level dengan nomor surat yang diperbarui
+        $detectedSpLevel = $this->wlService->detectSpLevelFromLetterNumber($validated['letter_number']);
+        if ($detectedSpLevel === null) {
+            return back()->withInput()->with('error',
+                'SP level tidak terdeteksi dari nomor surat. Pastikan nomor surat mengandung "SP1", "SP2", atau "SP3".'
+            );
+        }
+
+        $warningLetter->update(array_merge($validated, ['sp_level' => $detectedSpLevel]));
 
         return redirect()->route('warning-letters.show', $warningLetter)
             ->with('success', 'Draft berhasil diperbarui.');
