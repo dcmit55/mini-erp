@@ -68,7 +68,7 @@
                                                     ->diffInDays($deliveryDate->copy()->startOfDay(), false)
                                                 : null;
                                             $lastEmps = $lastEmployeesPerJo[$jo->id] ?? [];
-                                            $planData  = $plannedDataPerJo[$jo->id] ?? null;
+                                            $planData = $plannedDataPerJo[$jo->id] ?? null;
                                             $plannedEmps = $planData['employee_ids'] ?? [];
                                             $hasPlan = !empty($plannedEmps);
                                         @endphp
@@ -223,8 +223,13 @@
                                                                 </div>
                                                             @endif
                                                             <h6 class="mb-0 small lh-sm">{{ $employee->name }}</h6>
-                                                            <div class="emp-plan-task text-success d-none" style="font-size:0.6rem; line-height:1.2; margin-top:2px;"><i class="bi bi-clipboard2-check me-1"></i><span class="emp-plan-task-text"></span></div>
-                                                            <div class="emp-plan-session d-none" style="font-size:0.6rem; line-height:1.2; margin-top:1px;"><span class="emp-plan-session-badge badge"></span></div>
+                                                            <div class="emp-plan-task text-success d-none"
+                                                                style="font-size:0.6rem; line-height:1.2; margin-top:2px;">
+                                                                <i class="bi bi-clipboard2-check me-1"></i><span
+                                                                    class="emp-plan-task-text"></span></div>
+                                                            <div class="emp-plan-session d-none"
+                                                                style="font-size:0.6rem; line-height:1.2; margin-top:1px;">
+                                                                <span class="emp-plan-session-badge badge"></span></div>
                                                             @if ($frozenInfo)
                                                                 <div class="text-warning" style="font-size:0.65rem;">
                                                                     <i class="bi bi-clock-history"></i>
@@ -263,59 +268,22 @@
                                 </div>
                             </div>
 
-                            <!-- STEP 3: Task Description -->
-                            <div class="mb-4">
-                                <label class="form-label fw-bold">
-                                    <span class="badge bg-warning text-dark me-2">3</span>Task Description
-                                    <span id="plan-task-badge" class="badge bg-success ms-1 d-none"><i class="bi bi-calendar2-check-fill me-1"></i>From Plan</span>
-                                </label>
-                                <input type="text" class="form-control" id="task-input" name="task"
-                                    placeholder="e.g., Sculpting, Painting, Assembly, etc." required>
+                            {{-- STEP 3 & 4: Task & Session Type — taken from Timing Planner per-employee --}}
+                            <div class="alert alert-info py-2 mb-4 d-flex align-items-center gap-2" style="font-size:0.82rem;">
+                                <i class="bi bi-info-circle-fill fs-5"></i>
+                                <span><strong>Task</strong> &amp; <strong>Session Type</strong> diambil otomatis per-karyawan dari
+                                <a href="{{ route('timing-planner.index') }}" target="_blank" class="alert-link fw-bold">Timing Planner</a>.
+                                Pilih JO di atas untuk melihat rinciannya.</span>
                             </div>
 
-                            <!-- STEP 4: Session Type -->
-                            <div class="mb-4">
-                                <label class="form-label fw-bold">
-                                    <span class="badge bg-warning text-dark me-2">4</span>Session Type <span
-                                        class="text-danger">*</span>
-                                    <span id="plan-session-badge" class="badge bg-success ms-1 d-none"><i class="bi bi-calendar2-check-fill me-1"></i>From Plan</span>
-                                </label>
-                                <div class="d-flex gap-3">
-                                    <div class="form-check flex-fill">
-                                        <input class="form-check-input" type="radio" name="session_type"
-                                            id="type-mass-production" value="mass_production" checked>
-                                        <label
-                                            class="form-check-label d-flex align-items-center gap-2 p-2 border rounded w-100 session-type-label"
-                                            for="type-mass-production" style="cursor:pointer;">
-                                            <span class="badge bg-success fs-6"><i
-                                                    class="bi bi-grid-3x3-gap-fill"></i></span>
-                                            <div>
-                                                <strong class="d-block">Mass Production</strong>
-
-                                            </div>
-                                        </label>
-                                    </div>
-                                    <div class="form-check flex-fill">
-                                        <input class="form-check-input" type="radio" name="session_type"
-                                            id="type-repair" value="repair">
-                                        <label
-                                            class="form-check-label d-flex align-items-center gap-2 p-2 border rounded w-100 session-type-label"
-                                            for="type-repair" style="cursor:pointer;">
-                                            <span class="badge bg-warning text-dark fs-6"><i
-                                                    class="bi bi-tools"></i></span>
-                                            <div>
-                                                <strong class="d-block">Repair</strong>
-
-                                            </div>
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
+                            {{-- Hidden fallback — controller still receives task & session_type --}}
+                            <input type="hidden" name="task" id="task-input" value="From Plan">
+                            <input type="hidden" name="session_type" id="session-type-hidden" value="mass_production">
 
                             <button type="submit" class="btn btn-success btn-lg w-100" id="start-work-btn">
                                 <i class="bi bi-play-circle-fill me-2"></i>
                                 <span id="btn-text">START WORK</span>
-                                <span id="btn-info" class="small">(Select job order, employees & task first)</span>
+                                <span id="btn-info" class="small">(Select job order &amp; employees first)</span>
                             </button>
                         </form>
                     </div>
@@ -794,21 +762,17 @@
             function updateStartButton() {
                 const hasEmployees = selectedEmployees.length > 0;
                 const hasJobOrder = selectedJobOrder !== null && selectedJobOrder !== '';
-                const hasTask = $('#task-input').val().trim() !== '';
 
                 const btn = $('#start-work-btn');
 
-                if (hasEmployees && hasJobOrder && hasTask) {
+                if (hasEmployees && hasJobOrder) {
                     btn.prop('disabled', false);
                     $('#btn-info').text(`(${selectedEmployees.length} employee(s) ready)`);
                 } else {
                     btn.prop('disabled', true);
-                    $('#btn-info').text('(Select employees, job order & task first)');
+                    $('#btn-info').text('(Select job order & employees first)');
                 }
             }
-
-            // Task input change
-            $('#task-input').on('input', updateStartButton);
 
             // Start work form submission
             $('#mascot-timer-form').on('submit', function(e) {
@@ -830,15 +794,6 @@
                         icon: 'warning',
                         title: 'No Job Order Selected',
                         text: 'Please select a job order'
-                    });
-                    return;
-                }
-
-                if (!task) {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'No Task Entered',
-                        text: 'Please enter a task description'
                     });
                     return;
                 }
@@ -889,7 +844,7 @@
                 const sessionTypesPayload = {};
                 selectedEmployees.forEach(empId => {
                     tasksPayload[empId] = currentTasksByEmp[empId] || task;
-                    sessionTypesPayload[empId] = currentSessionTypesByEmp[empId] || $('input[name="session_type"]:checked').val();
+                    sessionTypesPayload[empId] = currentSessionTypesByEmp[empId] || $('#session-type-hidden').val() || 'mass_production';
                 });
 
                 $.ajax({
