@@ -40,23 +40,53 @@
                     'admin'        => ['label' => 'Admin',        'icon' => 'fa-user-cog',      'color' => '#6f42c1'],
                     'hr'           => ['label' => 'HR',           'icon' => 'fa-users',         'color' => '#0d6efd'],
                     'production'   => ['label' => 'Production',   'icon' => 'fa-industry',      'color' => '#e83e8c'],
+                    'timing'       => ['label' => 'Timing',       'icon' => 'fa-stopwatch',     'color' => '#fd7e14'],
                     'logistic'     => ['label' => 'Logistic',     'icon' => 'fa-boxes',         'color' => '#fd7e14'],
                     'procurement'  => ['label' => 'Procurement',  'icon' => 'fa-file-invoice',  'color' => '#20c997'],
                     'finance'      => ['label' => 'Finance',      'icon' => 'fa-coins',         'color' => '#198754'],
                     'lark'         => ['label' => 'Lark',         'icon' => 'fa-sync-alt',      'color' => '#0dcaf0'],
                     'feature'      => ['label' => 'Feature',      'icon' => 'fa-bullhorn',      'color' => '#ffc107'],
                 ];
+
+                // Split production permissions: timing-related vs non-timing
+                $timingKeywords = ['timing', 'monitor'];
+                $splitPermissions = collect();
+                foreach ($allPermissions as $module => $permissions) {
+                    if ($module === 'production') {
+                        $timingPerms = $permissions->filter(function ($p) use ($timingKeywords) {
+                            $parts = explode('.', $p->name);
+                            $sub = $parts[1] ?? '';
+                            foreach ($timingKeywords as $kw) {
+                                if (str_contains($sub, $kw)) return true;
+                            }
+                            return false;
+                        });
+                        $prodPerms = $permissions->reject(function ($p) use ($timingKeywords) {
+                            $parts = explode('.', $p->name);
+                            $sub = $parts[1] ?? '';
+                            foreach ($timingKeywords as $kw) {
+                                if (str_contains($sub, $kw)) return true;
+                            }
+                            return false;
+                        });
+                        if ($prodPerms->isNotEmpty()) $splitPermissions['production'] = $prodPerms;
+                        if ($timingPerms->isNotEmpty()) $splitPermissions['timing'] = $timingPerms;
+                    } else {
+                        $splitPermissions[$module] = $permissions;
+                    }
+                }
                 @endphp
 
                 <div class="row g-3">
-                    @foreach ($allPermissions as $module => $permissions)
+                    @foreach ($splitPermissions as $module => $permissions)
                         @php
                         $meta  = $moduleLabels[$module] ?? ['label' => ucfirst($module), 'icon' => 'fa-key', 'color' => '#6c757d'];
                         $allChecked = $permissions->every(fn($p) => in_array($p->name, $rolePermissions));
                         @endphp
 
-                        <div class="col-12 col-md-6">
-                            <div class="border rounded p-3 h-100" style="background:#fafafa;">
+                        <div class="col-12 {{ $module === 'timing' ? 'col-md-12' : 'col-md-6' }}">
+                            <div class="border rounded p-3 h-100"
+                                style="background:{{ $module === 'timing' ? '#fff8f0' : '#fafafa' }}; {{ $module === 'timing' ? 'border-color:#fd7e14!important;' : '' }}">
 
                                 {{-- Module header --}}
                                 <div class="d-flex align-items-center justify-content-between mb-2">
@@ -83,7 +113,7 @@
                                         $parts  = explode('.', $permission->name);
                                         $label  = implode(' ', array_slice($parts, 1));
                                         @endphp
-                                        <div class="col-6">
+                                        <div class="{{ $module === 'timing' ? 'col-4 col-md-3' : 'col-6' }}">
                                             <label class="d-flex align-items-center gap-1 mb-0"
                                                 style="font-size:0.72rem;cursor:pointer;" title="{{ $permission->name }}">
                                                 <input type="checkbox"
