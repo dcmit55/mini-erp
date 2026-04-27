@@ -533,50 +533,60 @@
                                 @endcanany
 
                                 <!-- Timing Menu (Dedicated) -->
-                                @can('production.timing.view')
+                                @canany(['production.timing.view', 'production.mascot-timing.view', 'production.costume-timing.view', 'production.animatronics-timing.view', 'production.timing-monitor.view'])
                                     <li class="nav-item dropdown">
-                                        <a class="nav-link dropdown-toggle {{ request()->is('costume-timing*') || request()->is('animatronics-timing*') || request()->is('mascot-timing*') || request()->is('timing-monitor*') ? 'active' : '' }}"
+                                        <a class="nav-link dropdown-toggle {{ request()->is('costume-timing*') || request()->is('animatronics-timing*') || request()->is('mascot-timing*') || request()->is('timing-monitor*') || request()->is('timing-approval*') || request()->is('timings*') || request()->is('timing-planner*') ? 'active' : '' }}"
                                             href="#" id="timingDropdown" role="button" data-bs-toggle="dropdown"
                                             aria-expanded="false">
                                             <i></i>Timing
                                         </a>
                                         <ul class="dropdown-menu" aria-labelledby="timingDropdown">
-                                            <li>
-                                                <a class="dropdown-item {{ request()->is('costume-timing*') ? 'active' : '' }}"
-                                                    href="{{ route('costume-timing.index') }}">
-                                                    <i class="fas fa-cut me-2"></i>Costume Timing
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item {{ request()->is('animatronics-timing*') ? 'active' : '' }}"
-                                                    href="{{ route('animatronics-timing.index') }}">
-                                                    <i class="fas fa-robot me-2"></i>Animatronics Timing
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item {{ request()->is('mascot-timing*') ? 'active' : '' }}"
-                                                    href="{{ route('mascot-timing.index') }}">
-                                                    <i class="fas fa-masks-theater me-2"></i>Mascot Timing
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <hr class="dropdown-divider">
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item {{ request()->is('timing-monitor*') ? 'active' : '' }}"
-                                                    href="{{ route('timing-monitor.index') }}">
-                                                    <i class="fas fa-tv me-2"></i>Running Monitor
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item {{ request()->is('timing-approval*') ? 'active' : '' }}"
-                                                    href="{{ route('timing-approval.index') }}">
-                                                    <i class="fas fa-check me-2"></i>Timing Approval
-                                                </a>
-                                            </li>
+                                            @can('production.costume-timing.view')
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('costume-timing*') ? 'active' : '' }}"
+                                                        href="{{ route('costume-timing.index') }}">
+                                                        <i class="fas fa-cut me-2"></i>Costume Timing
+                                                    </a>
+                                                </li>
+                                            @endcan
+                                            @can('production.animatronics-timing.view')
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('animatronics-timing*') ? 'active' : '' }}"
+                                                        href="{{ route('animatronics-timing.index') }}">
+                                                        <i class="fas fa-robot me-2"></i>Animatronics Timing
+                                                    </a>
+                                                </li>
+                                            @endcan
+                                            @can('production.mascot-timing.view')
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('mascot-timing*') ? 'active' : '' }}"
+                                                        href="{{ route('mascot-timing.index') }}">
+                                                        <i class="fas fa-masks-theater me-2"></i>Mascot Timing
+                                                    </a>
+                                                </li>
+                                            @endcan
+                                            @canany(['production.timing-monitor.view', 'production.timing.view'])
+                                                <li>
+                                                    <hr class="dropdown-divider">
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('timing-monitor*') ? 'active' : '' }}"
+                                                        href="{{ route('timing-monitor.index') }}">
+                                                        <i class="fas fa-tv me-2"></i>Running Monitor
+                                                    </a>
+                                                </li>
+                                            @endcanany
+                                            @can('production.timing.view')
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('timing-approval*') ? 'active' : '' }}"
+                                                        href="{{ route('timing-approval.index') }}">
+                                                        <i class="fas fa-check me-2"></i>Timing Approval
+                                                    </a>
+                                                </li>
+                                            @endcan
                                         </ul>
                                     </li>
-                                @endcan
+                                @endcanany
 
                                 <!-- Finances Dropdown -->
                                 @canany(['finance.costing.view', 'finance.currency.view', 'procurement.po.approve',
