@@ -762,6 +762,7 @@ class MascotTimingController extends Controller
                     'duration_seconds' => $durationSeconds,
                     'previous_stage' => $previousStage,
                     'previous_progress' => $previousProgress,
+                    'session_type' => $timing->session_type ?? 'mass_production',
                 ];
             });
 

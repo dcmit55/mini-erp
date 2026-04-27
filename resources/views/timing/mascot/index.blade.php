@@ -1247,19 +1247,27 @@
                 sessions.forEach(session => {
                     const isFrozen = session.is_frozen || false;
                     const isAutoBreak = session.auto_break_paused || false;
+                    const isRepair = (session.session_type === 'repair');
                     const photo = session.employee_photo ?
                         `<img src="/storage/${session.employee_photo}" class="rounded-circle me-2" width="40" height="40" style="object-fit: cover;">` :
                         `<div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center me-2" style="width:40px;height:40px;"><i class="bi bi-person text-white"></i></div>`;
 
                     const statusBadge = isFrozen ?
                         `<span class="badge bg-warning text-dark me-1"><i class="bi bi-pause-circle"></i> PAUSED${isAutoBreak ? ' (BREAK)' : ''}</span>` :
-                        `<span class="badge bg-success me-1">RUNNING</span>`;
+                        (isRepair
+                            ? `<span class="badge me-1" style="background-color:#fd7e14;"><i class="bi bi-tools"></i> REPAIR</span>`
+                            : `<span class="badge bg-success me-1"><i class="bi bi-grid-3x3-gap-fill"></i> MASS PROD</span>`
+                        );
 
+                    const durationColor = isFrozen ? 'text-warning' : (isRepair ? '' : 'text-success');
+                    const durationStyle = isFrozen ? '' : (isRepair ? 'color:#fd7e14;' : '');
                     const durationHtml = isFrozen ?
                         `<span class="fs-5 fw-bold text-warning">${session.frozen_duration || '00:00:00'}</span>` :
-                        `<span class="duration-display fs-5 fw-bold text-success" data-start-time="${session.start_time}" data-session-id="${session.id}">00:00:00</span>`;
+                        `<span class="duration-display fs-5 fw-bold ${durationColor}" style="${durationStyle}" data-start-time="${session.start_time}" data-session-id="${session.id}">00:00:00</span>`;
 
-                    const cardBorder = isFrozen ? 'border-warning border-2' : '';
+                    const cardBorderClass = isFrozen ? 'border-warning border-2' : 'border-2';
+                    const cardBorderStyle = isFrozen ? '' : (isRepair ? 'border-color:#fd7e14!important;' : 'border-color:#198754!important;');
+                    const cardBorder = cardBorderClass;
 
                     const actionBtns = isFrozen ?
                         `<div class="d-grid">
@@ -1286,7 +1294,7 @@
                            </div>`;
 
                     html += `
-                        <div class="card session-card mb-3 ${cardBorder}" id="session-card-${session.id}" data-session-id="${session.id}">
+                        <div class="card session-card mb-3 ${cardBorder}" id="session-card-${session.id}" data-session-id="${session.id}" style="${cardBorderStyle}">
                             <div class="card-body p-3">
                                 <div class="d-flex align-items-center mb-2">
                                     ${photo}
