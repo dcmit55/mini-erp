@@ -608,12 +608,9 @@
                     }
                 });
 
-                // Auto-fill Session Type from plan
+                // Auto-fill Session Type from plan (update hidden input)
                 if (plannedSessionType) {
-                    $('input[name="session_type"]').prop('checked', false); // uncheck all first
-                    $(`input[name="session_type"][value="${plannedSessionType}"]`)
-                        .prop('checked', true)
-                        .trigger('change');
+                    $('#session-type-hidden').val(plannedSessionType);
                     $('#plan-session-badge').removeClass('d-none');
                 } else {
                     $('#plan-session-badge').addClass('d-none');
@@ -856,7 +853,7 @@
                         job_order_id: selectedJobOrder,
                         task: task,
                         tasks: tasksPayload,
-                        session_type: $('input[name="session_type"]:checked').val(),
+                        session_type: $('#session-type-hidden').val() || 'mass_production',
                         session_types: sessionTypesPayload
                     },
                     success: function(response) {
