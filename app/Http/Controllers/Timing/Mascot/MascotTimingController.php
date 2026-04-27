@@ -83,11 +83,13 @@ class MascotTimingController extends Controller
                     $dq->whereIn('departments.id', $sharedDepts);
                 });
             })
-            ->orderByRaw('CASE
+            ->orderByRaw(
+                'CASE
                 WHEN delivery_date IS NULL THEN 2
                 WHEN DATE(delivery_date) < CURDATE() THEN 3
                 ELSE 1
-            END ASC')
+            END ASC',
+            )
             ->orderByRaw('CASE WHEN delivery_date IS NOT NULL AND DATE(delivery_date) >= CURDATE() THEN delivery_date END ASC')
             ->orderByRaw('CASE WHEN delivery_date IS NOT NULL AND DATE(delivery_date) < CURDATE() THEN delivery_date END DESC')
             ->get();
@@ -97,19 +99,17 @@ class MascotTimingController extends Controller
         $plannedEmployeesPerJo = [];
         $plannedDataPerJo = []; // includes stage & session_type
         if (!empty($joIds)) {
-            $plans = JobOrderTimingPlan::whereIn('job_order_id', $joIds)
-                ->select('job_order_id', 'employee_id', 'task', 'stage', 'session_type')
-                ->get();
+            $plans = JobOrderTimingPlan::whereIn('job_order_id', $joIds)->select('job_order_id', 'employee_id', 'task', 'stage', 'session_type')->get();
             $plansByJo = $plans->groupBy('job_order_id');
             foreach ($plansByJo as $joId => $rows) {
                 $plannedEmployeesPerJo[$joId] = $rows->pluck('employee_id')->toArray();
                 $first = $rows->first();
                 $plannedDataPerJo[$joId] = [
-                    'employee_ids'      => $rows->pluck('employee_id')->toArray(),
-                    'task'              => $first->task ?? '',
-                    'task_per_emp'      => $rows->pluck('task', 'employee_id')->toArray(),
-                    'stage'             => $first->stage ?? '',
-                    'session_type'      => $first->session_type ?? '',
+                    'employee_ids' => $rows->pluck('employee_id')->toArray(),
+                    'task' => $first->task ?? '',
+                    'task_per_emp' => $rows->pluck('task', 'employee_id')->toArray(),
+                    'stage' => $first->stage ?? '',
+                    'session_type' => $first->session_type ?? '',
                     'session_type_per_emp' => $rows->pluck('session_type', 'employee_id')->toArray(),
                 ];
             }

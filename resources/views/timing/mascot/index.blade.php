@@ -226,10 +226,12 @@
                                                             <div class="emp-plan-task text-success d-none"
                                                                 style="font-size:0.6rem; line-height:1.2; margin-top:2px;">
                                                                 <i class="bi bi-clipboard2-check me-1"></i><span
-                                                                    class="emp-plan-task-text"></span></div>
+                                                                    class="emp-plan-task-text"></span>
+                                                            </div>
                                                             <div class="emp-plan-session d-none"
                                                                 style="font-size:0.6rem; line-height:1.2; margin-top:1px;">
-                                                                <span class="emp-plan-session-badge badge"></span></div>
+                                                                <span class="emp-plan-session-badge badge"></span>
+                                                            </div>
                                                             @if ($frozenInfo)
                                                                 <div class="text-warning" style="font-size:0.65rem;">
                                                                     <i class="bi bi-clock-history"></i>
@@ -269,11 +271,14 @@
                             </div>
 
                             {{-- STEP 3 & 4: Task & Session Type — taken from Timing Planner per-employee --}}
-                            <div class="alert alert-info py-2 mb-4 d-flex align-items-center gap-2" style="font-size:0.82rem;">
+                            <div class="alert alert-info py-2 mb-4 d-flex align-items-center gap-2"
+                                style="font-size:0.82rem;">
                                 <i class="bi bi-info-circle-fill fs-5"></i>
-                                <span><strong>Task</strong> &amp; <strong>Session Type</strong> diambil otomatis per-karyawan dari
-                                <a href="{{ route('timing-planner.index') }}" target="_blank" class="alert-link fw-bold">Timing Planner</a>.
-                                Pilih JO di atas untuk melihat rinciannya.</span>
+                                <span><strong>Task</strong> &amp; <strong>Session Type</strong> diambil otomatis
+                                    per-karyawan dari
+                                    <a href="{{ route('timing-planner.index') }}" target="_blank"
+                                        class="alert-link fw-bold">Timing Planner</a>.
+                                    Pilih JO di atas untuk melihat rinciannya.</span>
                             </div>
 
                             {{-- Hidden fallback — controller still receives task & session_type --}}
@@ -841,7 +846,8 @@
                 const sessionTypesPayload = {};
                 selectedEmployees.forEach(empId => {
                     tasksPayload[empId] = currentTasksByEmp[empId] || task;
-                    sessionTypesPayload[empId] = currentSessionTypesByEmp[empId] || $('#session-type-hidden').val() || 'mass_production';
+                    sessionTypesPayload[empId] = currentSessionTypesByEmp[empId] || $(
+                        '#session-type-hidden').val() || 'mass_production';
                 });
 
                 $.ajax({
@@ -1254,9 +1260,9 @@
 
                     const statusBadge = isFrozen ?
                         `<span class="badge bg-warning text-dark me-1"><i class="bi bi-pause-circle"></i> PAUSED${isAutoBreak ? ' (BREAK)' : ''}</span>` :
-                        (isRepair
-                            ? `<span class="badge me-1" style="background-color:#fd7e14;"><i class="bi bi-tools"></i> REPAIR</span>`
-                            : `<span class="badge bg-success me-1"><i class="bi bi-grid-3x3-gap-fill"></i> MASS PROD</span>`
+                        (isRepair ?
+                            `<span class="badge me-1" style="background-color:#fd7e14;"><i class="bi bi-tools"></i> REPAIR</span>` :
+                            `<span class="badge bg-success me-1"><i class="bi bi-grid-3x3-gap-fill"></i> MASS PROD</span>`
                         );
 
                     const durationColor = isFrozen ? 'text-warning' : (isRepair ? '' : 'text-success');
@@ -1266,7 +1272,8 @@
                         `<span class="duration-display fs-5 fw-bold ${durationColor}" style="${durationStyle}" data-start-time="${session.start_time}" data-session-id="${session.id}">00:00:00</span>`;
 
                     const cardBorderClass = isFrozen ? 'border-warning border-2' : 'border-2';
-                    const cardBorderStyle = isFrozen ? '' : (isRepair ? 'border-color:#fd7e14!important;' : 'border-color:#198754!important;');
+                    const cardBorderStyle = isFrozen ? '' : (isRepair ? 'border-color:#fd7e14!important;' :
+                        'border-color:#198754!important;');
                     const cardBorder = cardBorderClass;
 
                     const actionBtns = isFrozen ?

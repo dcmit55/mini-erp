@@ -222,8 +222,8 @@
                                 @can('production.project.view')
                                     <li class="nav-item dropdown">
                                         <a class="nav-link dropdown-toggle {{ request()->is('projects*') || request()->is('internal-projects*') || request()->is('job-order-type-gradings*') ? 'active' : '' }}"
-                                            href="#" id="projectsDropdown" role="button"
-                                            data-bs-toggle="dropdown" aria-expanded="false">
+                                            href="#" id="projectsDropdown" role="button" data-bs-toggle="dropdown"
+                                            aria-expanded="false">
                                             <i></i>Projects
                                         </a>
                                         <ul class="dropdown-menu" aria-labelledby="projectsDropdown">
@@ -253,11 +253,14 @@
                                 @endcan
 
                                 <!-- Logistics Dropdown -->
-                                @canany(['logistic.inventory.view', 'logistic.inventory-batch.view', 'logistic.stock-adjustment.view', 'logistic.material-request.view', 'logistic.goods-out.view', 'logistic.goods-in.view', 'logistic.material-usage.view', 'lark.staging.view'])
+                                @canany(['logistic.inventory.view', 'logistic.inventory-batch.view',
+                                    'logistic.stock-adjustment.view', 'logistic.material-request.view',
+                                    'logistic.goods-out.view', 'logistic.goods-in.view', 'logistic.material-usage.view',
+                                    'lark.staging.view'])
                                     <li class="nav-item dropdown">
                                         <a class="nav-link dropdown-toggle {{ isDropdownActive($logisticsPrefixes) ? 'active' : '' }}"
-                                            href="#" id="logisticsDropdown" role="button"
-                                            data-bs-toggle="dropdown" aria-expanded="false">
+                                            href="#" id="logisticsDropdown" role="button" data-bs-toggle="dropdown"
+                                            aria-expanded="false">
                                             <i></i>Logistics
                                         </a>
                                         <ul class="dropdown-menu" aria-labelledby="logisticsDropdown">
@@ -374,7 +377,8 @@
                                 @endcanany
 
                                 <!-- Procurement Dropdown -->
-                                @canany(['procurement.po.view', 'procurement.supplier.view', 'procurement.shipping.view'])
+                                @canany(['procurement.po.view', 'procurement.supplier.view',
+                                    'procurement.shipping.view'])
                                     <li class="nav-item dropdown">
                                         <a class="nav-link dropdown-toggle {{ isDropdownActive($procurementPrefixes) ? 'active' : '' }}"
                                             href="#" id="procurementDropdown" role="button"
@@ -431,7 +435,8 @@
                                 @endcanany
 
                                 <!-- Productions Dropdown -->
-                                @canany(['production.jo.view', 'production.material-planning.view', 'logistic.material-request.view', 'logistic.material-usage.view', 'hr.overtime.view'])
+                                @canany(['production.jo.view', 'production.material-planning.view',
+                                    'logistic.material-request.view', 'logistic.material-usage.view', 'hr.overtime.view'])
                                     @php
                                         $deptLeavePendingCount = 0;
                                         $deptMap = \App\Models\Hr\LeaveRequest::DEPT_ROLE_MAP ?? [];
@@ -531,8 +536,8 @@
                                 @can('production.timing.view')
                                     <li class="nav-item dropdown">
                                         <a class="nav-link dropdown-toggle {{ request()->is('costume-timing*') || request()->is('animatronics-timing*') || request()->is('mascot-timing*') || request()->is('timing-monitor*') ? 'active' : '' }}"
-                                            href="#" id="timingDropdown" role="button"
-                                            data-bs-toggle="dropdown" aria-expanded="false">
+                                            href="#" id="timingDropdown" role="button" data-bs-toggle="dropdown"
+                                            aria-expanded="false">
                                             <i></i>Timing
                                         </a>
                                         <ul class="dropdown-menu" aria-labelledby="timingDropdown">
@@ -574,7 +579,8 @@
                                 @endcan
 
                                 <!-- Finances Dropdown -->
-                                @canany(['finance.costing.view', 'finance.currency.view', 'procurement.po.approve', 'finance.purchase-edited.view', 'finance.kasbon.view'])
+                                @canany(['finance.costing.view', 'finance.currency.view', 'procurement.po.approve',
+                                    'finance.purchase-edited.view', 'finance.kasbon.view'])
                                     <li class="nav-item dropdown">
                                         <a class="nav-link dropdown-toggle {{ request()->is('currencies*') ||
                                         request()->is('costing-report*') ||
@@ -590,65 +596,65 @@
                                         </a>
                                         <ul class="dropdown-menu" aria-labelledby="financesDropdown">
                                             @can('finance.currency.view')
-                                            <li>
-                                                <a class="dropdown-item {{ request()->is('currencies*') ? 'active' : '' }}"
-                                                    href="{{ route('currencies.index') }}">
-                                                    <i class="fas fa-money-bill me-2"></i>Currency
-                                                </a>
-                                            </li>
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('currencies*') ? 'active' : '' }}"
+                                                        href="{{ route('currencies.index') }}">
+                                                        <i class="fas fa-money-bill me-2"></i>Currency
+                                                    </a>
+                                                </li>
                                             @endcan
                                             @can('finance.costing.view')
-                                            <li>
-                                                <a class="dropdown-item {{ request()->is('costing-report*') ? 'active' : '' }}"
-                                                    href="{{ route('costing.report') }}">
-                                                    <i class="fas fa-chart-line me-2"></i>Costing Project
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item {{ request()->is('final_project_summary*') ? 'active' : '' }}"
-                                                    href="{{ route('final_project_summary.index') }}">
-                                                    <i class="fas fa-file-contract me-2"></i>Final Project Summary
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item {{ request()->is('dcm-costings*') ? 'active' : '' }}"
-                                                    href="{{ route('dcm-costings.index') }}">
-                                                    <i class="fas fa-file-invoice-dollar me-2"></i>DCM Costing
-                                                </a>
-                                            </li>
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('costing-report*') ? 'active' : '' }}"
+                                                        href="{{ route('costing.report') }}">
+                                                        <i class="fas fa-chart-line me-2"></i>Costing Project
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('final_project_summary*') ? 'active' : '' }}"
+                                                        href="{{ route('final_project_summary.index') }}">
+                                                        <i class="fas fa-file-contract me-2"></i>Final Project Summary
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('dcm-costings*') ? 'active' : '' }}"
+                                                        href="{{ route('dcm-costings.index') }}">
+                                                        <i class="fas fa-file-invoice-dollar me-2"></i>DCM Costing
+                                                    </a>
+                                                </li>
                                             @endcan
                                             @can('procurement.po.approve')
-                                            <li>
-                                                <a class="dropdown-item {{ request()->is('purchase-approvals*') ? 'active' : '' }}"
-                                                    href="{{ route('purchase-approvals.index') }}">
-                                                    <i class="fas fa-clipboard-check me-2"></i>Purchase Approvals
-                                                </a>
-                                            </li>
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('purchase-approvals*') ? 'active' : '' }}"
+                                                        href="{{ route('purchase-approvals.index') }}">
+                                                        <i class="fas fa-clipboard-check me-2"></i>Purchase Approvals
+                                                    </a>
+                                                </li>
                                             @endcan
                                             @can('finance.purchase-edited.view')
-                                            <li>
-                                                <a class="dropdown-item {{ request()->is('purchase-edited*') ? 'active' : '' }}"
-                                                    href="{{ route('purchase-edited.index') }}">
-                                                    <i class="fas fa-edit me-2"></i>Purchase Edited
-                                                </a>
-                                            </li>
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('purchase-edited*') ? 'active' : '' }}"
+                                                        href="{{ route('purchase-edited.index') }}">
+                                                        <i class="fas fa-edit me-2"></i>Purchase Edited
+                                                    </a>
+                                                </li>
                                             @endcan
                                             @can('finance.kasbon.view')
-                                            <li>
-                                                <hr class="dropdown-divider">
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item {{ request()->is('admin/kasbon') ? 'active' : '' }}"
-                                                    href="{{ route('kasbon.admin.index') }}">
-                                                    <i class="fas fa-hand-holding-usd me-2"></i>Cash Advance
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item {{ request()->is('admin/kasbon/installments*') ? 'active' : '' }}"
-                                                    href="{{ route('kasbon.admin.installments') }}">
-                                                    <i class="fas fa-calendar-check me-2"></i>Installment Monitoring
-                                                </a>
-                                            </li>
+                                                <li>
+                                                    <hr class="dropdown-divider">
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('admin/kasbon') ? 'active' : '' }}"
+                                                        href="{{ route('kasbon.admin.index') }}">
+                                                        <i class="fas fa-hand-holding-usd me-2"></i>Cash Advance
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('admin/kasbon/installments*') ? 'active' : '' }}"
+                                                        href="{{ route('kasbon.admin.installments') }}">
+                                                        <i class="fas fa-calendar-check me-2"></i>Installment Monitoring
+                                                    </a>
+                                                </li>
                                             @endcan
                                         </ul>
                                     </li>
@@ -841,8 +847,8 @@
                                 @can('admin.users.view')
                                     <li class="nav-item dropdown">
                                         <a class="nav-link dropdown-toggle {{ request()->is('users*') || request()->is('departments*') || request()->routeIs('trash.index') || request()->is('audit*') ? 'active' : '' }}"
-                                            href="#" id="adminDropdown" role="button"
-                                            data-bs-toggle="dropdown" aria-expanded="false">
+                                            href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown"
+                                            aria-expanded="false">
                                             <i></i>Admin
                                         </a>
                                         <ul class="dropdown-menu" aria-labelledby="adminDropdown">
@@ -1549,13 +1555,16 @@
                         width: calc(100vw - 16px) !important;
                         border-radius: 16px !important;
                     }
+
                     #chatbot-messages {
                         max-height: calc(100vh - 230px) !important;
                     }
+
                     .cb-bubble {
                         max-width: 90%;
                         font-size: .82rem;
                     }
+
                     .cb-chip {
                         font-size: .70rem;
                         padding: 3px 8px;
@@ -1777,23 +1786,35 @@
                 ();
 
                 // ── Draggable AssistiveTouch — snap to left/right edge ───────
-                (function () {
-                    const el     = document.getElementById('symcore-chatbot');
+                (function() {
+                    const el = document.getElementById('symcore-chatbot');
                     const toggle = el.querySelector('#chatbot-toggle');
-                    const SNAP   = 16;   // px from screen edge when snapped
-                    const THRESH = 6;    // px movement to classify as drag vs click
+                    const SNAP = 16; // px from screen edge when snapped
+                    const THRESH = 6; // px movement to classify as drag vs click
 
-                    let dragging = false, hasDragged = false;
+                    let dragging = false,
+                        hasDragged = false;
                     let startX, startY, origLeft, origBottom;
                     let currentSide = 'right';
 
                     // ── Persist ───────────────────────────────────────────────
                     const POS_KEY = 'symbot_pos_v2';
+
                     function savePos(side, bottom) {
-                        try { localStorage.setItem(POS_KEY, JSON.stringify({ side, bottom })); } catch(e) {}
+                        try {
+                            localStorage.setItem(POS_KEY, JSON.stringify({
+                                side,
+                                bottom
+                            }));
+                        } catch (e) {}
                     }
+
                     function loadPos() {
-                        try { return JSON.parse(localStorage.getItem(POS_KEY)); } catch(e) { return null; }
+                        try {
+                            return JSON.parse(localStorage.getItem(POS_KEY));
+                        } catch (e) {
+                            return null;
+                        }
                     }
 
                     // ── Snap button to a side ─────────────────────────────────
@@ -1801,16 +1822,16 @@
                         currentSide = side;
                         const maxBottom = window.innerHeight - el.offsetHeight - SNAP;
                         const safeBottom = Math.max(SNAP, Math.min(maxBottom, bottom));
-                        el.style.transition = animate
-                            ? 'left .28s cubic-bezier(.25,.8,.25,1), right .28s cubic-bezier(.25,.8,.25,1), bottom .28s cubic-bezier(.25,.8,.25,1)'
-                            : 'none';
+                        el.style.transition = animate ?
+                            'left .28s cubic-bezier(.25,.8,.25,1), right .28s cubic-bezier(.25,.8,.25,1), bottom .28s cubic-bezier(.25,.8,.25,1)' :
+                            'none';
                         el.style.top = 'auto';
                         el.style.bottom = safeBottom + 'px';
                         if (side === 'right') {
                             el.style.right = SNAP + 'px';
-                            el.style.left  = 'auto';
+                            el.style.left = 'auto';
                         } else {
-                            el.style.left  = SNAP + 'px';
+                            el.style.left = SNAP + 'px';
                             el.style.right = 'auto';
                         }
                         savePos(side, safeBottom);
@@ -1823,26 +1844,26 @@
                         if (!win) return;
 
                         const btnRect = el.getBoundingClientRect();
-                        const winW    = win.offsetWidth  || 380; // actual width (CSS handles mobile sizing)
-                        const winH    = win.offsetHeight || 520; // actual height (constrained by max-height)
-                        const vW      = window.innerWidth;
-                        const vH      = window.innerHeight;
-                        const gap     = 10;
-                        const edge    = 8;
+                        const winW = win.offsetWidth || 380; // actual width (CSS handles mobile sizing)
+                        const winH = win.offsetHeight || 520; // actual height (constrained by max-height)
+                        const vW = window.innerWidth;
+                        const vH = window.innerHeight;
+                        const gap = 10;
+                        const edge = 8;
 
                         // Horizontal: center on narrow screens; align to button side on desktop
                         let left;
                         if (vW <= 480) {
                             left = Math.max(edge, Math.round((vW - winW) / 2));
                         } else {
-                            left = (currentSide === 'right')
-                                ? btnRect.right - winW
-                                : btnRect.left;
+                            left = (currentSide === 'right') ?
+                                btnRect.right - winW :
+                                btnRect.left;
                             left = Math.max(edge, Math.min(vW - winW - edge, left));
                         }
 
                         // Vertical: prefer above button; fall back to below; always clamp
-                        const spaceAbove = btnRect.top  - gap;
+                        const spaceAbove = btnRect.top - gap;
                         const spaceBelow = vH - btnRect.bottom - gap;
                         let top;
                         if (spaceAbove >= winH || spaceAbove > spaceBelow) {
@@ -1854,9 +1875,9 @@
                             top = Math.max(edge, top);
                         }
 
-                        win.style.left   = left + 'px';
-                        win.style.right  = 'auto';
-                        win.style.top    = top  + 'px';
+                        win.style.left = left + 'px';
+                        win.style.right = 'auto';
+                        win.style.top = top + 'px';
                         win.style.bottom = 'auto';
                     }
 
@@ -1869,28 +1890,30 @@
 
                     // ── Drag handlers ─────────────────────────────────────────
                     function onStart(cx, cy) {
-                        dragging   = true;
+                        dragging = true;
                         hasDragged = false;
-                        startX = cx; startY = cy;
-                        const r    = el.getBoundingClientRect();
-                        origLeft   = r.left;
+                        startX = cx;
+                        startY = cy;
+                        const r = el.getBoundingClientRect();
+                        origLeft = r.left;
                         origBottom = window.innerHeight - r.bottom;
                         el.style.transition = 'none';
-                        el.style.left  = origLeft + 'px';
+                        el.style.left = origLeft + 'px';
                         el.style.right = 'auto';
                         document.body.style.userSelect = 'none';
                     }
 
                     function onMove(cx, cy) {
                         if (!dragging) return;
-                        const dx = cx - startX, dy = cy - startY;
+                        const dx = cx - startX,
+                            dy = cy - startY;
                         if (!hasDragged && (Math.abs(dx) > THRESH || Math.abs(dy) > THRESH)) {
                             hasDragged = true;
                         }
                         if (!hasDragged) return;
-                        const newLeft   = Math.max(0, Math.min(window.innerWidth  - el.offsetWidth,  origLeft   + dx));
+                        const newLeft = Math.max(0, Math.min(window.innerWidth - el.offsetWidth, origLeft + dx));
                         const newBottom = Math.max(0, Math.min(window.innerHeight - el.offsetHeight, origBottom - dy));
-                        el.style.left   = newLeft   + 'px';
+                        el.style.left = newLeft + 'px';
                         el.style.bottom = newBottom + 'px';
                     }
 
@@ -1907,10 +1930,10 @@
                         }
 
                         // Snap to nearest side
-                        const r      = el.getBoundingClientRect();
+                        const r = el.getBoundingClientRect();
                         const centerX = r.left + el.offsetWidth / 2;
-                        const side    = centerX > window.innerWidth / 2 ? 'right' : 'left';
-                        const bottom  = window.innerHeight - r.bottom;
+                        const side = centerX > window.innerWidth / 2 ? 'right' : 'left';
+                        const bottom = window.innerHeight - r.bottom;
                         applySnap(side, bottom, true);
                     }
 
@@ -1918,20 +1941,35 @@
                     toggle.removeAttribute('onclick');
 
                     // Mouse
-                    toggle.addEventListener('mousedown', e => { e.preventDefault(); onStart(e.clientX, e.clientY); });
-                    document.addEventListener('mousemove', e => { onMove(e.clientX, e.clientY); });
-                    document.addEventListener('mouseup',   () => { onEnd(); });
+                    toggle.addEventListener('mousedown', e => {
+                        e.preventDefault();
+                        onStart(e.clientX, e.clientY);
+                    });
+                    document.addEventListener('mousemove', e => {
+                        onMove(e.clientX, e.clientY);
+                    });
+                    document.addEventListener('mouseup', () => {
+                        onEnd();
+                    });
 
                     // Touch
                     toggle.addEventListener('touchstart', e => {
-                        const t = e.touches[0]; onStart(t.clientX, t.clientY);
-                    }, { passive: true });
+                        const t = e.touches[0];
+                        onStart(t.clientX, t.clientY);
+                    }, {
+                        passive: true
+                    });
                     document.addEventListener('touchmove', e => {
                         if (!dragging) return;
                         e.preventDefault();
-                        const t = e.touches[0]; onMove(t.clientX, t.clientY);
-                    }, { passive: false });
-                    document.addEventListener('touchend', () => { onEnd(); });
+                        const t = e.touches[0];
+                        onMove(t.clientX, t.clientY);
+                    }, {
+                        passive: false
+                    });
+                    document.addEventListener('touchend', () => {
+                        onEnd();
+                    });
                 })();
             </script>
         @endauth

@@ -116,21 +116,19 @@ class CostumeTimingController extends Controller
         $joIds = $jobOrders->pluck('id')->toArray();
         $plannedDataPerJo = [];
         if (!empty($joIds)) {
-            $plans = JobOrderTimingPlan::whereIn('job_order_id', $joIds)
-                ->select('job_order_id', 'employee_id', 'task', 'stage', 'session_type')
-                ->get();
+            $plans = JobOrderTimingPlan::whereIn('job_order_id', $joIds)->select('job_order_id', 'employee_id', 'task', 'stage', 'session_type')->get();
             foreach ($plans->groupBy('job_order_id') as $joId => $rows) {
                 $first = $rows->first();
                 $plannedDataPerJo[$joId] = [
                     'employee_ids' => $rows->pluck('employee_id')->toArray(),
-                    'task'         => $first->task ?? '',
+                    'task' => $first->task ?? '',
                     'task_per_emp' => $rows->pluck('task', 'employee_id')->toArray(),
-                    'stage'        => $first->stage ?? '',
+                    'stage' => $first->stage ?? '',
                     'session_type' => $first->session_type ?? '',
                     'session_type_per_emp' => $rows->pluck('session_type', 'employee_id')->toArray(),
                 ];
             }
-}
+        }
 
         // Frozen sessions keyed by employee_id so the view can show paused indicators
         $frozenSessions = Timing::where('status', 'frozen')->today()->withRelations()->get();

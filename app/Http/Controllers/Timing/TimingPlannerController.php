@@ -52,11 +52,13 @@ class TimingPlannerController extends Controller
                     $dq->whereIn('departments.id', $sharedDepts);
                 });
             })
-            ->orderByRaw('CASE
+            ->orderByRaw(
+                'CASE
                 WHEN delivery_date IS NULL THEN 2
                 WHEN DATE(delivery_date) < CURDATE() THEN 3
                 ELSE 1
-            END ASC')
+            END ASC',
+            )
             ->orderByRaw('CASE WHEN delivery_date IS NOT NULL AND DATE(delivery_date) >= CURDATE() THEN delivery_date END ASC')
             ->orderByRaw('CASE WHEN delivery_date IS NOT NULL AND DATE(delivery_date) < CURDATE() THEN delivery_date END DESC')
             ->get();

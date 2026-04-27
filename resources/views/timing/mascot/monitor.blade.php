@@ -86,10 +86,10 @@
                     <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
                         <div>
                             <div class="fw-bold" style="font-size:.85rem;"><i class="bi bi-tools me-2"
-                                    style="color:#e65100;"></i>Repair</div>
+                                    style="color:#fd7e14;"></i>Repair</div>
                             <small class="text-muted">Sesi running perbaikan / rework</small>
                         </div>
-                        <h2 class="mb-0 fw-bold" style="color:#e65100;">{{ $totalRepair }}</h2>
+                        <h2 class="mb-0 fw-bold" style="color:#fd7e14;">{{ $totalRepair }}</h2>
                     </div>
                 </div>
             </div>
@@ -468,8 +468,8 @@
         }
 
         .session-card.session-repair {
-            background-color: #fff3e0;
-            border-left: 5px solid #e65100 !important;
+            background-color: #fff4e6;
+            border-left: 5px solid #fd7e14 !important;
         }
 
         .session-card.session-frozen {

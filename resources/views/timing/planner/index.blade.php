@@ -413,9 +413,7 @@
                 // Compute allowed stages: 1 step back from lastStage, current, all forward
                 // lastStage = 0 means no history → show all stages
                 const minStageNum = lastStage > 1 ? lastStage - 1 : (lastStage === 1 ? 1 : 0);
-                const stageSource = lastStage > 0 ?
-                    ['', ...ALL_STAGES.slice(minStageNum - 1)] :
-                    ['', ...ALL_STAGES];
+                const stageSource = lastStage > 0 ? ['', ...ALL_STAGES.slice(minStageNum - 1)] : ['', ...ALL_STAGES];
 
                 // Default pre-fill: the last stage of the JO (so planner opens on current stage)
                 const defaultStage = lastStage > 0 ? ALL_STAGES[lastStage - 1] : '';
@@ -629,7 +627,10 @@
                 const planRows = getValidRows();
                 const empIds = getValidEmpIds();
                 if (planRows.length === 0) {
-                    Swal.fire({ icon: 'warning', title: 'Input minimal 1 karyawan' });
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Input minimal 1 karyawan'
+                    });
                     return;
                 }
                 // Validate required fields per row

@@ -130,8 +130,13 @@
                                                                 </div>
                                                             @endif
                                                             <h6 class="mb-0 small lh-sm">{{ $employee->name }}</h6>
-                                                            <div class="emp-plan-task text-success d-none" style="font-size:0.6rem; line-height:1.2; margin-top:2px;"><i class="bi bi-clipboard2-check me-1"></i><span class="emp-plan-task-text"></span></div>
-                                                            <div class="emp-plan-session d-none" style="font-size:0.6rem; line-height:1.2; margin-top:1px;"><span class="emp-plan-session-badge badge"></span></div>
+                                                            <div class="emp-plan-task text-success d-none"
+                                                                style="font-size:0.6rem; line-height:1.2; margin-top:2px;">
+                                                                <i class="bi bi-clipboard2-check me-1"></i><span
+                                                                    class="emp-plan-task-text"></span></div>
+                                                            <div class="emp-plan-session d-none"
+                                                                style="font-size:0.6rem; line-height:1.2; margin-top:1px;">
+                                                                <span class="emp-plan-session-badge badge"></span></div>
                                                             @if ($frozenInfo)
                                                                 <div class="text-warning" style="font-size:0.65rem;">
                                                                     <i class="bi bi-clock-history"></i>
@@ -172,7 +177,8 @@
                                             data-planned-session-type="{{ $joplan['session_type'] ?? '' }}"
                                             data-planned-session-types-by-emp='@json($joplan['session_type_per_emp'] ?? [])'
                                             data-planned-employees='@json($joplan['employee_ids'] ?? [])'>
-                                            {{ $jo->name }} ({{ $jo->project->name ?? 'N/A' }}){{ $joplan ? ' 📅' : '' }}
+                                            {{ $jo->name }}
+                                            ({{ $jo->project->name ?? 'N/A' }}){{ $joplan ? ' 📅' : '' }}
                                         </option>
                                     @endforeach
                                 </select>
@@ -199,9 +205,9 @@
                                 </label>
                                 <div class="row g-3">
                                     <div class="col-md-6">
-                                        <label class="form-label small">Step/Process <span
-                                                class="text-danger">*</span>
-                                            <span id="plan-task-badge" class="badge bg-success ms-1 d-none"><i class="bi bi-calendar2-check-fill me-1"></i>From Plan</span>
+                                        <label class="form-label small">Step/Process <span class="text-danger">*</span>
+                                            <span id="plan-task-badge" class="badge bg-success ms-1 d-none"><i
+                                                    class="bi bi-calendar2-check-fill me-1"></i>From Plan</span>
                                         </label>
                                         <input type="text" class="form-control" id="step-input" name="step"
                                             placeholder="e.g., Cutting, Sewing" required>
@@ -219,7 +225,8 @@
                                 <label class="form-label fw-bold">
                                     <span class="badge bg-secondary me-2">4</span>Session Type <span
                                         class="text-danger">*</span>
-                                    <span id="plan-session-badge" class="badge bg-success ms-1 d-none"><i class="bi bi-calendar2-check-fill me-1"></i>From Plan</span>
+                                    <span id="plan-session-badge" class="badge bg-success ms-1 d-none"><i
+                                            class="bi bi-calendar2-check-fill me-1"></i>From Plan</span>
                                 </label>
                                 <div class="d-flex gap-3">
                                     <div class="form-check flex-fill">
@@ -576,7 +583,8 @@
                     const plannedTask = selectedOption.data('planned-task') || '';
                     const plannedTasksByEmp = selectedOption.data('planned-tasks-by-emp') || {};
                     const plannedSessionType = selectedOption.data('planned-session-type') || '';
-                    const plannedSessionTypesByEmp = selectedOption.data('planned-session-types-by-emp') || {};
+                    const plannedSessionTypesByEmp = selectedOption.data('planned-session-types-by-emp') ||
+                    {};
                     const plannedEmpIds = selectedOption.data('planned-employees') || [];
 
                     // Store globally for form submission
@@ -713,7 +721,7 @@
                         const empName = wrapper.find('h6').text().trim();
                         pausedWarnings.push(
                             `<li><strong>${empName}</strong> — masih ada sesi PAUSED: <em>${jobOrder}</em> (${duration})</li>`
-                            );
+                        );
                     }
                 });
 
