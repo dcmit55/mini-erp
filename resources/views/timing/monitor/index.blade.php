@@ -105,14 +105,13 @@
                 </div>
             </div>
             <div class="col-md-6">
-                <div class="card shadow-sm session-repair">
+                <div class="card shadow-sm border-0 text-white" style="background-color:#fd7e14;">
                     <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
                         <div>
-                            <div class="fw-bold" style="font-size:.85rem;"><i class="bi bi-tools me-2"
-                                    style="color:#fd7e14;"></i>Repair</div>
-                            <small class="text-muted">Sesi running perbaikan / rework</small>
+                            <div class="fw-bold" style="font-size:.85rem;"><i class="bi bi-tools me-2"></i>Repair</div>
+                            <small class="opacity-75">Sesi running perbaikan / rework</small>
                         </div>
-                        <h2 class="mb-0 fw-bold" style="color:#fd7e14;">{{ $totalRepair }}</h2>
+                        <h2 class="mb-0 fw-bold">{{ $totalRepair }}</h2>
                     </div>
                 </div>
             </div>
