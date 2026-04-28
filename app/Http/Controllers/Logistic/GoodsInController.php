@@ -131,7 +131,7 @@ class GoodsInController extends Controller
     // Helper method untuk format quantity
     private function formatQuantity($goodsIn)
     {
-        $unit = $goodsIn->goodsOut && $goodsIn->goodsOut->inventory ? $goodsIn->goodsOut->inventory->unit : ($goodsIn->inventory ? $goodsIn->inventory->unit : '');
+        $unit = $goodsIn->goodsOut?->inventory?->unit_name ?? ($goodsIn->inventory?->unit_name ?? '');
 
         $quantity = number_format($goodsIn->quantity, 2);
         $quantity = rtrim(rtrim($quantity, '0'), '.');

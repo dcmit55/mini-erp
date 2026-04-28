@@ -223,7 +223,7 @@ class ProjectCostingController extends Controller
         $project->load(['departments', 'jobOrders' => fn($q) => $q->select('id', 'project_id', 'name', 'department_id', 'final_image'), 'jobOrders.department']);
         // ── Material Usages ──
         $usages = MaterialUsage::where('project_id', $project_id)
-            ->with(['inventory.currency', 'inventory.unit', 'inventory.batches', 'jobOrder'])
+            ->with(['inventory.currency', 'inventory.unitRelation', 'inventory.batches', 'jobOrder'])
             ->orderBy('job_order_id')
             ->get();
 
@@ -245,13 +245,8 @@ class ProjectCostingController extends Controller
                 $rate = $currency->exchange_rate ?? 1;
                 $totalIDR = $totalUnit * $qty * $rate;
 
-                // Unit name: prefer unit relation, fall back to varchar field
-                $unitName = 'N/A';
-                if ($inv->unit_id && $inv->unit) {
-                    $unitName = $inv->unit->name ?? 'N/A';
-                } elseif (!empty($inv->unit) && is_string($inv->unit)) {
-                    $unitName = $inv->unit;
-                }
+                // Unit name via single accessor (FK relation → fallback varchar)
+                $unitName = $inv->unit_name ?: 'N/A';
 
                 $currCode = strtoupper($currency->name ?? 'IDR');
                 $isIntl = in_array($currCode, ['RMB', 'CNY', 'SGD', 'USD', 'EUR', 'GBP']);
@@ -429,7 +424,7 @@ class ProjectCostingController extends Controller
         $project->load(['departments', 'jobOrders']);
 
         $usages = MaterialUsage::where('project_id', $project_id)
-            ->with(['inventory.currency', 'inventory.unit', 'inventory.batches', 'jobOrder'])
+            ->with(['inventory.currency', 'inventory.unitRelation', 'inventory.batches', 'jobOrder'])
             ->orderBy('job_order_id')
             ->get();
 
@@ -452,13 +447,8 @@ class ProjectCostingController extends Controller
                 $totalOrig = $totalUnit * $qty;
                 $totalIDR = $totalUnit * $qty * $rate;
 
-                // Unit name: prefer unit relation, fall back to varchar field
-                $unitName = 'N/A';
-                if ($inv->unit_id && $inv->unit) {
-                    $unitName = $inv->unit->name ?? 'N/A';
-                } elseif (!empty($inv->unit) && is_string($inv->unit)) {
-                    $unitName = $inv->unit;
-                }
+                // Unit name via single accessor (FK relation → fallback varchar)
+                $unitName = $inv->unit_name ?: 'N/A';
 
                 $currCode = strtoupper($currency->name ?? 'IDR');
                 $isIntl = in_array($currCode, ['RMB', 'CNY', 'SGD', 'USD', 'EUR', 'GBP']);
@@ -867,15 +857,8 @@ class ProjectCostingController extends Controller
 
                 $usedQty = $usage->used_quantity ?? 0;
 
-                // Unit name: prefer unit relation (FK), fall back to varchar field
-                $unitName = 'N/A';
-                if ($inventory->unit_id && $inventory->unit) {
-                    $unitName = $inventory->unit->name ?? 'N/A';
-                } elseif (!empty($inventory->unit) && is_string($inventory->unit)) {
-                    $unitName = $inventory->unit;
-                }
-
-                // ── Use actual batch cost if available, else fall back to weighted avg ──
+                // Unit name via single accessor
+                $unitName = $inventory->unit_name ?: 'N/A';
                 $costKey = $inventory->id . '_' . ($usage->job_order_id ?? 'null');
                 $batchCostData = $actualCostMap[$costKey] ?? null;
 
@@ -958,7 +941,7 @@ class ProjectCostingController extends Controller
 
         // ── 1. Material Cost rows ─────────────────────────────────────────────
         $usages = MaterialUsage::where('project_id', $project_id)
-            ->with(['inventory.currency', 'inventory.unit', 'jobOrder'])
+            ->with(['inventory.currency', 'inventory.unitRelation', 'jobOrder'])
             ->orderBy('job_order_id')
             ->get();
 
@@ -997,13 +980,8 @@ class ProjectCostingController extends Controller
                     $totalIdr = $totalUnit * $qty * $rate;
                 }
 
-                // Unit name: prefer unit relation, fall back to varchar field
-                $unitName = 'N/A';
-                if ($inv->unit_id && $inv->unit) {
-                    $unitName = $inv->unit->name ?? 'N/A';
-                } elseif (!empty($inv->unit) && is_string($inv->unit)) {
-                    $unitName = $inv->unit;
-                }
+                // Unit name via single accessor
+                $unitName = $inv->unit_name ?: 'N/A';
 
                 return [
                     'job_order_name' => $usage->jobOrder?->name ?? 'No Job Order',
@@ -1100,7 +1078,7 @@ class ProjectCostingController extends Controller
 
             foreach ($projects as $project) {
                 $usages = MaterialUsage::where('project_id', $project->id)
-                    ->with(['inventory.currency', 'inventory.unit'])
+                    ->with(['inventory.currency', 'inventory.unitRelation'])
                     ->get();
 
                 if ($usages->isEmpty()) {
@@ -1129,17 +1107,8 @@ class ProjectCostingController extends Controller
 
                     $projectTotal += $totalCostIdr;
 
-                    // Get unit name - FIXED: Check relation loaded properly
-                    $unitName = 'N/A';
-
-                    // Check if unit relation is loaded (not just varchar field)
-                    if ($inventory->relationLoaded('unit') && $inventory->unit && is_object($inventory->unit)) {
-                        // Unit is loaded as relation object
-                        $unitName = $inventory->unit->name ?? 'N/A';
-                    } elseif (!empty($inventory->unit) && is_string($inventory->unit)) {
-                        // Unit is varchar field (legacy data)
-                        $unitName = $inventory->unit;
-                    }
+                    // Get unit name via single accessor (FK → fallback varchar)
+                    $unitName = $inventory->unit_name ?: 'N/A';
 
                     $materials[] = [
                         'material_name' => $inventory->name ?? 'N/A',
@@ -1191,7 +1160,7 @@ class ProjectCostingController extends Controller
             // Get material usages for this job order
             $usages = MaterialUsage::where('project_id', $project_id)
                 ->where('job_order_id', $job_order_id)
-                ->with(['inventory.currency', 'inventory.unit', 'jobOrder'])
+                ->with(['inventory.currency', 'inventory.unitRelation', 'jobOrder'])
                 ->get();
 
             // Pre-build actual cost map from StockUsageBatch
@@ -1203,20 +1172,8 @@ class ProjectCostingController extends Controller
 
                 $usedQty = $usage->used_quantity ?? 0;
 
-                // Get unit name
-                $unitName = 'N/A';
-                if ($inventory->unit_id) {
-                    try {
-                        $unitRelation = $inventory->unit;
-                        if ($unitRelation) {
-                            $unitName = $unitRelation->name;
-                        }
-                    } catch (\Exception $e) {
-                        $unitName = $inventory->unit ?? 'N/A';
-                    }
-                } elseif (!empty($inventory->unit)) {
-                    $unitName = $inventory->unit;
-                }
+                // Unit name via single accessor
+                $unitName = $inventory->unit_name ?: 'N/A';
 
                 // ── Use actual batch cost if available ──
                 $costKey = $inventory->id . '_' . ($usage->job_order_id ?? 'null');

@@ -171,7 +171,7 @@ class ChatbotToolService
             return ['error' => 'Parameter nama_material tidak boleh kosong.'];
         }
 
-        $items = Inventory::with(['category', 'unit', 'location', 'supplier'])
+        $items = Inventory::with(['category', 'unitRelation', 'location', 'supplier'])
             ->where('name', 'LIKE', "%{$nama}%")
             ->orderBy('name')
             ->limit(8)
@@ -187,7 +187,7 @@ class ChatbotToolService
             $data = [
                 'name'     => $item->name,
                 'quantity' => (float) ($item->quantity ?? 0),
-                'unit'     => $item->unit?->name ?? (is_string($item->unit) ? $item->unit : '-'),
+                'unit'     => $item->unit_name ?: '-',
                 'category' => $item->category?->name ?? '-',
                 'location' => $item->location?->name ?? '-',
                 'supplier' => $item->supplier?->name ?? '-',
@@ -459,7 +459,7 @@ class ChatbotToolService
 
         // ── Ambil semua material request untuk job order ini ──
         $requests = MaterialRequest::with([
-                'inventory.unit',
+                'inventory.unitRelation',
                 'inventory.category',
                 'inventory.location',
             ])
@@ -485,15 +485,8 @@ class ChatbotToolService
         $materials = $requests->map(function (MaterialRequest $mr) {
             $inv  = $mr->inventory;
 
-            // Unit: coba relasi Unit dulu, fallback ke string field
-            $unit = $inv?->unit;
-            if ($unit instanceof \App\Models\Logistic\Unit) {
-                $unitName = $unit->name ?? '-';
-            } elseif (is_string($unit) && $unit !== '') {
-                $unitName = $unit;
-            } else {
-                $unitName = '-';
-            }
+            // Unit: gunakan accessor unit_name (FK unitRelation → fallback varchar)
+            $unitName = $inv?->unit_name ?: '-';
 
             return [
                 'material_name'  => $inv?->name ?? '-',

@@ -269,7 +269,7 @@ class PurchaseRequestController extends Controller
         }
 
         $stockInfo = $pr->stock_level ?? ($pr->inventory ? $pr->inventory->quantity : 0);
-        $unit = $pr->unit ?? ($pr->inventory ? $pr->inventory->unit : '');
+        $unit = $pr->unit ?? ($pr->inventory ? $pr->inventory->unit_name : '');
 
         return '<div class="d-flex align-items-center gap-1">
                     <i class="bi bi-info-circle text-secondary" style="cursor: pointer;"
@@ -409,7 +409,7 @@ class PurchaseRequestController extends Controller
     private function formatMaterialNameEditable($pr)
     {
         $stockInfo = $pr->stock_level ?? ($pr->inventory ? $pr->inventory->quantity : 0);
-        $unit = $pr->unit ?? ($pr->inventory ? $pr->inventory->unit : '');
+        $unit = $pr->unit ?? ($pr->inventory ? $pr->inventory->unit_name : '');
 
         // Show tooltip hanya untuk type 'restock'
         $tooltipHtml = '';
@@ -934,7 +934,7 @@ class PurchaseRequestController extends Controller
         if ($request->type === 'restock' && $request->inventory_id) {
             $inventory = Inventory::find($request->inventory_id);
             $data['material_name'] = $inventory->name;
-            $data['unit'] = $inventory->unit;
+            $data['unit'] = $inventory->unit_name;
             $data['stock_level'] = $inventory->quantity;
         }
 

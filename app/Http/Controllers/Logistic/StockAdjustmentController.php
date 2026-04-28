@@ -279,7 +279,7 @@ class StockAdjustmentController extends Controller
             ->orderBy('id')
             ->get(['id', 'batch_number', 'qty_remaining', 'unit_price', 'currency_id']);
 
-        $unitName = optional($inventory->unit)->name ?? ($inventory->unit ?? 'pcs');
+        $unitName = $inventory->unit_name ?: 'pcs';
         $inventoryCurrencyCode = strtoupper(optional($inventory->currency)->name ?? 'IDR');
 
         return response()->json([

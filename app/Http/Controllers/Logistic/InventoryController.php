@@ -491,6 +491,10 @@ class InventoryController extends Controller
         if ($request->unit === '__new__' && $request->new_unit) {
             $unit = Unit::firstOrCreate(['name' => $request->new_unit]);
             $inventory->unit = $unit->name;
+            $inventory->unit_id = $unit->id;
+        } else {
+            $unit = Unit::where('name', $request->unit)->first();
+            $inventory->unit_id = $unit ? $unit->id : null;
         }
 
         // Upload Image if exists
@@ -541,6 +545,7 @@ class InventoryController extends Controller
         $material = Inventory::create([
             'name' => $request->name,
             'unit' => $unit->name,
+            'unit_id' => $unit->id,
             'remark' => $request->remark ? $request->remark . ' <span style="color: orange;">(From Quick Add)</span>' : '<span style="color: orange;">(From Quick Add)</span>',
         ]);
 
@@ -704,6 +709,7 @@ class InventoryController extends Controller
             $inventory->name = $inventoryName;
             $inventory->category_id = $category ? $category->id : null;
             $inventory->unit = $unit->name;
+            $inventory->unit_id = $unit->id;
             $inventory->currency_id = $currency ? $currency->id : null;
             $inventory->supplier_id = $supplier ? $supplier->id : null;
             $inventory->location_id = $location ? $location->id : null;

@@ -78,7 +78,7 @@ class InventoryBatchController extends Controller
             return DataTables::of($query)
                 ->addIndexColumn()
                 ->addColumn('material_name', fn($b) => $b->inventory->name ?? '-')
-                ->addColumn('material_unit', fn($b) => $b->inventory->unit ?? '-')
+                ->addColumn('material_unit', fn($b) => $b->inventory->unit_name ?? '-')
                 ->addColumn('category_name', function ($b) {
                     $name = $b->inventory->category->name ?? null;
                     if (!$name) {
@@ -87,11 +87,11 @@ class InventoryBatchController extends Controller
                     return '<span class="badge ' . $this->getCategoryBadgeColor($name) . '">' . e($name) . '</span>';
                 })
                 ->addColumn('qty_formatted', function ($b) {
-                    $unit = $b->inventory->unit ?? '';
+                    $unit = $b->inventory->unit_name ?? '';
                     return number_format($b->qty, 2) . ' ' . $unit;
                 })
                 ->addColumn('qty_remaining_formatted', function ($b) {
-                    $unit = $b->inventory->unit ?? '';
+                    $unit = $b->inventory->unit_name ?? '';
                     $pct = $b->qty > 0 ? round(($b->qty_remaining / $b->qty) * 100, 1) : 0;
                     return number_format($b->qty_remaining, 2) . ' ' . $unit . '<br><small class="text-muted">' . $pct . '% remaining</small>';
                 })
@@ -273,9 +273,9 @@ class InventoryBatchController extends Controller
 
             return DataTables::of($query)
                 ->addIndexColumn()
-                ->addColumn('qty_formatted', fn($b) => number_format($b->qty, 2) . ' ' . ($inventory->unit ?? ''))
+                ->addColumn('qty_formatted', fn($b) => number_format($b->qty, 2) . ' ' . ($inventory->unit_name ?? ''))
                 ->addColumn('qty_remaining_formatted', function ($b) use ($inventory) {
-                    $unit = $inventory->unit ?? '';
+                    $unit = $inventory->unit_name ?? '';
                     $pct = $b->qty > 0 ? round(($b->qty_remaining / $b->qty) * 100, 1) : 0;
                     return number_format($b->qty_remaining, 2) . ' ' . $unit . '<br><small class="text-muted">' . $pct . '% remaining</small>';
                 })

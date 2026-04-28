@@ -70,9 +70,25 @@ class Inventory extends Model implements Auditable
         return $this->belongsTo(Location::class);
     }
 
-    public function unit()
+    /**
+     * Relation to the units table via unit_id (FK).
+     * Renamed from unit() to unitRelation() to avoid collision with
+     * the legacy `unit` VARCHAR column on the same model.
+     */
+    public function unitRelation()
     {
-        return $this->belongsTo(Unit::class);
+        return $this->belongsTo(Unit::class, 'unit_id');
+    }
+
+    /**
+     * Single source-of-truth accessor for the unit name.
+     * Priority: unit_id FK relation → legacy `unit` VARCHAR column.
+     *
+     * Usage: $inventory->unit_name
+     */
+    public function getUnitNameAttribute(): string
+    {
+        return $this->unitRelation?->name ?? ($this->attributes['unit'] ?? '');
     }
 
     // ─── Batch relationship ───────────────────────────────────────────────────

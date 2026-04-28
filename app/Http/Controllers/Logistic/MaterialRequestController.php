@@ -146,10 +146,10 @@ class MaterialRequestController extends Controller
                         if ($req->indo_purchase_id && $req->indoPurchase) {
                             $unit = optional($req->indoPurchase->unit)->name ?? '';
                         } else {
-                            $unit = $req->stagingInventory->unit ?? '';
+                            $unit = $req->stagingInventory->unit_name ?? '';
                         }
                     } else {
-                        $unit = $req->inventory->unit ?? '';
+                        $unit = $req->inventory->unit_name ?? '';
                     }
                     return rtrim(rtrim(number_format($req->qty, 2, '.', ''), '0'), '.') . ' ' . $unit;
                 })
@@ -158,16 +158,16 @@ class MaterialRequestController extends Controller
                         if ($req->indo_purchase_id && $req->indoPurchase) {
                             $unit = optional($req->indoPurchase->unit)->name ?? '';
                         } else {
-                            $unit = $req->stagingInventory->unit ?? '';
+                            $unit = $req->stagingInventory->unit_name ?? '';
                         }
                     } else {
-                        $unit = $req->inventory->unit ?? '';
+                        $unit = $req->inventory->unit_name ?? '';
                     }
                     $remaining = $req->qty - $req->processed_qty;
                     return '<span data-bs-toggle="tooltip" title="' . $unit . '">' . rtrim(rtrim(number_format($remaining, 2, '.', ''), '0'), '.') . '</span>';
                 })
                 ->addColumn('processed_qty', function ($req) {
-                    $unit = $req->inventory_source === 'incoming' ? $req->stagingInventory->unit ?? '' : $req->inventory->unit ?? '';
+                    $unit = $req->inventory_source === 'incoming' ? $req->stagingInventory->unit_name ?? '' : $req->inventory->unit_name ?? '';
                     return '<span data-bs-toggle="tooltip" title="' . $unit . '">' . rtrim(rtrim(number_format($req->processed_qty, 2, '.', ''), '0'), '.') . '</span>';
                 })
                 ->addColumn('requested_by', function ($req) {
@@ -397,7 +397,7 @@ class MaterialRequestController extends Controller
                 if ($p->isRestock() && $p->material) {
                     $name = $p->material->name;
                     $materialCode = $p->material->material_code ?? '';
-                    $unit = $p->unit ? $p->unit->name : $p->material->unit ?? '';
+                    $unit = $p->unit ? $p->unit->name : $p->material->unit_name ?? '';
                 } else {
                     $name = $p->new_item_name ?? 'Unknown Item';
                     $materialCode = '';
@@ -545,7 +545,7 @@ class MaterialRequestController extends Controller
                         DB::rollBack();
                         return back()
                             ->withInput()
-                            ->withErrors(['qty' => 'Requested quantity cannot exceed available incoming inventory quantity (' . $availableQty . ' ' . $staging->unit . ').']);
+                            ->withErrors(['qty' => 'Requested quantity cannot exceed available incoming inventory quantity (' . $availableQty . ' ' . $staging->unit_name . ').']);
                     }
                     $stagingInventoryId = $staging->id;
                     $materialName = $staging->name;
@@ -1236,7 +1236,7 @@ class MaterialRequestController extends Controller
             return [
                 'id' => $req->id,
                 'material_name' => $req->inventory->name ?? '-',
-                'unit' => $req->inventory->unit ?? '',
+                'unit' => $req->inventory->unit_name ?? '',
                 'job_order_name' => $req->project_type === MaterialRequest::PROJECT_TYPE_CLIENT ? $req->jobOrder->name ?? '-' : $req->internalProject->job ?? '-',
                 'project_name' => $req->project_name,
                 'requested_by' => $req->requested_by,
@@ -1260,7 +1260,7 @@ class MaterialRequestController extends Controller
             'name' => $inventory->name,
             'category' => $inventory->category->name ?? '-',
             'quantity' => rtrim(rtrim(number_format($inventory->quantity, 2, '.', ''), '0'), '.'),
-            'unit' => $inventory->unit ?? '-',
+            'unit' => $inventory->unit_name ?? '-',
             'price' => $inventory->price ? number_format($inventory->price, 2, ',', '.') : '0',
             'currency' => $inventory->currency->name ?? '-',
             'supplier' => $inventory->supplier->name ?? '-',

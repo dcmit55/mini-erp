@@ -153,16 +153,7 @@ class GoodsOutController extends Controller
 
     private function formatQuantity($goodsOut)
     {
-        $unit = $goodsOut->inventory ? $goodsOut->inventory->unit : '';
-        $quantity = number_format($goodsOut->quantity, 2);
-        $quantity = rtrim(rtrim($quantity, '0'), '.');
-
-        return '<span data-bs-toggle="tooltip" data-bs-placement="right" title="' . $unit . '">' . $quantity . '</span>';
-    }
-
-    private function formatRemainingQuantity($goodsOut)
-    {
-        $unit = $goodsOut->inventory ? $goodsOut->inventory->unit : '';
+        $unit = $goodsOut->inventory ? $goodsOut->inventory->unit_name : '';
         $remainingQuantity = number_format($goodsOut->remaining_quantity, 2);
         $remainingQuantity = rtrim(rtrim($remainingQuantity, '0'), '.');
         return '<span data-bs-toggle="tooltip" data-bs-placement="right" title="' . $unit . '">' . $remainingQuantity . '</span>';
@@ -997,9 +988,9 @@ class GoodsOutController extends Controller
      */
     public function getBatchUsage($id)
     {
-        $goodsOut = GoodsOut::with(['stockUsageBatches.batch', 'inventory.unit'])->findOrFail($id);
+        $goodsOut = GoodsOut::with(['stockUsageBatches.batch', 'inventory.unitRelation'])->findOrFail($id);
 
-        $unit = $goodsOut->inventory?->unit ?? '';
+        $unit = $goodsOut->inventory?->unit_name ?? '';
 
         $batches = $goodsOut->stockUsageBatches->map(function ($sub) use ($unit) {
             return [
