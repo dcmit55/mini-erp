@@ -828,9 +828,17 @@ $(document).ready(function() {
         materialSel.on('select2:select', function(e) {
             const d = e.params.data;
             row.find('.unit-price').val(0);
-            // Populate readonly hidden inputs + display text
+            // Populate unit — prefer unit_id (FK), fallback to plain unit string column
             row.find('.unit-id-hidden').val(d.unit_id || '');
-            row.find('.unit-display').val(d.unit_name || (d.unit_id ? `Unit #${d.unit_id}` : '—'));
+            if (d.unit_id) {
+                row.find('.unit-display').val(d.unit_name || `Unit #${d.unit_id}`);
+            } else if (d.unit_name) {
+                // unit_name from raw `unit` column (no FK)
+                row.find('.unit-display').val(d.unit_name + ' (text only, no FK)');
+            } else {
+                row.find('.unit-display').val('—');
+            }
+            // Populate category
             row.find('.category-id-hidden').val(d.category_id || '');
             row.find('.category-display').val(d.category_name || (d.category_id ? `Category #${d.category_id}` : '—'));
             calculateRowSubtotal(row);
