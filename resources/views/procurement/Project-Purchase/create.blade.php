@@ -459,21 +459,43 @@
                                 <div class="row">
                                     <div class="col-md-6 mb-2">
                                         <label class="form-label">Category <span class="text-danger">*</span></label>
-                                        <select class="form-select category-select" data-index="__INDEX__">
-                                            <option value="">Select Category</option>
-                                            @foreach($categories as $category)
-                                                <option value="{{ $category->id }}">{{ $category->name }}</option>
-                                            @endforeach
-                                        </select>
+                                        {{-- Restock: readonly display (auto from material) --}}
+                                        <div class="category-readonly-wrapper" style="display:none;">
+                                            <input type="hidden" class="category-id-hidden" data-index="__INDEX__">
+                                            <div class="input-group">
+                                                <span class="input-group-text bg-light text-muted" style="font-size:0.8rem;"><i class="fas fa-link"></i></span>
+                                                <input type="text" class="form-control category-display bg-light" readonly placeholder="Auto from material...">
+                                            </div>
+                                        </div>
+                                        {{-- New Item: select dropdown --}}
+                                        <div class="category-select-wrapper">
+                                            <select class="form-select category-select" data-index="__INDEX__">
+                                                <option value="">Select Category</option>
+                                                @foreach($categories as $category)
+                                                    <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
                                     </div>
                                     <div class="col-md-6 mb-2">
                                         <label class="form-label">Unit <span class="text-danger">*</span></label>
-                                        <select class="form-select unit-select" data-index="__INDEX__">
-                                            <option value="">Select Unit</option>
-                                            @foreach($units as $unit)
-                                                <option value="{{ $unit->id }}">{{ $unit->name }}</option>
-                                            @endforeach
-                                        </select>
+                                        {{-- Restock: readonly display (auto from material) --}}
+                                        <div class="unit-readonly-wrapper" style="display:none;">
+                                            <input type="hidden" class="unit-id-hidden" data-index="__INDEX__">
+                                            <div class="input-group">
+                                                <span class="input-group-text bg-light text-muted" style="font-size:0.8rem;"><i class="fas fa-link"></i></span>
+                                                <input type="text" class="form-control unit-display bg-light" readonly placeholder="Auto from material...">
+                                            </div>
+                                        </div>
+                                        {{-- New Item: select dropdown --}}
+                                        <div class="unit-select-wrapper">
+                                            <select class="form-select unit-select" data-index="__INDEX__">
+                                                <option value="">Select Unit</option>
+                                                @foreach($units as $unit)
+                                                    <option value="{{ $unit->id }}">{{ $unit->name }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -729,8 +751,6 @@ $(document).ready(function() {
             });
             
             // Set name for always present fields
-            row.find('.category-select').attr('name', `items[${index}][category_id]`);
-            row.find('.unit-select').attr('name', `items[${index}][unit_id]`);
             row.find('.quantity').attr('name', `items[${index}][quantity]`);
             row.find('.unit-price').attr('name', `items[${index}][unit_price]`);
             row.find('.purchase-type').attr('name', `items[${index}][purchase_type]`);
@@ -738,10 +758,14 @@ $(document).ready(function() {
             // Set name based on type
             if (isRestock) {
                 row.find('.material-select').attr('name', `items[${index}][material_id]`);
-                // new_item_name doesn't need name attribute
+                row.find('.category-id-hidden').attr('name', `items[${index}][category_id]`);
+                row.find('.unit-id-hidden').attr('name', `items[${index}][unit_id]`);
+                // new_item_name / selects don't need names
             } else {
                 row.find('.new-item-name').attr('name', `items[${index}][new_item_name]`);
-                // material_id doesn't need name attribute
+                row.find('.category-select').attr('name', `items[${index}][category_id]`);
+                row.find('.unit-select').attr('name', `items[${index}][unit_id]`);
+                // hidden inputs don't need names
             }
         }
         
@@ -750,23 +774,38 @@ $(document).ready(function() {
             const isRestock = $(this).val() === 'restock';
             row.find('.restock-section').toggle(isRestock);
             row.find('.newitem-section').toggle(!isRestock);
-            row.find('.category-select, .unit-select').toggleClass('select-readonly', isRestock);
 
-            // Reset values
             if (isRestock) {
+                // Show readonly text, hide selects
+                row.find('.category-readonly-wrapper').show();
+                row.find('.category-select-wrapper').hide();
+                row.find('.unit-readonly-wrapper').show();
+                row.find('.unit-select-wrapper').hide();
+                // Clear new item name
                 row.find('.new-item-name').val('');
-            } else {
-                row.find('.material-select').val('');
+                // Clear unit price too
                 row.find('.unit-price').val('');
+                // Clear readonly fields (no material selected yet)
+                row.find('.category-id-hidden, .unit-id-hidden').val('');
+                row.find('.category-display, .unit-display').val('');
+                row.find('.material-select').val(null).trigger('change');
+            } else {
+                // Show selects, hide readonly text
+                row.find('.category-readonly-wrapper').hide();
+                row.find('.category-select-wrapper').show();
+                row.find('.unit-readonly-wrapper').hide();
+                row.find('.unit-select-wrapper').show();
+                // Reset select values
                 row.find('.category-select').val('');
                 row.find('.unit-select').val('');
+                row.find('.unit-price').val('');
+                row.find('.material-select').val(null).trigger('change');
             }
 
             setFieldNames();
         });
 
-        // Default type is restock — apply readonly on init
-        row.find('.category-select, .unit-select').addClass('select-readonly');
+        // Default type is restock — show readonly on init (triggered via trigger('change') below)
         
         // Material select — Select2 AJAX (tidak load 4414 option sekaligus)
         const materialSel = row.find('.material-select');
@@ -789,8 +828,11 @@ $(document).ready(function() {
         materialSel.on('select2:select', function(e) {
             const d = e.params.data;
             row.find('.unit-price').val(0);
-            if (d.unit_id)     row.find('.unit-select').val(d.unit_id);
-            if (d.category_id) row.find('.category-select').val(d.category_id);
+            // Populate readonly hidden inputs + display text
+            row.find('.unit-id-hidden').val(d.unit_id || '');
+            row.find('.unit-display').val(d.unit_name || (d.unit_id ? `Unit #${d.unit_id}` : '—'));
+            row.find('.category-id-hidden').val(d.category_id || '');
+            row.find('.category-display').val(d.category_name || (d.category_id ? `Category #${d.category_id}` : '—'));
             calculateRowSubtotal(row);
             calculateGrandTotal();
         });
@@ -893,15 +935,21 @@ $(document).ready(function() {
             }
             
             // Validation for Category (FOR ALL ITEMS)
-            if (!$(this).find('.category-select').val()) {
+            const catVal = type === 'restock'
+                ? $(this).find('.category-id-hidden').val()
+                : $(this).find('.category-select').val();
+            if (!catVal) {
                 alert(`Item ${index + 1}: Category must be selected`);
                 valid = false;
                 return false;
             }
             
             // Validation for Unit (FOR ALL ITEMS)
-            if (!$(this).find('.unit-select').val()) {
-                alert(`Item ${index + 1}: Unit must be selected`);
+            const unitVal = type === 'restock'
+                ? $(this).find('.unit-id-hidden').val()
+                : $(this).find('.unit-select').val();
+            if (!unitVal) {
+                alert(`Item ${index + 1}: Unit must be selected (choose a material first)`);
                 valid = false;
                 return false;
             }

@@ -1026,6 +1026,7 @@ class ProjectPurchaseController extends Controller
                     'unit_id' => $m->unit_id,
                     'unit_name' => $m->unit->name ?? '',
                     'category_id' => $m->category_id,
+                    'category_name' => $m->category->name ?? '',
                 ],
             );
 
