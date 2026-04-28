@@ -1013,28 +1013,23 @@ class ProjectPurchaseController extends Controller
     {
         $q = $request->input('q', '');
 
-        $items = Inventory::with(['unit:id,name', 'category:id,name'])
+        $items = Inventory::with(['unitRelation:id,name', 'category:id,name'])
             ->select('id', 'name', 'unit_id', 'unit', 'category_id')
             ->when($q, fn($query) => $query->where('name', 'like', "%{$q}%"))
             ->orderBy('name')
             ->limit(50)
             ->get()
             ->map(function ($m) {
-                // Prefer unit relation (unit_id FK), fall back to raw `unit` string column
-                $unitId   = $m->unit_id;
-                $unitName = $m->unit->name ?? null;
-                if (!$unitId && !empty($m->unit)) {
-                    // unit column has a plain string — no FK, send null id but show the text
-                    $unitId   = null;
-                    $unitName = $m->unit;
-                }
+                // Use unit_name accessor (FK → fallback varchar)
+                $unitId = $m->unit_id;
+                $unitName = $m->unit_name ?: null;
 
                 return [
-                    'id'            => $m->id,
-                    'text'          => $m->name,
-                    'unit_id'       => $unitId,
-                    'unit_name'     => $unitName ?? '',
-                    'category_id'   => $m->category_id,
+                    'id' => $m->id,
+                    'text' => $m->name,
+                    'unit_id' => $unitId,
+                    'unit_name' => $unitName ?? '',
+                    'category_id' => $m->category_id,
                     'category_name' => $m->category->name ?? '',
                 ];
             });
