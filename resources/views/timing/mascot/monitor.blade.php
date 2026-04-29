@@ -467,8 +467,26 @@
         }
 
         .session-card.session-repair {
-            background-color: #fff4e6;
-            border-left: 5px solid #fd7e14 !important;
+            background-color: #fd7e14;
+            border-left: 5px solid #c96100 !important;
+            color: #fff;
+        }
+
+        .session-card.session-repair .text-muted {
+            color: rgba(255,255,255,0.75) !important;
+        }
+
+        .session-card.session-repair .bg-light {
+            background-color: rgba(255,255,255,0.2) !important;
+        }
+
+        .session-card.session-repair .duration-display,
+        .session-card.session-repair .text-success {
+            color: #fff !important;
+        }
+
+        .session-card.session-repair .border-top {
+            border-color: rgba(255,255,255,0.3) !important;
         }
 
         .session-card.session-frozen {
