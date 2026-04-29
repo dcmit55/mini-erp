@@ -25,7 +25,7 @@ class StockAdjustmentController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = StockAdjustment::with(['inventory:id,name,material_code,currency_id,unit_id', 'inventory.currency:id,name', 'inventory.unit:id,name', 'batch:id,batch_number,unit_price,currency_id', 'batch.currency:id,name', 'creator:id,username'])->select('stock_adjustments.*');
+            $query = StockAdjustment::with(['inventory:id,name,material_code,currency_id,unit_id', 'inventory.currency:id,name', 'inventory.unitRelation:id,name', 'batch:id,batch_number,unit_price,currency_id', 'batch.currency:id,name', 'creator:id,username'])->select('stock_adjustments.*');
 
             if ($request->filled('type')) {
                 $query->where('type', $request->type);

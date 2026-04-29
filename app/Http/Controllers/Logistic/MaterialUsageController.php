@@ -96,7 +96,7 @@ class MaterialUsageController extends Controller
                     return $item->used_quantity ?? 0;
                 })
                 ->addColumn('unit', function ($item) {
-                    return $item->inventory ? $item->inventory->unit_name ?: '-' : '-';
+                    return $item->inventory ? ($item->inventory->unit_name ?: '-') : '-';
                 })
                 ->addColumn('updated_at', function ($item) {
                     return $item->updated_at->format('d M Y H:i');
@@ -216,7 +216,7 @@ class MaterialUsageController extends Controller
                         })
                         ->sum('quantity') ?? 0,
                 'used_qty' => $usage->used_quantity ?? 0,
-                'unit' => $usage->inventory ? $usage->inventory->unit_name ?: '-' : '-',
+                'unit' => $usage->inventory ? ($usage->inventory->unit_name ?: '-') : '-',
                 'updated_at' => $usage->updated_at->format('d M Y H:i'),
             ];
         });
@@ -377,8 +377,8 @@ class MaterialUsageController extends Controller
      */
     public function getBatchUsage(MaterialUsage $materialUsage)
     {
-        $materialUsage->load('inventory.unit');
-        $unit = $materialUsage->inventory?->unit ?? '';
+        $materialUsage->load('inventory.unitRelation');
+        $unit = $materialUsage->inventory?->unit_name ?? '';
 
         // Collect all goods_out IDs that match this material_usage's inventory+project+job_order
         $goodsOutIds = GoodsOut::where('inventory_id', $materialUsage->inventory_id)
