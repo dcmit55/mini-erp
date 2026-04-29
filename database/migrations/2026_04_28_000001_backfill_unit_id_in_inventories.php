@@ -17,13 +17,7 @@ return new class extends Migration {
     public function up(): void
     {
         // Step 1: collect distinct unit strings that have no unit_id
-        $unmatched = DB::table('inventories')
-            ->whereNull('unit_id')
-            ->whereNotNull('unit')
-            ->where('unit', '!=', '')
-            ->select('unit')
-            ->distinct()
-            ->pluck('unit');
+        $unmatched = DB::table('inventories')->whereNull('unit_id')->whereNotNull('unit')->where('unit', '!=', '')->select('unit')->distinct()->pluck('unit');
 
         foreach ($unmatched as $unitStr) {
             // Try case-insensitive match in units table
@@ -34,7 +28,7 @@ return new class extends Migration {
             if (!$unit) {
                 // Create new unit so no data is lost
                 $id = DB::table('units')->insertGetId([
-                    'name'       => $unitStr,
+                    'name' => $unitStr,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);

@@ -440,26 +440,8 @@
         }
 
         .session-card.session-repair {
-            background-color: #fd7e14;
-            border-left: 5px solid #c96100 !important;
-            color: #fff;
-        }
-
-        .session-card.session-repair .text-muted {
-            color: rgba(255,255,255,0.75) !important;
-        }
-
-        .session-card.session-repair .bg-light {
-            background-color: rgba(255,255,255,0.2) !important;
-        }
-
-        .session-card.session-repair .duration-display,
-        .session-card.session-repair .text-success {
-            color: #fff !important;
-        }
-
-        .session-card.session-repair .border-top {
-            border-color: rgba(255,255,255,0.3) !important;
+            background-color: #fff3e0;
+            border-left: 5px solid #e65100 !important;
         }
 
         .session-card.session-frozen {
@@ -896,6 +878,31 @@
                             // Remove the specific card
                             $(`#session-${timingId}`).fadeOut(300, function() {
                                 $(this).remove();
+                            });
+
+                            // Reload page after delay
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 2000);
+                        }
+                    },
+                    error: function(xhr) {
+                        const message = xhr.responseJSON?.message ||
+                            'Failed to stop work session.';
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: message
+                        });
+                    }
+                });
+            });
+        });
+    </script>
+    @include('timing.partials.detail-modal')
+    @include('timing.partials.break-heartbeat')
+@endsection
+                          $(this).remove();
                             });
 
                             // Reload page after delay

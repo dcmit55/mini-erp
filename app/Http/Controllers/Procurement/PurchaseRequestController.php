@@ -959,7 +959,6 @@ class PurchaseRequestController extends Controller
 
     public function quickUpdate(Request $request, $id)
     {
-
         $request->validate([
             'material_name' => 'nullable|string|max:255',
             'qty_to_buy' => 'nullable|numeric|min:0',

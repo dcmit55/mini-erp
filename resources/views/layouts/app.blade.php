@@ -533,7 +533,9 @@
                                 @endcanany
 
                                 <!-- Timing Menu (Dedicated) -->
-                                @canany(['production.timing.view', 'production.mascot-timing.view', 'production.costume-timing.view', 'production.animatronics-timing.view', 'production.timing-monitor.view'])
+                                @canany(['production.timing.view', 'production.mascot-timing.view',
+                                    'production.costume-timing.view', 'production.animatronics-timing.view',
+                                    'production.timing-monitor.view'])
                                     <li class="nav-item dropdown">
                                         <a class="nav-link dropdown-toggle {{ request()->is('costume-timing*') || request()->is('animatronics-timing*') || request()->is('mascot-timing*') || request()->is('timing-monitor*') || request()->is('timing-approval*') || request()->is('timings*') || request()->is('timing-planner*') ? 'active' : '' }}"
                                             href="#" id="timingDropdown" role="button" data-bs-toggle="dropdown"
