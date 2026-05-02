@@ -204,6 +204,7 @@
                                                 data-clock-in="{{ $item->clock_in  ? $item->clock_in->format('H:i')  : '' }}"
                                                 data-clock-out="{{ $item->clock_out ? $item->clock_out->format('H:i') : '' }}"
                                                 data-status="{{ $item->status }}"
+                                                data-session-shift-id="{{ $item->session_shift_id ?? '' }}"
                                                 data-remarks="{{ $item->remarks }}">
                                                 <i class="fas fa-edit me-1"></i>Edit
                                             </button>
@@ -286,6 +287,7 @@
                                     data-clock-in="{{ $item->clock_in  ? $item->clock_in->format('H:i')  : '' }}"
                                     data-clock-out="{{ $item->clock_out ? $item->clock_out->format('H:i') : '' }}"
                                     data-status="{{ $item->status }}"
+                                    data-session-shift-id="{{ $item->session_shift_id ?? '' }}"
                                     data-remarks="{{ $item->remarks }}">
                                     <i class="fas fa-edit"></i>
                                 </button>
@@ -447,6 +449,18 @@
                             <label for="edit_clock_out" class="form-label small">Clock Out</label>
                             <input type="time" name="clock_out" id="edit_clock_out" class="form-control form-control-sm">
                         </div>
+                    </div>
+                    <div class="mb-2">
+                        <label for="edit_session_shift_id" class="form-label small">Session Shift</label>
+                        <select name="session_shift_id" id="edit_session_shift_id" class="form-select form-select-sm">
+                            <option value="">— Auto-detect from clock in —</option>
+                            @foreach($sessionShifts as $shift)
+                            <option value="{{ $shift->id }}">
+                                {{ $shift->type_of_shift }} ({{ substr($shift->start_time, 0, 5) }}–{{ substr($shift->end_time, 0, 5) }})
+                            </option>
+                            @endforeach
+                        </select>
+                        <div class="form-text" style="font-size:0.68rem;">Leave blank to auto-detect from clock in time.</div>
                     </div>
                     <div class="mb-2">
                         <label for="edit_status" class="form-label small">Status</label>
@@ -647,6 +661,7 @@ $(document).ready(function () {
         $(this).find('#edit_date_display').val(date);
         $(this).find('#edit_clock_in').val(btn.data('clock-in'));
         $(this).find('#edit_clock_out').val(btn.data('clock-out'));
+        $(this).find('#edit_session_shift_id').val(btn.data('session-shift-id') || '');
         $(this).find('#edit_status').val(btn.data('status'));
         $(this).find('#edit_remarks').val(btn.data('remarks'));
     });

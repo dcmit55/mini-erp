@@ -207,6 +207,30 @@ class AttendanceSummaryController extends Controller
         );
     }
 
+    public function updateStatus(Request $request, $employeeId, $date)
+    {
+        $this->authorize('hr.attendance.edit');
+
+        $request->validate([
+            'status' => 'required|in:Present,Late,Less Hours,Early Leave,Permission Out,Excused,Sick Leave,Annual Leave,Maternity Leave,Paternity Leave,Wedding Leave,Birth Leave,Bereavement Leave,Child Event Leave,Hajj Leave,Unpaid Leave,Alpha',
+        ]);
+
+        $record = DailyAttendance::where('employee_id', $employeeId)
+            ->whereDate('date', $date)
+            ->first();
+
+        if (!$record) {
+            return response()->json(['message' => 'Attendance record not found.'], 404);
+        }
+
+        $record->update([
+            'status'    => $request->status,
+            'is_locked' => true,
+        ]);
+
+        return response()->json(['message' => 'Status updated.', 'status' => $record->status]);
+    }
+
     public function storeHoliday(Request $request)
     {
         $request->validate([
