@@ -303,11 +303,13 @@
                                        data-bs-toggle="tooltip" style="width:28px;height:28px;">
                                         <i class="bi bi-eye"></i>
                                     </a>
+                                    @can('production.timing.view')
                                     <a href="{{ route('employees.timing', $employee) }}"
                                        class="btn btn-icon btn-sm text-info" title="Timing"
                                        data-bs-toggle="tooltip" style="width:28px;height:28px;">
                                         <i class="bi bi-clock"></i>
                                     </a>
+                                    @endcan
                                     @can('hr.employees.edit')
                                         <a href="{{ route('employees.edit', $employee) }}"
                                            class="btn btn-icon btn-sm text-warning" title="Edit"

@@ -727,12 +727,14 @@
                                                     <hr class="dropdown-divider">
                                                 </li>
                                                 {{-- Karyawan --}}
+                                                @can('hr.employees.view')
                                                 <li>
                                                     <a class="dropdown-item {{ request()->is('employees*') ? 'active' : '' }}"
                                                         href="{{ route('employees.index') }}">
                                                         <i class="fas fa-user-tie me-2"></i>Employees
                                                     </a>
                                                 </li>
+                                                @endcan
                                                 @can('hr.attendance.view')
                                                     <li>
                                                         <a class="dropdown-item {{ request()->routeIs('attendance-logs.*') ? 'active' : '' }}"
@@ -798,6 +800,7 @@
                                                 @endcan
 
                                                 {{-- Warning Letter (SP1–SP4) --}}
+                                                @can('hr.warning-letter.view')
                                                 <li>
                                                     <hr class="dropdown-divider">
                                                 </li>
@@ -807,6 +810,7 @@
                                                         <i class="bi bi-envelope-exclamation me-2"></i>Warning Letter
                                                     </a>
                                                 </li>
+                                                @endcan
 
                                                 @can('hr.attendance.view')
                                                     {{-- Fingerspot & Export --}}

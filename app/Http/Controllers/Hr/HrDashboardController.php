@@ -117,11 +117,15 @@ class HrDashboardController extends Controller
                 ->max('daily_attendances.date') ?? $today);
         $todayAttendance = DailyAttendance::join('employees', 'daily_attendances.employee_id', '=', 'employees.id')
             ->where('employees.department_id', '!=', $excludeDeptId)
+            ->where('employees.status', 'active')
             ->whereNull('employees.deleted_at')
             ->whereDate('daily_attendances.date', $lastAttendanceDate)
             ->whereIn('daily_attendances.status', ['Present', 'Late'])
             ->count();
-        $attendanceRate  = $activeEmployees > 0 ? round(($todayAttendance / $activeEmployees) * 100) : 0;
+        $activeNonPartyCount = Employee::where('status', 'active')
+            ->where('department_id', '!=', $excludeDeptId)
+            ->count();
+        $attendanceRate  = $activeNonPartyCount > 0 ? round(($todayAttendance / $activeNonPartyCount) * 100) : 0;
         $attendanceDateLabel = $lastAttendanceDate === $today ? 'Today' : Carbon::parse($lastAttendanceDate)->format('d/m');
 
         // ── Daily Attendance Trend (exclude Party Point) ─────────────────────
@@ -308,9 +312,10 @@ class HrDashboardController extends Controller
 
         return view('hr.dashboard.index', compact(
             'now', 'totalEmployees', 'activeEmployees', 'terminatedEmployees',
-            'nearExpiredCount', 'byDepartment', 'byDepartmentActive', 'byEmploymentType', 
+            'nearExpiredCount', 'byDepartment', 'byDepartmentActive', 'byEmploymentType',
             'byCitizenship', 'byGender', 'nearExpiredList', 'activeEmployeeList',
             'attendanceStats', 'todayAttendance', 'attendanceRate', 'attendanceDateLabel',
+            'activeNonPartyCount',
             'dailyTrend', 'topAbsences', 'topLate', 'attendanceHeatmap', 'sampleDates',
             'pendingLeaveHr', 'pendingLeaveDir', 'approvedLeaves', 'rejectedLeaves',
             'leaveByType', 'recentLeaveRequests', 'pendingOT', 'thisMonthOT', 'totalOTHours',

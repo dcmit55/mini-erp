@@ -23,10 +23,12 @@
                                     <i class="bi bi-pencil"></i>
                                 </a>
                                 @endcan
+                                @can('production.timing.view')
                                 <a href="{{ route('employees.timing', $employee) }}" class="btn btn-info"
                                     title="View Timings">
                                     <i class="bi bi-clock"></i>
                                 </a>
+                                @endcan
                             </div>
                         </div>
 
@@ -370,10 +372,12 @@
                 <div class="card border-0 shadow-sm mb-4">
                     <div class="card-header bg-light d-flex justify-content-between align-items-center">
                         <h6 class="mb-0"><i class="bi bi-file-earmark-text"></i> Documents & Files</h6>
+                        @can('hr.employees.edit')
                         <button class="btn btn-sm btn-primary" data-bs-toggle="modal"
                             data-bs-target="#uploadDocumentModal">
                             <i class="bi bi-plus"></i> Upload
                         </button>
+                        @endcan
                     </div>
                     <div class="card-body">
                         @if ($employee->documents->count() > 0)
@@ -413,6 +417,7 @@
                                                         class="btn btn-outline-success btn-sm" title="Download Document">
                                                         <i class="bi bi-download"></i>
                                                     </a>
+                                                    @can('hr.employees.edit')
                                                     <button type="button"
                                                         class="btn btn-outline-danger btn-sm delete-document-btn"
                                                         data-document-id="{{ $document->id }}"
@@ -420,6 +425,7 @@
                                                         title="Delete Document">
                                                         <i class="bi bi-trash"></i>
                                                     </button>
+                                                    @endcan
                                                 </td>
                                             </tr>
                                         @endforeach
@@ -430,16 +436,19 @@
                             <div class="text-center py-4">
                                 <i class="bi bi-file-earmark-x text-muted" style="font-size: 3rem;"></i>
                                 <div class="mt-3 text-muted">No documents uploaded yet</div>
+                                @can('hr.employees.edit')
                                 <button class="btn btn-primary mt-2" data-bs-toggle="modal"
                                     data-bs-target="#uploadDocumentModal">
                                     Upload First Document
                                 </button>
+                                @endcan
                             </div>
                         @endif
                     </div>
                 </div>
 
                 <!-- Recent Timings -->
+                @can('production.timing.view')
                 <div class="card border-0 shadow-sm">
                     <div class="card-header bg-light d-flex justify-content-between align-items-center">
                         <h6 class="mb-0"><i class="bi bi-clock"></i> Recent Timings</h6>
@@ -485,10 +494,12 @@
                         @endif
                     </div>
                 </div>
+                @endcan
             </div>
         </div>
     </div>
 
+    @can('hr.employees.edit')
     <!-- Upload Document Modal dengan Real-time Validation -->
     <div class="modal fade" id="uploadDocumentModal" tabindex="-1">
         <div class="modal-dialog">
@@ -566,6 +577,7 @@
             </div>
         </div>
     </div>
+    @endcan
 @endsection
 
 @push('styles')

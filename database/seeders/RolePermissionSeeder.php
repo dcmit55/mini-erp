@@ -62,6 +62,7 @@ class RolePermissionSeeder extends Seeder
                 Permissions::ADMIN_HOLIDAYS_VIEW,
                 Permissions::ADMIN_HOLIDAYS_EDIT,
                 Permissions::PRODUCTION_TIMING_MONITOR_VIEW,
+                Permissions::PRODUCTION_TIMING_VIEW,
             ],
 
             // Admin Logistic: full logistic + view JO + projects + material planning + dept leave approval

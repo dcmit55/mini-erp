@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
         // \App\Models\Admin\User::factory(10)->create();
 
         $this->call([
+            RolePermissionSeeder::class,
             ViolationCategorySeeder::class,
             WarningTemplateSeeder::class,
         ]);

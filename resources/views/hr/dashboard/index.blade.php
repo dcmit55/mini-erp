@@ -239,7 +239,7 @@
         <div class="kpi-icon">📋</div>
         <div class="kpi-label">Attendance ({{ $attendanceDateLabel }})</div>
         <div class="kpi-value">{{ $attendanceRate }}%</div>
-        <div class="kpi-sub">~{{ $todayAttendance }} of {{ $activeEmployees }} active</div>
+        <div class="kpi-sub">~{{ $todayAttendance }} of {{ $activeNonPartyCount }} active</div>
     </div>
     <div class="kpi-card orange">
         <div class="kpi-icon">🕐</div>
