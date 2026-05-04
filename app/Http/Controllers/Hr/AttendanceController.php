@@ -25,6 +25,7 @@ class AttendanceController extends Controller
         if ($request->input('ajax_skill_gap')) {
             $employees = Employee::with(['department', 'skillsets'])
                 ->where('status', 'active')
+                ->whereDoesntHave('department', fn($q) => $q->where('name', 'Party Point'))
                 ->orderBy('name')
                 ->get();
 
@@ -48,6 +49,7 @@ class AttendanceController extends Controller
         if ($request->input('ajax_skill_gap_modal')) {
             $employees = Employee::with(['department', 'skillsets'])
                 ->where('status', 'active')
+                ->whereDoesntHave('department', fn($q) => $q->where('name', 'Party Point'))
                 ->orderBy('name')
                 ->get();
             $attendances = Attendance::whereDate('date', $date)->get()->keyBy('employee_id');
@@ -76,6 +78,7 @@ class AttendanceController extends Controller
         // Query employees with filters
         $employees = Employee::with(['department', 'skillsets'])
             ->where('status', 'active')
+            ->whereDoesntHave('department', fn($q) => $q->where('name', 'Party Point'))
             ->when($department_id, function ($query) use ($department_id) {
                 return $query->where('department_id', $department_id);
             })
@@ -611,7 +614,8 @@ class AttendanceController extends Controller
      */
     private function getDataTablesDataList(Request $request)
     {
-        $query = Attendance::with(['employee.department', 'recordedBy'])->latest('date');
+        $query = Attendance::with(['employee.department', 'recordedBy'])->latest('date')
+            ->whereHas('employee', fn($q) => $q->whereDoesntHave('department', fn($q2) => $q2->where('name', 'Party Point')));
 
         // Apply filters
         if ($request->filled('department_filter')) {

@@ -144,4 +144,44 @@ class SessionShift extends Model implements AuditableContract
             ->get()
             ->first(fn($s) => $s->appliesToDay($dayOfWeek));
     }
+
+    /**
+     * Fallback khusus Sabtu: cari shift yang applicable di hari Sabtu tanpa constraint jam.
+     * Digunakan ketika detectFromClockIn gagal di hari Sabtu (jam clock-in di luar window).
+     * Prioritas: dept-specific → null-dept (GENERAL-S).
+     */
+    /**
+     * Fallback khusus Sabtu tanpa constraint jam clock-in.
+     * Prioritas: per-karyawan → per-dept → null-dept (GENERAL-S).
+     */
+    public static function detectSaturdayFallback(
+        int $departmentId,
+        bool $isWna = false,
+        ?int $employeeId = null
+    ): ?self {
+        // 1. Shift Sabtu khusus karyawan (mis. Emilia punya shift sendiri untuk Sabtu)
+        if ($employeeId) {
+            $empShift = self::where('employee_id', $employeeId)
+                ->where('is_active', true)
+                ->get()
+                ->first(fn($s) => $s->appliesToDay(6));
+            if ($empShift) return $empShift;
+        }
+
+        // 2. Shift Sabtu per-dept (mis. HRGA → CHEF-S)
+        $deptShift = self::where('department_id', $departmentId)
+            ->whereNull('employee_id')
+            ->where('is_active', true)
+            ->where('for_wna', $isWna)
+            ->get()
+            ->first(fn($s) => $s->appliesToDay(6));
+        if ($deptShift) return $deptShift;
+
+        // 3. Fallback null-dept → GENERAL-S (mayoritas karyawan)
+        return self::whereNull('department_id')
+            ->whereNull('employee_id')
+            ->where('is_active', true)
+            ->get()
+            ->first(fn($s) => $s->appliesToDay(6));
+    }
 }

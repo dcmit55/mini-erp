@@ -38,7 +38,8 @@ class AttendanceLogController extends Controller
         $search       = $request->input('search', '');
         $departmentId = $request->input('department_id');
 
-        $employeesQuery = Employee::where('status', 'active');
+        $employeesQuery = Employee::where('status', 'active')
+            ->whereDoesntHave('department', fn($q) => $q->where('name', 'Party Point'));
         if (!empty($search)) {
             $employeesQuery->where(function ($q) use ($search) {
                 $q->where('name', 'LIKE', "%{$search}%")
@@ -112,16 +113,17 @@ class AttendanceLogController extends Controller
 
                 if ($daily) {
                     $attendances->push((object)[
-                        'employee'     => $employee,
-                        'date'         => $currentDate,
-                        'clock_in'     => $daily->clock_in  ? Carbon::parse($daily->clock_in)  : null,
-                        'clock_out'    => $daily->clock_out ? Carbon::parse($daily->clock_out) : null,
-                        'total_hours'  => $daily->total_hours,
-                        'status'       => $daily->status,
-                        'remarks'      => $daily->remarks,
-                        'is_corrected' => true,
-                        'daily_id'     => $daily->id,
-                        'session_shift'=> $daily->sessionShift,
+                        'employee'         => $employee,
+                        'date'             => $currentDate,
+                        'clock_in'         => $daily->clock_in  ? Carbon::parse($daily->clock_in)  : null,
+                        'clock_out'        => $daily->clock_out ? Carbon::parse($daily->clock_out) : null,
+                        'total_hours'      => $daily->total_hours,
+                        'status'           => $daily->status,
+                        'remarks'          => $daily->remarks,
+                        'is_corrected'     => true,
+                        'daily_id'         => $daily->id,
+                        'session_shift'    => $daily->sessionShift,
+                        'session_shift_id' => $daily->session_shift_id,
                     ]);
                 } else {
                     $employeeLogs = $logsMap->get($key, collect());
@@ -142,27 +144,36 @@ class AttendanceLogController extends Controller
                         $sessionShift = null;
                         if ($clockIn && $employee->department_id) {
                             $clockInCarbon = Carbon::parse($clockIn);
+                            $clockInDow    = $clockInCarbon->isoWeekday();
                             $sessionShift  = SessionShift::detectFromClockIn(
                                 $employee->department_id,
                                 $clockInCarbon->format('H:i:s'),
                                 $employee->citizenship === 'WNA',
                                 $employee->id,
                                 $employee->position,
-                                $clockInCarbon->isoWeekday()
+                                $clockInDow
                             );
+                            if (!$sessionShift && $clockInDow === 6) {
+                                $sessionShift = SessionShift::detectSaturdayFallback(
+                                    $employee->department_id,
+                                    $employee->citizenship === 'WNA',
+                                    $employee->id
+                                );
+                            }
                         }
 
                         $attendances->push((object)[
-                            'employee'      => $employee,
-                            'date'          => $currentDate,
-                            'clock_in'      => $clockIn  ? Carbon::parse($clockIn)  : null,
-                            'clock_out'     => $clockOut ? Carbon::parse($clockOut) : null,
-                            'total_hours'   => $totalHours,
-                            'status'        => $status,
-                            'remarks'       => $remarks,
-                            'is_corrected'  => false,
-                            'daily_id'      => null,
-                            'session_shift' => $sessionShift,
+                            'employee'         => $employee,
+                            'date'             => $currentDate,
+                            'clock_in'         => $clockIn  ? Carbon::parse($clockIn)  : null,
+                            'clock_out'        => $clockOut ? Carbon::parse($clockOut) : null,
+                            'total_hours'      => $totalHours,
+                            'status'           => $status,
+                            'remarks'          => $remarks,
+                            'is_corrected'     => false,
+                            'daily_id'         => null,
+                            'session_shift'    => $sessionShift,
+                            'session_shift_id' => $sessionShift?->id,
                         ]);
                     } else {
                         // Tidak ada log sama sekali, cek cuti dari cache
@@ -210,7 +221,12 @@ class AttendanceLogController extends Controller
             }
         }
 
-        return view('hr.attendance-logs.index', compact('attendancesPaginated', 'employees', 'departments', 'latestImportSource', 'search', 'departmentId'));
+        $sessionShifts = SessionShift::where('is_active', true)
+            ->orderBy('department_id')
+            ->orderBy('type_of_shift')
+            ->get(['id', 'type_of_shift', 'department_id', 'start_time', 'end_time']);
+
+        return view('hr.attendance-logs.index', compact('attendancesPaginated', 'employees', 'departments', 'latestImportSource', 'search', 'departmentId', 'sessionShifts'));
     }
 
     private function calculateHours($clockIn, $clockOut)
@@ -245,34 +261,54 @@ class AttendanceLogController extends Controller
     public function update(Request $request, $employeeId, $date)
     {
         $request->validate([
-            'clock_in' => 'nullable|date_format:H:i',
-            'clock_out' => 'nullable|date_format:H:i|after:clock_in',
-            'status' => 'required|in:Present,Late,Excused,Sick Leave,Annual Leave,Alpha',
-            'remarks' => 'nullable|string',
+            'clock_in'         => 'nullable|date_format:H:i',
+            'clock_out'        => 'nullable|date_format:H:i|after:clock_in',
+            'status'           => 'required|in:Present,Late,Less Hours,Early Leave,Permission Out,Excused,Sick Leave,Annual Leave,Maternity Leave,Paternity Leave,Wedding Leave,Birth Leave,Bereavement Leave,Child Event Leave,Hajj Leave,Unpaid Leave,Alpha',
+            'session_shift_id' => 'nullable|exists:session_shifts,id',
+            'remarks'          => 'nullable|string',
         ]);
 
         $employee = Employee::with('department')->findOrFail($employeeId);
         $date = Carbon::parse($date);
 
-        // Untuk status Present/Late, recalculate otomatis berdasarkan clock_in baru.
-        // Status cuti/excused/alpha tetap dari form (pilihan manual admin).
-        $leaveStatuses = ['Excused', 'Sick Leave', 'Annual Leave', 'Alpha'];
+        $leaveStatuses = [
+            'Excused', 'Sick Leave', 'Annual Leave', 'Alpha',
+            'Early Leave', 'Permission Out', 'Maternity Leave', 'Paternity Leave',
+            'Wedding Leave', 'Birth Leave', 'Bereavement Leave', 'Child Event Leave',
+            'Hajj Leave', 'Unpaid Leave',
+        ];
+
         if (in_array($request->status, $leaveStatuses)) {
             $finalStatus = $request->status;
+            $shift = $request->session_shift_id
+                ? SessionShift::find($request->session_shift_id)
+                : null;
         } else {
             $attendanceService = app(DailyAttendanceService::class);
 
-            // Deteksi shift berdasarkan clock_in supaya status akurat
-            $shift = null;
-            if ($request->clock_in && $employee->department_id) {
-                $shift = \App\Models\Hr\SessionShift::detectFromClockIn(
+            // Gunakan shift yang dipilih manual; jika tidak ada, auto-detect dari clock_in
+            if ($request->session_shift_id) {
+                $shift = SessionShift::find($request->session_shift_id);
+            } elseif ($request->clock_in && $employee->department_id) {
+                $clockInTime = \Carbon\Carbon::createFromFormat('H:i', $request->clock_in)->format('H:i:s');
+                $dow         = $date->isoWeekday();
+                $shift       = SessionShift::detectFromClockIn(
                     $employee->department_id,
-                    \Carbon\Carbon::createFromFormat('H:i', $request->clock_in)->format('H:i:s'),
-                    (bool) $employee->is_wna,
+                    $clockInTime,
+                    $employee->citizenship === 'WNA',
                     $employee->id,
                     $employee->position,
-                    $date->isoWeekday()
+                    $dow
                 );
+                if (!$shift && $dow === 6) {
+                    $shift = SessionShift::detectSaturdayFallback(
+                        $employee->department_id,
+                        $employee->citizenship === 'WNA',
+                        $employee->id
+                    );
+                }
+            } else {
+                $shift = null;
             }
 
             $finalStatus = $attendanceService->determineStatus(
@@ -284,21 +320,21 @@ class AttendanceLogController extends Controller
             );
         }
 
-        // Recalculate remarks: hapus "Missing clock out/in" jika sudah diisi manual
         $remarks = $request->remarks;
         if ($request->clock_in && $request->clock_out) {
-            $remarks = $remarks ?: null; // bersihkan auto-remarks jika sudah lengkap
+            $remarks = $remarks ?: null;
         }
 
         $attendance = DailyAttendance::updateOrCreate(
             ['employee_id' => $employeeId, 'date' => $date->format('Y-m-d')],
             [
-                'clock_in'   => $request->clock_in,
-                'clock_out'  => $request->clock_out,
-                'status'     => $finalStatus,
-                'remarks'    => $remarks,
-                'updated_by' => Auth::id(),
-                'is_locked'  => true,
+                'clock_in'         => $request->clock_in,
+                'clock_out'        => $request->clock_out,
+                'status'           => $finalStatus,
+                'remarks'          => $remarks,
+                'session_shift_id' => $shift?->id ?? $request->session_shift_id,
+                'updated_by'       => Auth::id(),
+                'is_locked'        => true,
             ]
         );
 

@@ -343,6 +343,52 @@
                                                         <i class="fas fa-globe me-2"></i>International Purchase
                                                     </a>
                                                 </li>
+                                            @endcan
+                                        </ul>
+                                    </li>
+                                @endcanany
+
+                                <!-- Procurement Dropdown -->
+                                @canany(['procurement.po.view', 'procurement.supplier.view',
+                                    'procurement.shipping.view', 'lark.staging.view'])
+                                    <li class="nav-item dropdown">
+                                        <a class="nav-link dropdown-toggle {{ isDropdownActive($procurementPrefixes) ? 'active' : '' }}"
+                                            href="#" id="procurementDropdown" role="button"
+                                            data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i></i>Procurement
+                                        </a>
+                                        <ul class="dropdown-menu" aria-labelledby="procurementDropdown">
+                                            @can('lark.staging.view')
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('project-purchases*') ? 'active' : '' }}"
+                                                        href="{{ route('project-purchases.index') }}">
+                                                        <i class="fas fa-file-invoice-dollar me-2"></i>Indo Purchase
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('lark/staging/inventory*') ? 'active' : '' }}"
+                                                        href="{{ route('lark.staging.inventory') }}">
+                                                        <i class="fas fa-globe me-2"></i>International Purchase
+                                                    </a>
+                                                </li>
+                                            @endcan
+                                            @can('procurement.supplier.view')
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('suppliers*') ? 'active' : '' }}"
+                                                        href="{{ route('suppliers.index') }}">
+                                                        <i class="fas fa-truck me-2"></i>Suppliers
+                                                    </a>
+                                                </li>
+                                            @endcan
+                                            @can('procurement.po.view')
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('purchase_requests*') ? 'active' : '' }}"
+                                                        href="{{ route('purchase_requests.index') }}">
+                                                        <i class="fas fa-clipboard-check me-2"></i>Purchase Request
+                                                    </a>
+                                                </li>
+                                            @endcan
+                                            @can('lark.staging.view')
                                                 <li>
                                                     <hr class="dropdown-divider">
                                                 </li>
@@ -372,45 +418,8 @@
                                                     </a>
                                                 </li>
                                             @endcan
-                                        </ul>
-                                    </li>
-                                @endcanany
-
-                                <!-- Procurement Dropdown -->
-                                @canany(['procurement.po.view', 'procurement.supplier.view',
-                                    'procurement.shipping.view'])
-                                    <li class="nav-item dropdown">
-                                        <a class="nav-link dropdown-toggle {{ isDropdownActive($procurementPrefixes) ? 'active' : '' }}"
-                                            href="#" id="procurementDropdown" role="button"
-                                            data-bs-toggle="dropdown" aria-expanded="false">
-                                            <i></i>Procurement
-                                        </a>
-                                        <ul class="dropdown-menu" aria-labelledby="procurementDropdown">
-                                            @can('procurement.po.view')
-                                                <li>
-                                                    <a class="dropdown-item {{ request()->is('project-purchases*') ? 'active' : '' }}"
-                                                        href="{{ route('project-purchases.index') }}">
-                                                        <i class="fas fa-file-invoice me-2"></i>Indo Purchase
-                                                    </a>
-                                                </li>
-                                            @endcan
-                                            @can('procurement.supplier.view')
-                                                <li>
-                                                    <a class="dropdown-item {{ request()->is('suppliers*') ? 'active' : '' }}"
-                                                        href="{{ route('suppliers.index') }}">
-                                                        <i class="fas fa-truck me-2"></i>Suppliers
-                                                    </a>
-                                                </li>
-                                            @endcan
-                                            @can('procurement.po.view')
-                                                <li>
-                                                    <a class="dropdown-item {{ request()->is('purchase_requests*') ? 'active' : '' }}"
-                                                        href="{{ route('purchase_requests.index') }}">
-                                                        <i class="fas fa-clipboard-check me-2"></i>Purchase Request
-                                                    </a>
-                                                </li>
-                                            @endcan
-                                            @can('procurement.shipping.view')
+                                            {{-- Hidden: Pre Shippings, Shipping Management, Goods Receive --}}
+                                            {{-- @can('procurement.shipping.view')
                                                 <li>
                                                     <a class="dropdown-item {{ request()->is('pre-shippings*') ? 'active' : '' }}"
                                                         href="{{ route('pre-shippings.index') }}">
@@ -429,7 +438,7 @@
                                                         <i class="fas fa-box-open me-2"></i>Goods Receive
                                                     </a>
                                                 </li>
-                                            @endcan
+                                            @endcan --}}
                                         </ul>
                                     </li>
                                 @endcanany

@@ -46,7 +46,9 @@ class AttendanceSummaryController extends Controller
         $departmentId = $request->input('department_id');
         $departments  = Department::orderBy('name')->get(['id', 'name']);
 
-        $employeeQuery = Employee::where('status', 'active')->orderBy('name');
+        $employeeQuery = Employee::where('status', 'active')
+            ->whereDoesntHave('department', fn($q) => $q->where('name', 'Party Point'))
+            ->orderBy('name');
         if ($departmentId) {
             $employeeQuery->where('department_id', $departmentId);
         }
@@ -143,7 +145,9 @@ class AttendanceSummaryController extends Controller
 
         $departmentId = $request->input('department_id');
 
-        $employeeQuery = Employee::where('status', 'active')->orderBy('name');
+        $employeeQuery = Employee::where('status', 'active')
+            ->whereDoesntHave('department', fn($q) => $q->where('name', 'Party Point'))
+            ->orderBy('name');
         if ($departmentId) {
             $employeeQuery->where('department_id', $departmentId);
         }
@@ -205,6 +209,30 @@ class AttendanceSummaryController extends Controller
             new AttendanceSummaryExport($employees, $daysInMonth, $dayInfo, $dailiesMap, $summary, $month, $year),
             $filename
         );
+    }
+
+    public function updateStatus(Request $request, $employeeId, $date)
+    {
+        $this->authorize('hr.attendance.edit');
+
+        $request->validate([
+            'status' => 'required|in:Present,Late,Less Hours,Early Leave,Permission Out,Excused,Sick Leave,Annual Leave,Maternity Leave,Paternity Leave,Wedding Leave,Birth Leave,Bereavement Leave,Child Event Leave,Hajj Leave,Unpaid Leave,Alpha',
+        ]);
+
+        $record = DailyAttendance::where('employee_id', $employeeId)
+            ->whereDate('date', $date)
+            ->first();
+
+        if (!$record) {
+            return response()->json(['message' => 'Attendance record not found.'], 404);
+        }
+
+        $record->update([
+            'status'    => $request->status,
+            'is_locked' => true,
+        ]);
+
+        return response()->json(['message' => 'Status updated.', 'status' => $record->status]);
     }
 
     public function storeHoliday(Request $request)

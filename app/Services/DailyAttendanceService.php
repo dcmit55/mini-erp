@@ -69,14 +69,24 @@ class DailyAttendanceService
             } elseif ($clockIn && $employee->department_id) {
                 $clockInCarbon   = Carbon::parse($clockIn);
                 $clockInForShift = $clockInCarbon->format('H:i:s');
+                $clockInDow      = $clockInCarbon->isoWeekday();
                 $detectedShift   = SessionShift::detectFromClockIn(
                     $employee->department_id,
                     $clockInForShift,
                     (bool) $employee->is_wna,
                     $employee->id,
                     $employee->position,
-                    $clockInCarbon->isoWeekday()
+                    $clockInDow
                 );
+                // Sabtu: jika tidak ada shift Sabtu yang cocok (jam di luar window),
+                // fallback ke shift Sabtu tanpa constraint jam (CHEF-S / GENERAL-S)
+                if (!$detectedShift && $clockInDow === 6) {
+                    $detectedShift = SessionShift::detectSaturdayFallback(
+                        $employee->department_id,
+                        (bool) $employee->is_wna,
+                        $employee->id
+                    );
+                }
             }
 
             // Fallback: jika tidak terdeteksi, assign shift default berdasarkan departemen

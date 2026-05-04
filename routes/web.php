@@ -802,6 +802,7 @@ Route::middleware(['auth'])->group(function () {
         return redirect()->route('attendance-logs.index')->with('info', 'Halaman import telah dipindahkan. Gunakan tombol "Import Excel" di halaman ini.');
     })->name('attendance-logs.import.redirect');
     Route::get('/attendance-logs/export', [AttendanceLogController::class, 'export'])->name('attendance-logs.export');
+    Route::patch('/attendance-logs/{employeeId}/{date}/status', [AttendanceSummaryController::class, 'updateStatus'])->name('attendance-logs.update-status');
 
     // Symcore Export
     Route::get('/symcore-export', [SymcoreExportController::class, 'index'])->name('symcore-export.index');

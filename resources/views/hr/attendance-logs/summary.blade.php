@@ -139,6 +139,7 @@
                                 </tr>
                             </thead>
                             <tbody>
+                                @php $canEditAttendance = auth()->user()->can('hr.attendance.edit'); @endphp
                                 @foreach($employees as $emp)
                                     @php $s = $summary[$emp->id]; @endphp
                                     <tr class="summary-row">
@@ -186,7 +187,20 @@
                                                     };
                                                 }
                                             @endphp
-                                            <td class="att-cell {{ $cellClass }}" title="{{ $tooltip }}">
+                                            @php
+                                                $isEditable = $canEditAttendance
+                                                    && !$info['isSunday']
+                                                    && !$info['national']
+                                                    && !$info['company'];
+                                            @endphp
+                                            <td class="att-cell {{ $cellClass }}{{ $isEditable ? ' att-cell-editable' : '' }}"
+                                                title="{{ $isEditable ? 'Click to change status' : $tooltip }}"
+                                                @if($isEditable)
+                                                    data-employee-id="{{ $emp->id }}"
+                                                    data-employee-name="{{ $emp->name }}"
+                                                    data-date="{{ $info['date'] }}"
+                                                    data-status="{{ $status ?? '' }}"
+                                                @endif>
                                                 @if(!empty($initial))<span class="att-initial">{{ $initial }}</span>@endif
                                             </td>
                                         @endfor
@@ -413,6 +427,54 @@
 </div>
 @endcan
 
+{{-- Modal: Quick Status Edit (from summary grid) --}}
+@can('hr.attendance.edit')
+<div class="modal fade" id="statusEditModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:380px;">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title"><i class="fas fa-edit me-2 text-primary"></i>Edit Status</h6>
+                <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body py-3">
+                <div class="mb-1 small text-muted" id="sem_label"></div>
+                <div class="mb-3">
+                    <label class="form-label small">Status</label>
+                    <select id="sem_status" class="form-select form-select-sm">
+                        <option value="Present">Present</option>
+                        <option value="Late">Late</option>
+                        <option value="Less Hours">Less Hours</option>
+                        <option value="Early Leave">Early Leave</option>
+                        <option value="Permission Out">Permission Out</option>
+                        <option value="Excused">Excused</option>
+                        <option value="Sick Leave">Sick Leave</option>
+                        <option value="Annual Leave">Annual Leave</option>
+                        <option value="Maternity Leave">Maternity Leave</option>
+                        <option value="Paternity Leave">Paternity Leave</option>
+                        <option value="Wedding Leave">Wedding Leave</option>
+                        <option value="Birth Leave">Birth Leave</option>
+                        <option value="Bereavement Leave">Bereavement Leave</option>
+                        <option value="Child Event Leave">Child Event Leave</option>
+                        <option value="Hajj Leave">Hajj Leave</option>
+                        <option value="Unpaid Leave">Unpaid Leave</option>
+                        <option value="Alpha">Alpha</option>
+                    </select>
+                </div>
+                <div class="alert alert-info py-1 px-2 small mb-0">
+                    <i class="fas fa-info-circle me-1"></i>
+                    To edit clock in/out or shift, go to <a href="{{ route('attendance-logs.index') }}" class="alert-link">Attendance Daily</a>.
+                </div>
+                <div id="sem_result" class="mt-2 small"></div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-sm btn-primary" id="sem_save">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+@endcan
+
 <style>
 /* Scrollable grid */
 .summary-scroll-wrap {
@@ -524,6 +586,10 @@
 .cell-company-paid   { background: #f9a8d4 !important; }
 .cell-company-unpaid { background: #fcd34d !important; }
 .cell-empty       { background: #f1f5f9 !important; }
+
+/* Editable cell */
+.att-cell-editable { cursor: pointer !important; }
+.att-cell-editable:hover { filter: brightness(0.88) !important; outline: 1.5px solid #6366f1; outline-offset: -1px; }
 
 /* Summary count columns */
 .count-present { color: #166534; font-size:0.75rem; }
@@ -638,6 +704,51 @@ $(document).ready(function () {
         window.location.href = url + '?' + params.toString();
     });
 
+
+    // Click on att-cell to edit status (HR only)
+    @can('hr.attendance.edit')
+    var $semModal = new bootstrap.Modal(document.getElementById('statusEditModal'));
+    var _semEmpId, _semDate;
+
+    $(document).on('click', '.att-cell-editable', function () {
+        _semEmpId = $(this).data('employee-id');
+        _semDate  = $(this).data('date');
+        var name  = $(this).data('employee-name');
+        var status = $(this).data('status') || '';
+
+        $('#sem_label').text(name + ' — ' + _semDate);
+        $('#sem_status').val(status || 'Present');
+        $('#sem_result').html('');
+        $('#sem_save').prop('disabled', false);
+        $semModal.show();
+    });
+
+    $('#sem_save').on('click', function () {
+        var $btn = $(this);
+        $btn.prop('disabled', true);
+        $('#sem_result').html('<span class="text-muted">Saving…</span>');
+
+        $.ajax({
+            url: "{{ route('attendance-logs.update-status', ['employeeId' => ':eid', 'date' => ':d']) }}"
+                .replace(':eid', _semEmpId).replace(':d', _semDate),
+            type: 'POST',
+            data: {
+                _method: 'PATCH',
+                _token:  $('meta[name="csrf-token"]').attr('content'),
+                status:  $('#sem_status').val(),
+            },
+            success: function () {
+                $('#sem_result').html('<span class="text-success"><i class="fas fa-check me-1"></i>Saved.</span>');
+                setTimeout(function () { $semModal.hide(); location.reload(); }, 800);
+            },
+            error: function (xhr) {
+                var msg = xhr.responseJSON?.message ?? 'Failed to save.';
+                $('#sem_result').html('<span class="text-danger">' + msg + '</span>');
+                $btn.prop('disabled', false);
+            }
+        });
+    });
+    @endcan
 
     // Click on date header to quick-manage holiday (HR only)
     @can('hr.attendance.edit')
