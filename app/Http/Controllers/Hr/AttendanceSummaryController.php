@@ -46,7 +46,9 @@ class AttendanceSummaryController extends Controller
         $departmentId = $request->input('department_id');
         $departments  = Department::orderBy('name')->get(['id', 'name']);
 
-        $employeeQuery = Employee::where('status', 'active')->orderBy('name');
+        $employeeQuery = Employee::where('status', 'active')
+            ->whereDoesntHave('department', fn($q) => $q->where('name', 'Party Point'))
+            ->orderBy('name');
         if ($departmentId) {
             $employeeQuery->where('department_id', $departmentId);
         }
@@ -143,7 +145,9 @@ class AttendanceSummaryController extends Controller
 
         $departmentId = $request->input('department_id');
 
-        $employeeQuery = Employee::where('status', 'active')->orderBy('name');
+        $employeeQuery = Employee::where('status', 'active')
+            ->whereDoesntHave('department', fn($q) => $q->where('name', 'Party Point'))
+            ->orderBy('name');
         if ($departmentId) {
             $employeeQuery->where('department_id', $departmentId);
         }
