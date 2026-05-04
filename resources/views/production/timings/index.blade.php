@@ -24,14 +24,14 @@
                             <i class="fas fa-cut me-1"></i> Costume Timing
                         </a>
                         @can('production.timing.edit')
-                        <a href="{{ route('timings.create') }}" class="btn btn-primary btn-sm flex-shrink-0">
-                            <i class="bi bi-plus-circle me-1"></i> Input Timing
-                        </a>
-                        <!-- Import Button -->
-                        <button type="button" class="btn btn-success btn-sm flex-shrink-0" data-bs-toggle="modal"
-                            data-bs-target="#importModal">
-                            <i class="bi bi-filetype-xls me-1"></i> Import
-                        </button>
+                            <a href="{{ route('timings.create') }}" class="btn btn-primary btn-sm flex-shrink-0">
+                                <i class="bi bi-plus-circle me-1"></i> Input Timing
+                            </a>
+                            <!-- Import Button -->
+                            <button type="button" class="btn btn-success btn-sm flex-shrink-0" data-bs-toggle="modal"
+                                data-bs-target="#importModal">
+                                <i class="bi bi-filetype-xls me-1"></i> Import
+                            </button>
                         @endcan
                         <!-- Export Button -->
                         <button type="button" id="export-btn" class="btn btn-outline-success btn-sm flex-shrink-0">
@@ -67,64 +67,94 @@
                     </div>
                 @endif
 
-                <form method="GET" class="row g-2 align-items-end mb-3">
-                    <div class="col-md-3">
-                        <input type="text" name="search" value="{{ request('search') }}"
-                            class="form-control form-control-sm" placeholder="Search step, remarks...">
+                <form method="GET" id="timing-filter-form" class="mb-3">
+                    {{-- Row 1: Search + Project + Job Order + Department --}}
+                    <div class="row g-2 align-items-end mb-2">
+                        <div class="col-md-3">
+                            {{-- <label class="form-label mb-1 small">Search</label> --}}
+                            <input type="text" name="search" value="{{ request('search') }}"
+                                class="form-control form-control-sm" placeholder="Search step, remarks...">
+                        </div>
+                        <div class="col-md-3">
+                            {{-- <label class="form-label mb-1 small">Project</label> --}}
+                            <select name="project_id" class="form-select form-select-sm select2"
+                                data-placeholder="All Projects">
+                                <option value="">All Projects</option>
+                                @foreach ($projects as $project)
+                                    <option value="{{ $project->id }}"
+                                        {{ request('project_id') == $project->id ? 'selected' : '' }}>
+                                        {{ $project->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            {{-- <label class="form-label mb-1 small">Job Order</label> --}}
+                            <select name="job_order_id" class="form-select form-select-sm select2"
+                                data-placeholder="All Job Orders">
+                                <option value="">All Job Orders</option>
+                                @foreach ($jobOrders as $jo)
+                                    <option value="{{ $jo->id }}"
+                                        {{ request('job_order_id') == $jo->id ? 'selected' : '' }}>
+                                        {{ $jo->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label mb-1 small">Department</label>
+                            <select name="department" class="form-select form-select-sm select2"
+                                data-placeholder="All Departments">
+                                <option value="">All Departments</option>
+                                @foreach ($departments as $id => $deptName)
+                                    <option value="{{ $deptName }}"
+                                        {{ request('department') == $deptName ? 'selected' : '' }}>
+                                        {{ ucfirst($deptName) }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
                     </div>
-                    <div class="col-md-2">
-                        <label class="form-label mb-1">Filter Project</label>
-                        <select name="project_id" class="form-select select2" data-placeholder="All Projects">
-                            <option value="">All Projects</option>
-                            @foreach ($projects as $project)
-                                <option value="{{ $project->id }}"
-                                    {{ request('project_id') == $project->id ? 'selected' : '' }}>
-                                    {{ $project->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label mb-1">Filter Job Order</label>
-                        <select name="job_order_id" class="form-select select2" data-placeholder="All Job Orders">
-                            <option value="">All Job Orders</option>
-                            @foreach ($jobOrders as $jo)
-                                <option value="{{ $jo->id }}"
-                                    {{ request('job_order_id') == $jo->id ? 'selected' : '' }}>
-                                    {{ $jo->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label mb-1">Department</label>
-                        <select name="department" class="form-select select2" data-placeholder="All Departments">
-                            <option value="">All Departments</option>
-                            @foreach ($departments as $id => $deptName)
-                                <option value="{{ $deptName }}"
-                                    {{ request('department') == $deptName ? 'selected' : '' }}>
-                                    {{ ucfirst($deptName) }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label mb-1">Employee</label>
-                        <select name="employee_id" class="form-select select2" data-placeholder="All Employees">
-                            <option value="">All Employees</option>
-                            @foreach ($employees as $emp)
-                                <option value="{{ $emp->id }}"
-                                    {{ request('employee_id') == $emp->id ? 'selected' : '' }}>
-                                    {{ $emp->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-lg-2 d-flex align-items-end gap-2">
-                        <a href="{{ route('timings.index') }}" class="btn btn-secondary"
-                            title="Reset All Filters">Reset</a>
+                    {{-- Row 2: Employee + Date Range + Reset --}}
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-3">
+                            {{-- <label class="form-label mb-1 small">Employee</label> --}}
+                            <select name="employee_id" class="form-select form-select-sm select2"
+                                data-placeholder="All Employees">
+                                <option value="">All Employees</option>
+                                @foreach ($employees as $emp)
+                                    <option value="{{ $emp->id }}"
+                                        {{ request('employee_id') == $emp->id ? 'selected' : '' }}>
+                                        {{ $emp->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label mb-1 small">Date Range</label>
+                            <div class="position-relative">
+                                {{-- <span class="position-absolute"
+                                    style="left:9px;top:50%;transform:translateY(-50%);pointer-events:none;z-index:5;">
+                                    <i class="bi bi-calendar3 text-muted" style="font-size:.8rem;"></i>
+                                </span> --}}
+                                <input type="text" id="timing-date-range" class="form-control form-control-sm ps-4"
+                                    placeholder="Select date range..." autocomplete="off" readonly>
+                                <input type="hidden" id="input-date-from" name="date_from"
+                                    value="{{ request('date_from') }}">
+                                <input type="hidden" id="input-date-to" name="date_to" value="{{ request('date_to') }}">
+                            </div>
+                        </div>
+                        <div class="col-md-auto d-flex align-items-end gap-2">
+                            <a href="{{ route('timings.index') }}" class="btn btn-secondary btn-sm"
+                                title="Reset All Filters"><i class="bi bi-x-lg me-1"></i>Reset</a>
+                        </div>
                     </div>
                 </form>
+                <div class="alert alert-info border-0 py-1 px-3 mb-2 small text-muted">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Menampilkan <strong>300 data terbaru</strong>. Gunakan filter tanggal atau filter lain untuk
+                    mempersempit hasil.
+                </div>
                 <div id="timing-error-alert" class="alert alert-danger d-none" role="alert"></div>
                 <table class="table table-sm table-hover align-middle rounded" id="timing-table">
                     <thead class="table-light">
@@ -230,7 +260,8 @@
                                     @elseif($timing->status == 'pending')
                                         <span class="badge bg-secondary">Pending</span>
                                     @else
-                                        <span class="badge bg-light text-dark">{{ ucfirst($timing->status ?? '-') }}</span>
+                                        <span
+                                            class="badge bg-light text-dark">{{ ucfirst($timing->status ?? '-') }}</span>
                                     @endif
                                 </td>
 
@@ -252,7 +283,9 @@
                                 </td>
 
                                 {{-- Remarks --}}
-                                <td>{{ $timing->remarks ?? '-' }}</td>
+                                <td title="{{ $timing->remarks ?? '' }}">
+                                    {{ mb_strlen($timing->remarks ?? '') > 40 ? mb_substr($timing->remarks, 0, 40) . '…' : $timing->remarks ?? '-' }}
+                                </td>
 
                                 {{-- Actions --}}
                                 <td class="text-nowrap">
@@ -360,12 +393,179 @@
 @endsection
 
 @push('styles')
+    {{-- Flatpickr date range picker --}}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <style>
-        /* Date Column Width */
+        #timing-date-range {
+            background: #fff !important;
+            cursor: pointer;
+        }
+
+        .flatpickr-day.inRange,
+        .flatpickr-day.startRange,
+        .flatpickr-day.endRange {
+            background: #0d6efd !important;
+            border-color: #0d6efd !important;
+        }
+
+        .flatpickr-day.inRange {
+            background: rgba(13, 110, 253, .15) !important;
+            border-color: transparent !important;
+            color: #333 !important;
+        }
+
         .date-col {
-            min-width: 180px;
+            min-width: 100px;
+            max-width: 110px;
             white-space: nowrap;
         }
+
+        /* Column width constraints */
+        #timing-table th,
+        #timing-table td {
+            vertical-align: middle;
+            font-size: 0.82rem;
+        }
+
+        #timing-table th:nth-child(1),
+        #timing-table td:nth-child(1) {
+            min-width: 100px;
+            max-width: 110px;
+        }
+
+        /* Date */
+        #timing-table th:nth-child(2),
+        #timing-table td:nth-child(2) {
+            min-width: 120px;
+            max-width: 160px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Project */
+        #timing-table th:nth-child(3),
+        #timing-table td:nth-child(3) {
+            min-width: 110px;
+            max-width: 150px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Job Order */
+        #timing-table th:nth-child(4),
+        #timing-table td:nth-child(4) {
+            min-width: 90px;
+            max-width: 120px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Department */
+        #timing-table th:nth-child(5),
+        #timing-table td:nth-child(5) {
+            min-width: 80px;
+            max-width: 120px;
+        }
+
+        /* Step */
+        #timing-table th:nth-child(6),
+        #timing-table td:nth-child(6) {
+            min-width: 70px;
+            max-width: 100px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Parts */
+        #timing-table th:nth-child(7),
+        #timing-table td:nth-child(7) {
+            min-width: 100px;
+            max-width: 140px;
+            white-space: nowrap;
+        }
+
+        /* Employee */
+        #timing-table th:nth-child(7),
+        #timing-table td:nth-child(7) {
+            min-width: 90px;
+            max-width: 120px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Start */
+        #timing-table th:nth-child(9),
+        #timing-table td:nth-child(9) {
+            min-width: 55px;
+            max-width: 65px;
+            white-space: nowrap;
+        }
+
+        /* End */
+        #timing-table th:nth-child(10),
+        #timing-table td:nth-child(10) {
+            min-width: 60px;
+            max-width: 80px;
+            white-space: nowrap;
+        }
+
+        /* Duration */
+        #timing-table th:nth-child(11),
+        #timing-table td:nth-child(11) {
+            min-width: 45px;
+            max-width: 65px;
+            white-space: nowrap;
+        }
+
+        /* Value */
+        #timing-table th:nth-child(12),
+        #timing-table td:nth-child(12) {
+            min-width: 50px;
+            max-width: 70px;
+            white-space: nowrap;
+        }
+
+        /* Type */
+        #timing-table th:nth-child(13),
+        #timing-table td:nth-child(13) {
+            min-width: 70px;
+            max-width: 90px;
+            white-space: nowrap;
+        }
+
+        /* Status */
+        #timing-table th:nth-child(14),
+        #timing-table td:nth-child(14) {
+            min-width: 70px;
+            max-width: 90px;
+            white-space: nowrap;
+        }
+
+        /* Approval */
+        #timing-table th:nth-child(15),
+        #timing-table td:nth-child(15) {
+            min-width: 120px;
+            max-width: 200px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: help;
+        }
+
+        /* Remarks */
+        #timing-table th:nth-child(16),
+        #timing-table td:nth-child(16) {
+            min-width: 70px;
+            max-width: 90px;
+            white-space: nowrap;
+        }
+
+        /* Actions */
 
         /* Select2 Styling */
         .select2-container .select2-selection--single {
@@ -527,8 +727,8 @@
 @endpush
 
 @push('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script>
-        let dt;
         let dtConfig = {
             responsive: true,
             stateSave: true,
@@ -622,6 +822,8 @@
                     let job_order_id = $('select[name="job_order_id"]').val();
                     let department = $('select[name="department"]').val();
                     let employee_id = $('select[name="employee_id"]').val();
+                    let date_from = $('input[name="date_from"]').val();
+                    let date_to = $('input[name="date_to"]').val();
 
                     $.ajax({
                         url: "{{ route('timings.ajax_search') }}",
@@ -632,6 +834,8 @@
                             job_order_id,
                             department,
                             employee_id,
+                            date_from,
+                            date_to,
                         },
                         success: function(res) {
                             $('#timing-error-alert').addClass('d-none').text('');
@@ -679,6 +883,42 @@
                 .on('input change', function() {
                     triggerSearch();
                 });
+
+            // ── Flatpickr date range picker ──
+            const dateFromVal = $('#input-date-from').val();
+            const dateToVal = $('#input-date-to').val();
+            flatpickr('#timing-date-range', {
+                mode: 'range',
+                dateFormat: 'Y-m-d',
+                altInput: true,
+                altFormat: 'd M Y',
+                showMonths: 2,
+                defaultDate: (dateFromVal && dateToVal) ? [dateFromVal, dateToVal] : (dateFromVal ? [
+                    dateFromVal
+                ] : []),
+                onChange: function(selectedDates) {
+                    if (selectedDates.length === 0) {
+                        $('#input-date-from').val('');
+                        $('#input-date-to').val('');
+                    } else if (selectedDates.length === 1) {
+                        $('#input-date-from').val(flatpickr.formatDate(selectedDates[0], 'Y-m-d'));
+                        $('#input-date-to').val('');
+                    } else {
+                        $('#input-date-from').val(flatpickr.formatDate(selectedDates[0], 'Y-m-d'));
+                        $('#input-date-to').val(flatpickr.formatDate(selectedDates[1], 'Y-m-d'));
+                        triggerSearch();
+                    }
+                },
+                onClose: function(selectedDates) {
+                    if (selectedDates.length === 1) {
+                        $('#input-date-from').val(flatpickr.formatDate(selectedDates[0], 'Y-m-d'));
+                        $('#input-date-to').val('');
+                        triggerSearch();
+                    } else if (selectedDates.length === 0) {
+                        triggerSearch();
+                    }
+                }
+            });
 
             $('#export-btn').on('click', function() {
                 // Ambil filter dari form

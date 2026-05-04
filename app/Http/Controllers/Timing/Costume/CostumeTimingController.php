@@ -116,8 +116,14 @@ class CostumeTimingController extends Controller
         $joIds = $jobOrders->pluck('id')->toArray();
         $plannedDataPerJo = [];
         if (!empty($joIds)) {
-            $plans = JobOrderTimingPlan::whereIn('job_order_id', $joIds)->select('job_order_id', 'employee_id', 'task', 'stage', 'session_type')->get();
-            foreach ($plans->groupBy('job_order_id') as $joId => $rows) {
+            $today = today()->toDateString();
+            // Load today's date-scoped plans first; fall back to NULL (legacy) plans for uncovered JOs
+            $todayPlans = JobOrderTimingPlan::whereIn('job_order_id', $joIds)->where('planning_date', $today)->select('job_order_id', 'employee_id', 'task', 'stage', 'session_type')->get()->groupBy('job_order_id');
+            $coveredJoIds = $todayPlans->keys()->toArray();
+            $uncoveredJoIds = array_diff($joIds, $coveredJoIds);
+            $legacyPlans = !empty($uncoveredJoIds) ? JobOrderTimingPlan::whereIn('job_order_id', $uncoveredJoIds)->whereNull('planning_date')->select('job_order_id', 'employee_id', 'task', 'stage', 'session_type')->get()->groupBy('job_order_id') : collect();
+            $plansByJo = $todayPlans->union($legacyPlans);
+            foreach ($plansByJo as $joId => $rows) {
                 $first = $rows->first();
                 $plannedDataPerJo[$joId] = [
                     'employee_ids' => $rows->pluck('employee_id')->toArray(),

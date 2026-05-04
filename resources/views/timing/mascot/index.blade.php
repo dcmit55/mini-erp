@@ -57,7 +57,13 @@
                                         placeholder="Search job order or project...">
                                 </div>
                                 <div id="jo-cards" class="row g-2" style="max-height: 280px; overflow-y: auto;">
-                                    @forelse($jobOrders as $jo)
+                                    @php
+                                        // Sort: JOs with plans first, then rest
+                                        $sortedJos = $jobOrders->sortByDesc(
+                                            fn($jo) => isset($plannedDataPerJo[$jo->id]) ? 1 : 0,
+                                        );
+                                    @endphp
+                                    @forelse($sortedJos as $jo)
                                         @php
                                             $deliveryDate = $jo->delivery_date
                                                 ? \Carbon\Carbon::parse($jo->delivery_date)
@@ -121,6 +127,12 @@
                                                             style="font-size:0.62rem;"><i
                                                                 class="bi bi-calendar2-check-fill me-1"></i>Plan:
                                                             {{ count($plannedEmps) }} emp(s)</div>
+                                                        @if (!empty($plannedDataPerJo[$jo->id]['plan_updated_at']))
+                                                            <div class="text-muted" style="font-size:0.58rem;">
+                                                                <i
+                                                                    class="bi bi-clock me-1"></i>{{ $plannedDataPerJo[$jo->id]['plan_updated_at'] }}
+                                                            </div>
+                                                        @endif
                                                     @elseif(!empty($lastEmps))
                                                         <div class="mt-1 text-muted" style="font-size:0.62rem;"><i
                                                                 class="bi bi-people-fill me-1"></i>Last:

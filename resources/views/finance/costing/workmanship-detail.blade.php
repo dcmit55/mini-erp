@@ -405,11 +405,11 @@
 
 @section('content')
     @php
-        $fmt     = fn($n) => 'Rp ' . number_format($n, 0, ',', '.');
+        $fmt = fn($n) => 'Rp ' . number_format($n, 0, ',', '.');
         $avgRate = $totalOperators > 0 ? round($avgHourlyRate) : 0;
         $hasAnyOt = $timingRows->contains('has_ot', true);
         $regularRows = $timingRows->filter(fn($r) => !$r['has_ot'])->values();
-        $allOtRows   = $timingRows->filter(fn($r) => $r['has_ot'])->values();
+        $allOtRows = $timingRows->filter(fn($r) => $r['has_ot'])->values();
     @endphp
 
     <div class="container-fluid px-4 py-3">
@@ -459,7 +459,8 @@
             </div>
             <div class="stat-card" style="{{ $totalOtCost > 0 ? 'border-left:3px solid #e67e22;' : '' }}">
                 <div class="stat-label" style="{{ $totalOtCost > 0 ? 'color:#e67e22;' : '' }}">OT Cost</div>
-                <div class="stat-val" style="font-size:1.3rem; {{ $totalOtCost > 0 ? 'color:#e67e22;' : 'color:#adb5bd;' }}">
+                <div class="stat-val"
+                    style="font-size:1.3rem; {{ $totalOtCost > 0 ? 'color:#e67e22;' : 'color:#adb5bd;' }}">
                     {{ $totalOtCost > 0 ? $fmt($totalOtCost) : '—' }}
                 </div>
                 @if ($totalWdOtCost > 0 || $totalWeOtCost > 0)
@@ -498,6 +499,7 @@
                         <thead>
                             <tr>
                                 <th style="padding-left:1.25rem;">Employee</th>
+                                <th>Job Order</th>
                                 <th>Day</th>
                                 <th>Date</th>
                                 <th>Start</th>
@@ -510,7 +512,7 @@
                         <tbody>
                             @forelse($regularRows as $row)
                                 @php
-                                    $emp  = $byEmployee->firstWhere('name', $row['employee']);
+                                    $emp = $byEmployee->firstWhere('name', $row['employee']);
                                     $rate = $emp['hourly_rate'] ?? 0;
                                 @endphp
                                 <tr>
@@ -518,15 +520,24 @@
                                         <div class="emp-name-cell">
                                             <span class="emp-avatar">{{ $row['initials'] }}</span>
                                             <div>
-                                                <div class="fw-semibold" style="font-size:.8rem;">{{ $row['employee'] }}</div>
-                                                <div class="text-muted" style="font-size:.68rem;">{{ $row['position'] }}</div>
+                                                <div class="fw-semibold" style="font-size:.8rem;">{{ $row['employee'] }}
+                                                </div>
+                                                <div class="text-muted" style="font-size:.68rem;">{{ $row['position'] }}
+                                                </div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td class="text-muted fw-semibold" style="font-size:.82rem;">{{ $row['day_name'] }}</td>
+                                    <td style="font-size:.78rem; max-width:130px;">
+                                        <span class="badge bg-light text-dark border"
+                                            style="font-size:.7rem; font-weight:600;">{{ $row['job_order'] }}</span>
+                                    </td>
+                                    <td class="text-muted fw-semibold" style="font-size:.82rem;">{{ $row['day_name'] }}
+                                    </td>
                                     <td class="text-muted" style="font-size:.8rem;">{{ $row['date'] }}</td>
-                                    <td class="text-muted fw-semibold" style="font-size:.82rem;">{{ $row['start_time'] }}</td>
-                                    <td class="text-muted fw-semibold" style="font-size:.82rem;">{{ $row['end_time'] }}</td>
+                                    <td class="text-muted fw-semibold" style="font-size:.82rem;">{{ $row['start_time'] }}
+                                    </td>
+                                    <td class="text-muted fw-semibold" style="font-size:.82rem;">{{ $row['end_time'] }}
+                                    </td>
                                     <td class="text-end fw-bold" style="color:#6c5ce7;">{{ $row['normal_hours'] }} hrs</td>
                                     <td class="text-end">
                                         <span class="rate-chip">{{ $rate > 0 ? $fmt($rate) : '—' }}</span>
@@ -537,7 +548,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="8" class="text-center text-muted py-4">
+                                    <td colspan="9" class="text-center text-muted py-4">
                                         <i class="fas fa-clock me-1"></i>No regular timing data
                                     </td>
                                 </tr>
@@ -545,9 +556,10 @@
 
                             @if ($regularRows->isNotEmpty())
                                 <tr class="total-row">
-                                    <td colspan="5" style="padding-left:1.25rem;">Total Regular Hours</td>
+                                    <td colspan="6" style="padding-left:1.25rem;">Total Regular Hours</td>
                                     <td class="text-end">{{ $byEmployee->sum('normal_hours') }} hrs</td>
-                                    <td class="text-end" style="font-size:.8rem; color:#6c757d;">avg {{ $fmt($avgRate) }}</td>
+                                    <td class="text-end" style="font-size:.8rem; color:#6c757d;">avg {{ $fmt($avgRate) }}
+                                    </td>
                                     <td class="text-end">{{ $fmt($totalNormalCost) }}</td>
                                 </tr>
                             @endif
@@ -567,10 +579,12 @@
                     </div>
 
                     {{-- Info box --}}
-                    <div style="margin:.75rem 1.25rem .5rem; padding:.6rem .9rem; background:rgba(52,152,219,.07); border-left:3px solid #3498db; border-radius:6px; font-size:.75rem; color:#2980b9;">
+                    <div
+                        style="margin:.75rem 1.25rem .5rem; padding:.6rem .9rem; background:rgba(52,152,219,.07); border-left:3px solid #3498db; border-radius:6px; font-size:.75rem; color:#2980b9;">
                         <i class="fas fa-info-circle me-1"></i>
                         <strong>Aturan OT Hari Kerja (UU Ketenagakerjaan):</strong>
-                        Jam OT ke-1 s/d 3 = 1.5× rate reguler &nbsp;·&nbsp; Jam OT ke-4 dan seterusnya = 2× rate reguler. Rate OT dihitung dari rate reguler masing-masing operator.
+                        Jam OT ke-1 s/d 3 = 1.5× rate reguler &nbsp;·&nbsp; Jam OT ke-4 dan seterusnya = 2× rate reguler.
+                        Rate OT dihitung dari rate reguler masing-masing operator.
                     </div>
 
                     <table class="det-tbl">
@@ -594,20 +608,27 @@
                                         <div class="emp-name-cell">
                                             <span class="emp-avatar">{{ $row['initials'] }}</span>
                                             <div>
-                                                <div class="fw-semibold" style="font-size:.8rem;">{{ $row['employee'] }}</div>
-                                                <div class="text-muted" style="font-size:.68rem;">{{ $row['position'] }}</div>
+                                                <div class="fw-semibold" style="font-size:.8rem;">{{ $row['employee'] }}
+                                                </div>
+                                                <div class="text-muted" style="font-size:.68rem;">{{ $row['position'] }}
+                                                </div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td class="text-muted fw-semibold" style="font-size:.82rem;">{{ $row['day_name'] }}</td>
+                                    <td class="text-muted fw-semibold" style="font-size:.82rem;">{{ $row['day_name'] }}
+                                    </td>
                                     <td class="text-muted" style="font-size:.8rem;">{{ $row['date'] }}</td>
-                                    <td class="fw-semibold" style="font-size:.82rem; color:#e67e22;">{{ $row['ot_start'] ?? '—' }}</td>
-                                    <td class="fw-semibold" style="font-size:.82rem; color:#e67e22;">{{ $row['ot_end'] ?? '—' }}</td>
+                                    <td class="fw-semibold" style="font-size:.82rem; color:#e67e22;">
+                                        {{ $row['ot_start'] ?? '—' }}</td>
+                                    <td class="fw-semibold" style="font-size:.82rem; color:#e67e22;">
+                                        {{ $row['ot_end'] ?? '—' }}</td>
                                     <td class="text-end fw-bold" style="color:#e67e22;">{{ $row['ot_hours'] }} hrs</td>
                                     <td class="text-end">
-                                        <span class="ot-cost-chip">{{ $row['hourly_rate'] > 0 ? $fmt($row['hourly_rate']) : '—' }}</span>
+                                        <span
+                                            class="ot-cost-chip">{{ $row['hourly_rate'] > 0 ? $fmt($row['hourly_rate']) : '—' }}</span>
                                     </td>
-                                    <td class="text-end fw-semibold" style="font-size:.78rem; color:#e67e22;">{{ $row['mult_label'] ?? '—' }}</td>
+                                    <td class="text-end fw-semibold" style="font-size:.78rem; color:#e67e22;">
+                                        {{ $row['mult_label'] ?? '—' }}</td>
                                     <td class="text-end fw-bold" style="font-size:.82rem; color:#e67e22;">
                                         {{ $row['ot_cost'] > 0 ? $fmt($row['ot_cost']) : '—' }}
                                     </td>
@@ -620,48 +641,54 @@
                                 </tr>
                             @endforelse
                             @if ($hasWdOt)
-                            <tr class="total-row">
-                                <td colspan="5" style="padding-left:1.25rem;">Total Weekday OT Hours</td>
-                                <td class="text-end" style="color:#e67e22;">{{ $totalWdOtHours }} hrs</td>
-                                <td colspan="2"></td>
-                                <td class="text-end" style="color:#e67e22;">{{ $fmt($totalWdOtCost) }}</td>
-                            </tr>
+                                <tr class="total-row">
+                                    <td colspan="5" style="padding-left:1.25rem;">Total Weekday OT Hours</td>
+                                    <td class="text-end" style="color:#e67e22;">{{ $totalWdOtHours }} hrs</td>
+                                    <td colspan="2"></td>
+                                    <td class="text-end" style="color:#e67e22;">{{ $fmt($totalWdOtCost) }}</td>
+                                </tr>
                             @endif
                         </tbody>
                     </table>
 
                     {{-- Breakdown sub-table --}}
                     @if ($hasWdOt)
-                    @php $wdEmpRows = $byEmployee->filter(fn($e) => $e['wd_ot_cost'] > 0)->values(); @endphp
-                    <div style="padding:.75rem 1.25rem 1rem;">
-                        <div style="font-size:.75rem; font-weight:700; color:#6c757d; text-transform:uppercase; letter-spacing:.06em; margin-bottom:.5rem;">
-                            Breakdown Jam OT (Mixed Multiplier)
+                        @php $wdEmpRows = $byEmployee->filter(fn($e) => $e['wd_ot_cost'] > 0)->values(); @endphp
+                        <div style="padding:.75rem 1.25rem 1rem;">
+                            <div
+                                style="font-size:.75rem; font-weight:700; color:#6c757d; text-transform:uppercase; letter-spacing:.06em; margin-bottom:.5rem;">
+                                Breakdown Jam OT (Mixed Multiplier)
+                            </div>
+                            <table class="det-tbl" style="font-size:.78rem;">
+                                <thead>
+                                    <tr>
+                                        <th style="padding-left:.5rem;">Employee</th>
+                                        <th class="text-end">1.5× Hrs</th>
+                                        <th class="text-end">1.5× Cost</th>
+                                        <th class="text-end">2× Hrs</th>
+                                        <th class="text-end">2× Cost</th>
+                                        <th class="text-end">Total Weekday OT</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach ($wdEmpRows as $emp)
+                                        <tr>
+                                            <td style="padding-left:.5rem;">{{ $emp['name'] }}</td>
+                                            <td class="text-end" style="color:#e67e22;">
+                                                {{ $emp['hrs_1_5x'] > 0 ? $emp['hrs_1_5x'] . ' hrs' : '—' }}</td>
+                                            <td class="text-end">
+                                                {{ $emp['cost_1_5x'] > 0 ? $fmt($emp['cost_1_5x']) : '—' }}</td>
+                                            <td class="text-end" style="color:#e67e22;">
+                                                {{ $emp['hrs_2x_wd'] > 0 ? $emp['hrs_2x_wd'] . ' hrs' : '—' }}</td>
+                                            <td class="text-end">
+                                                {{ $emp['cost_2x_wd'] > 0 ? $fmt($emp['cost_2x_wd']) : '—' }}</td>
+                                            <td class="text-end fw-bold" style="color:#e67e22;">
+                                                {{ $fmt($emp['wd_ot_cost']) }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
                         </div>
-                        <table class="det-tbl" style="font-size:.78rem;">
-                            <thead>
-                                <tr>
-                                    <th style="padding-left:.5rem;">Employee</th>
-                                    <th class="text-end">1.5× Hrs</th>
-                                    <th class="text-end">1.5× Cost</th>
-                                    <th class="text-end">2× Hrs</th>
-                                    <th class="text-end">2× Cost</th>
-                                    <th class="text-end">Total Weekday OT</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($wdEmpRows as $emp)
-                                <tr>
-                                    <td style="padding-left:.5rem;">{{ $emp['name'] }}</td>
-                                    <td class="text-end" style="color:#e67e22;">{{ $emp['hrs_1_5x'] > 0 ? $emp['hrs_1_5x'].' hrs' : '—' }}</td>
-                                    <td class="text-end">{{ $emp['cost_1_5x'] > 0 ? $fmt($emp['cost_1_5x']) : '—' }}</td>
-                                    <td class="text-end" style="color:#e67e22;">{{ $emp['hrs_2x_wd'] > 0 ? $emp['hrs_2x_wd'].' hrs' : '—' }}</td>
-                                    <td class="text-end">{{ $emp['cost_2x_wd'] > 0 ? $fmt($emp['cost_2x_wd']) : '—' }}</td>
-                                    <td class="text-end fw-bold" style="color:#e67e22;">{{ $fmt($emp['wd_ot_cost']) }}</td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
                     @endif
                 </div>
 
@@ -677,7 +704,8 @@
                     </div>
 
                     {{-- Warning box --}}
-                    <div style="margin:.75rem 1.25rem .5rem; padding:.6rem .9rem; background:rgba(230,126,34,.07); border-left:3px solid #e67e22; border-radius:6px; font-size:.75rem; color:#d35400;">
+                    <div
+                        style="margin:.75rem 1.25rem .5rem; padding:.6rem .9rem; background:rgba(230,126,34,.07); border-left:3px solid #e67e22; border-radius:6px; font-size:.75rem; color:#d35400;">
                         <i class="fas fa-exclamation-triangle me-1"></i>
                         <strong>Aturan OT Hari Libur / Weekend (UU Ketenagakerjaan):</strong>
                         Sabtu (5-hari kerja): jam ke-1 s/d 8 = 2×, jam ke-9+ = 3× rate reguler &nbsp;·&nbsp;
@@ -703,22 +731,30 @@
                                 <tr>
                                     <td style="padding-left:1.25rem;">
                                         <div class="emp-name-cell">
-                                            <span class="emp-avatar" style="background:linear-gradient(135deg,#c0392b,#e74c3c);">{{ $row['initials'] }}</span>
+                                            <span class="emp-avatar"
+                                                style="background:linear-gradient(135deg,#c0392b,#e74c3c);">{{ $row['initials'] }}</span>
                                             <div>
-                                                <div class="fw-semibold" style="font-size:.8rem;">{{ $row['employee'] }}</div>
-                                                <div class="text-muted" style="font-size:.68rem;">{{ $row['position'] }}</div>
+                                                <div class="fw-semibold" style="font-size:.8rem;">{{ $row['employee'] }}
+                                                </div>
+                                                <div class="text-muted" style="font-size:.68rem;">{{ $row['position'] }}
+                                                </div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td class="text-muted fw-semibold" style="font-size:.82rem;">{{ $row['day_name'] }}</td>
+                                    <td class="text-muted fw-semibold" style="font-size:.82rem;">{{ $row['day_name'] }}
+                                    </td>
                                     <td class="text-muted" style="font-size:.8rem;">{{ $row['date'] }}</td>
-                                    <td class="fw-semibold" style="font-size:.82rem; color:#c0392b;">{{ $row['ot_start'] ?? $row['start_time'] }}</td>
-                                    <td class="fw-semibold" style="font-size:.82rem; color:#c0392b;">{{ $row['ot_end'] ?? $row['end_time'] }}</td>
+                                    <td class="fw-semibold" style="font-size:.82rem; color:#c0392b;">
+                                        {{ $row['ot_start'] ?? $row['start_time'] }}</td>
+                                    <td class="fw-semibold" style="font-size:.82rem; color:#c0392b;">
+                                        {{ $row['ot_end'] ?? $row['end_time'] }}</td>
                                     <td class="text-end fw-bold" style="color:#c0392b;">{{ $row['ot_hours'] }} hrs</td>
                                     <td class="text-end">
-                                        <span style="font-size:.7rem; color:#c0392b; font-weight:600;">{{ $row['hourly_rate'] > 0 ? $fmt($row['hourly_rate']) : '—' }}</span>
+                                        <span
+                                            style="font-size:.7rem; color:#c0392b; font-weight:600;">{{ $row['hourly_rate'] > 0 ? $fmt($row['hourly_rate']) : '—' }}</span>
                                     </td>
-                                    <td class="text-end fw-semibold" style="font-size:.78rem; color:#c0392b;">{{ $row['mult_label'] ?? '—' }}</td>
+                                    <td class="text-end fw-semibold" style="font-size:.78rem; color:#c0392b;">
+                                        {{ $row['mult_label'] ?? '—' }}</td>
                                     <td class="text-end fw-bold" style="font-size:.82rem; color:#c0392b;">
                                         {{ $row['ot_cost'] > 0 ? $fmt($row['ot_cost']) : '—' }}
                                     </td>
@@ -731,52 +767,66 @@
                                 </tr>
                             @endforelse
                             @if ($hasWeOt)
-                            <tr class="total-row">
-                                <td colspan="5" style="padding-left:1.25rem;">Total Weekend / Holiday OT Hours</td>
-                                <td class="text-end" style="color:#c0392b;">{{ $totalWeOtHours }} hrs</td>
-                                <td colspan="2"></td>
-                                <td class="text-end" style="color:#c0392b;">{{ $fmt($totalWeOtCost) }}</td>
-                            </tr>
+                                <tr class="total-row">
+                                    <td colspan="5" style="padding-left:1.25rem;">Total Weekend / Holiday OT Hours</td>
+                                    <td class="text-end" style="color:#c0392b;">{{ $totalWeOtHours }} hrs</td>
+                                    <td colspan="2"></td>
+                                    <td class="text-end" style="color:#c0392b;">{{ $fmt($totalWeOtCost) }}</td>
+                                </tr>
                             @endif
                         </tbody>
                     </table>
 
                     {{-- Breakdown sub-table --}}
                     @if ($hasWeOt)
-                    @php
-                        $dayMapId = ['Mon'=>'Senin','Tue'=>'Selasa','Wed'=>'Rabu','Thu'=>'Kamis','Fri'=>'Jumat','Sat'=>'Sabtu','Sun'=>'Minggu'];
-                    @endphp
-                    <div style="padding:.75rem 1.25rem 1rem;">
-                        <div style="font-size:.75rem; font-weight:700; color:#6c757d; text-transform:uppercase; letter-spacing:.06em; margin-bottom:.5rem;">
-                            Breakdown per Hari Libur / Weekend
+                        @php
+                            $dayMapId = [
+                                'Mon' => 'Senin',
+                                'Tue' => 'Selasa',
+                                'Wed' => 'Rabu',
+                                'Thu' => 'Kamis',
+                                'Fri' => 'Jumat',
+                                'Sat' => 'Sabtu',
+                                'Sun' => 'Minggu',
+                            ];
+                        @endphp
+                        <div style="padding:.75rem 1.25rem 1rem;">
+                            <div
+                                style="font-size:.75rem; font-weight:700; color:#6c757d; text-transform:uppercase; letter-spacing:.06em; margin-bottom:.5rem;">
+                                Breakdown per Hari Libur / Weekend
+                            </div>
+                            <table class="det-tbl" style="font-size:.78rem;">
+                                <thead>
+                                    <tr>
+                                        <th style="padding-left:.5rem;">Employee</th>
+                                        <th>Hari</th>
+                                        <th class="text-end">2× Hrs</th>
+                                        <th class="text-end">2× Cost</th>
+                                        <th class="text-end">3× Hrs</th>
+                                        <th class="text-end">3× Cost</th>
+                                        <th class="text-end">Total Weekend OT</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach ($weekendOtRows as $row)
+                                        <tr>
+                                            <td style="padding-left:.5rem;">{{ $row['employee'] }}</td>
+                                            <td>{{ $dayMapId[$row['day_name']] ?? $row['day_name'] }}</td>
+                                            <td class="text-end" style="color:#c0392b;">
+                                                {{ $row['hrs_2x_we'] > 0 ? $row['hrs_2x_we'] . ' hrs' : '—' }}</td>
+                                            <td class="text-end">
+                                                {{ $row['cost_2x_we'] > 0 ? $fmt($row['cost_2x_we']) : '—' }}</td>
+                                            <td class="text-end" style="color:#c0392b;">
+                                                {{ $row['hrs_3x'] > 0 ? $row['hrs_3x'] . ' hrs' : '—' }}</td>
+                                            <td class="text-end">{{ $row['cost_3x'] > 0 ? $fmt($row['cost_3x']) : '—' }}
+                                            </td>
+                                            <td class="text-end fw-bold" style="color:#c0392b;">
+                                                {{ $fmt($row['ot_cost']) }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
                         </div>
-                        <table class="det-tbl" style="font-size:.78rem;">
-                            <thead>
-                                <tr>
-                                    <th style="padding-left:.5rem;">Employee</th>
-                                    <th>Hari</th>
-                                    <th class="text-end">2× Hrs</th>
-                                    <th class="text-end">2× Cost</th>
-                                    <th class="text-end">3× Hrs</th>
-                                    <th class="text-end">3× Cost</th>
-                                    <th class="text-end">Total Weekend OT</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($weekendOtRows as $row)
-                                <tr>
-                                    <td style="padding-left:.5rem;">{{ $row['employee'] }}</td>
-                                    <td>{{ $dayMapId[$row['day_name']] ?? $row['day_name'] }}</td>
-                                    <td class="text-end" style="color:#c0392b;">{{ $row['hrs_2x_we'] > 0 ? $row['hrs_2x_we'].' hrs' : '—' }}</td>
-                                    <td class="text-end">{{ $row['cost_2x_we'] > 0 ? $fmt($row['cost_2x_we']) : '—' }}</td>
-                                    <td class="text-end" style="color:#c0392b;">{{ $row['hrs_3x'] > 0 ? $row['hrs_3x'].' hrs' : '—' }}</td>
-                                    <td class="text-end">{{ $row['cost_3x'] > 0 ? $fmt($row['cost_3x']) : '—' }}</td>
-                                    <td class="text-end fw-bold" style="color:#c0392b;">{{ $fmt($row['ot_cost']) }}</td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
                     @endif
                 </div>
 
@@ -791,8 +841,12 @@
                             @if ($totalOtCost > 0)
                                 <div style="font-size:.72rem; color:#6c757d;">
                                     Regular {{ $fmt($totalNormalCost) }}
-                                    @if ($totalWdOtCost > 0) + <span style="color:#e67e22;">WD OT {{ $fmt($totalWdOtCost) }}</span>@endif
-                                    @if ($totalWeOtCost > 0) + <span style="color:#c0392b;">WE OT {{ $fmt($totalWeOtCost) }}</span>@endif
+                                    @if ($totalWdOtCost > 0)
+                                        + <span style="color:#e67e22;">WD OT {{ $fmt($totalWdOtCost) }}</span>
+                                    @endif
+                                    @if ($totalWeOtCost > 0)
+                                        + <span style="color:#c0392b;">WE OT {{ $fmt($totalWeOtCost) }}</span>
+                                    @endif
                                 </div>
                             @endif
                         </div>

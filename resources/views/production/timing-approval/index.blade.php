@@ -145,6 +145,15 @@
                                 @endforeach
                             </select>
                         </div>
+                        <div class="col-md-2">
+                            <label for="employee_id">Employee</label>
+                            <select name="employee_id" id="employee_id" class="form-control select2">
+                                <option value="">All Employees</option>
+                                @foreach ($employees as $emp)
+                                    <option value="{{ $emp->id }}">{{ $emp->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
                         <div class="col-md-3">
                             <label>Date Range</label>
                             <div class="position-relative">
@@ -166,12 +175,12 @@
                     <h6 class="m-0 font-weight-bold text-primary">Timing Sessions</h6>
                     <div>
                         @can('production.timing.edit')
-                        <button type="button" id="btnBulkApprove" class="btn btn-success btn-sm" disabled>
-                            <i class="bi bi-check-circle"></i> Bulk Approve
-                        </button>
-                        <button type="button" id="btnBulkReject" class="btn btn-danger btn-sm" disabled>
-                            <i class="bi bi-x-circle"></i> Bulk Reject
-                        </button>
+                            <button type="button" id="btnBulkApprove" class="btn btn-success btn-sm" disabled>
+                                <i class="bi bi-check-circle"></i> Bulk Approve
+                            </button>
+                            <button type="button" id="btnBulkReject" class="btn btn-danger btn-sm" disabled>
+                                <i class="bi bi-x-circle"></i> Bulk Reject
+                            </button>
                         @endcan
                     </div>
                 </div>
@@ -334,6 +343,7 @@
                     approval_status: $('#approval_status').val(),
                     project_id: $('#project_id').val(),
                     department_id: $('#department_id').val(),
+                    employee_id: $('#employee_id').val(),
                     date_from: $('#date_from').val(),
                     date_to: $('#date_to').val(),
                 };
@@ -353,6 +363,9 @@
                     }
                     if (filters.department_id) {
                         $('#department_id').val(filters.department_id).trigger('change');
+                    }
+                    if (filters.employee_id) {
+                        $('#employee_id').val(filters.employee_id).trigger('change');
                     }
                     if (filters.date_from) $('#date_from').val(filters.date_from);
                     if (filters.date_to) $('#date_to').val(filters.date_to);
@@ -410,6 +423,7 @@
                         d.approval_status = $('#approval_status').val();
                         d.project_id = $('#project_id').val();
                         d.department_id = $('#department_id').val();
+                        d.employee_id = $('#employee_id').val();
                         d.date_from = $('#date_from').val();
                         d.date_to = $('#date_to').val();
                     },
@@ -487,10 +501,11 @@
             });
 
             // Auto-filter on change — save to sessionStorage
-            $('#approval_status, #project_id, #department_id, #date_from, #date_to').on('change', function() {
-                saveFilters();
-                table.ajax.reload();
-            });
+            $('#approval_status, #project_id, #department_id, #employee_id, #date_from, #date_to').on('change',
+                function() {
+                    saveFilters();
+                    table.ajax.reload();
+                });
 
             // Reset filters button
             $('#btnResetFilters').on('click', function() {

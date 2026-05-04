@@ -902,28 +902,3 @@
     @include('timing.partials.detail-modal')
     @include('timing.partials.break-heartbeat')
 @endsection
-                          $(this).remove();
-                            });
-
-                            // Reload page after delay
-                            setTimeout(() => {
-                                window.location.reload();
-                            }, 2000);
-                        }
-                    },
-                    error: function(xhr) {
-                        const message = xhr.responseJSON?.message ||
-                            'Failed to stop work session.';
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: message
-                        });
-                    }
-                });
-            });
-        });
-    </script>
-    @include('timing.partials.detail-modal')
-    @include('timing.partials.break-heartbeat')
-@endsection

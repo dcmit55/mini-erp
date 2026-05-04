@@ -53,7 +53,7 @@
                         <div class="col-md-3">
                             <label class="form-label">Date</label>
                             <input type="date" name="tanggal" class="form-control" required
-                                value="{{ old('tanggal', $timing->tanggal) }}">
+                                value="{{ old('tanggal', $timing->tanggal?->format('Y-m-d')) }}">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Project</label>

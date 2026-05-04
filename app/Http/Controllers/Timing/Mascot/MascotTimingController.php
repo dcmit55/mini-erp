@@ -99,8 +99,13 @@ class MascotTimingController extends Controller
         $plannedEmployeesPerJo = [];
         $plannedDataPerJo = []; // includes stage & session_type
         if (!empty($joIds)) {
-            $plans = JobOrderTimingPlan::whereIn('job_order_id', $joIds)->select('job_order_id', 'employee_id', 'task', 'stage', 'session_type')->get();
-            $plansByJo = $plans->groupBy('job_order_id');
+            $today = today()->toDateString();
+            // Load today's date-scoped plans first; fall back to NULL (legacy) plans for uncovered JOs
+            $todayPlans = JobOrderTimingPlan::whereIn('job_order_id', $joIds)->where('planning_date', $today)->select('job_order_id', 'employee_id', 'task', 'stage', 'session_type', 'planning_date', 'updated_at')->get()->groupBy('job_order_id');
+            $coveredJoIds = $todayPlans->keys()->toArray();
+            $uncoveredJoIds = array_diff($joIds, $coveredJoIds);
+            $legacyPlans = !empty($uncoveredJoIds) ? JobOrderTimingPlan::whereIn('job_order_id', $uncoveredJoIds)->whereNull('planning_date')->select('job_order_id', 'employee_id', 'task', 'stage', 'session_type', 'planning_date', 'updated_at')->get()->groupBy('job_order_id') : collect();
+            $plansByJo = $todayPlans->union($legacyPlans);
             foreach ($plansByJo as $joId => $rows) {
                 $plannedEmployeesPerJo[$joId] = $rows->pluck('employee_id')->toArray();
                 $first = $rows->first();
@@ -111,6 +116,8 @@ class MascotTimingController extends Controller
                     'stage' => $first->stage ?? '',
                     'session_type' => $first->session_type ?? '',
                     'session_type_per_emp' => $rows->pluck('session_type', 'employee_id')->toArray(),
+                    'plan_updated_at' => $first->updated_at ? $first->updated_at->format('d M H:i') : null,
+                    'planning_date' => $first->planning_date,
                 ];
             }
         }

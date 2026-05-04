@@ -63,10 +63,14 @@ class TimingPlannerController extends Controller
             ->orderByRaw('CASE WHEN delivery_date IS NOT NULL AND DATE(delivery_date) < CURDATE() THEN delivery_date END DESC')
             ->get();
 
-        // Load existing plans keyed by job_order_id
+        // Determine planning date (default: today)
+        $planningDate = request('date') ? \Carbon\Carbon::parse(request('date'))->toDateString() : today()->toDateString();
+
+        // Load existing plans keyed by job_order_id — strict by selected date only
         $joIds = $jobOrders->pluck('id')->toArray();
         $plans = JobOrderTimingPlan::with(['employee', 'createdBy'])
             ->whereIn('job_order_id', $joIds)
+            ->where('planning_date', $planningDate)
             ->get()
             ->groupBy('job_order_id');
 
@@ -80,7 +84,7 @@ class TimingPlannerController extends Controller
         // Last completed stage per JO (from timings.department_specific_data->current_stage)
         $lastStages = Timing::whereIn('job_order_id', $joIds)->whereNotNull('department_specific_data')->orderByDesc('updated_at')->get()->groupBy('job_order_id')->map(fn($group) => $group->first()->department_specific_data['current_stage'] ?? 0)->toArray();
 
-        return view('timing.planner.index', compact('jobOrders', 'plans', 'employees', 'lastStages'));
+        return view('timing.planner.index', compact('jobOrders', 'plans', 'employees', 'lastStages', 'planningDate'));
     }
 
     /**
@@ -93,6 +97,7 @@ class TimingPlannerController extends Controller
 
         $request->validate([
             'job_order_id' => 'required|exists:job_orders,id',
+            'planning_date' => 'nullable|date',
             'rows' => 'required|array|min:1',
             'rows.*.employee_id' => 'required|exists:employees,id',
             'rows.*.task' => 'required|string|max:255',
@@ -101,6 +106,7 @@ class TimingPlannerController extends Controller
         ]);
 
         $joId = $request->job_order_id;
+        $planningDate = $request->planning_date ?? today()->toDateString();
         $userId = auth()->id();
 
         // Deduplicate by employee_id (keep last)
@@ -111,12 +117,13 @@ class TimingPlannerController extends Controller
 
         DB::beginTransaction();
         try {
-            JobOrderTimingPlan::where('job_order_id', $joId)->delete();
+            JobOrderTimingPlan::where('job_order_id', $joId)->where('planning_date', $planningDate)->delete();
 
             $rows = [];
             foreach ($rowsMap as $empId => $row) {
                 $rows[] = [
                     'job_order_id' => $joId,
+                    'planning_date' => $planningDate,
                     'employee_id' => $empId,
                     'task' => $row['task'] ?? null,
                     'stage' => $row['stage'] ?? null,
@@ -152,9 +159,14 @@ class TimingPlannerController extends Controller
     {
         $this->authorizeAccess();
 
-        $request->validate(['job_order_id' => 'required|exists:job_orders,id']);
+        $request->validate([
+            'job_order_id' => 'required|exists:job_orders,id',
+            'planning_date' => 'nullable|date',
+        ]);
 
-        JobOrderTimingPlan::where('job_order_id', $request->job_order_id)->delete();
+        $planningDate = $request->planning_date ?? today()->toDateString();
+
+        JobOrderTimingPlan::where('job_order_id', $request->job_order_id)->where('planning_date', $planningDate)->delete();
 
         return response()->json(['success' => true, 'message' => 'Plan berhasil dihapus.']);
     }
@@ -166,7 +178,14 @@ class TimingPlannerController extends Controller
     {
         $this->authorizeAccess();
 
-        $plans = JobOrderTimingPlan::with('employee:id,name,photo,position,department_id')->where('job_order_id', $jobOrderId)->get();
+        $planningDate = request('date') ? \Carbon\Carbon::parse(request('date'))->toDateString() : today()->toDateString();
+
+        // Prefer date-specific plan, fall back to NULL (legacy) plan
+        $plans = JobOrderTimingPlan::with('employee:id,name,photo,position,department_id')->where('job_order_id', $jobOrderId)->where('planning_date', $planningDate)->get();
+
+        if ($plans->isEmpty()) {
+            $plans = JobOrderTimingPlan::with('employee:id,name,photo,position,department_id')->where('job_order_id', $jobOrderId)->whereNull('planning_date')->get();
+        }
 
         return response()->json([
             'success' => true,

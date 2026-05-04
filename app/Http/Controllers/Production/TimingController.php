@@ -32,15 +32,15 @@ class TimingController extends Controller
     public function index(Request $request)
     {
         $timings = Timing::with(['project', 'employee.department', 'jobOrder'])
-            ->orderByDesc('created_at')
+            ->orderByDesc('tanggal')
             ->orderByDesc('start_time')
+            ->limit(300)
             ->get();
 
         $projects = Project::with('departments')->orderBy('name')->get();
         $jobOrders = \App\Models\Production\JobOrder::orderBy('name')->get();
         $departments = Department::orderBy('name')->pluck('name', 'id');
         $employees = Employee::orderBy('name')->get();
-
         return view('production.timings.index', compact('timings', 'projects', 'jobOrders', 'departments', 'employees'));
     }
 
@@ -67,8 +67,18 @@ class TimingController extends Controller
         if ($request->filled('employee_id')) {
             $query->where('employee_id', $request->employee_id);
         }
-        // Sort by newest first: created_at DESC, then start_time DESC for same-day entries
-        $timings = $query->orderByDesc('created_at')->orderByDesc('start_time')->get();
+        if ($request->filled('date_from')) {
+            $query->where('tanggal', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->where('tanggal', '<=', $request->date_to);
+        }
+
+        // Limit results — more if filters active, default 300 most recent
+        $hasFilter = $request->filled('search') || $request->filled('project_id') || $request->filled('job_order_id') || $request->filled('department') || $request->filled('employee_id') || $request->filled('date_from') || $request->filled('date_to');
+        $limit = $hasFilter ? 1000 : 300;
+
+        $timings = $query->orderByDesc('tanggal')->orderByDesc('start_time')->limit($limit)->get();
 
         try {
             // Generate table rows HTML inline
@@ -137,9 +147,7 @@ class TimingController extends Controller
                     }
                     $html .= '<td>' . $approvalBadge . '</td>';
 
-                    $html .= '<td>' . ($timing->remarks ?? '-') . '</td>';
-
-                    // Actions column
+                    $html .= '<td title="' . e($timing->remarks ?? '') . '">' . (mb_strlen($timing->remarks ?? '') > 40 ? mb_substr($timing->remarks, 0, 40) . '…' : $timing->remarks ?? '-') . '</td>'; // Actions column
                     $authUser = auth()->user();
                     $canEdit = $authUser->can('production.timing.edit') || $authUser->id == $timing->employee_id;
                     $canDelete = $authUser->isSuperAdmin();

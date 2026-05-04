@@ -38,17 +38,12 @@
         #hot-container {
             border: 1px solid #dee2e6;
             border-radius: 0.375rem;
-            min-height: 240px;
+            min-height: 300px;
         }
 
         .btn-xs {
             padding: 0.15rem 0.5rem;
             font-size: 0.72rem;
-        }
-
-        #plan-panel {
-            position: sticky;
-            top: 72px;
         }
 
         .handsontable td.row-checked-bg {
@@ -68,7 +63,13 @@
                 <small class="text-muted">Set rencana karyawan per Job Order — besok pagi tinggal klik JO, karyawan otomatis
                     terpilih</small>
             </div>
-            <div class="ms-lg-auto d-flex gap-2">
+            <div class="ms-lg-auto d-flex align-items-center gap-2">
+                <label class="mb-0 text-muted small fw-semibold" for="planning-date-global">
+                    <i class="bi bi-calendar3 me-1"></i>Tanggal Plan:
+                </label>
+                <input type="date" id="planning-date-global" class="form-control form-control-sm" style="width:150px;"
+                    value="{{ $planningDate }}"
+                    onchange="window.location.href='{{ route('timing-planner.index') }}?date='+this.value">
                 <a href="{{ route('mascot-timing.index') }}" class="btn btn-outline-warning btn-sm">
                     <i class="bi bi-stopwatch me-1"></i> Mascot Timing
                 </a>
@@ -77,14 +78,15 @@
 
         <div class="alert alert-info border-0 py-2 mb-4">
             <i class="bi bi-lightbulb-fill me-2"></i>
-            <strong>Cara pakai:</strong> Pilih JO di sebelah kiri → centang karyawan di tabel kanan →
-            <strong>Simpan Plan</strong>. Besok pagi di Mascot Timing, klik JO → karyawan otomatis terpilih.
+            <strong>Cara pakai:</strong> Pilih tanggal di kanan atas → Klik JO → input karyawan → <strong>Simpan
+                Plan</strong>.
+            Di Mascot/Costume Timing, plan tanggal hari ini otomatis dipakai (fallback ke plan lama jika belum ada).
         </div>
 
         <div class="row g-4">
 
-            {{-- ══ LEFT — JO Cards ══ --}}
-            <div class="col-lg-6 col-xl-7">
+            {{-- ══ FULL WIDTH — JO Cards ══ --}}
+            <div class="col-12">
                 <div class="card shadow-sm border-0">
                     <div class="card-header bg-gradient-mascot text-white d-flex align-items-center gap-2">
                         <h5 class="mb-0 text-white"><i class="bi bi-list-task me-2"></i>Job Orders</h5>
@@ -94,7 +96,7 @@
                         <input type="text" id="jo-filter" class="form-control form-control-sm mb-3"
                             placeholder="Cari job order atau project...">
 
-                        <div id="jo-cards-grid" class="row g-2" style="max-height:68vh;overflow-y:auto;padding-right:4px;">
+                        <div id="jo-cards-grid" class="row g-2" style="max-height:72vh;overflow-y:auto;padding-right:4px;">
                             @forelse($jobOrders as $jo)
                                 @php
                                     $deliveryDate = $jo->delivery_date
@@ -136,7 +138,8 @@
                                         ->values()
                                         ->toArray();
                                 @endphp
-                                <div class="col-sm-6 col-md-4 jo-card-wrapper" data-jo-name="{{ strtolower($jo->name) }}"
+                                <div class="col-sm-6 col-md-4 col-lg-3 col-xl-2 jo-card-wrapper"
+                                    data-jo-name="{{ strtolower($jo->name) }}"
                                     data-jo-project="{{ strtolower($jo->project->name ?? '') }}">
                                     <div class="jo-planner-card p-2 h-100 {{ $hasPlan ? 'has-plan' : '' }}"
                                         data-jo-id="{{ $jo->id }}" data-jo-label="{{ $jo->name }}"
@@ -189,57 +192,55 @@
                 </div>
             </div>
 
-            {{-- ══ RIGHT — Plan Editor ══ --}}
-            <div class="col-lg-6 col-xl-5">
-                <div id="plan-panel" class="card shadow-sm border-0">
-                    <div class="card-header bg-gradient-mascot text-white d-flex align-items-center gap-2">
-                        <h5 class="mb-0 text-white"><i class="bi bi-pencil-square me-2"></i>Edit Plan</h5>
-                        <span id="plan-jo-badge" class="badge bg-white text-dark ms-2 d-none"></span>
+        </div>
+    </div>
+
+    {{-- ══ Plan Editor Modal (full-width) ══ --}}
+    <div class="modal fade" id="planEditorModal" tabindex="-1" aria-labelledby="planEditorModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-fullscreen-lg-down modal-xl" style="max-width:96vw;">
+            <div class="modal-content">
+                <div class="modal-header bg-gradient-mascot text-white py-2">
+                    <div>
+                        <h5 class="modal-title mb-0 text-white" id="planEditorModalLabel">
+                            <i class="bi bi-pencil-square me-2"></i>Edit Plan
+                        </h5>
+                        <small id="plan-jo-project" class="opacity-75" style="font-size:.78rem;"></small>
                     </div>
-                    <div class="card-body p-3">
+                    <span id="plan-jo-badge" class="badge bg-white text-dark ms-3 fs-6"></span>
+                    <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-3">
 
-                        <div id="plan-placeholder" class="text-center text-muted py-5">
-                            <i class="bi bi-arrow-left-circle fs-2 d-block mb-2"></i>
-                            Pilih Job Order di sebelah kiri untuk mengatur plan
+                    <div class="d-flex justify-content-between align-items-center mb-2 gap-2 flex-wrap">
+                        <div id="plan-jo-name" class="fw-semibold text-warning" style="font-size:.95rem;"></div>
+                        <div class="d-flex gap-1 ms-auto">
+                            <button type="button" class="btn btn-outline-primary btn-xs" id="hot-add-row">
+                                <i class="bi bi-plus-lg me-1"></i>Tambah Baris
+                            </button>
+                            <button type="button" class="btn btn-outline-danger btn-xs" id="hot-remove-row">
+                                <i class="bi bi-dash-lg me-1"></i>Hapus Baris
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-xs" id="hot-clear-all">
+                                <i class="bi bi-x-lg me-1"></i>Clear All
+                            </button>
+                            <small class="text-muted ms-2 align-self-center" id="hot-selected-count">0 karyawan
+                                diinput</small>
                         </div>
-
-                        <div id="plan-editor-area" class="d-none">
-                            <div class="alert alert-warning py-2 mb-3">
-                                <div class="fw-semibold" id="plan-jo-name" style="font-size:0.9rem;"></div>
-                                <div class="text-muted small" id="plan-jo-project"></div>
-                            </div>
-
-                            <div class="d-flex justify-content-between align-items-center mb-2 gap-2 flex-wrap">
-                                <div class="d-flex gap-1">
-                                    <button type="button" class="btn btn-outline-primary btn-xs" id="hot-add-row">
-                                        <i class="bi bi-plus-lg me-1"></i>Tambah Baris
-                                    </button>
-                                    <button type="button" class="btn btn-outline-danger btn-xs" id="hot-remove-row">
-                                        <i class="bi bi-dash-lg me-1"></i>Hapus Baris
-                                    </button>
-                                    <button type="button" class="btn btn-outline-secondary btn-xs" id="hot-clear-all">
-                                        <i class="bi bi-x-lg me-1"></i>Clear All
-                                    </button>
-                                </div>
-                                <small class="text-muted" id="hot-selected-count">0 karyawan diinput</small>
-                            </div>
-
-                            <div id="hot-container"></div>
-
-                            <div class="d-flex gap-2 mt-3">
-                                <button type="button" id="btn-save-plan" class="btn btn-success flex-grow-1">
-                                    <i class="bi bi-floppy me-1"></i>Submit Plan
-                                </button>
-                                <button type="button" id="btn-clear-plan" class="btn btn-outline-danger">
-                                    <i class="bi bi-trash me-1"></i> Delete Plan
-                                </button>
-                            </div>
-                        </div>
-
                     </div>
+
+                    <div id="hot-container"></div>
+
+                </div>
+                <div class="modal-footer py-2">
+                    <button type="button" id="btn-clear-plan" class="btn btn-outline-danger btn-sm">
+                        <i class="bi bi-trash me-1"></i>Delete Plan
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+                    <button type="button" id="btn-save-plan" class="btn btn-success btn-sm">
+                        <i class="bi bi-floppy me-1"></i>Submit Plan
+                    </button>
                 </div>
             </div>
-
         </div>
     </div>
 @endsection
@@ -428,7 +429,7 @@
                 hotInstance = new Handsontable(document.getElementById('hot-container'), {
                     data: tableData,
                     licenseKey: 'non-commercial-and-evaluation',
-                    height: 360,
+                    height: Math.max(420, Math.floor(window.innerHeight * 0.55)),
                     stretchH: 'all',
                     rowHeaders: true,
                     colHeaders: ['Employee Name', 'Position', 'Department', 'Task', 'Stage',
@@ -551,33 +552,40 @@
                 $('#jo-count').text(n);
             });
 
-            /* ── JO card click ── */
+            /* ── JO card click → open modal ── */
             $(document).on('click', '.jo-planner-card', function() {
                 const $card = $(this);
                 const joId = $card.data('jo-id');
-
-                if ($card.hasClass('jo-active')) {
-                    $card.removeClass('jo-active');
-                    selectedJoId = null;
-                    $('#plan-placeholder').removeClass('d-none');
-                    $('#plan-editor-area').addClass('d-none');
-                    $('#plan-jo-badge').addClass('d-none');
-                    return;
-                }
 
                 $('.jo-planner-card').removeClass('jo-active');
                 $card.addClass('jo-active');
                 selectedJoId = joId;
 
-                $('#plan-jo-badge').text($card.data('jo-label')).removeClass('d-none');
+                $('#plan-jo-badge').text($card.data('jo-label'));
                 $('#plan-jo-name').text($card.data('jo-label'));
                 $('#plan-jo-project').text('Project: ' + $card.data('project'));
 
-                $('#plan-placeholder').addClass('d-none');
-                $('#plan-editor-area').removeClass('d-none');
-
+                // Init HOT before opening so it has correct size when modal shown
                 initHOT($card.data('planned-rows') || $card.data('planned-ids') || [], $card.data(
                     'last-stage') || 0);
+
+                const modal = new bootstrap.Modal(document.getElementById('planEditorModal'), {
+                    backdrop: true
+                });
+                modal.show();
+
+                // Re-render HOT after modal is fully visible (Bootstrap transition ~300ms)
+                document.getElementById('planEditorModal').addEventListener('shown.bs.modal',
+            function onShown() {
+                    if (hotInstance) hotInstance.render();
+                    document.getElementById('planEditorModal').removeEventListener('shown.bs.modal',
+                        onShown);
+                });
+            });
+
+            // Clear active card highlight when modal is closed
+            document.getElementById('planEditorModal').addEventListener('hidden.bs.modal', function() {
+                $('.jo-planner-card').removeClass('jo-active');
             });
 
             /* ── Toolbar ── */
@@ -658,6 +666,7 @@
                     data: {
                         _token: '{{ csrf_token() }}',
                         job_order_id: selectedJoId,
+                        planning_date: $('#planning-date-global').val(),
                         rows: planRows
                     },
                     success(res) {
@@ -675,6 +684,7 @@
                                 `<div class="text-end mb-1"><span class="badge bg-success" style="font-size:0.58rem;">${html}</span></div>`
                             );
                         }
+                        bootstrap.Modal.getInstance(document.getElementById('planEditorModal'))?.hide();
                         Swal.fire({
                             icon: 'success',
                             title: 'Plan Disimpan!',
@@ -718,7 +728,8 @@
                             method: 'POST',
                             data: {
                                 _token: '{{ csrf_token() }}',
-                                job_order_id: selectedJoId
+                                job_order_id: selectedJoId,
+                                planning_date: $('#planning-date-global').val()
                             },
                             success(res) {
                                 if (!res.success) return;

@@ -59,6 +59,11 @@ class TimingApprovalController extends Controller
                 });
             }
 
+            // Filter by employee
+            if ($request->has('employee_id') && $request->employee_id) {
+                $query->where('employee_id', $request->employee_id);
+            }
+
             // Filter by date range
             if ($request->has('date_from') && $request->date_from) {
                 $query->whereDate('tanggal', '>=', $request->date_from);
@@ -216,7 +221,7 @@ class TimingApprovalController extends Controller
         // Get filter options
         $projects = \App\Models\Production\Project::orderBy('name')->get();
         $departments = \App\Models\Admin\Department::orderBy('name')->get();
-
+        $employees = \App\Models\Hr\Employee::where('status', 'active')->orderBy('name')->get();
         // Get statistics
         $stats = [
             'pending' => Timing::pending()->count(),
@@ -243,7 +248,7 @@ class TimingApprovalController extends Controller
             }
         }
 
-        return view('production.timing-approval.index', compact('projects', 'departments', 'stats', 'availableStatuses'));
+        return view('production.timing-approval.index', compact('projects', 'departments', 'employees', 'stats', 'availableStatuses'));
     }
 
     /**
@@ -494,7 +499,7 @@ class TimingApprovalController extends Controller
             'end_time' => 'required|date_format:H:i|after:start_time',
             'measurement_value' => 'nullable|numeric|min:0',
             'measurement_type' => 'nullable|string|max:50',
-            'remarks'              => 'nullable|string',
+            'remarks' => 'nullable|string',
             'break_deducted_minutes' => 'nullable|integer|min:0|max:480',
         ]);
 
@@ -504,7 +509,7 @@ class TimingApprovalController extends Controller
             // total_paused_minutes (app pause) is kept untouched; only break_deducted_minutes is overridden here
             $start = \Carbon\Carbon::parse($request->tanggal . ' ' . $request->start_time);
             $end = \Carbon\Carbon::parse($request->tanggal . ' ' . $request->end_time);
-            $breakDeducted = (int) ($request->break_deducted_minutes ?? $timing->break_deducted_minutes ?? 0);
+            $breakDeducted = (int) ($request->break_deducted_minutes ?? ($timing->break_deducted_minutes ?? 0));
             $durationMinutes = max(0, $start->diffInMinutes($end) - $breakDeducted);
 
             $employeeIds = $request->employee_ids;
@@ -519,7 +524,7 @@ class TimingApprovalController extends Controller
                 'duration_minutes' => $durationMinutes,
                 'measurement_value' => $request->measurement_value,
                 'measurement_type' => $request->measurement_type,
-                'remarks'              => $request->remarks,
+                'remarks' => $request->remarks,
                 'break_deducted_minutes' => $breakDeducted,
                 // total_paused_minutes is NOT touched — preserved from original app pause data
             ];

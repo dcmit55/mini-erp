@@ -270,7 +270,7 @@ class StockAdjustmentController extends Controller
         $request->validate(['inventory_id' => ['required', 'integer', 'exists:inventories,id']]);
 
         // Load inventory unit for the unit label
-        $inventory = Inventory::with(['unit:id,name', 'currency:id,name'])->findOrFail($request->inventory_id);
+        $inventory = Inventory::with(['unitRelation:id,name', 'currency:id,name'])->findOrFail($request->inventory_id);
 
         $batches = InventoryBatch::where('inventory_id', $request->inventory_id)
             ->whereNull('deleted_at')
