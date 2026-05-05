@@ -14,7 +14,7 @@
                     <p class="text-muted small mb-0">Purchases waiting for finance approval</p>
                 </div>
                 <div class="d-flex gap-2">
-                    @php $deletionCount = \App\Models\Procurement\ProjectPurchase::where('status','deletion_requested')->where('is_current',1)->distinct('po_number')->count('po_number'); @endphp
+                    @php $deletionCount = \App\Models\Procurement\IndoPurchase::where('status','deletion_requested')->where('is_current',1)->distinct('po_number')->count('po_number'); @endphp
                     <a href="{{ route('purchase-approvals.deletion-requests') }}"
                        class="btn btn-outline-danger btn-sm rounded-2 px-3 position-relative">
                         <i class="fas fa-trash me-1"></i> Deletion Requests

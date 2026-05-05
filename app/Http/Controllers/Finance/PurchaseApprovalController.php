@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Finance;
 
 use App\Http\Controllers\Controller;
-use App\Models\Procurement\ProjectPurchase;
+use App\Models\Procurement\IndoPurchase;
 use App\Models\Finance\DcmCosting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -32,7 +32,7 @@ class PurchaseApprovalController extends Controller
         $projectType = $request->get('project_type');
         
         // Ambil semua item pending, tapi nanti akan dikelompokkan per PO
-        $items = ProjectPurchase::with([
+        $items = IndoPurchase::with([
                 'department', 
                 'supplier', 
                 'pic', 
@@ -156,14 +156,14 @@ class PurchaseApprovalController extends Controller
             ]);
             
             // Cari item yang diklik
-            $purchase = ProjectPurchase::where('is_current', 1)
+            $purchase = IndoPurchase::where('is_current', 1)
                 ->with(['department', 'supplier', 'pic', 'material', 'jobOrder'])
                 ->findOrFail($id);
             
             DB::beginTransaction();
             
             // Approve SEMUA item dengan PO number yang sama
-            $poItems = ProjectPurchase::where('po_number', $purchase->po_number)
+            $poItems = IndoPurchase::where('po_number', $purchase->po_number)
                 ->where('is_current', 1)
                 ->where('status', 'pending')
                 ->get();
@@ -221,14 +221,14 @@ class PurchaseApprovalController extends Controller
             ]);
             
             // Cari item yang diklik
-            $purchase = ProjectPurchase::where('is_current', 1)
+            $purchase = IndoPurchase::where('is_current', 1)
                 ->with(['department', 'supplier', 'pic', 'material', 'jobOrder'])
                 ->findOrFail($id);
             
             DB::beginTransaction();
             
             // Reject SEMUA item dengan PO number yang sama
-            $poItems = ProjectPurchase::where('po_number', $purchase->po_number)
+            $poItems = IndoPurchase::where('po_number', $purchase->po_number)
                 ->where('is_current', 1)
                 ->where('status', 'pending')
                 ->get();
@@ -282,7 +282,7 @@ class PurchaseApprovalController extends Controller
         foreach ($request->purchase_ids as $purchaseId) {
             try {
                 DB::transaction(function () use ($purchaseId, $request, &$approvedCount, &$processedPOs) {
-                    $purchase = ProjectPurchase::where('is_current', 1)
+                    $purchase = IndoPurchase::where('is_current', 1)
                         ->with(['department', 'supplier', 'pic', 'material', 'jobOrder'])
                         ->findOrFail($purchaseId);
                     
@@ -292,7 +292,7 @@ class PurchaseApprovalController extends Controller
                     }
                     
                     // Approve SEMUA item dengan PO number yang sama
-                    $poItems = ProjectPurchase::where('po_number', $purchase->po_number)
+                    $poItems = IndoPurchase::where('po_number', $purchase->po_number)
                         ->where('is_current', 1)
                         ->where('status', 'pending')
                         ->get();
@@ -353,14 +353,14 @@ class PurchaseApprovalController extends Controller
         foreach ($request->purchase_ids as $purchaseId) {
             try {
                 DB::transaction(function () use ($purchaseId, $request, &$rejectedCount, &$processedPOs) {
-                    $purchase = ProjectPurchase::where('is_current', 1)
+                    $purchase = IndoPurchase::where('is_current', 1)
                         ->findOrFail($purchaseId);
 
                     if (in_array($purchase->po_number, $processedPOs)) {
                         return;
                     }
 
-                    $poItems = ProjectPurchase::where('po_number', $purchase->po_number)
+                    $poItems = IndoPurchase::where('po_number', $purchase->po_number)
                         ->where('is_current', 1)
                         ->where('status', 'pending')
                         ->get();
@@ -400,7 +400,7 @@ class PurchaseApprovalController extends Controller
     {
         $search = $request->get('search');
 
-        $query = ProjectPurchase::onlyTrashed()
+        $query = IndoPurchase::onlyTrashed()
             ->with(['department', 'supplier', 'pic',
                     'material', 'project', 'internalProject', 'jobOrder', 'category', 'unit',
                     'deletionApprovedBy'])
@@ -470,14 +470,14 @@ class PurchaseApprovalController extends Controller
      */
     public function viewDeletionDetail($id)
     {
-        $purchase = ProjectPurchase::with([
+        $purchase = IndoPurchase::with([
                 'department', 'supplier', 'pic', 'material', 'category', 'unit',
                 'project', 'internalProject', 'jobOrder'
             ])
             ->where('is_current', 1)
             ->findOrFail($id);
 
-        $poItems = ProjectPurchase::with(['material', 'category', 'unit'])
+        $poItems = IndoPurchase::with(['material', 'category', 'unit'])
             ->where('po_number', $purchase->po_number)
             ->where('is_current', 1)
             ->get();
@@ -490,7 +490,7 @@ class PurchaseApprovalController extends Controller
      */
     public function deletionRequests()
     {
-        $items = ProjectPurchase::with(['department', 'supplier', 'pic', 'material', 'project', 'internalProject', 'jobOrder', 'category', 'unit'])
+        $items = IndoPurchase::with(['department', 'supplier', 'pic', 'material', 'project', 'internalProject', 'jobOrder', 'category', 'unit'])
             ->where('status', 'deletion_requested')
             ->where('is_current', 1)
             ->orderBy('deletion_requested_at', 'desc')
@@ -540,7 +540,7 @@ class PurchaseApprovalController extends Controller
     {
         abort_unless(Auth::user()->can('procurement.po.approve'), 403);
         try {
-            $purchase = ProjectPurchase::where('is_current', 1)->findOrFail($id);
+            $purchase = IndoPurchase::where('is_current', 1)->findOrFail($id);
 
             if (!$purchase->isDeleteRequested()) {
                 return back()->with('error', 'Purchase ini tidak dalam status permintaan hapus.');
@@ -548,7 +548,7 @@ class PurchaseApprovalController extends Controller
 
             DB::beginTransaction();
 
-            ProjectPurchase::where('po_number', $purchase->po_number)
+            IndoPurchase::where('po_number', $purchase->po_number)
                 ->where('is_current', 1)
                 ->get()
                 ->each(function ($item) {
@@ -579,11 +579,11 @@ class PurchaseApprovalController extends Controller
     {
         abort_unless(Auth::user()->can('procurement.po.approve'), 403);
         try {
-            $purchase = ProjectPurchase::where('is_current', 1)->findOrFail($id);
+            $purchase = IndoPurchase::where('is_current', 1)->findOrFail($id);
 
             DB::beginTransaction();
 
-            ProjectPurchase::where('po_number', $purchase->po_number)
+            IndoPurchase::where('po_number', $purchase->po_number)
                 ->where('is_current', 1)
                 ->update([
                     'status'                => 'approved',
@@ -609,13 +609,13 @@ class PurchaseApprovalController extends Controller
     public function statistics()
     {
         // Hitung jumlah PO unik yang pending
-        $uniquePOs = ProjectPurchase::where('status', 'pending')
+        $uniquePOs = IndoPurchase::where('status', 'pending')
             ->where('is_current', 1)
             ->select('po_number')
             ->distinct()
             ->count();
             
-        $thisMonthPOs = ProjectPurchase::where('status', 'pending')
+        $thisMonthPOs = IndoPurchase::where('status', 'pending')
             ->where('is_current', 1)
             ->whereMonth('created_at', now()->month)
             ->whereYear('created_at', now()->year)
@@ -623,11 +623,11 @@ class PurchaseApprovalController extends Controller
             ->distinct()
             ->count();
             
-        $totalAmount = ProjectPurchase::where('status', 'pending')
+        $totalAmount = IndoPurchase::where('status', 'pending')
             ->where('is_current', 1)
             ->sum('invoice_total');
             
-        $avgProcessingDays = ProjectPurchase::where('status', 'pending')
+        $avgProcessingDays = IndoPurchase::where('status', 'pending')
             ->where('is_current', 1)
             ->avg(DB::raw('DATEDIFF(NOW(), created_at)'));
         
@@ -644,7 +644,7 @@ class PurchaseApprovalController extends Controller
      */
     public function viewDetails($id)
     {
-        $purchase = ProjectPurchase::where('is_current', 1)
+        $purchase = IndoPurchase::where('is_current', 1)
             ->with([
                 'department', 'supplier', 'pic', 'material',
                 'project', 'internalProject', 'jobOrder',
@@ -653,7 +653,7 @@ class PurchaseApprovalController extends Controller
             ->findOrFail($id);
         
         // Ambil semua item dalam PO yang sama
-        $poItems = ProjectPurchase::where('po_number', $purchase->po_number)
+        $poItems = IndoPurchase::where('po_number', $purchase->po_number)
             ->where('is_current', 1)
             ->with(['material', 'category', 'unit'])
             ->get();

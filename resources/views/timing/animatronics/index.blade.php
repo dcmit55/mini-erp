@@ -8,8 +8,11 @@
                 <h2 class="mb-0 fw-semibold" style="font-size:1.4rem;">Animatronics Timing</h2>
             </div>
             <div class="ms-lg-auto d-flex gap-2">
+                <a href="{{ route('live-workstation.index', ['type' => 'animatronics']) }}" class="btn btn-outline-success btn-sm">
+                    <i class="fas fa-desktop me-1"></i> Live Workstation
+                </a>
                 <a href="{{ route('animatronics-timing.monitor') }}" class="btn btn-primary btn-sm">
-                    <i class="fas fa-tv me-1"></i> Animatronics Monitor
+                    <i class="fas fa-tv me-1"></i> Monitor
                 </a>
                 {{-- <a href="{{ route('costume-timing.index') }}" class="btn btn-outline-secondary btn-sm">
                     <i class="fas fa-cut me-1"></i> Costume Timing

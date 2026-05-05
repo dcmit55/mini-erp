@@ -1,4 +1,4 @@
-{{-- resources/views/Procurement/Project-Purchase/index.blade.php --}}
+{{-- resources/views/procurement/Indo-Purchase/index.blade.php --}}
 @extends('layouts.app')
 
 @section('title', 'Project Purchase Orders')
@@ -362,7 +362,7 @@
                     <p class="text-muted mb-0">Manage your project purchase orders</p>
                 </div>
                 @can('procurement.po.create')
-                <a href="{{ route('project-purchases.create') }}"
+                <a href="{{ route('indo-purchases.create') }}"
                    class="btn btn-primary btn-sm rounded-3 px-4">
                     <i class="fas fa-plus me-2"></i>New PO
                 </a>
@@ -451,7 +451,7 @@
             <!-- Filters -->
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-body p-3">
-                    <form method="GET" action="{{ route('project-purchases.index') }}">
+                    <form method="GET" action="{{ route('indo-purchases.index') }}">
                         <div class="row g-2">
                             <div class="col-md-2">
                                 <input type="text" name="search" class="form-control form-control-sm"
@@ -510,7 +510,7 @@
                                     <i class="fas fa-search"></i>
                                 </button>
                                 @if(request()->anyFilled(['search', 'status', 'department_id', 'project_type', 'date', 'item_status', 'supplier_id']))
-                                <a href="{{ route('project-purchases.index') }}" class="btn btn-sm btn-outline-secondary" title="Clear Filters">
+                                <a href="{{ route('indo-purchases.index') }}" class="btn btn-sm btn-outline-secondary" title="Clear Filters">
                                     <i class="fas fa-times"></i>
                                 </a>
                                 @endif
@@ -630,7 +630,7 @@
                                         <td class="text-center">
                                             <div class="d-flex justify-content-center gap-1">
                                                 <!-- View Details -->
-                                                <a href="{{ route('project-purchases.show', $purchase->uid) }}" 
+                                                <a href="{{ route('indo-purchases.show', $purchase->uid) }}" 
                                                    class="btn btn-sm btn-outline-info border-0 px-2 action-btn"
                                                    data-bs-toggle="tooltip" title="View Details">
                                                     <i class="fas fa-eye"></i>
@@ -639,7 +639,7 @@
                                                 <!-- EDIT BUTTON - Hanya jika pending -->
                                                 @can('procurement.po.edit')
                                                 @if($purchase->status == 'pending')
-                                                <a href="{{ route('project-purchases.edit', $purchase->uid) }}"
+                                                <a href="{{ route('indo-purchases.edit', $purchase->uid) }}"
                                                    class="btn btn-sm btn-outline-primary border-0 px-2 action-btn"
                                                    data-bs-toggle="tooltip" title="Edit">
                                                     <i class="fas fa-edit"></i>
@@ -650,7 +650,7 @@
                                                 <!-- DELETE BUTTON - Hanya jika status pending -->
                                                 @can('procurement.po.delete')
                                                 @if($purchase->status == 'pending')
-                                                <form action="{{ route('project-purchases.destroy', $purchase->uid) }}"
+                                                <form action="{{ route('indo-purchases.destroy', $purchase->uid) }}"
                                                       method="POST" class="d-inline"
                                                       onsubmit="return confirm('Delete purchase order {{ $purchase->po_number }}? This will delete all {{ $groupInfo['total_items'] }} items in this PO.')">
                                                     @csrf
@@ -708,7 +708,7 @@
                                                 <!-- RECEIVED BUTTON - Tampil jika status approved dan item belum diterima -->
                                                 @can('procurement.po.edit')
                                                 @if($purchase->status == 'approved' && in_array($purchase->item_status, ['pending_check', 'pending']))
-                                                <form action="{{ route('project-purchases.mark-as-received', $purchase->uid) }}"
+                                                <form action="{{ route('indo-purchases.mark-as-received', $purchase->uid) }}"
                                                       method="POST" class="d-inline"
                                                       onsubmit="return confirm('Mark this item as received and add to inventory?')">
                                                     @csrf
@@ -722,7 +722,7 @@
                                                 @endcan
                                                 
                                                 <!-- PRINT BUTTON -->
-                                                <a href="{{ route('project-purchases.print', $purchase->uid) }}" 
+                                                <a href="{{ route('indo-purchases.print', $purchase->uid) }}" 
                                                    class="btn btn-sm btn-outline-secondary border-0 px-2 action-btn"
                                                    data-bs-toggle="tooltip" title="Print" target="_blank">
                                                     <i class="fas fa-print"></i>
@@ -737,7 +737,7 @@
                                     <div class="modal fade" id="approveModal{{ $purchase->id }}" tabindex="-1" aria-hidden="true">
                                         <div class="modal-dialog modal-md">
                                             <div class="modal-content">
-                                                <form action="{{ route('project-purchases.approve', $purchase->uid) }}" method="POST">
+                                                <form action="{{ route('indo-purchases.approve', $purchase->uid) }}" method="POST">
                                                     @csrf
                                                     <div class="modal-header">
                                                         <h6 class="modal-title">Approve Purchase Order</h6>
@@ -795,7 +795,7 @@
                                     <div class="modal fade" id="rejectModal{{ $purchase->id }}" tabindex="-1" aria-hidden="true">
                                         <div class="modal-dialog modal-md">
                                             <div class="modal-content">
-                                                <form action="{{ route('project-purchases.reject', $purchase->uid) }}" method="POST">
+                                                <form action="{{ route('indo-purchases.reject', $purchase->uid) }}" method="POST">
                                                     @csrf
                                                     <div class="modal-header">
                                                         <h6 class="modal-title">Reject Purchase Order</h6>
@@ -847,14 +847,14 @@
                                                 <h5>No Purchase Orders Found</h5>
                                                 @if(request()->anyFilled(['search', 'status', 'department_id', 'project_type', 'date', 'item_status', 'supplier_id']))
                                                     <p class="mb-0">Try adjusting your filters</p>
-                                                    <a href="{{ route('project-purchases.index') }}" 
+                                                    <a href="{{ route('indo-purchases.index') }}" 
                                                        class="btn btn-outline-primary btn-sm rounded-pill px-4 mt-3">
                                                         <i class="fas fa-times me-1"></i>Clear Filters
                                                     </a>
                                                 @else
                                                     <p class="mb-0">Start by creating your first purchase order</p>
                                                     @can('procurement.po.create')
-                                                    <a href="{{ route('project-purchases.create') }}"
+                                                    <a href="{{ route('indo-purchases.create') }}"
                                                        class="btn btn-outline-primary btn-sm rounded-pill px-4 mt-3">
                                                         <i class="fas fa-plus me-1"></i>Create PO
                                                     </a>
@@ -1046,7 +1046,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <script>
 function openDeletionModal(uid, poNumber) {
     document.getElementById('deletionPoNumber').value = poNumber;
-    document.getElementById('deletionRequestForm').action = '/project-purchases/' + uid + '/request-deletion';
+    document.getElementById('deletionRequestForm').action = '/indo-purchases/' + uid + '/request-deletion';
     new bootstrap.Modal(document.getElementById('deletionRequestModal')).show();
 }
 </script>

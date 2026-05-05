@@ -47,7 +47,7 @@ class MaterialRequest extends Model implements Auditable
 
     public function indoPurchase()
     {
-        return $this->belongsTo(\App\Models\Procurement\ProjectPurchase::class, 'indo_purchase_id');
+        return $this->belongsTo(\App\Models\Procurement\IndoPurchase::class, 'indo_purchase_id');
     }
 
     public function project()

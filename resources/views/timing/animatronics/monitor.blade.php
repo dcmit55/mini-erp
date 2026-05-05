@@ -15,6 +15,9 @@
                 <a href="{{ route('animatronics-timing.index') }}" class="btn btn-outline-secondary btn-sm">
                     <i class="fas fa-robot me-1"></i> Start New Session
                 </a>
+                <a href="{{ route('live-workstation.index', ['type' => 'animatronics']) }}" class="btn btn-outline-success btn-sm">
+                    <i class="fas fa-desktop me-1"></i> Live Workstation
+                </a>
                 <a href="{{ route('timings.index') }}" class="btn btn-outline-primary btn-sm">
                     <i class="bi bi-table me-1"></i> All Timings
                 </a>

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
-class ProjectPurchase extends Model
+class IndoPurchase extends Model
 {
     use SoftDeletes;
 
@@ -739,7 +739,7 @@ class ProjectPurchase extends Model
 
             // HAPUS atau KOMENTARI baris ini karena Anda tidak pakai generate otomatis
             // if (empty($purchase->po_number)) {
-            //     $purchase->po_number = app(\App\Services\ProjectPurchaseService::class)->generatePONumber();
+            //     $purchase->po_number = app(\App\Services\IndoPurchaseService::class)->generatePONumber();
             // }
 
             $purchase->is_current = true;
@@ -788,7 +788,7 @@ class ProjectPurchase extends Model
         });
 
         // Revision logic (mark old record as not current) is handled
-        // in ProjectPurchaseService::updatePurchase(), NOT here.
+        // in IndoPurchaseService::updatePurchase(), NOT here.
         // Previously this event set all other items with same PO to is_current=0,
         // which broke multi-item POs (one PO with multiple materials).
     }

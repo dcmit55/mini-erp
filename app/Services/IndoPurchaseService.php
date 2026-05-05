@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\Procurement\ProjectPurchase;
+use App\Models\Procurement\IndoPurchase;
 use App\Models\InternalProject;
 use App\Models\Logistic\Inventory;
 use App\Models\Admin\Department;
@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
-class ProjectPurchaseService
+class IndoPurchaseService
 {
     /**
      * GET PURCHASES WITH FILTERS - GROUPED BY PO NUMBER
@@ -23,7 +23,7 @@ class ProjectPurchaseService
     {
         try {
             // Build base query untuk mendapatkan PO numbers yang unik
-            $poNumbersQuery = ProjectPurchase::select('po_number', 'job_order_id', 'internal_project_id', 'department_id', 'project_type', 'supplier_id', 'status', 'date', 'created_at')->where('is_current', true)->distinct();
+            $poNumbersQuery = IndoPurchase::select('po_number', 'job_order_id', 'internal_project_id', 'department_id', 'project_type', 'supplier_id', 'status', 'date', 'created_at')->where('is_current', true)->distinct();
 
             // Apply filters
             if ($request->filled('status')) {
@@ -85,7 +85,7 @@ class ProjectPurchaseService
 
             // Load ALL purchases for these PO numbers in ONE query with eager loading
             $poNumbersList = $poGroups->pluck('po_number')->unique()->values();
-            $allPurchases = ProjectPurchase::with(['material:id,name', 'department:id,name', 'category:id,name', 'unit:id,name', 'supplier:id,name', 'pic:id,username', 'checker:id,username', 'approver:id,username', 'receiver:id,username', 'project:id,name', 'internalProject:id,project,job,department,department_id', 'jobOrder:id,name'])
+            $allPurchases = IndoPurchase::with(['material:id,name', 'department:id,name', 'category:id,name', 'unit:id,name', 'supplier:id,name', 'pic:id,username', 'checker:id,username', 'approver:id,username', 'receiver:id,username', 'project:id,name', 'internalProject:id,project,job,department,department_id', 'jobOrder:id,name'])
                 ->whereIn('po_number', $poNumbersList)
                 ->where('is_current', true)
                 ->get();
@@ -228,7 +228,7 @@ class ProjectPurchaseService
     public function getGroupInfo($poNumber)
     {
         try {
-            $items = ProjectPurchase::where('po_number', $poNumber)
+            $items = IndoPurchase::where('po_number', $poNumber)
                 ->where('is_current', true)
                 ->with(['material:id,name', 'category:id,name', 'unit:id,name', 'pic:id,username', 'checker:id,username', 'approver:id,username', 'receiver:id,username'])
                 ->get();
@@ -289,7 +289,7 @@ class ProjectPurchaseService
     {
         try {
             // Get all current purchases with minimal eager loading
-            $allPurchases = ProjectPurchase::current()->select('po_number', 'status', 'item_status', 'invoice_total', 'project_type', 'created_at')->get();
+            $allPurchases = IndoPurchase::current()->select('po_number', 'status', 'item_status', 'invoice_total', 'project_type', 'created_at')->get();
 
             // Get unique PO numbers
             $uniquePOs = $allPurchases->pluck('po_number')->unique();
@@ -628,7 +628,7 @@ class ProjectPurchaseService
 
             Log::info('Final data for purchase creation:', $purchaseData);
 
-            $purchase = ProjectPurchase::create($purchaseData);
+            $purchase = IndoPurchase::create($purchaseData);
 
             Log::info('Purchase created successfully:', [
                 'id' => $purchase->id,
@@ -714,7 +714,7 @@ class ProjectPurchaseService
     /**
      * UPDATE PURCHASE - Create new revision
      */
-    public function updatePurchase(ProjectPurchase $purchase, array $data)
+    public function updatePurchase(IndoPurchase $purchase, array $data)
     {
         DB::beginTransaction();
 
@@ -796,7 +796,7 @@ class ProjectPurchaseService
             ]);
 
             // Create new revision
-            $newRevision = ProjectPurchase::create($newData);
+            $newRevision = IndoPurchase::create($newData);
 
             Log::info('✅ NEW REVISION CREATED', [
                 'old_record_id' => $purchase->id,
@@ -819,7 +819,7 @@ class ProjectPurchaseService
     /**
      * Handle material ID for update
      */
-    private function handleMaterialId(ProjectPurchase $purchase, array $data)
+    private function handleMaterialId(IndoPurchase $purchase, array $data)
     {
         $purchaseType = $data['purchase_type'] ?? $purchase->purchase_type;
 
@@ -833,7 +833,7 @@ class ProjectPurchaseService
     /**
      * Handle project ID for update
      */
-    private function handleProjectId(ProjectPurchase $purchase, array $data)
+    private function handleProjectId(IndoPurchase $purchase, array $data)
     {
         $projectType = $data['project_type'] ?? $purchase->project_type;
 
@@ -847,7 +847,7 @@ class ProjectPurchaseService
     /**
      * Handle internal project ID for update
      */
-    private function handleInternalProjectId(ProjectPurchase $purchase, array $data)
+    private function handleInternalProjectId(IndoPurchase $purchase, array $data)
     {
         $projectType = $data['project_type'] ?? $purchase->project_type;
 
@@ -861,7 +861,7 @@ class ProjectPurchaseService
     /**
      * Handle job order ID for update
      */
-    private function handleJobOrderId(ProjectPurchase $purchase, array $data)
+    private function handleJobOrderId(IndoPurchase $purchase, array $data)
     {
         $projectType = $data['project_type'] ?? $purchase->project_type;
 
@@ -875,7 +875,7 @@ class ProjectPurchaseService
     /**
      * Handle note with revision tracking
      */
-    private function handleNote(ProjectPurchase $purchase, array $data)
+    private function handleNote(IndoPurchase $purchase, array $data)
     {
         $newNote = $data['note'] ?? '';
         $oldNote = $purchase->note ?? '';
@@ -891,7 +891,7 @@ class ProjectPurchaseService
     /**
      * APPROVE PURCHASE
      */
-    public function approvePurchase(ProjectPurchase $purchase, array $data)
+    public function approvePurchase(IndoPurchase $purchase, array $data)
     {
         DB::beginTransaction();
 
@@ -918,7 +918,7 @@ class ProjectPurchaseService
     /**
      * REJECT PURCHASE
      */
-    public function rejectPurchase(ProjectPurchase $purchase, array $data)
+    public function rejectPurchase(IndoPurchase $purchase, array $data)
     {
         DB::beginTransaction();
 
@@ -944,7 +944,7 @@ class ProjectPurchaseService
     /**
      * UPDATE RESI NUMBER
      */
-    public function updateResiNumber(ProjectPurchase $purchase, array $data)
+    public function updateResiNumber(IndoPurchase $purchase, array $data)
     {
         if (!$purchase->is_current) {
             throw new \Exception('Hanya current revision yang bisa update resi number.');
@@ -964,7 +964,7 @@ class ProjectPurchaseService
     /**
      * MARK AS CHECKED
      */
-    public function markAsChecked(ProjectPurchase $purchase, array $data)
+    public function markAsChecked(IndoPurchase $purchase, array $data)
     {
         DB::beginTransaction();
 
@@ -1003,7 +1003,7 @@ class ProjectPurchaseService
     /**
      * MARK AS RECEIVED
      */
-    public function markAsReceived(ProjectPurchase $purchase)
+    public function markAsReceived(IndoPurchase $purchase)
     {
         DB::beginTransaction();
 
@@ -1055,7 +1055,7 @@ class ProjectPurchaseService
     /**
      * INSERT TO INVENTORY
      */
-    private function insertToInventory(ProjectPurchase $purchase)
+    private function insertToInventory(IndoPurchase $purchase)
     {
         try {
             $unitName = $purchase->unit ? $purchase->unit->name : 'pcs';
@@ -1140,7 +1140,7 @@ class ProjectPurchaseService
     /**
      * MARK AS NOT MATCHED
      */
-    public function markAsNotMatched(ProjectPurchase $purchase)
+    public function markAsNotMatched(IndoPurchase $purchase)
     {
         if (!$purchase->is_current) {
             throw new \Exception('Hanya current revision yang bisa di-mark as not matched.');
@@ -1216,7 +1216,7 @@ class ProjectPurchaseService
      */
     public function getPOItems($poNumber)
     {
-        return ProjectPurchase::where('po_number', $poNumber)
+        return IndoPurchase::where('po_number', $poNumber)
             ->where('is_current', true)
             ->with(['material', 'unit', 'category', 'supplier'])
             ->get();
@@ -1227,7 +1227,7 @@ class ProjectPurchaseService
      */
     public function updatePOStatus($poNumber, $status, $itemStatus = null)
     {
-        $items = ProjectPurchase::where('po_number', $poNumber)->where('is_current', true)->get();
+        $items = IndoPurchase::where('po_number', $poNumber)->where('is_current', true)->get();
 
         foreach ($items as $item) {
             $item->status = $status;

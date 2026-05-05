@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Finance;
 
 use App\Http\Controllers\Controller;
 use App\Models\Finance\DcmCosting;
-use App\Models\Procurement\ProjectPurchase;
+use App\Models\Procurement\IndoPurchase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -371,7 +371,7 @@ class DcmCostingController extends Controller
     public function checkForUpdates()
     {
         try {
-            $editedPOs = ProjectPurchase::select('po_number')
+            $editedPOs = IndoPurchase::select('po_number')
                 ->whereNotNull('po_number')
                 ->where('status', 'approved')
                 ->groupBy('po_number')
@@ -381,7 +381,7 @@ class DcmCostingController extends Controller
             $updatedCount = 0;
             
             foreach ($editedPOs as $poNumber) {
-                $currentPurchase = ProjectPurchase::where('po_number', $poNumber)
+                $currentPurchase = IndoPurchase::where('po_number', $poNumber)
                     ->where('is_current', 1)
                     ->first();
                 
@@ -422,7 +422,7 @@ class DcmCostingController extends Controller
     public function manualUpdate($poNumber)
     {
         try {
-            $currentPurchase = ProjectPurchase::where('po_number', $poNumber)
+            $currentPurchase = IndoPurchase::where('po_number', $poNumber)
                 ->where('is_current', 1)
                 ->first();
             
@@ -460,7 +460,7 @@ class DcmCostingController extends Controller
     public function getPendingUpdates()
     {
         try {
-            $editedPOs = ProjectPurchase::select('po_number')
+            $editedPOs = IndoPurchase::select('po_number')
                 ->whereNotNull('po_number')
                 ->where('status', 'approved')
                 ->groupBy('po_number')
@@ -470,7 +470,7 @@ class DcmCostingController extends Controller
             $pendingUpdates = [];
             
             foreach ($editedPOs as $poNumber) {
-                $currentPurchase = ProjectPurchase::where('po_number', $poNumber)
+                $currentPurchase = IndoPurchase::where('po_number', $poNumber)
                     ->where('is_current', 1)
                     ->first();
                 
@@ -518,7 +518,7 @@ class DcmCostingController extends Controller
         foreach ($request->po_numbers as $poNumber) {
             try {
                 DB::transaction(function () use ($poNumber, &$updatedCount) {
-                    $currentPurchase = ProjectPurchase::where('po_number', $poNumber)
+                    $currentPurchase = IndoPurchase::where('po_number', $poNumber)
                         ->where('is_current', 1)
                         ->first();
                     

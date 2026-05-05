@@ -204,10 +204,10 @@ class SessionShiftController extends Controller
 
         $notClockedIn = $notClockedInQuery->orderBy('name')->get();
 
-        $now            = Carbon::now();
+        $now            = Carbon::now('Asia/Jakarta');
         $currentMinutes = $now->hour * 60 + $now->minute;
         $departments    = Department::orderBy('name')->get();
-        $isToday        = $date === today()->toDateString();
+        $isToday        = $date === today('Asia/Jakarta')->toDateString();
         $isSaturday     = Carbon::parse($date)->isoWeekday() === 6;
 
         // Load work policies for Saturday end-time override

@@ -9,20 +9,20 @@ use App\Models\Admin\Department;
 use App\Models\Production\Project;
 use App\Models\Production\JobOrder;
 use App\Models\Procurement\Supplier;
-use App\Models\Procurement\ProjectPurchase;
+use App\Models\Procurement\IndoPurchase;
 use App\Models\Logistic\Category;
 use App\Models\Logistic\Unit;
 use App\Models\InternalProject;
-use App\Services\ProjectPurchaseService;
+use App\Services\IndoPurchaseService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
-class ProjectPurchaseController extends Controller
+class IndoPurchaseController extends Controller
 {
     protected $purchaseService;
 
-    public function __construct(ProjectPurchaseService $purchaseService)
+    public function __construct(IndoPurchaseService $purchaseService)
     {
         $this->purchaseService = $purchaseService;
     }
@@ -36,7 +36,7 @@ class ProjectPurchaseController extends Controller
             $purchases = $this->purchaseService->getPurchasesWithFilters($request);
             $stats = $this->purchaseService->getPurchaseStats();
 
-            return view('procurement.Project-Purchase.index', [
+            return view('procurement.Indo-Purchase.index', [
                 'purchases' => $purchases,
                 'stats' => $stats,
                 'departments' => Department::select('id', 'name')->get(),
@@ -51,8 +51,8 @@ class ProjectPurchaseController extends Controller
         } catch (\Exception $e) {
             Log::error('Index error: ' . $e->getMessage());
 
-            return view('procurement.Project-Purchase.index', [
-                'purchases' => ProjectPurchase::with(['material:id,name', 'department:id,name', 'category:id,name', 'unit:id,name', 'supplier:id,name', 'pic:id,username', 'checker:id,username', 'approver:id,username', 'receiver:id,username', 'project:id,name', 'internalProject:id,project,job,department,department_id', 'jobOrder:id,name'])->paginate(20),
+            return view('procurement.Indo-Purchase.index', [
+                'purchases' => IndoPurchase::with(['material:id,name', 'department:id,name', 'category:id,name', 'unit:id,name', 'supplier:id,name', 'pic:id,username', 'checker:id,username', 'approver:id,username', 'receiver:id,username', 'project:id,name', 'internalProject:id,project,job,department,department_id', 'jobOrder:id,name'])->paginate(20),
                 'stats' => [
                     'total' => 0,
                     'total_amount' => 0,
@@ -85,11 +85,11 @@ class ProjectPurchaseController extends Controller
         try {
             $formData = $this->getFormDropdowns();
 
-            return view('procurement.Project-Purchase.create', $formData);
+            return view('procurement.Indo-Purchase.create', $formData);
         } catch (\Exception $e) {
             Log::error('Create view error: ' . $e->getMessage());
             return redirect()
-                ->route('project-purchases.index')
+                ->route('indo-purchases.index')
                 ->with('error', 'Gagal memuat halaman pembelian: ' . $e->getMessage());
         }
     }
@@ -171,7 +171,7 @@ class ProjectPurchaseController extends Controller
             DB::commit();
 
             return redirect()
-                ->route('project-purchases.index')
+                ->route('indo-purchases.index')
                 ->with('success', 'Purchase Order ' . $request->po_number . ' created successfully (' . count($createdItems) . ' item(s)).');
         } catch (\Illuminate\Validation\ValidationException $e) {
             DB::rollBack();
@@ -195,13 +195,13 @@ class ProjectPurchaseController extends Controller
     {
         try {
             // Ambil 1 item sebagai representasi (first item)
-            $purchase = ProjectPurchase::with(['material:id,name', 'department:id,name', 'project:id,name', 'internalProject:id,project,job,department,department_id,description', 'jobOrder:id,name', 'category:id,name', 'unit:id,name', 'supplier:id,name', 'pic:id,username', 'approver:id,username', 'checker:id,username', 'receiver:id,username'])
+            $purchase = IndoPurchase::with(['material:id,name', 'department:id,name', 'project:id,name', 'internalProject:id,project,job,department,department_id,description', 'jobOrder:id,name', 'category:id,name', 'unit:id,name', 'supplier:id,name', 'pic:id,username', 'approver:id,username', 'checker:id,username', 'receiver:id,username'])
                 ->where('uid', $uid)
                 ->first();
 
             if (!$purchase) {
                 return redirect()
-                    ->route('project-purchases.index')
+                    ->route('indo-purchases.index')
                     ->with('error', 'Data purchase order tidak ditemukan (UID: ' . $uid . ').');
             }
 
@@ -211,7 +211,7 @@ class ProjectPurchaseController extends Controller
             Log::info('PO Number: ' . $purchase->po_number);
 
             // Get items with same PO number AND same project (different project = different log)
-            $poItemsQuery = ProjectPurchase::where('po_number', $purchase->po_number)
+            $poItemsQuery = IndoPurchase::where('po_number', $purchase->po_number)
                 ->where('is_current', true)
                 ->with(['material:id,name', 'category:id,name', 'unit:id,name']);
 
@@ -231,7 +231,7 @@ class ProjectPurchaseController extends Controller
             $pendingCount = $poItems->whereIn('item_status', ['pending', 'pending_check'])->count();
 
             // Revisions — scoped to same project
-            $revisionsQuery = ProjectPurchase::where('po_number', $purchase->po_number)
+            $revisionsQuery = IndoPurchase::where('po_number', $purchase->po_number)
                 ->orderBy('created_at', 'desc')
                 ->with(['pic:id,username']);
 
@@ -243,7 +243,7 @@ class ProjectPurchaseController extends Controller
 
             $revisions = $revisionsQuery->get();
 
-            return view('procurement.Project-Purchase.show', [
+            return view('procurement.Indo-Purchase.show', [
                 'purchase' => $purchase,
                 'poItems' => $poItems,
                 'totalItems' => $poItems->count(),
@@ -260,7 +260,7 @@ class ProjectPurchaseController extends Controller
         } catch (\Exception $e) {
             Log::error('Show error: ' . $e->getMessage());
             return redirect()
-                ->route('project-purchases.index')
+                ->route('indo-purchases.index')
                 ->with('error', 'Terjadi kesalahan saat memuat data: ' . $e->getMessage());
         }
     }
@@ -275,7 +275,7 @@ class ProjectPurchaseController extends Controller
                 'finance_notes' => 'nullable|string',
             ]);
 
-            $purchase = ProjectPurchase::where('uid', $uid)->firstOrFail();
+            $purchase = IndoPurchase::where('uid', $uid)->firstOrFail();
 
             if (!$purchase->canApprove()) {
                 return back()->with('error', 'Tidak dapat menyetujui Purchase Order ini.');
@@ -288,7 +288,7 @@ class ProjectPurchaseController extends Controller
             DB::beginTransaction();
 
             // Approve semua item dengan PO number yang sama
-            $poItems = ProjectPurchase::where('po_number', $purchase->po_number)->get();
+            $poItems = IndoPurchase::where('po_number', $purchase->po_number)->get();
 
             foreach ($poItems as $item) {
                 if ($item->canApprove()) {
@@ -316,7 +316,7 @@ class ProjectPurchaseController extends Controller
                 'finance_notes' => 'required|string',
             ]);
 
-            $purchase = ProjectPurchase::where('uid', $uid)->firstOrFail();
+            $purchase = IndoPurchase::where('uid', $uid)->firstOrFail();
 
             if (!$purchase->canReject()) {
                 return back()->with('error', 'Tidak dapat menolak Purchase Order ini.');
@@ -325,7 +325,7 @@ class ProjectPurchaseController extends Controller
             DB::beginTransaction();
 
             // Reject semua item dengan PO number yang sama
-            $poItems = ProjectPurchase::where('po_number', $purchase->po_number)->get();
+            $poItems = IndoPurchase::where('po_number', $purchase->po_number)->get();
 
             foreach ($poItems as $item) {
                 if ($item->canReject()) {
@@ -353,7 +353,7 @@ class ProjectPurchaseController extends Controller
                 'resi_number' => 'nullable|string|max:255',
             ]);
 
-            $purchase = ProjectPurchase::where('uid', $uid)->firstOrFail();
+            $purchase = IndoPurchase::where('uid', $uid)->firstOrFail();
 
             if (!$purchase->canUpdateResi()) {
                 return back()->with('error', 'Tidak dapat mengupdate resi karena PO belum disetujui atau barang sudah dicek.');
@@ -366,7 +366,7 @@ class ProjectPurchaseController extends Controller
             DB::beginTransaction();
 
             // Update resi untuk semua item dengan PO number yang sama
-            $poItems = ProjectPurchase::where('po_number', $purchase->po_number)->get();
+            $poItems = IndoPurchase::where('po_number', $purchase->po_number)->get();
 
             foreach ($poItems as $item) {
                 $this->purchaseService->updateResiNumber($item, $validated);
@@ -388,10 +388,10 @@ class ProjectPurchaseController extends Controller
     public function destroy($uid)
     {
         try {
-            $purchase = ProjectPurchase::where('uid', $uid)->firstOrFail();
+            $purchase = IndoPurchase::where('uid', $uid)->firstOrFail();
 
             if (!$purchase->canDelete()) {
-                return redirect()->route('project-purchases.show', $purchase->uid)->with('error', 'Purchase Order tidak dapat dihapus.');
+                return redirect()->route('indo-purchases.show', $purchase->uid)->with('error', 'Purchase Order tidak dapat dihapus.');
             }
 
             DB::beginTransaction();
@@ -400,7 +400,7 @@ class ProjectPurchaseController extends Controller
             $poNumber = $purchase->po_number;
 
             // Get another item in the same PO group (same project) to redirect to after delete
-            $otherItemQuery = ProjectPurchase::where('po_number', $purchase->po_number)->where('is_current', true)->where('id', '!=', $purchase->id);
+            $otherItemQuery = IndoPurchase::where('po_number', $purchase->po_number)->where('is_current', true)->where('id', '!=', $purchase->id);
 
             if ($purchase->project_type === 'client') {
                 $otherItemQuery->where('job_order_id', $purchase->job_order_id);
@@ -416,18 +416,18 @@ class ProjectPurchaseController extends Controller
 
             if (!$otherItem) {
                 return redirect()
-                    ->route('project-purchases.index')
+                    ->route('indo-purchases.index')
                     ->with('success', "Material \"{$materialName}\" deleted. PO {$poNumber} has no remaining items for this project.");
             } else {
                 return redirect()
-                    ->route('project-purchases.show', $otherItem->uid)
+                    ->route('indo-purchases.show', $otherItem->uid)
                     ->with('success', "Material \"{$materialName}\" removed from PO {$poNumber} successfully.");
             }
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Purchase Order deletion error: ' . $e->getMessage());
             return redirect()
-                ->route('project-purchases.index')
+                ->route('indo-purchases.index')
                 ->with('error', 'Failed to delete material: ' . $e->getMessage());
         }
     }
@@ -442,7 +442,7 @@ class ProjectPurchaseController extends Controller
         ]);
 
         try {
-            $purchase = ProjectPurchase::where('uid', $uid)->firstOrFail();
+            $purchase = IndoPurchase::where('uid', $uid)->firstOrFail();
 
             if (!$purchase->canRequestDeletion()) {
                 return back()->with('error', 'Hanya purchase yang sudah approved yang bisa diminta dihapus.');
@@ -451,7 +451,7 @@ class ProjectPurchaseController extends Controller
             DB::beginTransaction();
 
             // Update semua item dengan PO number yang sama
-            ProjectPurchase::where('po_number', $purchase->po_number)
+            IndoPurchase::where('po_number', $purchase->po_number)
                 ->where('is_current', 1)
                 ->update([
                     'status' => 'deletion_requested',
@@ -463,7 +463,7 @@ class ProjectPurchaseController extends Controller
             DB::commit();
 
             return redirect()
-                ->route('project-purchases.index')
+                ->route('indo-purchases.index')
                 ->with('success', 'Permintaan hapus untuk Purchase ' . $purchase->po_number . ' telah dikirim ke Finance.');
         } catch (\Exception $e) {
             DB::rollBack();
@@ -484,7 +484,7 @@ class ProjectPurchaseController extends Controller
                 'note' => 'nullable|string',
             ]);
 
-            $purchase = ProjectPurchase::where('uid', $uid)->firstOrFail();
+            $purchase = IndoPurchase::where('uid', $uid)->firstOrFail();
 
             if (!$purchase->canCheck()) {
                 return back()->with('error', 'Tidak dapat mengecek barang karena PO belum disetujui atau sudah dicek.');
@@ -495,7 +495,7 @@ class ProjectPurchaseController extends Controller
             $statusText = $validated['item_status'] === 'matched' ? 'sesuai' : 'tidak sesuai';
 
             // Cek apakah semua item sudah di-check
-            $poItems = ProjectPurchase::where('po_number', $purchase->po_number)->get();
+            $poItems = IndoPurchase::where('po_number', $purchase->po_number)->get();
 
             $checkedCount = $poItems->whereIn('item_status', ['matched', 'not_matched'])->count();
             $allChecked = $checkedCount === $poItems->count();
@@ -518,7 +518,7 @@ class ProjectPurchaseController extends Controller
     public function markAsReceived($uid)
     {
         try {
-            $purchase = ProjectPurchase::with(['project:id,name', 'internalProject:id,project,job,department', 'jobOrder:id,name'])
+            $purchase = IndoPurchase::with(['project:id,name', 'internalProject:id,project,job,department', 'jobOrder:id,name'])
                 ->where('uid', $uid)
                 ->firstOrFail();
 
@@ -556,7 +556,7 @@ class ProjectPurchaseController extends Controller
             $this->purchaseService->markAsReceived($purchase);
 
             // Cek apakah semua item sudah diterima
-            $poItems = ProjectPurchase::where('po_number', $purchase->po_number)->get();
+            $poItems = IndoPurchase::where('po_number', $purchase->po_number)->get();
 
             $receivedCount = $poItems->where('item_status', 'matched')->count();
             $allReceived = $receivedCount === $poItems->count();
@@ -569,7 +569,7 @@ class ProjectPurchaseController extends Controller
             return back()->with('success', $message);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             Log::error('Purchase not found for markAsReceived: ' . $e->getMessage());
-            return redirect()->route('project-purchases.index')->with('error', 'Data purchase order tidak ditemukan.');
+            return redirect()->route('indo-purchases.index')->with('error', 'Data purchase order tidak ditemukan.');
         } catch (\Exception $e) {
             Log::error('Mark as received error: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
@@ -584,7 +584,7 @@ class ProjectPurchaseController extends Controller
     public function markAsNotMatched($uid)
     {
         try {
-            $purchase = ProjectPurchase::where('uid', $uid)->firstOrFail();
+            $purchase = IndoPurchase::where('uid', $uid)->firstOrFail();
 
             if (!$purchase->isItemPending()) {
                 return back()->with('error', 'Tidak dapat menandai sebagai tidak sesuai karena barang sudah ditandai.');
@@ -605,16 +605,16 @@ class ProjectPurchaseController extends Controller
     public function edit($uid)
     {
         try {
-            $purchase = ProjectPurchase::with(['material:id,name', 'department:id,name', 'project:id,name', 'internalProject:id,project,job,department,department_id,description', 'jobOrder:id,name', 'category:id,name', 'unit:id,name', 'supplier:id,name', 'pic:id,username'])
+            $purchase = IndoPurchase::with(['material:id,name', 'department:id,name', 'project:id,name', 'internalProject:id,project,job,department,department_id,description', 'jobOrder:id,name', 'category:id,name', 'unit:id,name', 'supplier:id,name', 'pic:id,username'])
                 ->where('uid', $uid)
                 ->firstOrFail();
 
             if (!$purchase->canEdit()) {
-                return redirect()->route('project-purchases.show', $purchase->uid)->with('error', 'Purchase Order tidak dapat diedit.');
+                return redirect()->route('indo-purchases.show', $purchase->uid)->with('error', 'Purchase Order tidak dapat diedit.');
             }
 
             // Get items with same PO number AND same project (different project = different log)
-            $poItemsQuery = ProjectPurchase::where('po_number', $purchase->po_number)->where('is_current', true);
+            $poItemsQuery = IndoPurchase::where('po_number', $purchase->po_number)->where('is_current', true);
 
             if ($purchase->project_type === 'client') {
                 $poItemsQuery->where('job_order_id', $purchase->job_order_id);
@@ -624,7 +624,7 @@ class ProjectPurchaseController extends Controller
 
             $poItems = $poItemsQuery->orderBy('id')->get();
 
-            $revisionsQuery = ProjectPurchase::where('po_number', $purchase->po_number)->orderBy('created_at', 'desc');
+            $revisionsQuery = IndoPurchase::where('po_number', $purchase->po_number)->orderBy('created_at', 'desc');
 
             if ($purchase->project_type === 'client') {
                 $revisionsQuery->where('job_order_id', $purchase->job_order_id);
@@ -637,7 +637,7 @@ class ProjectPurchaseController extends Controller
             $formData = $this->getFormDropdowns();
 
             return view(
-                'procurement.Project-Purchase.edit',
+                'procurement.Indo-Purchase.edit',
                 array_merge($formData, [
                     'purchase' => $purchase,
                     'poItems' => $poItems,
@@ -651,7 +651,7 @@ class ProjectPurchaseController extends Controller
             );
         } catch (\Exception $e) {
             Log::error('Edit error: ' . $e->getMessage());
-            return redirect()->route('project-purchases.index')->with('error', 'Terjadi kesalahan saat memuat halaman edit.');
+            return redirect()->route('indo-purchases.index')->with('error', 'Terjadi kesalahan saat memuat halaman edit.');
         }
     }
 
@@ -666,10 +666,10 @@ class ProjectPurchaseController extends Controller
             Log::info('PO UID: ' . $uid);
             Log::info('All request data:', $request->all());
 
-            $purchase = ProjectPurchase::where('uid', $uid)->firstOrFail();
+            $purchase = IndoPurchase::where('uid', $uid)->firstOrFail();
 
             if (!$purchase->canEdit()) {
-                return redirect()->route('project-purchases.show', $purchase->uid)->with('error', 'Purchase Order tidak dapat diupdate.');
+                return redirect()->route('indo-purchases.show', $purchase->uid)->with('error', 'Purchase Order tidak dapat diupdate.');
             }
 
             DB::beginTransaction();
@@ -687,7 +687,7 @@ class ProjectPurchaseController extends Controller
                         continue;
                     }
 
-                    $item = ProjectPurchase::find($itemData['id']);
+                    $item = IndoPurchase::find($itemData['id']);
 
                     if (!$item) {
                         Log::warning('Item tidak ditemukan: ' . $itemData['id']);
@@ -811,7 +811,7 @@ class ProjectPurchaseController extends Controller
             Log::info('=== UPDATE REQUEST COMPLETED ===');
 
             $redirectUid = !empty($updatedItems) ? $updatedItems[0]->uid : (!empty($newItems) ? $newItems[0]->uid : $purchase->uid);
-            return redirect()->route('project-purchases.show', $redirectUid)->with('success', $message);
+            return redirect()->route('indo-purchases.show', $redirectUid)->with('success', $message);
         } catch (\Illuminate\Validation\ValidationException $e) {
             DB::rollBack();
             Log::error('Validation errors:', $e->errors());
@@ -938,19 +938,19 @@ class ProjectPurchaseController extends Controller
     public function print($uid)
     {
         try {
-            $purchase = ProjectPurchase::with(['material:id,name', 'department:id,name', 'project:id,name', 'internalProject:id,project,job,department,department_id,description', 'jobOrder:id,name', 'category:id,name', 'unit:id,name', 'supplier:id,name,address', 'pic:id,username', 'approver:id,username'])
+            $purchase = IndoPurchase::with(['material:id,name', 'department:id,name', 'project:id,name', 'internalProject:id,project,job,department,department_id,description', 'jobOrder:id,name', 'category:id,name', 'unit:id,name', 'supplier:id,name,address', 'pic:id,username', 'approver:id,username'])
                 ->where('uid', $uid)
                 ->firstOrFail();
 
             // Ambil semua item dengan PO number yang sama
-            $poItems = ProjectPurchase::where('po_number', $purchase->po_number)
+            $poItems = IndoPurchase::where('po_number', $purchase->po_number)
                 ->with(['material:id,name', 'category:id,name', 'unit:id,name'])
                 ->orderBy('id')
                 ->get();
 
             $poTotal = $poItems->sum('invoice_total');
 
-            return view('procurement.Project-Purchase.print', compact('purchase', 'poItems', 'poTotal'));
+            return view('procurement.Indo-Purchase.print', compact('purchase', 'poItems', 'poTotal'));
         } catch (\Exception $e) {
             Log::error('Print error: ' . $e->getMessage());
             return back()->with('error', 'Gagal mencetak purchase order: ' . $e->getMessage());
@@ -986,7 +986,7 @@ class ProjectPurchaseController extends Controller
     public function getPOItems($poNumber)
     {
         try {
-            $items = ProjectPurchase::where('po_number', $poNumber)
+            $items = IndoPurchase::where('po_number', $poNumber)
                 ->with(['material', 'unit', 'category'])
                 ->get();
 

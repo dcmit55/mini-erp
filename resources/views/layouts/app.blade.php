@@ -214,7 +214,7 @@
                                         'pre-shippings*',
                                         'shipping-management*',
                                         'goods-receive*',
-                                        'project-purchases*',
+                                        'indo-purchases*',
                                     ];
                                 @endphp
 
@@ -332,8 +332,8 @@
                                                 </li>
                                                 <li class="dropdown-header">Inventory Incoming</li>
                                                 <li>
-                                                    <a class="dropdown-item {{ request()->is('project-purchases*') ? 'active' : '' }}"
-                                                        href="{{ route('project-purchases.index') }}">
+                                                    <a class="dropdown-item {{ request()->is('indo-purchases*') ? 'active' : '' }}"
+                                                        href="{{ route('indo-purchases.index') }}">
                                                         <i class="fas fa-file-invoice-dollar me-2"></i>Indo Purchase
                                                     </a>
                                                 </li>
@@ -360,8 +360,8 @@
                                         <ul class="dropdown-menu" aria-labelledby="procurementDropdown">
                                             @can('lark.staging.view')
                                                 <li>
-                                                    <a class="dropdown-item {{ request()->is('project-purchases*') ? 'active' : '' }}"
-                                                        href="{{ route('project-purchases.index') }}">
+                                                    <a class="dropdown-item {{ request()->is('indo-purchases*') ? 'active' : '' }}"
+                                                        href="{{ route('indo-purchases.index') }}">
                                                         <i class="fas fa-file-invoice-dollar me-2"></i>Indo Purchase
                                                     </a>
                                                 </li>
@@ -546,7 +546,7 @@
                                     'production.costume-timing.view', 'production.animatronics-timing.view',
                                     'production.timing-monitor.view'])
                                     <li class="nav-item dropdown">
-                                        <a class="nav-link dropdown-toggle {{ request()->is('costume-timing*') || request()->is('animatronics-timing*') || request()->is('mascot-timing*') || request()->is('timing-monitor*') || request()->is('timing-approval*') || request()->is('timings*') || request()->is('timing-planner*') ? 'active' : '' }}"
+                                        <a class="nav-link dropdown-toggle {{ request()->is('costume-timing*') || request()->is('animatronics-timing*') || request()->is('mascot-timing*') || request()->is('timing-monitor*') || request()->is('timing/live-workstation*') || request()->is('timing-approval*') || request()->is('timings*') || request()->is('timing-planner*') ? 'active' : '' }}"
                                             href="#" id="timingDropdown" role="button" data-bs-toggle="dropdown"
                                             aria-expanded="false">
                                             <i></i>Timing
@@ -579,6 +579,12 @@
                                             @canany(['production.timing-monitor.view', 'production.timing.view'])
                                                 <li>
                                                     <hr class="dropdown-divider">
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('timing/live-workstation*') ? 'active' : '' }}"
+                                                        href="{{ route('live-workstation.index') }}">
+                                                        <i class="fas fa-desktop me-2"></i>Live Workstation
+                                                    </a>
                                                 </li>
                                                 <li>
                                                     <a class="dropdown-item {{ request()->is('timing-monitor*') ? 'active' : '' }}"

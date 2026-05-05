@@ -1,4 +1,4 @@
-{{-- resources/views/Procurement/Project-Purchase/edit.blade.php --}}
+{{-- resources/views/procurement/Indo-Purchase/edit.blade.php --}}
 @extends('layouts.app')
 
 @section('title', 'Edit Purchase Order')
@@ -318,7 +318,7 @@
             <!-- Header -->
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
-                    <a href="{{ route('project-purchases.index') }}" class="btn btn-outline-secondary btn-sm rounded-2 px-3">
+                    <a href="{{ route('indo-purchases.index') }}" class="btn btn-outline-secondary btn-sm rounded-2 px-3">
                         <i class="fas fa-arrow-left me-1"></i>Back
                     </a>
                     <h5 class="text-dark mb-1 mt-2">Edit Purchase Order</h5>
@@ -329,11 +329,11 @@
                     </p>
                 </div>
                 <div>
-                    <a href="{{ route('project-purchases.show', $purchase->uid) }}" 
+                    <a href="{{ route('indo-purchases.show', $purchase->uid) }}" 
                        class="btn btn-outline-secondary btn-sm rounded-2 px-3">
                         <i class="fas fa-eye me-1"></i>View
                     </a>
-                    <a href="{{ route('project-purchases.print', $purchase->uid) }}" 
+                    <a href="{{ route('indo-purchases.print', $purchase->uid) }}" 
                        class="btn btn-outline-primary btn-sm rounded-2 px-3" target="_blank">
                         <i class="fas fa-print me-1"></i>Print
                     </a>
@@ -365,7 +365,7 @@
                         </div>
                     @endif
 
-                    <form action="{{ route('project-purchases.update', $purchase->uid) }}" method="POST" id="purchaseForm">
+                    <form action="{{ route('indo-purchases.update', $purchase->uid) }}" method="POST" id="purchaseForm">
                         @csrf
                         @method('PUT')
                         
@@ -826,7 +826,7 @@
 
                         <!-- Action Buttons -->
                         <div class="d-flex gap-2 pt-3 border-top">
-                            <a href="{{ route('project-purchases.show', $purchase->uid) }}" class="btn btn-outline-secondary rounded-2 px-3 btn-sm">
+                            <a href="{{ route('indo-purchases.show', $purchase->uid) }}" class="btn btn-outline-secondary rounded-2 px-3 btn-sm">
                                 Cancel
                             </a>
                             <button type="submit" class="btn btn-primary rounded-2 px-3 btn-sm">
@@ -972,7 +972,7 @@ $(document).ready(function() {
             placeholder: 'Type to search material...',
             minimumInputLength: 1,
             ajax: {
-                url: '{{ route("project-purchases.materials.search") }}',
+                url: '{{ route("indo-purchases.materials.search") }}',
                 dataType: 'json',
                 delay: 300,
                 data: params => ({ q: params.term }),
@@ -1049,7 +1049,7 @@ $(document).ready(function() {
         }).then((result) => {
             if (result.isConfirmed) {
                 const form = $('#deleteItemForm');
-                form.attr('action', '/project-purchases/' + itemUid);
+                form.attr('action', '/indo-purchases/' + itemUid);
                 form.submit();
             }
         });

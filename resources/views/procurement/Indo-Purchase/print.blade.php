@@ -1,4 +1,4 @@
-{{-- resources/views/procurement/Project-Purchase/print.blade.php --}}
+{{-- resources/views/procurement/Indo-Purchase/print.blade.php --}}
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -334,7 +334,7 @@
             <button onclick="window.print()" style="padding: 10px 20px; background: #4f46e5; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px;">
                 <i class="fas fa-print"></i> Print
             </button>
-            <a href="{{ route('project-purchases.show', $purchase->uid) }}" style="padding: 10px 20px; background: #6c757d; color: white; text-decoration: none; border-radius: 4px;">
+            <a href="{{ route('indo-purchases.show', $purchase->uid) }}" style="padding: 10px 20px; background: #6c757d; color: white; text-decoration: none; border-radius: 4px;">
                 <i class="fas fa-arrow-left"></i> Kembali
             </a>
         </div>

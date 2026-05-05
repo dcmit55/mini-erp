@@ -33,6 +33,7 @@ use App\Http\Controllers\Timing\Mascot\MascotTimingController;
 use App\Http\Controllers\Timing\Mascot\MascotMonitorController;
 use App\Http\Controllers\Timing\TimingMonitorController;
 use App\Http\Controllers\Timing\TimingDetailController;
+use App\Http\Controllers\Timing\LiveWorkstationController;
 use App\Http\Controllers\Finance\FinalProjectSummaryController;
 use App\Http\Controllers\Admin\DepartmentController;
 use App\Http\Controllers\Procurement\SupplierController;
@@ -50,7 +51,7 @@ use App\Http\Controllers\Production\MaterialPlanningController;
 use App\Http\Controllers\Hr\AttendanceController;
 use App\Http\Controllers\Logistic\GoodsMovementController;
 use App\Http\Controllers\Procurement\ShortageItemController;
-use App\Http\Controllers\Procurement\ProjectPurchaseController;
+use App\Http\Controllers\Procurement\IndoPurchaseController;
 use App\Http\Controllers\InternalProjectController;
 use App\Http\Controllers\Finance\DcmCostingController;
 use App\Http\Controllers\Finance\PurchaseApprovalController;
@@ -546,6 +547,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/timing/{id}/live-stats', [TimingDetailController::class, 'liveStats'])->name('timing.detail.live-stats');
 
     // Timing Monitor - Real-time Running Sessions Dashboard (All Departments)
+    Route::get('timing/live-workstation', [LiveWorkstationController::class, 'index'])->name('live-workstation.index');
+
     Route::prefix('timing-monitor')
         ->name('timing-monitor.')
         ->group(function () {
@@ -630,43 +633,43 @@ Route::middleware(['auth'])->group(function () {
         });
 
     // CRUD Routes for Project Purchases
-    Route::prefix('project-purchases')->group(function () {
-        Route::get('/', [ProjectPurchaseController::class, 'index'])->name('project-purchases.index');
-        Route::get('/create', [ProjectPurchaseController::class, 'create'])->name('project-purchases.create');
-        Route::get('/materials/search', [ProjectPurchaseController::class, 'searchMaterials'])->name('project-purchases.materials.search');
-        Route::post('/', [ProjectPurchaseController::class, 'store'])->name('project-purchases.store');
-        Route::get('/{uid}', [ProjectPurchaseController::class, 'show'])->name('project-purchases.show');
-        Route::get('/{uid}/edit', [ProjectPurchaseController::class, 'edit'])->name('project-purchases.edit');
-        Route::put('/{uid}', [ProjectPurchaseController::class, 'update'])->name('project-purchases.update');
-        Route::delete('/{uid}', [ProjectPurchaseController::class, 'destroy'])->name('project-purchases.destroy');
+    Route::prefix('indo-purchases')->group(function () {
+        Route::get('/', [IndoPurchaseController::class, 'index'])->name('indo-purchases.index');
+        Route::get('/create', [IndoPurchaseController::class, 'create'])->name('indo-purchases.create');
+        Route::get('/materials/search', [IndoPurchaseController::class, 'searchMaterials'])->name('indo-purchases.materials.search');
+        Route::post('/', [IndoPurchaseController::class, 'store'])->name('indo-purchases.store');
+        Route::get('/{uid}', [IndoPurchaseController::class, 'show'])->name('indo-purchases.show');
+        Route::get('/{uid}/edit', [IndoPurchaseController::class, 'edit'])->name('indo-purchases.edit');
+        Route::put('/{uid}', [IndoPurchaseController::class, 'update'])->name('indo-purchases.update');
+        Route::delete('/{uid}', [IndoPurchaseController::class, 'destroy'])->name('indo-purchases.destroy');
 
         // Approval Routes (Finance)
-        Route::post('/{uid}/approve', [ProjectPurchaseController::class, 'approve'])->name('project-purchases.approve');
-        Route::post('/{uid}/reject', [ProjectPurchaseController::class, 'reject'])->name('project-purchases.reject');
+        Route::post('/{uid}/approve', [IndoPurchaseController::class, 'approve'])->name('indo-purchases.approve');
+        Route::post('/{uid}/reject', [IndoPurchaseController::class, 'reject'])->name('indo-purchases.reject');
 
         // Deletion Request Routes
-        Route::post('/{uid}/request-deletion', [ProjectPurchaseController::class, 'requestDeletion'])->name('project-purchases.request-deletion');
+        Route::post('/{uid}/request-deletion', [IndoPurchaseController::class, 'requestDeletion'])->name('indo-purchases.request-deletion');
 
         // Update Tracking Route
-        Route::post('/{uid}/update-tracking', [ProjectPurchaseController::class, 'updateTracking'])->name('project-purchases.update-tracking');
+        Route::post('/{uid}/update-tracking', [IndoPurchaseController::class, 'updateTracking'])->name('indo-purchases.update-tracking');
 
         // Item Receipt Routes
-        Route::post('/project-purchases/{uid}/mark-as-received', [ProjectPurchaseController::class, 'markAsReceived'])->name('project-purchases.mark-as-received');
-        Route::post('/{uid}/mark-as-not-matched', [ProjectPurchaseController::class, 'markAsNotMatched'])->name('project-purchases.mark-as-not-matched');
+        Route::post('/indo-purchases/{uid}/mark-as-received', [IndoPurchaseController::class, 'markAsReceived'])->name('indo-purchases.mark-as-received');
+        Route::post('/{uid}/mark-as-not-matched', [IndoPurchaseController::class, 'markAsNotMatched'])->name('indo-purchases.mark-as-not-matched');
 
         // Print & Export
-        Route::get('/{uid}/print', [ProjectPurchaseController::class, 'print'])->name('project-purchases.print');
-        Route::get('/export', [ProjectPurchaseController::class, 'export'])->name('project-purchases.export');
+        Route::get('/{uid}/print', [IndoPurchaseController::class, 'print'])->name('indo-purchases.print');
+        Route::get('/export', [IndoPurchaseController::class, 'export'])->name('indo-purchases.export');
 
         // AJAX Routes
-        Route::get('/material/{id}/price', [ProjectPurchaseController::class, 'getMaterialPrice'])->name('project-purchases.get-material-price');
-        Route::get('/material/all', [ProjectPurchaseController::class, 'getMaterials'])->name('project-purchases.get-materials');
-        Route::get('/po-items/{poNumber}', [ProjectPurchaseController::class, 'getPOItems'])->name('project-purchases.get-po-items');
-        Route::get('/job-order/{id}/details', [ProjectPurchaseController::class, 'getJobOrderDetails'])->name('project-purchases.get-job-order-details');
+        Route::get('/material/{id}/price', [IndoPurchaseController::class, 'getMaterialPrice'])->name('indo-purchases.get-material-price');
+        Route::get('/material/all', [IndoPurchaseController::class, 'getMaterials'])->name('indo-purchases.get-materials');
+        Route::get('/po-items/{poNumber}', [IndoPurchaseController::class, 'getPOItems'])->name('indo-purchases.get-po-items');
+        Route::get('/job-order/{id}/details', [IndoPurchaseController::class, 'getJobOrderDetails'])->name('indo-purchases.get-job-order-details');
     });
 
     Route::resource('internal-projects', InternalProjectController::class)->parameters(['internal-projects' => 'internalProject']);
-    Route::get('project-purchases/internal-project/{id}', [ProjectPurchaseController::class, 'getInternalProjectDetails'])->name('project-purchases.internal-project-details');
+    Route::get('indo-purchases/internal-project/{id}', [IndoPurchaseController::class, 'getInternalProjectDetails'])->name('indo-purchases.internal-project-details');
     Route::post('/internal-projects/quick', [InternalProjectController::class, 'quickStore'])->name('internal_projects.quick');
 
     // DCM Costings Routes

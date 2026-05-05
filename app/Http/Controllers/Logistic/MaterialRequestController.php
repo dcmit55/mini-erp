@@ -11,7 +11,7 @@ use App\Models\Admin\Department;
 use App\Models\Logistic\Unit;
 use App\Models\InternalProject;
 use App\Models\Lark\LarkStagingInventory;
-use App\Models\Procurement\ProjectPurchase;
+use App\Models\Procurement\IndoPurchase;
 use Illuminate\Http\Request;
 use App\Events\MaterialRequestUpdated;
 use App\Models\Admin\User;
@@ -382,7 +382,7 @@ class MaterialRequestController extends Controller
 
         // 2) Indo Purchases — receipt pending, project-scoped (PO can be pending or approved)
         $joId = $request->job_order_id;
-        $indoItems = ProjectPurchase::with(['unit', 'material:id,name,material_code,unit'])
+        $indoItems = IndoPurchase::with(['unit', 'material:id,name,material_code,unit'])
             ->where(function ($q) use ($projectId, $joId) {
                 // Match by project OR by specific JO (items linked directly to the JO)
                 $q->where('project_id', $projectId)->orWhere('job_order_id', $joId);
@@ -514,7 +514,7 @@ class MaterialRequestController extends Controller
 
                 if (str_starts_with($rawId, 'ip_')) {
                     $indoPurchaseId = (int) substr($rawId, 3);
-                    $purchase = ProjectPurchase::where('id', $indoPurchaseId)->lockForUpdate()->first();
+                    $purchase = IndoPurchase::where('id', $indoPurchaseId)->lockForUpdate()->first();
                     if (!$purchase) {
                         DB::rollBack();
                         return back()
@@ -884,7 +884,7 @@ class MaterialRequestController extends Controller
                 $rawId = $request->staging_inventory_id;
                 if (str_starts_with($rawId, 'ip_')) {
                     $newIndoPurchaseId = (int) substr($rawId, 3);
-                    if (!ProjectPurchase::where('id', $newIndoPurchaseId)->exists()) {
+                    if (!IndoPurchase::where('id', $newIndoPurchaseId)->exists()) {
                         DB::rollBack();
                         return back()
                             ->withInput()
@@ -1092,7 +1092,7 @@ class MaterialRequestController extends Controller
         if ($request->status === 'approved' && $materialRequest->inventory_source === 'incoming') {
             if ($materialRequest->indo_purchase_id) {
                 // Indo Purchase: PO must be approved, receipt received/done, and material must be in inventory batch
-                $purchase = ProjectPurchase::find($materialRequest->indo_purchase_id);
+                $purchase = IndoPurchase::find($materialRequest->indo_purchase_id);
                 if (!$purchase) {
                     return response()->json(['success' => false, 'message' => 'Data PO tidak ditemukan.'], 422);
                 }

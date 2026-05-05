@@ -1,4 +1,4 @@
-{{-- resources/views/procurement/Project-Purchase/create.blade.php --}}
+{{-- resources/views/procurement/Indo-Purchase/create.blade.php --}}
 @extends('layouts.app')
 
 @section('title', 'Create Purchase Order')
@@ -248,7 +248,7 @@
                 <!-- Header -->
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
-                        <a href="{{ route('project-purchases.index') }}"
+                        <a href="{{ route('indo-purchases.index') }}"
                             class="btn btn-outline-secondary btn-sm rounded-2 px-3">
                             <i class="fas fa-arrow-left me-1"></i>Back
                         </a>
@@ -282,7 +282,7 @@
                             </div>
                         @endif
 
-                        <form action="{{ route('project-purchases.store') }}" method="POST" id="purchaseForm">
+                        <form action="{{ route('indo-purchases.store') }}" method="POST" id="purchaseForm">
                             @csrf
 
                             <!-- Basic Information -->
@@ -657,7 +657,7 @@
 
                             <!-- Action Buttons -->
                             <div class="d-flex gap-2 pt-3 border-top">
-                                <a href="{{ route('project-purchases.index') }}"
+                                <a href="{{ route('indo-purchases.index') }}"
                                     class="btn btn-outline-secondary rounded-2 px-3 btn-sm">
                                     Cancel
                                 </a>
@@ -880,7 +880,7 @@
                     placeholder: 'Type to search material...',
                     minimumInputLength: 1,
                     ajax: {
-                        url: '{{ route('project-purchases.materials.search') }}',
+                        url: '{{ route('indo-purchases.materials.search') }}',
                         dataType: 'json',
                         delay: 300,
                         data: params => ({

@@ -24,7 +24,7 @@
                     </a>
                     @endcan
                     @if($costing->purchase)
-                    <a href="{{ route('project-purchases.show', $costing->purchase->uid) }}"
+                    <a href="{{ route('indo-purchases.show', $costing->purchase->uid) }}"
                        target="_blank"
                        class="btn btn-outline-info btn-sm rounded-2 px-3">
                         <i class="fas fa-external-link-alt me-1"></i>View Purchase

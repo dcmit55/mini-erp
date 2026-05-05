@@ -2,7 +2,7 @@
 
 namespace App\Models\Finance;
 
-use App\Models\Procurement\ProjectPurchase;
+use App\Models\Procurement\IndoPurchase;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -85,11 +85,11 @@ class DcmCosting extends Model implements AuditableContract
     }
 
     /**
-     * Relationship dengan ProjectPurchase
+     * Relationship dengan IndoPurchase
      */
     public function purchase(): BelongsTo
     {
-        return $this->belongsTo(ProjectPurchase::class, 'purchase_id');
+        return $this->belongsTo(IndoPurchase::class, 'purchase_id');
     }
 
     /**

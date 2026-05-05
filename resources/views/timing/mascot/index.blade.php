@@ -8,8 +8,11 @@
                 <h2 class="mb-0 fw-semibold" style="font-size:1.4rem;">Mascot Timing</h2>
             </div>
             <div class="ms-lg-auto d-flex gap-2">
+                <a href="{{ route('live-workstation.index', ['type' => 'mascot']) }}" class="btn btn-outline-success btn-sm">
+                    <i class="fas fa-desktop me-1"></i> Live Workstation
+                </a>
                 <a href="{{ route('mascot-timing.monitor') }}" class="btn btn-primary btn-sm">
-                    <i class="fas fa-tv me-1"></i> Mascot Monitor
+                    <i class="fas fa-tv me-1"></i> Monitor
                 </a>
                 @if (auth()->user()->isTimingPlanningAdmin())
                     <a href="{{ route('timing-planner.index') }}" class="btn btn-success btn-sm">
