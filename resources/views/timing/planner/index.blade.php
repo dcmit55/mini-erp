@@ -64,24 +64,25 @@
                     terpilih</small>
             </div>
             <div class="ms-lg-auto d-flex align-items-center gap-2">
-                <label class="mb-0 text-muted small fw-semibold" for="planning-date-global">
+                {{-- <label class="mb-0 text-muted small fw-semibold" for="planning-date-global">
                     <i class="bi bi-calendar3 me-1"></i>Tanggal Plan:
-                </label>
-                <input type="date" id="planning-date-global" class="form-control form-control-sm" style="width:150px;"
+                </label> --}}
+                {{-- <input type="date" id="planning-date-global" class="form-control form-control-sm" style="width:150px;"
                     value="{{ $planningDate }}"
-                    onchange="window.location.href='{{ route('timing-planner.index') }}?date='+this.value">
+                    onchange="window.location.href='{{ route('timing-planner.index') }}?date='+this.value"> --}}
+
                 <a href="{{ route('mascot-timing.index') }}" class="btn btn-outline-warning btn-sm">
                     <i class="bi bi-stopwatch me-1"></i> Mascot Timing
                 </a>
             </div>
         </div>
 
-        <div class="alert alert-info border-0 py-2 mb-4">
+        {{-- <div class="alert alert-info border-0 py-2 mb-4">
             <i class="bi bi-lightbulb-fill me-2"></i>
             <strong>Cara pakai:</strong> Pilih tanggal di kanan atas → Klik JO → input karyawan → <strong>Simpan
                 Plan</strong>.
             Di Mascot/Costume Timing, plan tanggal hari ini otomatis dipakai (fallback ke plan lama jika belum ada).
-        </div>
+        </div> --}}
 
         <div class="row g-4">
 
@@ -576,11 +577,11 @@
 
                 // Re-render HOT after modal is fully visible (Bootstrap transition ~300ms)
                 document.getElementById('planEditorModal').addEventListener('shown.bs.modal',
-            function onShown() {
-                    if (hotInstance) hotInstance.render();
-                    document.getElementById('planEditorModal').removeEventListener('shown.bs.modal',
-                        onShown);
-                });
+                    function onShown() {
+                        if (hotInstance) hotInstance.render();
+                        document.getElementById('planEditorModal').removeEventListener('shown.bs.modal',
+                            onShown);
+                    });
             });
 
             // Clear active card highlight when modal is closed

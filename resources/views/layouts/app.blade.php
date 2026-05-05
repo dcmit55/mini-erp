@@ -737,12 +737,12 @@
                                                 </li>
                                                 {{-- Karyawan --}}
                                                 @can('hr.employees.view')
-                                                <li>
-                                                    <a class="dropdown-item {{ request()->is('employees*') ? 'active' : '' }}"
-                                                        href="{{ route('employees.index') }}">
-                                                        <i class="fas fa-user-tie me-2"></i>Employees
-                                                    </a>
-                                                </li>
+                                                    <li>
+                                                        <a class="dropdown-item {{ request()->is('employees*') ? 'active' : '' }}"
+                                                            href="{{ route('employees.index') }}">
+                                                            <i class="fas fa-user-tie me-2"></i>Employees
+                                                        </a>
+                                                    </li>
                                                 @endcan
                                                 @can('hr.attendance.view')
                                                     <li>
@@ -810,15 +810,15 @@
 
                                                 {{-- Warning Letter (SP1–SP4) --}}
                                                 @can('hr.warning-letter.view')
-                                                <li>
-                                                    <hr class="dropdown-divider">
-                                                </li>
-                                                <li>
-                                                    <a class="dropdown-item {{ request()->routeIs('warning-letters.*') || request()->routeIs('warning-batches.*') ? 'active' : '' }}"
-                                                        href="{{ route('warning-letters.dashboard') }}">
-                                                        <i class="bi bi-envelope-exclamation me-2"></i>Warning Letter
-                                                    </a>
-                                                </li>
+                                                    <li>
+                                                        <hr class="dropdown-divider">
+                                                    </li>
+                                                    <li>
+                                                        <a class="dropdown-item {{ request()->routeIs('warning-letters.*') || request()->routeIs('warning-batches.*') ? 'active' : '' }}"
+                                                            href="{{ route('warning-letters.dashboard') }}">
+                                                            <i class="bi bi-envelope-exclamation me-2"></i>Warning Letter
+                                                        </a>
+                                                    </li>
                                                 @endcan
 
                                                 @can('hr.attendance.view')
