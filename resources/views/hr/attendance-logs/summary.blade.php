@@ -24,67 +24,6 @@
                 @endcan
             </div>
 
-            {{-- Month Navigator --}}
-            @php
-                $prevMonth = $startOfMonth->copy()->subMonth();
-                $nextMonth = $startOfMonth->copy()->addMonth();
-                $navParams = $departmentId ? ['department_id' => $departmentId] : [];
-            @endphp
-            <div class="d-flex align-items-center gap-2 mb-2">
-                <a href="{{ route('attendance-logs.summary', array_merge($navParams, ['month' => $prevMonth->month, 'year' => $prevMonth->year])) }}"
-                   class="btn btn-sm btn-outline-secondary px-2 px-sm-3">
-                    <i class="fas fa-chevron-left"></i>
-                </a>
-                <span class="fw-semibold text-center month-label">
-                    {{ $startOfMonth->isoFormat('MMMM YYYY') }}
-                </span>
-                <a href="{{ route('attendance-logs.summary', array_merge($navParams, ['month' => $nextMonth->month, 'year' => $nextMonth->year])) }}"
-                   class="btn btn-sm btn-outline-secondary px-2 px-sm-3">
-                    <i class="fas fa-chevron-right"></i>
-                </a>
-                <a href="{{ route('session-shifts.live-monitor', ['from' => 'summary']) }}" class="btn btn-sm btn-outline-success px-2 px-sm-3">
-                    <i class="fas fa-satellite-dish me-sm-1"></i><span class="d-none d-sm-inline">Live Monitor</span>
-                </a>
-                <a href="{{ route('attendance-logs.summary.export', array_merge(['month' => $month, 'year' => $year], $departmentId ? ['department_id' => $departmentId] : [])) }}"
-                   class="btn btn-sm btn-outline-success px-2 px-sm-3">
-                    <i class="fas fa-file-excel me-sm-1"></i><span class="d-none d-sm-inline">Export Excel</span>
-                </a>
-                <div style="min-width:180px;">
-                    <input type="text" id="empSearchSummary" class="form-select form-select-sm"
-                           placeholder="Search employee..." autocomplete="off">
-                </div>
-                <div class="ms-auto">
-                    <select id="deptFilter" class="form-select form-select-sm dept-filter-select">
-                        <option value="">All Dept</option>
-                        @foreach($departments as $dept)
-                            <option value="{{ $dept->id }}" {{ (string)$departmentId === (string)$dept->id ? 'selected' : '' }}>
-                                {{ $dept->name }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-            </div>
-
-            {{-- Legend (horizontal scroll on mobile) --}}
-            <div class="legend-scroll-wrap mb-2 mb-md-3">
-                <div class="d-flex gap-2 align-items-center legend-inner">
-                    <span class="legend-box" style="background:#86efac;border:1.5px solid #16a34a;"></span><small class="legend-text">Present</small>
-                    <span class="legend-box" style="background:#fde047;border:1.5px solid #ca8a04;"></span><small class="legend-text">Late</small>
-                    <span class="legend-box" style="background:#fb923c;border:1.5px solid #ea580c;"></span><small class="legend-text">Less Hours</small>
-                    <span class="legend-box" style="background:#f87171;border:1.5px solid #dc2626;"></span><small class="legend-text">Alpha</small>
-                    <span class="legend-box" style="background:#93c5fd;border:1.5px solid #2563eb;"></span><small class="legend-text">Ann.Leave</small>
-                    <span class="legend-box" style="background:#67e8f9;border:1.5px solid #0891b2;"></span><small class="legend-text">Sick</small>
-                    <span class="legend-box" style="background:#a78bfa;border:1.5px solid #7c3aed;"></span><small class="legend-text">Oth.Leave</small>
-                    <span class="legend-box" style="background:#a5b4fc;border:1.5px solid #4f46e5;"></span><small class="legend-text">Unpaid</small>
-                    <span class="legend-box" style="background:#94a3b8;border:1.5px solid #475569;"></span><small class="legend-text">Sun</small>
-                    <span class="legend-box" style="background:#fda4af;border:1.5px solid #e11d48;"></span><small class="legend-text">Nat.Hol</small>
-                    <span class="legend-box" style="background:#5eead4;border:1.5px solid #0d9488;"></span><small class="legend-text">Co.Hol</small>
-                    <span class="legend-box" style="background:#f9a8d4;border:1.5px solid #db2777;"></span><small class="legend-text">Hol-Ded</small>
-                    <span class="legend-box" style="background:#fcd34d;border:1.5px solid #d97706;"></span><small class="legend-text">Hol-Unp</small>
-                    <span class="legend-box" style="background:#f1f5f9;border:1.5px solid #cbd5e1;"></span><small class="legend-text">No Data</small>
-                </div>
-            </div>
-
             {{-- Capacity & Status Cards --}}
             <div class="row g-2 mb-3">
                 {{-- Production Capacity --}}
@@ -190,6 +129,67 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            {{-- Month Navigator + Controls --}}
+            @php
+                $prevMonth = $startOfMonth->copy()->subMonth();
+                $nextMonth = $startOfMonth->copy()->addMonth();
+                $navParams = $departmentId ? ['department_id' => $departmentId] : [];
+            @endphp
+            <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                <a href="{{ route('attendance-logs.summary', array_merge($navParams, ['month' => $prevMonth->month, 'year' => $prevMonth->year])) }}"
+                   class="btn btn-sm btn-outline-secondary px-2 px-sm-3">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+                <span class="fw-semibold text-center month-label">
+                    {{ $startOfMonth->isoFormat('MMMM YYYY') }}
+                </span>
+                <a href="{{ route('attendance-logs.summary', array_merge($navParams, ['month' => $nextMonth->month, 'year' => $nextMonth->year])) }}"
+                   class="btn btn-sm btn-outline-secondary px-2 px-sm-3">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+                <a href="{{ route('session-shifts.live-monitor', ['from' => 'summary']) }}" class="btn btn-sm btn-outline-success px-2 px-sm-3">
+                    <i class="fas fa-satellite-dish me-sm-1"></i><span class="d-none d-sm-inline">Attendance Live</span>
+                </a>
+                <a href="{{ route('attendance-logs.summary.export', array_merge(['month' => $month, 'year' => $year], $departmentId ? ['department_id' => $departmentId] : [])) }}"
+                   class="btn btn-sm btn-outline-success px-2 px-sm-3">
+                    <i class="fas fa-file-excel me-sm-1"></i><span class="d-none d-sm-inline">Export Data</span>
+                </a>
+                <div style="min-width:180px;">
+                    <input type="text" id="empSearchSummary" class="form-select form-select-sm"
+                           placeholder="Search employee..." autocomplete="off">
+                </div>
+                <div class="ms-auto">
+                    <select id="deptFilter" class="form-select form-select-sm dept-filter-select">
+                        <option value="">All Dept</option>
+                        @foreach($departments as $dept)
+                            <option value="{{ $dept->id }}" {{ (string)$departmentId === (string)$dept->id ? 'selected' : '' }}>
+                                {{ $dept->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+
+            {{-- Legend (horizontal scroll on mobile) --}}
+            <div class="legend-scroll-wrap mb-2 mb-md-3">
+                <div class="d-flex gap-2 align-items-center legend-inner">
+                    <span class="legend-box" style="background:#86efac;border:1.5px solid #16a34a;"></span><small class="legend-text">Present</small>
+                    <span class="legend-box" style="background:#fde047;border:1.5px solid #ca8a04;"></span><small class="legend-text">Late</small>
+                    <span class="legend-box" style="background:#fb923c;border:1.5px solid #ea580c;"></span><small class="legend-text">Less Hours</small>
+                    <span class="legend-box" style="background:#f87171;border:1.5px solid #dc2626;"></span><small class="legend-text">Alpha</small>
+                    <span class="legend-box" style="background:#93c5fd;border:1.5px solid #2563eb;"></span><small class="legend-text">Ann.Leave</small>
+                    <span class="legend-box" style="background:#67e8f9;border:1.5px solid #0891b2;"></span><small class="legend-text">Sick</small>
+                    <span class="legend-box" style="background:#a78bfa;border:1.5px solid #7c3aed;"></span><small class="legend-text">Oth.Leave</small>
+                    <span class="legend-box" style="background:#a5b4fc;border:1.5px solid #4f46e5;"></span><small class="legend-text">Unpaid</small>
+                    <span class="legend-box" style="background:#94a3b8;border:1.5px solid #475569;"></span><small class="legend-text">Sun</small>
+                    <span class="legend-box" style="background:#fda4af;border:1.5px solid #e11d48;"></span><small class="legend-text">Nat.Hol</small>
+                    <span class="legend-box" style="background:#5eead4;border:1.5px solid #0d9488;"></span><small class="legend-text">Co.Hol</small>
+                    <span class="legend-box" style="background:#f9a8d4;border:1.5px solid #db2777;"></span><small class="legend-text">Hol-Ded</small>
+                    <span class="legend-box" style="background:#fcd34d;border:1.5px solid #d97706;"></span><small class="legend-text">Hol-Unp</small>
+                    <span class="legend-box" style="background:#f1f5f9;border:1.5px solid #cbd5e1;"></span><small class="legend-text">No Data</small>
                 </div>
             </div>
 
