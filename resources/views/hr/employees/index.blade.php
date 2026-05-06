@@ -71,7 +71,7 @@
             <i class="bi bi-clock-history flex-shrink-0"></i>
             <div>
                 <strong>{{ $expiringCount }} contract(s)</strong> expiring within 30 days.
-                <span class="text-muted d-none d-md-inline">Status akan otomatis berubah ke <em>Pending Contract</em> saat kontrak habis — HR perlu memperpanjang atau terminate.</span>
+                <span class="text-muted d-none d-md-inline">Status will automatically change to <em>Pending Contract</em> on expiry — HR must extend or set inactive.</span>
             </div>
             <button type="button" class="btn-close btn-sm ms-auto" data-bs-dismiss="alert"></button>
         </div>
@@ -224,7 +224,7 @@
                                     @if($employee->status === 'pending_contract')
                                         <span class="badge rounded-pill"
                                               style="background:rgba(255,193,7,.2);color:#92400e;font-size:.58rem;"
-                                              title="Kontrak habis — HR perlu update">
+                                              title="Contract expired — HR action required">
                                             <i class="fas fa-clock me-1"></i>Pending
                                         </span>
                                     @endif
@@ -413,19 +413,19 @@
                 @csrf
                 <div class="modal-body pb-2">
                     <p class="text-muted small mb-3">
-                        Kontrak <strong id="resolveEmpName"></strong> telah habis.
-                        Pilih tindakan selanjutnya:
+                        Contract for <strong id="resolveEmpName"></strong> has expired.
+                        Choose the next action:
                     </p>
 
                     {{-- Action choice --}}
                     <div class="d-flex gap-2 mb-3">
                         <button type="button" class="btn btn-outline-success flex-grow-1 resolve-action-btn"
                                 data-action="extend" style="font-size:.85rem;">
-                            <i class="fas fa-calendar-plus me-1"></i>Perpanjang Kontrak
+                            <i class="fas fa-calendar-plus me-1"></i>Extend Contract
                         </button>
                         <button type="button" class="btn btn-outline-danger flex-grow-1 resolve-action-btn"
                                 data-action="terminate" style="font-size:.85rem;">
-                            <i class="fas fa-times-circle me-1"></i>Non-aktifkan
+                            <i class="fas fa-times-circle me-1"></i>Set Inactive
                         </button>
                     </div>
 
@@ -434,9 +434,9 @@
                     {{-- Extend section --}}
                     <div id="extendSection" class="d-none">
                         <div class="alert alert-success py-2 small border-0 rounded-2 mb-2">
-                            <i class="fas fa-info-circle me-1"></i>Status akan kembali <strong>Active</strong> setelah tanggal kontrak baru diisi.
+                            <i class="fas fa-info-circle me-1"></i>Status will be set back to <strong>Active</strong> once the new contract end date is saved.
                         </div>
-                        <label class="form-label small fw-semibold">Contract End Date Baru <span class="text-danger">*</span></label>
+                        <label class="form-label small fw-semibold">New Contract End Date <span class="text-danger">*</span></label>
                         <input type="date" name="contract_end_date" id="resolveContractDate"
                                class="form-control form-control-sm"
                                min="{{ now()->addDay()->format('Y-m-d') }}">
@@ -445,14 +445,14 @@
                     {{-- Terminate section --}}
                     <div id="terminateSection" class="d-none">
                         <div class="alert alert-danger py-2 small border-0 rounded-2">
-                            <i class="fas fa-exclamation-triangle me-1"></i>Status akan berubah ke <strong>Inactive</strong>. Karyawan tidak akan muncul di attendance.
+                            <i class="fas fa-exclamation-triangle me-1"></i>Status will be changed to <strong>Inactive</strong>. Employee will no longer appear in attendance.
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer border-top py-2">
-                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-sm btn-warning d-none" id="resolveSubmitBtn">
-                        <i class="fas fa-check me-1"></i>Konfirmasi
+                        <i class="fas fa-check me-1"></i>Confirm
                     </button>
                 </div>
             </form>

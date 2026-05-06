@@ -99,9 +99,9 @@
                             </div>
                             <div class="fw-bold text-primary" style="font-size:1.4rem; line-height:1.1;">{{ $capacityStats['capacityPct'] }}%</div>
                             <div class="text-muted mt-1" style="font-size:0.72rem;">
-                                {{ number_format($capacityStats['actualHours'], 1) }} / {{ number_format($capacityStats['expectedHours'], 1) }} jam
+                                {{ number_format($capacityStats['actualHours'], 1) }} / {{ number_format($capacityStats['expectedHours'], 1) }} hrs
                             </div>
-                            <div class="text-muted" style="font-size:0.70rem;">{{ $capacityStats['productionCount'] ?? '?' }} orang produksi</div>
+                            <div class="text-muted" style="font-size:0.70rem;">{{ $capacityStats['productionCount'] ?? '?' }} production employees</div>
                         </div>
                     </div>
                 </div>
@@ -117,9 +117,9 @@
                             </div>
                             <div class="fw-bold text-warning" style="font-size:1.4rem; line-height:1.1;">{{ $leaderCapacityStats['leaderCapacityPct'] }}%</div>
                             <div class="text-muted mt-1" style="font-size:0.72rem;">
-                                {{ number_format($leaderCapacityStats['leaderActualHours'], 1) }} / {{ number_format($leaderCapacityStats['leaderExpectedHours'], 1) }} jam
+                                {{ number_format($leaderCapacityStats['leaderActualHours'], 1) }} / {{ number_format($leaderCapacityStats['leaderExpectedHours'], 1) }} hrs
                             </div>
-                            <div class="text-muted" style="font-size:0.70rem;">{{ $leaderCapacityStats['leaderCount'] }} orang leader</div>
+                            <div class="text-muted" style="font-size:0.70rem;">{{ $leaderCapacityStats['leaderCount'] }} leader employees</div>
                         </div>
                     </div>
                 </div>
@@ -135,7 +135,7 @@
                             </div>
                             <div class="fw-bold text-success" style="font-size:1.4rem; line-height:1.1;">{{ $capacityStats['presentPct'] }}%</div>
                             <div class="text-muted mt-1" style="font-size:0.72rem;">
-                                {{ $capacityStats['presentCount'] }} / {{ $capacityStats['totalEmployees'] }} orang
+                                {{ $capacityStats['presentCount'] }} / {{ $capacityStats['totalEmployees'] }} employees
                             </div>
                         </div>
                     </div>
@@ -152,7 +152,24 @@
                             </div>
                             <div class="fw-bold text-danger" style="font-size:1.4rem; line-height:1.1;">{{ $capacityStats['alphaPct'] }}%</div>
                             <div class="text-muted mt-1" style="font-size:0.72rem;">
-                                {{ $capacityStats['alphaCount'] }} / {{ $capacityStats['totalEmployees'] }} orang
+                                {{ $capacityStats['alphaCount'] }} / {{ $capacityStats['totalEmployees'] }} employees
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {{-- Sick --}}
+                <div class="col-6 col-md col-lg">
+                    <div class="card border-0 shadow-sm rounded-3 h-100">
+                        <div class="card-body p-3">
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="bg-warning bg-opacity-10 rounded-2 p-2 me-2 flex-shrink-0">
+                                    <i class="fas fa-notes-medical text-warning" style="font-size:0.9rem;"></i>
+                                </div>
+                                <span class="text-muted" style="font-size:0.78rem;">Sick</span>
+                            </div>
+                            <div class="fw-bold text-warning" style="font-size:1.4rem; line-height:1.1;">{{ $capacityStats['mcPct'] }}%</div>
+                            <div class="text-muted mt-1" style="font-size:0.72rem;">
+                                {{ $capacityStats['mcCount'] }} / {{ $capacityStats['totalEmployees'] }} employees
                             </div>
                         </div>
                     </div>
@@ -169,24 +186,7 @@
                             </div>
                             <div class="fw-bold text-info" style="font-size:1.4rem; line-height:1.1;">{{ $capacityStats['leavePct'] }}%</div>
                             <div class="text-muted mt-1" style="font-size:0.72rem;">
-                                {{ $capacityStats['leaveCount'] }} / {{ $capacityStats['totalEmployees'] }} orang
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                {{-- MC --}}
-                <div class="col-6 col-md col-lg">
-                    <div class="card border-0 shadow-sm rounded-3 h-100">
-                        <div class="card-body p-3">
-                            <div class="d-flex align-items-center mb-2">
-                                <div class="bg-warning bg-opacity-10 rounded-2 p-2 me-2 flex-shrink-0">
-                                    <i class="fas fa-notes-medical text-warning" style="font-size:0.9rem;"></i>
-                                </div>
-                                <span class="text-muted" style="font-size:0.78rem;">MC</span>
-                            </div>
-                            <div class="fw-bold text-warning" style="font-size:1.4rem; line-height:1.1;">{{ $capacityStats['mcPct'] }}%</div>
-                            <div class="text-muted mt-1" style="font-size:0.72rem;">
-                                {{ $capacityStats['mcCount'] }} / {{ $capacityStats['totalEmployees'] }} orang
+                                {{ $capacityStats['leaveCount'] }} / {{ $capacityStats['totalEmployees'] }} employees
                             </div>
                         </div>
                     </div>
@@ -228,6 +228,7 @@
                                     <th class="text-center summary-header" style="min-width:46px;background:#86efac;color:#14532d;">P</th>
                                     <th class="text-center summary-header" style="min-width:46px;background:#fde047;color:#713f12;">L</th>
                                     <th class="text-center summary-header" style="min-width:46px;background:#f87171;color:#7f1d1d;">A</th>
+                                    <th class="text-center summary-header" style="min-width:46px;background:#67e8f9;color:#164e63;">Sick</th>
                                     <th class="text-center summary-header" style="min-width:46px;background:#93c5fd;color:#1e3a8a;">Cuti</th>
                                 </tr>
                                 <tr>
@@ -243,6 +244,7 @@
                                     <th class="text-center" style="font-size:0.65rem;background:#86efac;color:#14532d;">Present</th>
                                     <th class="text-center" style="font-size:0.65rem;background:#fde047;color:#713f12;">Late</th>
                                     <th class="text-center" style="font-size:0.65rem;background:#f87171;color:#7f1d1d;">Alpha</th>
+                                    <th class="text-center" style="font-size:0.65rem;background:#67e8f9;color:#164e63;">Sick</th>
                                     <th class="text-center" style="font-size:0.65rem;background:#93c5fd;color:#1e3a8a;">Leave</th>
                                 </tr>
                             </thead>
@@ -325,7 +327,8 @@
                                         <td class="text-center fw-semibold count-present">{{ $s['present'] + $s['late'] }}</td>
                                         <td class="text-center fw-semibold count-late">{{ $s['late'] }}</td>
                                         <td class="text-center fw-semibold count-alpha">{{ $s['alpha'] }}</td>
-                                        <td class="text-center fw-semibold count-leave">{{ $s['annual'] + $s['sick'] + $s['leave_other'] }}</td>
+                                        <td class="text-center fw-semibold count-sick">{{ $s['sick'] }}</td>
+                                        <td class="text-center fw-semibold count-leave">{{ $s['annual'] + $s['leave_other'] }}</td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -799,6 +802,17 @@
 @push('scripts')
 <script>
 $(document).ready(function () {
+
+    // Sticky second header row: offset top by first row's rendered height so both rows stack correctly
+    (function () {
+        var firstRow = document.querySelector('.summary-table thead tr:first-child');
+        if (firstRow) {
+            var h = firstRow.offsetHeight;
+            document.querySelectorAll('.summary-table thead tr:nth-child(2) th').forEach(function (th) {
+                th.style.top = h + 'px';
+            });
+        }
+    })();
 
     // Employee search
     document.getElementById('empSearchSummary').addEventListener('input', function () {

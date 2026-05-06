@@ -649,7 +649,7 @@ class EmployeeController extends Controller
                 'contract_end_date' => $request->contract_end_date,
                 'notes'             => trim(($employee->notes ?? '') . "\n" . $note),
             ]);
-            return redirect()->back()->with('success', "Contract diperpanjang untuk {$employee->name}. Status kembali Active.");
+            return redirect()->back()->with('success', "Contract extended for {$employee->name}. Status is now Active.");
         }
 
         $note = "[HR Action] Employment set to inactive by " . auth()->user()->name . " on " . now()->format('Y-m-d');
@@ -657,7 +657,7 @@ class EmployeeController extends Controller
             'status' => 'inactive',
             'notes'  => trim(($employee->notes ?? '') . "\n" . $note),
         ]);
-        return redirect()->back()->with('success', "{$employee->name} telah ditandai sebagai Inactive.");
+        return redirect()->back()->with('success', "{$employee->name} has been set as Inactive.");
     }
 
     public function destroy(Employee $employee)
