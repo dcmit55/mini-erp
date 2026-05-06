@@ -166,25 +166,30 @@ class AttendanceSummaryController extends Controller
             }
         }
 
-        $presentCount = count($presentIds);
-        $alphaCount   = count($alphaIds);
-        $mcCount      = count($mcIds);
-        $leaveCount   = count($leaveIds);
-        $capacityPct  = $expectedHours > 0 ? round(($actualHours / $expectedHours) * 100) : 0;
-        $presentPct   = $totalEmployees > 0 ? round(($presentCount / $totalEmployees) * 100) : 0;
-        $alphaPct     = $totalEmployees > 0 ? round(($alphaCount   / $totalEmployees) * 100) : 0;
-        $mcPct        = $totalEmployees > 0 ? round(($mcCount      / $totalEmployees) * 100) : 0;
-        $leavePct     = $totalEmployees > 0 ? round(($leaveCount   / $totalEmployees) * 100) : 0;
+        $capacityPct = $expectedHours > 0 ? round(($actualHours / $expectedHours) * 100) : 0;
+
+        // All cards: total day-occurrences / expected attendance days
+        $totalExpectedAttendance = $workingDays * $totalEmployees;
+
+        $totalPresentDays = array_sum(array_map(fn($s) => $s['present'] + $s['late'], $summary));
+        $totalAlphaDays   = array_sum(array_column($summary, 'alpha'));
+        $totalSickDays    = array_sum(array_column($summary, 'sick'));
+        $totalLeaveDays   = array_sum(array_map(fn($s) => $s['annual'] + $s['leave_other'], $summary));
+
+        $presentDaysPct = $totalExpectedAttendance > 0 ? round(($totalPresentDays / $totalExpectedAttendance) * 100) : 0;
+        $alphaDaysPct   = $totalExpectedAttendance > 0 ? round(($totalAlphaDays   / $totalExpectedAttendance) * 100) : 0;
+        $sickDaysPct    = $totalExpectedAttendance > 0 ? round(($totalSickDays    / $totalExpectedAttendance) * 100) : 0;
+        $leaveDaysPct   = $totalExpectedAttendance > 0 ? round(($totalLeaveDays   / $totalExpectedAttendance) * 100) : 0;
 
         $productionCount = count($productionEmployeeIds);
 
         $capacityStats = compact(
             'capacityPct', 'actualHours', 'expectedHours',
-            'presentPct', 'presentCount',
-            'alphaPct',   'alphaCount',
-            'mcPct',      'mcCount',
-            'leavePct',   'leaveCount',
-            'totalEmployees', 'productionCount'
+            'presentDaysPct', 'totalPresentDays',
+            'alphaDaysPct',   'totalAlphaDays',
+            'sickDaysPct',    'totalSickDays',
+            'leaveDaysPct',   'totalLeaveDays',
+            'totalExpectedAttendance', 'totalEmployees', 'productionCount'
         );
 
         // ── Leader Capacity stats ────────────────────────────────────────────

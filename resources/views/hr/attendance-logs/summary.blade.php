@@ -72,9 +72,9 @@
                                 </div>
                                 <span class="text-muted" style="font-size:0.78rem;">Present</span>
                             </div>
-                            <div class="fw-bold text-success" style="font-size:1.4rem; line-height:1.1;">{{ $capacityStats['presentPct'] }}%</div>
+                            <div class="fw-bold text-success" style="font-size:1.4rem; line-height:1.1;">{{ $capacityStats['presentDaysPct'] }}%</div>
                             <div class="text-muted mt-1" style="font-size:0.72rem;">
-                                {{ $capacityStats['presentCount'] }} / {{ $capacityStats['totalEmployees'] }} employees
+                                {{ $capacityStats['totalPresentDays'] }} / {{ $capacityStats['totalExpectedAttendance'] }} days
                             </div>
                         </div>
                     </div>
@@ -89,9 +89,9 @@
                                 </div>
                                 <span class="text-muted" style="font-size:0.78rem;">Alpha</span>
                             </div>
-                            <div class="fw-bold text-danger" style="font-size:1.4rem; line-height:1.1;">{{ $capacityStats['alphaPct'] }}%</div>
+                            <div class="fw-bold text-danger" style="font-size:1.4rem; line-height:1.1;">{{ $capacityStats['alphaDaysPct'] }}%</div>
                             <div class="text-muted mt-1" style="font-size:0.72rem;">
-                                {{ $capacityStats['alphaCount'] }} / {{ $capacityStats['totalEmployees'] }} employees
+                                {{ $capacityStats['totalAlphaDays'] }} / {{ $capacityStats['totalExpectedAttendance'] }} days
                             </div>
                         </div>
                     </div>
@@ -101,14 +101,14 @@
                     <div class="card border-0 shadow-sm rounded-3 h-100">
                         <div class="card-body p-3">
                             <div class="d-flex align-items-center mb-2">
-                                <div class="bg-warning bg-opacity-10 rounded-2 p-2 me-2 flex-shrink-0">
-                                    <i class="fas fa-notes-medical text-warning" style="font-size:0.9rem;"></i>
+                                <div class="bg-info bg-opacity-10 rounded-2 p-2 me-2 flex-shrink-0" style="background:rgba(14,165,233,.1) !important;">
+                                    <i class="fas fa-notes-medical" style="font-size:0.9rem;color:#0891b2;"></i>
                                 </div>
                                 <span class="text-muted" style="font-size:0.78rem;">Sick</span>
                             </div>
-                            <div class="fw-bold text-warning" style="font-size:1.4rem; line-height:1.1;">{{ $capacityStats['mcPct'] }}%</div>
+                            <div class="fw-bold" style="font-size:1.4rem; line-height:1.1;color:#0891b2;">{{ $capacityStats['sickDaysPct'] }}%</div>
                             <div class="text-muted mt-1" style="font-size:0.72rem;">
-                                {{ $capacityStats['mcCount'] }} / {{ $capacityStats['totalEmployees'] }} employees
+                                {{ $capacityStats['totalSickDays'] }} / {{ $capacityStats['totalExpectedAttendance'] }} days
                             </div>
                         </div>
                     </div>
@@ -118,14 +118,14 @@
                     <div class="card border-0 shadow-sm rounded-3 h-100">
                         <div class="card-body p-3">
                             <div class="d-flex align-items-center mb-2">
-                                <div class="bg-info bg-opacity-10 rounded-2 p-2 me-2 flex-shrink-0">
-                                    <i class="fas fa-calendar-check text-info" style="font-size:0.9rem;"></i>
+                                <div class="bg-primary bg-opacity-10 rounded-2 p-2 me-2 flex-shrink-0">
+                                    <i class="fas fa-calendar-check text-primary" style="font-size:0.9rem;"></i>
                                 </div>
                                 <span class="text-muted" style="font-size:0.78rem;">Leave</span>
                             </div>
-                            <div class="fw-bold text-info" style="font-size:1.4rem; line-height:1.1;">{{ $capacityStats['leavePct'] }}%</div>
+                            <div class="fw-bold text-primary" style="font-size:1.4rem; line-height:1.1;">{{ $capacityStats['leaveDaysPct'] }}%</div>
                             <div class="text-muted mt-1" style="font-size:0.72rem;">
-                                {{ $capacityStats['leaveCount'] }} / {{ $capacityStats['totalEmployees'] }} employees
+                                {{ $capacityStats['totalLeaveDays'] }} / {{ $capacityStats['totalExpectedAttendance'] }} days
                             </div>
                         </div>
                     </div>
