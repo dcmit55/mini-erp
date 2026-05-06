@@ -9,6 +9,9 @@
         {{-- Header --}}
         <div class="position-relative d-flex align-items-center mb-3" style="min-height:44px;">
             <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                <a href="{{ route('hr.management') }}" class="btn btn-sm btn-outline-secondary px-3">
+                    <i class="fas fa-arrow-left me-1"></i><span class="d-none d-sm-inline">Back</span>
+                </a>
                 <span class="fw-semibold text-dark">Leave Requests</span>
             </div>
             <div class="position-absolute start-50 translate-middle-x text-center d-none d-md-block" style="pointer-events:none;">

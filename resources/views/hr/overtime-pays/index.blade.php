@@ -10,6 +10,9 @@
             <div class="position-relative d-flex align-items-center mb-3" style="min-height:52px;">
                 <!-- Left: sub-nav tabs -->
                 <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                    <a href="{{ route('hr.management') }}" class="btn btn-sm btn-outline-secondary px-3">
+                        <i class="fas fa-arrow-left me-1"></i><span class="d-none d-sm-inline">Back</span>
+                    </a>
                     <a href="{{ route('overtime-pays.index') }}" class="btn btn-primary btn-sm rounded-2 px-3">
                         <i class="fas fa-calculator me-1"></i> Overtime Pay
                     </a>

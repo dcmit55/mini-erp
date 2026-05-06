@@ -295,13 +295,13 @@ class WarningLetterController extends Controller
         }
 
         $employee = $warningLetter->employee;
-        if ($employee->status === 'terminated') {
-            return back()->with('error', 'Karyawan sudah berstatus terminated.');
+        if ($employee->status === 'inactive') {
+            return back()->with('error', 'Karyawan sudah berstatus inactive.');
         }
 
-        $employee->update(['status' => 'terminated']);
+        $employee->update(['status' => 'inactive']);
 
-        return back()->with('success', "Karyawan {$employee->name} telah di-terminate berdasarkan {$warningLetter->spLabel}.");
+        return back()->with('success', "Karyawan {$employee->name} telah di-nonaktifkan berdasarkan {$warningLetter->spLabel}.");
     }
 
 }

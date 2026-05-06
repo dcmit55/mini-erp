@@ -102,6 +102,22 @@
             </div>
 
 
+            <!-- Production Employee -->
+            <div class="col-12 mb-3">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch"
+                           id="is_production" name="is_production" value="1"
+                           {{ old('is_production', $employee->is_production ?? false) ? 'checked' : '' }}>
+                    <label class="form-check-label" for="is_production">
+                        <i class="fas fa-industry me-1 text-primary"></i>
+                        <strong>Production Employee</strong>
+                    </label>
+                    <div class="text-muted" style="font-size:0.8rem;">
+                        Tandai karyawan ini sebagai production — digunakan untuk perhitungan Capacity di Attendance Dashboard.
+                    </div>
+                </div>
+            </div>
+
             <!-- Leave Balance -->
             <div class="col-md-6 mb-3">
                 <label for="saldo_cuti" class="form-label">

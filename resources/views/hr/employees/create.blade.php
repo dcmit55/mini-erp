@@ -148,8 +148,6 @@
                                         <option value="inactive" {{ old('status') == 'inactive' ? 'selected' : '' }}>
                                             Inactive
                                         </option>
-                                        <option value="terminated" {{ old('status') == 'terminated' ? 'selected' : '' }}>
-                                            Terminated</option>
                                     </select>
                                     @error('status')
                                         <small class="text-danger d-block">{{ $message }}</small>

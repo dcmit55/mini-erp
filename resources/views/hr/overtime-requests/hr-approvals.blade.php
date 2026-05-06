@@ -10,6 +10,9 @@
             <div class="position-relative d-flex align-items-center mb-3" style="min-height:52px;">
                 <!-- Left: switch buttons -->
                 <div class="d-flex align-items-center gap-3 flex-shrink-0">
+                    <a href="{{ route('hr.management') }}" class="btn btn-sm btn-outline-secondary px-3">
+                        <i class="fas fa-arrow-left me-1"></i><span class="d-none d-sm-inline">Back</span>
+                    </a>
                     <a href="{{ route('overtime-requests.hr-approvals') }}" class="btn btn-primary btn-sm rounded-2 px-3 position-relative me-1">
                         <i class="fas fa-user-check me-1"></i> HR
                         @if($stats['total_pending'] > 0)

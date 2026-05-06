@@ -8,9 +8,14 @@
 
             {{-- Header --}}
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h4 class="mb-0">Session Shifts</h4>
-                    <p class="text-muted mb-0">Manage shift definitions — auto-detected from employee clock-in time</p>
+                <div class="d-flex align-items-center gap-2">
+                    <a href="{{ route('hr.record') }}" class="btn btn-sm btn-outline-secondary px-3">
+                        <i class="fas fa-arrow-left me-1"></i><span class="d-none d-sm-inline">Back</span>
+                    </a>
+                    <div>
+                        <h4 class="mb-0">Session Shifts</h4>
+                        <p class="text-muted mb-0">Manage shift definitions — auto-detected from employee clock-in time</p>
+                    </div>
                 </div>
                 <div class="d-flex gap-2">
                     <a href="{{ route('session-shifts.live-monitor') }}" class="btn btn-sm btn-outline-success">

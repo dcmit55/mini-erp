@@ -67,13 +67,8 @@
 <div class="col-12">
 
     {{-- ── Header ───────────────────────────────────── --}}
-    @php
-        $backUrl = request('from') === 'summary'
-            ? route('attendance-logs.summary')
-            : route('session-shifts.index');
-    @endphp
     <div class="mb-3">
-        <a href="{{ $backUrl }}" class="btn btn-sm btn-outline-secondary px-3">
+        <a href="{{ route('hr.attendance-hub') }}" class="btn btn-sm btn-outline-secondary px-3">
             <i class="fas fa-arrow-left me-1"></i>Back
         </a>
     </div>

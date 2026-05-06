@@ -38,7 +38,7 @@ class AttendanceLogController extends Controller
         $search       = $request->input('search', '');
         $departmentId = $request->input('department_id');
 
-        $employeesQuery = Employee::where('status', 'active')
+        $employeesQuery = Employee::whereIn('status', ['active', 'pending_contract'])
             ->whereDoesntHave('department', fn($q) => $q->where('name', 'Party Point'));
         if (!empty($search)) {
             $employeesQuery->where(function ($q) use ($search) {

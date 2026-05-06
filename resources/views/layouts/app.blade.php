@@ -47,6 +47,25 @@
         <link rel="stylesheet" href="{{ asset('css/custom-app.css') }}">
 
         <style>
+            /* ── Nested Dropdown (HR sub-menus) ────────────── */
+            @media (min-width: 992px) {
+                .dropdown-submenu { position: relative; }
+                .dropdown-submenu > .dropdown-menu {
+                    top: 0; left: 100%; margin-top: -2px;
+                    display: none;
+                }
+                .dropdown-submenu:hover > .dropdown-menu,
+                .dropdown-submenu.open > .dropdown-menu { display: block; }
+            }
+            @media (max-width: 991.98px) {
+                .dropdown-submenu > .dropdown-menu {
+                    display: none;
+                    padding-left: 1rem;
+                }
+                .dropdown-submenu.open > .dropdown-menu { display: block; }
+                .dropdown-submenu > .dropdown-item { font-weight: 600; }
+            }
+
             /* ── Mobile Sidebar ─────────────────────────────── */
             @media (max-width: 991.98px) {
                 #sidebarBackdrop {
@@ -724,141 +743,68 @@
                                                 ->where('approval_1', 'approved')
                                                 ->count();
                                         @endphp
+                                        @php
+                                            $hrNavActive = request()->is('employees*')
+                                                || request()->is('hr/*')
+                                                || request()->routeIs('leave_requests.index')
+                                                || request()->routeIs('attendance-logs.*')
+                                                || request()->routeIs('overtime-requests.*')
+                                                || request()->routeIs('overtime-pays.*')
+                                                || request()->routeIs('fingerspot.*')
+                                                || request()->routeIs('session-shifts.*')
+                                                || request()->routeIs('warning-letters.*')
+                                                || request()->routeIs('warning-batches.*')
+                                                || request()->routeIs('symcore-export.*');
+                                        @endphp
                                         <li class="nav-item dropdown">
-                                            <a class="nav-link dropdown-toggle {{ request()->is('employees*') || request()->routeIs('leave_requests.index') || request()->is('attendance*') || request()->routeIs('employee-work-policies.*') || request()->routeIs('timings.*') || request()->routeIs('attendance-logs.*') || request()->routeIs('overtime-requests.*') || request()->routeIs('overtime-pays.*') || request()->routeIs('fingerspot.*') || request()->routeIs('session-shifts.*') || request()->routeIs('hr.dashboard') || request()->routeIs('warning-letters.*') || request()->routeIs('warning-batches.*') ? 'active' : '' }}"
-                                                href="{{ route('hr.dashboard') }}" id="hrDropdown" role="button"
+                                            <a class="nav-link dropdown-toggle {{ $hrNavActive ? 'active' : '' }}"
+                                                href="#" id="hrDropdown" role="button"
                                                 data-bs-toggle="dropdown" aria-expanded="false">
                                                 <i></i>HR
                                             </a>
                                             <ul class="dropdown-menu" aria-labelledby="hrDropdown">
-                                                {{-- Dashboard --}}
+
+                                                {{-- HR Dashboard --}}
                                                 <li>
                                                     <a class="dropdown-item {{ request()->routeIs('hr.dashboard') ? 'active' : '' }}"
-                                                        href="{{ route('hr.dashboard') }}">
-                                                        <i class="fas fa-chart-pie me-2"></i>Dashboard
+                                                       href="{{ route('hr.dashboard') }}">
+                                                        <i class="fas fa-chart-pie me-2"></i>HR Dashboard
                                                     </a>
                                                 </li>
+                                                <li><hr class="dropdown-divider"></li>
+
+                                                {{-- Record --}}
                                                 <li>
-                                                    <hr class="dropdown-divider">
+                                                    <a class="dropdown-item {{ request()->routeIs('hr.record') || request()->is('employees*') || request()->routeIs('fingerspot.*') || (request()->routeIs('session-shifts.*') && !request()->routeIs('session-shifts.live-monitor')) || request()->routeIs('symcore-export.*') ? 'active' : '' }}"
+                                                       href="{{ route('hr.record') }}">
+                                                        <i class="fas fa-folder-open me-2"></i>Record
+                                                    </a>
                                                 </li>
-                                                {{-- Karyawan --}}
-                                                @can('hr.employees.view')
-                                                    <li>
-                                                        <a class="dropdown-item {{ request()->is('employees*') ? 'active' : '' }}"
-                                                            href="{{ route('employees.index') }}">
-                                                            <i class="fas fa-user-tie me-2"></i>Employees
-                                                        </a>
-                                                    </li>
-                                                @endcan
+
+                                                {{-- Management --}}
                                                 @can('hr.attendance.view')
-                                                    <li>
-                                                        <a class="dropdown-item {{ request()->routeIs('attendance-logs.*') ? 'active' : '' }}"
-                                                            href="{{ route('attendance-logs.index') }}">
-                                                            <i class="fas fa-list-alt me-2"></i>Attendance Logs
-                                                        </a>
-                                                    </li>
-                                                @endcan
-                                                @can('production.timing.view')
-                                                    <li>
-                                                        <a class="dropdown-item {{ request()->is('timings*') ? 'active' : '' }}"
-                                                            href="{{ route('timings.index') }}">
-                                                            <i class="fas fa-stopwatch me-2"></i>Timing Data
-                                                        </a>
-                                                    </li>
-                                                @endcan
-                                                @can('hr.attendance.view')
-                                                    <li>
-                                                        <a class="dropdown-item {{ request()->routeIs('leave_requests.index') ? 'active' : '' }}"
-                                                            href="{{ route('leave_requests.index') }}">
-                                                            <i class="fas fa-calendar-minus me-2"></i>Leave Requests
-                                                        </a>
-                                                    </li>
+                                                <li>
+                                                    @php
+                                                        $mgmtPending = ($hrLeavePendingCount ?? 0) + ($directorLeavePendingCount ?? 0) + ($hrOvertimePendingCount ?? 0) + ($directorOvertimePendingCount ?? 0);
+                                                    @endphp
+                                                    <a class="dropdown-item d-flex align-items-center justify-content-between {{ request()->routeIs('hr.management') || request()->routeIs('leave_requests.index') || request()->routeIs('overtime-requests.*') || request()->routeIs('overtime-pays.*') || request()->routeIs('warning-letters.*') || request()->routeIs('warning-batches.*') || request()->routeIs('leave_requests.hr-approvals') || request()->routeIs('leave_requests.director-approvals') ? 'active' : '' }}"
+                                                       href="{{ route('hr.management') }}">
+                                                        <span><i class="fas fa-tasks me-2"></i>Management</span>
+                                                        @if($mgmtPending > 0)
+                                                            <span class="badge bg-danger rounded-pill ms-2" style="font-size:0.6rem;">{{ $mgmtPending > 99 ? '99+' : $mgmtPending }}</span>
+                                                        @endif
+                                                    </a>
+                                                </li>
 
-                                                    {{-- Approvals --}}
-                                                    <li>
-                                                        <hr class="dropdown-divider">
-                                                    </li>
-                                                    <li>
-                                                        @php $totalLeavePending = ($hrLeavePendingCount ?? 0) + ($directorLeavePendingCount ?? 0); @endphp
-                                                        <a class="dropdown-item d-flex align-items-center justify-content-between {{ request()->routeIs('leave_requests.hr-approvals', 'leave_requests.director-approvals') ? 'active' : '' }}"
-                                                            href="{{ route('leave_requests.hr-approvals') }}">
-                                                            <span><i class="fas fa-user-check me-2"></i>Leave
-                                                                Approvals</span>
-                                                            @if ($totalLeavePending > 0)
-                                                                <span class="badge bg-danger rounded-pill ms-2"
-                                                                    style="font-size:0.65rem;">
-                                                                    {{ $totalLeavePending > 99 ? '99+' : $totalLeavePending }}
-                                                                </span>
-                                                            @endif
-                                                        </a>
-                                                    </li>
-                                                    <li>
-                                                        @php $totalOvertimePending = ($hrOvertimePendingCount ?? 0) + ($directorOvertimePendingCount ?? 0); @endphp
-                                                        <a class="dropdown-item d-flex align-items-center justify-content-between {{ request()->routeIs('overtime-requests.hr-approvals', 'overtime-requests.director-approvals') ? 'active' : '' }}"
-                                                            href="{{ route('overtime-requests.hr-approvals') }}">
-                                                            <span><i class="fas fa-user-check me-2"></i>Overtime
-                                                                Approvals</span>
-                                                            @if ($totalOvertimePending > 0)
-                                                                <span class="badge bg-danger rounded-pill ms-2"
-                                                                    style="font-size:0.65rem;">
-                                                                    {{ $totalOvertimePending > 99 ? '99+' : $totalOvertimePending }}
-                                                                </span>
-                                                            @endif
-                                                        </a>
-                                                    </li>
-                                                    <li>
-                                                        <a class="dropdown-item {{ request()->routeIs('overtime-pays.*') ? 'active' : '' }}"
-                                                            href="{{ route('overtime-pays.index') }}">
-                                                            <i class="fas fa-calculator me-2"></i>Overtime Pay
-                                                        </a>
-                                                    </li>
+                                                {{-- Attendance --}}
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->routeIs('hr.attendance-hub') || request()->routeIs('attendance-logs.*') || request()->routeIs('session-shifts.live-monitor') ? 'active' : '' }}"
+                                                       href="{{ route('hr.attendance-hub') }}">
+                                                        <i class="fas fa-clock me-2"></i>Attendance
+                                                    </a>
+                                                </li>
                                                 @endcan
 
-                                                {{-- Warning Letter (SP1–SP4) --}}
-                                                @can('hr.warning-letter.view')
-                                                    <li>
-                                                        <hr class="dropdown-divider">
-                                                    </li>
-                                                    <li>
-                                                        <a class="dropdown-item {{ request()->routeIs('warning-letters.*') || request()->routeIs('warning-batches.*') ? 'active' : '' }}"
-                                                            href="{{ route('warning-letters.dashboard') }}">
-                                                            <i class="bi bi-envelope-exclamation me-2"></i>Warning Letter
-                                                        </a>
-                                                    </li>
-                                                @endcan
-
-                                                @can('hr.attendance.view')
-                                                    {{-- Fingerspot & Export --}}
-                                                    <li>
-                                                        <hr class="dropdown-divider">
-                                                    </li>
-                                                    <li>
-                                                        <a class="dropdown-item {{ request()->routeIs('fingerspot.*') ? 'active' : '' }}"
-                                                            href="{{ route('fingerspot.index') }}">
-                                                            <i class="fas fa-fingerprint me-2"></i>Fingerspot
-                                                        </a>
-                                                    </li>
-                                                    <li>
-                                                        <a class="dropdown-item {{ request()->routeIs('symcore-export.*') ? 'active' : '' }}"
-                                                            href="{{ route('symcore-export.index') }}">
-                                                            <i class="fas fa-file-export me-2"></i>Data Export
-                                                        </a>
-                                                    </li>
-
-                                                    {{-- Kebijakan & Shift --}}
-                                                    <li>
-                                                        <a class="dropdown-item {{ request()->routeIs('employee-work-policies.*') ? 'active' : '' }}"
-                                                            href="{{ route('employee-work-policies.index') }}">
-                                                            <i class="fas fa-file-alt me-2"></i>Work Policies
-                                                        </a>
-                                                    </li>
-                                                    <li>
-                                                        <a class="dropdown-item {{ request()->routeIs('session-shifts.*') ? 'active' : '' }}"
-                                                            href="{{ route('session-shifts.index') }}">
-                                                            <i class="fas fa-layer-group me-2"></i>Session Shifts
-                                                        </a>
-                                                    </li>
-                                                @endcan
                                             </ul>
                                         </li>
                                     @endcan
@@ -2237,6 +2183,23 @@
         <!-- ============================================================ -->
         <!-- END SYMCORE AI CHATBOT                                        -->
         <!-- ============================================================ -->
+
+        <script>
+        // HR nested dropdown: klik untuk toggle (mobile & desktop fallback)
+        document.querySelectorAll('.hr-submenu-toggle').forEach(function(el) {
+            el.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var parent = this.closest('.dropdown-submenu');
+                var isOpen = parent.classList.contains('open');
+                document.querySelectorAll('.dropdown-submenu.open').forEach(function(s) { s.classList.remove('open'); });
+                if (!isOpen) parent.classList.add('open');
+            });
+        });
+        document.addEventListener('click', function() {
+            document.querySelectorAll('.dropdown-submenu.open').forEach(function(s) { s.classList.remove('open'); });
+        });
+        </script>
     </body>
 
 </html>

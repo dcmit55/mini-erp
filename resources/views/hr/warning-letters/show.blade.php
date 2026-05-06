@@ -33,7 +33,7 @@
                         </a>
                     @endif
                     @can('hr.warning-letter.edit')
-                    @if($warningLetter->sp_level === 3 && in_array($warningLetter->status, ['approved','acknowledged']) && $warningLetter->employee->status !== 'terminated')
+                    @if($warningLetter->sp_level === 3 && in_array($warningLetter->status, ['approved','acknowledged']) && $warningLetter->employee->status !== 'inactive')
                         <button type="button" class="btn btn-danger btn-sm rounded-2 px-3"
                                 data-bs-toggle="modal" data-bs-target="#terminateModal">
                             <i class="fas fa-user-times me-1"></i>Terminate
@@ -167,10 +167,10 @@
                                 <i class="fas fa-exclamation-triangle text-danger mt-1"></i>
                                 <div class="small text-danger">
                                     <strong>Peringatan Terakhir (SP3).</strong> Karyawan ini telah mencapai batas maksimum peringatan.
-                                    @if(in_array($warningLetter->status, ['approved','acknowledged']) && $warningLetter->employee->status !== 'terminated')
+                                    @if(in_array($warningLetter->status, ['approved','acknowledged']) && $warningLetter->employee->status !== 'inactive')
                                         Gunakan tombol <strong>Terminate</strong> untuk memproses Pemutusan Hubungan Kerja.
-                                    @elseif($warningLetter->employee->status === 'terminated')
-                                        Karyawan ini sudah berstatus <strong>Terminated</strong>.
+                                    @elseif($warningLetter->employee->status === 'inactive')
+                                        Karyawan ini sudah berstatus <strong>Inactive</strong>.
                                     @endif
                                 </div>
                             </div>
@@ -195,7 +195,7 @@
                 <div class="col-lg-4">
 
                     @can('hr.warning-letter.edit')
-                    @if(in_array($warningLetter->status, ['draft', 'approved']) || ($warningLetter->sp_level === 3 && $warningLetter->status === 'acknowledged' && $warningLetter->employee->status !== 'terminated'))
+                    @if(in_array($warningLetter->status, ['draft', 'approved']) || ($warningLetter->sp_level === 3 && $warningLetter->status === 'acknowledged' && $warningLetter->employee->status !== 'inactive'))
                     <div class="card border-0 shadow-sm rounded-3 mb-3">
                         <div class="card-body p-3">
                             <h6 class="text-dark fw-medium mb-3">
@@ -231,7 +231,7 @@
                                         </button>
                                     </form>
                                 @endif
-                                @if($warningLetter->sp_level === 3 && in_array($warningLetter->status, ['approved','acknowledged']) && $warningLetter->employee->status !== 'terminated')
+                                @if($warningLetter->sp_level === 3 && in_array($warningLetter->status, ['approved','acknowledged']) && $warningLetter->employee->status !== 'inactive')
                                     <div class="border-top pt-2 mt-1">
                                         <button type="button" class="btn btn-danger w-100 rounded-2 btn-sm"
                                                 data-bs-toggle="modal" data-bs-target="#terminateModal">
@@ -298,7 +298,7 @@
                 <p class="text-muted small mb-3">{{ $warningLetter->employee->employee_no }} — {{ $warningLetter->employee->position }}</p>
                 <div class="bg-warning bg-opacity-10 border border-warning border-opacity-25 rounded-2 p-3 small">
                     <i class="fas fa-exclamation-triangle text-warning me-1"></i>
-                    Status karyawan akan berubah menjadi <strong>terminated</strong>. Tindakan ini tidak dapat dibatalkan dari sini.
+                    Status karyawan akan berubah menjadi <strong>inactive</strong>. Tindakan ini tidak dapat dibatalkan dari sini.
                 </div>
             </div>
             <div class="modal-footer border-0 pt-0">

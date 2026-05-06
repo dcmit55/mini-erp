@@ -170,8 +170,11 @@ Route::middleware(['auth'])->group(function () {
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // HR Dashboard
+    // HR Dashboard & Landing Pages
     Route::get('/hr/dashboard', [\App\Http\Controllers\Hr\HrDashboardController::class, 'index'])->name('hr.dashboard');
+    Route::get('/hr/record',     [\App\Http\Controllers\Hr\HrDashboardController::class, 'record'])->name('hr.record');
+    Route::get('/hr/management', [\App\Http\Controllers\Hr\HrDashboardController::class, 'management'])->name('hr.management');
+    Route::get('/hr/attendance-hub', [\App\Http\Controllers\Hr\HrDashboardController::class, 'attendanceHub'])->name('hr.attendance-hub');
 
     // Departments
     Route::resource('departments', DepartmentController::class);
@@ -411,6 +414,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/employees/check-employee-no', [EmployeeController::class, 'checkEmployeeNo'])->name('employees.check-employee-no');
     Route::post('/employees/check-ktp', [EmployeeController::class, 'checkKtpId'])->name('employees.check-ktp');
     Route::resource('employees', EmployeeController::class);
+    Route::patch('employees/{employee}/toggle-production', [EmployeeController::class, 'toggleProduction'])->name('employees.toggle-production');
+    Route::patch('employees/{employee}/toggle-leader', [EmployeeController::class, 'toggleLeaderCapacity'])->name('employees.toggle-leader');
+    Route::post('employees/{employee}/resolve-contract', [EmployeeController::class, 'resolveContract'])->name('employees.resolve-contract');
     Route::get('employees/{employee}/timing', [EmployeeController::class, 'timing'])->name('employees.timing');
     Route::delete('employee-documents/{document}', [EmployeeController::class, 'deleteDocument'])->name('employee-documents.destroy');
     Route::get('/employee-documents/{document}/download', [EmployeeController::class, 'downloadDocument'])->name('employee-documents.download');

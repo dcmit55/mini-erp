@@ -221,7 +221,7 @@ class TimingApprovalController extends Controller
         // Get filter options
         $projects = \App\Models\Production\Project::orderBy('name')->get();
         $departments = \App\Models\Admin\Department::orderBy('name')->get();
-        $employees = \App\Models\Hr\Employee::where('status', 'active')->orderBy('name')->get();
+        $employees = \App\Models\Hr\Employee::whereIn('status', ['active', 'pending_contract'])->orderBy('name')->get();
         // Get statistics
         $stats = [
             'pending' => Timing::pending()->count(),

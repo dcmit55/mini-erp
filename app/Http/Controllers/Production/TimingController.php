@@ -196,8 +196,7 @@ class TimingController extends Controller
     {
         $projects = Project::with(['parts', 'departments'])->get();
 
-        // HANYA ambil employee yang statusnya 'active'
-        $employees = Employee::where('status', 'active')->orderBy('name')->get();
+        $employees = Employee::whereIn('status', ['active', 'pending_contract'])->orderBy('name')->get();
 
         $departments = Department::orderBy('name')->pluck('name', 'id');
         $jobOrders = \App\Models\Production\JobOrder::orderBy('name')->get();
@@ -252,9 +251,8 @@ class TimingController extends Controller
         $data = $validator->getData();
 
         foreach ($data['timings'] as $idx => $timing) {
-            // Employee harus aktif
             $employee = Employee::find($timing['employee_id']);
-            if (!$employee || $employee->status !== 'active') {
+            if (!$employee || !in_array($employee->status, ['active', 'pending_contract'])) {
                 $validator->errors()->add("timings.$idx.employee_id", 'Selected employee is not active or does not exist.');
             }
             // End time >= start time
@@ -505,8 +503,7 @@ class TimingController extends Controller
                     continue;
                 }
 
-                // Check if employee is active
-                if ($employee->status !== 'active') {
+                if (!in_array($employee->status, ['active', 'pending_contract'])) {
                     $errors[] = "Row {$rowIndex}: Employee '{$employeeName}' is not active";
                     continue;
                 }
@@ -719,7 +716,7 @@ class TimingController extends Controller
     public function edit(Timing $timing)
     {
         $projects = Project::with(['parts', 'departments'])->get();
-        $employees = Employee::where('status', 'active')->orderBy('name')->get();
+        $employees = Employee::whereIn('status', ['active', 'pending_contract'])->orderBy('name')->get();
         $departments = Department::orderBy('name')->pluck('name', 'id');
         $jobOrders = \App\Models\Production\JobOrder::select('id', 'name', 'project_id')->orderBy('name')->get();
 
@@ -774,7 +771,7 @@ class TimingController extends Controller
         }
 
         $employee = Employee::find($request->employee_id);
-        if (!$employee || $employee->status !== 'active') {
+        if (!$employee || !in_array($employee->status, ['active', 'pending_contract'])) {
             $validator->errors()->add('employee_id', 'Selected employee is not active or does not exist.');
         }
 

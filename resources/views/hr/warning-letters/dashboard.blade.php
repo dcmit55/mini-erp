@@ -9,9 +9,14 @@
 
             {{-- Header --}}
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <div>
-                    <h5 class="text-dark mb-1 mt-2">Warning Letter Dashboard</h5>
-                    <p class="text-muted small mb-0">Monitor active SPs, approvals, and expiry</p>
+                <div class="d-flex align-items-center gap-2">
+                    <a href="{{ route('hr.management') }}" class="btn btn-sm btn-outline-secondary px-3">
+                        <i class="fas fa-arrow-left me-1"></i><span class="d-none d-sm-inline">Back</span>
+                    </a>
+                    <div>
+                        <h5 class="text-dark mb-1 mt-2">Warning Letter Dashboard</h5>
+                        <p class="text-muted small mb-0">Monitor active SPs, approvals, and expiry</p>
+                    </div>
                 </div>
                 <div class="d-flex gap-2">
                     <a href="{{ route('warning-letters.index') }}"
@@ -103,8 +108,8 @@
                                     <i class="fas fa-user-times text-danger"></i>
                                 </div>
                                 <div>
-                                    <h6 class="text-muted small mb-1">Terminated</h6>
-                                    <h4 class="mb-0 text-danger">{{ \App\Models\Hr\Employee::where('status','terminated')->count() }}</h4>
+                                    <h6 class="text-muted small mb-1">Inactive</h6>
+                                    <h4 class="mb-0 text-danger">{{ \App\Models\Hr\Employee::where('status','inactive')->count() }}</h4>
                                 </div>
                             </div>
                         </div>

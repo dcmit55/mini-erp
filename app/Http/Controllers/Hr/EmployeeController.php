@@ -25,7 +25,7 @@ class EmployeeController extends Controller
         $this->middleware('auth')->except('getLeaveBalance');
         $this->middleware('can:hr.employees.view')->except('getLeaveBalance');
         $this->middleware('can:hr.employees.create')->only(['create', 'store']);
-        $this->middleware('can:hr.employees.edit')->only(['edit', 'update', 'deleteDocument']);
+        $this->middleware('can:hr.employees.edit')->only(['edit', 'update', 'deleteDocument', 'resolveContract', 'toggleProduction', 'toggleLeaderCapacity']);
         $this->middleware('can:hr.employees.delete')->only(['destroy']);
     }
 
@@ -127,7 +127,7 @@ class EmployeeController extends Controller
             'contract_end_date' => 'nullable|date|after_or_equal:hire_date',
             'salary' => 'nullable|numeric|min:0',
             'saldo_cuti' => 'nullable|numeric|min:0|max:999.99',
-            'status' => 'required|in:active,inactive,terminated',
+            'status' => 'required|in:active,inactive,pending_contract',
             'username' => 'nullable|string|max:255|unique:employees,username',
             'notes' => 'nullable|string',
             'photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
@@ -145,6 +145,8 @@ class EmployeeController extends Controller
         ]);
 
         $employeeData = $request->only(['employee_no', 'name', 'username', 'employment_type', 'position', 'department_id', 'default_shift_id', 'email', 'phone', 'address', 'gender', 'ktp_id', 'place_of_birth', 'date_of_birth', 'rekening', 'hire_date', 'contract_end_date', 'salary', 'saldo_cuti', 'status', 'notes']);
+        $employeeData['is_production']     = $request->has('is_production') ? $request->boolean('is_production') : true;
+        $employeeData['is_leader_capacity'] = $request->boolean('is_leader_capacity');
 
         // Handle photo upload
         if ($request->hasFile('photo')) {
@@ -276,6 +278,20 @@ class EmployeeController extends Controller
         }
     }
 
+    public function toggleProduction(Employee $employee)
+    {
+        $this->authorize('hr.employees.edit');
+        $employee->update(['is_production' => !$employee->is_production]);
+        return response()->json(['is_production' => $employee->is_production]);
+    }
+
+    public function toggleLeaderCapacity(Employee $employee)
+    {
+        $this->authorize('hr.employees.edit');
+        $employee->update(['is_leader_capacity' => !$employee->is_leader_capacity]);
+        return response()->json(['is_leader_capacity' => $employee->is_leader_capacity]);
+    }
+
     public function edit(Employee $employee)
     {
         [$departments, $skillsets, $skillCategories, $proficiencyOptions, $sessionShifts] = $this->getFormData();
@@ -355,7 +371,7 @@ class EmployeeController extends Controller
             'contract_end_date' => 'nullable|date|after_or_equal:hire_date',
             'salary' => 'nullable|numeric|min:0',
             'saldo_cuti' => 'nullable|numeric|min:0|max:999.99',
-            'status' => 'required|in:active,inactive,terminated',
+            'status' => 'required|in:active,inactive,pending_contract',
             'username' => ['nullable', 'string', 'max:255', Rule::unique('employees')->ignore($employee->id)],
             'notes' => 'nullable|string',
             'photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
@@ -373,6 +389,8 @@ class EmployeeController extends Controller
         ]);
 
         $employeeData = $request->only(['employee_no', 'name', 'username', 'employment_type', 'position', 'department_id', 'default_shift_id', 'email', 'phone', 'address', 'gender', 'ktp_id', 'place_of_birth', 'date_of_birth', 'rekening', 'hire_date', 'contract_end_date', 'salary', 'saldo_cuti', 'status', 'notes']);
+        $employeeData['is_production']     = $request->boolean('is_production');
+        $employeeData['is_leader_capacity'] = $request->boolean('is_leader_capacity');
 
         // Handle photo upload
         if ($request->hasFile('photo')) {
@@ -613,6 +631,33 @@ class EmployeeController extends Controller
                 ->back()
                 ->with('error', 'Failed to delete document: ' . $e->getMessage());
         }
+    }
+
+    public function resolveContract(Request $request, Employee $employee)
+    {
+        $this->authorize('hr.employees.edit');
+
+        $request->validate([
+            'action'            => 'required|in:extend,terminate',
+            'contract_end_date' => 'required_if:action,extend|nullable|date|after:today',
+        ]);
+
+        if ($request->action === 'extend') {
+            $note = "[HR Action] Contract extended until {$request->contract_end_date} by " . auth()->user()->name . " on " . now()->format('Y-m-d');
+            $employee->update([
+                'status'            => 'active',
+                'contract_end_date' => $request->contract_end_date,
+                'notes'             => trim(($employee->notes ?? '') . "\n" . $note),
+            ]);
+            return redirect()->back()->with('success', "Contract diperpanjang untuk {$employee->name}. Status kembali Active.");
+        }
+
+        $note = "[HR Action] Employment set to inactive by " . auth()->user()->name . " on " . now()->format('Y-m-d');
+        $employee->update([
+            'status' => 'inactive',
+            'notes'  => trim(($employee->notes ?? '') . "\n" . $note),
+        ]);
+        return redirect()->back()->with('success', "{$employee->name} telah ditandai sebagai Inactive.");
     }
 
     public function destroy(Employee $employee)

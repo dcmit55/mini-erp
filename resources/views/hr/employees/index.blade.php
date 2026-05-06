@@ -3,11 +3,11 @@
 @section('content')
 <div class="container-fluid py-3">
     @php
-        $activeCount     = $employees->where('status', 'active')->count();
-        $inactiveCount   = $employees->where('status', 'inactive')->count();
-        $terminatedCount = $employees->where('status', 'terminated')->count();
-        $allCount        = $employees->count();
-        $expiringCount   = $employees->filter(fn($e) =>
+        $activeCount          = $employees->where('status', 'active')->count();
+        $inactiveCount        = $employees->where('status', 'inactive')->count();
+        $pendingContractCount = $employees->where('status', 'pending_contract')->count();
+        $allCount             = $employees->count();
+        $expiringCount        = $employees->filter(fn($e) =>
             $e->contract_end_date &&
             $e->status === 'active' &&
             $e->contract_end_date->lte(now()->addDays(30)) &&
@@ -17,9 +17,14 @@
 
     {{-- Page Header --}}
     <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-        <div>
-            <h5 class="mb-0 fw-semibold" style="color:#4A25AA;">Employees</h5>
-            <small class="text-muted">{{ $allCount }} total &middot; {{ $activeCount }} active</small>
+        <div class="d-flex align-items-center gap-2">
+            <a href="{{ route('hr.record') }}" class="btn btn-sm btn-outline-secondary px-3">
+                <i class="fas fa-arrow-left me-1"></i><span class="d-none d-sm-inline">Back</span>
+            </a>
+            <div>
+                <h5 class="mb-0 fw-semibold" style="color:#4A25AA;">Employees</h5>
+                <small class="text-muted">{{ $allCount }} total &middot; {{ $activeCount }} active</small>
+            </div>
         </div>
         @canany(['hr.employees.create', 'hr.employees.import', 'hr.employees.view'])
         <div class="d-flex gap-2">
@@ -66,7 +71,7 @@
             <i class="bi bi-clock-history flex-shrink-0"></i>
             <div>
                 <strong>{{ $expiringCount }} contract(s)</strong> expiring within 30 days.
-                <span class="text-muted d-none d-md-inline">Status will auto-update to Inactive on expiry.</span>
+                <span class="text-muted d-none d-md-inline">Status akan otomatis berubah ke <em>Pending Contract</em> saat kontrak habis — HR perlu memperpanjang atau terminate.</span>
             </div>
             <button type="button" class="btn-close btn-sm ms-auto" data-bs-dismiss="alert"></button>
         </div>
@@ -97,11 +102,13 @@
                             <span class="d-sm-none"><i class="bi bi-person-dash"></i></span>
                             <span class="tab-badge ms-1">{{ $inactiveCount }}</span>
                         </button>
-                        @if($terminatedCount > 0)
-                        <button type="button" class="btn btn-sm emp-status-tab btn-outline-purple rounded-pill px-3"
-                            data-status="terminated" id="tab-terminated">
-                            Terminated
-                            <span class="tab-badge ms-1">{{ $terminatedCount }}</span>
+                        @if($pendingContractCount > 0)
+                        <button type="button" class="btn btn-sm emp-status-tab btn-outline-warning rounded-pill px-3 position-relative"
+                            data-status="pending_contract" id="tab-pending-contract">
+                            <i class="fas fa-clock me-1"></i>
+                            <span class="d-none d-sm-inline">Pending Contract</span>
+                            <span class="d-sm-none">Pending</span>
+                            <span class="tab-badge ms-1">{{ $pendingContractCount }}</span>
                         </button>
                         @endif
                         <a href="{{ route('employees.near-expired') }}"
@@ -138,7 +145,7 @@
                             <option value="">All Status</option>
                             <option value="active">Active</option>
                             <option value="inactive">Inactive</option>
-                            <option value="terminated">Terminated</option>
+                            <option value="pending_contract">Pending Contract</option>
                         </select>
                     </div>
                     <div class="col-6 col-sm-6 col-md-2">
@@ -202,6 +209,25 @@
                             <td>
                                 <div class="d-flex align-items-center gap-1">
                                     <span class="fw-medium" style="font-size:.875rem; line-height:1.3;">{{ $employee->name }}</span>
+                                    @if($employee->is_production)
+                                        <span class="badge rounded-pill prod-badge-{{ $employee->id }}"
+                                              style="background:rgba(13,110,253,.12);color:#0d6efd;font-size:.58rem;">
+                                            <i class="fas fa-industry me-1"></i>Prod
+                                        </span>
+                                    @endif
+                                    @if($employee->is_leader_capacity)
+                                        <span class="badge rounded-pill leader-badge-{{ $employee->id }}"
+                                              style="background:rgba(255,193,7,.15);color:#856404;font-size:.58rem;">
+                                            <i class="fas fa-star me-1"></i>Leader
+                                        </span>
+                                    @endif
+                                    @if($employee->status === 'pending_contract')
+                                        <span class="badge rounded-pill"
+                                              style="background:rgba(255,193,7,.2);color:#92400e;font-size:.58rem;"
+                                              title="Kontrak habis — HR perlu update">
+                                            <i class="fas fa-clock me-1"></i>Pending
+                                        </span>
+                                    @endif
                                     @if(isset($activeSpMap[$employee->id]))
                                         @php
                                             $spLvl = $activeSpMap[$employee->id];
@@ -292,6 +318,8 @@
                                     <span class="badge rounded-pill bg-{{ $employee->status_badge['color'] }}" style="font-size:.67rem;width:fit-content;">
                                         {{ $employee->status_badge['text'] }}
                                     </span>
+                                    {{-- Hidden raw value for DataTables filter --}}
+                                    <span class="d-none">{{ $employee->status }}</span>
                                 </div>
                             </td>
 
@@ -311,6 +339,38 @@
                                     </a>
                                     @endcan
                                     @can('hr.employees.edit')
+                                        <button type="button"
+                                            class="btn btn-icon btn-sm toggle-production-btn {{ $employee->is_production ? 'text-primary' : 'text-muted' }}"
+                                            data-employee-id="{{ $employee->id }}"
+                                            data-url="{{ route('employees.toggle-production', $employee) }}"
+                                            data-state="{{ $employee->is_production ? '1' : '0' }}"
+                                            title="{{ $employee->is_production ? 'Production: ON' : 'Production: OFF' }}"
+                                            data-bs-toggle="tooltip"
+                                            style="width:28px;height:28px;">
+                                            <i class="fas fa-industry"></i>
+                                        </button>
+                                        <button type="button"
+                                            class="btn btn-icon btn-sm toggle-leader-btn {{ $employee->is_leader_capacity ? 'text-warning' : 'text-muted' }}"
+                                            data-employee-id="{{ $employee->id }}"
+                                            data-url="{{ route('employees.toggle-leader', $employee) }}"
+                                            data-state="{{ $employee->is_leader_capacity ? '1' : '0' }}"
+                                            title="{{ $employee->is_leader_capacity ? 'Leader: ON' : 'Leader: OFF' }}"
+                                            data-bs-toggle="tooltip"
+                                            style="width:28px;height:28px;">
+                                            <i class="fas fa-star"></i>
+                                        </button>
+                                        @if($employee->status === 'pending_contract')
+                                        <button type="button"
+                                            class="btn btn-icon btn-sm text-warning resolve-contract-btn"
+                                            data-employee-id="{{ $employee->id }}"
+                                            data-employee-name="{{ $employee->name }}"
+                                            data-resolve-url="{{ route('employees.resolve-contract', $employee) }}"
+                                            data-contract-end="{{ $employee->contract_end_date?->format('Y-m-d') }}"
+                                            title="Resolve Contract" data-bs-toggle="tooltip"
+                                            style="width:28px;height:28px;">
+                                            <i class="fas fa-file-contract"></i>
+                                        </button>
+                                        @endif
                                         <a href="{{ route('employees.edit', $employee) }}"
                                            class="btn btn-icon btn-sm text-warning" title="Edit"
                                            data-bs-toggle="tooltip" style="width:28px;height:28px;">
@@ -335,6 +395,67 @@
                 </table>
             </div>
 
+        </div>
+    </div>
+</div>
+
+{{-- Resolve Contract Modal --}}
+<div class="modal fade" id="resolveContractModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:420px;">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-bottom py-3" style="background:#fff8e1;">
+                <h6 class="modal-title fw-semibold text-warning-emphasis">
+                    <i class="fas fa-file-contract me-2"></i>Resolve Pending Contract
+                </h6>
+                <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="resolveContractForm" method="POST" action="">
+                @csrf
+                <div class="modal-body pb-2">
+                    <p class="text-muted small mb-3">
+                        Kontrak <strong id="resolveEmpName"></strong> telah habis.
+                        Pilih tindakan selanjutnya:
+                    </p>
+
+                    {{-- Action choice --}}
+                    <div class="d-flex gap-2 mb-3">
+                        <button type="button" class="btn btn-outline-success flex-grow-1 resolve-action-btn"
+                                data-action="extend" style="font-size:.85rem;">
+                            <i class="fas fa-calendar-plus me-1"></i>Perpanjang Kontrak
+                        </button>
+                        <button type="button" class="btn btn-outline-danger flex-grow-1 resolve-action-btn"
+                                data-action="terminate" style="font-size:.85rem;">
+                            <i class="fas fa-times-circle me-1"></i>Non-aktifkan
+                        </button>
+                    </div>
+
+                    <input type="hidden" name="action" id="resolveAction" value="">
+
+                    {{-- Extend section --}}
+                    <div id="extendSection" class="d-none">
+                        <div class="alert alert-success py-2 small border-0 rounded-2 mb-2">
+                            <i class="fas fa-info-circle me-1"></i>Status akan kembali <strong>Active</strong> setelah tanggal kontrak baru diisi.
+                        </div>
+                        <label class="form-label small fw-semibold">Contract End Date Baru <span class="text-danger">*</span></label>
+                        <input type="date" name="contract_end_date" id="resolveContractDate"
+                               class="form-control form-control-sm"
+                               min="{{ now()->addDay()->format('Y-m-d') }}">
+                    </div>
+
+                    {{-- Terminate section --}}
+                    <div id="terminateSection" class="d-none">
+                        <div class="alert alert-danger py-2 small border-0 rounded-2">
+                            <i class="fas fa-exclamation-triangle me-1"></i>Status akan berubah ke <strong>Inactive</strong>. Karyawan tidak akan muncul di attendance.
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top py-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-sm btn-warning d-none" id="resolveSubmitBtn">
+                        <i class="fas fa-check me-1"></i>Konfirmasi
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -712,6 +833,83 @@
         function debounce(fn, wait) {
             let t; return function() { clearTimeout(t); t = setTimeout(() => fn.apply(this, arguments), wait); };
         }
+
+        // Generic capacity toggle helper
+        function handleCapacityToggle($btn, resKey, badgeClass, onColor, badgeHtml) {
+            const empId = $btn.data('employee-id');
+            const url   = $btn.data('url');
+            $btn.prop('disabled', true);
+            $.ajax({
+                url, method: 'POST',
+                data: { _token: $('meta[name="csrf-token"]').attr('content'), _method: 'PATCH' },
+                success: function(res) {
+                    const on = res[resKey];
+                    $btn.data('state', on ? '1' : '0');
+                    $btn.toggleClass(onColor, on).toggleClass('text-muted', !on);
+                    const onTitle  = $btn.attr('title').split(':')[0] + ': ' + (on ? 'ON' : 'OFF');
+                    $btn.attr('title', onTitle).tooltip('dispose').tooltip();
+                    const $badge = $(`.${badgeClass}-${empId}`);
+                    if (on) {
+                        if (!$badge.length) {
+                            $btn.closest('tr').find('td:nth-child(2) .d-flex').append(badgeHtml(empId));
+                        }
+                    } else {
+                        $badge.remove();
+                    }
+                },
+                error: function() {
+                    Swal.fire({ icon:'error', title:'Gagal', text:'Tidak dapat mengubah status.', timer:2000, showConfirmButton:false });
+                },
+                complete: function() { $btn.prop('disabled', false); }
+            });
+        }
+
+        // Toggle Production inline
+        $(document).on('click', '.toggle-production-btn', function(e) {
+            e.preventDefault(); e.stopPropagation();
+            handleCapacityToggle($(this), 'is_production', 'prod-badge', 'text-primary',
+                (id) => `<span class="badge rounded-pill prod-badge-${id}" style="background:rgba(13,110,253,.12);color:#0d6efd;font-size:.58rem;"><i class="fas fa-industry me-1"></i>Prod</span>`
+            );
+        });
+
+        // Toggle Leader Capacity inline
+        $(document).on('click', '.toggle-leader-btn', function(e) {
+            e.preventDefault(); e.stopPropagation();
+            handleCapacityToggle($(this), 'is_leader_capacity', 'leader-badge', 'text-warning',
+                (id) => `<span class="badge rounded-pill leader-badge-${id}" style="background:rgba(255,193,7,.15);color:#856404;font-size:.58rem;"><i class="fas fa-star me-1"></i>Leader</span>`
+            );
+        });
+
+        // Resolve Contract modal
+        $(document).on('click', '.resolve-contract-btn', function(e) {
+            e.preventDefault(); e.stopPropagation();
+            const name = $(this).data('employee-name');
+            const url  = $(this).data('resolve-url');
+            $('#resolveEmpName').text(name);
+            $('#resolveContractForm').attr('action', url);
+            $('#resolveAction').val('');
+            $('#extendSection, #terminateSection').addClass('d-none');
+            $('#resolveSubmitBtn').addClass('d-none');
+            $('.resolve-action-btn').removeClass('active btn-success btn-danger').addClass('btn-outline-success btn-outline-danger');
+            new bootstrap.Modal(document.getElementById('resolveContractModal')).show();
+        });
+
+        $(document).on('click', '.resolve-action-btn', function() {
+            const action = $(this).data('action');
+            $('#resolveAction').val(action);
+            $('.resolve-action-btn').removeClass('btn-success btn-danger active');
+            if (action === 'extend') {
+                $(this).removeClass('btn-outline-success').addClass('btn-success active');
+                $('#extendSection').removeClass('d-none');
+                $('#terminateSection').addClass('d-none');
+                $('#resolveSubmitBtn').removeClass('d-none btn-danger').addClass('btn-warning');
+            } else {
+                $(this).removeClass('btn-outline-danger').addClass('btn-danger active');
+                $('#terminateSection').removeClass('d-none');
+                $('#extendSection').addClass('d-none');
+                $('#resolveSubmitBtn').removeClass('d-none btn-warning').addClass('btn-danger');
+            }
+        });
 
         setTimeout(() => $('.alert').fadeOut('slow'), 5000);
         $('[data-bs-toggle="tooltip"]').tooltip();

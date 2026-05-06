@@ -9,6 +9,9 @@
         <!-- Header -->
         <div class="position-relative d-flex align-items-center mb-3" style="min-height:44px;">
             <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                <a href="{{ route('hr.management') }}" class="btn btn-sm btn-outline-secondary px-3">
+                    <i class="fas fa-arrow-left me-1"></i><span class="d-none d-sm-inline">Back</span>
+                </a>
                 @php
                     $level3Matrix  = \App\Models\Hr\ApprovalMatrix::where('module', 'leave')->where('level', 3)->first();
                     $directorRoles = $level3Matrix ? array_merge($level3Matrix->getAllowedRoles(), ['super_admin']) : ['director', 'admin_hr', 'super_admin'];

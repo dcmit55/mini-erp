@@ -8,6 +8,7 @@ use App\Models\Admin\Department;
 use App\Models\Hr\CompanyHoliday;
 use App\Models\Hr\DailyAttendance;
 use App\Models\Hr\Employee;
+use App\Models\Hr\EmployeeWorkPolicy;
 use App\Models\NationalHoliday;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -46,13 +47,13 @@ class AttendanceSummaryController extends Controller
         $departmentId = $request->input('department_id');
         $departments  = Department::orderBy('name')->get(['id', 'name']);
 
-        $employeeQuery = Employee::where('status', 'active')
+        $employeeQuery = Employee::whereIn('status', ['active', 'pending_contract'])
             ->whereDoesntHave('department', fn($q) => $q->where('name', 'Party Point'))
             ->orderBy('name');
         if ($departmentId) {
             $employeeQuery->where('department_id', $departmentId);
         }
-        $employees = $employeeQuery->get(['id', 'name', 'employee_no', 'department_id', 'saldo_cuti']);
+        $employees = $employeeQuery->get(['id', 'name', 'employee_no', 'department_id', 'saldo_cuti', 'is_production', 'is_leader_capacity', 'status']);
 
         // National holidays for this year (exclude cuti bersama)
         $nationalHolidays = NationalHoliday::forYear($year)
@@ -71,7 +72,7 @@ class AttendanceSummaryController extends Controller
         // Key: "employee_id_date" e.g. "132_2026-03-09"
         $dailiesMap = DailyAttendance::whereYear('date', $year)
             ->whereMonth('date', $month)
-            ->get(['employee_id', 'date', 'status'])
+            ->get(['employee_id', 'date', 'status', 'total_hours'])
             ->groupBy(fn($d) => $d->employee_id . '_' . $d->date->format('Y-m-d'));
 
         // Build day-level info array: [day => ['dayOfWeek', 'isSunday', 'national', 'company']]
@@ -119,6 +120,101 @@ class AttendanceSummaryController extends Controller
             $summary[$emp->id] = $counts;
         }
 
+        // ── Capacity & card stats ────────────────────────────────────────────
+        $workingDays = 0;
+        for ($d = 1; $d <= $daysInMonth; $d++) {
+            $info = $dayInfo[$d];
+            if (!$info['isSunday'] && !$info['national'] && !$info['company']) {
+                $workingDays++;
+            }
+        }
+
+        $productionEmployeeIds = $employees->where('is_production', true)->pluck('id')->values()->toArray();
+        $workPolicies = EmployeeWorkPolicy::whereIn('employee_id', $productionEmployeeIds)
+            ->pluck('weekday_hours', 'employee_id');
+
+        $expectedHours = 0.0;
+        foreach ($productionEmployeeIds as $empId) {
+            $expectedHours += $workingDays * (float) ($workPolicies->get($empId) ?? 8);
+        }
+
+        $actualHours = 0.0;
+        $totalEmployees = $employees->count();
+        $presentIds = []; $alphaIds = []; $leaveIds = []; $mcIds = [];
+
+        foreach ($employees as $emp) {
+            for ($d = 1; $d <= $daysInMonth; $d++) {
+                $info = $dayInfo[$d];
+                if ($info['isSunday'] || $info['national'] || $info['company']) continue;
+                $record = $dailiesMap->get($emp->id . '_' . $info['date'])?->first();
+                if (!$record) continue;
+
+                if ($emp->is_production) {
+                    $actualHours += (float) ($record->total_hours ?? 0);
+                }
+
+                match (true) {
+                    in_array($record->status, ['Present', 'Late', 'Less Hours', 'Late, Less Hours']) => $presentIds[$emp->id] = true,
+                    $record->status === 'Alpha'      => $alphaIds[$emp->id] = true,
+                    $record->status === 'Sick Leave' => $mcIds[$emp->id]    = true,
+                    in_array($record->status, [
+                        'Annual Leave', 'Maternity Leave', 'Paternity Leave', 'Wedding Leave',
+                        'Birth Leave', 'Bereavement Leave', 'Child Event Leave', 'Hajj Leave', 'Unpaid Leave',
+                    ])                               => $leaveIds[$emp->id] = true,
+                    default                          => null,
+                };
+            }
+        }
+
+        $presentCount = count($presentIds);
+        $alphaCount   = count($alphaIds);
+        $mcCount      = count($mcIds);
+        $leaveCount   = count($leaveIds);
+        $capacityPct  = $expectedHours > 0 ? round(($actualHours / $expectedHours) * 100) : 0;
+        $presentPct   = $totalEmployees > 0 ? round(($presentCount / $totalEmployees) * 100) : 0;
+        $alphaPct     = $totalEmployees > 0 ? round(($alphaCount   / $totalEmployees) * 100) : 0;
+        $mcPct        = $totalEmployees > 0 ? round(($mcCount      / $totalEmployees) * 100) : 0;
+        $leavePct     = $totalEmployees > 0 ? round(($leaveCount   / $totalEmployees) * 100) : 0;
+
+        $productionCount = count($productionEmployeeIds);
+
+        $capacityStats = compact(
+            'capacityPct', 'actualHours', 'expectedHours',
+            'presentPct', 'presentCount',
+            'alphaPct',   'alphaCount',
+            'mcPct',      'mcCount',
+            'leavePct',   'leaveCount',
+            'totalEmployees', 'productionCount'
+        );
+
+        // ── Leader Capacity stats ────────────────────────────────────────────
+        $leaderEmployeeIds = $employees->where('is_leader_capacity', true)->pluck('id')->values()->toArray();
+        $leaderWorkPolicies = EmployeeWorkPolicy::whereIn('employee_id', $leaderEmployeeIds)
+            ->pluck('weekday_hours', 'employee_id');
+
+        $leaderExpectedHours = 0.0;
+        foreach ($leaderEmployeeIds as $empId) {
+            $leaderExpectedHours += $workingDays * (float) ($leaderWorkPolicies->get($empId) ?? 8);
+        }
+
+        $leaderActualHours = 0.0;
+        foreach ($employees->whereIn('id', $leaderEmployeeIds) as $emp) {
+            for ($d = 1; $d <= $daysInMonth; $d++) {
+                $info = $dayInfo[$d];
+                if ($info['isSunday'] || $info['national'] || $info['company']) continue;
+                $record = $dailiesMap->get($emp->id . '_' . $info['date'])?->first();
+                if (!$record) continue;
+                $leaderActualHours += (float) ($record->total_hours ?? 0);
+            }
+        }
+
+        $leaderCount      = count($leaderEmployeeIds);
+        $leaderCapacityPct = $leaderExpectedHours > 0 ? round(($leaderActualHours / $leaderExpectedHours) * 100) : 0;
+
+        $leaderCapacityStats = compact(
+            'leaderCapacityPct', 'leaderActualHours', 'leaderExpectedHours', 'leaderCount'
+        );
+
         // All company holidays (for manage modal) in this month
         $companyHolidaysList = CompanyHoliday::forMonth($year, $month)
             ->with('creator:id,username')
@@ -129,7 +225,7 @@ class AttendanceSummaryController extends Controller
             'month', 'year', 'daysInMonth', 'employees',
             'nationalHolidayDates', 'nationalHolidays', 'companyHolidays', 'dailiesMap',
             'dayInfo', 'summary', 'companyHolidaysList', 'startOfMonth',
-            'departments', 'departmentId'
+            'departments', 'departmentId', 'capacityStats', 'leaderCapacityStats'
         ));
     }
 

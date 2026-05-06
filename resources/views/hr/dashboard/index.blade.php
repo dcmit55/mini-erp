@@ -225,7 +225,7 @@
     </div>
     <div class="kpi-card red">
         <div class="kpi-icon">🚫</div>
-        <div class="kpi-label">Terminated</div>
+        <div class="kpi-label">Inactive</div>
         <div class="kpi-value">{{ $terminatedEmployees }}</div>
         <div class="kpi-sub">{{ $totalEmployees > 0 ? round(($terminatedEmployees/$totalEmployees)*100,1) : 0 }}% of total</div>
     </div>
@@ -258,7 +258,7 @@
         <div class="chart-wrap" style="height:180px;"><canvas id="chartEmpStatus"></canvas></div>
         <ul class="legend-list">
             <li><span class="legend-label"><span class="legend-dot" style="background:#7c3aed;"></span>Active</span><span class="legend-val">{{ $activeEmployees }}</span></li>
-            <li><span class="legend-label"><span class="legend-dot" style="background:#dc2626;"></span>Terminated</span><span class="legend-val">{{ $terminatedEmployees }}</span></li>
+            <li><span class="legend-label"><span class="legend-dot" style="background:#dc2626;"></span>Inactive</span><span class="legend-val">{{ $terminatedEmployees }}</span></li>
             @if($nearExpiredCount)
             <li><span class="legend-label"><span class="legend-dot" style="background:#d97706;"></span>Near Expired</span><span class="legend-val">{{ $nearExpiredCount }}</span></li>
             @endif
@@ -526,7 +526,7 @@ function mkChart(id, type, data, options) {
 
 // 1. Employee Status — Pie
 mkChart('chartEmpStatus', 'pie', {
-    labels: ['Active','Terminated'@if($nearExpiredCount),'Near Expired'@endif],
+    labels: ['Active','Inactive'@if($nearExpiredCount),'Near Expired'@endif],
     datasets: [{ data:[{{ $activeEmployees }},{{ $terminatedEmployees }}@if($nearExpiredCount),{{ $nearExpiredCount }}@endif], backgroundColor:['#7c3aed','#dc2626'@if($nearExpiredCount),'#d97706'@endif], borderWidth:2, borderColor:'#fff', hoverOffset:6 }]
 }, { plugins:{ legend:{display:false}, tooltip: PIE_TOOLTIP } });
 

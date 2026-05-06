@@ -9,11 +9,16 @@
 
             <!-- Header -->
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-                <a href="{{ route('attendance-logs.summary') }}" class="btn btn-sm btn-outline-primary px-3">
-                    <i class="fas fa-chart-bar me-1"></i>
-                    <span class="d-none d-sm-inline">Attendance Summary</span>
-                    <span class="d-sm-none">Summary</span>
-                </a>
+                <div class="d-flex gap-2">
+                    <a href="{{ route('hr.attendance-hub') }}" class="btn btn-sm btn-outline-secondary px-3">
+                        <i class="fas fa-arrow-left me-1"></i><span class="d-none d-sm-inline">Back</span>
+                    </a>
+                    <a href="{{ route('attendance-logs.summary') }}" class="btn btn-sm btn-outline-primary px-3">
+                        <i class="fas fa-chart-bar me-1"></i>
+                        <span class="d-none d-sm-inline">Attendance Summary</span>
+                        <span class="d-sm-none">Summary</span>
+                    </a>
+                </div>
                 <div class="d-flex gap-2">
                     @can('hr.attendance.edit')
                     <button type="button" class="btn btn-sm btn-outline-primary px-3" data-bs-toggle="modal" data-bs-target="#importModal">

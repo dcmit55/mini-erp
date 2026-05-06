@@ -8,9 +8,14 @@
         <div class="col-12">
             <!-- Header -->
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h4 class="mb-0">Overtime Requests</h4>
-                    <p class="text-muted mb-0">Manage employee overtime requests</p>
+                <div class="d-flex align-items-center gap-2">
+                    <a href="{{ route('hr.management') }}" class="btn btn-sm btn-outline-secondary px-3">
+                        <i class="fas fa-arrow-left me-1"></i><span class="d-none d-sm-inline">Back</span>
+                    </a>
+                    <div>
+                        <h4 class="mb-0">Overtime Requests</h4>
+                        <p class="text-muted mb-0">Manage employee overtime requests</p>
+                    </div>
                 </div>
                 @can('hr.overtime.create')
                 <a href="{{ route('overtime-requests.create') }}"

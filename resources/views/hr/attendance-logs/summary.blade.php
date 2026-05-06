@@ -9,7 +9,7 @@
 
             {{-- Header --}}
             <div class="d-flex justify-content-between align-items-center mb-2 mb-md-3">
-                <a href="{{ route('attendance-logs.index') }}" class="btn btn-sm btn-outline-secondary px-3">
+                <a href="{{ route('hr.attendance-hub') }}" class="btn btn-sm btn-outline-secondary px-3">
                     <i class="fas fa-arrow-left me-1"></i><span class="d-none d-sm-inline"> Back</span>
                 </a>
                 @can('hr.attendance.edit')
@@ -85,6 +85,114 @@
                 </div>
             </div>
 
+            {{-- Capacity & Status Cards --}}
+            <div class="row g-2 mb-3">
+                {{-- Production Capacity --}}
+                <div class="col-6 col-md col-lg">
+                    <div class="card border-0 shadow-sm rounded-3 h-100">
+                        <div class="card-body p-3">
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="bg-primary bg-opacity-10 rounded-2 p-2 me-2 flex-shrink-0">
+                                    <i class="fas fa-industry text-primary" style="font-size:0.9rem;"></i>
+                                </div>
+                                <span class="text-muted" style="font-size:0.78rem;">Production Capacity</span>
+                            </div>
+                            <div class="fw-bold text-primary" style="font-size:1.4rem; line-height:1.1;">{{ $capacityStats['capacityPct'] }}%</div>
+                            <div class="text-muted mt-1" style="font-size:0.72rem;">
+                                {{ number_format($capacityStats['actualHours'], 1) }} / {{ number_format($capacityStats['expectedHours'], 1) }} jam
+                            </div>
+                            <div class="text-muted" style="font-size:0.70rem;">{{ $capacityStats['productionCount'] ?? '?' }} orang produksi</div>
+                        </div>
+                    </div>
+                </div>
+                {{-- Leader Capacity --}}
+                <div class="col-6 col-md col-lg">
+                    <div class="card border-0 shadow-sm rounded-3 h-100">
+                        <div class="card-body p-3">
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="bg-warning bg-opacity-10 rounded-2 p-2 me-2 flex-shrink-0">
+                                    <i class="fas fa-star text-warning" style="font-size:0.9rem;"></i>
+                                </div>
+                                <span class="text-muted" style="font-size:0.78rem;">Leader Capacity</span>
+                            </div>
+                            <div class="fw-bold text-warning" style="font-size:1.4rem; line-height:1.1;">{{ $leaderCapacityStats['leaderCapacityPct'] }}%</div>
+                            <div class="text-muted mt-1" style="font-size:0.72rem;">
+                                {{ number_format($leaderCapacityStats['leaderActualHours'], 1) }} / {{ number_format($leaderCapacityStats['leaderExpectedHours'], 1) }} jam
+                            </div>
+                            <div class="text-muted" style="font-size:0.70rem;">{{ $leaderCapacityStats['leaderCount'] }} orang leader</div>
+                        </div>
+                    </div>
+                </div>
+                {{-- Present --}}
+                <div class="col-6 col-md col-lg">
+                    <div class="card border-0 shadow-sm rounded-3 h-100">
+                        <div class="card-body p-3">
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="bg-success bg-opacity-10 rounded-2 p-2 me-2 flex-shrink-0">
+                                    <i class="fas fa-user-check text-success" style="font-size:0.9rem;"></i>
+                                </div>
+                                <span class="text-muted" style="font-size:0.78rem;">Present</span>
+                            </div>
+                            <div class="fw-bold text-success" style="font-size:1.4rem; line-height:1.1;">{{ $capacityStats['presentPct'] }}%</div>
+                            <div class="text-muted mt-1" style="font-size:0.72rem;">
+                                {{ $capacityStats['presentCount'] }} / {{ $capacityStats['totalEmployees'] }} orang
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {{-- Alpha --}}
+                <div class="col-6 col-md col-lg">
+                    <div class="card border-0 shadow-sm rounded-3 h-100">
+                        <div class="card-body p-3">
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="bg-danger bg-opacity-10 rounded-2 p-2 me-2 flex-shrink-0">
+                                    <i class="fas fa-user-times text-danger" style="font-size:0.9rem;"></i>
+                                </div>
+                                <span class="text-muted" style="font-size:0.78rem;">Alpha</span>
+                            </div>
+                            <div class="fw-bold text-danger" style="font-size:1.4rem; line-height:1.1;">{{ $capacityStats['alphaPct'] }}%</div>
+                            <div class="text-muted mt-1" style="font-size:0.72rem;">
+                                {{ $capacityStats['alphaCount'] }} / {{ $capacityStats['totalEmployees'] }} orang
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {{-- Leave --}}
+                <div class="col-6 col-md col-lg">
+                    <div class="card border-0 shadow-sm rounded-3 h-100">
+                        <div class="card-body p-3">
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="bg-info bg-opacity-10 rounded-2 p-2 me-2 flex-shrink-0">
+                                    <i class="fas fa-calendar-check text-info" style="font-size:0.9rem;"></i>
+                                </div>
+                                <span class="text-muted" style="font-size:0.78rem;">Leave</span>
+                            </div>
+                            <div class="fw-bold text-info" style="font-size:1.4rem; line-height:1.1;">{{ $capacityStats['leavePct'] }}%</div>
+                            <div class="text-muted mt-1" style="font-size:0.72rem;">
+                                {{ $capacityStats['leaveCount'] }} / {{ $capacityStats['totalEmployees'] }} orang
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {{-- MC --}}
+                <div class="col-6 col-md col-lg">
+                    <div class="card border-0 shadow-sm rounded-3 h-100">
+                        <div class="card-body p-3">
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="bg-warning bg-opacity-10 rounded-2 p-2 me-2 flex-shrink-0">
+                                    <i class="fas fa-notes-medical text-warning" style="font-size:0.9rem;"></i>
+                                </div>
+                                <span class="text-muted" style="font-size:0.78rem;">MC</span>
+                            </div>
+                            <div class="fw-bold text-warning" style="font-size:1.4rem; line-height:1.1;">{{ $capacityStats['mcPct'] }}%</div>
+                            <div class="text-muted mt-1" style="font-size:0.72rem;">
+                                {{ $capacityStats['mcCount'] }} / {{ $capacityStats['totalEmployees'] }} orang
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {{-- Main Grid --}}
             <div class="card border-0 shadow-sm">
                 <div class="d-md-none text-muted text-center py-1" style="font-size:0.7rem;border-bottom:1px solid #e2e8f0;">
@@ -144,7 +252,16 @@
                                     @php $s = $summary[$emp->id]; @endphp
                                     <tr class="summary-row">
                                         <td class="sticky-col name-col">
-                                            <div class="fw-semibold" style="font-size:0.78rem;">{{ $emp->name }}</div>
+                                            <div class="d-flex align-items-center gap-1 flex-wrap">
+                                                <span class="fw-semibold" style="font-size:0.78rem;">{{ $emp->name }}</span>
+                                                @if(($emp->status ?? 'active') === 'pending_contract')
+                                                    <span class="badge rounded-pill"
+                                                          style="background:rgba(255,193,7,.25);color:#92400e;font-size:.6rem;line-height:1.2;"
+                                                          title="Kontrak habis — HR belum update">
+                                                        <i class="fas fa-clock"></i> Pending
+                                                    </span>
+                                                @endif
+                                            </div>
                                         </td>
                                         @for ($d = 1; $d <= $daysInMonth; $d++)
                                             @php

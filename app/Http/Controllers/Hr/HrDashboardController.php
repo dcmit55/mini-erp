@@ -20,6 +20,25 @@ class HrDashboardController extends Controller
         $this->middleware('can:hr.dashboard.view');
     }
 
+    public function record()
+    {
+        return view('hr.landing.record');
+    }
+
+    public function management()
+    {
+        $hrLeavePending       = \App\Models\Hr\LeaveRequest::where('approval_1', 'pending')->where('approval_dept', 'approved')->count();
+        $directorLeavePending = \App\Models\Hr\LeaveRequest::where('approval_2', 'pending')->where('approval_1', 'approved')->count();
+        $hrOTPending          = \App\Models\Hr\OvertimeRequest::whereIn('status', ['submitted', 'draft'])->where(fn($q) => $q->where('hr_approval_status', 'pending')->orWhereNull('hr_approval_status'))->count();
+        $directorOTPending    = \App\Models\Hr\OvertimeRequest::whereIn('status', ['submitted', 'draft'])->where(fn($q) => $q->where('director_approval_status', 'pending')->orWhereNull('director_approval_status'))->count();
+        return view('hr.landing.management', compact('hrLeavePending', 'directorLeavePending', 'hrOTPending', 'directorOTPending'));
+    }
+
+    public function attendanceHub()
+    {
+        return view('hr.landing.attendance');
+    }
+
     public function index()
     {
         $now   = Carbon::now();
@@ -31,7 +50,7 @@ class HrDashboardController extends Controller
         // ── Employee Metrics ──────────────────────────────────────────────────
         $totalEmployees    = Employee::count();
         $activeEmployees   = Employee::where('status', 'active')->count();
-        $terminatedEmployees = Employee::where('status', 'terminated')->count();
+        $terminatedEmployees = Employee::where('status', 'inactive')->count();
         $nearExpiredCount  = Employee::where('status', 'active')
             ->whereNotNull('contract_end_date')
             ->whereBetween('contract_end_date', [$today, $thirtyDaysLater])

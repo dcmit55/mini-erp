@@ -24,6 +24,7 @@ class Employee extends Model implements AuditableContract
         'contract_end_date', 'salary', 'saldo_cuti', 'status', 'notes',
         'username', 'uid', 'device_registered_at', 'biometric_enrolled_at',
         'menstruation_leave_approved', 'menstruation_leave_approved_at',
+        'is_production', 'is_leader_capacity',
     ];
 
     protected $casts = [
@@ -35,6 +36,8 @@ class Employee extends Model implements AuditableContract
         'device_registered_at' => 'datetime',
         'biometric_enrolled_at' => 'datetime',
         'menstruation_leave_approved_at' => 'datetime',
+        'is_production'     => 'boolean',
+        'is_leader_capacity' => 'boolean',
     ];
 
     protected $auditInclude = [
@@ -190,13 +193,18 @@ class Employee extends Model implements AuditableContract
     public function getStatusBadgeAttribute()
     {
         $colors = [
-            'active' => 'success',
-            'inactive' => 'warning',
-            'terminated' => 'danger',
+            'active'           => 'success',
+            'inactive'         => 'danger',
+            'pending_contract' => 'warning',
+        ];
+        $labels = [
+            'active'           => 'Active',
+            'inactive'         => 'Inactive',
+            'pending_contract' => 'Pending Contract',
         ];
         return [
             'color' => $colors[$this->status] ?? 'secondary',
-            'text' => ucfirst($this->status),
+            'text'  => $labels[$this->status] ?? ucfirst($this->status),
         ];
     }
 
@@ -336,24 +344,24 @@ class Employee extends Model implements AuditableContract
 
         if ($this->status === 'active' && !$contractValid) {
             $oldStatus = $this->status;
-            $this->status = 'inactive';
+            $this->status = 'pending_contract';
             $expiredDate = $this->contract_end_date->format('Y-m-d');
-            $updateNote = "[Auto-updated] Status changed to 'inactive' - Contract expired on {$expiredDate}";
+            $updateNote = "[Auto-updated] Status changed to 'pending_contract' - Contract expired on {$expiredDate}";
             if (!str_contains($this->notes ?? '', $updateNote)) {
                 $this->notes = trim(($this->notes ?? '') . "\n" . $updateNote);
             }
-            \Log::info('Employee contract expired - Auto-updated to inactive', [
+            \Log::info('Employee contract expired - Auto-updated to pending_contract', [
                 'employee_id' => $this->id ?? 'new',
                 'employee_no' => $this->employee_no,
                 'name' => $this->name,
                 'contract_end_date' => $expiredDate,
                 'old_status' => $oldStatus,
-                'new_status' => 'inactive',
+                'new_status' => 'pending_contract',
             ]);
             return true;
         }
 
-        if ($this->status === 'inactive' && $contractValid) {
+        if (in_array($this->status, ['inactive', 'pending_contract']) && $contractValid) {
             $wasAutoInactive = str_contains($this->notes ?? '', '[Auto-updated]');
             if ($wasAutoInactive) {
                 $oldStatus = $this->status;
@@ -384,6 +392,8 @@ class Employee extends Model implements AuditableContract
                                 ->whereNotNull('contract_end_date')
                                 ->where('contract_end_date', '<', $today)
                                 ->get();
+        // Also check pending_contract employees whose notes indicate auto-update
+        // (no action needed here — they stay pending until HR resolves)
         $count = 0;
         foreach ($expiredEmployees as $employee) {
             $employee->checkAndUpdateContractStatus();

@@ -17,6 +17,11 @@
                 </div>
             </div>
         </div>
+        <div class="col-auto">
+            <a href="{{ route('hr.record') }}" class="btn btn-sm btn-outline-secondary px-3">
+                <i class="fas fa-arrow-left me-1"></i><span class="d-none d-sm-inline">Back</span>
+            </a>
+        </div>
     </div>
 
     {{-- Flash Messages --}}
