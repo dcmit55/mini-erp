@@ -215,7 +215,7 @@ class TimingAcrossController extends Controller
             $stage = (int) $validated['stage'];
             $currentProgress = $stage * 10;
             $prevDeptData = $timing->department_specific_data ?? [];
-            $previousProgress = $prevDeptData['current_progress'] ?? $prevDeptData['previous_progress'] ?? 0;
+            $previousProgress = $prevDeptData['current_progress'] ?? ($prevDeptData['previous_progress'] ?? 0);
 
             $timing->update([
                 'end_time' => $endTime,
@@ -357,7 +357,7 @@ class TimingAcrossController extends Controller
     {
         $sessions = Timing::running()->today()->where('source', 'across')->withRelations()->orderBy('start_time', 'desc')->get();
 
-            return response()->json([
+        return response()->json([
             'success' => true,
             'sessions' => $sessions->map(function ($t) {
                 $deptData = $t->department_specific_data ?? [];
@@ -377,8 +377,8 @@ class TimingAcrossController extends Controller
                     'session_type' => $t->session_type,
                     'is_frozen' => $isFrozen,
                     'frozen_duration' => $deptData['frozen_duration'] ?? '00:00:00',
-                    'previous_progress' => $deptData['current_progress'] ?? $deptData['previous_progress'] ?? 0,
-                    'previous_stage' => $deptData['current_stage'] ?? $deptData['stage'] ?? 0,
+                    'previous_progress' => $deptData['current_progress'] ?? ($deptData['previous_progress'] ?? 0),
+                    'previous_stage' => $deptData['current_stage'] ?? ($deptData['stage'] ?? 0),
                     'auto_break_paused' => false,
                 ];
             }),

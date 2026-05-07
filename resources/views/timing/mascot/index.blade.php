@@ -898,7 +898,7 @@
                 selectedEmployees.forEach(empId => {
                     tasksPayload[empId] = currentTasksByEmp[empId] || task;
                     partsPayload[empId] = currentPartsByEmp[empId] || null;
-                    sessionTypesPayload[empId] = currentSessionTypesByEmp[empId] || $(  
+                    sessionTypesPayload[empId] = currentSessionTypesByEmp[empId] || $(
                         '#session-type-hidden').val() || 'mass_production';
                     stagesPayload[empId] = currentStagesByEmp[empId] || null;
                 });

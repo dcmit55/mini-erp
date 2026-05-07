@@ -49,21 +49,36 @@
         <style>
             /* ── Nested Dropdown (HR sub-menus) ────────────── */
             @media (min-width: 992px) {
-                .dropdown-submenu { position: relative; }
-                .dropdown-submenu > .dropdown-menu {
-                    top: 0; left: 100%; margin-top: -2px;
+                .dropdown-submenu {
+                    position: relative;
+                }
+
+                .dropdown-submenu>.dropdown-menu {
+                    top: 0;
+                    left: 100%;
+                    margin-top: -2px;
                     display: none;
                 }
-                .dropdown-submenu:hover > .dropdown-menu,
-                .dropdown-submenu.open > .dropdown-menu { display: block; }
+
+                .dropdown-submenu:hover>.dropdown-menu,
+                .dropdown-submenu.open>.dropdown-menu {
+                    display: block;
+                }
             }
+
             @media (max-width: 991.98px) {
-                .dropdown-submenu > .dropdown-menu {
+                .dropdown-submenu>.dropdown-menu {
                     display: none;
                     padding-left: 1rem;
                 }
-                .dropdown-submenu.open > .dropdown-menu { display: block; }
-                .dropdown-submenu > .dropdown-item { font-weight: 600; }
+
+                .dropdown-submenu.open>.dropdown-menu {
+                    display: block;
+                }
+
+                .dropdown-submenu>.dropdown-item {
+                    font-weight: 600;
+                }
             }
 
             /* ── Mobile Sidebar ─────────────────────────────── */
@@ -179,14 +194,20 @@
                 <div class="container-fluid">
                     <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="{{ url('/') }}"
                         style="background:linear-gradient(90deg,#7c3aed,#2563eb);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
-                            stroke="url(#logo-grad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                            style="-webkit-text-fill-color:initial;flex-shrink:0;">
-                            <defs><linearGradient id="logo-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-                                <stop offset="0%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#2563eb"/>
-                            </linearGradient></defs>
-                            <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
-                            <line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"
+                            fill="none" stroke="url(#logo-grad)" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" style="-webkit-text-fill-color:initial;flex-shrink:0;">
+                            <defs>
+                                <linearGradient id="logo-grad" x1="0%" y1="0%" x2="100%"
+                                    y2="0%">
+                                    <stop offset="0%" stop-color="#7c3aed" />
+                                    <stop offset="100%" stop-color="#2563eb" />
+                                </linearGradient>
+                            </defs>
+                            <rect x="2" y="7" width="20" height="14" rx="2" />
+                            <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
+                            <line x1="12" y1="12" x2="12" y2="16" />
+                            <line x1="10" y1="14" x2="14" y2="14" />
                         </svg>
                         {{ config('app.name', 'DCM') }}
                     </a>
@@ -251,8 +272,8 @@
                                 @can('production.project.view')
                                     <li class="nav-item dropdown">
                                         <a class="nav-link dropdown-toggle {{ request()->is('projects*') || request()->is('internal-projects*') || request()->is('job-order-type-gradings*') ? 'active' : '' }}"
-                                            href="#" id="projectsDropdown" role="button" data-bs-toggle="dropdown"
-                                            aria-expanded="false">
+                                            href="#" id="projectsDropdown" role="button"
+                                            data-bs-toggle="dropdown" aria-expanded="false">
                                             <i></i>Projects
                                         </a>
                                         <ul class="dropdown-menu" aria-labelledby="projectsDropdown">
@@ -288,8 +309,8 @@
                                     'lark.staging.view'])
                                     <li class="nav-item dropdown">
                                         <a class="nav-link dropdown-toggle {{ isDropdownActive($logisticsPrefixes) ? 'active' : '' }}"
-                                            href="#" id="logisticsDropdown" role="button" data-bs-toggle="dropdown"
-                                            aria-expanded="false">
+                                            href="#" id="logisticsDropdown" role="button"
+                                            data-bs-toggle="dropdown" aria-expanded="false">
                                             <i></i>Logistics
                                         </a>
                                         <ul class="dropdown-menu" aria-labelledby="logisticsDropdown">
@@ -762,22 +783,23 @@
                                                 ->count();
                                         @endphp
                                         @php
-                                            $hrNavActive = request()->is('employees*')
-                                                || request()->is('hr/*')
-                                                || request()->routeIs('leave_requests.index')
-                                                || request()->routeIs('attendance-logs.*')
-                                                || request()->routeIs('overtime-requests.*')
-                                                || request()->routeIs('overtime-pays.*')
-                                                || request()->routeIs('fingerspot.*')
-                                                || request()->routeIs('session-shifts.*')
-                                                || request()->routeIs('warning-letters.*')
-                                                || request()->routeIs('warning-batches.*')
-                                                || request()->routeIs('symcore-export.*');
+                                            $hrNavActive =
+                                                request()->is('employees*') ||
+                                                request()->is('hr/*') ||
+                                                request()->routeIs('leave_requests.index') ||
+                                                request()->routeIs('attendance-logs.*') ||
+                                                request()->routeIs('overtime-requests.*') ||
+                                                request()->routeIs('overtime-pays.*') ||
+                                                request()->routeIs('fingerspot.*') ||
+                                                request()->routeIs('session-shifts.*') ||
+                                                request()->routeIs('warning-letters.*') ||
+                                                request()->routeIs('warning-batches.*') ||
+                                                request()->routeIs('symcore-export.*');
                                         @endphp
                                         <li class="nav-item dropdown">
                                             <a class="nav-link dropdown-toggle {{ $hrNavActive ? 'active' : '' }}"
-                                                href="#" id="hrDropdown" role="button"
-                                                data-bs-toggle="dropdown" aria-expanded="false">
+                                                href="#" id="hrDropdown" role="button" data-bs-toggle="dropdown"
+                                                aria-expanded="false">
                                                 <i></i>HR
                                             </a>
                                             <ul class="dropdown-menu" aria-labelledby="hrDropdown">
@@ -785,42 +807,49 @@
                                                 {{-- HR Dashboard --}}
                                                 <li>
                                                     <a class="dropdown-item {{ request()->routeIs('hr.dashboard') ? 'active' : '' }}"
-                                                       href="{{ route('hr.dashboard') }}">
+                                                        href="{{ route('hr.dashboard') }}">
                                                         <i class="fas fa-chart-pie me-2"></i>HR Dashboard
                                                     </a>
                                                 </li>
-                                                <li><hr class="dropdown-divider"></li>
+                                                <li>
+                                                    <hr class="dropdown-divider">
+                                                </li>
 
                                                 {{-- Record --}}
                                                 <li>
                                                     <a class="dropdown-item {{ request()->routeIs('hr.record') || request()->is('employees*') || request()->routeIs('fingerspot.*') || (request()->routeIs('session-shifts.*') && !request()->routeIs('session-shifts.live-monitor')) || request()->routeIs('symcore-export.*') ? 'active' : '' }}"
-                                                       href="{{ route('hr.record') }}">
+                                                        href="{{ route('hr.record') }}">
                                                         <i class="fas fa-folder-open me-2"></i>Record
                                                     </a>
                                                 </li>
 
                                                 {{-- Management --}}
                                                 @can('hr.attendance.view')
-                                                <li>
-                                                    @php
-                                                        $mgmtPending = ($hrLeavePendingCount ?? 0) + ($directorLeavePendingCount ?? 0) + ($hrOvertimePendingCount ?? 0) + ($directorOvertimePendingCount ?? 0);
-                                                    @endphp
-                                                    <a class="dropdown-item d-flex align-items-center justify-content-between {{ request()->routeIs('hr.management') || request()->routeIs('leave_requests.index') || request()->routeIs('overtime-requests.*') || request()->routeIs('overtime-pays.*') || request()->routeIs('warning-letters.*') || request()->routeIs('warning-batches.*') || request()->routeIs('leave_requests.hr-approvals') || request()->routeIs('leave_requests.director-approvals') ? 'active' : '' }}"
-                                                       href="{{ route('hr.management') }}">
-                                                        <span><i class="fas fa-tasks me-2"></i>Management</span>
-                                                        @if($mgmtPending > 0)
-                                                            <span class="badge bg-danger rounded-pill ms-2" style="font-size:0.6rem;">{{ $mgmtPending > 99 ? '99+' : $mgmtPending }}</span>
-                                                        @endif
-                                                    </a>
-                                                </li>
+                                                    <li>
+                                                        @php
+                                                            $mgmtPending =
+                                                                ($hrLeavePendingCount ?? 0) +
+                                                                ($directorLeavePendingCount ?? 0) +
+                                                                ($hrOvertimePendingCount ?? 0) +
+                                                                ($directorOvertimePendingCount ?? 0);
+                                                        @endphp
+                                                        <a class="dropdown-item d-flex align-items-center justify-content-between {{ request()->routeIs('hr.management') || request()->routeIs('leave_requests.index') || request()->routeIs('overtime-requests.*') || request()->routeIs('overtime-pays.*') || request()->routeIs('warning-letters.*') || request()->routeIs('warning-batches.*') || request()->routeIs('leave_requests.hr-approvals') || request()->routeIs('leave_requests.director-approvals') ? 'active' : '' }}"
+                                                            href="{{ route('hr.management') }}">
+                                                            <span><i class="fas fa-tasks me-2"></i>Management</span>
+                                                            @if ($mgmtPending > 0)
+                                                                <span class="badge bg-danger rounded-pill ms-2"
+                                                                    style="font-size:0.6rem;">{{ $mgmtPending > 99 ? '99+' : $mgmtPending }}</span>
+                                                            @endif
+                                                        </a>
+                                                    </li>
 
-                                                {{-- Attendance --}}
-                                                <li>
-                                                    <a class="dropdown-item {{ request()->routeIs('hr.attendance-hub') || request()->routeIs('attendance-logs.*') || request()->routeIs('session-shifts.live-monitor') ? 'active' : '' }}"
-                                                       href="{{ route('hr.attendance-hub') }}">
-                                                        <i class="fas fa-clock me-2"></i>Attendance
-                                                    </a>
-                                                </li>
+                                                    {{-- Attendance --}}
+                                                    <li>
+                                                        <a class="dropdown-item {{ request()->routeIs('hr.attendance-hub') || request()->routeIs('attendance-logs.*') || request()->routeIs('session-shifts.live-monitor') ? 'active' : '' }}"
+                                                            href="{{ route('hr.attendance-hub') }}">
+                                                            <i class="fas fa-clock me-2"></i>Attendance
+                                                        </a>
+                                                    </li>
                                                 @endcan
 
                                             </ul>
@@ -2203,20 +2232,24 @@
         <!-- ============================================================ -->
 
         <script>
-        // HR nested dropdown: klik untuk toggle (mobile & desktop fallback)
-        document.querySelectorAll('.hr-submenu-toggle').forEach(function(el) {
-            el.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                var parent = this.closest('.dropdown-submenu');
-                var isOpen = parent.classList.contains('open');
-                document.querySelectorAll('.dropdown-submenu.open').forEach(function(s) { s.classList.remove('open'); });
-                if (!isOpen) parent.classList.add('open');
+            // HR nested dropdown: klik untuk toggle (mobile & desktop fallback)
+            document.querySelectorAll('.hr-submenu-toggle').forEach(function(el) {
+                el.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    var parent = this.closest('.dropdown-submenu');
+                    var isOpen = parent.classList.contains('open');
+                    document.querySelectorAll('.dropdown-submenu.open').forEach(function(s) {
+                        s.classList.remove('open');
+                    });
+                    if (!isOpen) parent.classList.add('open');
+                });
             });
-        });
-        document.addEventListener('click', function() {
-            document.querySelectorAll('.dropdown-submenu.open').forEach(function(s) { s.classList.remove('open'); });
-        });
+            document.addEventListener('click', function() {
+                document.querySelectorAll('.dropdown-submenu.open').forEach(function(s) {
+                    s.classList.remove('open');
+                });
+            });
         </script>
     </body>
 
