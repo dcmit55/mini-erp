@@ -1,14 +1,14 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container-fluid py-3" id="timing-across-page">
+<div class="container-fluid py-3" id="timing-cross-page">
 
     {{-- ── HEADER ── --}}
     <div class="d-flex align-items-center mb-3 gap-3 flex-wrap">
         <div>
             <h4 class="mb-0 fw-bold"
                 style="background:linear-gradient(90deg,#7c3aed,#2563eb);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">
-                <i class="fas fa-layer-group me-2" style="-webkit-text-fill-color:#7c3aed;"></i>Timing Across
+                <i class="fas fa-layer-group me-2" style="-webkit-text-fill-color:#7c3aed;"></i>Dept Cross Timing
             </h4>
             <small class="text-muted">Universal timing — semua karyawan &amp; semua job order</small>
         </div>
@@ -511,7 +511,7 @@ $(function() {
         employeeArr.forEach(id => { tasksPayload[id] = task; sessionTypesPayload[id] = sessionType; });
 
         $.ajax({
-            url: '{{ route('timing-across.start') }}',
+            url: '{{ route('timing-cross.start') }}',
             method: 'POST',
             data: { _token: CSRF, employees: employeeArr, job_order_id: selectedJoId,
                     task, tasks: tasksPayload, session_type: sessionType, session_types: sessionTypesPayload },
@@ -576,7 +576,7 @@ $(function() {
         const btn = $('#stop-submit-btn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>Stopping...');
 
         $.ajax({
-            url: '{{ route('timing-across.stop') }}',
+            url: '{{ route('timing-cross.stop') }}',
             method: 'POST',
             data: {
                 _token: CSRF,
@@ -612,7 +612,7 @@ $(function() {
         }).then(r => {
             if (!r.isConfirmed) return;
             $.ajax({
-                url: '{{ route('timing-across.freeze') }}', method:'POST',
+                url: '{{ route('timing-cross.freeze') }}', method:'POST',
                 data: { _token:CSRF, timing_id:timingId },
                 success(res) {
                     if (res.success) { Swal.fire({ icon:'success', title:'Paused!', text:res.message, timer:1500, showConfirmButton:false }); loadActiveSessions(); }
@@ -634,7 +634,7 @@ $(function() {
         }).then(r => {
             if (!r.isConfirmed) return;
             $.ajax({
-                url: '{{ route('timing-across.unfreeze') }}', method:'POST',
+                url: '{{ route('timing-cross.unfreeze') }}', method:'POST',
                 data: { _token:CSRF, timing_id:timingId },
                 success(res) {
                     if (res.success) { Swal.fire({ icon:'success', title:'Dilanjutkan!', text:res.message, timer:1500, showConfirmButton:false }); loadActiveSessions(); }
@@ -648,7 +648,7 @@ $(function() {
     /* ─── LOAD ACTIVE SESSIONS ─── */
     function loadActiveSessions() {
         $.ajax({
-            url: '{{ route('timing-across.active-sessions') }}',
+            url: '{{ route('timing-cross.active-sessions') }}',
             method: 'GET',
             success(res) {
                 if (!res.success) return;
@@ -739,7 +739,7 @@ $(function() {
         if (selectedBulkIds.size === 0) return;
         const btn = $(this).prop('disabled', true).text('Stopping...');
         $.ajax({
-            url: '{{ route('timing-across.bulk-stop') }}', method: 'POST',
+            url: '{{ route('timing-cross.bulk-stop') }}', method: 'POST',
             data: { _token:CSRF, timing_ids:Array.from(selectedBulkIds),
                     output_qty:$('#bulk-output-qty').val(),
                     measurement_type:$('#bulk-measurement-type').val() },

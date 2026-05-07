@@ -546,17 +546,17 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/plan/{jobOrderId}', [\App\Http\Controllers\Timing\TimingPlannerController::class, 'getPlan'])->name('get');
         });
 
-    // Timing Across — Universal timing (no department restriction)
-    Route::prefix('timing-across')
-        ->name('timing-across.')
+    // Dept Cross Timing — Universal timing (no department restriction)
+    Route::prefix('timing-cross')
+        ->name('timing-cross.')
         ->group(function () {
-            Route::get('/', [\App\Http\Controllers\Timing\Across\TimingAcrossController::class, 'index'])->name('index');
-            Route::post('/start', [\App\Http\Controllers\Timing\Across\TimingAcrossController::class, 'start'])->name('start');
-            Route::post('/stop', [\App\Http\Controllers\Timing\Across\TimingAcrossController::class, 'stop'])->name('stop');
-            Route::post('/freeze', [\App\Http\Controllers\Timing\Across\TimingAcrossController::class, 'freeze'])->name('freeze');
-            Route::post('/unfreeze', [\App\Http\Controllers\Timing\Across\TimingAcrossController::class, 'unfreeze'])->name('unfreeze');
-            Route::post('/bulk-stop', [\App\Http\Controllers\Timing\Across\TimingAcrossController::class, 'bulkStop'])->name('bulk-stop');
-            Route::get('/active-sessions', [\App\Http\Controllers\Timing\Across\TimingAcrossController::class, 'getActiveSessions'])->name('active-sessions');
+            Route::get('/', [\App\Http\Controllers\Timing\Cross\TimingCrossController::class, 'index'])->name('index');
+            Route::post('/start', [\App\Http\Controllers\Timing\Cross\TimingCrossController::class, 'start'])->name('start');
+            Route::post('/stop', [\App\Http\Controllers\Timing\Cross\TimingCrossController::class, 'stop'])->name('stop');
+            Route::post('/freeze', [\App\Http\Controllers\Timing\Cross\TimingCrossController::class, 'freeze'])->name('freeze');
+            Route::post('/unfreeze', [\App\Http\Controllers\Timing\Cross\TimingCrossController::class, 'unfreeze'])->name('unfreeze');
+            Route::post('/bulk-stop', [\App\Http\Controllers\Timing\Cross\TimingCrossController::class, 'bulkStop'])->name('bulk-stop');
+            Route::get('/active-sessions', [\App\Http\Controllers\Timing\Cross\TimingCrossController::class, 'getActiveSessions'])->name('active-sessions');
         });
 
     // Timing Session Detail - Shared detail page for any timing session

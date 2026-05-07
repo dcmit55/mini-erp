@@ -193,7 +193,7 @@
                 style="background: var(--bs-body-bg); transition: background-color .2s, border-color .2s;">
                 <div class="container-fluid">
                     <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="{{ url('/') }}"
-                        style="background:linear-gradient(90deg,#7c3aed,#2563eb);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">
+                        style="background:linear-gradient(90deg,#e0364d,#2563eb);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">
                         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"
                             fill="none" stroke="url(#logo-grad)" stroke-width="2" stroke-linecap="round"
                             stroke-linejoin="round" style="-webkit-text-fill-color:initial;flex-shrink:0;">
@@ -596,7 +596,7 @@
                                     'production.costume-timing.view', 'production.animatronics-timing.view',
                                     'production.timing-monitor.view'])
                                     <li class="nav-item dropdown">
-                                        <a class="nav-link dropdown-toggle {{ request()->is('costume-timing*') || request()->is('animatronics-timing*') || request()->is('mascot-timing*') || request()->is('timing-across*') || request()->is('timing-monitor*') || request()->is('timing-approval*') || request()->is('timings*') || request()->is('timing-planner*') ? 'active' : '' }}"
+                                        <a class="nav-link dropdown-toggle {{ request()->is('costume-timing*') || request()->is('animatronics-timing*') || request()->is('mascot-timing*') || request()->is('timing-cross*') || request()->is('timing-monitor*') || request()->is('timing-approval*') || request()->is('timings*') || request()->is('timing-planner*') ? 'active' : '' }}"
                                             href="#" id="timingDropdown" role="button" data-bs-toggle="dropdown"
                                             aria-expanded="false">
                                             <i></i>Timing
@@ -626,11 +626,11 @@
                                                     </a>
                                                 </li>
                                             @endcan
-                                            @canany(['production.timing-across.view', 'production.timing.view'])
+                                            @canany(['production.timing-cross.view', 'production.timing.view'])
                                                 <li>
-                                                    <a class="dropdown-item {{ request()->is('timing-across*') ? 'active' : '' }}"
-                                                        href="{{ route('timing-across.index') }}">
-                                                        <i class="fas fa-layer-group me-2"></i>Timing Across
+                                                    <a class="dropdown-item {{ request()->is('timing-cross*') ? 'active' : '' }}"
+                                                        href="{{ route('timing-cross.index') }}">
+                                                        <i class="fas fa-layer-group me-2"></i>Cross Dept Timing
                                                     </a>
                                                 </li>
                                             @endcanany

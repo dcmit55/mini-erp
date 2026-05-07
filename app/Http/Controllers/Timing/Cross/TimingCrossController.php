@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Timing\Across;
+namespace App\Http\Controllers\Timing\Cross;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Timing\ComputesTimingBreak;
@@ -15,11 +15,11 @@ use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 /**
- * Timing Across — universal timing module.
+ * Dept Cross Timing — universal timing module.
  * No department restriction: any employee, any job order.
- * Data stored in the same `timings` table with source='across'.
+ * Data stored in the same `timings` table with source='cross'.
  */
-class TimingAcrossController extends Controller
+class TimingCrossController extends Controller
 {
     use ComputesTimingBreak;
 
@@ -67,15 +67,15 @@ class TimingAcrossController extends Controller
             ->orderByRaw('CASE WHEN delivery_date IS NOT NULL AND DATE(delivery_date) < CURDATE() THEN delivery_date END DESC')
             ->get();
 
-        // Active sessions for this module (source='across') — today
-        $activeSessions = Timing::running()->today()->where('source', 'across')->withRelations()->orderBy('start_time', 'desc')->get();
+        // Active sessions for this module (source='cross') — today
+        $activeSessions = Timing::running()->today()->where('source', 'cross')->withRelations()->orderBy('start_time', 'desc')->get();
 
         // Group employees by department
         $departments = Department::orderBy('name')->get();
 
         $units = Unit::orderBy('name')->get();
 
-        return view('timing.across.index', compact('employees', 'employeesWithActiveSessions', 'clockedInToday', 'jobOrders', 'activeSessions', 'departments', 'bypassAttendance', 'units'));
+        return view('timing.cross.index', compact('employees', 'employeesWithActiveSessions', 'clockedInToday', 'jobOrders', 'activeSessions', 'departments', 'bypassAttendance', 'units'));
     }
 
     /* ──────────────────────────────────────────────────────────────────── */
@@ -149,9 +149,9 @@ class TimingAcrossController extends Controller
                     'measurement_value' => 0,
                     'status' => 'on progress',
                     'session_type' => $sessionTypeMap[$employeeId] ?? $defaultSession,
-                    'source' => 'across',
+                    'source' => 'cross',
                     'remarks' => null,
-                    'department_specific_data' => ['source' => 'across'],
+                    'department_specific_data' => ['source' => 'cross'],
                 ]);
 
                 $timings[] = [
@@ -355,7 +355,7 @@ class TimingAcrossController extends Controller
     /* ──────────────────────────────────────────────────────────────────── */
     public function getActiveSessions()
     {
-        $sessions = Timing::running()->today()->where('source', 'across')->withRelations()->orderBy('start_time', 'desc')->get();
+        $sessions = Timing::running()->today()->where('source', 'cross')->withRelations()->orderBy('start_time', 'desc')->get();
 
         return response()->json([
             'success' => true,
