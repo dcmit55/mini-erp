@@ -34,6 +34,7 @@ class TimingController extends Controller
         $timings = Timing::with(['project', 'employee.department', 'jobOrder'])
             ->orderByDesc('tanggal')
             ->orderByDesc('start_time')
+            ->orderByDesc('id')
             ->limit(300)
             ->get();
 
@@ -78,7 +79,7 @@ class TimingController extends Controller
         $hasFilter = $request->filled('search') || $request->filled('project_id') || $request->filled('job_order_id') || $request->filled('department') || $request->filled('employee_id') || $request->filled('date_from') || $request->filled('date_to');
         $limit = $hasFilter ? 1000 : 300;
 
-        $timings = $query->orderByDesc('tanggal')->orderByDesc('start_time')->limit($limit)->get();
+        $timings = $query->orderByDesc('tanggal')->orderByDesc('start_time')->orderByDesc('id')->limit($limit)->get();
 
         try {
             // Generate table rows HTML inline
@@ -104,7 +105,8 @@ class TimingController extends Controller
                     }
 
                     $html .= '<tr>';
-                    $html .= '<td class="date-col">' . ($timing->tanggal ? \Carbon\Carbon::parse($timing->tanggal)->format('d M Y') : '-') . '</td>';
+                    $isoDate = $timing->tanggal ? \Carbon\Carbon::parse($timing->tanggal)->format('Y-m-d') . ' ' . ($timing->start_time ?? '00:00:00') : '0000-00-00';
+                    $html .= '<td class="date-col" data-order="' . $isoDate . '">' . ($timing->tanggal ? \Carbon\Carbon::parse($timing->tanggal)->format('d M Y') : '-') . '</td>';
                     $html .= '<td>' . ($timing->project ? $timing->project->name : '-') . '</td>';
                     $html .= '<td>' . ($timing->jobOrder ? $timing->jobOrder->name : '-') . '</td>';
                     $html .= '<td>' . ($timing->employee && $timing->employee->department ? $timing->employee->department->name : '-') . '</td>';

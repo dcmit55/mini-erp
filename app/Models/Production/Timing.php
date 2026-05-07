@@ -50,6 +50,7 @@ class Timing extends Model implements AuditableContract
         'pause_log',
         'rate_per_hour',
         'session_type',
+        'source', // e.g. 'mascot', 'costume', 'animatronics', 'across'
     ];
 
     protected $casts = [

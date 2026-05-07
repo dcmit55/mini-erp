@@ -177,8 +177,18 @@
             <nav id="mainNavbar" class="navbar navbar-expand-lg border-bottom shadow-sm sticky-top"
                 style="background: var(--bs-body-bg); transition: background-color .2s, border-color .2s;">
                 <div class="container-fluid">
-                    <a class="navbar-brand fw-bold" href="{{ url('/') }}">
-                        {{ config('app.name', 'DCM-app') }}
+                    <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="{{ url('/') }}"
+                        style="background:linear-gradient(90deg,#7c3aed,#2563eb);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+                            stroke="url(#logo-grad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            style="-webkit-text-fill-color:initial;flex-shrink:0;">
+                            <defs><linearGradient id="logo-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#2563eb"/>
+                            </linearGradient></defs>
+                            <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+                            <line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/>
+                        </svg>
+                        {{ config('app.name', 'DCM') }}
                     </a>
                     <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
                         data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
@@ -565,7 +575,7 @@
                                     'production.costume-timing.view', 'production.animatronics-timing.view',
                                     'production.timing-monitor.view'])
                                     <li class="nav-item dropdown">
-                                        <a class="nav-link dropdown-toggle {{ request()->is('costume-timing*') || request()->is('animatronics-timing*') || request()->is('mascot-timing*') || request()->is('timing-monitor*') || request()->is('timing/live-workstation*') || request()->is('timing-approval*') || request()->is('timings*') || request()->is('timing-planner*') ? 'active' : '' }}"
+                                        <a class="nav-link dropdown-toggle {{ request()->is('costume-timing*') || request()->is('animatronics-timing*') || request()->is('mascot-timing*') || request()->is('timing-across*') || request()->is('timing-monitor*') || request()->is('timing-approval*') || request()->is('timings*') || request()->is('timing-planner*') ? 'active' : '' }}"
                                             href="#" id="timingDropdown" role="button" data-bs-toggle="dropdown"
                                             aria-expanded="false">
                                             <i></i>Timing
@@ -595,6 +605,14 @@
                                                     </a>
                                                 </li>
                                             @endcan
+                                            @canany(['production.timing-across.view', 'production.timing.view'])
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->is('timing-across*') ? 'active' : '' }}"
+                                                        href="{{ route('timing-across.index') }}">
+                                                        <i class="fas fa-layer-group me-2"></i>Timing Across
+                                                    </a>
+                                                </li>
+                                            @endcanany
                                             @canany(['production.timing-monitor.view', 'production.timing.view'])
                                                 <li>
                                                     <hr class="dropdown-divider">

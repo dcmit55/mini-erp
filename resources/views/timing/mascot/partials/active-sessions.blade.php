@@ -157,7 +157,8 @@
                             data-employee-name="{{ $session->employee->name }}"
                             data-job-order="{{ $session->jobOrder->name ?? $session->job_order_id }}"
                             data-job-order-id="{{ $session->job_order_id }}"
-                            data-previous-progress="{{ $previousProgress }}">
+                            data-previous-progress="{{ $previousProgress }}"
+                            data-planned-stage="{{ $departmentData['planned_stage'] ?? '' }}">
                             <i class="bi bi-stop-circle me-1"></i>STOP & SELECT STAGE
                         </button>
                         <button class="btn btn-outline-info btn-sm flex-shrink-0 detail-modal-btn"

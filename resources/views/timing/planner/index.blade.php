@@ -132,6 +132,7 @@
                                             return [
                                                 'employee_id' => $p->employee_id,
                                                 'task' => $p->task ?? '',
+                                                'parts' => $p->parts ?? '',
                                                 'stage' => $p->stage ?? '',
                                                 'session_type' => $p->session_type ?? '',
                                             ];
@@ -338,6 +339,7 @@
                 position: '',
                 department: '',
                 task: '',
+                parts: '',
                 stage: defaultStage,
                 session_type: '',
                 emp_id: null
@@ -356,14 +358,15 @@
                             position: emp.position,
                             department: emp.department,
                             task: typeof r === 'object' ? (r.task || '') : '',
+                            parts: typeof r === 'object' ? (r.parts || '') : '',
                             stage: typeof r === 'object' ? (r.stage || defaultStage) : defaultStage,
                             session_type: typeof r === 'object' ? (r.session_type || '') : '',
                             emp_id: emp.id
                         };
                     })
                     .filter(Boolean);
-                // Pad to MIN_ROWS
-                while (rows.length < MIN_ROWS) rows.push(EMPTY_ROW(defaultStage));
+                // Pad to MIN_ROWS — empty rows get no default stage
+                while (rows.length < MIN_ROWS) rows.push(EMPTY_ROW(''));
                 return rows;
             }
 
@@ -404,6 +407,7 @@
                     result.push({
                         employee_id: empId,
                         task: row.task || '',
+                        parts: row.parts || '',
                         stage: row.stage || '',
                         session_type: row.session_type || '',
                     });
@@ -433,7 +437,7 @@
                     height: Math.max(420, Math.floor(window.innerHeight * 0.55)),
                     stretchH: 'all',
                     rowHeaders: true,
-                    colHeaders: ['Employee Name', 'Position', 'Department', 'Task', 'Stage',
+                    colHeaders: ['Employee Name', 'Position', 'Department', 'Task', 'Parts', 'Stage',
                         'Session Type'
                     ],
                     columns: [{
@@ -468,6 +472,13 @@
                                 if (!value) td.textContent = 'e.g., Sculpting...';
                             },
                             width: 160,
+                        },
+                        {
+                            data: 'parts',
+                            type: 'dropdown',
+                            source: ['', ...@json($timingParts)],
+                            allowInvalid: true,
+                            width: 130,
                         },
                         {
                             data: 'stage',
@@ -516,6 +527,11 @@
                             empIdMap[row] = emp ? emp.id : null;
                             fills.push([row, 'position', emp ? emp.position : '']);
                             fills.push([row, 'department', emp ? emp.department : '']);
+                            // Auto-fill stage with JO default stage when employee is selected
+                            if (emp && defaultStage) {
+                                const currentStage = hotInstance.getSourceDataAtRow(row)?.stage || '';
+                                if (!currentStage) fills.push([row, 'stage', defaultStage]);
+                            }
                         });
                         if (fills.length) {
                             hotInstance.setDataAtRowProp(fills, '_fill');
@@ -622,7 +638,7 @@
                         for (let i = 0; i < n; i++) {
                             clears.push([i, 'name', ''], [i, 'position', ''], [i, 'department', ''], [i,
                                 'task', ''
-                            ], [i, 'stage', '']);
+                            ], [i, 'parts', ''], [i, 'stage', '']);
                             empIdMap[i] = null;
                         }
                         hotInstance.setDataAtRowProp(clears, '_fill');
@@ -647,6 +663,7 @@
                 planRows.forEach((row, i) => {
                     const fields = [];
                     if (!row.task) fields.push('Task');
+                    if (!row.parts) fields.push('Parts');
                     if (!row.stage) fields.push('Stage');
                     if (!row.session_type) fields.push('Session Type');
                     if (fields.length) missing.push(`Row ${i + 1}: ${fields.join(', ')}`);

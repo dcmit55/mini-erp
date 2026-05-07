@@ -101,10 +101,10 @@ class MascotTimingController extends Controller
         if (!empty($joIds)) {
             $today = today()->toDateString();
             // Load today's date-scoped plans first; fall back to NULL (legacy) plans for uncovered JOs
-            $todayPlans = JobOrderTimingPlan::whereIn('job_order_id', $joIds)->where('planning_date', $today)->select('job_order_id', 'employee_id', 'task', 'stage', 'session_type', 'planning_date', 'updated_at')->get()->groupBy('job_order_id');
+            $todayPlans = JobOrderTimingPlan::whereIn('job_order_id', $joIds)->where('planning_date', $today)->select('job_order_id', 'employee_id', 'task', 'parts', 'stage', 'session_type', 'planning_date', 'updated_at')->get()->groupBy('job_order_id');
             $coveredJoIds = $todayPlans->keys()->toArray();
             $uncoveredJoIds = array_diff($joIds, $coveredJoIds);
-            $legacyPlans = !empty($uncoveredJoIds) ? JobOrderTimingPlan::whereIn('job_order_id', $uncoveredJoIds)->whereNull('planning_date')->select('job_order_id', 'employee_id', 'task', 'stage', 'session_type', 'planning_date', 'updated_at')->get()->groupBy('job_order_id') : collect();
+            $legacyPlans = !empty($uncoveredJoIds) ? JobOrderTimingPlan::whereIn('job_order_id', $uncoveredJoIds)->whereNull('planning_date')->select('job_order_id', 'employee_id', 'task', 'parts', 'stage', 'session_type', 'planning_date', 'updated_at')->get()->groupBy('job_order_id') : collect();
             $plansByJo = $todayPlans->union($legacyPlans);
             foreach ($plansByJo as $joId => $rows) {
                 $plannedEmployeesPerJo[$joId] = $rows->pluck('employee_id')->toArray();
@@ -113,7 +113,9 @@ class MascotTimingController extends Controller
                     'employee_ids' => $rows->pluck('employee_id')->toArray(),
                     'task' => $first->task ?? '',
                     'task_per_emp' => $rows->pluck('task', 'employee_id')->toArray(),
+                    'parts_per_emp' => $rows->pluck('parts', 'employee_id')->toArray(),
                     'stage' => $first->stage ?? '',
+                    'stage_per_emp' => $rows->pluck('stage', 'employee_id')->toArray(),
                     'session_type' => $first->session_type ?? '',
                     'session_type_per_emp' => $rows->pluck('session_type', 'employee_id')->toArray(),
                     'plan_updated_at' => $first->updated_at ? $first->updated_at->format('d M H:i') : null,
@@ -236,6 +238,10 @@ class MascotTimingController extends Controller
             'session_type' => 'required|in:mass_production,repair',
             'session_types' => 'nullable|array',
             'session_types.*' => 'nullable|in:mass_production,repair',
+            'parts' => 'nullable|array',
+            'parts.*' => 'nullable|string|max:100',
+            'stages' => 'nullable|array',
+            'stages.*' => 'nullable|string|max:100',
         ]);
 
         // Build per-employee task map: tasks[emp_id] overrides task global
@@ -244,6 +250,10 @@ class MascotTimingController extends Controller
         // Build per-employee session_type map: session_types[emp_id] overrides global session_type
         $sessionTypeMap = $validated['session_types'] ?? [];
         $defaultSessionType = $validated['session_type'];
+        // Build per-employee parts map
+        $partsMap = $validated['parts'] ?? [];
+        // Build per-employee planned stage map (string like "5: Adjustment...")
+        $stageMap = $validated['stages'] ?? [];
 
         try {
             DB::beginTransaction();
@@ -337,6 +347,7 @@ class MascotTimingController extends Controller
                     'previous_progress' => $previousProgress,
                     'current_stage' => $previousStage, // Will be updated on stop
                     'current_progress' => $previousProgress, // Will be updated on stop
+                    'planned_stage' => $stageMap[$employeeId] ?? null, // From Timing Planner
                 ];
 
                 $timing = Timing::create([
@@ -344,7 +355,7 @@ class MascotTimingController extends Controller
                     'job_order_id' => $validated['job_order_id'],
                     'project_id' => $jobOrder->project_id,
                     'step' => $taskMap[$employeeId] ?? $defaultTask, // Per-employee task
-                    'parts' => 'N/A', // Not used in mascot timing
+                    'parts' => $partsMap[$employeeId] ?? null, // Per-employee parts
                     'employee_id' => $employeeId,
                     'start_time' => $startTime,
                     'end_time' => null,
@@ -796,8 +807,8 @@ class MascotTimingController extends Controller
             );
         }
 
-        // Get latest stage for this job order
-        $lastTiming = Timing::where('job_order_id', $jobOrderId)->whereNotNull('department_specific_data')->whereNotNull('end_time')->latest('tanggal')->latest('end_time')->first();
+        // Get latest stage for this job order (include in-progress sessions too)
+        $lastTiming = Timing::where('job_order_id', $jobOrderId)->whereNotNull('department_specific_data')->latest('tanggal')->latest('updated_at')->first();
 
         $currentStage = 0;
         $currentProgress = 0;

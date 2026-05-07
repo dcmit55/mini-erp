@@ -546,6 +546,19 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/plan/{jobOrderId}', [\App\Http\Controllers\Timing\TimingPlannerController::class, 'getPlan'])->name('get');
         });
 
+    // Timing Across — Universal timing (no department restriction)
+    Route::prefix('timing-across')
+        ->name('timing-across.')
+        ->group(function () {
+            Route::get('/', [\App\Http\Controllers\Timing\Across\TimingAcrossController::class, 'index'])->name('index');
+            Route::post('/start', [\App\Http\Controllers\Timing\Across\TimingAcrossController::class, 'start'])->name('start');
+            Route::post('/stop', [\App\Http\Controllers\Timing\Across\TimingAcrossController::class, 'stop'])->name('stop');
+            Route::post('/freeze', [\App\Http\Controllers\Timing\Across\TimingAcrossController::class, 'freeze'])->name('freeze');
+            Route::post('/unfreeze', [\App\Http\Controllers\Timing\Across\TimingAcrossController::class, 'unfreeze'])->name('unfreeze');
+            Route::post('/bulk-stop', [\App\Http\Controllers\Timing\Across\TimingAcrossController::class, 'bulkStop'])->name('bulk-stop');
+            Route::get('/active-sessions', [\App\Http\Controllers\Timing\Across\TimingAcrossController::class, 'getActiveSessions'])->name('active-sessions');
+        });
+
     // Timing Session Detail - Shared detail page for any timing session
     Route::get('/timing/heartbeat', [TimingDetailController::class, 'heartbeat'])->name('timing.heartbeat');
     Route::get('/timing/{id}/detail', [TimingDetailController::class, 'show'])->name('timing.detail.show');

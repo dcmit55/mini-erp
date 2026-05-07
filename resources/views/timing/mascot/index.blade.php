@@ -91,6 +91,9 @@
                                                 data-last-employees='@json($lastEmps)'
                                                 data-planned-task="{{ $planData['task'] ?? '' }}"
                                                 data-planned-tasks-by-emp='@json($planData['task_per_emp'] ?? [])'
+                                                data-planned-parts-by-emp='@json($planData['parts_per_emp'] ?? [])'
+                                                data-planned-stage="{{ $planData['stage'] ?? '' }}"
+                                                data-planned-stages-by-emp='@json($planData['stage_per_emp'] ?? [])'
                                                 data-planned-session-type="{{ $planData['session_type'] ?? '' }}"
                                                 data-planned-session-types-by-emp='@json($planData['session_type_per_emp'] ?? [])'
                                                 style="cursor:pointer; transition: all 0.3s;">
@@ -296,8 +299,8 @@
                                     Pilih JO di atas untuk melihat rinciannya.</span>
                             </div>
 
-                            {{-- Hidden fallback — controller still receives task & session_type --}}
-                            <input type="hidden" name="task" id="task-input" value="From Plan">
+                            {{-- Hidden fallback — task is taken per-employee from Timing Planner --}}
+                            <input type="hidden" name="task" id="task-input" value="">
                             <input type="hidden" name="session_type" id="session-type-hidden" value="mass_production">
 
                             <button type="submit" class="btn btn-success btn-lg w-100" id="start-work-btn">
@@ -505,7 +508,9 @@
             let selectedEmployees = [];
             let selectedJobOrder = null;
             let currentTasksByEmp = {}; // Per-employee planned tasks from plan
+            let currentPartsByEmp = {}; // Per-employee planned parts from plan
             let currentSessionTypesByEmp = {}; // Per-employee planned session_type from plan
+            let currentStagesByEmp = {}; // Per-employee planned stage from plan
 
             // Initialize Select2 for Stop modal — Stage
             $('#stop-stage').select2({
@@ -566,13 +571,17 @@
                 const plannedStage = $card.data('planned-stage') || '';
                 const plannedTask = $card.data('planned-task') || '';
                 const plannedTasksByEmp = $card.data('planned-tasks-by-emp') || {};
+                const plannedPartsByEmp = $card.data('planned-parts-by-emp') || {};
                 const plannedSessionType = $card.data('planned-session-type') || '';
                 const plannedSessionTypesByEmp = $card.data('planned-session-types-by-emp') || {};
+                const plannedStagesByEmp = $card.data('planned-stages-by-emp') || {};
                 const joName = $card.find('h6').first().text().trim();
 
                 // Store globally for form submission
                 currentTasksByEmp = plannedTasksByEmp;
+                currentPartsByEmp = plannedPartsByEmp;
                 currentSessionTypesByEmp = plannedSessionTypesByEmp;
+                currentStagesByEmp = plannedStagesByEmp;
 
                 // Toggle deselect if same card clicked
                 if ($card.hasClass('jo-selected')) {
@@ -676,7 +685,9 @@
             function deselectJobOrder() {
                 selectedJobOrder = null;
                 currentTasksByEmp = {};
+                currentPartsByEmp = {};
                 currentSessionTypesByEmp = {};
+                currentStagesByEmp = {};
                 $('#job-order-hidden').val('');
                 $('.jo-card').removeClass('jo-selected');
                 $('#jo-selected-info').text('No job order selected');
@@ -852,17 +863,44 @@
 
             function doMascotStartSession() {
                 const task = $('#task-input').val().trim();
+
+                // Validate that every selected employee has a task and parts from the plan
+                const missingTask = selectedEmployees.filter(id => !(currentTasksByEmp[id] || task));
+                const missingParts = selectedEmployees.filter(id => !currentPartsByEmp[id]);
+
+                if (missingTask.length > 0) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Task Belum Diset',
+                        html: `Beberapa karyawan belum memiliki <strong>Task</strong> dari Timing Planner. Harap set task di <a href="{{ route('timing-planner.index') }}" target="_blank">Timing Planner</a> terlebih dahulu.`,
+                    });
+                    return;
+                }
+
+                if (missingParts.length > 0) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Parts Belum Diset',
+                        html: `Beberapa karyawan belum memiliki <strong>Parts</strong> dari Timing Planner. Harap set parts di <a href="{{ route('timing-planner.index') }}" target="_blank">Timing Planner</a> terlebih dahulu.`,
+                    });
+                    return;
+                }
+
                 const btn = $('#start-work-btn');
                 btn.prop('disabled', true).html(
                     '<span class="spinner-border spinner-border-sm me-2"></span>Starting...');
 
                 // Build tasks per employee: use plan task if available, else global task input
                 const tasksPayload = {};
+                const partsPayload = {};
                 const sessionTypesPayload = {};
+                const stagesPayload = {};
                 selectedEmployees.forEach(empId => {
                     tasksPayload[empId] = currentTasksByEmp[empId] || task;
-                    sessionTypesPayload[empId] = currentSessionTypesByEmp[empId] || $(
+                    partsPayload[empId] = currentPartsByEmp[empId] || null;
+                    sessionTypesPayload[empId] = currentSessionTypesByEmp[empId] || $(  
                         '#session-type-hidden').val() || 'mass_production';
+                    stagesPayload[empId] = currentStagesByEmp[empId] || null;
                 });
 
                 $.ajax({
@@ -874,6 +912,8 @@
                         job_order_id: selectedJobOrder,
                         task: task,
                         tasks: tasksPayload,
+                        parts: partsPayload,
+                        stages: stagesPayload,
                         session_type: $('#session-type-hidden').val() || 'mass_production',
                         session_types: sessionTypesPayload
                     },
@@ -976,6 +1016,22 @@
                 // Pre-select current stage
                 if (currentStage > 0) {
                     $('#stop-stage').val(currentStage).trigger('change');
+                }
+
+                // Auto-select planned stage from Timing Planner (overrides current if planner stage is higher)
+                const plannedStageRaw = $(this).data('planned-stage') || '';
+                if (plannedStageRaw) {
+                    // Stage string format: "5: Adjustment & Finishing (Structure)" → extract 5
+                    const plannedStageNum = parseInt(String(plannedStageRaw).split(':')[0]) || 0;
+                    if (plannedStageNum > 0 && plannedStageNum >= currentStage) {
+                        $('#stop-stage').val(plannedStageNum).trigger('change');
+                        $('#stop-session-info').append(
+                            `<div class="alert alert-info mt-2 mb-0 py-2">
+                                <i class="bi bi-calendar2-check me-1"></i>
+                                <strong>Stage dari Timing Planner:</strong> ${plannedStageRaw}
+                            </div>`
+                        );
+                    }
                 }
 
                 // Add backward-navigation warning

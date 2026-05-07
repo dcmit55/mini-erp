@@ -181,7 +181,8 @@
                         @forelse($timings as $timing)
                             <tr>
                                 {{-- Date --}}
-                                <td class="date-col">
+                                <td class="date-col"
+                                    data-order="{{ $timing->tanggal ? \Carbon\Carbon::parse($timing->tanggal)->format('Y-m-d') . ' ' . ($timing->start_time ?? '00:00:00') : '0000-00-00' }}">
                                     {{ $timing->tanggal ? \Carbon\Carbon::parse($timing->tanggal)->format('d M Y') : '-' }}
                                 </td>
 
@@ -418,6 +419,7 @@
             min-width: 100px;
             max-width: 110px;
             white-space: nowrap;
+            text-align: left !important;
         }
 
         /* Column width constraints */
@@ -731,7 +733,7 @@
     <script>
         let dtConfig = {
             responsive: true,
-            stateSave: true,
+            stateSave: false,
             searching: false,
             paging: true,
             info: true,

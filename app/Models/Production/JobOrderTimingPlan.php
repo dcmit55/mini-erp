@@ -10,7 +10,7 @@ class JobOrderTimingPlan extends Model
 {
     protected $table = 'job_order_timing_plans';
 
-    protected $fillable = ['job_order_id', 'planning_date', 'employee_id', 'task', 'stage', 'session_type', 'created_by'];
+    protected $fillable = ['job_order_id', 'planning_date', 'employee_id', 'task', 'parts', 'stage', 'session_type', 'created_by'];
 
     public function jobOrder()
     {

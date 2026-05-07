@@ -492,7 +492,7 @@ class ProjectCostingController extends Controller
      * OT request on the same date. If the session overlaps with the OT window, the
      * overlapping portion is costed at the effective OT rate; the rest at normal rate.
      */
-    public function showWorkmanshipDetail($project_id)
+    public function showWorkmanshipDetail($project_id, \Illuminate\Http\Request $request)
     {
         $project = Project::where('id', $project_id)
             ->where(function ($q) {
@@ -501,13 +501,85 @@ class ProjectCostingController extends Controller
             ->firstOrFail();
         $project->load(['departments', 'jobOrders']);
 
-        $timings = \App\Models\Production\Timing::where('project_id', $project_id)
+        // ── JO filter ────────────────────────────────────────────────────────
+        $selectedJobOrderId = $request->input('job_order_id');
+
+        $timingQuery = \App\Models\Production\Timing::where('project_id', $project_id)
             ->where('status', 'complete')
             ->where('approval_status', 'approved')
             ->with(['jobOrder', 'employee.department'])
             ->orderBy('tanggal')
-            ->orderBy('start_time')
+            ->orderBy('start_time');
+
+        if ($selectedJobOrderId) {
+            $timingQuery->where('job_order_id', $selectedJobOrderId);
+        }
+
+        $timings = $timingQuery->get();
+
+        // ── Pending-approval breakdown per JO ────────────────────────────────
+        $pendingQuery = \App\Models\Production\Timing::where('project_id', $project_id)
+            ->where('status', 'complete')
+            ->where('approval_status', 'pending')
+            ->with(['employee:id,name,photo', 'jobOrder:id,name'])
+            ->orderBy('tanggal');
+
+        if ($selectedJobOrderId) {
+            $pendingQuery->where('job_order_id', $selectedJobOrderId);
+        }
+
+        $pendingTimings = $pendingQuery->get();
+
+        // Group pending by job_order for the card
+        $pendingByJo = $pendingTimings
+            ->groupBy('job_order_id')
+            ->map(function ($rows) {
+                $jo = $rows->first()->jobOrder;
+                $uniqueEmployees = $rows->pluck('employee')->filter()->unique('id')->values();
+                return [
+                    'jo_id' => $jo?->id,
+                    'jo_name' => $jo?->name ?? 'No Job Order',
+                    'count' => $rows->count(),
+                    'employees' => $uniqueEmployees->map(fn($e) => ['id' => $e->id, 'name' => $e->name, 'photo' => $e->photo])->values(),
+                    'emp_count' => $uniqueEmployees->count(),
+                    'date_range' => $rows->min(fn($t) => optional($t->tanggal)->format('d M Y')) . ' – ' . $rows->max(fn($t) => optional($t->tanggal)->format('d M Y')),
+                ];
+            })
+            ->values();
+
+        $totalPendingCount = $pendingTimings->count();
+        $totalPendingEmpCount = $pendingTimings->pluck('employee_id')->unique()->count();
+
+        // ── Approval ratio per JO (for dropdown info) ────────────────────────
+        // Load ALL complete timings per JO (approved + pending) for ratio display
+        $allCompletePerJo = \App\Models\Production\Timing::where('project_id', $project_id)
+            ->where('status', 'complete')
+            ->whereIn('approval_status', ['approved', 'pending'])
+            ->selectRaw('job_order_id, approval_status, COUNT(DISTINCT employee_id) as emp_count, COUNT(*) as session_count')
+            ->groupBy('job_order_id', 'approval_status')
             ->get();
+
+        // Build per-JO approval stats: ['jo_id' => ['approved_emp'=>N, 'pending_emp'=>N, 'total_sessions'=>N, 'approved_sessions'=>N]]
+        $joApprovalStats = [];
+        foreach ($allCompletePerJo as $row) {
+            $jid = $row->job_order_id ?? 'null';
+            if (!isset($joApprovalStats[$jid])) {
+                $joApprovalStats[$jid] = ['approved_emp' => 0, 'pending_emp' => 0, 'approved_sessions' => 0, 'pending_sessions' => 0];
+            }
+            if ($row->approval_status === 'approved') {
+                $joApprovalStats[$jid]['approved_emp'] += $row->emp_count;
+                $joApprovalStats[$jid]['approved_sessions'] += $row->session_count;
+            } else {
+                $joApprovalStats[$jid]['pending_emp'] += $row->emp_count;
+                $joApprovalStats[$jid]['pending_sessions'] += $row->session_count;
+            }
+        }
+
+        // All job orders for this project (for filter dropdown)
+        $projectJobOrders = $project
+            ->jobOrders()
+            ->orderBy('name')
+            ->get(['id', 'name']);
 
         // ── Load approved OT requests — scoped to this project's employees, dates, and job orders ──
         $employeeIds = $timings->pluck('employee_id')->unique()->values()->toArray();
@@ -763,7 +835,7 @@ class ProjectCostingController extends Controller
         $latestDate = $timings->sortByDesc('tanggal')->first()?->tanggal;
         $latestDateFmt = $latestDate ? $latestDate->format('d M Y') : '—';
 
-        return view('finance.costing.workmanship-detail', compact('project', 'timingRows', 'byEmployee', 'workSessions', 'weekdayOtRows', 'weekendOtRows', 'hasWdOt', 'hasWeOt', 'totalLaborHours', 'totalOperators', 'avgHourlyRate', 'totalLaborCost', 'totalNormalCost', 'totalOtCost', 'totalWdOtCost', 'totalWeOtCost', 'totalWdOtHours', 'totalWeOtHours', 'latestDateFmt'));
+        return view('finance.costing.workmanship-detail', compact('project', 'timingRows', 'byEmployee', 'workSessions', 'weekdayOtRows', 'weekendOtRows', 'hasWdOt', 'hasWeOt', 'totalLaborHours', 'totalOperators', 'avgHourlyRate', 'totalLaborCost', 'totalNormalCost', 'totalOtCost', 'totalWdOtCost', 'totalWeOtCost', 'totalWdOtHours', 'totalWeOtHours', 'latestDateFmt', 'projectJobOrders', 'selectedJobOrderId', 'joApprovalStats', 'pendingByJo', 'totalPendingCount', 'totalPendingEmpCount'));
     }
 
     /**
