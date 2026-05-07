@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Timing\ComputesTimingBreak;
 use App\Models\Production\Timing;
 use App\Models\Production\JobOrder;
+use App\Models\Production\TimingPart;
 use App\Models\Hr\AttendanceLog;
 use App\Models\Hr\Employee;
 use App\Models\Admin\Department;
@@ -75,7 +76,13 @@ class TimingCrossController extends Controller
 
         $units = Unit::orderBy('name')->get();
 
-        return view('timing.cross.index', compact('employees', 'employeesWithActiveSessions', 'clockedInToday', 'jobOrders', 'activeSessions', 'departments', 'bypassAttendance', 'units'));
+        // Parts master list for dropdown
+        $timingParts = TimingPart::active()->get();
+
+        // All distinct positions for filter
+        $positions = Employee::where('status', 'active')->whereNotNull('position')->distinct()->pluck('position')->sort()->values();
+
+        return view('timing.cross.index', compact('employees', 'employeesWithActiveSessions', 'clockedInToday', 'jobOrders', 'activeSessions', 'departments', 'bypassAttendance', 'units', 'timingParts', 'positions'));
     }
 
     /* ──────────────────────────────────────────────────────────────────── */
@@ -93,6 +100,7 @@ class TimingCrossController extends Controller
             'session_type' => 'required|in:mass_production,repair',
             'session_types' => 'nullable|array',
             'session_types.*' => 'nullable|in:mass_production,repair',
+            'parts' => 'required|string|max:100',
         ]);
 
         $taskMap = $validated['tasks'] ?? [];
@@ -141,7 +149,7 @@ class TimingCrossController extends Controller
                     'job_order_id' => $validated['job_order_id'],
                     'project_id' => $jobOrder->project_id,
                     'step' => $taskMap[$employeeId] ?? $defaultTask,
-                    'parts' => null,
+                    'parts' => $validated['parts'],
                     'employee_id' => $employeeId,
                     'start_time' => $startTime,
                     'end_time' => null,
