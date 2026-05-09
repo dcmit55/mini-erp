@@ -107,6 +107,13 @@
                                 @error('parts')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
                         </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">Item <span class="text-muted small">(optional)</span></label>
+                                <input type="text" class="form-control @error('item') is-invalid @enderror"
+                                    name="item" value="{{ old('item', $timing->item) }}" placeholder="e.g. Sample 1, Batch A">
+                                @error('item')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            </div>
 
                         {{-- Row 4: Time + Break --}}
                         @php

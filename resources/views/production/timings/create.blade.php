@@ -34,6 +34,7 @@
                                     <th style="width:7%;">Department</th>
                                     <th style="width:9%;">Step</th>
                                     <th style="width:7%;">Part</th>
+                                    <th style="width:7%;">Item</th>
                                     <th style="width:10%;">Employee <span class="text-danger">*</span></th>
                                     <th style="width:5%;">Start <span class="text-danger">*</span></th>
                                     <th style="width:5%;">End <span class="text-danger">*</span></th>
@@ -109,6 +110,12 @@
                                             <input type="text" name="timings[{{ $i }}][parts]"
                                                 class="form-control form-control-sm{{ $errors->has("timings.$i.parts") ? ' is-invalid' : '' }}"
                                                 placeholder="Optional" value="{{ old("timings.$i.parts") }}">
+                                        </td>
+                                        {{-- Item --}}
+                                        <td data-label="Item">
+                                            <input type="text" name="timings[{{ $i }}][item]"
+                                                class="form-control form-control-sm"
+                                                placeholder="Optional" value="{{ old("timings.$i.item") }}">
                                         </td>
                                         {{-- Employee --}}
                                         <td data-label="Employee">
@@ -343,6 +350,7 @@
                 let prevEnd = $lastRow.find('input[name$="[end_time]"]').val();
                 let prevStep = $lastRow.find('input[name$="[step]"]').val();
                 let prevParts = $lastRow.find('input[name$="[parts]"]').val();
+                let prevItem = $lastRow.find('input[name$="[item]"]').val();
                 let prevSessionType = $lastRow.find('select[name$="[session_type]"]').val();
 
                 $newRow.find('input, select').each(function() {
@@ -365,6 +373,8 @@
                         $(this).val(prevStep); // ✅ Copy step
                     } else if ($(this).is('[name$="[parts]"]')) {
                         $(this).val(prevParts); // ✅ Copy parts
+                    } else if ($(this).is('[name$="[item]"]')) {
+                        $(this).val(prevItem); // ✅ Copy item
                     } else if ($(this).is('[name$="[session_type]"]')) {
                         $(this).val(prevSessionType); // ✅ Copy session type
                     } else if ($(this).is('[name$="[employee_id]"]')) {

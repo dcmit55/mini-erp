@@ -590,14 +590,14 @@
                     }
 
                     // JO images for carousel
-                    $heroJoImages = $project->jobOrders->filter(fn($jo) => $jo->hasFinalImage())->values();
+                    $heroJoImages = $project->jobOrders->filter(fn($jo) => $jo->hasWipPhoto())->values();
                 @endphp
                 <div class="hero-photo-panel" style="{{ $heroJoImages->count() > 0 ? 'padding:0; overflow:hidden;' : '' }}">
                     @if ($heroJoImages->count() > 0)
                         {{-- Hidden Fancybox gallery anchors (semua JO images) --}}
                         <div style="display:none;" aria-hidden="true">
                             @foreach ($heroJoImages as $idx => $jo)
-                                <a href="{{ $jo->final_image_url }}" data-fancybox="hero-jo-gallery"
+                                <a href="{{ $jo->wip_photo_url }}" data-fancybox="hero-jo-gallery"
                                     data-caption="{{ e($jo->name) }} — {{ e($project->name) }}"
                                     id="heroGalleryAnchor{{ $idx }}"></a>
                             @endforeach
@@ -610,7 +610,7 @@
                                 @foreach ($heroJoImages as $idx => $jo)
                                     <div class="carousel-item {{ $idx === 0 ? 'active' : '' }}"
                                         data-gallery-index="{{ $idx }}" style="height:100%; cursor:zoom-in;">
-                                        <img src="{{ $jo->final_image_url }}" alt="{{ e($jo->name) }}"
+                                        <img src="{{ $jo->wip_photo_url }}" alt="{{ e($jo->name) }}"
                                             class="hero-carousel-img" data-gallery-index="{{ $idx }}"
                                             style="width:100%; height:100%; object-fit:contain; background:#111; display:block; cursor:zoom-in;">
                                         {{-- JO name overlay --}}
