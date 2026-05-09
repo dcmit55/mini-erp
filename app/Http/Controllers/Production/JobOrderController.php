@@ -342,6 +342,9 @@ class JobOrderController extends Controller
      */
     public function syncFromLark(LarkJobOrderSyncService $syncService)
     {
+        // Allow up to 5 minutes for image downloads during sync
+        set_time_limit(300);
+
         try {
             $stats = $syncService->sync();
 

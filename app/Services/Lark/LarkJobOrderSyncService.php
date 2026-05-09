@@ -80,10 +80,16 @@ class LarkJobOrderSyncService
                         ->select(['final_image', 'wip_photo'])
                         ->first();
 
-                    $existingImages = $existing ? [
-                        'final_image' => $existing->final_image,
-                        'wip_photo'   => $existing->wip_photo,
-                    ] : [];
+                    $existingImages = [];
+                    if ($existing) {
+                        // Only reuse if the file actually exists on disk
+                        if (!empty($existing->final_image) && \Storage::disk('public')->exists($existing->final_image)) {
+                            $existingImages['final_image'] = $existing->final_image;
+                        }
+                        if (!empty($existing->wip_photo) && \Storage::disk('public')->exists($existing->wip_photo)) {
+                            $existingImages['wip_photo'] = $existing->wip_photo;
+                        }
+                    }
 
                     // Transform to database format
                     $data = $this->transformer->transform($dto, $existingImages);

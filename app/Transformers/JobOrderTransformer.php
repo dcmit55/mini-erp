@@ -419,8 +419,9 @@ class JobOrderTransformer
     }
 
     /**
-     * Normalize WIP photo from Lark attachment — downloads first photo to local storage
-     * Skips videos (mp4, mov, avi, webm, etc.), picks first image attachment.
+     * Normalize WIP photo from Lark attachment — downloads first photo to local storage.
+     * Skips videos by checking metadata ONLY (no download per attachment).
+     * Only one download attempt is made (the first non-video found).
      *
      * @param array|null $attachments Raw attachment array from Lark
      * @return string|null Local storage path or null
@@ -434,22 +435,24 @@ class JobOrderTransformer
         $videoExtensions = ['mp4', 'mov', 'avi', 'webm', 'mkv', 'flv', 'wmv', '3gp'];
         $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
 
+        // Find the first non-video attachment using metadata only (no HTTP request)
+        $targetAttachment = null;
         foreach ($attachments as $attachment) {
             if (!$attachment || !is_array($attachment)) {
                 continue;
             }
 
-            // Check mime type if available
+            // Check mime type
             $mimeType = $attachment['mime_type'] ?? $attachment['type'] ?? '';
             if ($mimeType && str_starts_with($mimeType, 'video/')) {
-                continue; // Skip videos
+                continue;
             }
 
-            // Check extension from name or URL
+            // Check extension from filename
             $name = $attachment['name'] ?? '';
             $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
             if (in_array($ext, $videoExtensions)) {
-                continue; // Skip videos by extension
+                continue;
             }
 
             $larkUrl = $attachment['url'] ?? ($attachment['tmp_url'] ?? null);
@@ -457,45 +460,53 @@ class JobOrderTransformer
                 continue;
             }
 
-            // Also check extension from URL
+            // Check extension from URL path
             $urlExt = strtolower(pathinfo(parse_url($larkUrl, PHP_URL_PATH), PATHINFO_EXTENSION));
             if (in_array($urlExt, $videoExtensions)) {
                 continue;
             }
 
-            try {
-                $response = $this->apiClient->downloadMedia($larkUrl);
-
-                if (!$response || !$response->successful()) {
-                    Log::error('Job Order wip_photo: failed to download from Lark', [
-                        'url' => $larkUrl,
-                        'status' => $response?->status(),
-                    ]);
-                    continue;
-                }
-
-                $extension = (!empty($ext) && in_array($ext, $imageExtensions)) ? $ext : ($this->getExtensionFromUrl($larkUrl) ?? 'jpg');
-                $filename = 'wip_' . Str::random(40) . '.' . $extension;
-                $path = 'job_order_images/' . $filename;
-
-                Storage::disk('public')->put($path, $response->body());
-
-                Log::info('Job Order wip_photo downloaded successfully', [
-                    'lark_url' => $larkUrl,
-                    'local_path' => $path,
-                ]);
-
-                return $path;
-            } catch (\Exception $e) {
-                Log::error('Job Order wip_photo: error during download', [
-                    'url' => $larkUrl,
-                    'error' => $e->getMessage(),
-                ]);
-                continue;
-            }
+            $targetAttachment = ['url' => $larkUrl, 'ext' => $ext ?: ($urlExt ?: 'jpg')];
+            break; // Take the first non-video only
         }
 
-        return null;
+        if (!$targetAttachment) {
+            return null; // No photo found in attachments
+        }
+
+        // Single download attempt — no retry
+        try {
+            $response = $this->apiClient->downloadMedia($targetAttachment['url']);
+
+            if (!$response || !$response->successful()) {
+                Log::warning('Job Order wip_photo: download failed, skipping', [
+                    'url' => $targetAttachment['url'],
+                    'status' => $response?->status(),
+                ]);
+                return null;
+            }
+
+            $ext = in_array($targetAttachment['ext'], $imageExtensions)
+                ? $targetAttachment['ext']
+                : ($this->getExtensionFromUrl($targetAttachment['url']) ?? 'jpg');
+
+            $filename = 'wip_' . Str::random(40) . '.' . $ext;
+            $path = 'job_order_images/' . $filename;
+
+            Storage::disk('public')->put($path, $response->body());
+
+            Log::info('Job Order wip_photo downloaded successfully', [
+                'local_path' => $path,
+            ]);
+
+            return $path;
+        } catch (\Exception $e) {
+            Log::error('Job Order wip_photo: error during download', [
+                'url' => $targetAttachment['url'],
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
     }
 
     /**
