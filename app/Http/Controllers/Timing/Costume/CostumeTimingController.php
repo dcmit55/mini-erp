@@ -211,7 +211,8 @@ class CostumeTimingController extends Controller
             'step' => 'nullable|string|max:255',
             'tasks' => 'nullable|array',
             'tasks.*' => 'nullable|string|max:255',
-            'parts' => 'nullable|string|max:255',
+            'parts' => 'required|string|max:255',
+            'item' => 'nullable|string|max:255',
             'session_type' => 'required|in:mass_production,repair',
             'session_types' => 'nullable|array',
             'session_types.*' => 'nullable|in:mass_production,repair',
@@ -300,6 +301,7 @@ class CostumeTimingController extends Controller
                     'project_id' => $jobOrder->project_id,
                     'step' => $taskMap[$employeeId] ?? $defaultTask, // Per-employee task
                     'parts' => $validated['parts'] ?? 'No Part',
+                    'item' => $validated['item'] ?? null,
                     'employee_id' => $employeeId,
                     'start_time' => $startTime,
                     'end_time' => null,

@@ -294,6 +294,8 @@ class RolePermissionSeeder extends Seeder
                 Permissions::PRODUCTION_COSTUME_TIMING_EDIT,
                 Permissions::PRODUCTION_ANIMATRONICS_TIMING_VIEW,
                 Permissions::PRODUCTION_ANIMATRONICS_TIMING_EDIT,
+                Permissions::PRODUCTION_CROSS_TIMING_VIEW,
+                Permissions::PRODUCTION_CROSS_TIMING_EDIT,
                 Permissions::PRODUCTION_PERFORMANCE_VIEW,
                 Permissions::HR_EMPLOYEES_VIEW,
                 Permissions::HR_WARNING_LETTER_VIEW,

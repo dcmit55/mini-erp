@@ -412,7 +412,7 @@
         $allOtRows = $timingRows->filter(fn($r) => $r['has_ot'])->values();
     @endphp
 
-    <div class="container-fluid px-4 py-3">
+    <div class="container-fluid px-4 py-3" id="wm-content">
 
         {{-- ── Page header ── --}}
         <div class="detail-header">
@@ -436,172 +436,108 @@
             </div>
         </div>
 
-        {{-- ── JO Filter dropdown ── --}}
-        <div class="d-flex align-items-start gap-3 mb-3 flex-wrap">
-            <div style="min-width:260px;">
-                <form method="GET" action="" id="jo-filter-form">
-                    <label
-                        style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#6c757d;display:block;margin-bottom:.3rem;">
-                        <i class="fas fa-filter me-1"></i>Filter by Job Order
-                    </label>
-                    <select name="job_order_id" id="jo-filter-select" class="form-select form-select-sm"
-                        onchange="this.form.submit()" style="font-size:.82rem;border-radius:8px;">
-                        <option value="">— All Job Orders —</option>
-                        @foreach ($projectJobOrders as $jo)
-                            @php
-                                $stat = $joApprovalStats[$jo->id] ?? null;
-                                $approvedS = $stat['approved_sessions'] ?? 0;
-                                $pendingS = $stat['pending_sessions'] ?? 0;
-                                $totalS = $approvedS + $pendingS;
-                                $allDone = $totalS > 0 && $pendingS === 0;
-                            @endphp
-                            <option value="{{ $jo->id }}" {{ $selectedJobOrderId == $jo->id ? 'selected' : '' }}>
-                                {{ $jo->name }}
-                                @if ($totalS > 0)
-                                    — {{ $approvedS }}/{{ $totalS }} approved{{ $pendingS > 0 ? ' ⚠' : ' ✓' }}
-                                @endif
-                            </option>
-                        @endforeach
-                    </select>
-                </form>
-            </div>
-
-            {{-- Per-JO approval ratio info (shown when a JO is selected) --}}
-            @if ($selectedJobOrderId)
-                @php
-                    $selStat = $joApprovalStats[$selectedJobOrderId] ?? null;
-                    $selApp = $selStat['approved_sessions'] ?? 0;
-                    $selPend = $selStat['pending_sessions'] ?? 0;
-                    $selTotal = $selApp + $selPend;
-                    $selPct = $selTotal > 0 ? round(($selApp / $selTotal) * 100) : 0;
-                    $selColor = $selPct === 100 ? '#00b894' : ($selPct >= 50 ? '#fdcb6e' : '#e17055');
-                @endphp
-                <div class="d-flex align-items-center gap-3 px-3 py-2"
-                    style="background:#fff;border:1px solid {{ $selColor }};border-radius:10px;min-width:220px;box-shadow:0 1px 6px rgba(0,0,0,.05);">
-                    <div style="flex:1">
-                        <div
-                            style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6c757d;margin-bottom:.2rem;">
-                            Approval Status
-                        </div>
-                        <div style="font-size:.9rem;font-weight:800;color:{{ $selColor }};">
-                            {{ $selApp }} / {{ $selTotal }} session(s) approved
-                        </div>
-                        @if ($selPend > 0)
-                            <div style="font-size:.68rem;color:#e17055;margin-top:.1rem;">
-                                ⚠ {{ $selPend }} belum di-approve
-                                <a href="{{ route('timing-approval.index') }}"
-                                    style="color:#e17055;text-decoration:underline;margin-left:.3rem;">→ Approve</a>
-                            </div>
-                        @else
-                            <div style="font-size:.68rem;color:#00b894;margin-top:.1rem;">✓ Semua session sudah di-approve
-                            </div>
-                        @endif
-                    </div>
-                    {{-- Progress ring --}}
-                    <div style="position:relative;width:44px;height:44px;flex-shrink:0;">
-                        <svg width="44" height="44" viewBox="0 0 44 44" style="transform:rotate(-90deg)">
-                            <circle cx="22" cy="22" r="18" fill="none" stroke="#f0f2f9" stroke-width="5" />
-                            <circle cx="22" cy="22" r="18" fill="none" stroke="{{ $selColor }}"
-                                stroke-width="5" stroke-dasharray="{{ round(2 * 3.14159 * 18, 1) }}"
-                                stroke-dashoffset="{{ round(2 * 3.14159 * 18 * (1 - $selPct / 100), 1) }}"
-                                stroke-linecap="round" />
-                        </svg>
-                        <span
-                            style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:.6rem;font-weight:800;color:{{ $selColor }};">{{ $selPct }}%</span>
-                    </div>
-                </div>
-            @endif
-
-            @if ($selectedJobOrderId)
-                <a href="{{ request()->fullUrlWithQuery(['job_order_id' => null]) }}"
-                    class="btn btn-sm btn-outline-secondary align-self-end"
-                    style="font-size:.75rem;border-radius:8px;height:fit-content;">
-                    <i class="fas fa-times me-1"></i>Clear Filter
-                </a>
-            @endif
-        </div>
-
-        {{-- ── Pending Approval Card ── --}}
-        @if ($totalPendingCount > 0)
-            <div class="card border-0 shadow-sm mb-3"
-                style="border-left:4px solid #e17055 !important;border-radius:14px;overflow:hidden;">
-                <div class="card-body py-3 px-4">
-                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
-                        <div class="d-flex align-items-center gap-2">
-                            <span style="font-size:1.1rem;">⏳</span>
-                            <div>
-                                <div style="font-size:.82rem;font-weight:700;color:#e17055;">Pending Approval</div>
-                                <div style="font-size:.68rem;color:#6c757d;">
-                                    {{ $totalPendingCount }} session(s) from {{ $totalPendingEmpCount }} employee(s) belum
-                                    di-approve
-                                    @if ($selectedJobOrderId)
-                                        <span class="badge bg-warning text-dark ms-1" style="font-size:.62rem;">Filtered
-                                            JO</span>
-                                    @endif
-                                </div>
-                            </div>
-                        </div>
-                        <a href="{{ route('timing-approval.index', ['project_id' => $project->id]) }}"
-                            class="btn btn-sm btn-warning" style="font-size:.72rem;">
-                            <i class="fas fa-check-circle me-1"></i>Go to Approval
-                        </a>
-                    </div>
-                    <div class="d-flex flex-wrap gap-2">
-                        @foreach ($pendingByJo as $pjo)
-                            <div class="d-flex align-items-center gap-2 px-3 py-2"
-                                style="background:#fff8f6;border:1px solid #fad7d0;border-radius:12px;min-width:200px;">
-                                <div style="flex:1">
-                                    <div style="font-size:.75rem;font-weight:700;color:#333;">{{ $pjo['jo_name'] }}</div>
-                                    <div style="font-size:.65rem;color:#6c757d;margin-top:.1rem;">
-                                        {{ $pjo['count'] }} session(s) · {{ $pjo['emp_count'] }} emp(s)
-                                    </div>
-                                    <div class="d-flex flex-wrap gap-1 mt-1">
-                                        @foreach ($pjo['employees']->take(4) as $emp)
-                                            @php
-                                                $photo = $emp['photo'] ? asset('storage/' . $emp['photo']) : null;
-                                                $initials = strtoupper(substr($emp['name'], 0, 1));
-                                            @endphp
-                                            @if ($photo)
-                                                <img src="{{ $photo }}" title="{{ $emp['name'] }}"
-                                                    style="width:22px;height:22px;border-radius:50%;object-fit:cover;border:1px solid #e17055;">
-                                            @else
-                                                <span title="{{ $emp['name'] }}"
-                                                    style="width:22px;height:22px;border-radius:50%;background:#e17055;color:#fff;font-size:.62rem;font-weight:700;display:inline-flex;align-items:center;justify-content:center;">{{ $initials }}</span>
-                                            @endif
-                                        @endforeach
-                                        @if ($pjo['employees']->count() > 4)
-                                            <span
-                                                style="font-size:.62rem;color:#6c757d;align-self:center;">+{{ $pjo['employees']->count() - 4 }}
-                                                more</span>
-                                        @endif
-                                    </div>
-                                </div>
-                                <span class="badge"
-                                    style="background:#e17055;color:#fff;font-size:.68rem;border-radius:10px;padding:.3em .65em;">
-                                    {{ $pjo['count'] }}
-                                </span>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-            </div>
-        @endif
-
         {{-- ── Stat row ── --}}
         <div class="stat-row">
+            {{-- Total Operators card --}}
             <div class="stat-card">
-                <div class="stat-label">Total Operators</div>
-                <div class="stat-val">{{ $totalOperators }}</div>
-                <div class="stat-sub">
-                    @foreach ($byEmployee->take(3) as $e)
-                        {{ $e['name'] }}{{ !$loop->last ? ', ' : '' }}
-                    @endforeach
-                </div>
+                @if ($selectedJobOrderId)
+                    @php
+                        $hStat = $joApprovalStats[$selectedJobOrderId] ?? null;
+                        $hApp = $hStat['approved_sessions'] ?? 0;
+                        $hPend = $hStat['pending_sessions'] ?? 0;
+                        $hTot = $hApp + $hPend;
+                        $hPct = $hTot > 0 ? round(($hApp / $hTot) * 100) : 0;
+                        $hColor = $hPct === 100 ? '#00b894' : ($hPct >= 50 ? '#e67e22' : '#e17055');
+                    @endphp
+                    <div class="d-flex align-items-center justify-content-between gap-2">
+                        <div style="min-width:0;">
+                            <div class="stat-label">Total Operators</div>
+                            <div class="stat-val" style="font-size:1.55rem;color:{{ $hColor }};">
+                                {{ $hApp }}<span
+                                    style="font-size:1rem;font-weight:600;color:#adb5bd;">/{{ $hTot }}</span>
+                                <span style="font-size:.85rem;font-weight:700;color:{{ $hColor }};"> Approve</span>
+                            </div>
+                            @if ($hPend > 0)
+                                <div class="stat-sub">
+                                    <a href="{{ route('timing-approval.index', ['project_id' => $project->id]) }}"
+                                        style="color:#e17055;text-decoration:none;">
+                                        <i class="fas fa-exclamation-triangle me-1"></i>{{ $hPend }} sessions belum
+                                        di-approve
+                                    </a>
+                                </div>
+                            @else
+                                <div class="stat-sub" style="color:#00b894;"><i class="fas fa-check-circle me-1"></i>All
+                                    sessions approved</div>
+                            @endif
+                        </div>
+                        <div style="position:relative;width:52px;height:52px;flex-shrink:0;">
+                            <svg width="52" height="52" viewBox="0 0 44 44" style="transform:rotate(-90deg)">
+                                <circle cx="22" cy="22" r="18" fill="none" stroke="#f0f2f9"
+                                    stroke-width="4.5" />
+                                <circle cx="22" cy="22" r="18" fill="none" stroke="{{ $hColor }}"
+                                    stroke-width="4.5" stroke-dasharray="{{ round(2 * 3.14159 * 18, 1) }}"
+                                    stroke-dashoffset="{{ round(2 * 3.14159 * 18 * (1 - $hPct / 100), 1) }}"
+                                    stroke-linecap="round" />
+                            </svg>
+                            <span
+                                style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:.65rem;font-weight:800;color:{{ $hColor }};">{{ $hPct }}%</span>
+                        </div>
+                    </div>
+                @else
+                    <div class="stat-label">Total Operators</div>
+                    <div class="stat-val">{{ $totalOperators }}</div>
+                    <div class="stat-sub">
+                        @foreach ($byEmployee->take(3) as $e)
+                            {{ $e['name'] }}{{ !$loop->last ? ', ' : '' }}
+                        @endforeach
+                    </div>
+                @endif
             </div>
+
+            {{-- Total Hours Worked card --}}
             <div class="stat-card">
-                <div class="stat-label">Total Hours Worked</div>
-                <div class="stat-val">{{ $totalLaborHours }}</div>
-                <div class="stat-sub">Latest: {{ $latestDateFmt }}</div>
+                @if ($selectedJobOrderId)
+                    @php
+                        $hrStat = $joApprovalStats[$selectedJobOrderId] ?? null;
+                        $hrApp = round($hrStat['approved_hours'] ?? 0, 2);
+                        $hrPend = round($hrStat['pending_hours'] ?? 0, 2);
+                        $hrTot = round($hrApp + $hrPend, 2);
+                        $hrPct = $hrTot > 0 ? round(($hrApp / $hrTot) * 100) : 0;
+                        $hrColor = $hrPct === 100 ? '#00b894' : ($hrPct >= 50 ? '#e67e22' : '#e17055');
+                    @endphp
+                    <div class="d-flex align-items-center justify-content-between gap-2">
+                        <div style="min-width:0;">
+                            <div class="stat-label">Total Hours Worked</div>
+                            <div class="stat-val" style="font-size:1.55rem;color:{{ $hrColor }};">
+                                {{ $hrApp }}<span
+                                    style="font-size:1rem;font-weight:600;color:#adb5bd;">/{{ $hrTot }}</span>
+                                <span style="font-size:.85rem;font-weight:700;color:{{ $hrColor }};"> hrs</span>
+                            </div>
+                            @if ($hrPend > 0)
+                                <div class="stat-sub" style="color:#e17055;">{{ $hrPend }} hrs belum di-approve</div>
+                            @else
+                                <div class="stat-sub" style="color:#00b894;"><i class="fas fa-check-circle me-1"></i>All
+                                    hours approved</div>
+                            @endif
+                        </div>
+                        <div style="position:relative;width:52px;height:52px;flex-shrink:0;">
+                            <svg width="52" height="52" viewBox="0 0 44 44" style="transform:rotate(-90deg)">
+                                <circle cx="22" cy="22" r="18" fill="none" stroke="#f0f2f9"
+                                    stroke-width="4.5" />
+                                <circle cx="22" cy="22" r="18" fill="none" stroke="{{ $hrColor }}"
+                                    stroke-width="4.5" stroke-dasharray="{{ round(2 * 3.14159 * 18, 1) }}"
+                                    stroke-dashoffset="{{ round(2 * 3.14159 * 18 * (1 - $hrPct / 100), 1) }}"
+                                    stroke-linecap="round" />
+                            </svg>
+                            <span
+                                style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:.65rem;font-weight:800;color:{{ $hrColor }};">{{ $hrPct }}%</span>
+                        </div>
+                    </div>
+                @else
+                    <div class="stat-label">Total Hours Worked</div>
+                    <div class="stat-val">{{ $totalLaborHours }}</div>
+                    <div class="stat-sub">Latest: {{ $latestDateFmt }}</div>
+                @endif
             </div>
             <div class="stat-card">
                 <div class="stat-label">Regular Cost</div>
@@ -628,6 +564,44 @@
                 @else
                     <div class="stat-sub">No OT sessions</div>
                 @endif
+            </div>
+        </div>
+
+        {{-- ── Filter bar ── BELOW stat cards --}}
+        <div class="mb-3 p-3" style="background:#fff;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.05);">
+            <div class="d-flex flex-wrap align-items-center gap-3">
+                <span
+                    style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6c757d;white-space:nowrap;">
+                    <i class="fas fa-filter me-1" style="color:#6c5ce7;"></i>Filter by Job Order
+                </span>
+                <div style="min-width:220px;max-width:380px;flex:1 1 220px;">
+                    <select name="job_order_id" id="jo-filter-select" class="form-select form-select-sm"
+                        style="width:100%;">
+                        <option value="">— All Job Orders —</option>
+                        @foreach ($projectJobOrders as $jo)
+                            @php
+                                $jStat = $joApprovalStats[$jo->id] ?? null;
+                                $jApp = $jStat['approved_sessions'] ?? 0;
+                                $jPend = $jStat['pending_sessions'] ?? 0;
+                                $jTot = $jApp + $jPend;
+                            @endphp
+                            <option value="{{ $jo->id }}" {{ $selectedJobOrderId == $jo->id ? 'selected' : '' }}>
+                                {{ $jo->name }}@if ($jTot > 0)
+                                    {{-- — {{ $jApp }}/{{ $jTot }}{{ $jPend === 0 ? ' ✓' : '' }} --}}
+                                @endif
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <button type="button" id="jo-clear-btn"
+                    class="btn btn-sm btn-outline-secondary {{ $selectedJobOrderId ? '' : 'd-none' }}"
+                    style="font-size:.75rem;white-space:nowrap;">
+                    <i class="fas fa-times me-1"></i>Clear Filter
+                </button>
+                {{-- spinner shown during AJAX load --}}
+                <span id="wm-loading" class="d-none" style="font-size:.8rem;color:#6c5ce7;">
+                    <span class="spinner-border spinner-border-sm me-1" role="status"></span>Loading…
+                </span>
             </div>
         </div>
 
@@ -1137,3 +1111,85 @@
 
     </div>
 @endsection
+
+@push('scripts')
+    <script>
+        (function() {
+            var BASE_URL = '{{ url()->current() }}';
+
+            function initJoFilter() {
+                // Destroy any existing select2 on this element first
+                var $sel = $('#jo-filter-select');
+                if ($sel.hasClass('select2-hidden-accessible')) {
+                    $sel.select2('destroy');
+                }
+
+                $sel.select2({
+                    theme: 'bootstrap-5',
+                    allowClear: true,
+                    placeholder: '— All Job Orders —',
+                    width: '100%',
+                    minimumResultsForSearch: 5,
+                }).on('select2:select', function() {
+                    loadContent($sel.val());
+                }).on('select2:clear', function() {
+                    loadContent('');
+                });
+
+                // Clear filter button (outside select2)
+                $('#jo-clear-btn').off('click').on('click', function() {
+                    $sel.val('').trigger('change');
+                    loadContent('');
+                });
+            }
+
+            function loadContent(joId) {
+                var url = BASE_URL + (joId ? '?job_order_id=' + encodeURIComponent(joId) : '');
+
+                $('#wm-loading').removeClass('d-none');
+                $('#jo-clear-btn').addClass('d-none');
+
+                // Update browser URL without reload
+                if (window.history && window.history.pushState) {
+                    window.history.pushState({
+                        joId: joId
+                    }, '', url);
+                }
+
+                $.get(url, function(html) {
+                    var $newContent = $(html).filter('#wm-content').add($(html).find('#wm-content')).first();
+                    if (!$newContent.length) {
+                        // fallback: try parsing
+                        var $doc = $('<div>').html(html);
+                        $newContent = $doc.find('#wm-content');
+                    }
+                    if ($newContent.length) {
+                        $('#wm-content').replaceWith($newContent);
+                        // Re-init after DOM swap
+                        initJoFilter();
+                        // Restore selected value in new select
+                        if (joId) {
+                            $('#jo-filter-select').val(joId).trigger('change.select2');
+                            $('#jo-clear-btn').removeClass('d-none');
+                        }
+                    }
+                }).fail(function() {
+                    // Fallback to normal navigation on error
+                    window.location.href = url;
+                }).always(function() {
+                    $('#wm-loading').addClass('d-none');
+                });
+            }
+
+            // Handle browser back/forward
+            window.addEventListener('popstate', function(e) {
+                var joId = e.state && e.state.joId ? e.state.joId : '';
+                loadContent(joId);
+            });
+
+            $(function() {
+                initJoFilter();
+            });
+        }());
+    </script>
+@endpush

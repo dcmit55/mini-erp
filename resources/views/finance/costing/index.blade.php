@@ -576,9 +576,16 @@
                         </select>
                     </div>
                     <div class="col-lg-2">
-                        <label class="form-label small text-muted mb-1">Project Name</label>
-                        <input type="text" id="search-input" name="search" class="form-control form-control-sm"
-                            placeholder="Search project name…" value="{{ request('search') }}">
+                        <label class="form-label small text-muted mb-1">Project</label>
+                        <select id="filter-project" name="project_id" class="form-select form-select-sm select2"
+                            data-placeholder="All Projects" data-allow-clear="true">
+                            <option value="">All Projects</option>
+                            @foreach ($allProjects as $p)
+                                <option value="{{ $p->id }}" {{ request('project_id') == $p->id ? 'selected' : '' }}>
+                                    {{ $p->name }}
+                                </option>
+                            @endforeach
+                        </select>
                     </div>
                     <div class="col-lg-2">
                         <label class="form-label small text-muted mb-1">Department</label>
@@ -682,237 +689,10 @@
         </ul>
 
         {{-- ── Project card grid ── --}}
-        @if ($projects->isEmpty())
-            <div class="empty-state">
-                <i class="fas fa-inbox d-block"></i>
-                <p class="mb-0 fw-semibold">No projects found</p>
-                <small>Try adjusting your filters or <a href="{{ route('costing.report') }}">reset</a> them.</small>
-            </div>
-        @else
-            <div class="row g-4">
-                @foreach ($projects as $project)
-                    @php
-                        // ── Dept badge ──
-                        $typeDept = $project->type_dept ?? '';
-                        $deptSlug = strtolower($typeDept);
-                        $badgeClass = match (true) {
-                            str_contains($deptSlug, 'mascot') => 'mascot',
-                            str_contains($deptSlug, 'costume') => 'costume',
-                            str_contains($deptSlug, 'animatronic') => 'animatronic',
-                            str_contains($deptSlug, 'plush') => 'plush',
-                            default => 'default',
-                        };
-                        $bgClass = $badgeClass . '-bg';
-                        $deptEmoji = match ($badgeClass) {
-                            'mascot' => '🦊',
-                            'costume' => '⚔️',
-                            'animatronic' => '🤖',
-                            'plush' => '🧸',
-                            default => '🏢',
-                        };
-
-                        // Lark folder label
-                        $larkFolder = !empty($typeDept) ? "Lark · {$typeDept} Folder" : 'Lark';
-
-                        $jobOrderCount = $project->jobOrders->count();
-                        $salesName = $project->sales ?? '-';
-                        $deadline = $project->deadline
-                            ? \Carbon\Carbon::parse($project->deadline)->format('d M Y')
-                            : '-';
-
-                        // ── Summary data from controller ──
-                        $summary = $cardSummaries[$project->id] ?? [];
-                        $intlPo = $summary['intl_po'] ?? 0;
-                        $localPo = $summary['local_po'] ?? 0;
-                        $usageIdr = $summary['usage_idr'] ?? 0;
-                        $totalHours = $summary['total_hours'] ?? 0;
-                        $materialCost = $summary['material_cost'] ?? 0;
-                        $workmanshipCost = $summary['workmanship_cost'] ?? 0;
-                        $freightCost = $summary['freight_cost'] ?? 0;
-
-                        $sellingPrice = $intlPo + $localPo;
-                        $actualCost = $summary['actual_project_cost'] ?? 0;
-                        $profit = $sellingPrice - $actualCost;
-                        $profitPct = $sellingPrice > 0 ? round(($profit / $sellingPrice) * 100, 1) : null;
-                        $hasData = $sellingPrice > 0 || $actualCost > 0;
-
-                        $fmt = fn($n) => 'Rp ' . number_format($n, 0, ',', '.');
-                        $fmtK = function ($n) {
-                            if ($n >= 1_000_000) {
-                                return 'Rp ' . number_format($n / 1_000_000, 1) . 'M';
-                            }
-                            if ($n >= 1_000) {
-                                return 'Rp ' . number_format($n / 1_000, 0) . 'k';
-                            }
-                            return 'Rp ' . number_format($n, 0);
-                        };
-
-                        // JO images — must be defined here so hover popup can use it above the panel
-                        $joWithImages = $project->jobOrders->filter(fn($jo) => !empty($jo->final_image))->values();
-                        $carouselId = 'joCarousel-' . $project->id;
-                        $firstJoImg = $joWithImages->first()?->final_image;
-
-                        // WIP detection
-                        $isWip = str_contains($project->project_status ?? '', 'WIP');
-                    @endphp
-
-                    <div class="col-xl-4 col-lg-6 col-md-12 col-sm-12">
-                        <div class="pc-card-wrapper {{ $isWip ? 'pc-wip-wrapper' : '' }}">
-
-                            <a href="{{ route('costing.detail', $project->id) }}"
-                                class="project-card {{ $isWip ? 'pc-wip-card' : '' }}">
-
-                                {{-- WIP ribbon badge --}}
-                                @if ($isWip)
-                                    <span class="pc-wip-ribbon" title="Status: {{ $project->project_status }}">
-                                        <i class="fas fa-hammer me-1"></i>WIP
-                                    </span>
-                                @endif
-
-                                {{-- ══ LEFT: photo panel (click to open Fancybox) ══ --}}
-                                <div class="pc-photo-panel {{ $bgClass }}">
-                                    {{-- JO images carousel fills the panel when available --}}
-                                    @if ($joWithImages->count() > 0)
-                                        <div id="{{ $carouselId }}" class="carousel slide pc-jo-carousel"
-                                            data-bs-ride="carousel" data-bs-interval="3000">
-                                            <div class="carousel-inner">
-                                                @foreach ($joWithImages as $idx => $jo)
-                                                    <div class="carousel-item {{ $idx === 0 ? 'active' : '' }}"
-                                                        data-jo-img="{{ asset('storage/' . $jo->final_image) }}"
-                                                        data-jo-name="{{ e($jo->name) }}">
-                                                        <img src="{{ asset('storage/' . $jo->final_image) }}"
-                                                            class="pc-jo-carousel-img" alt="{{ e($jo->name) }}">
-                                                        <div class="pc-jo-slide-label">{{ $jo->name }}</div>
-                                                    </div>
-                                                @endforeach
-                                            </div>
-                                            @if ($joWithImages->count() > 1)
-                                                <button class="carousel-control-prev" type="button"
-                                                    data-bs-target="#{{ $carouselId }}" data-bs-slide="prev">
-                                                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                                                    <span class="visually-hidden">Previous</span>
-                                                </button>
-                                                <button class="carousel-control-next" type="button"
-                                                    data-bs-target="#{{ $carouselId }}" data-bs-slide="next">
-                                                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                                                    <span class="visually-hidden">Next</span>
-                                                </button>
-                                            @endif
-                                        </div>
-                                    @endif
-
-                                    <div class="pc-photo-panel-inner"
-                                        style="{{ $joWithImages->count() > 0 ? 'z-index:1;' : '' }}">
-                                        {{-- Category badge (top) --}}
-                                        @if (!empty($typeDept))
-                                            <span class="pc-cat-badge">{{ $typeDept }}</span>
-                                        @endif
-
-                                        {{-- Show project photo / emoji only if no JO images --}}
-                                        @if ($joWithImages->count() === 0)
-                                            @if (!empty($project->photo))
-                                                <img src="{{ asset('storage/' . $project->photo) }}" class="pc-photo-img"
-                                                    alt="{{ $project->name }}">
-                                            @else
-                                                <div class="pc-photo-placeholder">{{ $deptEmoji }}</div>
-                                            @endif
-                                        @endif
-
-                                        {{-- Lark badge (bottom) --}}
-                                        @if (!empty($project->lark_record_id))
-                                            <span class="lark-tag">
-                                                <span class="dot"></span>{{ $larkFolder }}
-                                            </span>
-                                        @endif
-                                    </div>
-                                </div>
-
-                                {{-- ══ RIGHT: content body ══ --}}
-                                <div class="pc-body">
-
-                                    {{-- Project name --}}
-                                    <div class="mb-2">
-                                        <span class="pc-name" title="{{ $project->name }}">
-                                            {{ $project->name }}
-                                        </span>
-                                    </div>
-
-                                    {{-- ── ACTUALS ── --}}
-                                    <div class="section-title">ACTUALS</div>
-                                    <div class="pc-row">
-                                        <span class="pc-lbl">Actual Project Cost</span>
-                                        <span class="pc-val">{{ $hasData ? $fmt($actualCost) : '—' }}</span>
-                                    </div>
-                                    <div class="pc-row">
-                                        <span class="pc-lbl">Total Timing Cost</span>
-                                        <span
-                                            class="pc-val">{{ $workmanshipCost > 0 ? $fmt($workmanshipCost) : '—' }}</span>
-                                    </div>
-                                    <div class="pc-row">
-                                        <span class="pc-lbl">Total Project Time</span>
-                                        <span class="pc-val">{{ $totalHours > 0 ? $totalHours . ' hrs' : '—' }}</span>
-                                    </div>
-
-                                    {{-- ── Stats strip ── --}}
-                                    <div class="stats-strip">
-                                        <div class="stats-box bg-warning-subtle text-warning-emphasis">
-                                            <div class="label">INT'L PO</div>
-                                            <div class="value">{{ $intlPo > 0 ? $fmtK($intlPo) : '—' }}</div>
-                                        </div>
-                                        <div class="stats-box bg-success-subtle text-success-emphasis">
-                                            <div class="label">LOCAL PO</div>
-                                            <div class="value">{{ $localPo > 0 ? $fmtK($localPo) : '—' }}</div>
-                                        </div>
-                                        <div class="stats-box bg-primary-subtle text-primary-emphasis">
-                                            <div class="label">USAGE</div>
-                                            <div class="value">{{ $usageIdr > 0 ? $fmtK($usageIdr) : '—' }}</div>
-                                        </div>
-                                    </div>
-
-                                </div>{{-- /pc-body --}}
-                            </a>{{-- /project-card --}}
-
-                            {{-- ══ VIEW PHOTOS BUTTON + Hidden Fancybox gallery links ══ --}}
-                            @if ($joWithImages->count() > 0)
-                                {{-- Hidden gallery anchors for Fancybox (data-fancybox group per project) --}}
-                                <div style="display:none;" aria-hidden="true">
-                                    @foreach ($joWithImages as $idx => $jo)
-                                        <a href="{{ asset('storage/' . $jo->final_image) }}"
-                                            data-fancybox="costing-gallery-{{ $project->id }}"
-                                            data-caption="{{ e($jo->name) }} — {{ e($project->name) }}"
-                                            class="pc-gallery-anchor"></a>
-                                    @endforeach
-                                </div>
-                                {{-- Clickable button on photo panel --}}
-                                <button type="button" class="pc-view-photos-btn btn-open-gallery"
-                                    data-project-id="{{ $project->id }}" data-total="{{ $joWithImages->count() }}">
-                                    <i class="bi bi-images"></i>
-                                    {{ $joWithImages->count() }} Photo{{ $joWithImages->count() > 1 ? 's' : '' }}
-                                </button>
-                            @elseif (!empty($project->photo))
-                                {{-- Single project photo --}}
-                                <a href="{{ asset('storage/' . $project->photo) }}" data-fancybox
-                                    data-caption="{{ e($project->name) }}" class="pc-view-photos-btn">
-                                    <i class="bi bi-image"></i> View Photo
-                                </a>
-                            @endif
-
-                        </div>{{-- /pc-card-wrapper --}}
-                    </div>{{-- /col --}}
-                @endforeach
-            </div>{{-- /row --}}
-
-            {{-- ── Pagination ── --}}
-            <div class="d-flex justify-content-between align-items-center mt-4">
-                <div class="text-muted small">
-                    Showing {{ $projects->firstItem() ?? 0 }}–{{ $projects->lastItem() ?? 0 }}
-                    of {{ $projects->total() }} projects
-                </div>
-                <nav aria-label="Page navigation">
-                    {{ $projects->appends(request()->query())->onEachSide(1)->links('pagination::bootstrap-5') }}
-                </nav>
-            </div>
-        @endif
+        {{-- ── Project card grid (wrapped for AJAX replacement) ── --}}
+        <div id="costing-grid">
+            @include('finance.costing._grid', ['projects' => $projects, 'cardSummaries' => $cardSummaries])
+        </div>
 
     </div>{{-- /container-fluid --}}
 
@@ -1055,334 +835,248 @@
 @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script>
-        $(function() {
+        (function() {
+            var AJAX_URL = '{{ route('costing.report.ajax') }}';
+            var loadingTimer = null;
+            // Tracks the dept filter set by the tab pills (values like 'Mascot', 'Costume')
+            // These are PARTIAL matches used with LIKE '%Mascot%' in controller.
+            // They do NOT sync with #filter-department select (whose options are 'DCM Mascot', etc.)
+            var deptTabFilter = '{{ request('department', '') }}';
 
-            // Initialize Select2
-            $('.select2').select2({
-                theme: 'bootstrap-5',
-                placeholder: function() {
-                    return $(this).data('placeholder');
-                },
-                allowClear: true
-            });
+            // ── Collect current filter values ────────────────────────────────────
+            function getFilters(page) {
+                // deptTabFilter = value from tab pill (e.g. 'Mascot')
+                // #filter-department select = exact dept name (e.g. 'DCM Mascot')
+                // Tab takes precedence; if a tab is active use that, else use the select
+                var deptValue = deptTabFilter || $('#filter-department').val() || '';
+                return {
+                    project_status: $('#filter-status').val() || '',
+                    project_id: $('#filter-project').val() || '',
+                    department: deptValue,
+                    sales: $('#filter-sales').val() || '',
+                    job_order: $('#filter-job-order').val() || '',
+                    date_from: $('#input-date-from').val() || '',
+                    date_to: $('#input-date-to').val() || '',
+                    page: page || 1,
+                };
+            }
 
-            // Search on Enter key press (NOT on every keystroke)
-            $('#search-input').on('keypress', function(e) {
-                if (e.which === 13) { // Enter key
-                    e.preventDefault();
-                    $('#filter-form').submit();
+            // ── Fetch and replace grid ───────────────────────────────────────────
+            function fetchGrid(page) {
+                var params = getFilters(page);
+
+                // Update browser URL
+                if (window.history && window.history.pushState) {
+                    var qs = $.param(params);
+                    window.history.pushState({}, '', '{{ route('costing.report') }}' + '?' + qs);
                 }
-            });
 
-            // Auto-submit ONLY on dropdown filter change (NOT search input)
-            $('#filter-department, #filter-sales, #filter-job-order').on('change', function() {
-                $('#filter-form').submit();
-            });
+                $('#costing-grid').css('opacity', 0.45);
+                clearTimeout(loadingTimer);
+                loadingTimer = setTimeout(function() {
+                    $('#costing-grid').html(
+                        '<div class="text-center py-5 text-muted"><div class="spinner-border" style="color:#6c5ce7;"></div><br><small class="mt-2 d-block">Loading…</small></div>'
+                    );
+                }, 600);
 
-            // ── Flatpickr date range picker ──────────────────────────────────
-            const dateFromVal = $('#input-date-from').val();
-            const dateToVal = $('#input-date-to').val();
-
-            flatpickr('#deadline-range-picker', {
-                mode: 'range',
-                dateFormat: 'Y-m-d',
-                altInput: false,
-                showMonths: 2,
-                defaultDate: (dateFromVal && dateToVal) ? [dateFromVal, dateToVal] : (dateFromVal ? [
-                    dateFromVal
-                ] : []),
-                onChange: function(selectedDates) {
-                    if (selectedDates.length === 0) {
-                        $('#input-date-from').val('');
-                        $('#input-date-to').val('');
-                    } else if (selectedDates.length === 1) {
-                        $('#input-date-from').val(flatpickr.formatDate(selectedDates[0], 'Y-m-d'));
-                        $('#input-date-to').val('');
-                    } else {
-                        $('#input-date-from').val(flatpickr.formatDate(selectedDates[0], 'Y-m-d'));
-                        $('#input-date-to').val(flatpickr.formatDate(selectedDates[1], 'Y-m-d'));
-                        // Auto-submit once both dates are chosen
-                        $('#filter-form').submit();
-                    }
-                },
-                onClose: function(selectedDates) {
-                    // If user closes with only 1 date selected, submit with just date_from
-                    if (selectedDates.length === 1) {
-                        $('#input-date-from').val(flatpickr.formatDate(selectedDates[0], 'Y-m-d'));
-                        $('#input-date-to').val('');
-                        $('#filter-form').submit();
-                    }
-                }
-            });
-
-        }); // end $(function)
-
-        // ── Fancybox: buka gallery saat tombol "View Photos" diklik ─────────
-        $(document).on('click', '.btn-open-gallery', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            var projectId = $(this).data('project-id');
-            // Kumpulkan semua anchor dari group gallery project ini
-            var anchors = document.querySelectorAll('[data-fancybox="costing-gallery-' + projectId + '"]');
-            if (!anchors.length) return;
-
-            var items = [];
-            anchors.forEach(function(a) {
-                items.push({
-                    src: a.href,
-                    type: 'image',
-                    caption: a.dataset.caption || '',
-                    downloadSrc: a.href,
-                });
-            });
-
-            Fancybox.show(items, {
-                startIndex: 0,
-                Toolbar: {
-                    display: ['zoom', 'fullscreen', 'download', 'close'],
-                },
-            });
-        });
-
-        // ── Sync carousel: popup removed; no popup sync needed ───────────────
-        // (carousel tetap auto-slide untuk visual, tombol gallery untuk lihat foto)
-
-        function formatCurrency(value) {
-            return new Intl.NumberFormat('id-ID', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-            }).format(value);
-        }
-
-        function viewCosting(projectId) {
-            fetch(`/costing-report/${projectId}`)
-                .then(response => response.json())
-                .then(data => {
-                    const tableBody = document.getElementById('costingTableBody');
-                    tableBody.innerHTML = '';
-
-                    document.getElementById('costingModalLabel').innerText = `Project Costing: ${data.project}`;
-
-                    data.materials.forEach(material => {
-                        const inventory = material.inventory || {
-                            id: null,
-                            name: 'N/A',
-                            price: 0,
-                            total_unit_cost: 0,
-                            unit: 'N/A',
-                            currency: {
-                                name: 'N/A'
-                            }
-                        };
-
-                        const name = inventory.name || 'N/A';
-                        const unit = inventory.unit || 'N/A';
-                        const price = inventory.price ?? 0;
-                        const totalUnitCost = inventory.total_unit_cost ?? 0;
-                        const currencyName = (inventory.currency && inventory.currency.name) ? inventory
-                            .currency.name : 'N/A';
-                        const quantity = material.used_quantity ?? 0;
-                        const totalCost = material.total_cost ?? 0;
-                        const jobOrderName = material.job_order_name || 'No Job Order';
-
-                        const row = `
-                    <tr>
-                        <td><span class="badge bg-primary">${jobOrderName}</span></td>
-                        <td>${name}</td>
-                        <td>${quantity} ${unit}</td>
-                        <td>${formatCurrency(price)} ${currencyName}</td>
-                        <td class="fw-bold text-success">${formatCurrency(totalUnitCost)} ${currencyName}</td>
-                        <td class="fw-bold">${formatCurrency(totalCost)} IDR</td>
-                    </tr>
-                `;
-                        tableBody.innerHTML += row;
-                    });
-
-                    // Update Material Total
-                    document.getElementById('materialTotal').innerHTML =
-                        `Material Total: <span class="text-primary fw-bold">${formatCurrency(data.grand_total_material_idr)} IDR</span>`;
-
-                    // ===== POPULATE LABOR DATA =====
-                    const labor = data.labor || {};
-                    const totalHours = labor.total_hours || 0;
-                    const approvedSessions = labor.approved_sessions_count || 0;
-                    const laborByJobOrder = labor.by_job_order || [];
-
-                    document.getElementById('laborHours').innerText = totalHours.toFixed(2) + ' hrs';
-                    document.getElementById('laborSessions').innerText = approvedSessions;
-                    document.getElementById('laborJobOrders').innerText = laborByJobOrder.length;
-
-                    // Labor breakdown by job order
-                    const laborContainer = document.getElementById('laborByJobOrder');
-                    laborContainer.innerHTML = '';
-
-                    if (laborByJobOrder.length > 0) {
-                        let laborHtml = '<div class="table-responsive"><table class="table table-sm table-bordered">';
-                        laborHtml += '<thead class="table-light"><tr>';
-                        laborHtml +=
-                            '<th>Job Order</th><th>Hours</th><th>Minutes</th><th>Sessions</th><th>Employees</th>';
-                        laborHtml += '</tr></thead><tbody>';
-
-                        laborByJobOrder.forEach(jo => {
-                            const jobOrderName = jo.job_order_name || 'No Job Order';
-                            const hours = jo.total_hours || 0;
-                            const minutes = jo.total_minutes || 0;
-                            const sessions = jo.sessions_count || 0;
-                            const employees = jo.unique_employees || 0;
-                            const employeeNames = (jo.employee_names || []).join(', ');
-
-                            laborHtml += '<tr>';
-                            laborHtml += `<td><span class="badge bg-success">${jobOrderName}</span></td>`;
-                            laborHtml += `<td class="fw-bold">${hours.toFixed(2)}</td>`;
-                            laborHtml += `<td>${minutes}</td>`;
-                            laborHtml += `<td>${sessions}</td>`;
-                            laborHtml +=
-                                `<td><span class="badge bg-info" title="${employeeNames}">${employees}</span></td>`;
-                            laborHtml += '</tr>';
-                        });
-
-                        laborHtml += '</tbody></table></div>';
-                        laborContainer.innerHTML = laborHtml;
-                    } else {
-                        laborContainer.innerHTML =
-                            '<div class="alert alert-info"><i class="fas fa-info-circle me-1"></i>No approved labor timing data for this project</div>';
-                    }
-
-                    // ===== POPULATE COURIER DATA =====
-                    const courier = data.courier || {};
-                    const btSgCount = courier.bt_sg_count || 0;
-                    const sgBtCount = courier.sg_bt_count || 0;
-                    const courierItems = courier.total_items || 0;
-                    const courierTotalSgd = courier.total_sgd || 0;
-                    const couriers = courier.couriers || [];
-
-                    document.getElementById('courierBtSgCount').innerText = btSgCount;
-                    document.getElementById('courierSgBtCount').innerText = sgBtCount;
-                    document.getElementById('courierItemsCount').innerText = courierItems;
-                    document.getElementById('courierTotalCost').innerText = 'SGD ' + formatCurrency(courierTotalSgd);
-
-                    // Courier details
-                    const courierContainer = document.getElementById('courierDetails');
-                    courierContainer.innerHTML = '';
-
-                    if (couriers.length > 0) {
-                        let courierHtml =
-                            '<div class="table-responsive"><table class="table table-sm table-bordered table-hover">';
-                        courierHtml += '<thead class="table-light"><tr>';
-                        courierHtml +=
-                            '<th>Courier ID</th><th>Direction</th><th>Date</th><th>Items</th><th>Transport (IDR)</th><th>Baggage (IDR)</th><th>GST (IDR)</th><th>Total SGD</th>';
-                        courierHtml += '</tr></thead><tbody>';
-
-                        couriers.forEach(c => {
-                            const courierName = c.courier_name || 'Unknown';
-                            const direction = c.direction || '-';
-                            const date = c.date || '-';
-                            const itemsCount = c.items_count || 0;
-                            const itemsList = (c.items || []).slice(0, 3).join(', ');
-                            const moreItems = c.items_count > 3 ? ` (+${c.items_count - 3} more)` : '';
-                            const transport = c.transport_cost || 0;
-                            const baggage = c.baggage_cost || 0;
-                            const gst = c.gst_cost || 0;
-                            const totalSgd = c.total_sgd || 0;
-
-                            courierHtml += '<tr>';
-                            courierHtml += `<td><small>${courierName}</small></td>`;
-                            courierHtml +=
-                                `<td><span class="badge ${direction.includes('BT →') ? 'bg-primary' : 'bg-info'}">${direction}</span></td>`;
-                            courierHtml += `<td>${date}</td>`;
-                            courierHtml +=
-                                `<td><small title="${c.items ? c.items.join(', ') : ''}">${itemsCount} items: ${itemsList}${moreItems}</small></td>`;
-                            courierHtml += `<td>Rp ${formatCurrency(transport)}</td>`;
-                            courierHtml += `<td>Rp ${formatCurrency(baggage)}</td>`;
-                            courierHtml += `<td>Rp ${formatCurrency(gst)}</td>`;
-                            courierHtml +=
-                                `<td class="fw-bold text-warning">SGD ${formatCurrency(totalSgd)}</td>`;
-                            courierHtml += '</tr>';
-                        });
-
-                        courierHtml += '</tbody></table></div>';
-                        courierContainer.innerHTML = courierHtml;
-                    } else {
-                        courierContainer.innerHTML =
-                            '<div class="alert alert-info"><i class="fas fa-info-circle me-1"></i>No courier data for this project</div>';
-                    }
-
-                    // // ===== POPULATE INVENTORY ITEMS DATA =====
-                    // const inventoryItems = data.inventory_items || {};
-                    // const totalItems = inventoryItems.total_items || 0;
-                    // const totalTransactions = inventoryItems.total_transactions || 0;
-                    // const items = inventoryItems.items || [];
-
-                    // document.getElementById('inventoryItemsCount').innerText = totalItems + ' items';
-                    // document.getElementById('inventoryTransactionsCount').innerText = totalTransactions;
-
-                    // // Inventory items details
-                    // const inventoryContainer = document.getElementById('inventoryItemsDetails');
-                    // inventoryContainer.innerHTML = '';
-
-                    // if (items.length > 0) {
-                    //     let inventoryHtml =
-                    //         '<div class="table-responsive"><table class="table table-sm table-bordered table-hover">';
-                    //     inventoryHtml += '<thead class="table-light"><tr>';
-                    //     inventoryHtml +=
-                    //         '<th>Material Name</th><th>Total Qty</th><th>Unit</th><th>Unit Cost</th><th>Currency</th><th>Total Cost</th><th>Txn</th><th>Job Orders</th>';
-                    //     inventoryHtml += '</tr></thead><tbody>';
-
-                    //     items.forEach(item => {
-                    //         const name = item.inventory_name || 'N/A';
-                    //         const totalQty = item.total_quantity || 0;
-                    //         const unit = item.unit || '';
-                    //         const unitCost = item.unit_cost || 0;
-                    //         const currency = item.currency || 'SGD';
-                    //         const totalCost = item.total_cost || 0;
-                    //         const txnCount = item.transactions_count || 0;
-                    //         const jobOrders = (item.job_orders || []).join(', ') || '-';
-
-                    //         inventoryHtml += '<tr>';
-                    //         inventoryHtml += `<td class="fw-bold">${name}</td>`;
-                    //         inventoryHtml += `<td class="text-end">${totalQty}</td>`;
-                    //         inventoryHtml += `<td>${unit}</td>`;
-                    //         inventoryHtml +=
-                    //             `<td class="text-end text-primary">${formatCurrency(unitCost)}</td>`;
-                    //         inventoryHtml += `<td><span class="badge bg-secondary">${currency}</span></td>`;
-                    //         inventoryHtml +=
-                    //             `<td class="text-end fw-bold text-success">${formatCurrency(totalCost)}</td>`;
-                    //         inventoryHtml +=
-                    //             `<td class="text-center"><span class="badge bg-info">${txnCount}</span></td>`;
-                    //         inventoryHtml += `<td class="small">${jobOrders}</td>`;
-                    //         inventoryHtml += '</tr>';
-                    //     });
-
-                    //     inventoryHtml += '</tbody></table></div>';
-                    //     inventoryContainer.innerHTML = inventoryHtml;
-                    // } else {
-                    //     inventoryContainer.innerHTML =
-                    //         '<div class="alert alert-info"><i class="fas fa-info-circle me-1"></i>No inventory items data for this project</div>';
-                    // }
-
-                    // Update Grand Total (Material Only for now)
-                    document.getElementById('grandTotal').innerHTML =
-                        `Grand Total: <span class="text-success fw-bold">${formatCurrency(data.grand_total_material_idr)} IDR</span>`;
-
-                    const modal = new bootstrap.Modal(document.getElementById('costingModal'));
-                    modal.show();
-                })
-                .catch(error => {
-                    console.error('Error fetching costing data:', error);
-                    alert('Failed to load costing data. Please try again.');
-                });
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const filterForm = document.getElementById('filter-form');
-            const filterBtn = document.getElementById('filter-btn');
-            if (filterForm && filterBtn) {
-                const spinner = filterBtn.querySelector('.spinner-border');
-                filterForm.addEventListener('submit', function() {
-                    filterBtn.disabled = true;
-                    if (spinner) spinner.classList.remove('d-none');
+                $.ajax({
+                    url: AJAX_URL,
+                    method: 'GET',
+                    data: params,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    success: function(res) {
+                        clearTimeout(loadingTimer);
+                        $('#costing-grid').css('opacity', 1).html(res.html);
+                        // Re-bind pagination links inside #costing-grid
+                        bindPagination();
+                    },
+                    error: function() {
+                        clearTimeout(loadingTimer);
+                        $('#costing-grid').css('opacity', 1).html(
+                            '<div class="alert alert-danger">Gagal memuat data. Silakan reload halaman.</div>'
+                        );
+                    },
                 });
             }
-        });
+
+            // ── Bind AJAX to pagination links inside #costing-grid ───────────────
+            function bindPagination() {
+                $(document).off('click.costingPager').on('click.costingPager', '#costing-grid .pagination a', function(
+                    e) {
+                    e.preventDefault();
+                    var href = $(this).attr('href');
+                    var page = (new URL(href, window.location.origin)).searchParams.get('page') || 1;
+                    fetchGrid(page);
+                    $('html, body').animate({
+                        scrollTop: $('#costing-grid').offset().top - 80
+                    }, 200);
+                });
+            }
+
+            $(function() {
+                // ── Select2 init ─────────────────────────────────────────────────
+                // Init all .select2 elements (department, sales, job-order, project)
+                $('.select2').select2({
+                    theme: 'bootstrap-5',
+                    placeholder: function() {
+                        return $(this).data('placeholder') || 'Select...';
+                    },
+                    allowClear: true,
+                });
+
+                // Override #filter-project specifically (needs width:100% + search)
+                $('#filter-project').select2({
+                    theme: 'bootstrap-5',
+                    placeholder: 'All Projects',
+                    allowClear: true,
+                    width: '100%',
+                });
+
+                // ── Status, Project, Sales, Job Order → AJAX ────────────────────
+                $('#filter-status, #filter-project, #filter-sales, #filter-job-order')
+                    .on('change', function() {
+                        fetchGrid(1);
+                    });
+
+                // ── Department select: clears dept tab filter, resets tab to All ─
+                $('#filter-department').on('change', function() {
+                    deptTabFilter = ''; // clear tab-level override
+                    // Reset tab pills: remove active from all, activate 'All'
+                    $('.dept-filter-tabs .nav-link').removeClass('active');
+                    $('.dept-filter-tabs .nav-link').first().addClass('active');
+                    fetchGrid(1);
+                });
+
+                // ── Flatpickr date range picker ──────────────────────────────────
+                const dateFromVal = $('#input-date-from').val();
+                const dateToVal = $('#input-date-to').val();
+
+                flatpickr('#deadline-range-picker', {
+                    mode: 'range',
+                    dateFormat: 'Y-m-d',
+                    altInput: false,
+                    showMonths: 2,
+                    defaultDate: (dateFromVal && dateToVal) ? [dateFromVal, dateToVal] : (dateFromVal ?
+                        [dateFromVal] : []),
+                    onChange: function(selectedDates) {
+                        if (selectedDates.length === 0) {
+                            $('#input-date-from').val('');
+                            $('#input-date-to').val('');
+                        } else if (selectedDates.length === 1) {
+                            $('#input-date-from').val(flatpickr.formatDate(selectedDates[0],
+                                'Y-m-d'));
+                            $('#input-date-to').val('');
+                        } else {
+                            $('#input-date-from').val(flatpickr.formatDate(selectedDates[0],
+                                'Y-m-d'));
+                            $('#input-date-to').val(flatpickr.formatDate(selectedDates[1],
+                                'Y-m-d'));
+                            fetchGrid(1);
+                        }
+                    },
+                    onClose: function(selectedDates) {
+                        if (selectedDates.length === 1) {
+                            $('#input-date-from').val(flatpickr.formatDate(selectedDates[0],
+                                'Y-m-d'));
+                            $('#input-date-to').val('');
+                            fetchGrid(1);
+                        }
+                        if (selectedDates.length === 0) {
+                            fetchGrid(1);
+                        }
+                    }
+                });
+
+                // Initial pagination binding
+                bindPagination();
+
+                // ── Dept tab pills: intercept and AJAX-load ──────────────────────
+                // NOTE: Tab values ('Mascot', 'Costume') are PARTIAL — they don't match
+                // #filter-department options ('DCM Mascot', 'DCM Costume'). So we use
+                // deptTabFilter variable directly instead of syncing the select.
+                $(document).on('click', '.dept-filter-tabs .nav-link', function(e) {
+                    e.preventDefault();
+                    var url = $(this).attr('href');
+                    var dept = (new URL(url, window.location.origin)).searchParams.get('department') ||
+                        '';
+                    // Update active state visually
+                    $('.dept-filter-tabs .nav-link').removeClass('active');
+                    $(this).addClass('active');
+                    // Set the dept tab filter variable (used in getFilters)
+                    deptTabFilter = dept;
+                    // Clear department select (tab takes precedence)
+                    $('#filter-department').val('').trigger('change.select2');
+                    fetchGrid(1);
+                });
+
+            }); // end $(function)
+
+            // ── Fancybox gallery ─────────────────────────────────────────────────
+            $(document).on('click', '.btn-open-gallery', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var projectId = $(this).data('project-id');
+                var anchors = document.querySelectorAll('[data-fancybox="costing-gallery-' + projectId + '"]');
+                if (!anchors.length) return;
+                var items = [];
+                anchors.forEach(function(a) {
+                    items.push({
+                        src: a.href,
+                        type: 'image',
+                        caption: a.dataset.caption || '',
+                        downloadSrc: a.href
+                    });
+                });
+                Fancybox.show(items, {
+                    startIndex: 0,
+                    Toolbar: {
+                        display: ['zoom', 'fullscreen', 'download', 'close']
+                    }
+                });
+            });
+
+            function formatCurrency(value) {
+                return new Intl.NumberFormat('id-ID', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                }).format(value);
+            }
+
+            function viewCosting(projectId) {
+                fetch(`/costing-report/${projectId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const tableBody = document.getElementById('costingTableBody');
+                        tableBody.innerHTML = '';
+                        document.getElementById('costingModalLabel').innerText = `Project Costing: ${data.project}`;
+                        data.materials.forEach(material => {
+                            const inventory = material.inventory || {
+                                id: null,
+                                name: 'N/A',
+                                price: 0,
+                                total_unit_cost: 0,
+                                unit: 'N/A',
+                                currency: {
+                                    name: 'N/A'
+                                }
+                            };
+                            const row =
+                                `<tr><td><span class="badge bg-primary">${material.job_order_name || 'No Job Order'}</span></td><td>${inventory.name || 'N/A'}</td><td>${material.used_quantity ?? 0} ${inventory.unit || ''}</td><td>${formatCurrency(inventory.price ?? 0)} ${(inventory.currency && inventory.currency.name) ? inventory.currency.name : 'N/A'}</td><td class="fw-bold text-success">${formatCurrency(inventory.total_unit_cost ?? 0)}</td><td class="fw-bold">${formatCurrency(material.total_cost ?? 0)} IDR</td></tr>`;
+                            tableBody.innerHTML += row;
+                        });
+                        document.getElementById('materialTotal').innerHTML =
+                            `Material Total: <span class="text-primary fw-bold">${formatCurrency(data.grand_total_material_idr)} IDR</span>`;
+                        const modal = new bootstrap.Modal(document.getElementById('costingModal'));
+                        modal.show();
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Failed to load costing data.');
+                    });
+            }
+
+        }());
     </script>
 @endpush

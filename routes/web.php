@@ -172,7 +172,7 @@ Route::middleware(['auth'])->group(function () {
 
     // HR Dashboard & Landing Pages
     Route::get('/hr/dashboard', [\App\Http\Controllers\Hr\HrDashboardController::class, 'index'])->name('hr.dashboard');
-    Route::get('/hr/record',     [\App\Http\Controllers\Hr\HrDashboardController::class, 'record'])->name('hr.record');
+    Route::get('/hr/record', [\App\Http\Controllers\Hr\HrDashboardController::class, 'record'])->name('hr.record');
     Route::get('/hr/management', [\App\Http\Controllers\Hr\HrDashboardController::class, 'management'])->name('hr.management');
     Route::get('/hr/attendance-hub', [\App\Http\Controllers\Hr\HrDashboardController::class, 'attendanceHub'])->name('hr.attendance-hub');
 
@@ -382,15 +382,36 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/goods-in/{id}/restore', [GoodsInController::class, 'restore'])->name('goods_in.restore');
 
     // Costings
-    Route::get('/costing-report', [ProjectCostingController::class, 'index'])->name('costing.report');
-    Route::get('/costing-report/{project_id}/detail', [ProjectCostingController::class, 'showDetail'])->name('costing.detail');
-    Route::get('/costing-report/{project_id}/detail/material', [ProjectCostingController::class, 'showMaterialDetail'])->name('costing.detail.material');
-    Route::get('/costing-report/{project_id}/detail/workmanship', [ProjectCostingController::class, 'showWorkmanshipDetail'])->name('costing.detail.workmanship');
-    Route::get('/costing-report/{project_id}/detail/freight', [ProjectCostingController::class, 'showFreightDetail'])->name('costing.detail.freight');
-    Route::get('/costing-report/{project_id}', [ProjectCostingController::class, 'viewCosting'])->name('costing.view');
-    Route::get('/costing-report/export/{project_id}', [ProjectCostingController::class, 'exportCosting'])->name('costing.export');
-    Route::get('/costing-report-export-all', [ProjectCostingController::class, 'exportAllProjects'])->name('costing.export.all');
-    Route::get('/costing-report/{project_id}/job-order/{job_order_id}/materials', [ProjectCostingController::class, 'getJobOrderMaterials'])->name('costing.job_order_materials');
+    Route::get('/costing-report', [ProjectCostingController::class, 'index'])
+        ->name('costing.report')
+        ->middleware('can:finance.costing.view');
+    Route::get('/costing-report/ajax-search', [ProjectCostingController::class, 'ajaxSearch'])
+        ->name('costing.report.ajax')
+        ->middleware('can:finance.costing.view');
+    Route::get('/costing-report/{project_id}/detail', [ProjectCostingController::class, 'showDetail'])
+        ->name('costing.detail')
+        ->middleware('can:finance.costing.view');
+    Route::get('/costing-report/{project_id}/detail/material', [ProjectCostingController::class, 'showMaterialDetail'])
+        ->name('costing.detail.material')
+        ->middleware('can:finance.costing.view');
+    Route::get('/costing-report/{project_id}/detail/workmanship', [ProjectCostingController::class, 'showWorkmanshipDetail'])
+        ->name('costing.detail.workmanship')
+        ->middleware('can:finance.costing.view');
+    Route::get('/costing-report/{project_id}/detail/freight', [ProjectCostingController::class, 'showFreightDetail'])
+        ->name('costing.detail.freight')
+        ->middleware('can:finance.costing.view');
+    Route::get('/costing-report/{project_id}', [ProjectCostingController::class, 'viewCosting'])
+        ->name('costing.view')
+        ->middleware('can:finance.costing.view');
+    Route::get('/costing-report/export/{project_id}', [ProjectCostingController::class, 'exportCosting'])
+        ->name('costing.export')
+        ->middleware('can:finance.costing.view');
+    Route::get('/costing-report-export-all', [ProjectCostingController::class, 'exportAllProjects'])
+        ->name('costing.export.all')
+        ->middleware('can:finance.costing.view');
+    Route::get('/costing-report/{project_id}/job-order/{job_order_id}/materials', [ProjectCostingController::class, 'getJobOrderMaterials'])
+        ->name('costing.job_order_materials')
+        ->middleware('can:finance.costing.view');
 
     //set inventory
     Route::post('/set-inventory', function (Request $request) {
@@ -481,59 +502,135 @@ Route::middleware(['auth'])->group(function () {
     Route::prefix('costume-timing')
         ->name('costume-timing.')
         ->group(function () {
-            Route::get('/', [CostumeTimingController::class, 'index'])->name('index');
-            Route::post('/start', [CostumeTimingController::class, 'start'])->name('start');
-            Route::post('/stop', [CostumeTimingController::class, 'stop'])->name('stop');
-            Route::post('/freeze', [CostumeTimingController::class, 'freeze'])->name('freeze');
-            Route::post('/unfreeze', [CostumeTimingController::class, 'unfreeze'])->name('unfreeze');
-            Route::get('/active-sessions', [CostumeTimingController::class, 'getActiveSessions'])->name('active-sessions');
-            Route::get('/available-employees', [CostumeTimingController::class, 'getAvailableEmployees'])->name('available-employees');
-            Route::post('/get-sessions-info', [CostumeTimingController::class, 'getSessionsInfo'])->name('get-sessions-info');
-            Route::get('/job-order/{jobOrderId}', [CostumeTimingController::class, 'getJobOrderInfo'])->name('job-order-info');
+            Route::get('/', [CostumeTimingController::class, 'index'])
+                ->name('index')
+                ->middleware('can:production.costume-timing.view');
+            Route::post('/start', [CostumeTimingController::class, 'start'])
+                ->name('start')
+                ->middleware('can:production.costume-timing.edit');
+            Route::post('/stop', [CostumeTimingController::class, 'stop'])
+                ->name('stop')
+                ->middleware('can:production.costume-timing.edit');
+            Route::post('/freeze', [CostumeTimingController::class, 'freeze'])
+                ->name('freeze')
+                ->middleware('can:production.costume-timing.edit');
+            Route::post('/unfreeze', [CostumeTimingController::class, 'unfreeze'])
+                ->name('unfreeze')
+                ->middleware('can:production.costume-timing.edit');
+            Route::get('/active-sessions', [CostumeTimingController::class, 'getActiveSessions'])
+                ->name('active-sessions')
+                ->middleware('can:production.costume-timing.view');
+            Route::get('/available-employees', [CostumeTimingController::class, 'getAvailableEmployees'])
+                ->name('available-employees')
+                ->middleware('can:production.costume-timing.view');
+            Route::post('/get-sessions-info', [CostumeTimingController::class, 'getSessionsInfo'])
+                ->name('get-sessions-info')
+                ->middleware('can:production.costume-timing.view');
+            Route::get('/job-order/{jobOrderId}', [CostumeTimingController::class, 'getJobOrderInfo'])
+                ->name('job-order-info')
+                ->middleware('can:production.costume-timing.view');
             // Costume Monitor
-            Route::get('/monitor', [CostumeMonitorController::class, 'index'])->name('monitor');
-            Route::get('/monitor/running', [CostumeMonitorController::class, 'getRunning'])->name('monitor.running');
-            Route::get('/monitor/clocked-in', [CostumeMonitorController::class, 'getClockedIn'])->name('monitor.clocked-in');
-            Route::post('/bulk-stop', [CostumeTimingController::class, 'bulkStop'])->name('bulk-stop');
+            Route::get('/monitor', [CostumeMonitorController::class, 'index'])
+                ->name('monitor')
+                ->middleware('can:production.costume-timing.view');
+            Route::get('/monitor/running', [CostumeMonitorController::class, 'getRunning'])
+                ->name('monitor.running')
+                ->middleware('can:production.costume-timing.view');
+            Route::get('/monitor/clocked-in', [CostumeMonitorController::class, 'getClockedIn'])
+                ->name('monitor.clocked-in')
+                ->middleware('can:production.costume-timing.view');
+            Route::post('/bulk-stop', [CostumeTimingController::class, 'bulkStop'])
+                ->name('bulk-stop')
+                ->middleware('can:production.costume-timing.edit');
         });
 
     // Animatronics Timing - Animatronics Department Production Timer
     Route::prefix('animatronics-timing')
         ->name('animatronics-timing.')
         ->group(function () {
-            Route::get('/', [AnimatronicsTimingController::class, 'index'])->name('index');
-            Route::post('/start', [AnimatronicsTimingController::class, 'start'])->name('start');
-            Route::post('/stop', [AnimatronicsTimingController::class, 'stop'])->name('stop');
-            Route::post('/pause', [AnimatronicsTimingController::class, 'pause'])->name('pause');
-            Route::post('/freeze', [AnimatronicsTimingController::class, 'freeze'])->name('freeze');
-            Route::post('/unfreeze', [AnimatronicsTimingController::class, 'unfreeze'])->name('unfreeze');
-            Route::post('/quick-job-order', [AnimatronicsTimingController::class, 'quickStoreJobOrder'])->name('quick-job-order');
-            Route::get('/active-sessions', [AnimatronicsTimingController::class, 'getActiveSessions'])->name('active-sessions');
-            Route::get('/available-employees', [AnimatronicsTimingController::class, 'getAvailableEmployees'])->name('available-employees');
+            Route::get('/', [AnimatronicsTimingController::class, 'index'])
+                ->name('index')
+                ->middleware('can:production.animatronics-timing.view');
+            Route::post('/start', [AnimatronicsTimingController::class, 'start'])
+                ->name('start')
+                ->middleware('can:production.animatronics-timing.edit');
+            Route::post('/stop', [AnimatronicsTimingController::class, 'stop'])
+                ->name('stop')
+                ->middleware('can:production.animatronics-timing.edit');
+            Route::post('/pause', [AnimatronicsTimingController::class, 'pause'])
+                ->name('pause')
+                ->middleware('can:production.animatronics-timing.edit');
+            Route::post('/freeze', [AnimatronicsTimingController::class, 'freeze'])
+                ->name('freeze')
+                ->middleware('can:production.animatronics-timing.edit');
+            Route::post('/unfreeze', [AnimatronicsTimingController::class, 'unfreeze'])
+                ->name('unfreeze')
+                ->middleware('can:production.animatronics-timing.edit');
+            Route::post('/quick-job-order', [AnimatronicsTimingController::class, 'quickStoreJobOrder'])
+                ->name('quick-job-order')
+                ->middleware('can:production.animatronics-timing.edit');
+            Route::get('/active-sessions', [AnimatronicsTimingController::class, 'getActiveSessions'])
+                ->name('active-sessions')
+                ->middleware('can:production.animatronics-timing.view');
+            Route::get('/available-employees', [AnimatronicsTimingController::class, 'getAvailableEmployees'])
+                ->name('available-employees')
+                ->middleware('can:production.animatronics-timing.view');
             // Animatronics Monitor
-            Route::get('/monitor', [AnimatronicsMonitorController::class, 'index'])->name('monitor');
-            Route::get('/monitor/running', [AnimatronicsMonitorController::class, 'getRunning'])->name('monitor.running');
-            Route::get('/monitor/clocked-in', [AnimatronicsMonitorController::class, 'getClockedIn'])->name('monitor.clocked-in');
-            Route::post('/bulk-stop', [AnimatronicsTimingController::class, 'bulkStop'])->name('bulk-stop');
+            Route::get('/monitor', [AnimatronicsMonitorController::class, 'index'])
+                ->name('monitor')
+                ->middleware('can:production.animatronics-timing.view');
+            Route::get('/monitor/running', [AnimatronicsMonitorController::class, 'getRunning'])
+                ->name('monitor.running')
+                ->middleware('can:production.animatronics-timing.view');
+            Route::get('/monitor/clocked-in', [AnimatronicsMonitorController::class, 'getClockedIn'])
+                ->name('monitor.clocked-in')
+                ->middleware('can:production.animatronics-timing.view');
+            Route::post('/bulk-stop', [AnimatronicsTimingController::class, 'bulkStop'])
+                ->name('bulk-stop')
+                ->middleware('can:production.animatronics-timing.edit');
         });
 
     // Mascot Timing - Mascot Department Production Timer with Stage Progress
     Route::prefix('mascot-timing')
         ->name('mascot-timing.')
         ->group(function () {
-            Route::get('/', [MascotTimingController::class, 'index'])->name('index');
-            Route::post('/start', [MascotTimingController::class, 'start'])->name('start');
-            Route::post('/stop', [MascotTimingController::class, 'stop'])->name('stop');
-            Route::post('/freeze', [MascotTimingController::class, 'freeze'])->name('freeze');
-            Route::post('/unfreeze', [MascotTimingController::class, 'unfreeze'])->name('unfreeze');
-            Route::get('/active-sessions', [MascotTimingController::class, 'getActiveSessions'])->name('active-sessions');
-            Route::get('/available-employees', [MascotTimingController::class, 'getAvailableEmployees'])->name('available-employees');
-            Route::get('/job-order/{jobOrderId}', [MascotTimingController::class, 'getJobOrderInfo'])->name('job-order-info');
+            Route::get('/', [MascotTimingController::class, 'index'])
+                ->name('index')
+                ->middleware('can:production.mascot-timing.view');
+            Route::post('/start', [MascotTimingController::class, 'start'])
+                ->name('start')
+                ->middleware('can:production.mascot-timing.edit');
+            Route::post('/stop', [MascotTimingController::class, 'stop'])
+                ->name('stop')
+                ->middleware('can:production.mascot-timing.edit');
+            Route::post('/freeze', [MascotTimingController::class, 'freeze'])
+                ->name('freeze')
+                ->middleware('can:production.mascot-timing.edit');
+            Route::post('/unfreeze', [MascotTimingController::class, 'unfreeze'])
+                ->name('unfreeze')
+                ->middleware('can:production.mascot-timing.edit');
+            Route::get('/active-sessions', [MascotTimingController::class, 'getActiveSessions'])
+                ->name('active-sessions')
+                ->middleware('can:production.mascot-timing.view');
+            Route::get('/available-employees', [MascotTimingController::class, 'getAvailableEmployees'])
+                ->name('available-employees')
+                ->middleware('can:production.mascot-timing.view');
+            Route::get('/job-order/{jobOrderId}', [MascotTimingController::class, 'getJobOrderInfo'])
+                ->name('job-order-info')
+                ->middleware('can:production.mascot-timing.view');
             // Mascot Monitor
-            Route::get('/monitor', [MascotMonitorController::class, 'index'])->name('monitor');
-            Route::get('/monitor/running', [MascotMonitorController::class, 'getRunning'])->name('monitor.running');
-            Route::get('/monitor/clocked-in', [MascotMonitorController::class, 'getClockedIn'])->name('monitor.clocked-in');
-            Route::post('/bulk-stop', [MascotTimingController::class, 'bulkStop'])->name('bulk-stop');
+            Route::get('/monitor', [MascotMonitorController::class, 'index'])
+                ->name('monitor')
+                ->middleware('can:production.mascot-timing.view');
+            Route::get('/monitor/running', [MascotMonitorController::class, 'getRunning'])
+                ->name('monitor.running')
+                ->middleware('can:production.mascot-timing.view');
+            Route::get('/monitor/clocked-in', [MascotMonitorController::class, 'getClockedIn'])
+                ->name('monitor.clocked-in')
+                ->middleware('can:production.mascot-timing.view');
+            Route::post('/bulk-stop', [MascotTimingController::class, 'bulkStop'])
+                ->name('bulk-stop')
+                ->middleware('can:production.mascot-timing.edit');
         });
 
     // Timing Planner — plan employees per Job Order (admin mascot / admin costume)
@@ -550,13 +647,27 @@ Route::middleware(['auth'])->group(function () {
     Route::prefix('timing-cross')
         ->name('timing-cross.')
         ->group(function () {
-            Route::get('/', [\App\Http\Controllers\Timing\Cross\TimingCrossController::class, 'index'])->name('index');
-            Route::post('/start', [\App\Http\Controllers\Timing\Cross\TimingCrossController::class, 'start'])->name('start');
-            Route::post('/stop', [\App\Http\Controllers\Timing\Cross\TimingCrossController::class, 'stop'])->name('stop');
-            Route::post('/freeze', [\App\Http\Controllers\Timing\Cross\TimingCrossController::class, 'freeze'])->name('freeze');
-            Route::post('/unfreeze', [\App\Http\Controllers\Timing\Cross\TimingCrossController::class, 'unfreeze'])->name('unfreeze');
-            Route::post('/bulk-stop', [\App\Http\Controllers\Timing\Cross\TimingCrossController::class, 'bulkStop'])->name('bulk-stop');
-            Route::get('/active-sessions', [\App\Http\Controllers\Timing\Cross\TimingCrossController::class, 'getActiveSessions'])->name('active-sessions');
+            Route::get('/', [\App\Http\Controllers\Timing\Cross\TimingCrossController::class, 'index'])
+                ->name('index')
+                ->middleware('can:production.timing-cross.view');
+            Route::post('/start', [\App\Http\Controllers\Timing\Cross\TimingCrossController::class, 'start'])
+                ->name('start')
+                ->middleware('can:production.timing-cross.edit');
+            Route::post('/stop', [\App\Http\Controllers\Timing\Cross\TimingCrossController::class, 'stop'])
+                ->name('stop')
+                ->middleware('can:production.timing-cross.edit');
+            Route::post('/freeze', [\App\Http\Controllers\Timing\Cross\TimingCrossController::class, 'freeze'])
+                ->name('freeze')
+                ->middleware('can:production.timing-cross.edit');
+            Route::post('/unfreeze', [\App\Http\Controllers\Timing\Cross\TimingCrossController::class, 'unfreeze'])
+                ->name('unfreeze')
+                ->middleware('can:production.timing-cross.edit');
+            Route::post('/bulk-stop', [\App\Http\Controllers\Timing\Cross\TimingCrossController::class, 'bulkStop'])
+                ->name('bulk-stop')
+                ->middleware('can:production.timing-cross.edit');
+            Route::get('/active-sessions', [\App\Http\Controllers\Timing\Cross\TimingCrossController::class, 'getActiveSessions'])
+                ->name('active-sessions')
+                ->middleware('can:production.timing-cross.view');
         });
 
     // Timing Session Detail - Shared detail page for any timing session

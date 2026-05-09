@@ -75,8 +75,18 @@ class LarkJobOrderSyncService
                     $dto = new LarkJobOrderDTO($rawRecord);
                     $larkRecordIds[] = $dto->recordId;
 
+                    // Fetch existing record to reuse already-downloaded images (skip re-download)
+                    $existing = JobOrder::where('lark_record_id', $dto->recordId)
+                        ->select(['final_image', 'wip_photo'])
+                        ->first();
+
+                    $existingImages = $existing ? [
+                        'final_image' => $existing->final_image,
+                        'wip_photo'   => $existing->wip_photo,
+                    ] : [];
+
                     // Transform to database format
-                    $data = $this->transformer->transform($dto);
+                    $data = $this->transformer->transform($dto, $existingImages);
 
                     // Validate
                     $this->transformer->validate($data);

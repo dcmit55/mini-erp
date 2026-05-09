@@ -34429,7 +34429,7 @@ function initializeAudio() {
 }
 function playNotificationSound() {
   // Respect mute toggle — tab-specific via sessionStorage (default ON)
-  if (sessionStorage.getItem('notif_enabled') === 'false') return;
+  if (sessionStorage.getItem("notif_enabled") === "false") return;
 
   // Web Audio API
   if (audioContext && audioBuffer) {
@@ -34501,7 +34501,7 @@ window.markAnnouncementAsRead = function (announcementId) {
 function showToast(materialRequest, action) {
   var playSound = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
   // Respect mute toggle — tab-specific via sessionStorage (default ON)
-  if (sessionStorage.getItem('notif_enabled') === 'false') return;
+  if (sessionStorage.getItem("notif_enabled") === "false") return;
   var toastContainer = document.getElementById("toast-container");
   var toastTemplate = document.getElementById("toast-template");
   var departmentName = getDepartmentName(materialRequest);
@@ -34894,7 +34894,9 @@ window.Echo = new laravel_echo__WEBPACK_IMPORTED_MODULE_1__["default"]({
   broadcaster: "pusher",
   key: "54ec9493e614e3204705",
   cluster: "ap1",
-  forceTLS: true,
+  // Use TLS only when page is served over HTTPS; on HTTP (local dev) use plain WS
+  // to avoid sockjs CORS errors from Pusher fallback endpoints
+  forceTLS: window.location.protocol === "https:",
   enabledTransports: ["ws", "wss"],
   // Connection fallback options
   wsHost: "ws-".concat("ap1", ".pusher.com"),

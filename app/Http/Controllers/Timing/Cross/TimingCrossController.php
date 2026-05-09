@@ -34,6 +34,8 @@ class TimingCrossController extends Controller
     /* ──────────────────────────────────────────────────────────────────── */
     public function index()
     {
+        abort_if(!auth()->user()->can('production.timing-cross.view'), 403, 'Anda tidak memiliki akses ke modul Timing Cross.');
+
         $bypassAttendance = (bool) env('TIMING_BYPASS_ATTENDANCE', false);
 
         if ($bypassAttendance) {

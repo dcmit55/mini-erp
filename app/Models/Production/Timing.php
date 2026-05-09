@@ -15,7 +15,7 @@ class Timing extends Model implements AuditableContract
 {
     use HasFactory, \OwenIt\Auditing\Auditable;
 
-    protected $auditInclude = ['tanggal', 'job_order_id', 'project_id', 'step', 'parts', 'employee_id', 'start_time', 'end_time', 'duration_minutes', 'status', 'approval_status', 'approved_by', 'rejection_reason', 'remarks'];
+    protected $auditInclude = ['tanggal', 'job_order_id', 'project_id', 'step', 'parts', 'item', 'employee_id', 'start_time', 'end_time', 'duration_minutes', 'status', 'approval_status', 'approved_by', 'rejection_reason', 'remarks'];
 
     protected $fillable = [
         'tanggal',
@@ -23,6 +23,7 @@ class Timing extends Model implements AuditableContract
         'project_id',
         'step',
         'parts',
+        'item',
         'employee_id',
         'start_time',
         'end_time',

@@ -33,7 +33,7 @@ class JobOrderTransformer
      * @return array Data siap disimpan ke database
      * @throws \InvalidArgumentException
      */
-    public function transform(LarkJobOrderDTO $dto): array
+    public function transform(LarkJobOrderDTO $dto, array $existingImages = []): array
     {
         return [
             'lark_record_id' => $dto->recordId,
@@ -44,7 +44,13 @@ class JobOrderTransformer
             'department_id' => $this->normalizePrimaryDepartmentId($dto->departmentsArray), // FK lookup - first dept only
             'delivery_date' => $this->parseDeliveryDate($dto->deliveryDateRaw), // Parse date from Lark
             'status' => $this->normalizeStatus($dto->statusRaw), // Job status from Lark
-            'final_image' => $this->normalizeFinalImage($dto->finalImageRaw), // Download image to storage
+            // Skip re-download if image already exists locally
+            'final_image' => !empty($existingImages['final_image'])
+                ? $existingImages['final_image']
+                : $this->normalizeFinalImage($dto->finalImageRaw),
+            'wip_photo' => !empty($existingImages['wip_photo'])
+                ? $existingImages['wip_photo']
+                : $this->normalizeWipPhoto($dto->wipPhotoRaw),
             'created_by' => 'Sync from Lark',
             'last_sync_at' => now(),
             // Return array of department IDs for pivot sync (handled separately)
@@ -410,6 +416,86 @@ class JobOrderTransformer
             }
         }
         return 'jpg';
+    }
+
+    /**
+     * Normalize WIP photo from Lark attachment — downloads first photo to local storage
+     * Skips videos (mp4, mov, avi, webm, etc.), picks first image attachment.
+     *
+     * @param array|null $attachments Raw attachment array from Lark
+     * @return string|null Local storage path or null
+     */
+    private function normalizeWipPhoto(?array $attachments): ?string
+    {
+        if (empty($attachments) || !is_array($attachments)) {
+            return null;
+        }
+
+        $videoExtensions = ['mp4', 'mov', 'avi', 'webm', 'mkv', 'flv', 'wmv', '3gp'];
+        $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+
+        foreach ($attachments as $attachment) {
+            if (!$attachment || !is_array($attachment)) {
+                continue;
+            }
+
+            // Check mime type if available
+            $mimeType = $attachment['mime_type'] ?? $attachment['type'] ?? '';
+            if ($mimeType && str_starts_with($mimeType, 'video/')) {
+                continue; // Skip videos
+            }
+
+            // Check extension from name or URL
+            $name = $attachment['name'] ?? '';
+            $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+            if (in_array($ext, $videoExtensions)) {
+                continue; // Skip videos by extension
+            }
+
+            $larkUrl = $attachment['url'] ?? ($attachment['tmp_url'] ?? null);
+            if (empty($larkUrl) || !is_string($larkUrl)) {
+                continue;
+            }
+
+            // Also check extension from URL
+            $urlExt = strtolower(pathinfo(parse_url($larkUrl, PHP_URL_PATH), PATHINFO_EXTENSION));
+            if (in_array($urlExt, $videoExtensions)) {
+                continue;
+            }
+
+            try {
+                $response = $this->apiClient->downloadMedia($larkUrl);
+
+                if (!$response || !$response->successful()) {
+                    Log::error('Job Order wip_photo: failed to download from Lark', [
+                        'url' => $larkUrl,
+                        'status' => $response?->status(),
+                    ]);
+                    continue;
+                }
+
+                $extension = (!empty($ext) && in_array($ext, $imageExtensions)) ? $ext : ($this->getExtensionFromUrl($larkUrl) ?? 'jpg');
+                $filename = 'wip_' . Str::random(40) . '.' . $extension;
+                $path = 'job_order_images/' . $filename;
+
+                Storage::disk('public')->put($path, $response->body());
+
+                Log::info('Job Order wip_photo downloaded successfully', [
+                    'lark_url' => $larkUrl,
+                    'local_path' => $path,
+                ]);
+
+                return $path;
+            } catch (\Exception $e) {
+                Log::error('Job Order wip_photo: error during download', [
+                    'url' => $larkUrl,
+                    'error' => $e->getMessage(),
+                ]);
+                continue;
+            }
+        }
+
+        return null;
     }
 
     /**

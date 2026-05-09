@@ -165,6 +165,7 @@
                             <th>Department</th>
                             <th>Step</th>
                             <th>Parts</th>
+                            <th>Item</th>
                             <th>Employee</th>
                             <th>Start</th>
                             <th>End</th>
@@ -206,6 +207,9 @@
 
                                 {{-- Parts --}}
                                 <td>{{ $timing->parts ?? '-' }}</td>
+
+                                {{-- Item --}}
+                                <td>{{ $timing->item ?? '-' }}</td>
 
                                 {{-- Employee --}}
                                 <td>{{ $timing->employee ? $timing->employee->name : '-' }}</td>

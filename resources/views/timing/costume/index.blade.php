@@ -216,9 +216,14 @@
                                             placeholder="e.g., Cutting, Sewing" required>
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label small">Part/Component</label>
+                                        <label class="form-label small">Part/Component <span class="text-danger">*</span></label>
                                         <input type="text" class="form-control" id="parts-input" name="parts"
-                                            placeholder="e.g., Body, Head (optional)">
+                                            placeholder="e.g., Body, Head" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small">Item <span class="text-muted">(optional)</span></label>
+                                        <input type="text" class="form-control" id="item-input" name="item"
+                                            placeholder="e.g., Sample 1, Batch A">
                                     </div>
                                 </div>
                             </div>
@@ -767,6 +772,7 @@
                     step: stepVal,
                     tasks: tasksPayload,
                     parts: $('#parts-input').val(),
+                    item: $('#item-input').val() || null,
                     output_qty: $('#output-qty-input').val(),
                     session_type: globalSessionType,
                     session_types: sessionTypesPayload

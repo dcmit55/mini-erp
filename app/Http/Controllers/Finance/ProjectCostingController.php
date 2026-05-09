@@ -44,9 +44,14 @@ class ProjectCostingController extends Controller
             }
         });
 
-        // Search filter
+        // Search filter (legacy text search — kept for backward compat)
         if ($request->has('search') && $request->search !== null) {
             $query->where('name', 'LIKE', '%' . $request->search . '%');
+        }
+
+        // Project ID filter (select2 dropdown)
+        if ($request->filled('project_id')) {
+            $query->where('id', $request->project_id);
         }
 
         // Apply filters
@@ -207,7 +212,148 @@ class ProjectCostingController extends Controller
             ->orderByDesc('month')
             ->pluck('month');
 
-        return view('finance.costing.index', compact('projects', 'departments', 'salesOptions', 'jobOrders', 'deadlineMonths', 'cardSummaries'));
+        // All costing projects (for project select2 dropdown)
+        $allProjects = Project::where(function ($q) {
+            $q->where('project_status', 'Delivered')->orWhere('project_status', 'LIKE', '%WIP%');
+        })->select('id', 'name', 'project_status')->orderByDesc('deadline')->get();
+
+        return view('finance.costing.index', compact('projects', 'departments', 'salesOptions', 'jobOrders', 'deadlineMonths', 'cardSummaries', 'allProjects'));
+    }
+
+    /**
+     * AJAX partial render — returns only the project grid + pagination HTML.
+     * Called by the filter bar JS to avoid full page reloads.
+     */
+    public function ajaxSearch(Request $request)
+    {
+        abort_if(!auth()->user()->can('finance.costing.view'), 403);
+
+        // Re-run the same query logic as index()
+        $statusFilter = $request->input('project_status', 'all');
+        $query = Project::where(function ($q) use ($statusFilter) {
+            if ($statusFilter === 'delivered') {
+                $q->where('project_status', 'Delivered');
+            } elseif ($statusFilter === 'wip') {
+                $q->where('project_status', 'LIKE', '%WIP%');
+            } else {
+                $q->where('project_status', 'Delivered')->orWhere('project_status', 'LIKE', '%WIP%');
+            }
+        });
+
+        // Project ID filter (from select2 dropdown)
+        if ($request->filled('project_id')) {
+            $query->where('id', $request->project_id);
+        }
+
+        if ($request->filled('department')) {
+            $query->where('type_dept', 'LIKE', '%' . $request->department . '%');
+        }
+
+        if ($request->filled('sales')) {
+            $name = $request->sales;
+            $query->where(function ($q) use ($name) {
+                $q->where('sales', $name)
+                    ->orWhere('sales', 'like', $name . ',%')
+                    ->orWhere('sales', 'like', '%, ' . $name . ',%')
+                    ->orWhere('sales', 'like', '%, ' . $name);
+            });
+        }
+
+        if ($request->filled('job_order')) {
+            $query->whereHas('jobOrders', fn($q) => $q->where('id', $request->job_order));
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('deadline', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('deadline', '<=', $request->date_to);
+        }
+
+        $projects = $query
+            ->with(['departments', 'jobOrders' => fn($q) => $q->select('id', 'project_id', 'name', 'department_id', 'final_image'), 'jobOrders.department'])
+            ->orderByDesc('deadline')
+            ->orderByDesc('created_at')
+            ->paginate(12);
+
+        $projectIds = $projects->pluck('id')->toArray();
+        $cardSummaries = [];
+
+        if (!empty($projectIds)) {
+            $usagesByProject = \App\Models\Logistic\MaterialUsage::whereIn('project_id', $projectIds)
+                ->with(['inventory.currency', 'inventory.batches'])
+                ->get()->groupBy('project_id');
+
+            $timingsByProject = \App\Models\Production\Timing::whereIn('project_id', $projectIds)
+                ->where('approval_status', 'approved')
+                ->selectRaw('project_id, SUM(duration_minutes) as total_minutes')
+                ->groupBy('project_id')->pluck('total_minutes', 'project_id');
+
+            $timingsWithEmployee = \App\Models\Production\Timing::whereIn('project_id', $projectIds)
+                ->where('approval_status', 'approved')
+                ->with('employee:id,salary')->get()->groupBy('project_id');
+
+            $projectNames = \App\Models\Production\Project::whereIn('id', $projectIds)->pluck('name', 'id');
+            $dcmByProjectName = \App\Models\Finance\DcmCosting::whereIn('project_name', $projectNames->values())
+                ->where('is_current', true)->get()->groupBy('project_name');
+
+            $sgdRate = \App\Models\Finance\Currency::where('name', 'SGD')->value('exchange_rate') ?? 12000;
+            $allBtSgItems = \App\Models\Lark\LarkBtSgItemTracking::whereIn('project_id', $projectIds)->get()->groupBy('project_id');
+            $allSgBtItems = \App\Models\Lark\LarkSgBtItemTracking::whereIn('project_id', $projectIds)->get()->groupBy('project_id');
+
+            foreach ($projectIds as $pid) {
+                $materialIDR = 0;
+                foreach ($usagesByProject[$pid] ?? collect() as $usage) {
+                    $inv = $usage->inventory;
+                    if (!$inv) continue;
+                    $rate = $inv->currency->exchange_rate ?? 1;
+                    $unitCost = ($inv->price ?? 0) + ($inv->unit_domestic_freight_cost ?? 0) + ($inv->unit_international_freight_cost ?? 0);
+                    $materialIDR += $unitCost * ($usage->used_quantity ?? 0) * $rate;
+                }
+                $btSgForProject = $allBtSgItems[$pid] ?? collect();
+                $sgBtForProject = $allSgBtItems[$pid] ?? collect();
+                $freightIDR = round(($btSgForProject->sum('sgd_cost') + $sgBtForProject->sum('sgd_cost')) * $sgdRate, 0);
+
+                $workmanshipIDR = 0;
+                $totalMinutes = $timingsByProject[$pid] ?? 0;
+                $totalHours = round($totalMinutes / 60, 2);
+                foreach ($timingsWithEmployee[$pid] ?? collect() as $timing) {
+                    if (!is_null($timing->rate_per_hour) && (float) $timing->rate_per_hour > 0) {
+                        $hourlyRate = (float) $timing->rate_per_hour;
+                    } else {
+                        $salary = $timing->employee->salary ?? 0;
+                        $hourlyRate = $salary > 0 ? round($salary / 173, 0) : 0;
+                    }
+                    $hrs = round(($timing->duration_minutes ?? 0) / 60, 2);
+                    $workmanshipIDR += round($hourlyRate * $hrs, 0);
+                }
+                $actualCost = $materialIDR + $workmanshipIDR + $freightIDR;
+                $pName = $projectNames[$pid] ?? null;
+                $dcmRows = $pName ? $dcmByProjectName[$pName] ?? collect() : collect();
+                $intlRows = $dcmRows->filter(fn($c) => str_contains(strtolower($c->purchase_type ?? ''), 'intl') || str_contains(strtolower($c->purchase_type ?? ''), 'international') || str_contains(strtolower($c->supplier ?? ''), 'sg') || str_contains(strtolower($c->department ?? ''), 'sg'));
+                $localRows = $dcmRows->filter(fn($c) => !$intlRows->contains('id', $c->id));
+
+                $cardSummaries[$pid] = [
+                    'actual_project_cost' => $actualCost,
+                    'material_cost' => $materialIDR,
+                    'workmanship_cost' => $workmanshipIDR,
+                    'freight_cost' => $freightIDR,
+                    'total_hours' => $totalHours,
+                    'intl_po' => $intlRows->sum('invoice_total'),
+                    'local_po' => $localRows->sum('invoice_total'),
+                    'usage_idr' => $materialIDR,
+                ];
+            }
+        }
+
+        $html = view('finance.costing._grid', compact('projects', 'cardSummaries'))->render();
+
+        return response()->json([
+            'html'         => $html,
+            'total'        => $projects->total(),
+            'current_page' => $projects->currentPage(),
+            'last_page'    => $projects->lastPage(),
+        ]);
     }
 
     /**
@@ -555,23 +701,25 @@ class ProjectCostingController extends Controller
         $allCompletePerJo = \App\Models\Production\Timing::where('project_id', $project_id)
             ->where('status', 'complete')
             ->whereIn('approval_status', ['approved', 'pending'])
-            ->selectRaw('job_order_id, approval_status, COUNT(DISTINCT employee_id) as emp_count, COUNT(*) as session_count')
+            ->selectRaw('job_order_id, approval_status, COUNT(DISTINCT employee_id) as emp_count, COUNT(*) as session_count, ROUND(SUM(COALESCE(duration_minutes,0))/60,2) as total_hours')
             ->groupBy('job_order_id', 'approval_status')
             ->get();
 
-        // Build per-JO approval stats: ['jo_id' => ['approved_emp'=>N, 'pending_emp'=>N, 'total_sessions'=>N, 'approved_sessions'=>N]]
+        // Build per-JO approval stats: ['jo_id' => ['approved_emp'=>N, 'pending_emp'=>N, 'total_sessions'=>N, 'approved_sessions'=>N, 'approved_hours'=>H, 'pending_hours'=>H]]
         $joApprovalStats = [];
         foreach ($allCompletePerJo as $row) {
             $jid = $row->job_order_id ?? 'null';
             if (!isset($joApprovalStats[$jid])) {
-                $joApprovalStats[$jid] = ['approved_emp' => 0, 'pending_emp' => 0, 'approved_sessions' => 0, 'pending_sessions' => 0];
+                $joApprovalStats[$jid] = ['approved_emp' => 0, 'pending_emp' => 0, 'approved_sessions' => 0, 'pending_sessions' => 0, 'approved_hours' => 0, 'pending_hours' => 0];
             }
             if ($row->approval_status === 'approved') {
                 $joApprovalStats[$jid]['approved_emp'] += $row->emp_count;
                 $joApprovalStats[$jid]['approved_sessions'] += $row->session_count;
+                $joApprovalStats[$jid]['approved_hours'] += $row->total_hours;
             } else {
                 $joApprovalStats[$jid]['pending_emp'] += $row->emp_count;
                 $joApprovalStats[$jid]['pending_sessions'] += $row->session_count;
+                $joApprovalStats[$jid]['pending_hours'] += $row->total_hours;
             }
         }
 

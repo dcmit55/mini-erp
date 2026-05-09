@@ -88,6 +88,7 @@ class TimingApprovalController extends Controller
                         })
                         ->orWhere('step', 'like', "%{$search}%")
                         ->orWhere('parts', 'like', "%{$search}%")
+                        ->orWhere('item', 'like', "%{$search}%")
                         ->orWhere('remarks', 'like', "%{$search}%");
                 });
             }
@@ -114,9 +115,10 @@ class TimingApprovalController extends Controller
                     return '<strong>' . $project . '</strong><br><small class="text-muted">JO: ' . $jobOrder . '</small>';
                 })
                 ->addColumn('work_details', function ($timing) {
-                    $step = $timing->step ? '<span class="badge bg-info">' . $timing->step . '</span>' : '';
-                    $parts = $timing->parts ? '<span class="badge bg-secondary">' . $timing->parts . '</span>' : '';
-                    return $step . ' ' . $parts;
+                    $step = $timing->step ? '<span class="badge bg-info">' . e($timing->step) . '</span>' : '';
+                    $parts = $timing->parts ? '<span class="badge bg-secondary">' . e($timing->parts) . '</span>' : '';
+                    $item = $timing->item ? '<span class="badge bg-light text-dark border">' . e($timing->item) . '</span>' : '';
+                    return trim($step . ' ' . $parts . ' ' . $item);
                 })
                 ->addColumn('duration_info', function ($timing) {
                     // For still-running sessions, calculate elapsed time live

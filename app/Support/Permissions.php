@@ -105,6 +105,9 @@ class Permissions
     const PRODUCTION_ANIMATRONICS_TIMING_VIEW = 'production.animatronics-timing.view';
     const PRODUCTION_ANIMATRONICS_TIMING_EDIT = 'production.animatronics-timing.edit';
 
+    const PRODUCTION_CROSS_TIMING_VIEW = 'production.timing-cross.view';
+    const PRODUCTION_CROSS_TIMING_EDIT = 'production.timing-cross.edit';
+
     const PRODUCTION_PERFORMANCE_VIEW  = 'production.performance.view';
     const PRODUCTION_EFFICIENCY_VIEW   = 'production.efficiency.view';
 

@@ -112,6 +112,7 @@ class TimingController extends Controller
                     $html .= '<td>' . ($timing->employee && $timing->employee->department ? $timing->employee->department->name : '-') . '</td>';
                     $html .= '<td>' . ($timing->step ?? '-') . '</td>';
                     $html .= '<td>' . ($timing->parts ?? '-') . '</td>';
+                    $html .= '<td>' . ($timing->item ?? '-') . '</td>';
                     $html .= '<td>' . ($timing->employee ? $timing->employee->name : '-') . '</td>';
                     $html .= '<td>' . ($timing->start_time ? \Carbon\Carbon::parse($timing->start_time)->format('H:i') : '-') . '</td>';
                     $html .= '<td>' . ($timing->end_time ? \Carbon\Carbon::parse($timing->end_time)->format('H:i') : '<span class="badge bg-warning">Running</span>') . '</td>';
