@@ -76,17 +76,19 @@ class LarkJobOrderSyncService
                     $larkRecordIds[] = $dto->recordId;
 
                     // Fetch existing record to reuse already-downloaded images (skip re-download)
+                    // If the DB already has a path value, keep it — do NOT re-download even if
+                    // the file is missing from disk (e.g. after fresh deployment).
+                    // Image downloads only happen for brand-new records with no path yet.
                     $existing = JobOrder::where('lark_record_id', $dto->recordId)
                         ->select(['final_image', 'wip_photo'])
                         ->first();
 
                     $existingImages = [];
                     if ($existing) {
-                        // Only reuse if the file actually exists on disk
-                        if (!empty($existing->final_image) && \Storage::disk('public')->exists($existing->final_image)) {
+                        if (!empty($existing->final_image)) {
                             $existingImages['final_image'] = $existing->final_image;
                         }
-                        if (!empty($existing->wip_photo) && \Storage::disk('public')->exists($existing->wip_photo)) {
+                        if (!empty($existing->wip_photo)) {
                             $existingImages['wip_photo'] = $existing->wip_photo;
                         }
                     }

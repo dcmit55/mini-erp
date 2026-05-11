@@ -10,6 +10,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Yajra\DataTables\Facades\DataTables;
 use App\Services\Lark\LarkJobOrderSyncService;
+use App\Jobs\SyncLarkJobOrdersJob;
+use Illuminate\Support\Facades\Cache;
 
 class JobOrderController extends Controller
 {
@@ -342,30 +344,39 @@ class JobOrderController extends Controller
      */
     public function syncFromLark(LarkJobOrderSyncService $syncService)
     {
-        // Allow up to 5 minutes for image downloads during sync
-        set_time_limit(300);
-
-        try {
-            $stats = $syncService->sync();
-
-            $message = sprintf('Lark sync completed! Fetched: %d | Created: %d | Updated: %d | Deactivated: %d', $stats['fetched'], $stats['created'], $stats['updated'], $stats['deactivated']);
-
-            if ($stats['errors'] > 0) {
-                $message .= sprintf(' | Errors: %d', $stats['errors']);
-                return redirect()->route('job-orders.index')->with('warning', $message);
+        // If queue driver is 'sync' (no real queue worker), run directly with extended time limit.
+        // On production with a real queue driver (database/redis), dispatch to background immediately.
+        if (config('queue.default') === 'sync') {
+            set_time_limit(600);
+            try {
+                $stats = $syncService->sync();
+                $message = sprintf(
+                    'Lark sync completed! Fetched: %d | Created: %d | Updated: %d | Deactivated: %d',
+                    $stats['fetched'], $stats['created'], $stats['updated'], $stats['deactivated']
+                );
+                if ($stats['errors'] > 0) {
+                    $message .= sprintf(' | Errors: %d', $stats['errors']);
+                    return redirect()->route('job-orders.index')->with('warning', $message);
+                }
+                return redirect()->route('job-orders.index')->with('success', $message);
+            } catch (\Exception $e) {
+                \Log::error('Lark job order sync failed', ['error' => $e->getMessage(), 'user_id' => auth()->id()]);
+                return redirect()->route('job-orders.index')->withErrors(['error' => 'Sync failed: ' . $e->getMessage()]);
             }
-
-            return redirect()->route('job-orders.index')->with('success', $message);
-        } catch (\Exception $e) {
-            \Log::error('Lark job order sync failed', [
-                'error' => $e->getMessage(),
-                'user_id' => auth()->id(),
-            ]);
-
-            return redirect()
-                ->route('job-orders.index')
-                ->withErrors(['error' => 'Sync failed: ' . $e->getMessage()]);
         }
+
+        // Real queue driver available — dispatch to background, return immediately
+        $alreadyRunning = Cache::get('lark_jo_sync_status') === 'running';
+        if ($alreadyRunning) {
+            return redirect()->route('job-orders.index')->with('info', 'Sync is already running in the background. Please wait.');
+        }
+
+        Cache::put('lark_jo_sync_status', 'queued', now()->addMinutes(15));
+        SyncLarkJobOrdersJob::dispatch();
+
+        return redirect()->route('job-orders.index')->with('info',
+            'Lark sync has been queued and is running in the background. Refresh the page in a few moments to see updated data.'
+        );
     }
 
     /**
