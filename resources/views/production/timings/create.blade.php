@@ -114,8 +114,8 @@
                                         {{-- Item --}}
                                         <td data-label="Item">
                                             <input type="text" name="timings[{{ $i }}][item]"
-                                                class="form-control form-control-sm"
-                                                placeholder="Optional" value="{{ old("timings.$i.item") }}">
+                                                class="form-control form-control-sm" placeholder="Optional"
+                                                value="{{ old("timings.$i.item") }}">
                                         </td>
                                         {{-- Employee --}}
                                         <td data-label="Employee">

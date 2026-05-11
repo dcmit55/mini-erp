@@ -92,7 +92,7 @@ class ProjectCostingController extends Controller
         }
 
         $projects = $query
-            ->with(['departments', 'jobOrders' => fn($q) => $q->select('id', 'project_id', 'name', 'department_id', 'final_image'), 'jobOrders.department'])
+            ->with(['departments', 'jobOrders' => fn($q) => $q->select('id', 'project_id', 'name', 'department_id', 'final_image', 'wip_photo'), 'jobOrders.department'])
             ->orderByDesc('deadline') // Sort by deadline descending
             ->orderByDesc('created_at') // Then by created_at
             ->paginate(12); // 12 = 3 cols × 4 rows (xl), fits clean grid
@@ -215,7 +215,10 @@ class ProjectCostingController extends Controller
         // All costing projects (for project select2 dropdown)
         $allProjects = Project::where(function ($q) {
             $q->where('project_status', 'Delivered')->orWhere('project_status', 'LIKE', '%WIP%');
-        })->select('id', 'name', 'project_status')->orderByDesc('deadline')->get();
+        })
+            ->select('id', 'name', 'project_status')
+            ->orderByDesc('deadline')
+            ->get();
 
         return view('finance.costing.index', compact('projects', 'departments', 'salesOptions', 'jobOrders', 'deadlineMonths', 'cardSummaries', 'allProjects'));
     }
@@ -271,7 +274,7 @@ class ProjectCostingController extends Controller
         }
 
         $projects = $query
-            ->with(['departments', 'jobOrders' => fn($q) => $q->select('id', 'project_id', 'name', 'department_id', 'final_image'), 'jobOrders.department'])
+            ->with(['departments', 'jobOrders' => fn($q) => $q->select('id', 'project_id', 'name', 'department_id', 'final_image', 'wip_photo'), 'jobOrders.department'])
             ->orderByDesc('deadline')
             ->orderByDesc('created_at')
             ->paginate(12);
@@ -282,20 +285,15 @@ class ProjectCostingController extends Controller
         if (!empty($projectIds)) {
             $usagesByProject = \App\Models\Logistic\MaterialUsage::whereIn('project_id', $projectIds)
                 ->with(['inventory.currency', 'inventory.batches'])
-                ->get()->groupBy('project_id');
+                ->get()
+                ->groupBy('project_id');
 
-            $timingsByProject = \App\Models\Production\Timing::whereIn('project_id', $projectIds)
-                ->where('approval_status', 'approved')
-                ->selectRaw('project_id, SUM(duration_minutes) as total_minutes')
-                ->groupBy('project_id')->pluck('total_minutes', 'project_id');
+            $timingsByProject = \App\Models\Production\Timing::whereIn('project_id', $projectIds)->where('approval_status', 'approved')->selectRaw('project_id, SUM(duration_minutes) as total_minutes')->groupBy('project_id')->pluck('total_minutes', 'project_id');
 
-            $timingsWithEmployee = \App\Models\Production\Timing::whereIn('project_id', $projectIds)
-                ->where('approval_status', 'approved')
-                ->with('employee:id,salary')->get()->groupBy('project_id');
+            $timingsWithEmployee = \App\Models\Production\Timing::whereIn('project_id', $projectIds)->where('approval_status', 'approved')->with('employee:id,salary')->get()->groupBy('project_id');
 
             $projectNames = \App\Models\Production\Project::whereIn('id', $projectIds)->pluck('name', 'id');
-            $dcmByProjectName = \App\Models\Finance\DcmCosting::whereIn('project_name', $projectNames->values())
-                ->where('is_current', true)->get()->groupBy('project_name');
+            $dcmByProjectName = \App\Models\Finance\DcmCosting::whereIn('project_name', $projectNames->values())->where('is_current', true)->get()->groupBy('project_name');
 
             $sgdRate = \App\Models\Finance\Currency::where('name', 'SGD')->value('exchange_rate') ?? 12000;
             $allBtSgItems = \App\Models\Lark\LarkBtSgItemTracking::whereIn('project_id', $projectIds)->get()->groupBy('project_id');
@@ -305,7 +303,9 @@ class ProjectCostingController extends Controller
                 $materialIDR = 0;
                 foreach ($usagesByProject[$pid] ?? collect() as $usage) {
                     $inv = $usage->inventory;
-                    if (!$inv) continue;
+                    if (!$inv) {
+                        continue;
+                    }
                     $rate = $inv->currency->exchange_rate ?? 1;
                     $unitCost = ($inv->price ?? 0) + ($inv->unit_domestic_freight_cost ?? 0) + ($inv->unit_international_freight_cost ?? 0);
                     $materialIDR += $unitCost * ($usage->used_quantity ?? 0) * $rate;
@@ -349,10 +349,10 @@ class ProjectCostingController extends Controller
         $html = view('finance.costing._grid', compact('projects', 'cardSummaries'))->render();
 
         return response()->json([
-            'html'         => $html,
-            'total'        => $projects->total(),
+            'html' => $html,
+            'total' => $projects->total(),
             'current_page' => $projects->currentPage(),
-            'last_page'    => $projects->lastPage(),
+            'last_page' => $projects->lastPage(),
         ]);
     }
 
@@ -366,7 +366,7 @@ class ProjectCostingController extends Controller
                 $q->where('project_status', 'Delivered')->orWhere('project_status', 'LIKE', '%WIP%');
             })
             ->firstOrFail();
-        $project->load(['departments', 'jobOrders' => fn($q) => $q->select('id', 'project_id', 'name', 'department_id', 'final_image'), 'jobOrders.department']);
+        $project->load(['departments', 'jobOrders' => fn($q) => $q->select('id', 'project_id', 'name', 'department_id', 'final_image', 'wip_photo'), 'jobOrders.department']);
         // ── Material Usages ──
         $usages = MaterialUsage::where('project_id', $project_id)
             ->with(['inventory.currency', 'inventory.unitRelation', 'inventory.batches', 'jobOrder'])

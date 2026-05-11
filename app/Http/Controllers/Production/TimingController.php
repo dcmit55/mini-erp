@@ -199,7 +199,9 @@ class TimingController extends Controller
     {
         $projects = Project::with(['parts', 'departments'])->get();
 
-        $employees = Employee::whereIn('status', ['active', 'pending_contract'])->orderBy('name')->get();
+        $employees = Employee::whereIn('status', ['active', 'pending_contract'])
+            ->orderBy('name')
+            ->get();
 
         $departments = Department::orderBy('name')->pluck('name', 'id');
         $jobOrders = \App\Models\Production\JobOrder::orderBy('name')->get();
@@ -721,7 +723,9 @@ class TimingController extends Controller
     public function edit(Timing $timing)
     {
         $projects = Project::with(['parts', 'departments'])->get();
-        $employees = Employee::whereIn('status', ['active', 'pending_contract'])->orderBy('name')->get();
+        $employees = Employee::whereIn('status', ['active', 'pending_contract'])
+            ->orderBy('name')
+            ->get();
         $departments = Department::orderBy('name')->pluck('name', 'id');
         $jobOrders = \App\Models\Production\JobOrder::select('id', 'name', 'project_id')->orderBy('name')->get();
 

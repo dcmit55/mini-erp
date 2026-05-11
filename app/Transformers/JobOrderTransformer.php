@@ -45,12 +45,8 @@ class JobOrderTransformer
             'delivery_date' => $this->parseDeliveryDate($dto->deliveryDateRaw), // Parse date from Lark
             'status' => $this->normalizeStatus($dto->statusRaw), // Job status from Lark
             // Skip re-download if image already exists locally
-            'final_image' => !empty($existingImages['final_image'])
-                ? $existingImages['final_image']
-                : $this->normalizeFinalImage($dto->finalImageRaw),
-            'wip_photo' => !empty($existingImages['wip_photo'])
-                ? $existingImages['wip_photo']
-                : $this->normalizeWipPhoto($dto->wipPhotoRaw),
+            'final_image' => !empty($existingImages['final_image']) ? $existingImages['final_image'] : $this->normalizeFinalImage($dto->finalImageRaw),
+            'wip_photo' => !empty($existingImages['wip_photo']) ? $existingImages['wip_photo'] : $this->normalizeWipPhoto($dto->wipPhotoRaw),
             'created_by' => 'Sync from Lark',
             'last_sync_at' => now(),
             // Return array of department IDs for pivot sync (handled separately)
@@ -443,7 +439,7 @@ class JobOrderTransformer
             }
 
             // Check mime type
-            $mimeType = $attachment['mime_type'] ?? $attachment['type'] ?? '';
+            $mimeType = $attachment['mime_type'] ?? ($attachment['type'] ?? '');
             if ($mimeType && str_starts_with($mimeType, 'video/')) {
                 continue;
             }
@@ -486,9 +482,7 @@ class JobOrderTransformer
                 return null;
             }
 
-            $ext = in_array($targetAttachment['ext'], $imageExtensions)
-                ? $targetAttachment['ext']
-                : ($this->getExtensionFromUrl($targetAttachment['url']) ?? 'jpg');
+            $ext = in_array($targetAttachment['ext'], $imageExtensions) ? $targetAttachment['ext'] : $this->getExtensionFromUrl($targetAttachment['url']) ?? 'jpg';
 
             $filename = 'wip_' . Str::random(40) . '.' . $ext;
             $path = 'job_order_images/' . $filename;

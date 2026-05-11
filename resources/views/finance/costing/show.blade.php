@@ -200,16 +200,16 @@
 
         /* ── Overhead bar ── */
         /* .overhead-bar {
-                            display: flex;
-                            align-items: center;
-                            gap: 1rem;
-                            padding: .6rem 1rem;
-                            border-radius: 10px;
-                            background: rgba(108, 92, 231, .06);
-                            border: 1px solid rgba(108, 92, 231, .12);
-                            margin-top: .75rem;
-                            font-size: .78rem;
-                        } */
+                                display: flex;
+                                align-items: center;
+                                gap: 1rem;
+                                padding: .6rem 1rem;
+                                border-radius: 10px;
+                                background: rgba(108, 92, 231, .06);
+                                border: 1px solid rgba(108, 92, 231, .12);
+                                margin-top: .75rem;
+                                font-size: .78rem;
+                            } */
 
         .overhead-bar .ob-chip {
             background: rgba(108, 92, 231, .12);

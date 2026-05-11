@@ -109,8 +109,7 @@
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Item <span class="text-muted small">(optional)</span></label>
-                            <input type="text" name="item" class="form-control"
-                                placeholder="e.g. Sample 1, Batch A"
+                            <input type="text" name="item" class="form-control" placeholder="e.g. Sample 1, Batch A"
                                 value="{{ old('item', $timing->item) }}">
                         </div>
                         <div class="col-md-3">
