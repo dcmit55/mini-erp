@@ -65,10 +65,25 @@
                     return 'Rp ' . number_format($n, 0);
                 };
 
-                $joWithImages = $project->jobOrders->filter(fn($jo) => !empty($jo->wip_photo))->values();
-                $carouselId = 'joCarousel-' . $project->id;
-                $firstJoImg = $joWithImages->first()?->wip_photo;
+                // Build flat list of ALL photos across all JOs in this project
+                // Each entry: ['url' => ..., 'jo_name' => ...']
+                $allSlides = [];
+                foreach ($project->jobOrders as $jo) {
+                    $photos = $jo->wip_photos ?? [];
+                    foreach ($photos as $p) {
+                        if ($p) {
+                            // If already a full URL (Lark tmp_url), use directly.
+                            // Otherwise treat as a local storage path (legacy downloaded files).
+                            $photoUrl = (str_starts_with($p, 'http://') || str_starts_with($p, 'https://'))
+                                ? $p
+                                : asset('storage/' . $p);
+                            $allSlides[] = ['url' => $photoUrl, 'jo_name' => $jo->name];
+                        }
+                    }
+                }
+                $hasSlides = count($allSlides) > 0;
 
+                $carouselId = 'joCarousel-' . $project->id;
                 $isWip = str_contains($project->project_status ?? '', 'WIP');
             @endphp
 
@@ -87,21 +102,19 @@
 
                         {{-- ══ LEFT: photo panel ══ --}}
                         <div class="pc-photo-panel {{ $bgClass }}">
-                            @if ($joWithImages->count() > 0)
+                            @if ($hasSlides)
                                 <div id="{{ $carouselId }}" class="carousel slide pc-jo-carousel"
                                     data-bs-ride="carousel" data-bs-interval="3000">
                                     <div class="carousel-inner">
-                                        @foreach ($joWithImages as $idx => $jo)
-                                            <div class="carousel-item {{ $idx === 0 ? 'active' : '' }}"
-                                                data-jo-img="{{ asset('storage/' . $jo->wip_photo) }}"
-                                                data-jo-name="{{ e($jo->name) }}">
-                                                <img src="{{ asset('storage/' . $jo->wip_photo) }}"
-                                                    class="pc-jo-carousel-img" alt="{{ e($jo->name) }}">
-                                                <div class="pc-jo-slide-label">{{ $jo->name }}</div>
+                                        @foreach ($allSlides as $idx => $slide)
+                                            <div class="carousel-item {{ $idx === 0 ? 'active' : '' }}">
+                                                <img src="{{ $slide['url'] }}" class="pc-jo-carousel-img"
+                                                    alt="{{ e($slide['jo_name']) }}" loading="lazy">
+                                                <div class="pc-jo-slide-label">{{ $slide['jo_name'] }}</div>
                                             </div>
                                         @endforeach
                                     </div>
-                                    @if ($joWithImages->count() > 1)
+                                    @if (count($allSlides) > 1)
                                         <button class="carousel-control-prev" type="button"
                                             data-bs-target="#{{ $carouselId }}" data-bs-slide="prev">
                                             <span class="carousel-control-prev-icon" aria-hidden="true"></span>
@@ -116,16 +129,15 @@
                                 </div>
                             @endif
 
-                            <div class="pc-photo-panel-inner"
-                                style="{{ $joWithImages->count() > 0 ? 'z-index:1;' : '' }}">
+                            <div class="pc-photo-panel-inner" style="{{ $hasSlides ? 'z-index:1;' : '' }}">
                                 @if (!empty($typeDept))
                                     <span class="pc-cat-badge">{{ $typeDept }}</span>
                                 @endif
 
-                                @if ($joWithImages->count() === 0)
+                                @if (!$hasSlides)
                                     @if (!empty($project->photo))
                                         <img src="{{ asset('storage/' . $project->photo) }}" class="pc-photo-img"
-                                            alt="{{ $project->name }}">
+                                            alt="{{ $project->name }}" loading="lazy">
                                     @else
                                         <div class="pc-photo-placeholder">{{ $deptEmoji }}</div>
                                     @endif
@@ -179,19 +191,18 @@
                     </a>{{-- /project-card --}}
 
                     {{-- ══ VIEW PHOTOS BUTTON + Hidden Fancybox gallery links ══ --}}
-                    @if ($joWithImages->count() > 0)
+                    @if ($hasSlides)
                         <div style="display:none;" aria-hidden="true">
-                            @foreach ($joWithImages as $idx => $jo)
-                                <a href="{{ asset('storage/' . $jo->wip_photo) }}"
-                                    data-fancybox="costing-gallery-{{ $project->id }}"
-                                    data-caption="{{ e($jo->name) }} — {{ e($project->name) }}"
+                            @foreach ($allSlides as $slide)
+                                <a href="{{ $slide['url'] }}" data-fancybox="costing-gallery-{{ $project->id }}"
+                                    data-caption="{{ e($slide['jo_name']) }} — {{ e($project->name) }}"
                                     class="pc-gallery-anchor"></a>
                             @endforeach
                         </div>
                         <button type="button" class="pc-view-photos-btn btn-open-gallery"
-                            data-project-id="{{ $project->id }}" data-total="{{ $joWithImages->count() }}">
+                            data-project-id="{{ $project->id }}" data-total="{{ count($allSlides) }}">
                             <i class="bi bi-images"></i>
-                            {{ $joWithImages->count() }} Photo{{ $joWithImages->count() > 1 ? 's' : '' }}
+                            {{ count($allSlides) }} Photo{{ count($allSlides) > 1 ? 's' : '' }}
                         </button>
                     @elseif (!empty($project->photo))
                         <a href="{{ asset('storage/' . $project->photo) }}" data-fancybox

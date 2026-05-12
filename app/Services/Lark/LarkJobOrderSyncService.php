@@ -66,35 +66,20 @@ class LarkJobOrderSyncService
                 'view_id' => $this->viewId,
             ]);
 
-            // 2. Process each record
+            // 2. Pre-load departments into memory (1 query total) — eliminates N+1 per record.
+            //    Same pattern as Projects module but bulk-loaded for 700+ job orders.
+            $this->transformer->preloadDepartments();
+
+            // 3. Process each record
             $larkRecordIds = [];
 
             foreach ($rawRecords as $rawRecord) {
                 try {
-                    // Convert to DTO
                     $dto = new LarkJobOrderDTO($rawRecord);
                     $larkRecordIds[] = $dto->recordId;
 
-                    // Fetch existing record to reuse already-downloaded images (skip re-download)
-                    // If the DB already has a path value, keep it — do NOT re-download even if
-                    // the file is missing from disk (e.g. after fresh deployment).
-                    // Image downloads only happen for brand-new records with no path yet.
-                    $existing = JobOrder::where('lark_record_id', $dto->recordId)
-                        ->select(['final_image', 'wip_photo'])
-                        ->first();
-
-                    $existingImages = [];
-                    if ($existing) {
-                        if (!empty($existing->final_image)) {
-                            $existingImages['final_image'] = $existing->final_image;
-                        }
-                        if (!empty($existing->wip_photo)) {
-                            $existingImages['wip_photo'] = $existing->wip_photo;
-                        }
-                    }
-
-                    // Transform to database format
-                    $data = $this->transformer->transform($dto, $existingImages);
+                    // Transform to database format (photos stored as Lark URLs — no HTTP download)
+                    $data = $this->transformer->transform($dto);
 
                     // Validate
                     $this->transformer->validate($data);
@@ -140,12 +125,12 @@ class LarkJobOrderSyncService
                 } catch (\Exception $e) {
                     $stats['errors']++;
                     $stats['error_details'][] = [
-                        'record_id' => $rawRecord['record_id'] ?? 'unknown',
+                        'record_id' => $dto->recordId ?? 'unknown',
                         'error' => $e->getMessage(),
                     ];
 
                     Log::error('Failed to sync job order', [
-                        'record' => $rawRecord,
+                        'record_id' => $dto->recordId ?? 'unknown',
                         'error' => $e->getMessage(),
                         'trace' => $e->getTraceAsString(),
                     ]);

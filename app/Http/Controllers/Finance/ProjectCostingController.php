@@ -92,7 +92,7 @@ class ProjectCostingController extends Controller
         }
 
         $projects = $query
-            ->with(['departments', 'jobOrders' => fn($q) => $q->select('id', 'project_id', 'name', 'department_id', 'final_image', 'wip_photo'), 'jobOrders.department'])
+            ->with(['departments', 'jobOrders' => fn($q) => $q->select('id', 'project_id', 'name', 'department_id', 'final_image', 'wip_photos'), 'jobOrders.department'])
             ->orderByDesc('deadline') // Sort by deadline descending
             ->orderByDesc('created_at') // Then by created_at
             ->paginate(12); // 12 = 3 cols × 4 rows (xl), fits clean grid
@@ -274,7 +274,7 @@ class ProjectCostingController extends Controller
         }
 
         $projects = $query
-            ->with(['departments', 'jobOrders' => fn($q) => $q->select('id', 'project_id', 'name', 'department_id', 'final_image', 'wip_photo'), 'jobOrders.department'])
+            ->with(['departments', 'jobOrders' => fn($q) => $q->select('id', 'project_id', 'name', 'department_id', 'final_image', 'wip_photos'), 'jobOrders.department'])
             ->orderByDesc('deadline')
             ->orderByDesc('created_at')
             ->paginate(12);
@@ -366,7 +366,7 @@ class ProjectCostingController extends Controller
                 $q->where('project_status', 'Delivered')->orWhere('project_status', 'LIKE', '%WIP%');
             })
             ->firstOrFail();
-        $project->load(['departments', 'jobOrders' => fn($q) => $q->select('id', 'project_id', 'name', 'department_id', 'final_image', 'wip_photo'), 'jobOrders.department']);
+        $project->load(['departments', 'jobOrders' => fn($q) => $q->select('id', 'project_id', 'name', 'department_id', 'final_image', 'wip_photos'), 'jobOrders.department']);
         // ── Material Usages ──
         $usages = MaterialUsage::where('project_id', $project_id)
             ->with(['inventory.currency', 'inventory.unitRelation', 'inventory.batches', 'jobOrder'])
@@ -980,10 +980,33 @@ class ProjectCostingController extends Controller
         $totalWdOtHours = round($byEmployee->sum('wd_ot_hours'), 2);
         $totalWeOtHours = round($byEmployee->sum('we_ot_hours'), 2);
 
+        // ── Pending regular cost per JO (for Regular Cost ring-chart card) ────
+        // Estimate regular cost of PENDING sessions using same rate logic as approved.
+        $pendingNormalCostByJo = [];
+        if ($pendingTimings->isNotEmpty()) {
+            $pendingEmpIds = $pendingTimings->pluck('employee_id')->unique()->toArray();
+            $empSalaryMap = \App\Models\Hr\Employee::whereIn('id', $pendingEmpIds)
+                ->pluck('salary', 'id');
+
+            foreach ($pendingTimings->groupBy('job_order_id') as $jid => $rows) {
+                $costSum = 0;
+                foreach ($rows as $pt) {
+                    $salary = $empSalaryMap[$pt->employee_id] ?? 0;
+                    $rate = ($pt->rate_per_hour > 0)
+                        ? (int) $pt->rate_per_hour
+                        : ($salary > 0 ? round($salary / 173, 0) : 0);
+                    $netMins = max(0, ($pt->duration_minutes ?? 0) - ($pt->break_deducted_minutes ?? 0));
+                    $costSum += round($rate * ($netMins / 60), 0);
+                }
+                $key = $jid ?? 'null';
+                $pendingNormalCostByJo[$key] = ($pendingNormalCostByJo[$key] ?? 0) + $costSum;
+            }
+        }
+
         $latestDate = $timings->sortByDesc('tanggal')->first()?->tanggal;
         $latestDateFmt = $latestDate ? $latestDate->format('d M Y') : '—';
 
-        return view('finance.costing.workmanship-detail', compact('project', 'timingRows', 'byEmployee', 'workSessions', 'weekdayOtRows', 'weekendOtRows', 'hasWdOt', 'hasWeOt', 'totalLaborHours', 'totalOperators', 'avgHourlyRate', 'totalLaborCost', 'totalNormalCost', 'totalOtCost', 'totalWdOtCost', 'totalWeOtCost', 'totalWdOtHours', 'totalWeOtHours', 'latestDateFmt', 'projectJobOrders', 'selectedJobOrderId', 'joApprovalStats', 'pendingByJo', 'totalPendingCount', 'totalPendingEmpCount'));
+        return view('finance.costing.workmanship-detail', compact('project', 'timingRows', 'byEmployee', 'workSessions', 'weekdayOtRows', 'weekendOtRows', 'hasWdOt', 'hasWeOt', 'totalLaborHours', 'totalOperators', 'avgHourlyRate', 'totalLaborCost', 'totalNormalCost', 'totalOtCost', 'totalWdOtCost', 'totalWeOtCost', 'totalWdOtHours', 'totalWeOtHours', 'latestDateFmt', 'projectJobOrders', 'selectedJobOrderId', 'joApprovalStats', 'pendingByJo', 'totalPendingCount', 'totalPendingEmpCount', 'pendingNormalCostByJo'));
     }
 
     /**
@@ -1028,7 +1051,7 @@ class ProjectCostingController extends Controller
 
         // Ambil semua material usage untuk project dengan eager load jobOrder
         $usages = MaterialUsage::where('project_id', $project_id)
-            ->with(['inventory.currency', 'jobOrder'])
+            ->with(['inventory.currency', 'inventory.batches', 'jobOrder'])
             ->orderBy('job_order_id')
             ->get();
 
@@ -1161,7 +1184,7 @@ class ProjectCostingController extends Controller
 
         // ── 1. Material Cost rows ─────────────────────────────────────────────
         $usages = MaterialUsage::where('project_id', $project_id)
-            ->with(['inventory.currency', 'inventory.unitRelation', 'jobOrder'])
+            ->with(['inventory.currency', 'inventory.unitRelation', 'inventory.batches', 'jobOrder'])
             ->orderBy('job_order_id')
             ->get();
 
@@ -1298,7 +1321,7 @@ class ProjectCostingController extends Controller
 
             foreach ($projects as $project) {
                 $usages = MaterialUsage::where('project_id', $project->id)
-                    ->with(['inventory.currency', 'inventory.unitRelation'])
+                    ->with(['inventory.currency', 'inventory.unitRelation', 'inventory.batches'])
                     ->get();
 
                 if ($usages->isEmpty()) {

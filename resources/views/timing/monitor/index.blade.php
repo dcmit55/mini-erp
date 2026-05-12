@@ -117,15 +117,18 @@
         @if ($runningSessions->count() > 0)
             @foreach ($runningSessions as $departmentName => $sessions)
                 @php
-                    $deptBorderColor = match(true) {
+                    $deptBorderColor = match (true) {
                         stripos($departmentName, 'Costume') !== false => '#4facfe',
-                        stripos($departmentName, 'Animatronic') !== false || stripos($departmentName, 'Animation') !== false => '#ff6b6b',
+                        stripos($departmentName, 'Animatronic') !== false ||
+                            stripos($departmentName, 'Animation') !== false
+                            => '#ff6b6b',
                         stripos($departmentName, 'Mascot') !== false => '#f9d423',
-                        default => '#667eea'
+                        default => '#667eea',
                     };
                 @endphp
                 <div class="card shadow-sm border-0 mb-3">
-                    <div class="card-header bg-white py-2 border-bottom" style="border-left: 4px solid {{ $deptBorderColor }}; border-radius: 8px 8px 0 0;">
+                    <div class="card-header bg-white py-2 border-bottom"
+                        style="border-left: 4px solid {{ $deptBorderColor }}; border-radius: 8px 8px 0 0;">
                         <div class="d-flex align-items-center gap-2">
                             <i class="fas fa-building text-secondary"></i>
                             <h6 class="mb-0 fw-semibold">{{ $departmentName }}</h6>
@@ -142,21 +145,26 @@
                                     $badgeText = $isRepair ? 'Repair' : 'Production';
                                     $badgeBg = $isRepair ? '#F59E0B' : '#4CAF50';
                                 @endphp
-                                <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 col-6 d-flex" id="session-{{ $session->id }}">
-                                    <div class="card w-100 shadow-sm" style="background: {{ $cardBg }}; border-top: 3px solid {{ $borderColor }}; border-radius: 8px;">
+                                <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 col-6 d-flex"
+                                    id="session-{{ $session->id }}">
+                                    <div class="card w-100 shadow-sm"
+                                        style="background: {{ $cardBg }}; border-top: 3px solid {{ $borderColor }}; border-radius: 8px;">
                                         <div class="card-body p-2 d-flex flex-column">
                                             <!-- Badge & Time -->
                                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                                <span class="badge px-2 py-1" style="background: {{ $badgeBg }}; color: white; font-size: 9px;">{{ $badgeText }}</span>
-                                                <span class="text-muted" style="font-size: 9px;"><i class="bi bi-clock"></i> {{ $session->start_time }}</span>
+                                                <span class="badge px-2 py-1"
+                                                    style="background: {{ $badgeBg }}; color: white; font-size: 9px;">{{ $badgeText }}</span>
+                                                <span class="text-muted" style="font-size: 9px;"><i class="bi bi-clock"></i>
+                                                    {{ $session->start_time }}</span>
                                             </div>
-                                            
+
                                             <!-- Employee Info: Foto di kiri, Nama & Position di kanan -->
                                             <div class="d-flex align-items-center gap-3 mb-3">
                                                 <div class="flex-shrink-0">
                                                     @if ($session->employee->photo)
                                                         <img src="{{ asset('storage/' . $session->employee->photo) }}"
                                                             class="rounded-circle" width="60" height="60"
+                                                            loading="lazy"
                                                             style="object-fit: cover; border: 2px solid {{ $borderColor }};">
                                                     @else
                                                         <div class="rounded-circle d-flex align-items-center justify-content-center"
@@ -166,11 +174,14 @@
                                                     @endif
                                                 </div>
                                                 <div class="flex-grow-1" style="min-width: 0;">
-                                                    <div class="fw-semibold small text-truncate">{{ $session->employee->name ?? 'Unknown' }}</div>
-                                                    <div class="text-muted" style="font-size: 9px; word-break: break-word;">{{ $session->employee->position ?? 'N/A' }}</div>
+                                                    <div class="fw-semibold small text-truncate">
+                                                        {{ $session->employee->name ?? 'Unknown' }}</div>
+                                                    <div class="text-muted"
+                                                        style="font-size: 9px; word-break: break-word;">
+                                                        {{ $session->employee->position ?? 'N/A' }}</div>
                                                 </div>
                                             </div>
-                                            
+
                                             <!-- Duration -->
                                             <div class="text-center mb-2 py-1 bg-white bg-opacity-60 rounded">
                                                 <span class="duration-display fw-bold font-monospace"
@@ -179,24 +190,29 @@
                                                     {{ $session->duration }}
                                                 </span>
                                             </div>
-                                            
+
                                             <!-- Job Info dengan word-wrap -->
-                                            <div style="font-size: 9px; word-break: break-word; overflow-wrap: break-word;">
+                                            <div
+                                                style="font-size: 9px; word-break: break-word; overflow-wrap: break-word;">
                                                 <div class="d-flex justify-content-between mb-1">
                                                     <span class="text-muted flex-shrink-0">JO:</span>
-                                                    <span class="text-end" style="word-break: break-word; overflow-wrap: break-word; max-width: 65%;">{{ $session->jobOrder->name ?? 'N/A' }}</span>
+                                                    <span class="text-end"
+                                                        style="word-break: break-word; overflow-wrap: break-word; max-width: 65%;">{{ $session->jobOrder->name ?? 'N/A' }}</span>
                                                 </div>
                                                 <div class="d-flex justify-content-between mb-1">
                                                     <span class="text-muted flex-shrink-0">Step:</span>
-                                                    <span style="word-break: break-word; overflow-wrap: break-word; max-width: 65%;">{{ $session->step }}</span>
+                                                    <span
+                                                        style="word-break: break-word; overflow-wrap: break-word; max-width: 65%;">{{ $session->step }}</span>
                                                 </div>
                                                 <div class="d-flex justify-content-between mb-1">
                                                     <span class="text-muted flex-shrink-0">Project:</span>
-                                                    <span style="word-break: break-word; overflow-wrap: break-word; max-width: 65%;">{{ $session->jobOrder->project->name ?? 'N/A' }}</span>
+                                                    <span
+                                                        style="word-break: break-word; overflow-wrap: break-word; max-width: 65%;">{{ $session->jobOrder->project->name ?? 'N/A' }}</span>
                                                 </div>
                                                 <div class="d-flex justify-content-between">
                                                     <span class="text-muted flex-shrink-0">Part:</span>
-                                                    <span style="word-break: break-word; overflow-wrap: break-word; max-width: 65%;">{{ $session->parts }}</span>
+                                                    <span
+                                                        style="word-break: break-word; overflow-wrap: break-word; max-width: 65%;">{{ $session->parts }}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -215,7 +231,8 @@
                     <p class="text-muted small">Start a timing session from Costume, Animatronics, or Mascot Timing</p>
                     <div class="d-flex gap-2 justify-content-center mt-2">
                         <a href="{{ route('costume-timing.index') }}" class="btn btn-sm btn-outline-primary">Costume</a>
-                        <a href="{{ route('animatronics-timing.index') }}" class="btn btn-sm btn-outline-danger">Animatronics</a>
+                        <a href="{{ route('animatronics-timing.index') }}"
+                            class="btn btn-sm btn-outline-danger">Animatronics</a>
                         <a href="{{ route('mascot-timing.index') }}" class="btn btn-sm btn-outline-warning">Mascot</a>
                     </div>
                 </div>
@@ -251,41 +268,51 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
+
         .card {
             transition: transform 0.15s, box-shadow 0.15s;
         }
+
         .card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(0,0,0,0.1) !important;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1) !important;
         }
+
         .duration-display {
             font-feature-settings: "tnum";
             font-variant-numeric: tabular-nums;
         }
+
         /* Membuat semua 5 card sama lebar */
         .row.g-2.mb-3 .col {
             flex: 1;
             min-width: 0;
         }
+
         /* Untuk card body flex column */
         .d-flex.flex-column {
             display: flex !important;
             flex-direction: column !important;
         }
+
         .w-100 {
             width: 100% !important;
         }
+
         .flex-grow-1 {
             flex-grow: 1 !important;
         }
+
         .flex-shrink-0 {
             flex-shrink: 0 !important;
         }
+
         .text-truncate {
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
         }
+
         /* Untuk teks yang perlu wrap */
         [style*="word-break: break-word"] {
             word-break: break-word;
@@ -297,38 +324,33 @@
 @section('scripts')
     <script>
         $(document).ready(function() {
-            // Duration timer
-            function startDurationTimers() {
-                setInterval(function() {
-                    $('.duration-display').each(function() {
-                        const startTime = $(this).data('start-time');
-                        if (startTime) {
-                            const duration = calculateDuration(startTime);
-                            $(this).text(duration);
-                        }
-                    });
-                }, 1000);
-            }
-
+            // Duration timer — single RAF loop, updates all cards at once
             function calculateDuration(startTime) {
                 try {
                     const today = new Date();
                     const [hours, minutes, seconds] = startTime.split(':');
                     const start = new Date(today.getFullYear(), today.getMonth(), today.getDate(),
-                        hours, minutes, seconds);
-                    const now = new Date();
-
-                    const diffInSeconds = Math.floor((now - start) / 1000);
+                        +hours, +minutes, +seconds);
+                    const diffInSeconds = Math.floor((Date.now() - start) / 1000);
                     if (diffInSeconds < 0) return '00:00:00';
-
                     const h = Math.floor(diffInSeconds / 3600);
                     const m = Math.floor((diffInSeconds % 3600) / 60);
                     const s = diffInSeconds % 60;
-
                     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-                } catch (error) {
+                } catch (e) {
                     return '00:00:00';
                 }
+            }
+
+            function startDurationTimers() {
+                // Use a single interval instead of RAF to avoid 60fps DOM updates
+                setInterval(function() {
+                    const els = document.querySelectorAll('.duration-display');
+                    for (let i = 0; i < els.length; i++) {
+                        const st = els[i].dataset.startTime;
+                        if (st) els[i].textContent = calculateDuration(st);
+                    }
+                }, 1000);
             }
 
             function refreshData() {
@@ -349,7 +371,8 @@
 
             $('#refresh-btn').on('click', function() {
                 const btn = $(this);
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Refreshing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm me-1"></span> Refreshing...');
                 setTimeout(() => location.reload(), 500);
             });
 
@@ -371,7 +394,8 @@
                         }
                     },
                     error: function() {
-                        $('#available-employees-loading').html('<div class="alert alert-danger small">Failed to load</div>');
+                        $('#available-employees-loading').html(
+                            '<div class="alert alert-danger small">Failed to load</div>');
                     }
                 });
             }
@@ -382,7 +406,9 @@
                 content.removeClass('d-none').empty();
 
                 if (employees.length === 0) {
-                    content.html('<div class="text-center py-4"><i class="bi bi-check-circle text-success fs-2"></i><p class="mt-2 small">All employees are currently running!</p></div>');
+                    content.html(
+                        '<div class="text-center py-4"><i class="bi bi-check-circle text-success fs-2"></i><p class="mt-2 small">All employees are currently running!</p></div>'
+                        );
                     return;
                 }
 

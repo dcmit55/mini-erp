@@ -164,7 +164,12 @@ class Inventory extends Model implements Auditable
         $totalRemaining = $batches->sum('qty_remaining');
 
         if ($totalRemaining <= 0) {
-            // Fall back to latest unit_price recorded for this inventory (include soft-deleted/depleted batches)
+            // When relation is already in-memory, pick latest depleted batch — avoids N+1
+            if ($this->relationLoaded('batches')) {
+                $latest = $this->batches->sortByDesc('id')->first();
+                return (float) ($latest?->unit_price ?? 0);
+            }
+            // Fall back to DB only when batches are NOT eager-loaded
             return (float) ($this->batches()->withTrashed()->orderByDesc('received_date')->orderByDesc('id')->value('unit_price') ?? 0);
         }
 

@@ -590,15 +590,22 @@
                     }
 
                     // JO images for carousel
-                    $heroJoImages = $project->jobOrders->filter(fn($jo) => $jo->hasWipPhoto())->values();
+                    // JO images for carousel — build flat list from all wip_photos across all JOs
+                    $allSlides = [];
+                    foreach ($project->jobOrders as $jo) {
+                        foreach ($jo->wip_photos_urls as $url) {
+                            $allSlides[] = ['url' => $url, 'jo_name' => $jo->name];
+                        }
+                    }
+                    $heroSlideCount = count($allSlides);
                 @endphp
-                <div class="hero-photo-panel" style="{{ $heroJoImages->count() > 0 ? 'padding:0; overflow:hidden;' : '' }}">
-                    @if ($heroJoImages->count() > 0)
+                <div class="hero-photo-panel" style="{{ $heroSlideCount > 0 ? 'padding:0; overflow:hidden;' : '' }}">
+                    @if ($heroSlideCount > 0)
                         {{-- Hidden Fancybox gallery anchors (semua JO images) --}}
                         <div style="display:none;" aria-hidden="true">
-                            @foreach ($heroJoImages as $idx => $jo)
-                                <a href="{{ $jo->wip_photo_url }}" data-fancybox="hero-jo-gallery"
-                                    data-caption="{{ e($jo->name) }} — {{ e($project->name) }}"
+                            @foreach ($allSlides as $idx => $slide)
+                                <a href="{{ $slide['url'] }}" data-fancybox="hero-jo-gallery"
+                                    data-caption="{{ e($slide['jo_name']) }} — {{ e($project->name) }}"
                                     id="heroGalleryAnchor{{ $idx }}"></a>
                             @endforeach
                         </div>
@@ -607,10 +614,10 @@
                         <div id="heroJoCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="3500"
                             style="width:100%; height:100%;">
                             <div class="carousel-inner" style="height:100%;">
-                                @foreach ($heroJoImages as $idx => $jo)
+                                @foreach ($allSlides as $idx => $slide)
                                     <div class="carousel-item {{ $idx === 0 ? 'active' : '' }}"
                                         data-gallery-index="{{ $idx }}" style="height:100%; cursor:zoom-in;">
-                                        <img src="{{ $jo->wip_photo_url }}" alt="{{ e($jo->name) }}"
+                                        <img src="{{ $slide['url'] }}" alt="{{ e($slide['jo_name']) }}"
                                             class="hero-carousel-img" data-gallery-index="{{ $idx }}"
                                             style="width:100%; height:100%; object-fit:contain; background:#111; display:block; cursor:zoom-in;">
                                         {{-- JO name overlay --}}
@@ -620,7 +627,7 @@
                                             color:#fff; font-size:.65rem; font-weight:600; text-align:center;
                                             padding:18px 8px 7px; white-space:nowrap; overflow:hidden;
                                             text-overflow:ellipsis; pointer-events:none;">
-                                            {{ $jo->name }}
+                                            {{ $slide['jo_name'] }}
                                         </div>
                                         {{-- Zoom hint overlay --}}
                                         <div
@@ -632,7 +639,7 @@
                                     </div>
                                 @endforeach
                             </div>
-                            @if ($heroJoImages->count() > 1)
+                            @if ($heroSlideCount > 1)
                                 <button class="carousel-control-prev" type="button" data-bs-target="#heroJoCarousel"
                                     data-bs-slide="prev" style="width:32px;">
                                     <span class="carousel-control-prev-icon" aria-hidden="true"></span>
@@ -648,7 +655,7 @@
                                     color:#fff; font-size:.62rem; font-weight:700; padding:2px 8px;
                                     border-radius:10px; pointer-events:none;"
                                     id="heroJoCounter">
-                                    1 / {{ $heroJoImages->count() }}
+                                    1 / {{ $heroSlideCount }}
                                 </div>
                             @endif
                             {{-- View all button --}}
@@ -659,7 +666,7 @@
                                     cursor:pointer; white-space:nowrap; display:flex; align-items:center; gap:5px;
                                     backdrop-filter:blur(6px); z-index:10; transition:background .15s;">
                                 <i class="bi bi-images"></i>
-                                View All {{ $heroJoImages->count() }} Photos
+                                View All {{ $heroSlideCount }} Photos
                             </button>
                         </div>
                         {{-- Dept chip overlay --}}

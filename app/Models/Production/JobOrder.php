@@ -10,14 +10,14 @@ class JobOrder extends Model implements AuditableContract
 {
     use \OwenIt\Auditing\Auditable;
 
-    protected $auditInclude = ['project_id', 'department_id', 'name', 'description', 'start_date', 'end_date', 'delivery_date', 'status', 'source_by', 'notes', 'actual_start_date', 'actual_end_date', 'final_image', 'wip_photo'];
+    protected $auditInclude = ['project_id', 'department_id', 'name', 'description', 'start_date', 'end_date', 'delivery_date', 'status', 'source_by', 'notes', 'actual_start_date', 'actual_end_date', 'final_image', 'wip_photos'];
     protected $table = 'job_orders';
 
     public $incrementing = false;
     protected $keyType = 'string';
     protected $primaryKey = 'id';
 
-    protected $fillable = ['id', 'project_id', 'department_id', 'name', 'description', 'start_date', 'end_date', 'delivery_date', 'status', 'source_by', 'notes', 'actual_start_date', 'actual_end_date', 'project_lark', 'department_lark', 'lark_record_id', 'last_sync_at', 'final_image', 'wip_photo', 'total_standard_minutes', 'standard_time_per_unit'];
+    protected $fillable = ['id', 'project_id', 'department_id', 'name', 'description', 'start_date', 'end_date', 'delivery_date', 'status', 'source_by', 'notes', 'actual_start_date', 'actual_end_date', 'project_lark', 'department_lark', 'lark_record_id', 'last_sync_at', 'final_image', 'wip_photos', 'total_standard_minutes', 'standard_time_per_unit'];
 
     protected $dates = ['start_date', 'end_date', 'actual_start_date', 'actual_end_date', 'last_sync_at'];
 
@@ -30,6 +30,7 @@ class JobOrder extends Model implements AuditableContract
         'total_standard_minutes' => 'integer',
         'standard_time_per_unit' => 'decimal:2',
         'status' => 'string',
+        'wip_photos' => 'array',
     ];
 
     protected static function boot()
@@ -206,25 +207,19 @@ class JobOrder extends Model implements AuditableContract
     }
 
     /**
-     * Accessor: returns public URL for wip_photo if the file actually exists on disk.
-     * Returns null if wip_photo is not set or the file is missing.
+     * Accessor: returns array of public URLs for all wip_photos.
      */
-    public function getWipPhotoUrlAttribute(): ?string
+    public function getWipPhotosUrlsAttribute(): array
     {
-        if (empty($this->wip_photo)) {
-            return null;
-        }
-        if (!Storage::disk('public')->exists($this->wip_photo)) {
-            return null;
-        }
-        return asset('storage/' . $this->wip_photo);
+        $paths = $this->wip_photos ?? [];
+        return array_values(array_filter(array_map(fn($p) => $p ? asset('storage/' . $p) : null, $paths)));
     }
 
     /**
-     * Returns true if wip_photo is set AND the file exists on disk.
+     * Returns true if wip_photos JSON has entries.
      */
-    public function hasWipPhoto(): bool
+    public function hasWipPhotos(): bool
     {
-        return !empty($this->wip_photo) && Storage::disk('public')->exists($this->wip_photo);
+        return !empty($this->wip_photos);
     }
 }

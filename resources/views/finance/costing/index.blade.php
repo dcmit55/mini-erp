@@ -865,10 +865,9 @@
             function fetchGrid(page) {
                 var params = getFilters(page);
 
-                // Update browser URL
-                if (window.history && window.history.pushState) {
-                    var qs = $.param(params);
-                    window.history.pushState({}, '', '{{ route('costing.report') }}' + '?' + qs);
+                // Always keep URL clean — filters applied via AJAX, don't pollute address bar
+                if (window.history && window.history.replaceState) {
+                    window.history.replaceState({}, '', '{{ route('costing.report') }}');
                 }
 
                 $('#costing-grid').css('opacity', 0.45);
@@ -909,13 +908,15 @@
                     var href = $(this).attr('href');
                     var page = (new URL(href, window.location.origin)).searchParams.get('page') || 1;
                     fetchGrid(page);
-                    $('html, body').animate({
-                        scrollTop: $('#costing-grid').offset().top - 80
-                    }, 200);
                 });
             }
 
             $(function() {
+                // ── Clean initial URL on page load — remove any server-side query params ──
+                if (window.history && window.history.replaceState) {
+                    window.history.replaceState({}, '', '{{ route('costing.report') }}');
+                }
+
                 // ── Select2 init ─────────────────────────────────────────────────
                 // Init all .select2 elements (department, sales, job-order, project)
                 $('.select2').select2({

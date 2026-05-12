@@ -350,10 +350,7 @@ class JobOrderController extends Controller
             set_time_limit(600);
             try {
                 $stats = $syncService->sync();
-                $message = sprintf(
-                    'Lark sync completed! Fetched: %d | Created: %d | Updated: %d | Deactivated: %d',
-                    $stats['fetched'], $stats['created'], $stats['updated'], $stats['deactivated']
-                );
+                $message = sprintf('Lark sync completed! Fetched: %d | Created: %d | Updated: %d | Deactivated: %d', $stats['fetched'], $stats['created'], $stats['updated'], $stats['deactivated']);
                 if ($stats['errors'] > 0) {
                     $message .= sprintf(' | Errors: %d', $stats['errors']);
                     return redirect()->route('job-orders.index')->with('warning', $message);
@@ -361,7 +358,9 @@ class JobOrderController extends Controller
                 return redirect()->route('job-orders.index')->with('success', $message);
             } catch (\Exception $e) {
                 \Log::error('Lark job order sync failed', ['error' => $e->getMessage(), 'user_id' => auth()->id()]);
-                return redirect()->route('job-orders.index')->withErrors(['error' => 'Sync failed: ' . $e->getMessage()]);
+                return redirect()
+                    ->route('job-orders.index')
+                    ->withErrors(['error' => 'Sync failed: ' . $e->getMessage()]);
             }
         }
 
@@ -374,9 +373,7 @@ class JobOrderController extends Controller
         Cache::put('lark_jo_sync_status', 'queued', now()->addMinutes(15));
         SyncLarkJobOrdersJob::dispatch();
 
-        return redirect()->route('job-orders.index')->with('info',
-            'Lark sync has been queued and is running in the background. Refresh the page in a few moments to see updated data.'
-        );
+        return redirect()->route('job-orders.index')->with('info', 'Lark sync has been queued and is running in the background. Refresh the page in a few moments to see updated data.');
     }
 
     /**

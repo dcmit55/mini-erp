@@ -24,7 +24,25 @@ use Illuminate\Support\Str;
  */
 class JobOrderTransformer
 {
+    /** In-memory dept cache — call preloadDepartments() once before bulk sync loop */
+    private ?array $departmentCache = null;
+
     public function __construct(private readonly LarkApiClient $apiClient) {}
+
+    /**
+     * Pre-load all departments into memory (1 query total).
+     * Eliminates N+1 DB queries for department lookups during bulk sync.
+     * Call this ONCE before iterating records, same approach as Projects module.
+     */
+    public function preloadDepartments(): void
+    {
+        $this->departmentCache = Department::select(['id', 'name'])
+            ->get()
+            ->keyBy(fn($d) => strtolower(trim($d->name)))
+            ->toArray();
+
+        Log::debug('JobOrderTransformer: departments preloaded', ['count' => count($this->departmentCache)]);
+    }
 
     /**
      * Transform Lark DTO to database-ready array
@@ -33,25 +51,90 @@ class JobOrderTransformer
      * @return array Data siap disimpan ke database
      * @throws \InvalidArgumentException
      */
-    public function transform(LarkJobOrderDTO $dto, array $existingImages = []): array
+    /**
+     * @param LarkJobOrderDTO $dto
+     * @return array
+     */
+    public function transform(LarkJobOrderDTO $dto): array
     {
         return [
-            'lark_record_id' => $dto->recordId,
-            'name' => $this->normalizeName($dto->nameRaw),
-            'project_lark' => $this->normalizeProjectLark($dto->projectRaw), // Raw text
-            'project_id' => $this->normalizeProjectId($dto->projectRaw), // FK lookup
-            'department_lark' => $this->normalizeDepartmentLark($dto->departmentRaw), // Raw text (deprecated, keep for archive)
-            'department_id' => $this->normalizePrimaryDepartmentId($dto->departmentsArray), // FK lookup - first dept only
-            'delivery_date' => $this->parseDeliveryDate($dto->deliveryDateRaw), // Parse date from Lark
-            'status' => $this->normalizeStatus($dto->statusRaw), // Job status from Lark
-            // Skip re-download if image already exists locally
-            'final_image' => !empty($existingImages['final_image']) ? $existingImages['final_image'] : $this->normalizeFinalImage($dto->finalImageRaw),
-            'wip_photo' => !empty($existingImages['wip_photo']) ? $existingImages['wip_photo'] : $this->normalizeWipPhoto($dto->wipPhotoRaw),
-            'created_by' => 'Sync from Lark',
-            'last_sync_at' => now(),
-            // Return array of department IDs for pivot sync (handled separately)
-            '_department_ids' => $this->normalizeDepartmentIds($dto->departmentsArray),
+            'lark_record_id'   => $dto->recordId,
+            'name'             => $this->normalizeName($dto->nameRaw),
+            'project_lark'     => $this->normalizeProjectLark($dto->projectRaw),
+            'project_id'       => $this->normalizeProjectId($dto->projectRaw),
+            'department_lark'  => $this->normalizeDepartmentLark($dto->departmentRaw),
+            'department_id'    => $this->normalizePrimaryDepartmentId($dto->departmentsArray),
+            'delivery_date'    => $this->parseDeliveryDate($dto->deliveryDateRaw),
+            'status'           => $this->normalizeStatus($dto->statusRaw),
+            // Store Lark attachment URLs directly — same pattern as ProjectTransformer::normalizeImage().
+            // URLs are refreshed every sync, so all records always have valid photo data.
+            // No HTTP download needed here; the Lark tmp_url is usable immediately after sync.
+            'final_image'      => $this->extractFinalImageUrl($dto->finalImageRaw),
+            'wip_photos'       => $this->extractWipPhotoUrls($dto->wipPhotoRaw),
+            'created_by'       => 'Sync from Lark',
+            'last_sync_at'     => now(),
+            '_department_ids'  => $this->normalizeDepartmentIds($dto->departmentsArray),
         ];
+    }
+
+    /**
+     * Extract first non-video attachment URL from Lark — mirrors ProjectTransformer::normalizeImage().
+     * Stores the tmp_url directly; no HTTP download. URL refreshed on every sync.
+     */
+    private function extractFinalImageUrl(?array $attachments): ?string
+    {
+        if (empty($attachments) || !is_array($attachments)) {
+            return null;
+        }
+
+        $first = $attachments[0] ?? null;
+        if (!$first || !is_array($first)) {
+            return null;
+        }
+
+        $url = $first['tmp_url'] ?? ($first['url'] ?? null);
+        return $url ? substr(trim($url), 0, 500) : null;
+    }
+
+    /**
+     * Extract all non-video attachment URLs from Lark WIP Images field.
+     * Returns array of tmp_urls (JSON-stored). No HTTP download — same pattern as Projects module.
+     * All records get photos on every sync; URLs refreshed automatically.
+     */
+    private function extractWipPhotoUrls(?array $attachments): ?array
+    {
+        if (empty($attachments) || !is_array($attachments)) {
+            return null;
+        }
+
+        $videoExtensions = ['mp4', 'mov', 'avi', 'webm', 'mkv', 'flv', 'wmv', '3gp'];
+        $urls = [];
+
+        foreach ($attachments as $attachment) {
+            if (!$attachment || !is_array($attachment)) {
+                continue;
+            }
+
+            // Skip videos by mime type
+            $mimeType = $attachment['mime_type'] ?? ($attachment['type'] ?? '');
+            if ($mimeType && str_starts_with($mimeType, 'video/')) {
+                continue;
+            }
+
+            // Skip videos by filename extension
+            $name = $attachment['name'] ?? '';
+            $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+            if (in_array($ext, $videoExtensions)) {
+                continue;
+            }
+
+            $url = $attachment['tmp_url'] ?? ($attachment['url'] ?? null);
+            if (!empty($url) && is_string($url)) {
+                $urls[] = $url;
+            }
+        }
+
+        return !empty($urls) ? $urls : null;
     }
 
     /**
@@ -138,25 +221,34 @@ class JobOrderTransformer
         }
 
         $departmentName = trim($value);
+        $key = strtolower($departmentName);
 
-        // Cari department berdasarkan nama (case-insensitive)
-        $department = Department::whereRaw('LOWER(name) = ?', [strtolower($departmentName)])->first();
-
-        // Fallback: strip common Lark prefix (e.g. "DCM Costume" -> "Costume")
-        if (!$department) {
-            $stripped = preg_replace('/^DCM\s+/i', '', $departmentName);
-            if (strtolower($stripped) !== strtolower($departmentName)) {
-                $department = Department::whereRaw('LOWER(name) = ?', [strtolower($stripped)])->first();
+        // Fast path: use preloaded in-memory cache (no DB query)
+        if ($this->departmentCache !== null) {
+            if (isset($this->departmentCache[$key])) {
+                return (int) $this->departmentCache[$key]['id'];
             }
-        }
-
-        if (!$department) {
-            Log::warning('Job Order sync: Department not found in database', [
-                'lark_department_name' => $departmentName,
-            ]);
+            // Fallback: strip "DCM " prefix
+            $stripped = strtolower(preg_replace('/^DCM\s+/i', '', $departmentName));
+            if ($stripped !== $key && isset($this->departmentCache[$stripped])) {
+                return (int) $this->departmentCache[$stripped]['id'];
+            }
+            Log::warning('Job Order sync: Department not found', ['lark_department_name' => $departmentName]);
             return null;
         }
 
+        // Slow path: direct DB query (cache not preloaded)
+        $department = Department::whereRaw('LOWER(name) = ?', [$key])->first();
+        if (!$department) {
+            $stripped = preg_replace('/^DCM\s+/i', '', $departmentName);
+            if (strtolower($stripped) !== $key) {
+                $department = Department::whereRaw('LOWER(name) = ?', [strtolower($stripped)])->first();
+            }
+        }
+        if (!$department) {
+            Log::warning('Job Order sync: Department not found in database', ['lark_department_name' => $departmentName]);
+            return null;
+        }
         return $department->id;
     }
 
@@ -201,23 +293,35 @@ class JobOrderTransformer
                 continue;
             }
 
-            // Lookup department by name (case-insensitive)
-            $department = Department::whereRaw('LOWER(name) = ?', [strtolower($deptName)])->first();
+            $key = strtolower($deptName);
+            $deptId = null;
 
-            // Fallback: strip common Lark prefix (e.g. "DCM Costume" -> "Costume")
-            if (!$department) {
-                $stripped = preg_replace('/^DCM\s+/i', '', $deptName);
-                if (strtolower($stripped) !== strtolower($deptName)) {
-                    $department = Department::whereRaw('LOWER(name) = ?', [strtolower($stripped)])->first();
+            // Fast path: use preloaded in-memory cache
+            if ($this->departmentCache !== null) {
+                if (isset($this->departmentCache[$key])) {
+                    $deptId = (int) $this->departmentCache[$key]['id'];
+                } else {
+                    $stripped = strtolower(preg_replace('/^DCM\s+/i', '', $deptName));
+                    if ($stripped !== $key && isset($this->departmentCache[$stripped])) {
+                        $deptId = (int) $this->departmentCache[$stripped]['id'];
+                    }
                 }
+            } else {
+                // Slow path: direct DB query
+                $department = Department::whereRaw('LOWER(name) = ?', [$key])->first();
+                if (!$department) {
+                    $stripped = preg_replace('/^DCM\s+/i', '', $deptName);
+                    if (strtolower($stripped) !== $key) {
+                        $department = Department::whereRaw('LOWER(name) = ?', [strtolower($stripped)])->first();
+                    }
+                }
+                $deptId = $department?->id;
             }
 
-            if ($department) {
-                $departmentIds[] = $department->id;
+            if ($deptId) {
+                $departmentIds[] = $deptId;
             } else {
-                Log::warning('Job Order sync: Department not found for pivot', [
-                    'lark_department_name' => $deptName,
-                ]);
+                Log::warning('Job Order sync: Department not found for pivot', ['lark_department_name' => $deptName]);
             }
         }
 
@@ -501,6 +605,97 @@ class JobOrderTransformer
             ]);
             return null;
         }
+    }
+
+    /**
+     * Download ALL non-video attachments from Lark WIP Images field.
+     * Returns JSON-serializable array of local storage paths.
+     */
+    /**
+     * Public proxy for normalizeFinalImage — used by DownloadJobOrderPhotosJob.
+     */
+    public function normalizeFinalImagePublic(?array $attachments): ?string
+    {
+        return $this->normalizeFinalImage($attachments);
+    }
+
+    /**
+     * Public proxy for normalizeWipPhotos — used by BackfillJobOrderWipPhotos command.
+     */
+    public function normalizeWipPhotosPublic(?array $attachments): ?array
+    {
+        return $this->normalizeWipPhotos($attachments);
+    }
+
+    private function normalizeWipPhotos(?array $attachments): ?array
+    {
+        if (empty($attachments) || !is_array($attachments)) {
+            return null;
+        }
+
+        $videoExtensions = ['mp4', 'mov', 'avi', 'webm', 'mkv', 'flv', 'wmv', '3gp'];
+        $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+        $paths = [];
+
+        foreach ($attachments as $attachment) {
+            if (!$attachment || !is_array($attachment)) {
+                continue;
+            }
+
+            // Skip videos by mime type
+            $mimeType = $attachment['mime_type'] ?? ($attachment['type'] ?? '');
+            if ($mimeType && str_starts_with($mimeType, 'video/')) {
+                continue;
+            }
+
+            // Skip videos by filename extension
+            $name = $attachment['name'] ?? '';
+            $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+            if (in_array($ext, $videoExtensions)) {
+                continue;
+            }
+
+            $larkUrl = $attachment['url'] ?? ($attachment['tmp_url'] ?? null);
+            if (empty($larkUrl) || !is_string($larkUrl)) {
+                continue;
+            }
+
+            // Skip videos by URL extension
+            $urlExt = strtolower(pathinfo(parse_url($larkUrl, PHP_URL_PATH), PATHINFO_EXTENSION));
+            if (in_array($urlExt, $videoExtensions)) {
+                continue;
+            }
+
+            $finalExt = $ext ?: ($urlExt ?: 'jpg');
+            if (!in_array($finalExt, $imageExtensions)) {
+                $finalExt = 'jpg';
+            }
+
+            try {
+                $response = $this->apiClient->downloadMedia($larkUrl);
+                if (!$response || !$response->successful()) {
+                    Log::warning('Job Order wip_photos: download failed, skipping', [
+                        'url' => $larkUrl,
+                        'status' => $response?->status(),
+                    ]);
+                    continue;
+                }
+
+                $filename = 'wip_' . Str::random(40) . '.' . $finalExt;
+                $path = 'job_order_images/' . $filename;
+                Storage::disk('public')->put($path, $response->body());
+                $paths[] = $path;
+
+                Log::info('Job Order wip_photos: photo downloaded', ['path' => $path]);
+            } catch (\Exception $e) {
+                Log::error('Job Order wip_photos: error during download', [
+                    'url' => $larkUrl,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return !empty($paths) ? $paths : null;
     }
 
     /**

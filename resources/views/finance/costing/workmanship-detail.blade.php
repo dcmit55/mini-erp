@@ -540,9 +540,58 @@
                 @endif
             </div>
             <div class="stat-card">
-                <div class="stat-label">Regular Cost</div>
-                <div class="stat-val" style="font-size:1.3rem;">{{ $fmt($totalNormalCost) }}</div>
-                <div class="stat-sub">Base rate · avg {{ $fmt($avgRate) }}/hr</div>
+                @if ($selectedJobOrderId)
+                    @php
+                        $rcApproved = $totalNormalCost;
+                        $rcPending = $pendingNormalCostByJo[$selectedJobOrderId] ?? 0;
+                        $rcTotal = $rcApproved + $rcPending;
+                        $rcPct = $rcTotal > 0 ? round(($rcApproved / $rcTotal) * 100) : ($rcApproved > 0 ? 100 : 0);
+                        $rcColor = $rcPct === 100 ? '#00b894' : ($rcPct >= 50 ? '#e67e22' : '#e17055');
+                        $fmtShort = fn($n) => $n >= 1_000_000
+                            ? 'Rp ' . number_format($n / 1_000_000, 1) . 'M'
+                            : ($n >= 1_000
+                                ? 'Rp ' . number_format($n / 1_000, 0) . 'k'
+                                : 'Rp ' . number_format($n, 0));
+                    @endphp
+                    <div class="d-flex align-items-center justify-content-between gap-2">
+                        <div style="min-width:0;">
+                            <div class="stat-label">Regular Cost</div>
+                            <div class="stat-val" style="font-size:1.15rem;color:{{ $rcColor }};">
+                                {{ $fmtShort($rcApproved) }}
+                                @if ($rcPending > 0)
+                                    <span
+                                        style="font-size:.82rem;font-weight:600;color:#adb5bd;">/{{ $fmtShort($rcTotal) }}</span>
+                                @endif
+                            </div>
+                            @if ($rcPending > 0)
+                                <div class="stat-sub" style="color:#e17055;">
+                                    <i class="fas fa-clock me-1"></i>{{ $fmtShort($rcPending) }} belum di-approve
+                                </div>
+                            @else
+                                <div class="stat-sub" style="color:#00b894;">
+                                    <i class="fas fa-check-circle me-1"></i>Semua approved
+                                </div>
+                            @endif
+                        </div>
+                        <div style="position:relative;width:52px;height:52px;flex-shrink:0;">
+                            <svg width="52" height="52" viewBox="0 0 44 44" style="transform:rotate(-90deg)">
+                                <circle cx="22" cy="22" r="18" fill="none" stroke="#f0f2f9"
+                                    stroke-width="4.5" />
+                                <circle cx="22" cy="22" r="18" fill="none"
+                                    stroke="{{ $rcColor }}" stroke-width="4.5"
+                                    stroke-dasharray="{{ round(2 * 3.14159 * 18, 1) }}"
+                                    stroke-dashoffset="{{ round(2 * 3.14159 * 18 * (1 - $rcPct / 100), 1) }}"
+                                    stroke-linecap="round" />
+                            </svg>
+                            <span
+                                style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:.65rem;font-weight:800;color:{{ $rcColor }};">{{ $rcPct }}%</span>
+                        </div>
+                    </div>
+                @else
+                    <div class="stat-label">Regular Cost</div>
+                    <div class="stat-val" style="font-size:1.3rem;">{{ $fmt($totalNormalCost) }}</div>
+                    <div class="stat-sub">Base rate · avg {{ $fmt($avgRate) }}/hr</div>
+                @endif
             </div>
             <div class="stat-card" style="{{ $totalOtCost > 0 ? 'border-left:3px solid #e67e22;' : '' }}">
                 <div class="stat-label" style="{{ $totalOtCost > 0 ? 'color:#e67e22;' : '' }}">OT Cost</div>
