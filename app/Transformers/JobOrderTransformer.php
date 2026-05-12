@@ -58,22 +58,22 @@ class JobOrderTransformer
     public function transform(LarkJobOrderDTO $dto): array
     {
         return [
-            'lark_record_id'   => $dto->recordId,
-            'name'             => $this->normalizeName($dto->nameRaw),
-            'project_lark'     => $this->normalizeProjectLark($dto->projectRaw),
-            'project_id'       => $this->normalizeProjectId($dto->projectRaw),
-            'department_lark'  => $this->normalizeDepartmentLark($dto->departmentRaw),
-            'department_id'    => $this->normalizePrimaryDepartmentId($dto->departmentsArray),
-            'delivery_date'    => $this->parseDeliveryDate($dto->deliveryDateRaw),
-            'status'           => $this->normalizeStatus($dto->statusRaw),
+            'lark_record_id' => $dto->recordId,
+            'name' => $this->normalizeName($dto->nameRaw),
+            'project_lark' => $this->normalizeProjectLark($dto->projectRaw),
+            'project_id' => $this->normalizeProjectId($dto->projectRaw),
+            'department_lark' => $this->normalizeDepartmentLark($dto->departmentRaw),
+            'department_id' => $this->normalizePrimaryDepartmentId($dto->departmentsArray),
+            'delivery_date' => $this->parseDeliveryDate($dto->deliveryDateRaw),
+            'status' => $this->normalizeStatus($dto->statusRaw),
             // Store Lark attachment URLs directly — same pattern as ProjectTransformer::normalizeImage().
             // URLs are refreshed every sync, so all records always have valid photo data.
             // No HTTP download needed here; the Lark tmp_url is usable immediately after sync.
-            'final_image'      => $this->extractFinalImageUrl($dto->finalImageRaw),
-            'wip_photos'       => $this->extractWipPhotoUrls($dto->wipPhotoRaw),
-            'created_by'       => 'Sync from Lark',
-            'last_sync_at'     => now(),
-            '_department_ids'  => $this->normalizeDepartmentIds($dto->departmentsArray),
+            'final_image' => $this->extractFinalImageUrl($dto->finalImageRaw),
+            'wip_photos' => $this->extractWipPhotoUrls($dto->wipPhotoRaw),
+            'created_by' => 'Sync from Lark',
+            'last_sync_at' => now(),
+            '_department_ids' => $this->normalizeDepartmentIds($dto->departmentsArray),
         ];
     }
 

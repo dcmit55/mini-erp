@@ -985,16 +985,13 @@ class ProjectCostingController extends Controller
         $pendingNormalCostByJo = [];
         if ($pendingTimings->isNotEmpty()) {
             $pendingEmpIds = $pendingTimings->pluck('employee_id')->unique()->toArray();
-            $empSalaryMap = \App\Models\Hr\Employee::whereIn('id', $pendingEmpIds)
-                ->pluck('salary', 'id');
+            $empSalaryMap = \App\Models\Hr\Employee::whereIn('id', $pendingEmpIds)->pluck('salary', 'id');
 
             foreach ($pendingTimings->groupBy('job_order_id') as $jid => $rows) {
                 $costSum = 0;
                 foreach ($rows as $pt) {
                     $salary = $empSalaryMap[$pt->employee_id] ?? 0;
-                    $rate = ($pt->rate_per_hour > 0)
-                        ? (int) $pt->rate_per_hour
-                        : ($salary > 0 ? round($salary / 173, 0) : 0);
+                    $rate = $pt->rate_per_hour > 0 ? (int) $pt->rate_per_hour : ($salary > 0 ? round($salary / 173, 0) : 0);
                     $netMins = max(0, ($pt->duration_minutes ?? 0) - ($pt->break_deducted_minutes ?? 0));
                     $costSum += round($rate * ($netMins / 60), 0);
                 }

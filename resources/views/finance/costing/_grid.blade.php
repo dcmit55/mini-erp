@@ -67,24 +67,25 @@
 
                 // Build flat list of ALL photos across all JOs in this project
                 // Each entry: ['url' => ..., 'jo_name' => ...']
-                $allSlides = [];
-                foreach ($project->jobOrders as $jo) {
-                    $photos = $jo->wip_photos ?? [];
-                    foreach ($photos as $p) {
-                        if ($p) {
-                            // If already a full URL (Lark tmp_url), use directly.
-                            // Otherwise treat as a local storage path (legacy downloaded files).
-                            $photoUrl = (str_starts_with($p, 'http://') || str_starts_with($p, 'https://'))
-                                ? $p
-                                : asset('storage/' . $p);
-                            $allSlides[] = ['url' => $photoUrl, 'jo_name' => $jo->name];
-                        }
-                    }
-                }
-                $hasSlides = count($allSlides) > 0;
+$allSlides = [];
+foreach ($project->jobOrders as $jo) {
+    $photos = $jo->wip_photos ?? [];
+    foreach ($photos as $p) {
+        if ($p) {
+            // If already a full URL (Lark tmp_url), use directly.
+            // Otherwise treat as a local storage path (legacy downloaded files).
+            $photoUrl =
+                str_starts_with($p, 'http://') || str_starts_with($p, 'https://')
+                    ? $p
+                    : asset('storage/' . $p);
+            $allSlides[] = ['url' => $photoUrl, 'jo_name' => $jo->name];
+        }
+    }
+}
+$hasSlides = count($allSlides) > 0;
 
-                $carouselId = 'joCarousel-' . $project->id;
-                $isWip = str_contains($project->project_status ?? '', 'WIP');
+$carouselId = 'joCarousel-' . $project->id;
+$isWip = str_contains($project->project_status ?? '', 'WIP');
             @endphp
 
             <div class="col-xl-4 col-lg-6 col-md-12 col-sm-12">
