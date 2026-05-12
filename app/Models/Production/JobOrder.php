@@ -208,11 +208,20 @@ class JobOrder extends Model implements AuditableContract
 
     /**
      * Accessor: returns array of public URLs for all wip_photos.
+     * Handles both Lark direct URLs (https://...) and legacy local storage paths.
      */
     public function getWipPhotosUrlsAttribute(): array
     {
         $paths = $this->wip_photos ?? [];
-        return array_values(array_filter(array_map(fn($p) => $p ? asset('storage/' . $p) : null, $paths)));
+        return array_values(array_filter(array_map(function ($p) {
+            if (!$p) return null;
+            // Lark URLs (url or tmp_url field) — use directly, no storage/ prefix
+            if (str_starts_with($p, 'http://') || str_starts_with($p, 'https://')) {
+                return $p;
+            }
+            // Legacy: local path stored in storage/
+            return asset('storage/' . $p);
+        }, $paths)));
     }
 
     /**

@@ -79,7 +79,9 @@ class JobOrderTransformer
 
     /**
      * Extract first non-video attachment URL from Lark — mirrors ProjectTransformer::normalizeImage().
-     * Stores the tmp_url directly; no HTTP download. URL refreshed on every sync.
+     * Uses 'url' field (direct /download URL) NOT 'tmp_url' (batch_get API endpoint).
+     * 'url' = /medias/{token}/download — viewable in browser.
+     * 'tmp_url' = batch_get_tmp_download_url API — returns JSON, NOT an image.
      */
     private function extractFinalImageUrl(?array $attachments): ?string
     {
@@ -92,14 +94,16 @@ class JobOrderTransformer
             return null;
         }
 
-        $url = $first['tmp_url'] ?? ($first['url'] ?? null);
+        // Priority: url (direct download) > tmp_url (API endpoint) — same as ProjectTransformer
+        $url = $first['url'] ?? ($first['tmp_url'] ?? null);
         return $url ? substr(trim($url), 0, 500) : null;
     }
 
     /**
      * Extract all non-video attachment URLs from Lark WIP Images field.
-     * Returns array of tmp_urls (JSON-stored). No HTTP download — same pattern as Projects module.
-     * All records get photos on every sync; URLs refreshed automatically.
+     * Returns array of direct download URLs (JSON-stored). No HTTP download.
+     * Uses 'url' field (direct /download URL) NOT 'tmp_url' (batch_get API endpoint).
+     * Same priority as ProjectTransformer::normalizeImage().
      */
     private function extractWipPhotoUrls(?array $attachments): ?array
     {
@@ -128,7 +132,10 @@ class JobOrderTransformer
                 continue;
             }
 
-            $url = $attachment['tmp_url'] ?? ($attachment['url'] ?? null);
+            // Priority: url (direct /download) > tmp_url (batch_get API endpoint)
+            // 'url' = /medias/{token}/download — viewable as <img src>
+            // 'tmp_url' = batch_get_tmp_download_url — returns JSON, NOT an image
+            $url = $attachment['url'] ?? ($attachment['tmp_url'] ?? null);
             if (!empty($url) && is_string($url)) {
                 $urls[] = $url;
             }
