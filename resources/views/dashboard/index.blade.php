@@ -4,17 +4,17 @@
     <div class="container-fluid py-4 dashboard-container">
         <!-- Header dengan Welcome & Clock -->
         @include('dashboard.partials.header')
-        
+
         <!-- Key Metrics Cards -->
         @include('dashboard.partials.metrics')
-        
+
         <!-- Charts Section -->
         <div class="row g-4 mb-4">
             <!-- Monthly Trends Chart -->
             <div class="col-xl-8">
                 @include('dashboard.partials.charts.trends')
             </div>
-            
+
             <!-- Request Status Chart -->
             <div class="col-xl-4">
                 @include('dashboard.partials.charts.status')
@@ -27,13 +27,20 @@
             <div class="col-xl-6">
                 @include('dashboard.partials.activities.recent-requests')
             </div>
-            
+
             <!-- Low Stock Items -->
-            @if(isset($veryLowStockItems) && $veryLowStockItems->count() > 0)
+            @if (isset($veryLowStockItems) && $veryLowStockItems->count() > 0)
                 <div class="col-xl-6">
                     @include('dashboard.partials.activities.low-stock')
                 </div>
             @endif
+        </div>
+
+        <!-- Production Efficiency Widget -->
+        <div class="row g-4 mb-4">
+            <div class="col-12">
+                @include('dashboard.partials.efficiency-widget')
+            </div>
         </div>
 
         <!-- Overview Section -->
@@ -42,7 +49,7 @@
             <div class="col-xl-8">
                 @include('dashboard.partials.overview.department')
             </div>
-            
+
             <!-- Upcoming Deadlines -->
             <div class="col-xl-4">
                 @include('dashboard.partials.overview.deadlines')
@@ -50,7 +57,7 @@
         </div>
 
         <!-- Super Admin Actions -->
-        @if($user->role === 'super_admin')
+        @if ($user->role === 'super_admin')
             @include('dashboard.partials.admin-actions')
         @endif
     </div>

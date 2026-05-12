@@ -28,18 +28,21 @@
                         <table class="table table-sm table-hover align-middle mb-0" style="min-width:100%;">
                             <thead class="table-light">
                                 <tr>
-                                    <th style="width:8%;">Date</th>
-                                    <th style="width:11%;">Project</th>
-                                    <th style="width:11%;">Step</th>
-                                    <th style="width:10%;">Part</th>
-                                    <th style="width:11%;">Employee</th>
-                                    <th style="width:5%;">Start</th>
-                                    <th style="width:5%;">End</th>
-                                    <th style="width:5%;">Duration (min)</th>
-                                    <th style="width:6%;">Measurement</th>
+                                    <th style="width:7%;">Date <span class="text-danger">*</span></th>
+                                    <th style="width:9%;">Job Order</th>
+                                    <th style="width:10%;">Project <span class="text-danger">*</span></th>
+                                    <th style="width:7%;">Department</th>
+                                    <th style="width:9%;">Step</th>
+                                    <th style="width:7%;">Part</th>
+                                    <th style="width:7%;">Item</th>
+                                    <th style="width:10%;">Employee <span class="text-danger">*</span></th>
+                                    <th style="width:5%;">Start <span class="text-danger">*</span></th>
+                                    <th style="width:5%;">End <span class="text-danger">*</span></th>
+                                    <th style="width:5%;">Duration (min) <span class="text-danger">*</span></th>
                                     <th style="width:5%;">Value</th>
-                                    <th style="width:8%;">Status</th>
-                                    <th style="width:12%;">Remarks</th>
+                                    <th style="width:7%;">Type Measurement</th>
+                                    <th style="width:7%;">Status <span class="text-danger">*</span></th>
+                                    <th style="width:10%;">Remarks</th>
                                     <th style="width:3%;"></th>
                                 </tr>
                             </thead>
@@ -49,11 +52,27 @@
                                 @endphp
                                 @foreach ($oldTimings as $i => $timing)
                                     <tr class="timing-row align-top">
+                                        {{-- Date --}}
                                         <td data-label="Date">
                                             <input type="date" name="timings[{{ $i }}][tanggal]"
                                                 class="form-control form-control-sm" required
                                                 value="{{ old("timings.$i.tanggal") }}">
                                         </td>
+                                        {{-- Job Order --}}
+                                        <td data-label="Job Order">
+                                            <select name="timings[{{ $i }}][job_order_id]"
+                                                class="form-select form-select-sm select2 job-order-select">
+                                                <option value="">Optional</option>
+                                                @foreach ($jobOrders as $jo)
+                                                    <option value="{{ $jo->id }}"
+                                                        data-project="{{ $jo->project_id ?? '' }}"
+                                                        {{ old("timings.$i.job_order_id") == $jo->id ? 'selected' : '' }}>
+                                                        {{ $jo->name }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        </td>
+                                        {{-- Project (auto-filled from Job Order, or manual) --}}
                                         <td data-label="Project">
                                             <select name="timings[{{ $i }}][project_id]"
                                                 class="form-select form-select-sm select2 project-select" required>
@@ -67,48 +86,38 @@
                                                     </option>
                                                 @endforeach
                                             </select>
-                                            <div
-                                                class="form-text department-text {{ old("timings.$i.project_id") ? '' : 'd-none' }}">
+                                        </td>
+                                        {{-- Department (auto-filled from project) --}}
+                                        <td data-label="Department">
+                                            <div class="department-text text-muted small pt-1" style="min-height:30px;">
                                                 @php
                                                     $selectedProject = $projects->firstWhere(
                                                         'id',
                                                         old("timings.$i.project_id"),
                                                     );
                                                 @endphp
-                                                {{ $selectedProject && $selectedProject->department ? 'Department: ' . $selectedProject->department->name : 'Department' }}
+                                                {{ $selectedProject ? $selectedProject->departments->pluck('name')->implode(', ') : '—' }}
                                             </div>
                                         </td>
+                                        {{-- Step --}}
                                         <td data-label="Step">
                                             <input type="text" name="timings[{{ $i }}][step]"
-                                                class="form-control form-control-sm" placeholder="Step" required
+                                                class="form-control form-control-sm" placeholder="Step"
                                                 value="{{ old("timings.$i.step") }}">
                                         </td>
+                                        {{-- Part --}}
                                         <td data-label="Part">
-                                            @php
-                                                $selectedProject = $projects->firstWhere(
-                                                    'id',
-                                                    old("timings.$i.project_id"),
-                                                );
-                                                $parts = $selectedProject
-                                                    ? $selectedProject->parts->pluck('part_name')->toArray()
-                                                    : [];
-                                                $hasParts = count($parts) > 0;
-                                            @endphp
-                                            <select name="timings[{{ $i }}][parts]"
-                                                class="form-select form-select-sm part-select{{ $errors->has("timings.$i.parts") ? ' is-invalid' : '' }}"
-                                                {{ !$hasParts ? 'readonly disabled' : '' }}>
-                                                @if (!$hasParts)
-                                                    <option value="No Part" selected>No Part</option>
-                                                @else
-                                                    <option value="">Select Project Part</option>
-                                                    @foreach ($parts as $part)
-                                                        <option value="{{ $part }}"
-                                                            {{ old("timings.$i.parts") == $part ? 'selected' : '' }}>
-                                                            {{ $part }}</option>
-                                                    @endforeach
-                                                @endif
-                                            </select>
+                                            <input type="text" name="timings[{{ $i }}][parts]"
+                                                class="form-control form-control-sm{{ $errors->has("timings.$i.parts") ? ' is-invalid' : '' }}"
+                                                placeholder="Optional" value="{{ old("timings.$i.parts") }}">
                                         </td>
+                                        {{-- Item --}}
+                                        <td data-label="Item">
+                                            <input type="text" name="timings[{{ $i }}][item]"
+                                                class="form-control form-control-sm" placeholder="Optional"
+                                                value="{{ old("timings.$i.item") }}">
+                                        </td>
+                                        {{-- Employee --}}
                                         <td data-label="Employee">
                                             <select name="timings[{{ $i }}][employee_id]"
                                                 class="form-select form-select-sm select2" required>
@@ -120,70 +129,70 @@
                                                 @endforeach
                                             </select>
                                         </td>
+                                        {{-- Start Time --}}
                                         <td data-label="Start Time">
                                             <input type="time" name="timings[{{ $i }}][start_time]"
-                                                class="form-control form-control-sm" required
+                                                class="form-control form-control-sm start-time" required
                                                 value="{{ old("timings.$i.start_time") }}">
                                         </td>
+                                        {{-- End Time --}}
                                         <td data-label="End Time">
                                             <input type="time" name="timings[{{ $i }}][end_time]"
-                                                class="form-control form-control-sm @error("timings.$i.end_time") is-invalid @enderror"
+                                                class="form-control form-control-sm end-time @error("timings.$i.end_time") is-invalid @enderror"
                                                 required value="{{ old("timings.$i.end_time") }}">
                                             @error("timings.$i.end_time")
                                                 <div class="invalid-feedback"></div>
                                             @enderror
                                         </td>
+                                        {{-- Duration (auto-calculated) --}}
                                         <td data-label="Duration (min)">
                                             <input type="number" name="timings[{{ $i }}][duration_minutes]"
-                                                class="form-control form-control-sm @error("timings.$i.duration_minutes") is-invalid @enderror"
-                                                placeholder="Minutes" required
+                                                class="form-control form-control-sm duration-minutes @error("timings.$i.duration_minutes") is-invalid @enderror"
+                                                placeholder="Auto" required min="0"
                                                 value="{{ old("timings.$i.duration_minutes") }}">
                                             @error("timings.$i.duration_minutes")
                                                 <div class="invalid-feedback"></div>
                                             @enderror
                                         </td>
-                                        <td data-label="Measurement">
-                                            <select name="timings[{{ $i }}][measurement_type]"
-                                                class="form-select form-select-sm" required>
-                                                <option value="">Select Type</option>
-                                                <option value="progress"
-                                                    {{ old("timings.$i.measurement_type") == 'progress' ? 'selected' : '' }}>
-                                                    Progress (%)</option>
-                                                <option value="qty"
-                                                    {{ old("timings.$i.measurement_type") == 'qty' ? 'selected' : '' }}>Qty
-                                                </option>
-                                                <option value="pcs"
-                                                    {{ old("timings.$i.measurement_type") == 'pcs' ? 'selected' : '' }}>Pcs
-                                                </option>
-                                                <option value="unit"
-                                                    {{ old("timings.$i.measurement_type") == 'unit' ? 'selected' : '' }}>
-                                                    Unit</option>
-                                            </select>
-                                        </td>
+                                        {{-- Value (optional) --}}
                                         <td data-label="Value">
                                             <input type="number" step="0.01"
                                                 name="timings[{{ $i }}][measurement_value]"
                                                 class="form-control form-control-sm @error("timings.$i.measurement_value") is-invalid @enderror"
-                                                placeholder="Value" required
-                                                value="{{ old("timings.$i.measurement_value") }}">
+                                                placeholder="Optional" value="{{ old("timings.$i.measurement_value") }}">
                                             @error("timings.$i.measurement_value")
                                                 <div class="invalid-feedback"></div>
                                             @enderror
                                         </td>
+                                        {{-- Type Measurement (from units table, optional) --}}
+                                        <td data-label="Type Measurement">
+                                            <select name="timings[{{ $i }}][measurement_type]"
+                                                class="form-select form-select-sm select2 measurement-type-select">
+                                                <option value="">Optional</option>
+                                                @foreach ($units as $unit)
+                                                    <option value="{{ $unit }}"
+                                                        {{ old("timings.$i.measurement_type") == $unit ? 'selected' : '' }}>
+                                                        {{ $unit }}</option>
+                                                @endforeach
+                                            </select>
+                                        </td>
+                                        {{-- Status --}}
                                         <td data-label="Status">
                                             <select name="timings[{{ $i }}][status]"
                                                 class="form-select form-select-sm" required>
-                                                <option value="pending" style="color:red;"
-                                                    {{ old("timings.$i.status") == 'pending' ? 'selected' : '' }}>Pending
+                                                <option value="pending"
+                                                    {{ old("timings.$i.status", 'pending') == 'pending' ? 'selected' : '' }}>
+                                                    Pending
                                                 </option>
-                                                <option value="on progress" style="color:orange;"
+                                                <option value="on progress"
                                                     {{ old("timings.$i.status") == 'on progress' ? 'selected' : '' }}>On
                                                     Progress</option>
-                                                <option value="complete" style="color:green;"
+                                                <option value="complete"
                                                     {{ old("timings.$i.status") == 'complete' ? 'selected' : '' }}>Complete
                                                 </option>
                                             </select>
                                         </td>
+                                        {{-- Remarks --}}
                                         <td data-label="Remarks">
                                             <input type="text" name="timings[{{ $i }}][remarks]"
                                                 class="form-control form-control-sm" placeholder="Remarks"
@@ -207,6 +216,8 @@
                                 <i class="bi bi-plus-square"></i> Add Empty Row
                             </button>
                         </div>
+                        <small class="text-muted"><span class="text-danger">*</span> = Required &nbsp;|&nbsp; Duration
+                            auto-calculated from Start &amp; End time</small>
                     </div>
             </div>
             <div class="card-footer bg-white border-0 d-flex justify-content-end">
@@ -270,7 +281,6 @@
                 top: 50%;
                 transform: translateY(-50%);
                 width: 100px;
-                /* Lebar label, sesuaikan dengan padding-left di atas */
                 white-space: normal;
                 font-weight: 600;
                 color: #888;
@@ -288,6 +298,9 @@
 
 @push('scripts')
     <script>
+        // ── Units list for dynamic rows ──
+        const allUnits = @json($units->values());
+
         function initSelect2Row($row) {
             $row.find('.select2').select2({
                 width: '100%',
@@ -296,107 +309,118 @@
             });
         }
 
+        // ── Auto-calculate duration when start/end change ──
+        function calcDuration($row) {
+            const start = $row.find('.start-time').val();
+            const end = $row.find('.end-time').val();
+            if (start && end) {
+                const [sh, sm] = start.split(':').map(Number);
+                const [eh, em] = end.split(':').map(Number);
+                const startMin = sh * 60 + sm;
+                const endMin = eh * 60 + em;
+                const diff = endMin - startMin;
+                $row.find('.duration-minutes').val(diff > 0 ? diff : 0);
+            }
+        }
+
         $(document).ready(function() {
             initSelect2Row($('.timing-row').first());
+
+            // Live duration calculation
+            $(document).on('change', '.start-time, .end-time', function() {
+                calcDuration($(this).closest('tr'));
+            });
 
             let rowIdx = 1;
 
             $('#copy-row').click(function() {
                 let $lastRow = $('.timing-row').last();
 
-                // Destroy select2 pada row yang akan di-clone
                 $lastRow.find('.select2').each(function() {
-                    if ($(this).data('select2')) {
-                        $(this).select2('destroy');
-                    }
+                    if ($(this).data('select2')) $(this).select2('destroy');
                 });
 
-                // Clone row terakhir
                 let $newRow = $lastRow.clone();
 
-                // Ambil value dari row sebelumnya
-                let prevDate = $lastRow.find('input[name^="timings"][name$="[tanggal]"]').val();
-                let prevProject = $lastRow.find('select[name^="timings"][name$="[project_id]"]').val();
-                let prevDept = $lastRow.find('input[name^="timings"][name$="[department]"]').val();
-                let prevStart = $lastRow.find('input[name^="timings"][name$="[start_time]"]').val();
-                let prevEnd = $lastRow.find('input[name^="timings"][name$="[end_time]"]').val();
-                let prevPart = $lastRow.find('select[name^="timings"][name$="[parts]"]').val();
+                // Capture values to copy from last row (BEFORE clone index remapping)
+                let prevDate = $lastRow.find('input[name$="[tanggal]"]').val();
+                let prevProject = $lastRow.find('select[name$="[project_id]"]').val();
+                let prevJobOrder = $lastRow.find('select[name$="[job_order_id]"]').val();
+                let prevStart = $lastRow.find('input[name$="[start_time]"]').val();
+                let prevEnd = $lastRow.find('input[name$="[end_time]"]').val();
+                let prevStep = $lastRow.find('input[name$="[step]"]').val();
+                let prevParts = $lastRow.find('input[name$="[parts]"]').val();
+                let prevItem = $lastRow.find('input[name$="[item]"]').val();
+                let prevSessionType = $lastRow.find('select[name$="[session_type]"]').val();
 
-                // Reset value dan name index
                 $newRow.find('input, select').each(function() {
                     let name = $(this).attr('name');
                     if (name) {
                         name = name.replace(/\[\d+\]/, '[' + rowIdx + ']');
                         $(this).attr('name', name);
                     }
-                    // Set value untuk field tertentu, kosongkan yang lain
                     if ($(this).is('[name$="[tanggal]"]')) {
                         $(this).val(prevDate);
                     } else if ($(this).is('[name$="[project_id]"]')) {
                         $(this).val(prevProject);
-                    } else if ($(this).is('[name$="[department]"]')) {
-                        $(this).val(prevDept);
+                    } else if ($(this).is('[name$="[job_order_id]"]')) {
+                        $(this).val(prevJobOrder);
                     } else if ($(this).is('[name$="[start_time]"]')) {
                         $(this).val(prevStart);
                     } else if ($(this).is('[name$="[end_time]"]')) {
                         $(this).val(prevEnd);
+                    } else if ($(this).is('[name$="[step]"]')) {
+                        $(this).val(prevStep); // ✅ Copy step
+                    } else if ($(this).is('[name$="[parts]"]')) {
+                        $(this).val(prevParts); // ✅ Copy parts
+                    } else if ($(this).is('[name$="[item]"]')) {
+                        $(this).val(prevItem); // ✅ Copy item
+                    } else if ($(this).is('[name$="[session_type]"]')) {
+                        $(this).val(prevSessionType); // ✅ Copy session type
+                    } else if ($(this).is('[name$="[employee_id]"]')) {
+                        $(this).val(null); // ✅ Reset employee — must reselect
                     } else if ($(this).is('[name$="[duration_minutes]"]')) {
                         $(this).val('');
                     } else if ($(this).is('[name$="[measurement_type]"]')) {
                         $(this).val('');
                     } else if ($(this).is('[name$="[measurement_value]"]')) {
                         $(this).val('');
-                    } else if ($(this).hasClass('department-input')) {
-                        $(this).val('');
-                    } else if ($(this).hasClass('part-select')) {
-                        $(this).html('<option value="">Select Project Part</option>');
-                    } else if (!$(this).is('select')) {
-                        $(this).val('');
                     }
                 });
 
                 $newRow.find('.btn-remove-row').show();
-
-                // Append row baru
                 $('#timing-rows').append($newRow);
-
-                // Inisialisasi select2 pada row baru & row terakhir
                 initSelect2Row($newRow);
                 initSelect2Row($lastRow);
 
-                // Trigger change project-select di row baru, lalu set part setelah option selesai diisi
                 let $projectSelect = $newRow.find('select[name$="[project_id]"]');
                 $projectSelect.trigger('change');
 
-                // Tunggu option part selesai diisi, lalu set value part
                 setTimeout(function() {
-                    $newRow.find('select[name$="[parts]"]').val('');
+                    // Recalculate duration if times are set
+                    calcDuration($newRow);
                 }, 150);
 
                 rowIdx++;
             });
 
+
+
             $('#add-row').click(function() {
                 let $lastRow = $('.timing-row').last();
 
-                // Destroy select2 pada row yang akan di-clone
                 $lastRow.find('.select2').each(function() {
-                    if ($(this).data('select2')) {
-                        $(this).select2('destroy');
-                    }
+                    if ($(this).data('select2')) $(this).select2('destroy');
                 });
 
-                // Clone row terakhir
                 let $newRow = $lastRow.clone();
 
-                // Reset value dan name index ke default
                 $newRow.find('input, select').each(function() {
                     let name = $(this).attr('name');
                     if (name) {
                         name = name.replace(/\[\d+\]/, '[' + rowIdx + ']');
                         $(this).attr('name', name);
                     }
-                    // Reset semua field ke default
                     if ($(this).is('input[type="date"]')) {
                         $(this).val('');
                     } else if ($(this).is('input[type="time"]')) {
@@ -408,23 +432,26 @@
                     } else if ($(this).is('select')) {
                         if ($(this).hasClass('project-select')) {
                             $(this).val('');
-                        } else if ($(this).hasClass('part-select')) {
-                            $(this).html('<option value="">Select Project Part</option>');
-                            $(this).val('');
                         } else {
                             $(this).val('');
                         }
                     }
                 });
+                // Reset department text
+                $newRow.find('.department-text').text('—');
 
                 $newRow.find('.btn-remove-row').show();
-
-                // Append row baru
                 $('#timing-rows').append($newRow);
-
-                // Inisialisasi select2 pada row baru & row terakhir
                 initSelect2Row($newRow);
                 initSelect2Row($lastRow);
+
+                // Rebuild measurement_type options from allUnits
+                let $mtSelect = $newRow.find('select[name$="[measurement_type]"]');
+                let mtHtml = '<option value="">— Optional —</option>';
+                allUnits.forEach(function(u) {
+                    mtHtml += `<option value="${u}">${u}</option>`;
+                });
+                $mtSelect.html(mtHtml);
 
                 rowIdx++;
             });
@@ -435,43 +462,31 @@
                 }
             });
 
-            // Project change: isi department & parts otomatis
-            $(document).on('change', '.project-select', function() {
+            // Job Order change: auto-fill project-select from data-project attribute
+            $(document).on('change', '.job-order-select', function() {
                 let $row = $(this).closest('tr');
-                let selected = $(this).find(':selected')[0];
-                let department = $(selected).data('department');
-                let parts = selected.getAttribute('data-parts');
-                let $deptDiv = $row.find('.department-text');
-                let $partSelect = $row.find('.part-select');
+                let projectId = $(this).find(':selected').data('project');
 
-                // Update department text
-                if ($(this).val() && department) {
-                    $deptDiv.removeClass('d-none').text('Department: ' + department.charAt(0)
-                        .toUpperCase() + department.slice(1));
-                } else {
-                    $deptDiv.addClass('d-none').text('Department');
-                }
-
-                // Update parts select
-                if (parts && JSON.parse(parts).length > 0) {
-                    $partSelect.prop('disabled', false).prop('readonly', false);
-                    $partSelect.html('<option value="">Select Project Part</option>');
-                    JSON.parse(parts).forEach(function(part) {
-                        $partSelect.append(`<option value="${part}">${part}</option>`);
-                    });
-                    $partSelect.val('');
-                } else {
-                    $partSelect.prop('disabled', true).prop('readonly', true);
-                    $partSelect.html('<option value="No Part" selected>No Part</option>');
-                    $partSelect.val('No Part');
+                if (projectId) {
+                    let $projectSelect = $row.find('.project-select');
+                    $projectSelect.val(projectId).trigger('change');
                 }
             });
 
-            // Handle submit: disable button & show spinner
+            // Project change: fill department text
+            $(document).on('change', '.project-select', function() {
+                let $row = $(this).closest('tr');
+                let selected = $(this).find(':selected')[0];
+                let department = $(selected).data('department') || '';
+
+                let $deptDiv = $row.find('.department-text');
+                $deptDiv.text(department ? department.charAt(0).toUpperCase() + department.slice(1) : '—');
+            });
+
+            // Submit: disable button & show spinner
             const form = $('form[action="{{ route('timings.storeMultiple') }}"]');
             const submitBtn = $('#timing-submit-btn');
             const spinner = submitBtn.find('.spinner-border');
-            const submitBtnHtml = submitBtn.html();
 
             if (form.length && submitBtn.length && spinner.length) {
                 form.on('submit', function() {
@@ -479,11 +494,6 @@
                     spinner.removeClass('d-none');
                 });
             }
-
-            // Jika pakai AJAX, aktifkan kembali tombol di error handler:
-            // submitBtn.prop('disabled', false);
-            // spinner.addClass('d-none');
-            // submitBtn.html(submitBtnHtml);
         });
     </script>
 @endpush

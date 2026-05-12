@@ -135,34 +135,32 @@
                 <div class="d-flex flex-column flex-lg-row align-items-lg-center gap-3 mb-3">
                     <div class="d-flex align-items-center">
                         <i class="fas fa-warehouse gradient-icon me-2" style="font-size: 1.5rem;"></i>
-                        <h2 class="mb-0 flex-shrink-0" style="font-size:1.3rem;">Inventory List</h2>
+                        <h2 class="mb-0 flex-shrink-0" style="font-size:1.3rem;">Inventory Stock</h2>
                     </div>
 
                     <div class="ms-lg-auto">
                         <div class="d-flex flex-wrap gap-2 align-items-center justify-content-lg-end">
-                            @if (auth()->user()->isLogisticAdmin() || auth()->user()->isReadOnlyAdmin())
+                            @can('logistic.inventory.create')
                                 <a href="{{ route('inventory.create') }}" class="btn btn-primary btn-sm">
                                     <i class="bi bi-plus-circle me-1"></i>
                                     <span class="d-none d-sm-inline">Create Inventory</span>
                                     <span class="d-sm-none">Add</span>
                                 </a>
+                            @endcan
+                            @can('logistic.inventory.import')
                                 <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal"
                                     data-bs-target="#importModal">
                                     <i class="bi bi-filetype-xls me-1"></i> Import
                                 </button>
-                            @endif
-                            @if (in_array(auth()->user()->role, ['super_admin', 'admin']))
-                                <form action="{{ route('inventory.sync.lark') }}" method="POST" class="d-inline"
-                                    id="syncLarkForm">
-                                    @csrf
-                                    <button type="button" class="btn btn-info btn-sm flex-shrink-0" id="btnSyncLark"
-                                        data-bs-toggle="tooltip" data-bs-placement="bottom"
-                                        title="Sync inventory from Lark Base (Destination: BATAM, Status: Sent Out)">
-                                        <i class="fas fa-sync me-1" id="syncIcon"></i>
-                                        <span id="syncText">Sync from Lark</span>
-                                    </button>
-                                </form>
-                            @endif
+                            @endcan
+                            @can('lark.staging.approve')
+                                <a href="{{ route('lark.staging.inventory') }}" class="btn btn-info btn-sm flex-shrink-0"
+                                    data-bs-toggle="tooltip" data-bs-placement="bottom"
+                                    title="Review & approve data purchase dari Lark sebelum masuk ke inventory stock">
+                                    <i class="fas fa-filter me-1"></i>
+                                    <span>Lark Staging</span>
+                                </a>
+                            @endcan
                             <button type="button" id="export-btn" class="btn btn-outline-success btn-sm">
                                 <i class="bi bi-file-earmark-excel me-1"></i> Export
                             </button>
@@ -201,16 +199,12 @@
                                 @endforeach
                             </select>
                         </div>
-                        @if (in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance', 'admin_procurement', 'admin']))
+                        @can('logistic.inventory.edit')
                             <div class="col-md-2">
-                                <select id="currencyFilter" class="form-select form-select-sm select2">
-                                    <option value="">All Currencies</option>
-                                    @foreach ($currencies as $currency)
-                                        <option value="{{ $currency->id }}">{{ $currency->name }}</option>
-                                    @endforeach
-                                </select>
+                                <input type="text" id="materialCodeFilter" class="form-control form-control-sm"
+                                    placeholder="Search Material Code...">
                             </div>
-                        @endif
+                        @endcan
                         <div class="col-md-2">
                             <select id="supplierFilter" class="form-select form-select-sm select2">
                                 <option value="">All Suppliers</option>
@@ -269,13 +263,11 @@
                         <thead class="table-light text-nowrap">
                             <tr>
                                 <th width="50">#</th>
+                                <th width="120">Material Code</th>
                                 <th>Name</th>
                                 <th>Project List</th>
                                 <th>Category</th>
-                                <th>Quantity</th>
-                                @if (in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance', 'admin', 'admin_procurement']))
-                                    <th>Unit Price</th>
-                                @endif
+                                <th>Stock</th>
                                 <th>Supplier</th>
                                 <th>Location</th>
                                 <th>Source</th>
@@ -373,7 +365,7 @@
                     data: function(d) {
                         // Add filter parameters
                         d.category_filter = $('#categoryFilter').val();
-                        d.currency_filter = $('#currencyFilter').val();
+                        d.material_code_filter = $('#materialCodeFilter').val();
                         d.supplier_filter = $('#supplierFilter').val();
                         d.location_filter = $('#locationFilter').val();
                         d.unitFilter = $('#unitFilter').val();
@@ -389,6 +381,17 @@
                         searchable: false,
                         width: '2%',
                         className: 'text-center'
+                    },
+                    {
+                        data: 'material_code',
+                        name: 'material_code',
+                        width: '8%',
+                        render: function(data) {
+                            if (!data || data === '-') {
+                                return '<span class="text-muted">-</span>';
+                            }
+                            return '<code class="text-primary">' + data + '</code>';
+                        }
                     },
                     {
                         data: 'name',
@@ -407,28 +410,14 @@
                     {
                         data: 'category',
                         name: 'category.name',
+                    }, {
+                        data: 'stock',
+                        name: 'stock',
+                        orderable: true,
+                        searchable: false,
                         width: '8%'
                     },
                     {
-                        data: 'quantity',
-                        name: 'quantity',
-                        width: '10%',
-                    },
-                    @if (in_array(auth()->user()->role, [
-                            'super_admin',
-                            'admin_logistic',
-                            'admin_finance',
-                            'admin',
-                            'admin_procurement',
-                            'admin',
-                        ]))
-                        {
-                            data: 'price',
-                            name: 'price',
-                            width: '10%',
-                            orderable: true
-                        },
-                    @endif {
                         data: 'supplier',
                         name: 'supplier.name',
                         width: '15%'
@@ -502,12 +491,16 @@
             });
 
             // Filter functionality
-            $('#categoryFilter, #currencyFilter, #supplierFilter, #locationFilter, #unitFilter, #projectFilter, #sourceFilter')
+            $('#categoryFilter, #supplierFilter, #locationFilter, #unitFilter, #projectFilter, #sourceFilter')
                 .on(
                     'change',
                     function() {
                         table.ajax.reload();
                     });
+
+            $('#materialCodeFilter').on('input', debounce(function() {
+                table.ajax.reload();
+            }, 400));
 
             $('#customSearch').on('input', debounce(function() {
                 table.ajax.reload();
@@ -515,10 +508,10 @@
 
             // Reset filters
             $('#resetFilters').on('click', function() {
-                $('#categoryFilter, #currencyFilter, #supplierFilter, #locationFilter, #unitFilter, #projectFilter, #sourceFilter')
+                $('#categoryFilter, #supplierFilter, #locationFilter, #unitFilter, #projectFilter, #sourceFilter')
                     .val('')
                     .trigger('change');
-                $('#customSearch').val('');
+                $('#materialCodeFilter, #customSearch').val('');
                 table.ajax.reload();
             });
 
@@ -535,7 +528,7 @@
             $('#export-btn').on('click', function() {
                 const filters = {
                     category_filter: $('#categoryFilter').val(),
-                    currency_filter: $('#currencyFilter').val(),
+                    material_code_filter: $('#materialCodeFilter').val(),
                     supplier_filter: $('#supplierFilter').val(),
                     location_filter: $('#locationFilter').val(),
                     project_filter: $('#projectFilter').val(),
@@ -679,44 +672,6 @@
             // Initialize Bootstrap Tooltip
             $('[data-bs-toggle="tooltip"]').tooltip();
 
-            // Sync from Lark button handler
-            $('#btnSyncLark').on('click', function(e) {
-                e.preventDefault();
-
-                Swal.fire({
-                    title: 'Sync from Lark?',
-                    html: 'Sync inventory from Lark Base?<br><br>' +
-                        '<strong>Filter Conditions:</strong><br>' +
-                        '• Destination: BATAM<br>' +
-                        '• Status: Sent Out<br><br>' +
-                        'This will:<br>' +
-                        '- Fetch latest data from Lark Base<br>' +
-                        '- Create/update inventory items<br>' +
-                        '- Currency: RMB (CNY)<br><br>' +
-                        'Continue?',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonColor: '#3085d6',
-                    cancelButtonColor: '#d33',
-                    confirmButtonText: 'Yes, sync now!',
-                    cancelButtonText: 'Cancel',
-                    reverseButtons: true
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        // Show loading state
-                        const $btn = $('#btnSyncLark');
-                        const $icon = $('#syncIcon');
-                        const $text = $('#syncText');
-
-                        $btn.prop('disabled', true);
-                        $icon.addClass('fa-spin');
-                        $text.text('Syncing...');
-
-                        // Submit form
-                        $('#syncLarkForm').submit();
-                    }
-                });
-            });
         });
 
         document.addEventListener('DOMContentLoaded', function() {

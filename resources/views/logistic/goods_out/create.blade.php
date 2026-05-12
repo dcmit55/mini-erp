@@ -4,7 +4,8 @@
     <div class="container mt-4">
         <div class="card shadow rounded">
             <div class="card-body">
-                <h2 class="mb-0 flex-shrink-0" style="font-size:1.3rem;">Goods Out - {{ $materialRequest->inventory->name }}
+                <h2 class="mb-0 flex-shrink-0" style="font-size:1.3rem;">Goods Out -
+                    {{ $materialRequest->inventory->name ?? ($materialRequest->stagingInventory->name ?? 'Material') }}
                 </h2>
                 <hr>
                 @if (session('error'))
@@ -48,11 +49,12 @@
                     <div class="row">
                         <div class="col-lg-6 mb-3">
                             <label>Remaining Quantity to Goods Out</label>
+                            @php $mrUnit = $materialRequest->inventory->unit ?? $materialRequest->stagingInventory->unit ?? 'unit'; @endphp
                             <input type="text" class="form-control"
-                                value="{{ $materialRequest->remaining_qty }} {{ $materialRequest->inventory->unit }}"
-                                id="remaining-qty" readonly disabled>
+                                value="{{ $materialRequest->remaining_qty }} {{ $mrUnit }}" id="remaining-qty"
+                                readonly disabled>
                             <div class="form-text">
-                                Quantity Requested: {{ $materialRequest->qty }} {{ $materialRequest->inventory->unit }}
+                                Quantity Requested: {{ $materialRequest->qty }} {{ $mrUnit }}
                             </div>
                         </div>
                         <div class="col-lg-6 mb-3">
@@ -63,7 +65,7 @@
                                     value="{{ old('quantity', $materialRequest->remaining_qty) }}"
                                     max="{{ $materialRequest->remaining_qty }}" step="any" required>
                                 <span class="input-group-text unit-label">
-                                    {{ $materialRequest->inventory ? $materialRequest->inventory->unit : 'unit' }}
+                                    {{ $materialRequest->inventory->unit ?? ($materialRequest->stagingInventory->unit ?? 'unit') }}
                                 </span>
                             </div>
                             @error('quantity')

@@ -20,15 +20,9 @@ class GoodsInController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-
-        // Allow admin to access create/edit/delete pages, but block submit
-        $this->middleware(function ($request, $next) {
-            $writeRoutes = ['goods_in.store', 'goods_in.store_independent', 'goods_in.update', 'goods_in.destroy'];
-            if (in_array($request->route()->getName(), $writeRoutes) && auth()->user()->isReadOnlyAdmin()) {
-                abort(403, 'You do not have permission to submit or delete Goods In data.');
-            }
-            return $next($request);
-        })->only(['store', 'storeIndependent', 'update', 'destroy']);
+        $this->middleware('can:logistic.goods-in.view');
+        $this->middleware('can:logistic.goods-in.create')->only(['create', 'store', 'storeIndependent']);
+        $this->middleware('can:logistic.goods-in.edit')->only(['edit', 'update', 'destroy']);
     }
 
     // Server-side processing untuk index
@@ -137,7 +131,7 @@ class GoodsInController extends Controller
     // Helper method untuk format quantity
     private function formatQuantity($goodsIn)
     {
-        $unit = $goodsIn->goodsOut && $goodsIn->goodsOut->inventory ? $goodsIn->goodsOut->inventory->unit : ($goodsIn->inventory ? $goodsIn->inventory->unit : '');
+        $unit = $goodsIn->goodsOut?->inventory?->unit_name ?? ($goodsIn->inventory?->unit_name ?? '');
 
         $quantity = number_format($goodsIn->quantity, 2);
         $quantity = rtrim(rtrim($quantity, '0'), '.');
@@ -164,7 +158,7 @@ class GoodsInController extends Controller
         $buttons = '<div class="d-flex flex-nowrap gap-1">';
 
         // Edit button
-        if (auth()->user()->username === $goodsIn->returned_by || in_array(auth()->user()->role, ['admin_logistic', 'super_admin', 'admin_finance', 'admin'])) {
+        if (auth()->user()->username === $goodsIn->returned_by || auth()->user()->can('logistic.goods-in.edit')) {
             $buttons .=
                 '<a href="' .
                 route('goods_in.edit', $goodsIn->id) .
@@ -174,7 +168,7 @@ class GoodsInController extends Controller
         }
 
         // Delete button - only for independent goods in (not linked to goods out)
-        if (!$goodsIn->goods_out_id && in_array(auth()->user()->role, ['admin_logistic', 'super_admin', 'admin_finance', 'admin'])) {
+        if (!$goodsIn->goods_out_id && auth()->user()->can('logistic.goods-in.edit')) {
             $buttons .=
                 '<button type="button" class="btn btn-sm btn-danger btn-delete"
                 data-id="' .
@@ -285,24 +279,34 @@ class GoodsInController extends Controller
             return back()->with('error', 'Inventory stock cannot be negative.');
         }
 
-        // Kurangi jumlah Goods Out
-        $inventory->quantity += $request->quantity;
-        $inventory->save();
+        // Kurangi jumlah Goods Out (return stock to inventory via new batch)
+        // NOTE: returnStockFromGoodsIn() requires the GoodsIn ID — create the record first,
+        // then create the batch in the same transaction.
+        DB::beginTransaction();
+        try {
+            // Simpan Goods In (tambahkan inventory_id dan project_id)
+            $goodsIn = GoodsIn::create([
+                'goods_out_id' => $goodsOut->id,
+                'inventory_id' => $goodsOut->inventory_id,
+                'project_id' => $goodsOut->project_id,
+                'job_order_id' => $goodsOut->job_order_id,
+                'quantity' => $request->quantity,
+                'returned_by' => Auth::user()->username,
+                'returned_at' => $request->returned_at,
+                'remark' => $request->remark,
+            ]);
 
-        // Simpan Goods In (tambahkan inventory_id dan project_id)
-        GoodsIn::create([
-            'goods_out_id' => $goodsOut->id,
-            'inventory_id' => $goodsOut->inventory_id,
-            'project_id' => $goodsOut->project_id,
-            'job_order_id' => $goodsOut->job_order_id,
-            'quantity' => $request->quantity,
-            'returned_by' => Auth::user()->username,
-            'returned_at' => $request->returned_at,
-            'remark' => $request->remark,
-        ]);
+            // Create a new dedicated batch for this return
+            $inventory->returnStockFromGoodsIn($request->quantity, $goodsIn->id);
 
-        // Sinkronkan data penggunaan material
-        MaterialUsageHelper::sync($inventory->id, $goodsOut->project_id, $goodsOut->job_order_id);
+            // Sinkronkan data penggunaan material
+            MaterialUsageHelper::sync($inventory->id, $goodsOut->project_id, $goodsOut->job_order_id);
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Gagal membuat Goods In: ' . $e->getMessage());
+        }
 
         $projectName = $goodsOut->project ? $goodsOut->project->name : 'No Project';
 
@@ -347,24 +351,32 @@ class GoodsInController extends Controller
             return back()->with('error', 'Inventory stock cannot be negative.');
         }
 
-        // Tambahkan stok ke inventory
-        $inventory->quantity += $request->quantity;
-        $inventory->save();
+        // Tambahkan stok ke inventory via new batch (traceable to this GoodsIn)
+        DB::beginTransaction();
+        try {
+            // Simpan Goods In
+            $goodsIn = GoodsIn::create([
+                'goods_out_id' => null,
+                'inventory_id' => $request->inventory_id,
+                'project_id' => $request->project_id,
+                'quantity' => $request->quantity,
+                'job_order_id' => $request->job_order_id,
+                'returned_by' => Auth::user()->username,
+                'returned_at' => $request->returned_at,
+                'remark' => $request->remark,
+            ]);
 
-        // Simpan Goods In
-        GoodsIn::create([
-            'goods_out_id' => null, // Tidak terkait dengan Goods Out
-            'inventory_id' => $request->inventory_id,
-            'project_id' => $request->project_id,
-            'quantity' => $request->quantity,
-            'job_order_id' => $request->job_order_id,
-            'returned_by' => Auth::user()->username,
-            'returned_at' => $request->returned_at,
-            'remark' => $request->remark,
-        ]);
+            // Create a new dedicated batch for this return
+            $inventory->returnStockFromGoodsIn($request->quantity, $goodsIn->id);
 
-        // Sync Material Usage
-        MaterialUsageHelper::sync($request->inventory_id, $request->project_id, $request->job_order_id);
+            // Sync Material Usage
+            MaterialUsageHelper::sync($request->inventory_id, $request->project_id, $request->job_order_id);
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Gagal membuat Goods In: ' . $e->getMessage());
+        }
 
         return redirect()
             ->route('goods_in.index')
@@ -387,12 +399,8 @@ class GoodsInController extends Controller
 
             $inventory = $goodsOut->inventory;
 
-            // Update inventory stock
-            $inventory->quantity += $quantity;
-            $inventory->save();
-
-            // Create Goods In record
-            GoodsIn::create([
+            // Create Goods In record first, then create batch linked to it
+            $goodsIn = GoodsIn::create([
                 'goods_out_id' => $goodsOut->id,
                 'inventory_id' => $goodsOut->inventory_id,
                 'project_id' => $goodsOut->project_id,
@@ -402,6 +410,9 @@ class GoodsInController extends Controller
                 'returned_at' => now(),
                 'remark' => 'Bulk Goods In',
             ]);
+
+            // Create a new dedicated batch (source_type = goods_in)
+            $inventory->returnStockFromGoodsIn($quantity, $goodsIn->id);
 
             MaterialUsageHelper::sync($goodsOut->inventory_id, $goodsOut->project_id, $goodsOut->job_order_id);
         }
@@ -463,6 +474,9 @@ class GoodsInController extends Controller
             ]);
         }
 
+        $oldQty = (float) $goods_in->quantity;
+        $newQty = (float) $request->quantity;
+
         $goods_in->update([
             'inventory_id' => $request->inventory_id,
             'project_id' => $request->project_id,
@@ -471,6 +485,20 @@ class GoodsInController extends Controller
             'returned_at' => $request->returned_at,
             'remark' => $request->remark,
         ]);
+
+        // Adjust the dedicated goods_in batch if qty changed
+        if ($oldQty !== $newQty) {
+            $batch = \App\Models\Logistic\InventoryBatch::where('source_type', \App\Models\Logistic\InventoryBatch::SOURCE_GOODS_IN)->where('source_id', $goods_in->id)->whereNull('deleted_at')->first();
+
+            if ($batch) {
+                $diff = $newQty - $oldQty;
+                $newQtyRemaining = max(0, (float) $batch->qty_remaining + $diff);
+                $batch->update([
+                    'qty' => $newQty,
+                    'qty_remaining' => $newQtyRemaining,
+                ]);
+            }
+        }
 
         if ($request->filled('project_id')) {
             MaterialUsageHelper::sync($request->inventory_id, $request->project_id, $request->job_order_id);
@@ -498,10 +526,20 @@ class GoodsInController extends Controller
             // Restore record
             $goods_in->restore();
 
-            // Kembalikan stok inventory
+            // Recreate the dedicated goods_in batch (restore soft-deleted one or create new)
             if ($inventory) {
-                $inventory->quantity += $goods_in->quantity;
-                $inventory->save();
+                $existingBatch = \App\Models\Logistic\InventoryBatch::withTrashed()->where('source_type', \App\Models\Logistic\InventoryBatch::SOURCE_GOODS_IN)->where('source_id', $goods_in->id)->latest('id')->first();
+
+                if ($existingBatch && $existingBatch->trashed()) {
+                    $existingBatch->restore();
+                    // Ensure qty_remaining reflects the goods_in quantity
+                    if ((float) $existingBatch->qty_remaining <= 0) {
+                        $existingBatch->update(['qty_remaining' => $goods_in->quantity]);
+                    }
+                } else {
+                    // No previous batch — create a fresh one
+                    $inventory->returnStockFromGoodsIn($goods_in->quantity, $goods_in->id);
+                }
             }
 
             // Re-sync Material Usage
@@ -532,10 +570,23 @@ class GoodsInController extends Controller
             $projectId = $goods_in->project_id;
             $inventoryId = $goods_in->inventory_id;
 
-            // Kembalikan stok inventory
+            // Undo goods in: remove the dedicated goods_in batch for this record.
+            // If the batch still has its full qty_remaining (untouched), soft-delete it.
+            // If some qty was already consumed from it, reduce qty_remaining by the goods_in qty.
             if ($inventory) {
-                $inventory->quantity -= $goods_in->quantity;
-                $inventory->save();
+                $batch = \App\Models\Logistic\InventoryBatch::where('source_type', \App\Models\Logistic\InventoryBatch::SOURCE_GOODS_IN)->where('source_id', $goods_in->id)->whereNull('deleted_at')->first();
+
+                if ($batch) {
+                    $reduce = min((float) $batch->qty_remaining, (float) $goods_in->quantity);
+                    if ($reduce > 0) {
+                        $batch->decrement('qty_remaining', $reduce);
+                    }
+                    // Soft-delete the batch to remove it from active stock
+                    $batch->delete();
+                } else {
+                    // Fallback: batch was already deleted or not found — use FIFO consume
+                    $inventory->consumeStock($goods_in->quantity);
+                }
             }
 
             // Hapus Goods In

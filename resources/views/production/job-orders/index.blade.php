@@ -13,10 +13,12 @@
 
                     <!-- Spacer untuk mendorong tombol ke kanan -->
                     <div class="ms-sm-auto d-flex flex-wrap gap-2">
-                        <a href="{{ route('job-orders.create') }}" class="btn btn-primary btn-sm flex-shrink-0">
-                            <i class="bi bi-plus-circle me-1"></i> Create Job Order
-                        </a>
-                        @if (in_array(auth()->user()->role, ['super_admin', 'admin']))
+                        @can('production.jo.create')
+                            <a href="{{ route('job-orders.create') }}" class="btn btn-primary btn-sm flex-shrink-0">
+                                <i class="bi bi-plus-circle me-1"></i> Create Job Order
+                            </a>
+                        @endcan
+                        @can('production.jo.edit')
                             <form action="{{ route('job-orders.sync.lark') }}" method="POST" class="d-inline"
                                 id="syncLarkForm">
                                 @csrf
@@ -27,10 +29,12 @@
                                     <span id="syncText">Sync from Lark</span>
                                 </button>
                             </form>
-                        @endif
+                        @endcan
+                        @can('production.jo.export')
                         <a href="#" id="export-btn" class="btn btn-outline-success btn-sm flex-shrink-0">
                             <i class="bi bi-file-earmark-excel me-1"></i> Export
                         </a>
+                        @endcan
                     </div>
                 </div>
 
@@ -51,7 +55,7 @@
                 <!-- filter form -->
                 <div class="mb-3">
                     <form id="filter-form" class="row g-1">
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <select id="filter-project" name="project" class="form-select form-select-sm select2">
                                 <option value="">All Projects</option>
                                 @foreach ($projects as $project)
@@ -59,11 +63,19 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <select id="filter-department" name="department" class="form-select form-select-sm select2">
                                 <option value="">All Departments</option>
                                 @foreach ($departments as $department)
                                     <option value="{{ $department->id }}">{{ $department->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <select id="filter-status" name="status" class="form-select form-select-sm select2">
+                                <option value="">All Status</option>
+                                @foreach ($statuses as $status)
+                                    <option value="{{ $status }}">{{ $status }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -88,8 +100,10 @@
                             <th>Name</th>
                             <th>Project</th>
                             <th>Department</th>
+                            <th>Delivery Date</th>
                             <th>Start Date</th>
                             <th>End Date</th>
+                            <th>Status</th>
                             <th>Description</th>
                             <th>Notes</th>
                             <th>Action</th>
@@ -137,6 +151,7 @@
                     data: function(d) {
                         d.project = $('#filter-project').val();
                         d.department = $('#filter-department').val();
+                        d.status = $('#filter-status').val();
                         d.custom_search = $('#custom-search').val();
                     },
                     error: function(xhr, error, thrown) {
@@ -166,6 +181,12 @@
                         width: '12%'
                     },
                     {
+                        data: 'countdown_display',
+                        name: 'delivery_date',
+                        width: '12%',
+                        className: 'text-center'
+                    },
+                    {
                         data: 'start_date',
                         name: 'start_date',
                         width: '10%'
@@ -174,6 +195,12 @@
                         data: 'end_date',
                         name: 'end_date',
                         width: '10%'
+                    },
+                    {
+                        data: 'status',
+                        name: 'status',
+                        width: '10%',
+                        className: 'text-center'
                     },
                     {
                         data: 'description',
@@ -230,11 +257,11 @@
                 table.draw();
             }, 300);
 
-            $('#filter-project, #filter-department, #custom-search')
+            $('#filter-project, #filter-department, #filter-status, #custom-search')
                 .on('change input', debouncedFilter);
 
             $('#reset-filters').on('click', function() {
-                $('#filter-project, #filter-department, #custom-search')
+                $('#filter-project, #filter-department, #filter-status, #custom-search')
                     .val('').trigger('change');
                 table.draw();
             });
@@ -245,6 +272,7 @@
                 const params = {
                     project: $('#filter-project').val(),
                     department: $('#filter-department').val(),
+                    status: $('#filter-status').val(),
                     search: $('#custom-search').val()
                 };
                 const query = $.param(params);
@@ -262,6 +290,7 @@
 
             $('#filter-project').attr('data-placeholder', 'All Projects');
             $('#filter-department').attr('data-placeholder', 'All Departments');
+            $('#filter-status').attr('data-placeholder', 'All Status');
 
             // Delete Confirmation
             $(document).on('click', '.btn-delete', function(e) {
@@ -311,6 +340,30 @@
                     }
                 });
             }
+
+            // Final image preview — follows Client Projects pattern
+            $(document).on('click', '.btn-show-image', function() {
+                const imgSrc = $(this).data('img');
+                const imgName = $(this).data('name');
+                if (imgSrc) {
+                    Fancybox.show([{
+                        src: imgSrc,
+                        type: "image",
+                        caption: imgName,
+                        downloadSrc: imgSrc,
+                    }], {
+                        Toolbar: {
+                            display: ["zoom", "fullscreen", "download", "close"],
+                        },
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Oops...',
+                        text: 'No image available!'
+                    });
+                }
+            });
         });
 
         function debounce(func, wait) {

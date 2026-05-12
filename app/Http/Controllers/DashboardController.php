@@ -13,6 +13,7 @@ use App\Models\Logistic\MaterialUsage;
 use App\Models\Hr\Employee;
 use App\Models\Admin\Department;
 use App\Models\Logistic\Category;
+use App\Models\Production\Timing;
 use Carbon\Carbon;
 
 class DashboardController extends Controller
@@ -20,13 +21,6 @@ class DashboardController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        $this->middleware(function ($request, $next) {
-            $rolesAllowed = ['super_admin', 'admin_logistic', 'admin_mascot', 'admin_costume', 'admin_animatronic', 'admin_finance', 'admin_procurement', 'admin_hr', 'admin', 'general'];
-            if (!in_array(Auth::user()->role, $rolesAllowed)) {
-                abort(403, 'Unauthorized');
-            }
-            return $next($request);
-        });
     }
 
     public function index()
@@ -54,14 +48,39 @@ class DashboardController extends Controller
             ->count();
 
         // Inventory Statistics
-        $lowStockItems = Inventory::where('quantity', '<=', 10)->count();
+        $lowStockItems = Inventory::whereHas('batches', function ($q) {
+            $q->whereNull('deleted_at')->where('qty_remaining', '>', 0);
+        })
+            ->withSum(
+                [
+                    'batches as total_qty' => function ($q) {
+                        $q->whereNull('deleted_at');
+                    },
+                ],
+                'qty_remaining',
+            )
+            ->get()
+            ->filter(fn($i) => ($i->total_qty ?? 0) <= 10)
+            ->count();
         // Data untuk low stock items di dashboard dengan relasi category dan supplier
         $veryLowStockItems = Inventory::with(['category', 'supplier'])
-            ->where('quantity', '<', 3)
-            ->orderBy('quantity', 'asc')
-            ->get();
-        $outOfStockItems = Inventory::where('quantity', '<=', 0)->count();
-        $totalInventoryValue = Inventory::join('currencies', 'inventories.currency_id', '=', 'currencies.id')->selectRaw('SUM(inventories.quantity * inventories.price * currencies.exchange_rate) as total_value')->value('total_value') ?? 0;
+            ->withComputedStock()
+            ->get()
+            ->filter(fn($i) => $i->quantity < 3 && $i->quantity >= 0)
+            ->sortBy('quantity')
+            ->values();
+        $outOfStockItems = Inventory::withSum(
+            [
+                'batches as total_qty' => function ($q) {
+                    $q->whereNull('deleted_at');
+                },
+            ],
+            'qty_remaining',
+        )
+            ->get()
+            ->filter(fn($i) => ($i->total_qty ?? 0) <= 0)
+            ->count();
+        $totalInventoryValue = DB::table('inventory_batches as ib')->join('currencies', 'ib.currency_id', '=', 'currencies.id')->whereNull('ib.deleted_at')->where('ib.qty_remaining', '>', 0)->selectRaw('SUM(ib.qty_remaining * ib.unit_price * currencies.exchange_rate) as total_value')->value('total_value') ?? 0;
 
         // Recent Activities
         $recentGoodsIn = GoodsIn::with(['inventory', 'project'])
@@ -113,7 +132,27 @@ class DashboardController extends Controller
             ->whereYear('created_at', Carbon::now()->year)
             ->sum('used_quantity');
 
+        // Production Efficiency Metrics (This Month)
+        $startDate = Carbon::now()->startOfMonth()->format('Y-m-d');
+        $endDate = Carbon::now()->format('Y-m-d');
+
+        $totalProductionMinutes = Timing::whereBetween('tanggal', [$startDate, $endDate])
+            ->where('approval_status', 'approved')
+            ->whereNotNull('duration_minutes')
+            ->sum('duration_minutes');
+
+        $totalProductionHours = round($totalProductionMinutes / 60, 1);
+
+        $totalProductionOutput = Timing::whereBetween('tanggal', [$startDate, $endDate])
+            ->where('approval_status', 'approved')
+            ->whereNotNull('measurement_value')
+            ->sum('measurement_value');
+
+        $activeProductionProjects = Project::whereHas('timings', function ($query) use ($startDate, $endDate) {
+            $query->whereBetween('tanggal', [$startDate, $endDate])->where('approval_status', 'approved');
+        })->count();
+
         // Pass veryLowStockItems ke view untuk ditampilkan di dashboard
-        return view('dashboard', compact('user', 'inventoryCount', 'projectCount', 'employeeCount', 'departmentCount', 'pendingRequests', 'approvedRequests', 'deliveredRequests', 'totalRequests', 'activeProjects', 'completedProjects', 'projectsThisMonth', 'lowStockItems', 'veryLowStockItems', 'outOfStockItems', 'totalInventoryValue', 'recentGoodsIn', 'recentGoodsOut', 'recentRequests', 'topCategories', 'departmentStats', 'monthlyData', 'upcomingDeadlines', 'materialUsageThisMonth', 'totalCategories'));
+        return view('dashboard', compact('user', 'inventoryCount', 'projectCount', 'employeeCount', 'departmentCount', 'pendingRequests', 'approvedRequests', 'deliveredRequests', 'totalRequests', 'activeProjects', 'completedProjects', 'projectsThisMonth', 'lowStockItems', 'veryLowStockItems', 'outOfStockItems', 'totalInventoryValue', 'recentGoodsIn', 'recentGoodsOut', 'recentRequests', 'topCategories', 'departmentStats', 'monthlyData', 'upcomingDeadlines', 'materialUsageThisMonth', 'totalCategories', 'totalProductionHours', 'totalProductionOutput', 'activeProductionProjects'));
     }
 }

@@ -8,8 +8,10 @@ use App\Models\Admin\User;
 use App\Models\Logistic\Inventory;
 use App\Models\Logistic\MaterialRequest;
 use App\Models\Logistic\GoodsIn;
+use App\Models\Logistic\InventoryBatch;
 use App\Models\Production\Project;
 use App\Models\Production\JobOrder;
+use App\Models\Logistic\StockUsageBatch;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use OwenIt\Auditing\Contracts\Auditable;
 
@@ -23,7 +25,17 @@ class GoodsOut extends Model implements Auditable
 
     protected $table = 'goods_out'; // Pastikan nama tabel sesuai dengan database
 
-    protected $fillable = ['material_request_id', 'inventory_id', 'project_id', 'job_order_id', 'requested_by', 'department', 'quantity', 'remark'];
+    protected $fillable = ['material_request_id', 'inventory_id', 'inventory_batch_id', 'project_id', 'job_order_id', 'requested_by', 'department', 'quantity', 'remark'];
+
+    public function inventoryBatch()
+    {
+        return $this->belongsTo(InventoryBatch::class, 'inventory_batch_id');
+    }
+
+    public function stockUsageBatches()
+    {
+        return $this->hasMany(StockUsageBatch::class, 'goods_out_id');
+    }
 
     public function materialRequest()
     {

@@ -12,14 +12,8 @@ class DepartmentController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-
-        $this->middleware(function ($request, $next) {
-            $user = auth()->user();
-            if (!$user || !in_array($user->role, ['super_admin', 'admin'])) {
-                abort(403, 'Unauthorized action.');
-            }
-            return $next($request);
-        });
+        $this->middleware('can:admin.departments.view');
+        $this->middleware('can:admin.departments.edit')->only(['store', 'update', 'destroy']);
     }
 
     public function index()
@@ -37,16 +31,6 @@ class DepartmentController extends Controller
     {
         // Handle AJAX request for quick add
         if ($request->ajax()) {
-            if (Auth::user()->isReadOnlyAdmin()) {
-                return response()->json(
-                    [
-                        'success' => false,
-                        'message' => 'You do not have permission to create departments.',
-                    ],
-                    403,
-                );
-            }
-
             $name = $request->input('department_name');
             $exists = Department::where('name', $name)->exists();
 
@@ -88,13 +72,11 @@ class DepartmentController extends Controller
         return view('admin.departments.edit', compact('department'));
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request, Department $department)
     {
-        $department = Department::findOrFail($id);
-
         $request->validate(
             [
-                'name' => 'required|string|max:255|unique:departments,name,' . $id,
+                'name' => 'required|string|max:255|unique:departments,name,' . $department->id,
             ],
             [
                 'name.required' => 'Department name is required.',

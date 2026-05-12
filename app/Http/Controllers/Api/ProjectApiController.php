@@ -74,12 +74,13 @@ class ProjectApiController extends Controller
      * @param int $id
      * @return \Illuminate\Http\JsonResponse
      */
-    public function getProjectById($id)
+    public function getProjectById($uid)
     {
         try {
             $project = Project::with(['departments:id,name', 'parts:id,part_name,project_id'])
-                ->select('id', 'name', 'department_id')
-                ->findOrFail($id);
+                ->select('id', 'uid', 'name', 'department_id')
+                ->where('uid', $uid)
+                ->firstOrFail();
 
             return response()->json([
                 'success' => true,

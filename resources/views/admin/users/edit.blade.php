@@ -87,6 +87,8 @@
                                 </option>
                                 <option value="admin" {{ old('role', $user->role) == 'admin' ? 'selected' : '' }}>Admin
                                 </option>
+                                <option value="timing" {{ old('role', $user->role) == 'timing' ? 'selected' : '' }}>
+                                    Admin Timing</option>
                                 <option value="general" {{ old('role', $user->role) == 'general' ? 'selected' : '' }}>
                                     General</option>
                             </select>

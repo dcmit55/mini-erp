@@ -17,14 +17,18 @@
                                 </h1>
                             </div>
                             <div class="d-flex gap-2">
+                                @can('hr.employees.edit')
                                 <a href="{{ route('employees.edit', $employee) }}" class="btn btn-warning"
                                     title="Edit Employee">
                                     <i class="bi bi-pencil"></i>
                                 </a>
+                                @endcan
+                                @can('production.timing.view')
                                 <a href="{{ route('employees.timing', $employee) }}" class="btn btn-info"
                                     title="View Timings">
                                     <i class="bi bi-clock"></i>
                                 </a>
+                                @endcan
                             </div>
                         </div>
 
@@ -160,6 +164,22 @@
                                         <span class="badge bg-primary">{{ ucfirst($employee->department->name) }}</span>
                                     @else
                                         <span class="text-muted">-</span>
+                                    @endif
+                                </div>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="fw-semibold text-muted small">Default Shift</label>
+                                <div class="fw-medium">
+                                    @if ($employee->defaultShift)
+                                        <span class="badge bg-secondary">
+                                            {{ $employee->defaultShift->type_of_shift }}
+                                        </span>
+                                        <small class="text-muted ms-1">
+                                            {{ \Carbon\Carbon::parse($employee->defaultShift->start_time)->format('H:i') }}–{{ \Carbon\Carbon::parse($employee->defaultShift->end_time)->format('H:i') }}
+                                        </small>
+                                    @else
+                                        <span class="text-muted fst-italic">Auto-detect</span>
                                     @endif
                                 </div>
                             </div>
@@ -352,10 +372,12 @@
                 <div class="card border-0 shadow-sm mb-4">
                     <div class="card-header bg-light d-flex justify-content-between align-items-center">
                         <h6 class="mb-0"><i class="bi bi-file-earmark-text"></i> Documents & Files</h6>
+                        @can('hr.employees.edit')
                         <button class="btn btn-sm btn-primary" data-bs-toggle="modal"
                             data-bs-target="#uploadDocumentModal">
                             <i class="bi bi-plus"></i> Upload
                         </button>
+                        @endcan
                     </div>
                     <div class="card-body">
                         @if ($employee->documents->count() > 0)
@@ -395,6 +417,7 @@
                                                         class="btn btn-outline-success btn-sm" title="Download Document">
                                                         <i class="bi bi-download"></i>
                                                     </a>
+                                                    @can('hr.employees.edit')
                                                     <button type="button"
                                                         class="btn btn-outline-danger btn-sm delete-document-btn"
                                                         data-document-id="{{ $document->id }}"
@@ -402,6 +425,7 @@
                                                         title="Delete Document">
                                                         <i class="bi bi-trash"></i>
                                                     </button>
+                                                    @endcan
                                                 </td>
                                             </tr>
                                         @endforeach
@@ -412,16 +436,19 @@
                             <div class="text-center py-4">
                                 <i class="bi bi-file-earmark-x text-muted" style="font-size: 3rem;"></i>
                                 <div class="mt-3 text-muted">No documents uploaded yet</div>
+                                @can('hr.employees.edit')
                                 <button class="btn btn-primary mt-2" data-bs-toggle="modal"
                                     data-bs-target="#uploadDocumentModal">
                                     Upload First Document
                                 </button>
+                                @endcan
                             </div>
                         @endif
                     </div>
                 </div>
 
                 <!-- Recent Timings -->
+                @can('production.timing.view')
                 <div class="card border-0 shadow-sm">
                     <div class="card-header bg-light d-flex justify-content-between align-items-center">
                         <h6 class="mb-0"><i class="bi bi-clock"></i> Recent Timings</h6>
@@ -467,10 +494,12 @@
                         @endif
                     </div>
                 </div>
+                @endcan
             </div>
         </div>
     </div>
 
+    @can('hr.employees.edit')
     <!-- Upload Document Modal dengan Real-time Validation -->
     <div class="modal fade" id="uploadDocumentModal" tabindex="-1">
         <div class="modal-dialog">
@@ -548,6 +577,7 @@
             </div>
         </div>
     </div>
+    @endcan
 @endsection
 
 @push('styles')

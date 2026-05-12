@@ -3,7 +3,6 @@
 use Illuminate\Support\Facades\Facade;
 
 return [
-
     /*
     |--------------------------------------------------------------------------
     | Application Name
@@ -57,6 +56,14 @@ return [
     'url' => env('APP_URL', 'http://localhost'),
 
     'asset_url' => env('ASSET_URL', null),
+
+    'version' => env('APP_VERSION', '2.0.0'),
+
+    'developer' => env('APP_DEVELOPER', 'DCMIT Gen 2'),
+
+    'company' => env('APP_COMPANY', 'PT The Costume Magnifique'),
+
+    'build_year' => env('APP_BUILD_YEAR', '2025'),
 
     /*
     |--------------------------------------------------------------------------
@@ -136,7 +143,6 @@ return [
     */
 
     'providers' => [
-
         /*
          * Laravel Framework Service Providers...
          */
@@ -190,11 +196,12 @@ return [
     |
     */
 
-    'aliases' => Facade::defaultAliases()->merge([
-        // ...
-        'QrCode' => SimpleSoftwareIO\QrCode\Facades\QrCode::class,
-        'Excel' => Maatwebsite\Excel\Facades\Excel::class,
-        'DataTables' => Yajra\DataTables\Facades\DataTables::class,
-    ])->toArray(),
-
+    'aliases' => Facade::defaultAliases()
+        ->merge([
+            // ...
+            'QrCode' => SimpleSoftwareIO\QrCode\Facades\QrCode::class,
+            'Excel' => Maatwebsite\Excel\Facades\Excel::class,
+            'DataTables' => Yajra\DataTables\Facades\DataTables::class,
+        ])
+        ->toArray(),
 ];

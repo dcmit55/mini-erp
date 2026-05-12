@@ -13,13 +13,15 @@
 
                     <!-- Tombol aksi -->
                     <div class="ms-sm-auto d-flex flex-wrap gap-2">
+                        @can('logistic.material-request.create')
                         <a href="{{ route('material_requests.create') }}" class="btn btn-primary btn-sm flex-shrink-0">
                             <i class="bi bi-plus-circle me-1"></i> Create Request
                         </a>
                         <a href="{{ route('material_requests.bulk_create') }}" class="btn btn-info btn-sm flex-shrink-0">
                             <i class="bi bi-plus-circle me-1"></i> Bulk Request
                         </a>
-                        @if (auth()->user()->isLogisticAdmin() || auth()->user()->isReadOnlyAdmin())
+                        @endcan
+                        @can('logistic.material-request.approve')
                             <span id="bulk-goods-out-tooltip-wrapper" data-bs-toggle="tooltip" data-bs-placement="bottom"
                                 title="To perform Bulk Goods Out, please select material requests with Approved status.">
                                 <button id="bulk-goods-out-btn" class="btn btn-success btn-sm flex-shrink-0" disabled>
@@ -28,10 +30,12 @@
                                     <span id="bulk-goods-out-count" class="badge bg-light text-dark ms-1 d-none">0</span>
                                 </button>
                             </span>
-                        @endif
+                        @endcan
+                        @can('logistic.material-request.export')
                         <a href="#" id="export-btn" class="btn btn-outline-success btn-sm flex-shrink-0">
                             <i class="bi bi-file-earmark-excel me-1"></i> Export
                         </a>
+                        @endcan
                     </div>
                 </div>
 
@@ -51,6 +55,18 @@
                 @if (session('warning'))
                     <div class="alert alert-warning alert-dismissible fade show" role="alert">
                         {!! session('warning') !!}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                @endif
+                @if (session('info_incoming'))
+                    <div class="alert alert-info alert-dismissible fade show" role="alert">
+                        <div class="d-flex align-items-start gap-2">
+                            <i class="fas fa-info-circle mt-1 flex-shrink-0"></i>
+                            <div>
+                                <strong>Info — Inventory Incoming</strong><br>
+                                {!! session('info_incoming') !!}
+                            </div>
+                        </div>
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 @endif
@@ -91,7 +107,7 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-1">
                             <select id="filter-status" name="status" class="form-select form-select-sm select2">
                                 <option value="">All Status</option>
                                 <option value="pending">Pending</option>
@@ -106,6 +122,14 @@
                                 @foreach ($users as $user)
                                     <option value="{{ $user->username }}">{{ ucfirst($user->username) }}</option>
                                 @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <select id="filter-purchase-source" name="purchase_source"
+                                class="form-select form-select-sm select2">
+                                <option value="">All Material Sources</option>
+                                <option value="indo_purchase">Indo Purchase</option>
+                                <option value="international">International Purchase</option>
                             </select>
                         </div>
                         <div class="col-md-2">
@@ -132,7 +156,7 @@
                             <th></th>
                             <th style="display:none">ID</th>
                             <th>Job Order</th>
-                            <th>Project Type</th>   <!-- NEW: Kolom Project Type -->
+                            <th>Project Type</th> <!-- NEW: Kolom Project Type -->
                             <th>Project</th>
                             <th>Material</th>
                             <th>Requested Qty</th>
@@ -218,16 +242,16 @@
                         <!-- Left column: Image & QR Code -->
                         <div class="col-md-5">
                             <div id="material-image-container" class="text-center mb-3 p-2 border rounded bg-light">
-                                <img id="material-image" src="" alt="Material Image" 
-                                     class="img-fluid rounded" style="max-height: 200px; display: none;">
+                                <img id="material-image" src="" alt="Material Image" class="img-fluid rounded"
+                                    style="max-height: 200px; display: none;">
                                 <div id="no-image-placeholder" class="text-muted py-4" style="display: none;">
                                     <i class="bi bi-image fs-1"></i>
                                     <p>No image available</p>
                                 </div>
                             </div>
                             <div id="material-qr-container" class="text-center p-2 border rounded bg-light">
-                                <img id="material-qr" src="" alt="QR Code" 
-                                     class="img-fluid" style="max-height: 120px; display: none;">
+                                <img id="material-qr" src="" alt="QR Code" class="img-fluid"
+                                    style="max-height: 120px; display: none;">
                                 <div id="no-qr-placeholder" class="text-muted py-2" style="display: none;">
                                     <i class="bi bi-qr-code fs-2"></i>
                                     <p>No QR Code</p>
@@ -237,15 +261,42 @@
                         <!-- Right column: Details Table -->
                         <div class="col-md-7">
                             <table class="table table-sm table-borderless">
-                                <tr><th style="width: 35%;">Name:</th><td id="detail-name" class="fw-semibold"></td></tr>
-                                <tr><th>Category:</th><td id="detail-category"></td></tr>
-                                <tr><th>Quantity:</th><td id="detail-quantity"></td></tr>
-                                <tr><th>Unit:</th><td id="detail-unit"></td></tr>
-                                <tr><th>Price:</th><td id="detail-price"></td></tr>
-                                <tr><th>Currency:</th><td id="detail-currency"></td></tr>
-                                <tr><th>Supplier:</th><td id="detail-supplier"></td></tr>
-                                <tr><th>Location:</th><td id="detail-location"></td></tr>
-                                <tr><th>Remark:</th><td id="detail-remark" class="text-wrap"></td></tr>
+                                <tr>
+                                    <th style="width: 35%;">Name:</th>
+                                    <td id="detail-name" class="fw-semibold"></td>
+                                </tr>
+                                <tr>
+                                    <th>Category:</th>
+                                    <td id="detail-category"></td>
+                                </tr>
+                                <tr>
+                                    <th>Quantity:</th>
+                                    <td id="detail-quantity"></td>
+                                </tr>
+                                <tr>
+                                    <th>Unit:</th>
+                                    <td id="detail-unit"></td>
+                                </tr>
+                                <tr>
+                                    <th>Price:</th>
+                                    <td id="detail-price"></td>
+                                </tr>
+                                <tr>
+                                    <th>Currency:</th>
+                                    <td id="detail-currency"></td>
+                                </tr>
+                                <tr>
+                                    <th>Supplier:</th>
+                                    <td id="detail-supplier"></td>
+                                </tr>
+                                <tr>
+                                    <th>Location:</th>
+                                    <td id="detail-location"></td>
+                                </tr>
+                                <tr>
+                                    <th>Remark:</th>
+                                    <td id="detail-remark" class="text-wrap"></td>
+                                </tr>
                             </table>
                         </div>
                     </div>
@@ -389,6 +440,7 @@
         .material-detail-btn {
             transition: all 0.2s;
         }
+
         .material-detail-btn:hover {
             transform: scale(1.1);
         }
@@ -570,7 +622,9 @@
             align-items: center;
             justify-content: center;
         }
-        #no-image-placeholder, #no-qr-placeholder {
+
+        #no-image-placeholder,
+        #no-qr-placeholder {
             text-align: center;
             color: #999;
         }
@@ -598,6 +652,7 @@
                         d.requested_by = $('#filter-requested-by').val();
                         d.requested_at = $('#filter-requested-at').val();
                         d.custom_search = $('#custom-search').val();
+                        d.purchase_source = $('#filter-purchase-source').val();
                     },
                     error: function(xhr, error, thrown) {
                         console.error('DataTables AJAX Error:', {
@@ -732,11 +787,11 @@
                 table.draw();
             }, 300);
 
-            $('#filter-project, #filter-job-order, #filter-project-type, #filter-material, #filter-status, #filter-requested-by, #filter-requested-at, #custom-search')
+            $('#filter-project, #filter-job-order, #filter-project-type, #filter-material, #filter-status, #filter-requested-by, #filter-purchase-source, #filter-requested-at, #custom-search')
                 .on('change input', debouncedFilter);
 
             $('#reset-filters').on('click', function() {
-                $('#filter-project, #filter-job-order, #filter-project-type, #filter-material, #filter-status, #filter-requested-by, #filter-requested-at, #custom-search')
+                $('#filter-project, #filter-job-order, #filter-project-type, #filter-material, #filter-status, #filter-requested-by, #filter-purchase-source, #filter-requested-at, #custom-search')
                     .val('').trigger('change');
                 table.draw();
             });
@@ -752,6 +807,7 @@
                     status: $('#filter-status').val(),
                     requested_by: $('#filter-requested-by').val(),
                     requested_at: $('#filter-requested-at').val(),
+                    purchase_source: $('#filter-purchase-source').val(),
                     search: $('#custom-search').val()
                 };
                 const query = $.param(params);
@@ -1007,13 +1063,14 @@
                 $('#no-image-placeholder').show().find('p').text('Loading...');
                 $('#material-qr').hide();
                 $('#no-qr-placeholder').show().find('p').text('Loading...');
-                $('#detail-name, #detail-category, #detail-quantity, #detail-unit, #detail-price, #detail-currency, #detail-supplier, #detail-location, #detail-remark').text('-');
+                $('#detail-name, #detail-category, #detail-quantity, #detail-unit, #detail-price, #detail-currency, #detail-supplier, #detail-location, #detail-remark')
+                    .text('-');
 
                 $('#materialDetailModal').modal('show');
 
                 // Fetch inventory details
                 $.ajax({
-                    url: '{{ route("material_requests.inventory_detail", "") }}/' + inventoryId,
+                    url: '{{ route('material_requests.inventory_detail', '') }}/' + inventoryId,
                     type: 'GET',
                     dataType: 'json',
                     success: function(data) {
@@ -1034,7 +1091,8 @@
                             $('#no-image-placeholder').hide();
                         } else {
                             $('#material-image').hide();
-                            $('#no-image-placeholder').show().find('p').text('No image available');
+                            $('#no-image-placeholder').show().find('p').text(
+                                'No image available');
                         }
 
                         // Handle QR code
@@ -1161,9 +1219,9 @@
                         Swal.fire({
                             icon: 'error',
                             title: 'Update Failed',
-                            text: errorMessage,
-                            timer: 3000,
-                            showConfirmButton: false
+                            html: errorMessage,
+                            timer: 5000,
+                            showConfirmButton: true
                         });
 
                         console.error('Status update failed:', errorMessage);

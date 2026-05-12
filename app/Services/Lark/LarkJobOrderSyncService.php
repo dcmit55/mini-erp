@@ -66,20 +66,27 @@ class LarkJobOrderSyncService
                 'view_id' => $this->viewId,
             ]);
 
-            // 2. Process each record
+            // 2. Pre-load departments into memory (1 query total) — eliminates N+1 per record.
+            //    Same pattern as Projects module but bulk-loaded for 700+ job orders.
+            $this->transformer->preloadDepartments();
+
+            // 3. Process each record
             $larkRecordIds = [];
 
             foreach ($rawRecords as $rawRecord) {
                 try {
-                    // Convert to DTO
                     $dto = new LarkJobOrderDTO($rawRecord);
                     $larkRecordIds[] = $dto->recordId;
 
-                    // Transform to database format
+                    // Transform to database format (photos stored as Lark URLs — no HTTP download)
                     $data = $this->transformer->transform($dto);
 
                     // Validate
                     $this->transformer->validate($data);
+
+                    // Extract department IDs for pivot sync (remove from main data)
+                    $departmentIds = $data['_department_ids'] ?? [];
+                    unset($data['_department_ids']);
 
                     // Upsert to database with source tracking
                     $jobOrder = JobOrder::updateOrCreate(
@@ -89,6 +96,19 @@ class LarkJobOrderSyncService
                             'last_sync_at' => now(),
                         ]),
                     );
+
+                    // Sync departments via pivot table (many-to-many)
+                    if (!empty($departmentIds)) {
+                        $jobOrder->departments()->sync($departmentIds);
+
+                        Log::debug('Job Order departments synced', [
+                            'job_order_id' => $jobOrder->id,
+                            'department_ids' => $departmentIds,
+                        ]);
+                    } else {
+                        // If no departments from Lark, detach all
+                        $jobOrder->departments()->detach();
+                    }
 
                     if ($jobOrder->wasRecentlyCreated) {
                         $stats['created']++;
@@ -100,16 +120,17 @@ class LarkJobOrderSyncService
                         'lark_record_id' => $dto->recordId,
                         'job_order_id' => $jobOrder->id,
                         'action' => $jobOrder->wasRecentlyCreated ? 'created' : 'updated',
+                        'countdown_days' => $jobOrder->countdown_days,
                     ]);
                 } catch (\Exception $e) {
                     $stats['errors']++;
                     $stats['error_details'][] = [
-                        'record_id' => $rawRecord['record_id'] ?? 'unknown',
+                        'record_id' => $dto->recordId ?? 'unknown',
                         'error' => $e->getMessage(),
                     ];
 
                     Log::error('Failed to sync job order', [
-                        'record' => $rawRecord,
+                        'record_id' => $dto->recordId ?? 'unknown',
                         'error' => $e->getMessage(),
                         'trace' => $e->getTraceAsString(),
                     ]);

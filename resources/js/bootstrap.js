@@ -18,7 +18,7 @@ if (token) {
     window.axios.defaults.headers.common["X-CSRF-TOKEN"] = token.content;
 } else {
     console.error(
-        "CSRF token not found: https://laravel.com/docs/csrf#csrf-x-csrf-token"
+        "CSRF token not found: https://laravel.com/docs/csrf#csrf-x-csrf-token",
     );
 }
 
@@ -38,7 +38,9 @@ window.Echo = new Echo({
     broadcaster: "pusher",
     key: process.env.MIX_PUSHER_APP_KEY,
     cluster: process.env.MIX_PUSHER_APP_CLUSTER,
-    forceTLS: true,
+    // Use TLS only when page is served over HTTPS; on HTTP (local dev) use plain WS
+    // to avoid sockjs CORS errors from Pusher fallback endpoints
+    forceTLS: window.location.protocol === "https:",
     enabledTransports: ["ws", "wss"],
 
     // Connection fallback options

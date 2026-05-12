@@ -564,7 +564,7 @@
                                                     <i class="fas fa-dollar-sign me-2 text-muted"></i>Price Information
                                                 </th>
                                                 <td>
-                                                    @if (in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance', 'admin_procurement', 'admin']))
+                                                    @can('logistic.inventory.edit')
                                                         <div class="row">
                                                             <div class="col-md-4">
                                                                 <small class="text-muted">Unit Price:</small><br>
@@ -599,7 +599,7 @@
                                                         </div>
                                                     @else
                                                         <span class="text-muted">Access restricted</span>
-                                                    @endif
+                                                    @endcan
                                                 </td>
                                             </tr>
                                             <tr>
@@ -885,6 +885,7 @@ $imageUrl = $isLarkUrl
                                         <thead>
                                             <tr>
                                                 <th><i class="fas fa-project-diagram me-1"></i>Project</th>
+                                                <th><i class="fas fa-barcode me-1"></i>Batch No.</th>
                                                 <th><i class="fas fa-arrow-up me-1"></i>Goods Out Qty</th>
                                                 <th><i class="fas fa-arrow-down me-1"></i>Goods In Qty</th>
                                                 <th><i class="fas fa-calculator me-1"></i>Used Qty</th>
@@ -946,6 +947,9 @@ $imageUrl = $isLarkUrl
                                                 <div class="d-flex align-items-center">
                                                     <strong>${usage.project_name || 'No Project'}</strong>
                                                 </div>
+                                            </td>
+                                            <td>
+                                                <span class="text-muted" style="font-size:.82rem;font-family:monospace;">${usage.batch_number || '-'}</span>
                                             </td>
                                             <td>
                                                 <span class="badge bg-info">${usage.goods_out_quantity} {{ $inventory->unit ?? 'Units' }}</span>

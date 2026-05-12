@@ -18,6 +18,7 @@ use Illuminate\Http\Request;
 use App\Exports\InventoryExport;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Storage;
 use App\Exports\ImportInventoryTemplate;
@@ -61,16 +62,10 @@ class InventoryController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        // Batasi create/edit/delete HANYA untuk super_admin & admin_logistic
-        $this->middleware(function ($request, $next) {
-            $restrictedRoles = ['super_admin', 'admin_logistic', 'admin_finance', 'admin_procurement', 'admin'];
-            $restrictedRoutes = ['inventory.create', 'inventory.import', 'inventory.edit', 'inventory.destroy', 'inventory.store', 'inventory.update'];
-
-            if (in_array($request->route()->getName(), $restrictedRoutes) && !in_array(Auth::user()->role, $restrictedRoles)) {
-                abort(403, 'You do not have permission to modify inventory data.');
-            }
-            return $next($request);
-        })->only(['create', 'store', 'import', 'edit', 'update', 'destroy']);
+        $this->middleware('can:logistic.inventory.view');
+        $this->middleware('can:logistic.inventory.create')->only(['create', 'store', 'storeQuick', 'import']);
+        $this->middleware('can:logistic.inventory.edit')->only(['edit', 'update']);
+        $this->middleware('can:logistic.inventory.delete')->only(['destroy']);
     }
 
     public function index(Request $request)
@@ -92,18 +87,57 @@ class InventoryController extends Controller
         return view('logistic.inventory.index', compact('categories', 'currencies', 'suppliers', 'locations', 'projects'));
     }
 
+    /**
+     * Return total stock value in IDR, optionally filtered by category.
+     * Used by the stock value widget on the inventory index page.
+     */
+    public function stockValue(Request $request)
+    {
+        $query = DB::table('inventory_batches as ib')->join('inventories as i', 'i.id', '=', 'ib.inventory_id')->join('currencies as c', 'c.id', '=', 'ib.currency_id')->whereNull('ib.deleted_at')->whereNull('i.deleted_at')->where('ib.qty_remaining', '>', 0);
+
+        if ($request->filled('category_id')) {
+            $query->where('i.category_id', $request->category_id);
+        }
+
+        // SUM(qty_remaining * unit_price * exchange_rate)  → all in IDR
+        $totalIdr = $query->sum(DB::raw('ib.qty_remaining * ib.unit_price * COALESCE(CAST(c.exchange_rate AS DECIMAL(18,4)), 1)'));
+
+        // Breakdown by category for the "all" view
+        $breakdown = DB::table('inventory_batches as ib')
+            ->join('inventories as i', 'i.id', '=', 'ib.inventory_id')
+            ->join('currencies as c', 'c.id', '=', 'ib.currency_id')
+            ->leftJoin('categories as cat', 'cat.id', '=', 'i.category_id')
+            ->whereNull('ib.deleted_at')
+            ->whereNull('i.deleted_at')
+            ->where('ib.qty_remaining', '>', 0)
+            ->selectRaw(
+                'COALESCE(cat.name, "Uncategorized") as category_name,
+                         SUM(ib.qty_remaining * ib.unit_price * COALESCE(CAST(c.exchange_rate AS DECIMAL(18,4)), 1)) as total_idr',
+            )
+            ->groupBy('cat.name')
+            ->orderByDesc('total_idr')
+            ->get();
+
+        return response()->json([
+            'total_idr' => (float) $totalIdr,
+            'total_idr_formatted' => 'Rp ' . number_format((float) $totalIdr, 0, ',', '.'),
+            'breakdown' => $breakdown,
+        ]);
+    }
+
     public function getDataTablesData(Request $request)
     {
         $query = Inventory::query()
             ->with(['category', 'supplier', 'location', 'currency'])
+            ->withComputedStock()
             ->latest();
 
         // Apply filters dari form filter
         if ($request->filled('category_filter')) {
             $query->where('category_id', $request->category_filter);
         }
-        if ($request->filled('currency_filter')) {
-            $query->where('currency_id', $request->currency_filter);
+        if ($request->filled('material_code_filter')) {
+            $query->where('material_code', 'like', '%' . $request->material_code_filter . '%');
         }
         if ($request->filled('supplier_filter')) {
             $query->where('supplier_id', $request->supplier_filter);
@@ -112,10 +146,14 @@ class InventoryController extends Controller
             $query->where('location_id', $request->location_filter);
         }
         if ($request->filled('min_quantity')) {
-            $query->where('quantity', '>=', $request->min_quantity);
+            $query->whereHas('batches', function ($q) use ($request) {
+                $q->where('qty_remaining', '>=', $request->min_quantity);
+            });
         }
         if ($request->filled('max_quantity')) {
-            $query->where('quantity', '<=', $request->max_quantity);
+            $query->whereHas('batches', function ($q) use ($request) {
+                $q->where('qty_remaining', '<=', $request->max_quantity);
+            });
         }
         if ($request->filled('unitFilter')) {
             $query->where('unit', $request->unitFilter);
@@ -136,8 +174,7 @@ class InventoryController extends Controller
             $query->where(function ($q) use ($searchValue) {
                 $q->where('name', 'like', "%{$searchValue}%")
                     ->orWhere('remark', 'like', "%{$searchValue}%")
-                    ->orWhere('unit', 'like', "%{$searchValue}%")
-                    ->orWhere('quantity', 'like', "%{$searchValue}%");
+                    ->orWhere('unit', 'like', "%{$searchValue}%");
             });
         }
 
@@ -146,6 +183,7 @@ class InventoryController extends Controller
             $searchValue = $request->input('search.value');
             $query->where(function ($q) use ($searchValue) {
                 $q->where('name', 'like', "%{$searchValue}%")
+                    ->orWhere('material_code', 'like', "%{$searchValue}%")
                     ->orWhere('remark', 'like', "%{$searchValue}%")
                     ->orWhere('unit', 'like', "%{$searchValue}%")
                     ->orWhereHas('category', function ($q) use ($searchValue) {
@@ -161,7 +199,7 @@ class InventoryController extends Controller
         }
 
         // Sorting dari DataTables
-        $columns = ['id', 'name', 'category_name', 'quantity', 'price', 'supplier_name', 'location_name', 'remark', 'updated_at'];
+        $columns = ['id', 'name', 'category_name', 'stock', 'unit_price', 'supplier_name', 'location_name', 'remark', 'updated_at'];
         if ($request->filled('order')) {
             $orderColumnIndex = $request->input('order.0.column');
             $orderDirection = $request->input('order.0.dir', 'asc');
@@ -222,20 +260,7 @@ class InventoryController extends Controller
         foreach ($inventories as $index => $inventory) {
             $rowNumber = $start + $index + 1;
 
-            // Quantity: angka bold, unit biasa
-            $quantityValue = rtrim(rtrim(number_format($inventory->quantity, 2, '.', ''), '0'), '.');
-            $quantityUnit = $inventory->unit ?? '';
-            $quantityClass = '';
-            if ($inventory->quantity == 0) {
-                $quantityClass = 'text-danger fw-semibold';
-            } elseif ($inventory->quantity < 3) {
-                $quantityClass = 'text-warning fw-semibold';
-            }
-
-            // Unit Price: angka bold, currency biasa
-            $priceValue = number_format($inventory->price ?? 0, 2, ',', '.');
-
-            // **BARU**: Freight Costs
+            // Freight Costs
             $domesticFreightValue = number_format($inventory->unit_domestic_freight_cost ?? 0, 2, ',', '.');
             $internationalFreightValue = number_format($inventory->unit_international_freight_cost ?? 0, 2, ',', '.');
 
@@ -255,12 +280,12 @@ class InventoryController extends Controller
             $data[] = [
                 'DT_RowId' => 'row_' . $inventory->id,
                 'number' => $rowNumber,
+                'material_code' => $inventory->material_code ?? '-',
                 'name' => '<div class="fw-semibold">' . $inventory->name . '</div>',
                 'category' => $categoryBadge,
-                'quantity' => '<span class="' . $quantityClass . '"><span class="fw-semibold">' . $quantityValue . '</span> ' . $quantityUnit . '</span>',
-                'price' => in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance', 'admin']) ? '<span class="fw-semibold">' . $priceValue . '</span> ' . $currencyName : '',
-                'domestic_freight' => in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance', 'admin']) ? '<span class="fw-semibold text-info">' . $domesticFreightValue . '</span> ' . $currencyName : '',
-                'international_freight' => in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance', 'admin']) ? '<span class="fw-semibold text-warning">' . $internationalFreightValue . '</span> ' . $currencyName : '',
+                'stock' => '<span class="fw-semibold">' . number_format($inventory->quantity, 2) . '</span>' . ($inventory->unit ? ' <span class="text-muted">' . $inventory->unit . '</span>' : ''),
+                'domestic_freight' => auth()->user()->can('logistic.inventory.edit') ? '<span class="fw-semibold text-info">' . $domesticFreightValue . '</span> ' . $currencyName : '',
+                'international_freight' => auth()->user()->can('logistic.inventory.edit') ? '<span class="fw-semibold text-warning">' . $internationalFreightValue . '</span> ' . $currencyName : '',
                 'supplier' => $inventory->supplier ? $inventory->supplier->name : '-',
                 'location' => $inventory->location ? $inventory->location->name : '-',
                 'project_lark' => $inventory->project_lark ?? '<span class="text-muted">-</span>',
@@ -315,7 +340,7 @@ class InventoryController extends Controller
                      </button>';
 
         // Edit & Delete buttons (hanya untuk admin)
-        if (in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_procurement', 'admin_finance', 'admin'])) {
+        if (auth()->user()->can('logistic.inventory.edit')) {
             $buttons .=
                 '<a href="' .
                 route('inventory.edit', $inventory->id) .
@@ -350,8 +375,8 @@ class InventoryController extends Controller
         if ($request->filled('category_filter')) {
             $query->where('category_id', $request->category_filter);
         }
-        if ($request->filled('currency_filter')) {
-            $query->where('currency_id', $request->currency_filter);
+        if ($request->filled('material_code_filter')) {
+            $query->where('material_code', 'like', '%' . $request->material_code_filter . '%');
         }
         if ($request->filled('supplier_filter')) {
             $query->where('supplier_id', $request->supplier_filter);
@@ -360,10 +385,14 @@ class InventoryController extends Controller
             $query->where('location_id', $request->location_filter);
         }
         if ($request->filled('min_quantity')) {
-            $query->where('quantity', '>=', $request->min_quantity);
+            $query->whereHas('batches', function ($q) use ($request) {
+                $q->where('qty_remaining', '>=', $request->min_quantity);
+            });
         }
         if ($request->filled('max_quantity')) {
-            $query->where('quantity', '<=', $request->max_quantity);
+            $query->whereHas('batches', function ($q) use ($request) {
+                $q->where('qty_remaining', '<=', $request->max_quantity);
+            });
         }
         if ($request->filled('unitFilter')) {
             $query->where('unit', $request->unitFilter);
@@ -375,9 +404,9 @@ class InventoryController extends Controller
             $searchValue = $request->input('custom_search');
             $query->where(function ($q) use ($searchValue) {
                 $q->where('name', 'like', "%{$searchValue}%")
+                    ->orWhere('material_code', 'like', "%{$searchValue}%")
                     ->orWhere('remark', 'like', "%{$searchValue}%")
-                    ->orWhere('unit', 'like', "%{$searchValue}%")
-                    ->orWhere('quantity', 'like', "%{$searchValue}%");
+                    ->orWhere('unit', 'like', "%{$searchValue}%");
             });
         }
 
@@ -417,7 +446,7 @@ class InventoryController extends Controller
         $fileName .= '_' . Carbon::now()->format('Y-m-d') . '.xlsx';
 
         // Update InventoryExport untuk menerima role info
-        $showCurrencyAndPrice = in_array(auth()->user()->role, ['super_admin', 'admin_logistic', 'admin_finance', 'admin']);
+        $showCurrencyAndPrice = auth()->user()->can('logistic.inventory.edit');
 
         return Excel::download(new InventoryExport($inventories, $showCurrencyAndPrice), $fileName);
     }
@@ -430,27 +459,20 @@ class InventoryController extends Controller
         $suppliers = Supplier::nonBlacklisted()->orderBy('name')->get();
         $locations = Location::orderBy('name')->get();
         $supplierLocations = LocationSupplier::orderBy('name')->get();
+        $projects = Project::notArchived()->orderBy('name')->get();
 
-        return view('logistic.inventory.create', compact('currencies', 'units', 'categories', 'suppliers', 'locations', 'supplierLocations'));
+        return view('logistic.inventory.create', compact('currencies', 'units', 'categories', 'suppliers', 'locations', 'supplierLocations', 'projects'));
     }
 
     public function store(Request $request)
     {
-        if (auth()->user()->role === 'admin') {
-            return redirect()->back()->with('error', 'You do not have permission to submit inventory data.');
-        }
-
         $request->validate([
             'name' => 'required|string|max:255|unique:inventories,name,NULL,id,deleted_at,NULL',
             'category_id' => 'required|exists:categories,id',
-            'quantity' => 'required|numeric|min:0',
+            'project_id' => 'nullable|exists:projects,id',
             'unit' => 'required|string',
             'new_unit' => 'required_if:unit,__new__|nullable|string|max:255',
-            'price' => 'nullable|numeric|min:0',
-            'unit_domestic_freight_cost' => 'nullable|numeric|min:0',
-            'unit_international_freight_cost' => 'nullable|numeric|min:0',
             'supplier_id' => 'nullable|exists:suppliers,id',
-            'currency_id' => 'nullable|exists:currencies,id',
             'location_id' => 'nullable|exists:locations,id',
             'remark' => 'nullable|string',
             'img' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
@@ -459,13 +481,9 @@ class InventoryController extends Controller
         $inventory = new Inventory();
         $inventory->name = $request->name;
         $inventory->category_id = $request->category_id;
-        $inventory->quantity = $request->quantity;
+        $inventory->project_id = $request->project_id;
         $inventory->unit = $request->unit;
-        $inventory->price = $request->price;
-        $inventory->unit_domestic_freight_cost = $request->unit_domestic_freight_cost;
-        $inventory->unit_international_freight_cost = $request->unit_international_freight_cost;
         $inventory->supplier_id = $request->supplier_id;
-        $inventory->currency_id = $request->currency_id;
         $inventory->location_id = $request->location_id;
         $inventory->remark = $request->remark;
 
@@ -473,6 +491,10 @@ class InventoryController extends Controller
         if ($request->unit === '__new__' && $request->new_unit) {
             $unit = Unit::firstOrCreate(['name' => $request->new_unit]);
             $inventory->unit = $unit->name;
+            $inventory->unit_id = $unit->id;
+        } else {
+            $unit = Unit::where('name', $request->unit)->first();
+            $inventory->unit_id = $unit ? $unit->id : null;
         }
 
         // Upload Image if exists
@@ -485,32 +507,19 @@ class InventoryController extends Controller
 
         $inventory->save();
 
-        // Warning message untuk field kosong
-        $warningMessage = null;
-        if (!$inventory->currency_id || !$inventory->price) {
-            $warningMessage = "Price or Currency is empty for <b>{$inventory->name}</b>. Please update it as soon as possible, as it will affect the cost calculation!";
+        // Auto-generate material code if not yet set
+        if (empty($inventory->material_code)) {
+            $inventory->material_code = \App\Models\Logistic\Inventory::generateMaterialCode();
+            $inventory->saveQuietly();
         }
 
         return redirect()
             ->route('inventory.index')
-            ->with([
-                'success' => "Inventory <b>{$inventory->name}</b> created successfully.",
-                'warning' => $warningMessage,
-            ]);
+            ->with('success', "Inventory <b>{$inventory->name}</b> created successfully.");
     }
 
     public function storeQuick(Request $request)
     {
-        if (auth()->user()->role === 'admin') {
-            return response()->json(
-                [
-                    'success' => false,
-                    'message' => 'You do not have permission to store inventory data.',
-                ],
-                403,
-            );
-        }
-
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255|unique:inventories,name,NULL,id,deleted_at,NULL',
             'quantity' => 'required|numeric|min:0',
@@ -535,11 +544,25 @@ class InventoryController extends Controller
 
         $material = Inventory::create([
             'name' => $request->name,
-            'quantity' => $request->quantity,
             'unit' => $unit->name,
-            'price' => $request->price ?? 0,
+            'unit_id' => $unit->id,
             'remark' => $request->remark ? $request->remark . ' <span style="color: orange;">(From Quick Add)</span>' : '<span style="color: orange;">(From Quick Add)</span>',
         ]);
+
+        // Create initial batch
+        if ((float) $request->quantity > 0) {
+            \App\Models\Logistic\InventoryBatch::create([
+                'batch_number' => \App\Models\Logistic\InventoryBatch::generateBatchNumber($material->id),
+                'inventory_id' => $material->id,
+                'qty' => $request->quantity,
+                'qty_remaining' => $request->quantity,
+                'unit_price' => $request->price ?? 0,
+                'currency_id' => $request->currency_id ?? null,
+                'received_date' => now()->toDateString(),
+                'source_type' => \App\Models\Logistic\InventoryBatch::SOURCE_INITIAL_STOCK,
+                'source_id' => $material->id,
+            ]);
+        }
 
         return response()->json(['success' => true, 'material' => $material]);
     }
@@ -568,48 +591,31 @@ class InventoryController extends Controller
         $suppliers = Supplier::nonBlacklisted()->orderBy('name')->get();
         $locations = Location::orderBy('name')->get();
         $supplierLocations = LocationSupplier::orderBy('name')->get();
+        $projects = Project::notArchived()->orderBy('name')->get();
 
-        return view('logistic.inventory.edit', compact('inventory', 'currencies', 'units', 'categories', 'suppliers', 'locations', 'supplierLocations'));
+        return view('logistic.inventory.edit', compact('inventory', 'currencies', 'units', 'categories', 'suppliers', 'locations', 'supplierLocations', 'projects'));
     }
 
     public function update(Request $request, Inventory $inventory)
     {
-        if (auth()->user()->role === 'admin') {
-            return redirect()->back()->with('error', 'You do not have permission to edit inventory data.');
-        }
-
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:inventories,name,' . $inventory->id . ',id,deleted_at,NULL',
             'category_id' => 'required|exists:categories,id',
-            'quantity' => 'required|numeric|min:0',
+            'project_id' => 'nullable|exists:projects,id',
             'unit' => 'required|string',
             'unit_id' => 'nullable|exists:units,id',
             'new_unit' => 'required_if:unit,__new__|nullable|string|max:255',
-            'currency_id' => 'nullable|exists:currencies,id',
-            'price' => 'nullable|numeric|min:0',
-            'unit_domestic_freight_cost' => 'nullable|numeric|min:0',
-            'unit_international_freight_cost' => 'nullable|numeric|min:0',
             'supplier_id' => 'nullable|exists:suppliers,id',
             'location_id' => 'nullable|exists:locations,id',
             'remark' => 'nullable|string',
             'img' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
-        $inventory->update(
-            array_merge($validated, [
-                'remark' => $validated['remark'], // Simpan remark asli tanpa tag tambahan
-            ]),
-        );
-
         // Update data inventory
         $inventory->name = $request->name;
         $inventory->category_id = $request->category_id;
-        $inventory->quantity = $request->quantity;
+        $inventory->project_id = $request->project_id;
         $inventory->unit = $request->unit;
-        $inventory->currency_id = $request->currency_id;
-        $inventory->price = $request->price;
-        $inventory->unit_domestic_freight_cost = $request->unit_domestic_freight_cost;
-        $inventory->unit_international_freight_cost = $request->unit_international_freight_cost;
         $inventory->supplier_id = $request->supplier_id;
         $inventory->location_id = $request->location_id;
         $inventory->remark = $request->remark;
@@ -637,25 +643,13 @@ class InventoryController extends Controller
 
         $inventory->save();
 
-        $warningMessage = null;
-        if (!$inventory->currency_id || !$inventory->price) {
-            $warningMessage = "Price or Currency is empty for <b>{$inventory->name}</b>. Please update it as soon as possible, as it will affect the cost calculation!";
-        }
-
         return redirect()
             ->route('inventory.index')
-            ->with([
-                'success' => "Inventory <b>{$inventory->name}</b> updated successfully.",
-                'warning' => $warningMessage,
-            ]);
+            ->with('success', "Inventory <b>{$inventory->name}</b> updated successfully.");
     }
 
     public function import(Request $request)
     {
-        if (auth()->user()->role === 'admin') {
-            return redirect()->back()->with('error', 'You do not have permission to import inventory data.');
-        }
-
         $request->validate([
             'xls_file' => 'required|mimes:xls,xlsx',
         ]);
@@ -713,28 +707,43 @@ class InventoryController extends Controller
 
             $inventory = new Inventory();
             $inventory->name = $inventoryName;
-            $inventory->category_id = $category ? $category->id : null; // Set category ID jika valid
-            $inventory->quantity = is_numeric($row[2]) ? $row[2] : 0; // Jika quantity kosong, set ke 0
-            $inventory->unit = $unit->name; // Gunakan nama unit yang sudah divalidasi
-            $inventory->price = $price;
-            $inventory->currency_id = $currency ? $currency->id : null; // Set currency ID jika valid
-            $inventory->supplier_id = $supplier ? $supplier->id : null; // Set supplier ID jika valid
-            $inventory->location_id = $location ? $location->id : null; // Set location ID jika valid
+            $inventory->category_id = $category ? $category->id : null;
+            $inventory->unit = $unit->name;
+            $inventory->unit_id = $unit->id;
+            $inventory->currency_id = $currency ? $currency->id : null;
+            $inventory->supplier_id = $supplier ? $supplier->id : null;
+            $inventory->location_id = $location ? $location->id : null;
             $inventory->remark = $row[8] ?? null;
 
             // Cek jika inventory sudah ada
             $existingInventory = Inventory::where('name', $inventory->name)->first();
             if ($existingInventory) {
                 $errors[] = "Row <b>{$index}</b> Error: Duplicate inventory <b>{$inventory->name}</b>.";
-                continue; // Skip jika sudah ada
+                continue;
             }
 
-            // Simpan inventory
             $inventory->save();
-            $successCount++; // Tambahkan jumlah data yang berhasil diimpor
+
+            // Create initial batch for opening stock
+            $importQty = is_numeric($row[2]) ? (float) $row[2] : 0;
+            if ($importQty > 0) {
+                \App\Models\Logistic\InventoryBatch::create([
+                    'batch_number' => \App\Models\Logistic\InventoryBatch::generateBatchNumber($inventory->id),
+                    'inventory_id' => $inventory->id,
+                    'qty' => $importQty,
+                    'qty_remaining' => $importQty,
+                    'unit_price' => $price,
+                    'currency_id' => $currency ? $currency->id : null,
+                    'received_date' => now()->toDateString(),
+                    'source_type' => \App\Models\Logistic\InventoryBatch::SOURCE_INITIAL_STOCK,
+                    'source_id' => $inventory->id,
+                ]);
+            }
+
+            $successCount++;
 
             // Tambahkan warning jika currency atau price kosong
-            if (!$inventory->currency_id || !$inventory->price) {
+            if (!$inventory->currency_id || !$price) {
                 $warnings[] = "Price or Currency is empty for <b>{$inventory->name}</b>. Please update it as soon as possible, as it will affect the cost calculation!";
             }
         }
@@ -780,16 +789,6 @@ class InventoryController extends Controller
 
     public function destroy($id)
     {
-        if (auth()->user()->role === 'admin') {
-            return response()->json(
-                [
-                    'success' => false,
-                    'message' => 'You do not have permission to delete inventory data.',
-                ],
-                403,
-            );
-        }
-
         $inventory = Inventory::findOrFail($id);
         $name = $inventory->name;
         $inventory->delete();
@@ -817,7 +816,7 @@ class InventoryController extends Controller
         try {
             $stats = $syncService->sync();
 
-            $message = sprintf('Lark sync completed! Fetched: %d | Filtered: %d | Created: %d | Updated: %d | Skipped: %d', $stats['fetched'], $stats['filtered'], $stats['created'], $stats['updated'], $stats['skipped']);
+            $message = sprintf('Lark sync completed! Fetched: %d | Filtered: %d | Aggregated: %d materials | Created: %d | Updated: %d | Skipped: %d', $stats['fetched'], $stats['filtered'], $stats['aggregated_groups'] ?? 0, $stats['created'], $stats['updated'], $stats['skipped']);
 
             if (isset($stats['deactivated']) && $stats['deactivated'] > 0) {
                 $message .= sprintf(' | Deactivated: %d', $stats['deactivated']);

@@ -30,17 +30,29 @@
                 <div class="card shadow-sm">
                     <div class="card-body">
                         <form method="GET" action="{{ route('efficiency.index') }}" class="row g-3 align-items-end">
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <label class="form-label fw-bold">Start Date</label>
                                 <input type="date" name="start_date" class="form-control" value="{{ $startDate }}"
                                     required>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <label class="form-label fw-bold">End Date</label>
                                 <input type="date" name="end_date" class="form-control" value="{{ $endDate }}"
                                     required>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">Department</label>
+                                <select name="department_id" id="filter-department" class="form-select">
+                                    <option value="">— All Departments —</option>
+                                    @foreach ($departments as $dept)
+                                        <option value="{{ $dept->id }}"
+                                            {{ $departmentId == $dept->id ? 'selected' : '' }}>
+                                            {{ $dept->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-3">
                                 <button type="submit" class="btn btn-primary w-100">
                                     <i class="bi bi-funnel me-1"></i>Filter
                                 </button>
@@ -324,6 +336,22 @@
             if (!$('input[name="end_date"]').val()) {
                 $('input[name="end_date"]').val(new Date().toISOString().split('T')[0]);
             }
+
+            // Init Select2 on department filter
+            $('#filter-department').select2({
+                theme: 'bootstrap-5',
+                allowClear: true,
+                placeholder: '— All Departments —',
+                width: '100%',
+            }).on('select2:open', function() {
+                setTimeout(function() {
+                    var searchField = document.querySelector('.select2-search__field');
+                    if (searchField) searchField.focus();
+                }, 100);
+            }).on('change', function() {
+                // Auto-submit form when department changes
+                $(this).closest('form').submit();
+            });
         });
     </script>
 @endsection

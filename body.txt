@@ -1,0 +1,1 @@
+{"device_id":"FP001","event_type":"checkin","fingerprint_data":{"user_id":"12345","template":"base64data"}}

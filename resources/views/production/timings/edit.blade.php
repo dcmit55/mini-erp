@@ -4,7 +4,37 @@
     <div class="container-fluid mt-4">
         <div class="card shadow-sm">
             <div class="card-body">
-                <h4 class="card-title mb-4">Edit Timing</h4>
+                <h4 class="card-title mb-3">Edit Timing</h4>
+
+                {{-- Old Data Panel --}}
+                <div class="alert alert-light border mb-4" style="font-size:.85rem;">
+                    <div class="fw-semibold mb-2 text-muted"
+                        style="font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;">Current Record (Before Edit)
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-md-2">
+                            <span class="text-muted">Date:</span><br>
+                            <strong>{{ $timing->tanggal ?? '—' }}</strong>
+                        </div>
+                        <div class="col-md-3">
+                            <span class="text-muted">Project:</span><br>
+                            <strong>{{ $timing->project?->name ?? '—' }}</strong>
+                        </div>
+                        <div class="col-md-3">
+                            <span class="text-muted">Job Order:</span><br>
+                            <strong>{{ $timing->jobOrder?->name ?? '—' }}</strong>
+                        </div>
+                        <div class="col-md-2">
+                            <span class="text-muted">Employee:</span><br>
+                            <strong>{{ $timing->employee?->name ?? '—' }}</strong>
+                        </div>
+                        <div class="col-md-2">
+                            <span class="text-muted">Time:</span><br>
+                            <strong>{{ $timing->start_time }} – {{ $timing->end_time }}</strong>
+                        </div>
+                    </div>
+                </div>
+
                 @if ($errors->any())
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
                         <strong>Whoops!</strong> There were some problems with your input.
@@ -23,7 +53,7 @@
                         <div class="col-md-3">
                             <label class="form-label">Date</label>
                             <input type="date" name="tanggal" class="form-control" required
-                                value="{{ old('tanggal', $timing->tanggal) }}">
+                                value="{{ old('tanggal', $timing->tanggal?->format('Y-m-d')) }}">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Project</label>
@@ -35,6 +65,18 @@
                                         data-parts='@json($project->parts->pluck('part_name'))'
                                         {{ old('project_id', $timing->project_id) == $project->id ? 'selected' : '' }}>
                                         {{ $project->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Job Order</label>
+                            <select name="job_order_id" class="form-select select2" id="job_order_select">
+                                <option value="">— No Job Order —</option>
+                                @foreach ($jobOrders as $jo)
+                                    <option value="{{ $jo->id }}" data-project="{{ $jo->project_id }}"
+                                        {{ old('job_order_id', $timing->job_order_id) == $jo->id ? 'selected' : '' }}>
+                                        {{ $jo->name }}
                                     </option>
                                 @endforeach
                             </select>
@@ -64,6 +106,11 @@
                                     @endforeach
                                 @endif
                             </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Item <span class="text-muted small">(optional)</span></label>
+                            <input type="text" name="item" class="form-control" placeholder="e.g. Sample 1, Batch A"
+                                value="{{ old('item', $timing->item) }}">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Employee</label>
@@ -155,8 +202,28 @@
                 allowClear: true
             });
 
-            // Project change: update parts select
+            // Filter job orders by selected project
+            function filterJobOrders(projectId) {
+                $('#job_order_select option').each(function() {
+                    var $opt = $(this);
+                    if (!$opt.val() || !projectId || $opt.data('project') == projectId) {
+                        $opt.show();
+                    } else {
+                        $opt.hide();
+                    }
+                });
+            }
+
+            // Run on load with initial project value
+            var initialProject = $('select[name="project_id"]').val();
+            filterJobOrders(initialProject);
+
+            // Project change: update parts select and filter job orders
             $('select[name="project_id"]').on('change', function() {
+                let projectId = $(this).val();
+                filterJobOrders(projectId);
+                $('#job_order_select').val('').trigger('change');
+
                 let selected = $(this).find(':selected')[0];
                 let parts = selected.getAttribute('data-parts');
                 let $partSelect = $('select[name="parts"]');

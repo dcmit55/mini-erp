@@ -3,11 +3,28 @@
 namespace App\Models\Admin;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 use App\Models\Production\Project;
 
 class Department extends Model
 {
-    protected $fillable = ['name'];
+    protected $fillable = ['uid', 'name'];
+
+    public function getRouteKeyName(): string
+    {
+        return 'uid';
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (empty($model->uid)) {
+                $model->uid = (string) Str::uuid();
+            }
+        });
+    }
 
     public function users()
     {
@@ -22,11 +39,15 @@ class Department extends Model
 
     public function jobOrderTypeGradings()
     {
-        return $this->belongsToMany(
-            \App\Models\Production\JobOrderTypeGrading::class,
-            'department_job_order_type_grading',
-            'department_id',
-            'job_order_type_grading_id'
-        )->withTimestamps();
+        return $this->belongsToMany(\App\Models\Production\JobOrderTypeGrading::class, 'department_job_order_type_grading', 'department_id', 'job_order_type_grading_id')->withTimestamps();
+    }
+
+    /**
+     * Many-to-many relationship with job orders
+     * A department can have multiple job orders via pivot table
+     */
+    public function jobOrders()
+    {
+        return $this->belongsToMany(\App\Models\Production\JobOrder::class, 'job_order_department', 'department_id', 'job_order_id')->withTimestamps();
     }
 }

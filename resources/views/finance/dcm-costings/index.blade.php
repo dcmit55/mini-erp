@@ -90,30 +90,27 @@
 
             <!-- Filters -->
             <div class="card border-0 shadow-sm rounded-3 mb-3">
-                <div class="card-body p-3">
-                    <form method="GET" action="{{ route('dcm-costings.index') }}" class="row g-2">
+                <div class="card-body p-2">
+                    <form method="GET" action="{{ route('dcm-costings.index') }}" class="row g-2 align-items-end">
                         <div class="col-md-3">
-                            <label class="form-label small text-dark">Search</label>
-                            <input type="text" 
-                                   class="form-control border-1 rounded-2 py-2 px-3" 
-                                   name="search" 
+                            <input type="text"
+                                   class="form-control form-control-sm border-1 rounded-2"
+                                   name="search"
                                    value="{{ request('search') }}"
                                    placeholder="PO, Item, Supplier...">
                         </div>
-                        
+
                         <div class="col-md-2">
-                            <label class="form-label small text-dark">Status</label>
-                            <select class="form-select border-1 rounded-2 py-2 px-3" name="status">
+                            <select class="form-select form-select-sm border-1 rounded-2" name="status">
                                 <option value="">All Status</option>
                                 <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
                                 <option value="approved" {{ request('status') == 'approved' ? 'selected' : '' }}>Approved</option>
                                 <option value="rejected" {{ request('status') == 'rejected' ? 'selected' : '' }}>Rejected</option>
                             </select>
                         </div>
-                        
+
                         <div class="col-md-2">
-                            <label class="form-label small text-dark">Department</label>
-                            <select class="form-select border-1 rounded-2 py-2 px-3" name="department">
+                            <select class="form-select form-select-sm border-1 rounded-2" name="department">
                                 <option value="">All Departments</option>
                                 @foreach($departments as $dept)
                                     <option value="{{ $dept }}" {{ request('department') == $dept ? 'selected' : '' }}>
@@ -122,30 +119,28 @@
                                 @endforeach
                             </select>
                         </div>
-                        
+
                         <div class="col-md-2">
-                            <label class="form-label small text-dark">Start Date</label>
-                            <input type="date" 
-                                   class="form-control border-1 rounded-2 py-2 px-3" 
-                                   name="start_date" 
+                            <input type="date"
+                                   class="form-control form-control-sm border-1 rounded-2"
+                                   name="start_date"
                                    value="{{ request('start_date') }}">
                         </div>
-                        
+
                         <div class="col-md-2">
-                            <label class="form-label small text-dark">End Date</label>
-                            <input type="date" 
-                                   class="form-control border-1 rounded-2 py-2 px-3" 
-                                   name="end_date" 
+                            <input type="date"
+                                   class="form-control form-control-sm border-1 rounded-2"
+                                   name="end_date"
                                    value="{{ request('end_date') }}">
                         </div>
-                        
-                        <div class="col-md-1 d-flex align-items-end">
+
+                        <div class="col-md-1 d-flex">
                             <div class="d-flex gap-1 w-100">
-                                <button type="submit" class="btn btn-primary rounded-2 px-3 w-100">
+                                <button type="submit" class="btn btn-primary btn-sm rounded-2 px-3 w-100">
                                     <i class="fas fa-filter"></i>
                                 </button>
-                                <a href="{{ route('dcm-costings.index') }}" 
-                                   class="btn btn-outline-secondary rounded-2 px-3">
+                                <a href="{{ route('dcm-costings.index') }}"
+                                   class="btn btn-outline-secondary btn-sm rounded-2 px-3">
                                     <i class="fas fa-sync-alt"></i>
                                 </a>
                             </div>
@@ -192,7 +187,7 @@
                                 <thead class="bg-light">
                                     <tr>
                                         <th class="border-0 small text-dark fw-medium px-3 py-2 text-center" style="width: 50px;">No</th>
-                                        <th class="border-0 small text-dark fw-medium px-3 py-2">PO Number</th>
+                                        <th class="border-0 small text-dark fw-medium px-3 py-2">Purchase Number</th>
                                         <th class="border-0 small text-dark fw-medium px-3 py-2">Date</th>
                                         <th class="border-0 small text-dark fw-medium px-3 py-2">Department</th>
                                         <th class="border-0 small text-dark fw-medium px-3 py-2">Item</th>
@@ -211,65 +206,41 @@
                                         <td class="px-3 py-2 text-center text-muted">
                                             {{ $startNumber + $loop->index }}
                                         </td>
-                                        <td class="px-3 py-2">
-                                            <div class="fw-medium text-dark">{{ $costing->po_number }}</div>
+                                        <td class="px-3 py-2" style="font-size:0.8rem;">{{ $costing->po_number }}</td>
+                                        <td class="px-3 py-2 small">{{ $costing->date->format('d/m/Y') }}</td>
+                                        <td class="px-3 py-2 small text-muted">{{ $costing->department }}</td>
+                                        <td class="px-3 py-2" style="font-size:0.8rem;">{{ $costing->item_name }}</td>
+                                        <td class="px-3 py-2" style="font-size:0.8rem;">{{ $costing->supplier }}</td>
+                                        <td class="px-3 py-2 text-end" style="font-size:0.8rem; white-space:nowrap;">
+                                            Rp {{ number_format($costing->invoice_total, 0, ',', '.') }}
                                         </td>
-                                        <td class="px-3 py-2">
-                                            {{ $costing->date->format('d/m/Y') }}
-                                            <br>
-                                        </td>
-                                        <td class="px-3 py-2">
-                                            <span class="badge bg-secondary bg-opacity-10 text-dark border border-secondary border-opacity-25 rounded-2 px-2 py-1">
-                                                {{ $costing->department }}
-                                            </span>
-                                        </td>
-                                        <td class="px-3 py-2">
-                                            <div class="fw-medium">{{ $costing->item_name }}</div>
-                                        </td>
-                                        <td class="px-3 py-2">{{ $costing->supplier }}</td>
-                                        <td class="px-3 py-2 text-end">
-                                            <div class="fw-medium text-primary">
-                                                Rp {{ number_format($costing->invoice_total, 0, ',', '.') }}
-                                            </div>
-                                        </td>
-                                        <td class="px-3 py-2">
+                                        <td class="px-3 py-2 small">
                                             @if($costing->status == 'approved')
-                                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-2 px-2 py-1">
-                                                    <i class="fas fa-check-circle me-1"></i>Approved
-                                                </span>
+                                                <span class="badge bg-success">Approved</span>
                                             @elseif($costing->status == 'rejected')
-                                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 rounded-2 px-2 py-1">
-                                                    <i class="fas fa-times-circle me-1"></i>Rejected
-                                                </span>
+                                                <span class="badge bg-danger">Rejected</span>
                                             @else
-                                                <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 rounded-2 px-2 py-1">
-                                                    <i class="fas fa-clock me-1"></i>Pending
-                                                </span>
+                                                <span class="badge bg-warning text-dark">Pending</span>
                                             @endif
-                                            <br>
                                             @if($costing->item_status == 'received')
-                                                <small class="text-success">
-                                                    <i class="fas fa-check me-1"></i>Received
-                                                </small>
+                                                <span class="text-success ms-1">· Received</span>
                                             @elseif($costing->item_status == 'not_received')
-                                                <small class="text-danger">
-                                                    <i class="fas fa-times me-1"></i>Not Received
-                                                </small>
-                                            @else
+                                                <span class="text-danger ms-1">· Not Received</span>
                                             @endif
                                         </td>
                                         <td class="px-3 py-2 text-end">
                                             <div class="d-flex gap-1 justify-content-end">
-                                                <a href="{{ route('dcm-costings.show', $costing->uid) }}" 
+                                                <a href="{{ route('dcm-costings.show', $costing->uid) }}"
                                                    class="btn btn-outline-info btn-sm rounded-2 px-2 py-1">
                                                     <i class="fas fa-eye"></i>
                                                 </a>
-                                                <a href="{{ route('dcm-costings.edit', $costing->uid) }}" 
+                                                @can('finance.costing.view')
+                                                <a href="{{ route('dcm-costings.edit', $costing->uid) }}"
                                                    class="btn btn-outline-primary btn-sm rounded-2 px-2 py-1">
                                                     <i class="fas fa-edit"></i>
                                                 </a>
-                                                <form action="{{ route('dcm-costings.destroy', $costing->uid) }}" 
-                                                      method="POST" 
+                                                <form action="{{ route('dcm-costings.destroy', $costing->uid) }}"
+                                                      method="POST"
                                                       class="d-inline"
                                                       onsubmit="return confirm('Delete this DCM costing?')">
                                                     @csrf
@@ -278,6 +249,7 @@
                                                         <i class="fas fa-trash"></i>
                                                     </button>
                                                 </form>
+                                                @endcan
                                             </div>
                                         </td>
                                     </tr>

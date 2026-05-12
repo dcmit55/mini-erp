@@ -148,26 +148,36 @@
                                         <option value="inactive" {{ old('status') == 'inactive' ? 'selected' : '' }}>
                                             Inactive
                                         </option>
-                                        <option value="terminated" {{ old('status') == 'terminated' ? 'selected' : '' }}>
-                                            Terminated</option>
                                     </select>
                                     @error('status')
                                         <small class="text-danger d-block">{{ $message }}</small>
                                     @enderror
                                 </div>
 
-                                <div class="col-md-4 mb-3">
-                                    <label for="gender" class="form-label">Gender</label>
-                                    <select name="gender" id="gender" class="form-select">
-                                        <option value="">Select Gender</option>
-                                        <option value="male" {{ old('gender') == 'male' ? 'selected' : '' }}>Male
-                                        </option>
-                                        <option value="female" {{ old('gender') == 'female' ? 'selected' : '' }}>Female
-                                        </option>
-                                    </select>
-                                    @error('gender')
-                                        <small class="text-danger d-block">{{ $message }}</small>
-                                    @enderror
+                                <!-- Row for Gender and Citizenship -->
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="gender" class="form-label">Gender</label>
+                                        <select name="gender" id="gender" class="form-select">
+                                            <option value="">Select Gender</option>
+                                            <option value="male" {{ old('gender') == 'male' ? 'selected' : '' }}>Male</option>
+                                            <option value="female" {{ old('gender') == 'female' ? 'selected' : '' }}>Female</option>
+                                        </select>
+                                        @error('gender')
+                                            <small class="text-danger d-block">{{ $message }}</small>
+                                        @enderror
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label for="citizenship" class="form-label">Citizenship</label>
+                                        <select name="citizenship" id="citizenship" class="form-select">
+                                            <option value="WNI" {{ old('citizenship') == 'WNI' ? 'selected' : '' }}>WNI (Indonesian Citizen)</option>
+                                            <option value="WNA" {{ old('citizenship') == 'WNA' ? 'selected' : '' }}>WNA (Foreign Citizen)</option>
+                                        </select>
+                                        @error('citizenship')
+                                            <small class="text-danger d-block">{{ $message }}</small>
+                                        @enderror
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -344,6 +354,32 @@
                                         half day)
                                     </small>
                                     @error('saldo_cuti')
+                                        <small class="text-danger d-block">{{ $message }}</small>
+                                    @enderror
+                                </div>
+
+                                <div class="col-12 mb-3">
+                                    <label for="default_shift_id" class="form-label">Default Shift Override</label>
+                                    <select name="default_shift_id" id="default_shift_id" class="form-select">
+                                        <option value="">Auto-detect dari jam clock-in (default)</option>
+                                        @foreach ($sessionShifts->groupBy(fn($s) => $s->department?->name ?? 'Default (Semua Dept)') as $groupName => $shifts)
+                                            <optgroup label="{{ $groupName }}">
+                                                @foreach ($shifts as $shift)
+                                                    <option value="{{ $shift->id }}"
+                                                        {{ old('default_shift_id') == $shift->id ? 'selected' : '' }}>
+                                                        {{ $shift->type_of_shift }}
+                                                        ({{ \Carbon\Carbon::parse($shift->start_time)->format('H:i') }}–{{ \Carbon\Carbon::parse($shift->end_time)->format('H:i') }})
+                                                        @if($shift->for_wna) [WNA] @endif
+                                                    </option>
+                                                @endforeach
+                                            </optgroup>
+                                        @endforeach
+                                    </select>
+                                    <small class="text-muted">
+                                        <i class="bi bi-info-circle"></i>
+                                        Kosongkan agar sistem auto-detect shift dari jam clock-in. Isi hanya jika sistem sering salah deteksi.
+                                    </small>
+                                    @error('default_shift_id')
                                         <small class="text-danger d-block">{{ $message }}</small>
                                     @enderror
                                 </div>
@@ -1158,8 +1194,6 @@
                     spinner.classList.remove('d-none');
                 });
             }
-
-            // Update bagian JavaScript, hapus generate employee number functionality
 
             // Format input as user types
             document.getElementById('employee_no').addEventListener('input', function() {

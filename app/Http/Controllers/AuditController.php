@@ -13,14 +13,8 @@ class AuditController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-
-        // Audit hanya untuk super_admin
-        $this->middleware(function ($request, $next) {
-            if (!Auth::user()->isSuperAdmin()) {
-                abort(403, 'Access denied. Super admin only.');
-            }
-            return $next($request);
-        });
+        $this->middleware('can:admin.audit.view');
+        $this->middleware('can:admin.audit.delete')->only(['destroy', 'bulkDelete', 'deleteByDateRange', 'purgeOldLogs']);
     }
 
     public function index(Request $request)
@@ -29,7 +23,22 @@ class AuditController extends Controller
             return $this->getDataTablesData($request);
         }
 
-        return view('audit.index');
+        // Load distinct auditable_type values from the DB for the dynamic filter dropdown
+        $auditableTypes = \OwenIt\Auditing\Models\Audit::query()
+            ->whereNotNull('auditable_type')
+            ->distinct()
+            ->orderBy('auditable_type')
+            ->pluck('auditable_type')
+            ->map(
+                fn($type) => [
+                    'value' => $type,
+                    'label' => class_basename($type),
+                ],
+            )
+            ->sortBy('label')
+            ->values();
+
+        return view('audit.index', compact('auditableTypes'));
     }
 
     private function getDataTablesData(Request $request)
@@ -109,7 +118,7 @@ class AuditController extends Controller
     private function formatChanges($audit)
     {
         if (empty($audit->old_values) && empty($audit->new_values)) {
-            return '-';
+            return 'No data changes';
         }
 
         return '<button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#changesModal" onclick="showChanges(' .
@@ -132,13 +141,83 @@ class AuditController extends Controller
         // Map foreign keys ke nama untuk berbagai model
         $this->formatForeignKeys($modelType, $oldValues, $newValues);
 
+        // Resolve record identity — try to load the actual record for a human-readable label
+        $recordInfo = $this->resolveRecordIdentity($audit->auditable_type, $audit->auditable_id, $oldValues, $newValues);
+
         return response()->json([
             'old_values' => $oldValues,
             'new_values' => $newValues,
             'event' => $audit->event,
             'model' => $modelType,
             'created_at' => $audit->created_at->format('d M Y, H:i:s'),
+            'record_info' => $recordInfo,
         ]);
+    }
+
+    /**
+     * Attempt to resolve a human-readable identity for the audited record.
+     * Returns an array with 'id', 'label', and 'deleted' keys.
+     */
+    private function resolveRecordIdentity($auditableType, $auditableId, $oldValues, $newValues)
+    {
+        $modelType = class_basename($auditableType);
+
+        // Map model → [class, identifier fields to try]
+        $modelMap = [
+            'MaterialRequest' => [\App\Models\Logistic\MaterialRequest::class, ['code', 'id']],
+            'JobOrder' => [\App\Models\Production\JobOrder::class, ['name', 'id']],
+            'InternalProject' => [\App\Models\InternalProject::class, ['job', 'uid']],
+            'Inventory' => [\App\Models\Logistic\Inventory::class, ['name', 'id']],
+            'PurchaseRequest' => [\App\Models\Logistic\PurchaseRequest::class, ['code', 'id']],
+            'Employee' => [\App\Models\Hr\Employee::class, ['name', 'id']],
+            'User' => [\App\Models\Admin\User::class, ['username', 'id']],
+            'Project' => [\App\Models\Production\Project::class, ['name', 'id']],
+            'Supplier' => [\App\Models\Procurement\Supplier::class, ['name', 'id']],
+            'LeaveRequest' => [\App\Models\Hr\LeaveRequest::class, ['id']],
+            'Timing' => [\App\Models\Production\Timing::class, ['id']],
+        ];
+
+        $result = [
+            'id' => $auditableId,
+            'module' => $modelType,
+            'label' => null,
+            'deleted' => false,
+        ];
+
+        if (!isset($modelMap[$modelType])) {
+            return $result;
+        }
+
+        [$modelClass, $fields] = $modelMap[$modelType];
+
+        try {
+            $record = $modelClass::find($auditableId);
+
+            if ($record) {
+                foreach ($fields as $field) {
+                    if (!empty($record->{$field}) && $field !== 'id') {
+                        $result['label'] = $record->{$field};
+                        break;
+                    }
+                }
+            } else {
+                // Record deleted — try to get label from old_values
+                $result['deleted'] = true;
+                foreach ($fields as $field) {
+                    if (!empty($oldValues[$field]) && $field !== 'id') {
+                        $result['label'] = $oldValues[$field] . ' (deleted)';
+                        break;
+                    } elseif (!empty($newValues[$field]) && $field !== 'id') {
+                        $result['label'] = $newValues[$field] . ' (deleted)';
+                        break;
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            // Fail silently
+        }
+
+        return $result;
     }
 
     private function formatForeignKeys($modelType, &$oldValues, &$newValues)

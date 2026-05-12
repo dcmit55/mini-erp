@@ -30,7 +30,7 @@ class LarkProjectDTO extends BaseLarkDTO
      *
      * Field Names dari Lark Base (Job Orders table) berdasarkan actual API response:
      * - "Project Label" → projects.name (nama project)
-     * - "Type of Project" → projects.department (tipe/departemen project)
+     * - "Departments" → projects.department (tipe/departemen project)
      * - "Sales / Ops IC" → projects.sales (PIC sales)
      * - "Project Status" → projects.stage (status project - single select)
      * - "Batam Job Order Statuses" → projects.project_status (statuses - multi select)
@@ -48,7 +48,7 @@ class LarkProjectDTO extends BaseLarkDTO
      */
     protected const FIELD_MAPPING = [
         'projects.name' => 'Project Label', // Nama project
-        'projects.department' => 'Type of Project', // Tipe/Department project
+        'projects.department' => 'Departments', // Tipe/Department project
         'projects.sales' => 'Sales / Ops IC', // PIC Sales (bisa null)
         'projects.stage' => 'Project Status', // Status project (single select)
         'projects.project_status' => 'Batam Job Order Statuses', // Statuses (multi select)
@@ -72,7 +72,7 @@ class LarkProjectDTO extends BaseLarkDTO
         $fields = $larkRecord['fields'] ?? [];
 
         $this->nameRaw = $this->extractField($fields, 'projects.name');
-        $this->departmentRaw = $this->extractField($fields, 'projects.department');
+        $this->departmentRaw = $this->extractDepartments($fields);
         $this->salesRaw = $this->extractField($fields, 'projects.sales');
         $this->stageRaw = $this->extractField($fields, 'projects.stage');
 
@@ -111,6 +111,34 @@ class LarkProjectDTO extends BaseLarkDTO
             $optionIds,
             'tblXJcCC3h7gF5aF', // Source table ID
             'fldNuI0pAS', // Source field ID (Job Status)
+        );
+
+        return !empty($resolvedTexts) ? implode(', ', $resolvedTexts) : null;
+    }
+
+    /**
+     * Extract Departments field
+     *
+     * "Departments" is a Lookup field that returns option IDs like ["optPn4VOlu"]
+     * We resolve these IDs to readable text from the source table.
+     *
+     * Source: table tblXJcCC3h7gF5aF, field fldDu7wps6 (Department name select)
+     */
+    private function extractDepartments(array $fields): ?string
+    {
+        $fieldName = self::FIELD_MAPPING['projects.department'];
+        $value = $fields[$fieldName] ?? null;
+
+        if ($value === null || !is_array($value) || empty($value)) {
+            return null;
+        }
+
+        // Resolve option IDs to readable department names
+        $resolver = app(\App\Services\Lark\LarkOptionResolver::class);
+        $resolvedTexts = $resolver->resolveOptions(
+            $value,
+            'tblXJcCC3h7gF5aF', // Source table ID
+            'fldDu7wps6', // Source field ID (Department name)
         );
 
         return !empty($resolvedTexts) ? implode(', ', $resolvedTexts) : null;

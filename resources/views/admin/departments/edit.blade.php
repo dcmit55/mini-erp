@@ -30,7 +30,7 @@
                         </ul>
                     </div>
                 @endif
-                <form method="POST" action="{{ route('departments.update', $department->id) }}">
+                <form method="POST" action="{{ route('departments.update', $department->uid) }}">
                     @csrf
                     @method('PUT')
                     <div class="row mb-2">
@@ -59,7 +59,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             // Prevent multiple submit & show spinner
             const form = document.querySelector(
-                'form[action="{{ route('departments.update', $department->id) }}"]');
+                'form[action="{{ route('departments.update', $department->uid) }}"]');
             const submitBtn = document.getElementById('department-update-btn');
             const spinner = submitBtn ? submitBtn.querySelector('.spinner-border') : null;
 

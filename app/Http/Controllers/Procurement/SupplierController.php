@@ -16,17 +16,8 @@ class SupplierController extends Controller
     {
         $this->middleware('auth');
 
-        // Only allowed roles can create/edit/delete
-        $allowedRoles = ['super_admin', 'admin_procurement', 'admin_logistic', 'admin_finance', 'admin'];
-        $writeMethods = ['create', 'store', 'edit', 'update', 'destroy', 'quickStore'];
-
-        $this->middleware(function ($request, $next) use ($allowedRoles, $writeMethods) {
-            $user = Auth::user();
-            if (in_array($request->route()->getActionMethod(), $writeMethods) && !in_array($user->role, $allowedRoles)) {
-                abort(403, 'You do not have permission to modify supplier data.');
-            }
-            return $next($request);
-        });
+        $this->middleware('can:procurement.supplier.view');
+        $this->middleware('can:procurement.supplier.edit')->only(['create', 'store', 'edit', 'update', 'destroy', 'quickStore']);
     }
 
     /**
@@ -139,7 +130,7 @@ class SupplierController extends Controller
         $buttons = '<div class="d-flex flex-nowrap gap-1">';
 
         // Edit button - for authorized users
-        if (in_array(auth()->user()->role, ['super_admin', 'admin_procurement', 'admin_logistic', 'admin_finance', 'admin'])) {
+        if (auth()->user()->can('procurement.supplier.edit')) {
             $buttons .=
                 '<a href="' .
                 route('suppliers.edit', $supplier->id) .
@@ -149,7 +140,7 @@ class SupplierController extends Controller
         }
 
         // Delete button - for authorized users
-        if (in_array(auth()->user()->role, ['super_admin', 'admin_procurement', 'admin_logistic', 'admin_finance', 'admin'])) {
+        if (auth()->user()->can('procurement.supplier.edit')) {
             $buttons .=
                 '<button type="button" class="btn btn-sm btn-danger btn-delete"
                 data-id="' .
@@ -181,10 +172,6 @@ class SupplierController extends Controller
      */
     public function store(Request $request)
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            abort(403, 'You do not have permission to modify supplier data.');
-        }
-
         $validator = Validator::make($request->all(), [
             'supplier_code' => 'nullable|string|max:50|unique:suppliers,supplier_code',
             'name' => 'required|string|max:255',
@@ -234,10 +221,6 @@ class SupplierController extends Controller
 
     public function quickStore(Request $request)
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            abort(403, 'You do not have permission to modify supplier data.');
-        }
-
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255|unique:suppliers,name',
             'location_id' => 'required|exists:location_supplier,id',
@@ -279,10 +262,6 @@ class SupplierController extends Controller
      */
     public function update(Request $request, Supplier $supplier)
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            abort(403, 'You do not have permission to modify supplier data.');
-        }
-
         $validator = Validator::make($request->all(), [
             'supplier_code' => 'nullable|string|max:50|unique:suppliers,supplier_code,' . $supplier->id,
             'name' => 'required|string|max:255',
@@ -335,10 +314,6 @@ class SupplierController extends Controller
      */
     public function destroy(Request $request, $id)
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            abort(403, 'You do not have permission to modify supplier data.');
-        }
-
         try {
             $supplier = Supplier::findOrFail($id);
             $supplier->delete();

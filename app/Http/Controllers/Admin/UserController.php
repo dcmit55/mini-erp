@@ -16,13 +16,7 @@ class UserController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        $this->middleware(function ($request, $next) {
-            $rolesAllowed = ['super_admin'];
-            if (!in_array(Auth::user()->role, $rolesAllowed)) {
-                abort(403, 'Unauthorized');
-            }
-            return $next($request);
-        });
+        $this->middleware('can:admin.users.view');
     }
 
     public function index()
@@ -43,7 +37,7 @@ class UserController extends Controller
             [
                 'username' => ['required', 'unique:users', 'regex:/^[A-Za-z0-9._-]+$/'],
                 'password' => 'required|min:6',
-                'role' => 'required|in:super_admin,admin_logistic,admin_mascot,admin_costume,admin_finance,admin_animatronic,admin_procurement,admin_hr,admin,general',
+                'role' => 'required|in:super_admin,admin_logistic,admin_mascot,admin_costume,admin_finance,admin_animatronic,admin_procurement,admin_hr,admin,timing,general',
                 'department_id' => 'required|exists:departments,id',
             ],
             [
@@ -62,6 +56,9 @@ class UserController extends Controller
 
         // Cache password hash untuk tracking perubahan
         $user->cachePasswordHash();
+
+        // Sync ke Spatie roles
+        $user->syncRoles([$validated['role']]);
 
         return redirect()
             ->route('users.index')
@@ -83,7 +80,7 @@ class UserController extends Controller
     {
         $request->validate([
             'username' => 'required|unique:users,username,' . $id,
-            'role' => 'required|in:super_admin,admin_logistic,admin_mascot,admin_costume,admin_finance,admin_animatronic,admin_procurement,admin_hr,admin,general',
+            'role' => 'required|in:super_admin,admin_logistic,admin_mascot,admin_costume,admin_finance,admin_animatronic,admin_procurement,admin_hr,admin,timing,general',
             'password' => 'nullable|min:6',
             'department_id' => 'required|exists:departments,id',
         ]);
@@ -103,6 +100,9 @@ class UserController extends Controller
         }
 
         $user->save();
+
+        // Sync ke Spatie roles
+        $user->syncRoles([$request->role]);
 
         // Jika password diubah, hapus semua session user
         if ($passwordChanged) {

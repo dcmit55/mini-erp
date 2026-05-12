@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Finance;
 
 use App\Http\Controllers\Controller;
-use App\Models\Procurement\ProjectPurchase;
+use App\Models\Procurement\IndoPurchase;
 use App\Models\Finance\DcmCosting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -11,6 +11,12 @@ use Illuminate\Support\Str;
 
 class PurchaseEditedController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+        $this->middleware('can:finance.purchase-edited.view');
+    }
+
     /**
      * Display list of edited purchases
      */
@@ -19,7 +25,7 @@ class PurchaseEditedController extends Controller
         $search = $request->get('search');
         
         // Ambil PO yang memiliki lebih dari 1 revision DAN sudah approved
-        $editedPOs = ProjectPurchase::select('po_number')
+        $editedPOs = IndoPurchase::select('po_number')
             ->whereNotNull('po_number')
             ->where('status', 'approved')
             ->groupBy('po_number')
@@ -32,7 +38,7 @@ class PurchaseEditedController extends Controller
             $dcmStatuses = [];
         } else {
             // Hanya ambil REVISI TERBARU (is_current = 1) dari setiap PO yang diedit
-            $query = ProjectPurchase::with(['department', 'supplier', 'material'])
+            $query = IndoPurchase::with(['department', 'supplier', 'material'])
                 ->whereIn('po_number', $editedPOs)
                 ->where('is_current', 1)
                 ->orderBy('updated_at', 'desc');
@@ -49,7 +55,7 @@ class PurchaseEditedController extends Controller
             
             foreach ($purchases as $purchase) {
                 // Ambil previous revision untuk perbandingan
-                $previous = ProjectPurchase::where('po_number', $purchase->po_number)
+                $previous = IndoPurchase::where('po_number', $purchase->po_number)
                     ->where('id', '!=', $purchase->id)
                     ->orderBy('created_at', 'desc')
                     ->first();
@@ -57,7 +63,7 @@ class PurchaseEditedController extends Controller
                 $groupedPurchases[$purchase->po_number] = [
                     'current' => $purchase,
                     'previous' => $previous,
-                    'revision_count' => ProjectPurchase::where('po_number', $purchase->po_number)->count()
+                    'revision_count' => IndoPurchase::where('po_number', $purchase->po_number)->count()
                 ];
                 
                 // Cek status DCM Costing
@@ -79,7 +85,7 @@ class PurchaseEditedController extends Controller
             ->where('is_current', true)
             ->first();
         
-        $currentPurchase = ProjectPurchase::where('po_number', $poNumber)
+        $currentPurchase = IndoPurchase::where('po_number', $poNumber)
             ->where('is_current', 1)
             ->first();
         
@@ -123,7 +129,7 @@ class PurchaseEditedController extends Controller
      */
     public function compare($poNumber)
     {
-        $revisions = ProjectPurchase::with(['department', 'supplier'])
+        $revisions = IndoPurchase::with(['department', 'supplier'])
             ->where('po_number', $poNumber)
             ->orderBy('created_at', 'desc')
             ->get();
@@ -155,7 +161,7 @@ class PurchaseEditedController extends Controller
             DB::beginTransaction();
             
             // 1. Get current purchase with relations
-            $currentPurchase = ProjectPurchase::with(['department', 'supplier'])
+            $currentPurchase = IndoPurchase::with(['department', 'supplier'])
                 ->where('po_number', $poNumber)
                 ->where('is_current', 1)
                 ->firstOrFail();
@@ -272,7 +278,7 @@ class PurchaseEditedController extends Controller
         foreach ($request->po_numbers as $poNumber) {
             try {
                 DB::transaction(function () use ($poNumber, &$successCount, &$failed) {
-                    $currentPurchase = ProjectPurchase::with(['department', 'supplier'])
+                    $currentPurchase = IndoPurchase::with(['department', 'supplier'])
                         ->where('po_number', $poNumber)
                         ->where('is_current', 1)
                         ->first();
@@ -338,7 +344,7 @@ class PurchaseEditedController extends Controller
      */
     public function check($poNumber)
     {
-        $currentPurchase = ProjectPurchase::where('po_number', $poNumber)
+        $currentPurchase = IndoPurchase::where('po_number', $poNumber)
             ->where('is_current', 1)
             ->first();
         
@@ -385,7 +391,7 @@ class PurchaseEditedController extends Controller
      */
     public function getCount()
     {
-        $count = ProjectPurchase::select('po_number')
+        $count = IndoPurchase::select('po_number')
             ->whereNotNull('po_number')
             ->where('status', 'approved')
             ->groupBy('po_number')
@@ -398,7 +404,7 @@ class PurchaseEditedController extends Controller
     /**
      * Get item name from purchase
      */
-    private function getItemName(ProjectPurchase $purchase)
+    private function getItemName(IndoPurchase $purchase)
     {
         if (!empty($purchase->new_item_name)) {
             return $purchase->new_item_name;

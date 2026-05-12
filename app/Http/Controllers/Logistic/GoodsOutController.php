@@ -7,9 +7,11 @@ use App\Models\Admin\User;
 use App\Models\Production\Project;
 use App\Models\Logistic\GoodsOut;
 use App\Models\Logistic\Inventory;
+use App\Models\Logistic\StockUsageBatch;
 use Illuminate\Http\Request;
 use App\Models\Logistic\MaterialRequest;
 use App\Helpers\MaterialUsageHelper;
+use App\Events\GoodsOutProcessed;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\GoodsOutExport;
 use Illuminate\Support\Facades\Auth;
@@ -20,15 +22,9 @@ class GoodsOutController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-
-        // Admin (role 'admin') bisa akses halaman, tapi tidak bisa submit/delete
-        $this->middleware(function ($request, $next) {
-            $writeRoutes = ['goods_out.create_with_id', 'goods_out.store', 'goods_out.create_independent', 'goods_out.store_independent', 'goods_out.bulk', 'goods_out.edit', 'goods_out.update', 'goods_out.destroy'];
-            if (in_array($request->route()->getName(), $writeRoutes) && !in_array(Auth::user()->role, ['admin_logistic', 'super_admin'])) {
-                abort(403, 'You do not have permission to modify goods out data.');
-            }
-            return $next($request);
-        })->only(['store', 'storeIndependent', 'bulkGoodsOut', 'update', 'destroy']);
+        $this->middleware('can:logistic.goods-out.view');
+        $this->middleware('can:logistic.goods-out.create')->only(['create', 'store', 'storeIndependent', 'bulkGoodsOut', 'createWithId']);
+        $this->middleware('can:logistic.goods-out.edit')->only(['edit', 'update', 'destroy']);
     }
 
     public function index(Request $request)
@@ -39,7 +35,7 @@ class GoodsOutController extends Controller
         }
 
         // For non-AJAX requests, return view with master data for filters
-        $materials = Inventory::orderBy('name')->get();
+        $materials = Inventory::orderBy('name')->get(['id', 'name', 'unit']);
         $projects = Project::orderBy('name')->get();
         $users = User::orderBy('username')->get();
 
@@ -48,7 +44,7 @@ class GoodsOutController extends Controller
 
     public function getDataTablesData(Request $request)
     {
-        $query = GoodsOut::with(['inventory', 'project', 'goodsIns', 'materialRequest', 'user.department'])->latest();
+        $query = GoodsOut::with(['inventory', 'project', 'goodsIns', 'materialRequest', 'user.department', 'inventoryBatch'])->latest();
 
         // Apply filters
         if ($request->filled('material_filter')) {
@@ -134,6 +130,7 @@ class GoodsOutController extends Controller
             $data[] = [
                 'DT_RowIndex' => $start + $index + 1,
                 'material' => $goodsOut->inventory ? $goodsOut->inventory->name : '(No material)',
+                'batch_used' => '<button class="btn btn-sm btn-outline-secondary btn-batch-used" data-id="' . $goodsOut->id . '" data-material="' . e($goodsOut->inventory?->name ?? '') . '" title="View batches used"><i class="bi bi-layers"></i></button>',
                 'quantity' => $this->formatQuantity($goodsOut),
                 'remaining_quantity' => $this->formatRemainingQuantity($goodsOut),
                 'project' => $goodsOut->project ? $goodsOut->project->name : '(No project)',
@@ -156,16 +153,15 @@ class GoodsOutController extends Controller
 
     private function formatQuantity($goodsOut)
     {
-        $unit = $goodsOut->inventory ? $goodsOut->inventory->unit : '';
+        $unit = $goodsOut->inventory ? $goodsOut->inventory->unit_name : '';
         $quantity = number_format($goodsOut->quantity, 2);
         $quantity = rtrim(rtrim($quantity, '0'), '.');
-
         return '<span data-bs-toggle="tooltip" data-bs-placement="right" title="' . $unit . '">' . $quantity . '</span>';
     }
 
     private function formatRemainingQuantity($goodsOut)
     {
-        $unit = $goodsOut->inventory ? $goodsOut->inventory->unit : '';
+        $unit = $goodsOut->inventory ? $goodsOut->inventory->unit_name : '';
         $remainingQuantity = number_format($goodsOut->remaining_quantity, 2);
         $remainingQuantity = rtrim(rtrim($remainingQuantity, '0'), '.');
         return '<span data-bs-toggle="tooltip" data-bs-placement="right" title="' . $unit . '">' . $remainingQuantity . '</span>';
@@ -187,7 +183,7 @@ class GoodsOutController extends Controller
         $buttons = '<div class="d-flex flex-nowrap gap-1">';
 
         // Edit button - only for admin_logistic and super_admin
-        if (in_array(auth()->user()->role, ['admin_logistic', 'super_admin', 'admin'])) {
+        if (auth()->user()->can('logistic.goods-out.edit')) {
             $buttons .=
                 '<a href="' .
                 route('goods_out.edit', $goodsOut->id) .
@@ -289,8 +285,69 @@ class GoodsOutController extends Controller
 
     public function create($materialRequestId)
     {
-        $materialRequest = MaterialRequest::with('inventory', 'project')->findOrFail($materialRequestId);
-        $inventories = Inventory::orderBy('name')->get();
+        $materialRequest = MaterialRequest::with('inventory', 'stagingInventory', 'indoPurchase.unit', 'project', 'internalProject')->findOrFail($materialRequestId);
+
+        // Jika incoming source, pastikan material sudah siap sebelum Goods Out
+        if ($materialRequest->inventory_source === 'incoming') {
+            // ── Gate: Indo Purchase source ──────────────────────────────────
+            if ($materialRequest->indo_purchase_id) {
+                $purchase = $materialRequest->indoPurchase;
+                if (!$purchase) {
+                    return redirect()->route('material_requests.index')->with('error', 'Goods Out tidak dapat diproses. Data Indo Purchase tidak ditemukan.');
+                }
+                $poOk = in_array($purchase->status, ['approved', 'received']);
+                $receiptOk = in_array($purchase->item_status, ['received', 'approved', 'done', 'matched']);
+                if (!$poOk || !$receiptOk) {
+                    $poStatus = ucfirst($purchase->status ?? '-');
+                    $receiptStatus = ucfirst($purchase->item_status ?? '-');
+                    return redirect()
+                        ->route('material_requests.index')
+                        ->with('error', "Goods Out tidak dapat diproses. Material Request ini menggunakan <b>Indo Purchase</b>. PO Status harus <b>Approved</b> dan Receipt Status harus <b>Received</b> terlebih dahulu. (PO saat ini: <b>{$poStatus}</b>, Receipt: <b>{$receiptStatus}</b>)");
+                }
+
+                // ── Auto-resolve inventory_id if not yet linked (existing data) ──
+                if (!$materialRequest->inventory_id) {
+                    $resolvedInventoryId = null;
+                    if ($purchase->purchase_type === 'restock' && $purchase->material_id) {
+                        $resolvedInventoryId = $purchase->material_id;
+                    } else {
+                        // new_item: find inventory created from this purchase batch
+                        $batch = \App\Models\Logistic\InventoryBatch::where('source_type', 'indo_purchase')->where('source_id', $purchase->id)->first();
+                        if ($batch) {
+                            $resolvedInventoryId = $batch->inventory_id;
+                        }
+                    }
+                    if ($resolvedInventoryId) {
+                        $materialRequest->inventory_id = $resolvedInventoryId;
+                        $materialRequest->save();
+                        $materialRequest->setRelation('inventory', \App\Models\Logistic\Inventory::find($resolvedInventoryId));
+                    }
+                }
+            }
+
+            // ── Gate: Lark Staging source ────────────────────────────────────
+            $staging = $materialRequest->stagingInventory;
+            if (!$materialRequest->indo_purchase_id) {
+                if (!$staging || !$staging->processed) {
+                    return redirect()
+                        ->route('material_requests.index')
+                        ->with('error', 'Goods Out tidak dapat diproses. Material Request ini menggunakan <b>Inventory Incoming</b> dan staging inventory (<b>' . e($staging->name ?? '-') . '</b>) belum di-approve ke Inventory Batch. Hubungi Admin Logistik.');
+                }
+                // Jika inventory_id di MR belum terisi (data lama), auto-resolve dari staging
+                if (!$materialRequest->inventory_id && $staging->processed) {
+                    $resolvedInventory = \App\Models\Logistic\Inventory::whereHas('batches', function ($q) use ($staging) {
+                        $q->where('source_type', 'lark')->where('source_id', $staging->id);
+                    })->first();
+                    if ($resolvedInventory) {
+                        $materialRequest->inventory_id = $resolvedInventory->id;
+                        $materialRequest->save();
+                        $materialRequest->setRelation('inventory', $resolvedInventory);
+                    }
+                }
+            }
+        }
+
+        $inventories = Inventory::withComputedStock()->orderBy('name')->get();
         return view('logistic.goods_out.create', compact('materialRequest', 'inventories'));
     }
 
@@ -306,7 +363,30 @@ class GoodsOutController extends Controller
         try {
             // Lock inventory row
             $materialRequest = MaterialRequest::where('id', $request->material_request_id)->lockForUpdate()->first();
-            $inventory = Inventory::where('id', $materialRequest->inventory_id)->lockForUpdate()->first();
+
+            // ── Auto-resolve inventory_id for indo_purchase MRs if not yet linked ──
+            if (!$materialRequest->inventory_id && $materialRequest->indo_purchase_id) {
+                $purchase = $materialRequest->indoPurchase;
+                if ($purchase) {
+                    if ($purchase->purchase_type === 'restock' && $purchase->material_id) {
+                        $materialRequest->inventory_id = $purchase->material_id;
+                        $materialRequest->save();
+                    } else {
+                        $batch = \App\Models\Logistic\InventoryBatch::where('source_type', 'indo_purchase')->where('source_id', $purchase->id)->first();
+                        if ($batch) {
+                            $materialRequest->inventory_id = $batch->inventory_id;
+                            $materialRequest->save();
+                        }
+                    }
+                }
+            }
+
+            $inventory = $materialRequest->inventory_id ? Inventory::where('id', $materialRequest->inventory_id)->lockForUpdate()->first() : null;
+
+            if (!$inventory) {
+                DB::rollBack();
+                return back()->withInput()->with('error', 'Inventory tidak ditemukan. Material Request ini belum terhubung ke Inventory Batch.');
+            }
 
             // VALIDASI: Quantity tidak boleh melebihi Remaining Quantity
             $remainingQty = $materialRequest->qty - $materialRequest->processed_qty;
@@ -334,9 +414,29 @@ class GoodsOutController extends Controller
             event(new \App\Events\MaterialRequestUpdated($materialRequest, 'status'));
 
             // Simpan Goods Out
-            GoodsOut::create([
+            $isIncoming = $materialRequest->inventory_source === 'incoming';
+            $specificBatch = null;
+
+            if ($isIncoming && $materialRequest->staging_inventory_id) {
+                // Untuk incoming: pakai HANYA batch Lark yang berasal dari staging ini
+                $specificBatch = \App\Models\Logistic\InventoryBatch::where('inventory_id', $inventory->id)->where('source_type', 'lark')->where('source_id', $materialRequest->staging_inventory_id)->where('qty_remaining', '>', 0)->lockForUpdate()->first();
+
+                if (!$specificBatch || $specificBatch->qty_remaining < $request->quantity) {
+                    DB::rollBack();
+                    $available = $specificBatch ? $specificBatch->qty_remaining : 0;
+                    return back()
+                        ->withInput()
+                        ->with('error', "Qty tidak mencukupi di batch incoming yang dipilih. Tersedia: {$available}, Diminta: {$request->quantity}");
+                }
+            }
+
+            // Capture primary batch for traceability
+            $primaryBatch = $isIncoming && $specificBatch ? $specificBatch : $inventory->activeBatches()->orderBy('received_date')->orderBy('id')->first();
+
+            $goodsOut = GoodsOut::create([
                 'material_request_id' => $materialRequest->id,
                 'inventory_id' => $inventory->id,
+                'inventory_batch_id' => $primaryBatch?->id,
                 'project_id' => $materialRequest->project_id,
                 'job_order_id' => $materialRequest->job_order_id,
                 'requested_by' => $materialRequest->requested_by,
@@ -344,16 +444,39 @@ class GoodsOutController extends Controller
                 'remark' => $request->remark,
             ]);
 
-            // Kurangi stok inventory
-            $inventory->quantity -= $request->quantity;
-            $inventory->save();
+            // Kurangi stok: incoming = specific batch only, stock = FIFO
+            if ($isIncoming && $specificBatch) {
+                $consumed = $specificBatch->consume($request->quantity);
+                StockUsageBatch::create([
+                    'goods_out_id' => $goodsOut->id,
+                    'batch_id' => $specificBatch->id,
+                    'qty_used' => $consumed,
+                ]);
+            } else {
+                $usedBatches = $inventory->consumeStock($request->quantity);
+                foreach ($usedBatches as $ub) {
+                    StockUsageBatch::create([
+                        'goods_out_id' => $goodsOut->id,
+                        'batch_id' => $ub['batch_id'],
+                        'qty_used' => $ub['qty'],
+                    ]);
+                }
+            }
 
             MaterialUsageHelper::sync($inventory->id, $materialRequest->project_id, $materialRequest->job_order_id);
 
             DB::commit();
+
+            // DISABLED: GoodsOutProcessed popup notification (annoying, disabled by request)
+            // try {
+            //     event(new GoodsOutProcessed($goodsOut));
+            // } catch (\Exception $broadcastEx) {
+            //     \Illuminate\Support\Facades\Log::warning('GoodsOut broadcast failed (non-critical): ' . $broadcastEx->getMessage());
+            // }
+
             return redirect()
                 ->route('goods_out.index')
-                ->with('success', "Goods Out <b>{$inventory->name}</b> to <b>{$materialRequest->project->name}</b> processed successfully.");
+                ->with('success', "Goods Out <b>{$inventory->name}</b> to <b>{$materialRequest->project_name}</b> processed successfully.");
         } catch (\Exception $e) {
             DB::rollBack();
             return back()
@@ -364,7 +487,7 @@ class GoodsOutController extends Controller
 
     public function createIndependent()
     {
-        $inventories = Inventory::orderBy('name')->get();
+        $inventories = Inventory::withComputedStock()->orderBy('name')->get();
         $projects = Project::with('departments', 'status')->notArchived()->orderBy('name')->get();
         $jobOrders = \App\Models\Production\JobOrder::with(['project:id,name', 'department:id,name'])
             ->orderBy('id', 'desc')
@@ -406,18 +529,29 @@ class GoodsOutController extends Controller
             }
 
             // Kurangi stok di inventory
-            $inventory->quantity -= $request->quantity;
-            $inventory->save();
+            // Capture primary (first FIFO) batch for traceability
+            $primaryBatch = $inventory->activeBatches()->orderBy('received_date')->orderBy('id')->first();
+            $usedBatches = $inventory->consumeStock($request->quantity);
 
             // Simpan Goods Out
-            GoodsOut::create([
+            $goodsOut = GoodsOut::create([
                 'inventory_id' => $request->inventory_id,
+                'inventory_batch_id' => $primaryBatch?->id,
                 'project_id' => $request->project_id,
                 'job_order_id' => $request->job_order_id,
                 'requested_by' => $user->username,
                 'quantity' => $request->quantity,
                 'remark' => $request->remark,
             ]);
+
+            // Catat batch yang digunakan (FIFO)
+            foreach ($usedBatches as $ub) {
+                StockUsageBatch::create([
+                    'goods_out_id' => $goodsOut->id,
+                    'batch_id' => $ub['batch_id'],
+                    'qty_used' => $ub['qty'],
+                ]);
+            }
 
             // Sync Material Usage
             MaterialUsageHelper::sync($request->inventory_id, $request->project_id, $request->job_order_id);
@@ -475,6 +609,8 @@ class GoodsOutController extends Controller
             }
 
             $updatedRequests = [];
+            $createdGoodsOuts = []; // Track created goods out for notifications
+
             foreach ($materialRequests as $materialRequest) {
                 $inventory = Inventory::where('id', $materialRequest->inventory_id)->lockForUpdate()->first();
 
@@ -496,19 +632,54 @@ class GoodsOutController extends Controller
                 }
 
                 // Kurangi stok inventory
-                $inventory->quantity -= $qtyToGoodsOut;
-                $inventory->save();
+                $isMrIncoming = $materialRequest->inventory_source === 'incoming';
+                $specificBatchBulk = null;
+
+                if ($isMrIncoming && $materialRequest->staging_inventory_id) {
+                    $specificBatchBulk = \App\Models\Logistic\InventoryBatch::where('inventory_id', $inventory->id)->where('source_type', 'lark')->where('source_id', $materialRequest->staging_inventory_id)->where('qty_remaining', '>', 0)->lockForUpdate()->first();
+
+                    if (!$specificBatchBulk || $specificBatchBulk->qty_remaining < $qtyToGoodsOut) {
+                        DB::rollBack();
+                        $avail = $specificBatchBulk ? $specificBatchBulk->qty_remaining : 0;
+                        return response()->json(['success' => false, 'message' => "Qty tidak mencukupi di batch incoming untuk MR #{$materialRequest->id}. Tersedia: {$avail}"], 422);
+                    }
+                }
+
+                // Capture primary batch for traceability
+                $primaryBatch = $isMrIncoming && $specificBatchBulk ? $specificBatchBulk : $inventory->activeBatches()->orderBy('received_date')->orderBy('id')->first();
 
                 // Buat Goods Out
-                GoodsOut::create([
+                $goodsOut = GoodsOut::create([
                     'material_request_id' => $materialRequest->id,
                     'inventory_id' => $inventory->id,
+                    'inventory_batch_id' => $primaryBatch?->id,
                     'project_id' => $materialRequest->project_id,
                     'job_order_id' => $materialRequest->job_order_id,
                     'requested_by' => $materialRequest->requested_by,
                     'quantity' => $qtyToGoodsOut,
                     'remark' => 'Bulk Goods Out',
                 ]);
+
+                // Catat batch yang digunakan
+                if ($isMrIncoming && $specificBatchBulk) {
+                    $consumed = $specificBatchBulk->consume($qtyToGoodsOut);
+                    StockUsageBatch::create([
+                        'goods_out_id' => $goodsOut->id,
+                        'batch_id' => $specificBatchBulk->id,
+                        'qty_used' => $consumed,
+                    ]);
+                } else {
+                    $usedBatches = $inventory->consumeStock($qtyToGoodsOut);
+                    foreach ($usedBatches as $ub) {
+                        StockUsageBatch::create([
+                            'goods_out_id' => $goodsOut->id,
+                            'batch_id' => $ub['batch_id'],
+                            'qty_used' => $ub['qty'],
+                        ]);
+                    }
+                }
+
+                $createdGoodsOuts[] = $goodsOut; // Store for notification
 
                 // Update processed_qty dan status material request
                 $materialRequest->processed_qty += $qtyToGoodsOut;
@@ -528,6 +699,15 @@ class GoodsOutController extends Controller
             foreach ($updatedRequests as $mr) {
                 event(new \App\Events\MaterialRequestUpdated($mr, 'status'));
             }
+
+            // DISABLED: GoodsOutProcessed popup notification (annoying, disabled by request)
+            // foreach ($createdGoodsOuts as $goodsOut) {
+            //     try {
+            //         event(new GoodsOutProcessed($goodsOut));
+            //     } catch (\Exception $broadcastEx) {
+            //         \Illuminate\Support\Facades\Log::warning('GoodsOut bulk broadcast failed (non-critical): ' . $broadcastEx->getMessage());
+            //     }
+            // }
 
             return response()->json(['success' => true, 'message' => 'Bulk Goods Out processed successfully.']);
         } catch (\Exception $e) {
@@ -560,7 +740,7 @@ class GoodsOutController extends Controller
     public function edit($id)
     {
         $goodsOut = GoodsOut::with('inventory', 'project', 'materialRequest', 'jobOrder.department')->findOrFail($id);
-        $inventories = Inventory::orderBy('name')->get();
+        $inventories = Inventory::withComputedStock()->orderBy('name')->get();
         $projects = Project::with('departments', 'status')->notArchived()->orderBy('name')->get();
         $jobOrders = \App\Models\Production\JobOrder::with(['project:id,name', 'department:id,name'])
             ->orderBy('id', 'desc')
@@ -613,7 +793,6 @@ class GoodsOutController extends Controller
             $user = User::with('department')->findOrFail($request->user_id);
 
             $oldQuantity = $goodsOut->quantity;
-            $inventory->quantity += $oldQuantity;
 
             // VALIDASI: Quantity tidak boleh melebihi Remaining Quantity (jika ada material request)
             if ($materialRequest) {
@@ -626,17 +805,28 @@ class GoodsOutController extends Controller
                 }
             }
 
-            // Validasi stok inventory
-            if ($request->quantity > $inventory->quantity) {
+            // Validasi stok inventory (add back old quantity temporarily for calculation)
+            $availableAfterReturn = $inventory->quantity + $oldQuantity;
+            if ($request->quantity > $availableAfterReturn) {
                 DB::rollBack();
                 return back()
                     ->withInput()
                     ->withErrors(['quantity' => 'Quantity cannot exceed the available inventory.']);
             }
 
-            // Kurangi stok dengan quantity baru
-            $inventory->quantity -= $request->quantity;
-            $inventory->save();
+            // Kurangi stok dengan quantity baru (return lama dulu, consume baru)
+            $inventory->returnStock($oldQuantity);
+            $usedBatches = $inventory->consumeStock($request->quantity);
+
+            // Hapus stock_usage_batches lama, ganti dengan yang baru
+            StockUsageBatch::where('goods_out_id', $goodsOut->id)->delete();
+            foreach ($usedBatches as $ub) {
+                StockUsageBatch::create([
+                    'goods_out_id' => $goodsOut->id,
+                    'batch_id' => $ub['batch_id'],
+                    'qty_used' => $ub['qty'],
+                ]);
+            }
 
             // Perbarui Material Request dengan quantity baru
             if ($materialRequest) {
@@ -673,7 +863,7 @@ class GoodsOutController extends Controller
 
             return redirect()
                 ->route('goods_out.index')
-                ->with('success', "Goods Out <b>{$inventory->name}</b> to <b>{$materialRequest->project->name}</b> processed successfully.");
+                ->with('success', "Goods Out <b>{$inventory->name}</b> to <b>{$materialRequest->project_name}</b> processed successfully.");
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Failed to update Goods Out: ' . $e->getMessage());
@@ -690,8 +880,14 @@ class GoodsOutController extends Controller
         // Kurangi stok di inventory
         $inventory = $goodsOut->inventory;
         if ($inventory) {
-            $inventory->quantity -= $goodsOut->quantity;
-            $inventory->save();
+            $usedBatches = $inventory->consumeStock($goodsOut->quantity);
+            foreach ($usedBatches as $ub) {
+                StockUsageBatch::create([
+                    'goods_out_id' => $goodsOut->id,
+                    'batch_id' => $ub['batch_id'],
+                    'qty_used' => $ub['qty'],
+                ]);
+            }
         }
 
         // Sinkronkan Material Usage
@@ -755,8 +951,7 @@ class GoodsOutController extends Controller
             }
 
             // Return stock to inventory
-            $inventory->quantity += $goodsOut->quantity;
-            $inventory->save();
+            $inventory->returnStock($goodsOut->quantity);
 
             // Soft delete Goods Out
             $goodsOut->delete();
@@ -793,5 +988,26 @@ class GoodsOutController extends Controller
 
             return redirect()->route('goods_out.index')->with('error', $errorMessage);
         }
+    }
+
+    /**
+     * Return batch breakdown used for a specific goods_out (for the Batch Used modal).
+     * GET /goods-out/{id}/batch-usage
+     */
+    public function getBatchUsage($id)
+    {
+        $goodsOut = GoodsOut::with(['stockUsageBatches.batch', 'inventory.unitRelation'])->findOrFail($id);
+
+        $unit = $goodsOut->inventory?->unit_name ?? '';
+
+        $batches = $goodsOut->stockUsageBatches->map(function ($sub) use ($unit) {
+            return [
+                'batch_number' => $sub->batch?->batch_number ?? '—',
+                'qty_used' => (float) $sub->qty_used,
+                'unit' => $unit,
+            ];
+        });
+
+        return response()->json(['batches' => $batches]);
     }
 }

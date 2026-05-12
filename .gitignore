@@ -22,3 +22,12 @@ npm-debug.log
 yarn-error.log
 /.idea
 /.vscode
+.claude
+database/schema
+app/Services/LlmService.php
+app/Http/Controllers/ChatbotController.php
+syifawork.md
+.gitignore
+D27FEB.env
+
+/public/kasbon/dokumen/*.pdf

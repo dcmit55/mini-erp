@@ -23,13 +23,14 @@ class InternalProjectController extends Controller
         $projectType = $request->input('project_type');
 
         $projects = InternalProject::with(['picUser', 'updateUser', 'department'])
-            ->when($search, function($query) use ($search) {
-                $query->where('job', 'like', '%' . $search . '%')
+            ->when($search, function ($query) use ($search) {
+                $query
+                    ->where('job', 'like', '%' . $search . '%')
                     ->orWhere('description', 'like', '%' . $search . '%')
                     ->orWhere('project', 'like', '%' . $search . '%')
                     ->orWhere('department', 'like', '%' . $search . '%');
             })
-            ->when($projectType, function($query) use ($projectType) {
+            ->when($projectType, function ($query) use ($projectType) {
                 $query->where('project', $projectType);
             })
             ->orderBy('created_at', 'desc')
@@ -44,9 +45,7 @@ class InternalProjectController extends Controller
     public function create()
     {
         // Ambil daftar project dari enum
-        $projectTypes = collect(InternalProjectType::cases())
-            ->mapWithKeys(fn($case) => [$case->value => $case->value])
-            ->toArray();
+        $projectTypes = collect(InternalProjectType::cases())->mapWithKeys(fn($case) => [$case->value => $case->value])->toArray();
 
         $departments = Department::orderBy('name')->get();
 
@@ -62,16 +61,14 @@ class InternalProjectController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'project'       => ['required', 'string', Rule::in(InternalProjectType::values())],
-            'job'           => 'required|string|max:200',
-            'description'   => 'nullable|string',
+            'project' => ['required', 'string', Rule::in(InternalProjectType::values())],
+            'job' => 'required|string|max:200',
+            'description' => 'nullable|string',
             'department_id' => 'required|exists:departments,id',
         ]);
 
         if ($validator->fails()) {
-            return redirect()->back()
-                ->withErrors($validator)
-                ->withInput();
+            return redirect()->back()->withErrors($validator)->withInput();
         }
 
         try {
@@ -81,21 +78,18 @@ class InternalProjectController extends Controller
             $departmentName = $department ? $department->name : 'PT DCM';
 
             $project = InternalProject::create([
-                'project'       => $request->project,
-                'job'           => $request->job,
-                'description'   => $request->description,
-                'department'    => $departmentName,
+                'project' => $request->project,
+                'job' => $request->job,
+                'description' => $request->description,
+                'department' => $departmentName,
                 'department_id' => $request->department_id,
-                'pic'           => auth()->id(),
-                'update_by'     => auth()->id(),
+                'pic' => auth()->id(),
+                'update_by' => auth()->id(),
             ]);
 
             DB::commit();
 
-            return redirect()
-                ->route('internal-projects.index')
-                ->with('success', 'Internal project created successfully!');
-
+            return redirect()->route('internal-projects.index')->with('success', 'Internal project created successfully!');
         } catch (\Exception $e) {
             DB::rollBack();
             return redirect()
@@ -111,18 +105,21 @@ class InternalProjectController extends Controller
     public function quickStore(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'project'       => ['required', Rule::in(InternalProjectType::values())],
+            'project' => ['required', Rule::in(InternalProjectType::values())],
             'department_id' => 'required|exists:departments,id',
-            'job'           => 'required|string|max:200',
-            'description'   => 'nullable|string',
+            'job' => 'required|string|max:200',
+            'description' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors'  => $validator->errors()
-            ], 422);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors(),
+                ],
+                422,
+            );
         }
 
         DB::beginTransaction();
@@ -131,14 +128,14 @@ class InternalProjectController extends Controller
             $departmentName = $department ? $department->name : 'PT DCM';
 
             $internalProject = InternalProject::create([
-                'project'       => $request->project,
-                'job'           => $request->job,
-                'description'   => $request->description,
-                'department'    => $departmentName,
+                'project' => $request->project,
+                'job' => $request->job,
+                'description' => $request->description,
+                'department' => $departmentName,
                 'department_id' => $request->department_id,
-                'pic'           => auth()->id(),
-                'update_by'     => auth()->id(),
-                'uid'           => Str::uuid(),
+                'pic' => auth()->id(),
+                'update_by' => auth()->id(),
+                'uid' => Str::uuid(),
             ]);
 
             DB::commit();
@@ -148,104 +145,86 @@ class InternalProjectController extends Controller
                 'success' => true,
                 'message' => 'Internal project added successfully!',
                 'internal_project' => [
-                    'id'      => $internalProject->id,
+                    'id' => $internalProject->id,
                     'project' => $internalProject->project->value, // ambil string asli
-                    'job'     => $internalProject->job,
-                ]
+                    'job' => $internalProject->job,
+                ],
             ]);
-
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to add internal project: ' . $e->getMessage()
-            ], 500);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Failed to add internal project: ' . $e->getMessage(),
+                ],
+                500,
+            );
         }
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(InternalProject $internalProject)
     {
-        try {
-            $internalProject = InternalProject::with(['picUser', 'updateUser', 'department'])->findOrFail($id);
-            return view('internal-projects.show', compact('internalProject'));
-        } catch (\Exception $e) {
-            return redirect()
-                ->route('internal-projects.index')
-                ->with('error', 'Project not found!');
-        }
+        $internalProject->load(['picUser', 'updateUser', 'department']);
+        return view('internal-projects.show', compact('internalProject'));
     }
 
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(string $id)
+    public function edit(InternalProject $internalProject)
     {
-        try {
-            $internalProject = InternalProject::findOrFail($id);
+        $internalProject->load(['picUser', 'updateUser', 'department']);
 
-            // Ambil daftar project dari enum
-            $projectTypes = collect(InternalProjectType::cases())
-                ->mapWithKeys(fn($case) => [$case->value => $case->value])
-                ->toArray();
+        // Ambil daftar project dari enum
+        $projectTypes = collect(InternalProjectType::cases())->mapWithKeys(fn($case) => [$case->value => $case->value])->toArray();
 
-            $departments = Department::orderBy('name')->get();
+        $departments = Department::orderBy('name')->get();
 
-            // Default department di-set ke ID 19 (PT DCM) – pastikan ID tersebut ada di tabel departments
-            $defaultPtDcmDepartmentId = 19;
+        // Default department di-set ke ID 19 (PT DCM) – pastikan ID tersebut ada di tabel departments
+        $defaultPtDcmDepartmentId = 19;
 
-            return view('internal-projects.edit', compact('internalProject', 'projectTypes', 'departments', 'defaultPtDcmDepartmentId'));
-        } catch (\Exception $e) {
-            return redirect()
-                ->route('internal-projects.index')
-                ->with('error', 'Project not found!');
-        }
+        return view('internal-projects.edit', compact('internalProject', 'projectTypes', 'departments', 'defaultPtDcmDepartmentId'));
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, InternalProject $internalProject)
     {
         $validator = Validator::make($request->all(), [
-            'project'       => ['required', 'string', Rule::in(InternalProjectType::values())],
-            'job'           => 'required|string|max:200',
-            'description'   => 'nullable|string',
+            'project' => ['required', 'string', Rule::in(InternalProjectType::values())],
+            'job' => 'required|string|max:200',
+            'description' => 'nullable|string',
             'department_id' => 'required|exists:departments,id',
         ]);
 
         if ($validator->fails()) {
-            return redirect()->back()
-                ->withErrors($validator)
-                ->withInput();
+            return redirect()->back()->withErrors($validator)->withInput();
         }
 
         try {
             DB::beginTransaction();
 
-            $internalProject = InternalProject::findOrFail($id);
             $user = Auth::user();
 
             $department = Department::find($request->department_id);
             $departmentName = $department ? $department->name : 'PT DCM';
 
-            $internalProject->project       = $request->project;
-            $internalProject->job           = $request->job;
-            $internalProject->description   = $request->description;
-            $internalProject->department    = $departmentName;
+            $internalProject->project = $request->project;
+            $internalProject->job = $request->job;
+            $internalProject->description = $request->description;
+            $internalProject->department = $departmentName;
             $internalProject->department_id = $request->department_id;
-            $internalProject->update_by     = $user->id;
+            $internalProject->update_by = $user->id;
 
             $internalProject->save();
 
             DB::commit();
 
-            return redirect()
-                ->route('internal-projects.index')
-                ->with('success', 'Internal project updated successfully!');
-
+            return redirect()->route('internal-projects.index')->with('success', 'Internal project updated successfully!');
         } catch (\Exception $e) {
             DB::rollBack();
             return redirect()
@@ -258,20 +237,16 @@ class InternalProjectController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(InternalProject $internalProject)
     {
         try {
             DB::beginTransaction();
 
-            $internalProject = InternalProject::findOrFail($id);
             $internalProject->delete();
 
             DB::commit();
 
-            return redirect()
-                ->route('internal-projects.index')
-                ->with('success', 'Internal project has been PERMANENTLY deleted!');
-
+            return redirect()->route('internal-projects.index')->with('success', 'Internal project has been PERMANENTLY deleted!');
         } catch (\Exception $e) {
             DB::rollBack();
             return redirect()

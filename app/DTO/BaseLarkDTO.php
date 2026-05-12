@@ -169,6 +169,33 @@ abstract class BaseLarkDTO
     }
 
     /**
+     * Extract raw array field dari Lark response (untuk JSON storage)
+     *
+     * Tidak seperti extractField() yang parse jadi string,
+     * method ini return full array untuk disimpan sebagai JSON
+     *
+     * @param array $fields Fields array dari Lark record
+     * @param string $key Key dari FIELD_MAPPING
+     * @return array|null Raw array atau null jika tidak ada
+     */
+    protected function extractArrayField(array $fields, string $key): ?array
+    {
+        $fieldName = static::FIELD_MAPPING[$key] ?? null;
+
+        if (!$fieldName) {
+            return null;
+        }
+
+        $value = $fields[$fieldName] ?? null;
+
+        if (is_array($value) && !empty($value)) {
+            return $value;
+        }
+
+        return null;
+    }
+
+    /**
      * Get field mapping untuk debugging
      *
      * @return array<string, string>

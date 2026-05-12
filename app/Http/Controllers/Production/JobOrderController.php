@@ -10,6 +10,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Yajra\DataTables\Facades\DataTables;
 use App\Services\Lark\LarkJobOrderSyncService;
+use App\Jobs\SyncLarkJobOrdersJob;
+use Illuminate\Support\Facades\Cache;
 
 class JobOrderController extends Controller
 {
@@ -17,7 +19,7 @@ class JobOrderController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = JobOrder::with(['project:id,name', 'department:id,name', 'creator:id,username'])->latest();
+            $query = JobOrder::with(['project:id,name', 'department:id,name', 'departments:id,name', 'creator:id,username'])->latest();
 
             // Apply filters
             if ($request->filled('project')) {
@@ -25,7 +27,18 @@ class JobOrderController extends Controller
             }
 
             if ($request->filled('department')) {
-                $query->where('department_id', $request->department);
+                // Filter by ANY department (primary OR in pivot table)
+                $departmentId = $request->department;
+                $query->where(function ($q) use ($departmentId) {
+                    $q->where('department_id', $departmentId)->orWhereHas('departments', function ($dq) use ($departmentId) {
+                        $dq->where('departments.id', $departmentId);
+                    });
+                });
+            }
+
+            // Filter by status
+            if ($request->filled('status')) {
+                $query->where('status', $request->status);
             }
 
             if ($request->filled('custom_search')) {
@@ -46,6 +59,21 @@ class JobOrderController extends Controller
                     return $jo->project ? $jo->project->name : '-';
                 })
                 ->addColumn('department_name', function ($jo) {
+                    // Show all departments from pivot table
+                    if ($jo->departments && $jo->departments->count() > 0) {
+                        $deptNames = $jo->departments->pluck('name')->toArray();
+                        $displayText = implode(', ', $deptNames);
+
+                        // If more than 3 departments, show tooltip with truncation
+                        if (count($deptNames) > 3) {
+                            $shortText = implode(', ', array_slice($deptNames, 0, 2)) . '... +' . (count($deptNames) - 2);
+                            return '<span data-bs-toggle="tooltip" title="' . htmlspecialchars($displayText) . '">' . $shortText . '</span>';
+                        }
+                        // Show all departments if 3 or less
+                        return $displayText;
+                    }
+
+                    // Fallback to primary department if pivot is empty
                     return $jo->department ? $jo->department->name : '-';
                 })
                 ->addColumn('start_date', function ($jo) {
@@ -66,45 +94,68 @@ class JobOrderController extends Controller
                     }
                     return '-';
                 })
-                ->addColumn('actions', function ($jo) {
-                    $actions = '<div class="btn-group btn-group-sm" role="group">';
+                ->addColumn('countdown_display', function ($jo) {
+                    // Priority: Show "Delivered" status if job is delivered
+                    if ($jo->isDelivered()) {
+                        return '<span class="badge bg-success" title="Job has been delivered"><i class="fas fa-check-circle me-1"></i>Delivered</span>';
+                    }
 
-                    // View button
-                    $actions .=
-                        '<a href="' .
-                        route('job-orders.show', $jo->id) .
-                        '" class="btn btn-sm btn-info" title="View">
-                                    <i class="bi bi-eye"></i>
-                                </a>';
+                    if (!$jo->delivery_date) {
+                        return '-';
+                    }
 
-                    // Edit button
-                    $actions .=
-                        '<a href="' .
-                        route('job-orders.edit', $jo->id) .
-                        '" class="btn btn-sm btn-warning" title="Edit">
-                                    <i class="bi bi-pencil"></i>
-                                </a>';
+                    $daysUntil = $jo->days_until_delivery;
 
-                    // Delete button
-                    $actions .=
-                        '<form action="' .
-                        route('job-orders.destroy', $jo->id) .
-                        '" method="POST" class="d-inline">
-                                    ' .
-                        csrf_field() .
-                        '
-                                    ' .
-                        method_field('DELETE') .
-                        '
-                                    <button type="button" class="btn btn-sm btn-danger btn-delete" title="Delete">
-                                        <i class="bi bi-trash3"></i>
-                                    </button>
-                                </form>';
+                    if ($daysUntil === null) {
+                        return '<span class="text-muted">' . $jo->delivery_date->format('Y-m-d') . '</span>';
+                    }
 
-                    $actions .= '</div>';
-                    return $actions;
+                    // Overdue
+                    if ($daysUntil < 0) {
+                        $overdueDays = abs($daysUntil);
+                        return '<span class="badge bg-dark" title="Overdue by ' . $overdueDays . ' days"><i class="fas fa-times-circle me-1"></i>Overdue (' . $overdueDays . 'd)</span>';
+                    }
+
+                    // Today
+                    if ($daysUntil === 0) {
+                        return '<span class="badge bg-danger" title="Delivery today!"><i class="fas fa-exclamation-triangle me-1"></i>Today</span>';
+                    }
+
+                    $displayText = $daysUntil . ' days left';
+
+                    // Warning badges for urgent deliveries
+                    if ($daysUntil == 1) {
+                        return '<span class="badge bg-danger" title="Urgent: 1 day left!"><i class="fas fa-exclamation-triangle me-1"></i>' . $displayText . '</span>';
+                    } elseif ($daysUntil == 2) {
+                        return '<span class="badge bg-warning text-dark" title="Warning: 2 days left"><i class="fas fa-exclamation-circle me-1"></i>' . $displayText . '</span>';
+                    } elseif ($daysUntil <= 5) {
+                        return '<span class="badge bg-info" title="' . $daysUntil . ' days remaining">' . $displayText . '</span>';
+                    }
+
+                    return '<span class="text-muted">' . $displayText . '</span>';
                 })
-                ->rawColumns(['description', 'notes', 'actions'])
+                ->addColumn('actions', function ($jo) {
+                    $imgUrl = $jo->hasFinalImage() ? e($jo->final_image_url) : '';
+                    $imgName = e($jo->name);
+
+                    $btnStyle = 'width:100%;padding:3px 0;font-size:12px;border-radius:4px;';
+
+                    // Image button: biru full jika ada gambar, outline kosong jika tidak
+                    if ($jo->hasFinalImage()) {
+                        $imgBtn = '<button type="button" class="btn btn-sm btn-info btn-show-image" style="' . $btnStyle . '" title="View Final Image" data-img="' . $imgUrl . '" data-name="' . $imgName . '"><i class="bi bi-file-earmark-image"></i></button>';
+                    } else {
+                        $imgBtn = '<button type="button" class="btn btn-sm btn-outline-secondary" style="' . $btnStyle . '" title="No image" disabled><i class="bi bi-file-earmark-image"></i></button>';
+                    }
+
+                    $isGeneral = !auth()->user()->can('production.jo.edit');
+
+                    if ($isGeneral) {
+                        return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;min-width:70px;">' . '<a href="' . route('job-orders.show', $jo->id) . '" class="btn btn-sm btn-info" style="' . $btnStyle . '" title="Detail"><i class="bi bi-eye"></i></a>' . $imgBtn . '</div>';
+                    }
+
+                    return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;min-width:70px;">' . '<a href="' . route('job-orders.show', $jo->id) . '" class="btn btn-sm btn-info" style="' . $btnStyle . '" title="Detail"><i class="bi bi-eye"></i></a>' . $imgBtn . '<a href="' . route('job-orders.edit', $jo->id) . '" class="btn btn-sm btn-warning" style="' . $btnStyle . '" title="Edit"><i class="bi bi-pencil"></i></a>' . '<form action="' . route('job-orders.destroy', $jo->id) . '" method="POST" style="display:contents;">' . csrf_field() . method_field('DELETE') . '<button type="button" class="btn btn-sm btn-danger btn-delete" style="' . $btnStyle . '" title="Delete"><i class="bi bi-trash3"></i></button>' . '</form>' . '</div>';
+                })
+                ->rawColumns(['description', 'notes', 'countdown_display', 'department_name', 'actions'])
                 ->make(true);
         }
 
@@ -112,7 +163,10 @@ class JobOrderController extends Controller
         $projects = Project::orderBy('name')->get(['id', 'name']);
         $departments = Department::orderBy('name')->get(['id', 'name']);
 
-        return view('production.job-orders.index', compact('projects', 'departments'));
+        // Get distinct status values from database
+        $statuses = JobOrder::select('status')->distinct()->whereNotNull('status')->orderBy('status')->pluck('status');
+
+        return view('production.job-orders.index', compact('projects', 'departments', 'statuses'));
     }
 
     // CREATE - Form tambah job order
@@ -132,6 +186,8 @@ class JobOrderController extends Controller
             'name' => 'required|string|max:255',
             'project_id' => 'required|exists:projects,id',
             'department_id' => 'required|exists:departments,id',
+            'department_ids' => 'nullable|array', // NEW: Multiple departments
+            'department_ids.*' => 'exists:departments,id',
             'description' => 'nullable|string',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
@@ -143,8 +199,17 @@ class JobOrderController extends Controller
         // ID sudah otomatis digenerate oleh model
         $validated['created_by'] = Auth::id();
 
+        // Extract department_ids untuk pivot sync
+        $departmentIds = $validated['department_ids'] ?? [];
+        unset($validated['department_ids']);
+
         // Simpan
         $jobOrder = JobOrder::create($validated);
+
+        // Sync multiple departments via pivot table
+        if (!empty($departmentIds)) {
+            $jobOrder->departments()->sync($departmentIds);
+        }
 
         return redirect()
             ->route('job-orders.index')
@@ -161,7 +226,7 @@ class JobOrderController extends Controller
     // EDIT - Form edit
     public function edit($id)
     {
-        $jobOrder = JobOrder::findOrFail($id);
+        $jobOrder = JobOrder::with('departments')->findOrFail($id);
         $projects = Project::orderBy('name')->get(['id', 'name']);
         $departments = Department::orderBy('name')->get(['id', 'name']);
 
@@ -177,6 +242,8 @@ class JobOrderController extends Controller
             'name' => 'required|string|max:255',
             'project_id' => 'required|exists:projects,id',
             'department_id' => 'required|exists:departments,id',
+            'department_ids' => 'nullable|array', // NEW: Multiple departments
+            'department_ids.*' => 'exists:departments,id',
             'description' => 'nullable|string',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
@@ -185,7 +252,19 @@ class JobOrderController extends Controller
             'standard_time_per_unit' => 'nullable|numeric|min:0',
         ]);
 
+        // Extract department_ids untuk pivot sync
+        $departmentIds = $validated['department_ids'] ?? [];
+        unset($validated['department_ids']);
+
         $jobOrder->update($validated);
+
+        // Sync multiple departments via pivot table
+        if (!empty($departmentIds)) {
+            $jobOrder->departments()->sync($departmentIds);
+        } else {
+            // If no additional departments selected, detach all
+            $jobOrder->departments()->detach();
+        }
 
         return redirect()
             ->route('job-orders.index')
@@ -265,27 +344,36 @@ class JobOrderController extends Controller
      */
     public function syncFromLark(LarkJobOrderSyncService $syncService)
     {
-        try {
-            $stats = $syncService->sync();
-
-            $message = sprintf('Lark sync completed! Fetched: %d | Created: %d | Updated: %d | Deactivated: %d', $stats['fetched'], $stats['created'], $stats['updated'], $stats['deactivated']);
-
-            if ($stats['errors'] > 0) {
-                $message .= sprintf(' | Errors: %d', $stats['errors']);
-                return redirect()->route('job-orders.index')->with('warning', $message);
+        // If queue driver is 'sync' (no real queue worker), run directly with extended time limit.
+        // On production with a real queue driver (database/redis), dispatch to background immediately.
+        if (config('queue.default') === 'sync') {
+            set_time_limit(600);
+            try {
+                $stats = $syncService->sync();
+                $message = sprintf('Lark sync completed! Fetched: %d | Created: %d | Updated: %d | Deactivated: %d', $stats['fetched'], $stats['created'], $stats['updated'], $stats['deactivated']);
+                if ($stats['errors'] > 0) {
+                    $message .= sprintf(' | Errors: %d', $stats['errors']);
+                    return redirect()->route('job-orders.index')->with('warning', $message);
+                }
+                return redirect()->route('job-orders.index')->with('success', $message);
+            } catch (\Exception $e) {
+                \Log::error('Lark job order sync failed', ['error' => $e->getMessage(), 'user_id' => auth()->id()]);
+                return redirect()
+                    ->route('job-orders.index')
+                    ->withErrors(['error' => 'Sync failed: ' . $e->getMessage()]);
             }
-
-            return redirect()->route('job-orders.index')->with('success', $message);
-        } catch (\Exception $e) {
-            \Log::error('Lark job order sync failed', [
-                'error' => $e->getMessage(),
-                'user_id' => auth()->id(),
-            ]);
-
-            return redirect()
-                ->route('job-orders.index')
-                ->withErrors(['error' => 'Sync failed: ' . $e->getMessage()]);
         }
+
+        // Real queue driver available — dispatch to background, return immediately
+        $alreadyRunning = Cache::get('lark_jo_sync_status') === 'running';
+        if ($alreadyRunning) {
+            return redirect()->route('job-orders.index')->with('info', 'Sync is already running in the background. Please wait.');
+        }
+
+        Cache::put('lark_jo_sync_status', 'queued', now()->addMinutes(15));
+        SyncLarkJobOrdersJob::dispatch();
+
+        return redirect()->route('job-orders.index')->with('info', 'Lark sync has been queued and is running in the background. Refresh the page in a few moments to see updated data.');
     }
 
     /**
@@ -294,7 +382,7 @@ class JobOrderController extends Controller
      */
     public function getLarkRawData(LarkJobOrderSyncService $syncService)
     {
-        if (!auth()->user()->isSuperAdmin()) {
+        if (!auth()->user()->can('production.jo.delete')) {
             abort(403, 'Unauthorized');
         }
 

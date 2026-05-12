@@ -41,7 +41,7 @@
                         </div>
                     @endif
 
-                    <form action="{{ route('internal-projects.update', $internalProject->id) }}" method="POST">
+                    <form action="{{ route('internal-projects.update', $internalProject->uid) }}" method="POST">
                         @csrf
                         @method('PUT')
                         

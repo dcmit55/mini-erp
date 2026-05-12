@@ -16,21 +16,12 @@ class ShippingController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        $allowedRoles = ['super_admin', 'admin_procurement', 'admin_logistic', 'admin'];
-        $this->middleware(function ($request, $next) use ($allowedRoles) {
-            if (!in_array(auth()->user()->role, $allowedRoles)) {
-                abort(403, 'Unauthorized');
-            }
-            return $next($request);
-        });
+        $this->middleware('can:procurement.shipping.view');
+        $this->middleware('can:procurement.shipping.edit')->only(['create', 'store', 'edit', 'update', 'destroy']);
     }
 
     public function create(Request $request)
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            return redirect()->route('pre-shippings.index')->with('error', 'You do not have permission to create shipping.');
-        }
-
         // Accept both group_keys AND shortage_item_ids
         $groupKeys = $request->input('group_keys');
         if (is_string($groupKeys)) {
@@ -280,10 +271,6 @@ class ShippingController extends Controller
 
     public function store(Request $request)
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            return redirect()->route('pre-shippings.index')->with('error', 'You do not have permission to create shipping.');
-        }
-
         \Log::info('🚀 ShippingController.store() called', [
             'waybill' => $request->international_waybill_no,
             'items_count' => count($request->items ?? []),

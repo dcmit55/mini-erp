@@ -2,18 +2,21 @@
 
 namespace App\Models\Finance;
 
-use App\Models\Procurement\ProjectPurchase;
+use App\Models\Procurement\IndoPurchase;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
-class DcmCosting extends Model
+class DcmCosting extends Model implements AuditableContract
 {
-    use SoftDeletes;
+    use SoftDeletes, \OwenIt\Auditing\Auditable;
 
     protected $table = 'dcm_costings';
+
+    protected $auditInclude = ['po_number', 'date', 'purchase_type', 'item_name', 'quantity', 'unit_price', 'total_price', 'freight', 'invoice_total', 'department', 'project_type', 'project_name', 'job_order', 'supplier', 'resi_number', 'status', 'item_status', 'finance_notes', 'approved_at', 'purchase_id'];
 
     protected $fillable = [
         'uid',
@@ -37,16 +40,16 @@ class DcmCosting extends Model
         'finance_notes',
         'approved_at',
         'purchase_id',
-        'revision_at',  // TAMBAH
-        'is_current',   // TAMBAH
+        'revision_at', // TAMBAH
+        'is_current', // TAMBAH
     ];
 
     protected $casts = [
         'uid' => 'string',
         'date' => 'date',
         'approved_at' => 'datetime',
-        'revision_at' => 'datetime',  // TAMBAH
-        'is_current' => 'boolean',    // TAMBAH
+        'revision_at' => 'datetime', // TAMBAH
+        'is_current' => 'boolean', // TAMBAH
         'quantity' => 'decimal:2',
         'unit_price' => 'decimal:2',
         'total_price' => 'decimal:2',
@@ -60,7 +63,7 @@ class DcmCosting extends Model
     protected static function boot()
     {
         parent::boot();
-        
+
         static::creating(function ($model) {
             if (empty($model->uid)) {
                 $model->uid = Str::uuid();
@@ -70,7 +73,7 @@ class DcmCosting extends Model
                 $model->is_current = true;
             }
         });
-        
+
         // Set data lama dengan po_number sama menjadi tidak current saat buat data baru
         static::created(function ($model) {
             if ($model->is_current) {
@@ -82,13 +85,13 @@ class DcmCosting extends Model
     }
 
     /**
-     * Relationship dengan ProjectPurchase
+     * Relationship dengan IndoPurchase
      */
     public function purchase(): BelongsTo
     {
-        return $this->belongsTo(ProjectPurchase::class, 'purchase_id');
+        return $this->belongsTo(IndoPurchase::class, 'purchase_id');
     }
-    
+
     /**
      * Scope untuk mencari berdasarkan uid
      */
@@ -96,7 +99,7 @@ class DcmCosting extends Model
     {
         return $query->where('uid', $uid);
     }
-    
+
     /**
      * Scope untuk versi current saja
      */
@@ -104,7 +107,7 @@ class DcmCosting extends Model
     {
         return $query->where('is_current', true);
     }
-    
+
     /**
      * Scope untuk status approved
      */
@@ -112,7 +115,7 @@ class DcmCosting extends Model
     {
         return $query->where('status', 'approved');
     }
-    
+
     /**
      * Scope untuk status pending
      */
@@ -120,7 +123,7 @@ class DcmCosting extends Model
     {
         return $query->where('status', 'pending');
     }
-    
+
     /**
      * Scope untuk status rejected
      */
@@ -128,7 +131,7 @@ class DcmCosting extends Model
     {
         return $query->where('status', 'rejected');
     }
-    
+
     /**
      * Scope untuk filter berdasarkan tanggal
      */
@@ -136,7 +139,7 @@ class DcmCosting extends Model
     {
         return $query->whereBetween('date', [$startDate, $endDate]);
     }
-    
+
     /**
      * Get the route key for the model.
      */
@@ -144,7 +147,7 @@ class DcmCosting extends Model
     {
         return 'uid';
     }
-    
+
     /**
      * Format currency
      */
@@ -152,7 +155,7 @@ class DcmCosting extends Model
     {
         return 'Rp ' . number_format($value, 0, ',', '.');
     }
-    
+
     /**
      * Get formatted total price
      */
@@ -160,7 +163,7 @@ class DcmCosting extends Model
     {
         return $this->formatCurrency($this->total_price);
     }
-    
+
     /**
      * Get formatted invoice total
      */
@@ -168,7 +171,7 @@ class DcmCosting extends Model
     {
         return $this->formatCurrency($this->invoice_total);
     }
-    
+
     /**
      * Get formatted unit price
      */
@@ -176,7 +179,7 @@ class DcmCosting extends Model
     {
         return $this->formatCurrency($this->unit_price);
     }
-    
+
     /**
      * Get formatted freight
      */
@@ -184,7 +187,7 @@ class DcmCosting extends Model
     {
         return $this->formatCurrency($this->freight);
     }
-    
+
     /**
      * Get status badge class
      */
@@ -196,7 +199,7 @@ class DcmCosting extends Model
             'rejected' => 'badge bg-danger',
         ][$this->status] ?? 'badge bg-secondary';
     }
-    
+
     /**
      * Get item status badge class
      */
@@ -208,7 +211,7 @@ class DcmCosting extends Model
             'not_received' => 'badge bg-danger',
         ][$this->item_status] ?? 'badge bg-secondary';
     }
-    
+
     /**
      * Get formatted date
      */
@@ -216,7 +219,7 @@ class DcmCosting extends Model
     {
         return $this->date->format('d/m/Y');
     }
-    
+
     /**
      * Get formatted approved at
      */
@@ -224,7 +227,7 @@ class DcmCosting extends Model
     {
         return $this->approved_at ? $this->approved_at->format('d/m/Y H:i') : '-';
     }
-    
+
     /**
      * Get formatted revision at
      */
@@ -232,39 +235,32 @@ class DcmCosting extends Model
     {
         return $this->revision_at ? $this->revision_at->format('d/m/Y H:i') : '-';
     }
-    
+
     /**
      * Get revision number (calculated from created_at order)
      */
     public function getRevisionNumberAttribute()
     {
-        $count = DcmCosting::where('po_number', $this->po_number)
-            ->where('created_at', '<=', $this->created_at)
-            ->count();
+        $count = DcmCosting::where('po_number', $this->po_number)->where('created_at', '<=', $this->created_at)->count();
         return $count;
     }
-    
+
     /**
      * Get all revisions for this PO
      */
     public function getRevisionsAttribute()
     {
-        return DcmCosting::where('po_number', $this->po_number)
-            ->orderBy('created_at', 'desc')
-            ->get();
+        return DcmCosting::where('po_number', $this->po_number)->orderBy('created_at', 'desc')->get();
     }
-    
+
     /**
      * Get previous revision
      */
     public function getPreviousRevisionAttribute()
     {
-        return DcmCosting::where('po_number', $this->po_number)
-            ->where('created_at', '<', $this->created_at)
-            ->orderBy('created_at', 'desc')
-            ->first();
+        return DcmCosting::where('po_number', $this->po_number)->where('created_at', '<', $this->created_at)->orderBy('created_at', 'desc')->first();
     }
-    
+
     /**
      * Create a new revision
      */
@@ -272,22 +268,21 @@ class DcmCosting extends Model
     {
         // Clone data
         $revisionData = $this->toArray();
-        
+
         // Remove unwanted fields
-        unset($revisionData['id'], $revisionData['uid'], $revisionData['created_at'], 
-              $revisionData['updated_at'], $revisionData['deleted_at']);
-        
+        unset($revisionData['id'], $revisionData['uid'], $revisionData['created_at'], $revisionData['updated_at'], $revisionData['deleted_at']);
+
         // Merge with new data
         $revisionData = array_merge($revisionData, $data);
-        
+
         // Set new UID and revision timestamp
         $revisionData['uid'] = Str::uuid();
         $revisionData['revision_at'] = now();
         $revisionData['is_current'] = true;
-        
+
         // Set old record to not current
         $this->update(['is_current' => false]);
-        
+
         // Create new revision
         return DcmCosting::create($revisionData);
     }

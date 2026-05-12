@@ -151,9 +151,11 @@
 
                     <!-- Spacer untuk mendorong tombol ke kanan -->
                     <div class="ms-sm-auto d-flex flex-wrap gap-2">
+                        @can('procurement.supplier.edit')
                         <a href="{{ route('suppliers.create') }}" class="btn btn-primary btn-sm flex-shrink-0">
                             <i class="bi bi-plus-circle me-1"></i> Add Supplier
                         </a>
+                        @endcan
                     </div>
                 </div>
 

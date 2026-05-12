@@ -281,7 +281,7 @@ class EmployeesImport implements ToModel, WithHeadingRow, WithValidation, SkipsO
      */
     private function validateStatus($value)
     {
-        $allowed = ['active', 'inactive', 'terminated'];
+        $allowed = ['active', 'inactive', 'pending_contract'];
         $value = trim($value);
         
         if (!in_array($value, $allowed)) {

@@ -10,6 +10,7 @@ use App\Models\Production\JobOrder;
 use App\Models\Admin\Department;
 use App\Models\Production\ProjectStatus;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 use OwenIt\Auditing\Contracts\Auditable;
 
 class Project extends Model implements Auditable
@@ -20,12 +21,23 @@ class Project extends Model implements Auditable
 
     protected $auditTimestamps = true;
 
-    protected $fillable = ['name', 'type_dept', 'department_id', 'sales', 'qty', 'project_status_id', 'project_status', 'start_date', 'deadline', 'finish_date', 'img', 'created_by', 'lark_record_id', 'last_sync_at', 'stage', 'submission_form'];
+    protected $fillable = ['uid', 'name', 'type_dept', 'department_id', 'sales', 'qty', 'project_status_id', 'project_status', 'start_date', 'deadline', 'finish_date', 'img', 'created_by', 'lark_record_id', 'last_sync_at', 'stage', 'submission_form'];
+
+    public function getRouteKeyName(): string
+    {
+        return 'uid';
+    }
 
     // BOOT METHOD
     protected static function boot()
     {
         parent::boot();
+
+        static::creating(function ($model) {
+            if (empty($model->uid)) {
+                $model->uid = (string) Str::uuid();
+            }
+        });
 
         // Saat project di-delete (soft delete), hapus juga related records
         static::deleting(function ($project) {

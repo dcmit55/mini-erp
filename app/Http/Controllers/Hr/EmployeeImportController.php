@@ -17,15 +17,7 @@ class EmployeeImportController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        
-        // Hanya user dengan role tertentu yang bisa akses
-        $this->middleware(function ($request, $next) {
-            $rolesAllowed = ['super_admin', 'admin_hr', 'admin'];
-            if (!in_array(Auth::user()->role, $rolesAllowed)) {
-                abort(403, 'Unauthorized access to import employees.');
-            }
-            return $next($request);
-        });
+        $this->middleware('can:hr.employees.import');
     }
 
     /**

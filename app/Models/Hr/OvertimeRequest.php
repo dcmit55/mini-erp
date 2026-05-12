@@ -7,19 +7,31 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
-class OvertimeRequest extends Model
+class OvertimeRequest extends Model implements AuditableContract
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, \OwenIt\Auditing\Auditable;
 
-    protected $fillable = [
-        'uid', 'employee_id', 'department_id', 'job_order_id',
-        'reason', 'ot_code', 'start_time', 'end_time',
-        'total_hours', 'break_deduction', 'net_hours',
-        'hr_approval_status', 'hr_approved_by', 'hr_approved_at',
-        'director_approval_status', 'director_approved_by', 'director_approved_at',
-        'status', 'is_passed'
-    ];
+    protected $auditInclude = ['employee_id', 'tanggal', 'start_time', 'end_time', 'reason', 'status', 'hr_approval_status', 'director_approval_status'];
+
+    public function getRouteKeyName(): string
+    {
+        return 'uid';
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (empty($model->uid)) {
+                $model->uid = (string) Str::uuid();
+            }
+        });
+    }
+
+    protected $fillable = ['uid', 'employee_id', 'department_id', 'job_order_id', 'reason', 'ot_code', 'start_time', 'end_time', 'total_hours', 'break_deduction', 'net_hours', 'hr_approval_status', 'hr_approved_by', 'hr_approved_at', 'director_approval_status', 'director_approved_by', 'director_approved_at', 'status', 'is_passed', 'edited_after_hr_approval'];
 
     protected $casts = [
         'start_time' => 'datetime',
@@ -30,6 +42,7 @@ class OvertimeRequest extends Model
         'break_deduction' => 'decimal:2',
         'net_hours' => 'decimal:2',
         'is_passed' => 'boolean',
+        'edited_after_hr_approval' => 'boolean',
     ];
 
     public function employee()
@@ -62,6 +75,16 @@ class OvertimeRequest extends Model
         return $this->hasOne(\App\Models\Hr\OvertimePayDetail::class, 'overtime_request_id');
     }
 
+    public function getAttendanceAttribute()
+    {
+        if (!$this->start_time || !$this->employee_id) {
+            return null;
+        }
+        return \App\Models\Hr\DailyAttendance::where('employee_id', $this->employee_id)
+            ->whereDate('date', $this->start_time->toDateString())
+            ->first();
+    }
+
     public function getNetHoursFormattedAttribute()
     {
         $hours = floor($this->net_hours);
@@ -70,7 +93,7 @@ class OvertimeRequest extends Model
             $hours += 1;
             $minutes = 0;
         }
-        return $hours . ' jam' . ($minutes > 0 ? ' ' . $minutes . ' menit' : '');
+        return $hours . 'h' . ($minutes > 0 ? ' ' . $minutes . 'm' : '');
     }
 
     public function calculateAndSavePayDetail()
@@ -100,10 +123,7 @@ class OvertimeRequest extends Model
                 $remainingHours = $netHours - 1;
                 $remainingPay = $remainingHours * $hourlyRate * 2;
                 $totalPay = $firstHour + $remainingPay;
-                $breakdown = [
-                    ['segment' => 'Jam pertama', 'hours' => 1, 'rate' => 1.5, 'amount' => $firstHour],
-                    ['segment' => 'Jam selanjutnya', 'hours' => $remainingHours, 'rate' => 2, 'amount' => $remainingPay],
-                ];
+                $breakdown = [['segment' => 'Jam pertama', 'hours' => 1, 'rate' => 1.5, 'amount' => $firstHour], ['segment' => 'Jam selanjutnya', 'hours' => $remainingHours, 'rate' => 2, 'amount' => $remainingPay]];
             }
         } else {
             if ($netHours <= 7) {
@@ -113,20 +133,13 @@ class OvertimeRequest extends Model
                 $first7 = 7 * $hourlyRate * 2;
                 $eighthHour = ($netHours - 7) * $hourlyRate * 3;
                 $totalPay = $first7 + $eighthHour;
-                $breakdown = [
-                    ['segment' => '7 jam pertama', 'hours' => 7, 'rate' => 2, 'amount' => $first7],
-                    ['segment' => 'Jam ke-8', 'hours' => $netHours - 7, 'rate' => 3, 'amount' => $eighthHour],
-                ];
+                $breakdown = [['segment' => '7 jam pertama', 'hours' => 7, 'rate' => 2, 'amount' => $first7], ['segment' => 'Jam ke-8', 'hours' => $netHours - 7, 'rate' => 3, 'amount' => $eighthHour]];
             } else {
                 $first7 = 7 * $hourlyRate * 2;
                 $eighthHour = 1 * $hourlyRate * 3;
                 $remaining = ($netHours - 8) * $hourlyRate * 4;
                 $totalPay = $first7 + $eighthHour + $remaining;
-                $breakdown = [
-                    ['segment' => '7 jam pertama', 'hours' => 7, 'rate' => 2, 'amount' => $first7],
-                    ['segment' => 'Jam ke-8', 'hours' => 1, 'rate' => 3, 'amount' => $eighthHour],
-                    ['segment' => 'Jam ke-9 dst', 'hours' => $netHours - 8, 'rate' => 4, 'amount' => $remaining],
-                ];
+                $breakdown = [['segment' => '7 jam pertama', 'hours' => 7, 'rate' => 2, 'amount' => $first7], ['segment' => 'Jam ke-8', 'hours' => 1, 'rate' => 3, 'amount' => $eighthHour], ['segment' => 'Jam ke-9 dst', 'hours' => $netHours - 8, 'rate' => 4, 'amount' => $remaining]];
             }
         }
 

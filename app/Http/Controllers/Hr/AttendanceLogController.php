@@ -8,10 +8,13 @@ use App\Models\Hr\Employee;
 use App\Models\Hr\AttendanceLog;
 use App\Models\Hr\DailyAttendance;
 use App\Models\Hr\LeaveRequest;
+use App\Models\Hr\SessionShift;
+use App\Models\Admin\Department;
 use App\Imports\AttendancesImport;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use App\Services\DailyAttendanceService;
 use Carbon\Carbon;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -24,13 +27,7 @@ class AttendanceLogController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        $this->middleware(function ($request, $next) {
-            $rolesAllowed = ['super_admin', 'admin_hr', 'admin'];
-            if (!in_array(Auth::user()->role, $rolesAllowed)) {
-                abort(403);
-            }
-            return $next($request);
-        });
+        $this->middleware('can:hr.attendance.view');
     }
 
     /**
@@ -38,16 +35,22 @@ class AttendanceLogController extends Controller
      */
     public function index(Request $request)
     {
-        $search = $request->input('search', '');
+        $search       = $request->input('search', '');
+        $departmentId = $request->input('department_id');
 
-        $employeesQuery = Employee::where('status', 'active');
+        $employeesQuery = Employee::whereIn('status', ['active', 'pending_contract'])
+            ->whereDoesntHave('department', fn($q) => $q->where('name', 'Party Point'));
         if (!empty($search)) {
             $employeesQuery->where(function ($q) use ($search) {
                 $q->where('name', 'LIKE', "%{$search}%")
                   ->orWhere('employee_no', 'LIKE', "%{$search}%");
             });
         }
-        $employees = $employeesQuery->orderBy('name')->get();
+        if ($departmentId) {
+            $employeesQuery->where('department_id', $departmentId);
+        }
+        $employees   = $employeesQuery->orderBy('name')->get();
+        $departments = Department::orderBy('name')->get();
 
         if ($request->has('all')) {
             $datesWithData = AttendanceLog::select('date')->distinct()->pluck('date')->toArray();
@@ -58,98 +61,139 @@ class AttendanceLogController extends Controller
                 return Carbon::parse($d);
             }, $datesWithData);
         }
-        elseif ($request->filled('start_date') && $request->filled('end_date')) {
+        elseif ($request->filled('start_date')) {
             $startDate = Carbon::parse($request->start_date);
-            $endDate = Carbon::parse($request->end_date);
+            $endDate   = $request->filled('end_date') ? Carbon::parse($request->end_date) : $startDate->copy();
             $dates = [];
             for ($d = $startDate->copy(); $d->lte($endDate); $d->addDay()) {
                 $dates[] = $d->copy();
             }
         }
         else {
-            $date = $request->filled('date') ? Carbon::parse($request->date) : Carbon::today();
-            $dates = [$date];
+            $dates = [Carbon::today()];
         }
 
-        $attendances = collect();
+        // ── Batch-load semua data yang dibutuhkan (hindari N+1) ──────────────────
+        $employeeIds = $employees->pluck('id')->toArray();
+        $dateStrs    = array_map(fn($d) => $d->format('Y-m-d'), $dates);
+        $minDate     = min($dateStrs);
+        $maxDate     = max($dateStrs);
+
+        // 1 query: semua daily_attendances untuk employee+tanggal yang relevan
+        $dailiesMap = DailyAttendance::whereIn('employee_id', $employeeIds)
+            ->whereBetween('date', [$minDate, $maxDate])
+            ->with('sessionShift')
+            ->get()
+            ->groupBy(fn($d) => $d->employee_id . '_' . $d->date->format('Y-m-d'));
+
+        // 1 query: semua attendance_logs
+        $logsMap = AttendanceLog::whereIn('employee_id', $employeeIds)
+            ->whereBetween('date', [$minDate, $maxDate])
+            ->get()
+            ->groupBy(fn($l) => $l->employee_id . '_' . Carbon::parse($l->date)->format('Y-m-d'));
+
+        // 1 query: semua cuti yang approved dalam rentang tanggal
+        $leavesMap = LeaveRequest::whereIn('employee_id', $employeeIds)
+            ->where('start_date', '<=', $maxDate)
+            ->where('end_date', '>=', $minDate)
+            ->where('approval_1', 'approved')
+            ->where('approval_2', 'approved')
+            ->get()
+            ->groupBy('employee_id');
+
+        $attendanceService = app(DailyAttendanceService::class);
+        $attendances       = collect();
 
         foreach ($dates as $currentDate) {
             $dateStr = $currentDate->format('Y-m-d');
 
             foreach ($employees as $employee) {
-                $daily = DailyAttendance::where('employee_id', $employee->id)
-                    ->where('date', $dateStr)
-                    ->first();
+                $key   = $employee->id . '_' . $dateStr;
+                $daily = $dailiesMap->get($key)?->first();
 
                 if ($daily) {
                     $attendances->push((object)[
-                        'employee' => $employee,
-                        'date' => $currentDate,
-                        'clock_in' => $daily->clock_in ? Carbon::parse($daily->clock_in) : null,
-                        'clock_out' => $daily->clock_out ? Carbon::parse($daily->clock_out) : null,
-                        'total_hours' => $daily->total_hours,
-                        'status' => $daily->status,
-                        'remarks' => $daily->remarks,
-                        'is_corrected' => true,
-                        'daily_id' => $daily->id,
+                        'employee'         => $employee,
+                        'date'             => $currentDate,
+                        'clock_in'         => $daily->clock_in  ? Carbon::parse($daily->clock_in)  : null,
+                        'clock_out'        => $daily->clock_out ? Carbon::parse($daily->clock_out) : null,
+                        'total_hours'      => $daily->total_hours,
+                        'status'           => $daily->status,
+                        'remarks'          => $daily->remarks,
+                        'is_corrected'     => true,
+                        'daily_id'         => $daily->id,
+                        'session_shift'    => $daily->sessionShift,
+                        'session_shift_id' => $daily->session_shift_id,
                     ]);
                 } else {
-                    $logs = AttendanceLog::where('employee_id', $employee->id)
-                        ->whereDate('date', $dateStr)
-                        ->orderBy('clock_in')
-                        ->get();
+                    $employeeLogs = $logsMap->get($key, collect());
 
-                    if ($logs->isNotEmpty()) {
-                        $clockIn = $logs->min('clock_in');
-                        $clockOut = $logs->max('clock_out');
-
-                        // Tentukan status dan remarks
-                        $status = $this->determineStatus($employee, $currentDate, $clockIn, $clockOut);
-                        $remarks = null;
+                    if ($employeeLogs->isNotEmpty()) {
+                        $clockIn  = $employeeLogs->min('clock_in');
+                        $clockOut = $employeeLogs->max('clock_out');
+                        $status   = $attendanceService->determineStatus($employee, $currentDate, $clockIn, $clockOut);
+                        $remarks  = null;
 
                         if (!$clockIn && $clockOut) {
-                            // Hanya clock out
                             $remarks = 'Missing clock in';
                         } elseif ($clockIn && !$clockOut) {
-                            // Hanya clock in
                             $remarks = 'Missing clock out';
                         }
 
-                        $totalHours = $clockIn && $clockOut ? $this->calculateHours($clockIn, $clockOut) : null;
+                        $totalHours   = $clockIn && $clockOut ? $this->calculateHours($clockIn, $clockOut) : null;
+                        $sessionShift = null;
+                        if ($clockIn && $employee->department_id) {
+                            $clockInCarbon = Carbon::parse($clockIn);
+                            $clockInDow    = $clockInCarbon->isoWeekday();
+                            $sessionShift  = SessionShift::detectFromClockIn(
+                                $employee->department_id,
+                                $clockInCarbon->format('H:i:s'),
+                                $employee->citizenship === 'WNA',
+                                $employee->id,
+                                $employee->position,
+                                $clockInDow
+                            );
+                            if (!$sessionShift && $clockInDow === 6) {
+                                $sessionShift = SessionShift::detectSaturdayFallback(
+                                    $employee->department_id,
+                                    $employee->citizenship === 'WNA',
+                                    $employee->id
+                                );
+                            }
+                        }
 
                         $attendances->push((object)[
-                            'employee' => $employee,
-                            'date' => $currentDate,
-                            'clock_in' => $clockIn ? Carbon::parse($clockIn) : null,
-                            'clock_out' => $clockOut ? Carbon::parse($clockOut) : null,
-                            'total_hours' => $totalHours,
-                            'status' => $status,
-                            'remarks' => $remarks,
-                            'is_corrected' => false,
-                            'daily_id' => null,
+                            'employee'         => $employee,
+                            'date'             => $currentDate,
+                            'clock_in'         => $clockIn  ? Carbon::parse($clockIn)  : null,
+                            'clock_out'        => $clockOut ? Carbon::parse($clockOut) : null,
+                            'total_hours'      => $totalHours,
+                            'status'           => $status,
+                            'remarks'          => $remarks,
+                            'is_corrected'     => false,
+                            'daily_id'         => null,
+                            'session_shift'    => $sessionShift,
+                            'session_shift_id' => $sessionShift?->id,
                         ]);
                     } else {
-                        // Tidak ada log sama sekali, cek cuti
-                        $leave = LeaveRequest::where('employee_id', $employee->id)
-                            ->where('start_date', '<=', $dateStr)
-                            ->where('end_date', '>=', $dateStr)
-                            ->where('approval_1', 'approved')
-                            ->where('approval_2', 'approved')
-                            ->first();
+                        // Tidak ada log sama sekali, cek cuti dari cache
+                        $leave = ($leavesMap->get($employee->id) ?? collect())
+                            ->first(fn($l) => $l->start_date <= $dateStr && $l->end_date >= $dateStr);
 
-                        $status = $leave ? $this->mapLeaveTypeToStatus($leave->type) : 'Alpha';
+                        $status  = $leave ? $attendanceService->mapLeaveTypeToStatus($leave->type) : 'Alpha';
                         $remarks = $leave ? $leave->reason : null;
 
                         $attendances->push((object)[
-                            'employee' => $employee,
-                            'date' => $currentDate,
-                            'clock_in' => null,
-                            'clock_out' => null,
-                            'total_hours' => null,
-                            'status' => $status,
-                            'remarks' => $remarks,
-                            'is_corrected' => false,
-                            'daily_id' => null,
+                            'employee'      => $employee,
+                            'date'          => $currentDate,
+                            'clock_in'      => null,
+                            'clock_out'     => null,
+                            'total_hours'   => null,
+                            'status'        => $status,
+                            'remarks'       => $remarks,
+                            'is_corrected'  => false,
+                            'daily_id'      => null,
+                            'session_shift' => null,
                         ]);
                     }
                 }
@@ -177,97 +221,17 @@ class AttendanceLogController extends Controller
             }
         }
 
-        return view('hr.attendance-logs.index', compact('attendancesPaginated', 'employees', 'latestImportSource', 'search'));
-    }
+        $sessionShifts = SessionShift::where('is_active', true)
+            ->orderBy('department_id')
+            ->orderBy('type_of_shift')
+            ->get(['id', 'type_of_shift', 'department_id', 'start_time', 'end_time']);
 
-    /**
-     * Mendapatkan jam standar berdasarkan hari dari policy
-     */
-    private function getStandardTimes($policy, $dayOfWeek)
-    {
-        $start = null;
-        $end = null;
-        if (in_array($dayOfWeek, ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'])) {
-            $start = $policy->weekday_start;
-            $end = $policy->weekday_end;
-        } elseif ($dayOfWeek === 'saturday') {
-            $start = $policy->saturday_start;
-            $end = $policy->saturday_end;
-        } elseif ($dayOfWeek === 'sunday') {
-            $start = $policy->sunday_start;
-            $end = $policy->sunday_end;
-        }
-        return [$start, $end];
-    }
-
-    /**
-     * Menentukan status kehadiran berdasarkan toleransi 3 menit.
-     * Toleransi 3 menit: jika jam masuk standar 08:00, maka sampai 08:03 = Present.
-     * 08:04 ke atas = Late.
-     * Jika hanya ada clockOut, dianggap Present.
-     * Jika hanya ada clockIn, dihitung keterlambatan (bisa Present/Late).
-     * Jika tidak ada keduanya, Alpha (harusnya sudah ditangani di luar).
-     */
-    private function determineStatus($employee, $date, $clockIn, $clockOut)
-    {
-        // Jika tidak ada clockIn dan clockOut -> Alpha (nanti di luar sudah cek cuti)
-        if (!$clockIn && !$clockOut) {
-            return 'Alpha';
-        }
-
-        // Jika hanya clockOut, langsung Present (tidak bisa hitung keterlambatan)
-        if (!$clockIn && $clockOut) {
-            return 'Present';
-        }
-
-        // Jika ada clockIn (dengan atau tanpa clockOut), hitung keterlambatan
-        $policy = $employee->workPolicy;
-        if (!$policy) {
-            return 'Present';
-        }
-
-        $dayOfWeek = strtolower($date->format('l'));
-        list($standardStart, $standardEnd) = $this->getStandardTimes($policy, $dayOfWeek);
-
-        // Jika tidak ada jam standar atau jam standar 00:00:00 (dianggap libur/tidak masuk)
-        if (!$standardStart || trim($standardStart) == '00:00:00') {
-            return 'Present';
-        }
-
-        // Toleransi 3 menit: misal masuk 08:00, batas toleransi = 08:03
-        // 08:04 ke atas sudah dianggap Late
-        $toleranceMinutes = 3;
-        // Set tanggal absensi agar perbandingan tidak terpengaruh tanggal hari ini
-        $clockInTime = Carbon::parse($clockIn)
-            ->setDate($date->year, $date->month, $date->day);
-        $standardStartTime = Carbon::parse($standardStart)
-            ->setDate($date->year, $date->month, $date->day);
-
-        // Batas akhir toleransi (inklusif sampai menit ke-3)
-        $toleranceEnd = $standardStartTime->copy()->addMinutes($toleranceMinutes);
-
-        // Jika clock_in SETELAH batas toleransi (lebih dari 3 menit) -> Late
-        if ($clockInTime->gt($toleranceEnd)) {
-            return 'Late';
-        }
-
-        return 'Present';
+        return view('hr.attendance-logs.index', compact('attendancesPaginated', 'employees', 'departments', 'latestImportSource', 'search', 'departmentId', 'sessionShifts'));
     }
 
     private function calculateHours($clockIn, $clockOut)
     {
         return Carbon::parse($clockIn)->diffInMinutes(Carbon::parse($clockOut)) / 60;
-    }
-
-    private function mapLeaveTypeToStatus($type)
-    {
-        $map = [
-            'ANNUAL' => 'Annual Leave',
-            'MATERNITY' => 'Maternity Leave',
-            'WEDDING' => 'Wedding Leave',
-            'SONWED' => 'Son\'s Wedding Leave',
-        ];
-        return $map[$type] ?? 'Excused';
     }
 
     public function edit($employeeId, $date)
@@ -297,155 +261,87 @@ class AttendanceLogController extends Controller
     public function update(Request $request, $employeeId, $date)
     {
         $request->validate([
-            'clock_in' => 'nullable|date_format:H:i',
-            'clock_out' => 'nullable|date_format:H:i|after:clock_in',
-            'status' => 'required|in:Present,Late,Excused,Sick Leave,Annual Leave,Alpha',
-            'remarks' => 'nullable|string',
+            'clock_in'         => 'nullable|date_format:H:i',
+            'clock_out'        => 'nullable|date_format:H:i|after:clock_in',
+            'status'           => 'required|in:Present,Late,Less Hours,Early Leave,Permission Out,Excused,Sick Leave,Annual Leave,Maternity Leave,Paternity Leave,Wedding Leave,Birth Leave,Bereavement Leave,Child Event Leave,Hajj Leave,Unpaid Leave,Alpha',
+            'session_shift_id' => 'nullable|exists:session_shifts,id',
+            'remarks'          => 'nullable|string',
         ]);
 
-        $employee = Employee::findOrFail($employeeId);
+        $employee = Employee::with('department')->findOrFail($employeeId);
         $date = Carbon::parse($date);
+
+        $leaveStatuses = [
+            'Excused', 'Sick Leave', 'Annual Leave', 'Alpha',
+            'Early Leave', 'Permission Out', 'Maternity Leave', 'Paternity Leave',
+            'Wedding Leave', 'Birth Leave', 'Bereavement Leave', 'Child Event Leave',
+            'Hajj Leave', 'Unpaid Leave',
+        ];
+
+        if (in_array($request->status, $leaveStatuses)) {
+            $finalStatus = $request->status;
+            $shift = $request->session_shift_id
+                ? SessionShift::find($request->session_shift_id)
+                : null;
+        } else {
+            $attendanceService = app(DailyAttendanceService::class);
+
+            // Gunakan shift yang dipilih manual; jika tidak ada, auto-detect dari clock_in
+            if ($request->session_shift_id) {
+                $shift = SessionShift::find($request->session_shift_id);
+            } elseif ($request->clock_in && $employee->department_id) {
+                $clockInTime = \Carbon\Carbon::createFromFormat('H:i', $request->clock_in)->format('H:i:s');
+                $dow         = $date->isoWeekday();
+                $shift       = SessionShift::detectFromClockIn(
+                    $employee->department_id,
+                    $clockInTime,
+                    $employee->citizenship === 'WNA',
+                    $employee->id,
+                    $employee->position,
+                    $dow
+                );
+                if (!$shift && $dow === 6) {
+                    $shift = SessionShift::detectSaturdayFallback(
+                        $employee->department_id,
+                        $employee->citizenship === 'WNA',
+                        $employee->id
+                    );
+                }
+            } else {
+                $shift = null;
+            }
+
+            $finalStatus = $attendanceService->determineStatus(
+                $employee,
+                $date,
+                $request->clock_in,
+                $request->clock_out,
+                $shift
+            );
+        }
+
+        $remarks = $request->remarks;
+        if ($request->clock_in && $request->clock_out) {
+            $remarks = $remarks ?: null;
+        }
 
         $attendance = DailyAttendance::updateOrCreate(
             ['employee_id' => $employeeId, 'date' => $date->format('Y-m-d')],
             [
-                'clock_in' => $request->clock_in,
-                'clock_out' => $request->clock_out,
-                'status' => $request->status,
-                'remarks' => $request->remarks,
-                'updated_by' => Auth::id(),
+                'clock_in'         => $request->clock_in,
+                'clock_out'        => $request->clock_out,
+                'status'           => $finalStatus,
+                'remarks'          => $remarks,
+                'session_shift_id' => $shift?->id ?? $request->session_shift_id,
+                'updated_by'       => Auth::id(),
+                'is_locked'        => true,
             ]
         );
 
-        $this->calculateAttendanceFields($attendance);
+        app(DailyAttendanceService::class)->calculateAttendanceFields($attendance);
 
         return redirect()->route('attendance-logs.index', ['date' => $date->format('Y-m-d')])
             ->with('success', 'Attendance data updated successfully.');
-    }
-
-    /**
-     * Menghitung field-field seperti total jam, potongan terlambat, dll.
-     *
-     * Aturan keterlambatan:
-     * - Toleransi 3 menit: misal masuk jam 08:00, maka 08:01 - 08:03 tidak ada potongan.
-     * - Lewat toleransi (misal 08:04) → status Late, potongan FLAT Rp 25.000
-     *   (berlaku selama keterlambatan < 60 menit dari batas toleransi, yaitu sebelum jam 09:04 jika standar 08:00)
-     * - Jika keterlambatan >= 60 menit dihitung dari jam standar (bukan dari batas toleransi),
-     *   yaitu masuk di jam 09:00 ke atas (jika standar 08:00), maka:
-     *   potongan = (jumlah menit terlambat / 60) * (gaji_bulanan / 173)
-     *
-     * Catatan: Threshold 60 menit dihitung dari jam STANDAR (bukan dari menit toleransi).
-     *   Jadi jika standar 08:00:
-     *   - 08:01 - 08:03 → Present, tidak ada potongan
-     *   - 08:04 - 08:59 → Late, potongan flat 25.000
-     *   - 09:00+        → Late, potongan per jam dari gaji/173
-     */
-    private function calculateAttendanceFields(DailyAttendance $attendance)
-    {
-        $employee = $attendance->employee;
-        $policy = $employee->workPolicy;
-        if (!$policy) {
-            return;
-        }
-
-        // Gaji per jam = gaji bulanan / 173 (standar umum)
-        $monthlySalary = $employee->salary ?? 0;
-        $hourlyRate = $monthlySalary > 0 ? $monthlySalary / 173 : 0;
-
-        $dayOfWeek = strtolower($attendance->date->format('l'));
-        list($standardStart, $standardEnd) = $this->getStandardTimes($policy, $dayOfWeek);
-
-        // Jika tidak ada jam standar atau jam standar 00:00:00 (dianggap libur), tidak perlu hitung
-        if (!$standardStart || !$standardEnd || trim($standardStart) == '00:00:00' || trim($standardEnd) == '00:00:00') {
-            return;
-        }
-
-        if ($attendance->clock_in && $attendance->clock_out) {
-            // Set tanggal absensi pada clock_in/clock_out agar perbandingan konsisten
-            $start = Carbon::parse($attendance->clock_in)
-                ->setDate($attendance->date->year, $attendance->date->month, $attendance->date->day);
-            $end = Carbon::parse($attendance->clock_out)
-                ->setDate($attendance->date->year, $attendance->date->month, $attendance->date->day);
-
-            // Set tanggal agar sama dengan tanggal attendance
-            $standardStartTime = Carbon::parse($standardStart)
-                ->setDate($attendance->date->year, $attendance->date->month, $attendance->date->day);
-            $standardEndTime = Carbon::parse($standardEnd)
-                ->setDate($attendance->date->year, $attendance->date->month, $attendance->date->day);
-
-            $attendance->total_hours = $end->diffInMinutes($start) / 60;
-
-            // Reset semua field perhitungan
-            $attendance->late_minutes = null;
-            $attendance->late_deduction = null;
-            $attendance->early_leave_minutes = null;
-            $attendance->early_leave_deduction = null;
-            $attendance->overtime_minutes = null;
-            $attendance->overtime_pay = null;
-
-            // ─── KETERLAMBATAN ───────────────────────────────────────────────────
-            if ($start->gt($standardStartTime)) {
-                // Jumlah menit terlambat dihitung dari jam standar
-                $lateMinutes = $standardStartTime->diffInMinutes($start);
-                $attendance->late_minutes = $lateMinutes;
-
-                $toleranceMinutes = 3;
-
-                if ($lateMinutes <= $toleranceMinutes) {
-                    // Masih dalam toleransi → tidak ada potongan
-                    $attendance->late_deduction = 0;
-                } elseif ($lateMinutes < 60) {
-                    // Lewat toleransi tapi kurang dari 60 menit dari jam standar
-                    // (misal 08:04 - 08:59 jika standar 08:00) → flat Rp 25.000
-                    $attendance->late_deduction = 25000;
-                } else {
-                    // Terlambat 60 menit atau lebih dari jam standar
-                    // (misal 09:00+ jika standar 08:00) → potongan per jam
-                    $attendance->late_deduction = ($lateMinutes / 60) * $hourlyRate;
-                }
-            }
-
-            // ─── PULANG AWAL ─────────────────────────────────────────────────────
-            if ($end->lt($standardEndTime)) {
-                $earlyMinutes = $end->diffInMinutes($standardEndTime);
-                $attendance->early_leave_minutes = $earlyMinutes;
-                $attendance->early_leave_deduction = ($earlyMinutes / 60) * $hourlyRate;
-            }
-
-            // ─── LEMBUR ──────────────────────────────────────────────────────────
-            if ($end->gt($standardEndTime)) {
-                $overtimeMinutes = $standardEndTime->diffInMinutes($end);
-                $attendance->overtime_minutes = $overtimeMinutes;
-                $attendance->overtime_pay = ($overtimeMinutes / 60) * $hourlyRate * 1.5;
-            }
-        } else {
-            // Jika hanya ada salah satu (hanya clock_in atau hanya clock_out),
-            // tidak bisa hitung total jam dan potongan lengkap.
-            // Namun jika hanya ada clock_in dan status Late, catat late_minutes-nya.
-            if ($attendance->clock_in && !$attendance->clock_out) {
-                $start = Carbon::parse($attendance->clock_in)
-                    ->setDate($attendance->date->year, $attendance->date->month, $attendance->date->day);
-                $standardStartTime = Carbon::parse($standardStart)
-                    ->setDate($attendance->date->year, $attendance->date->month, $attendance->date->day);
-
-                if ($start->gt($standardStartTime)) {
-                    $lateMinutes = $standardStartTime->diffInMinutes($start);
-                    $attendance->late_minutes = $lateMinutes;
-
-                    $toleranceMinutes = 3;
-                    if ($lateMinutes <= $toleranceMinutes) {
-                        $attendance->late_deduction = 0;
-                    } elseif ($lateMinutes < 60) {
-                        $attendance->late_deduction = 25000;
-                    } else {
-                        $attendance->late_deduction = ($lateMinutes / 60) * $hourlyRate;
-                    }
-                }
-            }
-            $attendance->total_hours = null;
-        }
-
-        $attendance->save();
     }
 
     public function storeImport(Request $request)
@@ -506,7 +402,7 @@ class AttendanceLogController extends Controller
                 Log::info('Dates to generate daily: ' . $dates->implode(', '));
 
                 foreach ($dates as $date) {
-                    $this->generateDailyForDate(Carbon::parse($date));
+                    app(DailyAttendanceService::class)->generateForDate(Carbon::parse($date), Auth::id());
                 }
                 $minDate = $dates->min();
                 $maxDate = $dates->max();
@@ -567,105 +463,9 @@ class AttendanceLogController extends Controller
         ]);
 
         $date = $request->filled('date') ? Carbon::parse($request->date) : Carbon::today();
-        $this->generateDailyForDate($date);
+        app(DailyAttendanceService::class)->generateForDate($date, Auth::id());
 
         return redirect()->back()->with('success', 'Daily data updated for ' . $date->format('d-m-Y'));
-    }
-
-    private function generateDailyForDate(Carbon $date)
-    {
-        Log::info("===== GENERATING DAILY FOR DATE: " . $date->format('Y-m-d') . " =====");
-
-        $employees = Employee::where('status', 'active')->get();
-        $dateStr = $date->format('Y-m-d');
-
-        foreach ($employees as $employee) {
-            $logs = AttendanceLog::where('employee_id', $employee->id)
-                ->whereDate('date', $dateStr)
-                ->orderBy('clock_in')
-                ->get();
-
-            Log::info("Employee {$employee->id} ({$employee->name}) - Logs found: " . $logs->count());
-
-            if ($logs->isNotEmpty()) {
-                $clockIn = $logs->min('clock_in');
-                $clockOut = $logs->max('clock_out');
-
-                // Tentukan status dan remarks
-                $status = $this->determineStatus($employee, $date, $clockIn, $clockOut);
-                $remarks = null;
-
-                if (!$clockIn && $clockOut) {
-                    $remarks = 'Missing clock in';
-                } elseif ($clockIn && !$clockOut) {
-                    $remarks = 'Missing clock out';
-                }
-
-                // Untuk menghitung total jam, kita perlu tanggal yang sama
-                $totalHours = null;
-                if ($clockIn && $clockOut) {
-                    $clockInTime = Carbon::parse($clockIn)->setDate($date->year, $date->month, $date->day);
-                    $clockOutTime = Carbon::parse($clockOut)->setDate($date->year, $date->month, $date->day);
-                    $totalHours = $clockOutTime->diffInMinutes($clockInTime) / 60;
-                }
-
-                $clockInFormatted = $clockIn ? Carbon::parse($clockIn)->format('H:i:s') : null;
-                $clockOutFormatted = $clockOut ? Carbon::parse($clockOut)->format('H:i:s') : null;
-
-                Log::info("   -> Prepared: clock_in={$clockInFormatted}, clock_out={$clockOutFormatted}, total_hours={$totalHours}, status={$status}, remarks={$remarks}");
-
-                try {
-                    $daily = DailyAttendance::updateOrCreate(
-                        ['employee_id' => $employee->id, 'date' => $dateStr],
-                        [
-                            'clock_in' => $clockInFormatted,
-                            'clock_out' => $clockOutFormatted,
-                            'total_hours' => $totalHours,
-                            'status' => $status,
-                            'remarks' => $remarks,
-                            'updated_by' => Auth::id(),
-                        ]
-                    );
-
-                    if ($clockIn && $clockOut) {
-                        $this->calculateAttendanceFields($daily);
-                    }
-
-                    Log::info("   ✅ Successfully saved daily for employee {$employee->id}");
-                } catch (\Exception $e) {
-                    Log::error("   ❌ Failed to save daily for employee {$employee->id}: " . $e->getMessage());
-                }
-            } else {
-                // Tidak ada log sama sekali, cek cuti
-                $leave = LeaveRequest::where('employee_id', $employee->id)
-                    ->where('start_date', '<=', $dateStr)
-                    ->where('end_date', '>=', $dateStr)
-                    ->where('approval_1', 'approved')
-                    ->where('approval_2', 'approved')
-                    ->first();
-
-                $status = $leave ? $this->mapLeaveTypeToStatus($leave->type) : 'Alpha';
-                $remarks = $leave ? $leave->reason : null;
-
-                try {
-                    DailyAttendance::updateOrCreate(
-                        ['employee_id' => $employee->id, 'date' => $dateStr],
-                        [
-                            'clock_in' => null,
-                            'clock_out' => null,
-                            'total_hours' => null,
-                            'status' => $status,
-                            'remarks' => $remarks,
-                            'updated_by' => Auth::id(),
-                        ]
-                    );
-                    Log::info("   ✅ Saved alpha record for employee {$employee->id}");
-                } catch (\Exception $e) {
-                    Log::error("   ❌ Failed to save alpha for employee {$employee->id}: " . $e->getMessage());
-                }
-            }
-        }
-        Log::info("===== FINISHED GENERATING DAILY FOR DATE: " . $date->format('Y-m-d') . " =====\n");
     }
 
     public function export(Request $request)

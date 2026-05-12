@@ -19,6 +19,9 @@ class MaterialPlanningController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
+        $this->middleware('can:production.material-planning.view');
+        $this->middleware('can:production.material-planning.create')->only(['create', 'store']);
+        $this->middleware('can:production.material-planning.delete')->only(['destroy', 'destroyProject']);
     }
 
     public function index(Request $request)
@@ -80,10 +83,6 @@ class MaterialPlanningController extends Controller
 
     public function create()
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            abort(403, 'You do not have permission to create material planning.');
-        }
-
         return view('production.material_planning.create', [
             'projects' => \App\Models\Production\Project::orderBy('name')->get(),
             'inventories' => \App\Models\Logistic\Inventory::orderBy('name')->get(),
@@ -93,10 +92,6 @@ class MaterialPlanningController extends Controller
 
     public function store(Request $request)
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            abort(403, 'You do not have permission to create material planning.');
-        }
-
         $data = $request->validate([
             'plans' => 'required|array',
             'plans.*.project_id' => 'required|exists:projects,id',
@@ -199,16 +194,6 @@ class MaterialPlanningController extends Controller
     // TAMBAHAN: Delete seluruh planning untuk project tertentu
     public function destroyProject($projectId)
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            return response()->json(
-                [
-                    'success' => false,
-                    'message' => 'You do not have permission to delete material planning.',
-                ],
-                403,
-            );
-        }
-
         try {
             DB::beginTransaction();
 
@@ -256,16 +241,6 @@ class MaterialPlanningController extends Controller
     // TAMBAHAN: Delete individual material planning
     public function destroy($id)
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            return response()->json(
-                [
-                    'success' => false,
-                    'message' => 'You do not have permission to delete material planning.',
-                ],
-                403,
-            );
-        }
-
         try {
             $planning = MaterialPlanning::findOrFail($id);
             $materialName = $planning->material_name;

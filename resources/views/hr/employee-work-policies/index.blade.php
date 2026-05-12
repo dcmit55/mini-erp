@@ -13,12 +13,14 @@
                     <p class="text-muted mb-0">Manage standard working hours per employee</p>
                 </div>
                 <div>
+                    @can('hr.attendance.edit')
                     <button type="button" class="btn btn-sm btn-primary me-1" data-bs-toggle="modal" data-bs-target="#importModal">
                         <i class="fas fa-upload me-1"></i> Import
                     </button>
                     <a href="{{ route('employee-work-policies.create') }}" class="btn btn-sm btn-primary">
                         <i class="fas fa-plus me-1"></i> New Policy
                     </a>
+                    @endcan
                 </div>
             </div>
 
@@ -100,7 +102,7 @@
                                             <span class="fw-medium">{{ $policy->employee_no }}</span>
                                         </td>
                                         <td style="vertical-align: middle;">
-                                            <a href="{{ route('employees.show', $policy->employee_id) }}" class="text-decoration-none">
+                                            <a href="{{ route('employees.show', $policy->employee->uid ?? $policy->employee_id) }}" class="text-decoration-none">
                                                 {{ $policy->employee->name ?? 'N/A' }}
                                             </a>
                                         </td>
@@ -136,23 +138,24 @@
                                         </td>
                                         <td class="text-center" style="vertical-align: middle;">
                                             <div class="d-flex justify-content-center gap-2">
-                                                <a href="{{ route('employee-work-policies.edit', $policy) }}" 
+                                                @can('hr.attendance.edit')
+                                                <a href="{{ route('employee-work-policies.edit', $policy) }}"
                                                    class="btn btn-sm btn-outline-primary border-0 px-3 py-1 action-btn"
                                                    data-bs-toggle="tooltip" title="Edit">
                                                     <i class="fas fa-edit me-1"></i>Edit
                                                 </a>
-                                                
-                                                <form action="{{ route('employee-work-policies.destroy', $policy) }}" 
-                                                      method="POST" class="d-inline" 
+                                                <form action="{{ route('employee-work-policies.destroy', $policy) }}"
+                                                      method="POST" class="d-inline"
                                                       onsubmit="return confirm('Are you sure you want to delete this work policy?\n\nThis action will remove the policy and cannot be undone.')">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button type="submit" 
+                                                    <button type="submit"
                                                             class="btn btn-sm btn-outline-danger border-0 px-3 py-1 action-btn"
                                                             data-bs-toggle="tooltip" title="Delete">
                                                         <i class="fas fa-trash me-1"></i>Delete
                                                     </button>
                                                 </form>
+                                                @endcan
                                             </div>
                                         </td>
                                     </tr>

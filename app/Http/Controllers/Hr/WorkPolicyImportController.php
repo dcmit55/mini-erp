@@ -14,14 +14,7 @@ class WorkPolicyImportController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-
-        $this->middleware(function ($request, $next) {
-            $rolesAllowed = ['super_admin', 'admin_hr', 'admin'];
-            if (!in_array(Auth::user()->role, $rolesAllowed)) {
-                abort(403, 'Unauthorized access to import work policies.');
-            }
-            return $next($request);
-        });
+        $this->middleware('can:hr.employees.import');
     }
 
     /**

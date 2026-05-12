@@ -1,823 +1,918 @@
 @extends('layouts.app')
 
 @section('content')
-    <div class="container-fluid py-4">
-        <div class="card shadow-sm border-0 mb-4">
-            <div class="card-body">
-                <!-- Header - TANPA TOMBOL TEMPLATE -->
-                <div class="d-flex flex-column flex-lg-row align-items-lg-center gap-3 mb-3">
-                    <div class="d-flex align-items-center">
-                        <i class="fas fa-users gradient-icon me-2" style="font-size: 1.5rem;"></i>
-                        <h2 class="mb-0 flex-shrink-0" style="font-size:1.3rem;">Employees Management</h2>
-                    </div>
+<div class="container-fluid py-3">
+    @php
+        $activeCount          = $employees->where('status', 'active')->count();
+        $inactiveCount        = $employees->where('status', 'inactive')->count();
+        $pendingContractCount = $employees->where('status', 'pending_contract')->count();
+        $allCount             = $employees->count();
+        $expiringCount        = $employees->filter(fn($e) =>
+            $e->contract_end_date &&
+            $e->status === 'active' &&
+            $e->contract_end_date->lte(now()->addDays(30)) &&
+            $e->contract_end_date->gte(now())
+        )->count();
+    @endphp
 
-                    <div class="ms-lg-auto">
-                        <div class="d-flex flex-wrap gap-2 align-items-center justify-content-lg-end">
-                            @if (auth()->user()->canModifyData())
-                                <!-- Tombol Import -->
-                                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#importEmployeeModal">
-                                    <i class="bi bi-upload me-1"></i>
-                                    <span class="d-none d-sm-inline">Import Excel</span>
-                                </button>
-                                
-                                <!-- Tombol Add Employee -->
-                                <a href="{{ route('employees.create') }}" class="btn btn-primary btn-sm">
-                                    <i class="bi bi-plus-circle me-1"></i>
-                                    <span class="d-none d-sm-inline">Add Employee</span>
-                                    <span class="d-sm-none">Add</span>
-                                </a>
-                            @endif
-                        </div>
-                    </div>
-                </div>
-
-                @if (session('success'))
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        <i class="bi bi-check-circle me-1"></i>{{ session('success') }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                @endif
-
-                @if (session('import_results'))
-                    <div class="alert alert-info alert-dismissible fade show" role="alert">
-                        <i class="bi bi-info-circle me-1"></i>{{ session('import_results') }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                @endif
-
-                <!-- Contract Expiry Info -->
-                @php
-                    $expiringCount = $employees
-                        ->filter(function ($emp) {
-                            return $emp->contract_end_date &&
-                                $emp->status === 'active' &&
-                                $emp->contract_end_date->lte(now()->addDays(30)) &&
-                                $emp->contract_end_date->gte(now());
-                        })
-                        ->count();
-                @endphp
-
-                @if ($expiringCount > 0)
-                    <div class="alert alert-warning alert-dismissible fade show" role="alert">
-                        <i class="bi bi-exclamation-triangle me-1"></i>
-                        <strong>Contract Expiry Alert:</strong> {{ $expiringCount }} employee(s) have contracts expiring
-                        within 30 days.
-                        <small class="d-block mt-1">
-                            <i class="bi bi-info-circle"></i> Employee status will automatically change to "Inactive" when
-                            contract expires.
-                        </small>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                @endif
-
-                <!-- Filters -->
-                <div class="mb-3">
-                    <form id="filter-form" class="row g-1">
-                        <div class="col-md-2">
-                            <select id="departmentFilter" class="form-select form-select-sm select2">
-                                <option value="">All Departments</option>
-                                @foreach ($employees->pluck('department.name')->unique()->filter() as $dept)
-                                    <option value="{{ $dept }}">{{ ucfirst($dept) }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <select id="employmentTypeFilter" class="form-select form-select-sm select2">
-                                <option value="">All Employment Types</option>
-                                <option value="PKWT">PKWT</option>
-                                <option value="PKWTT">PKWTT</option>
-                                <option value="Daily Worker">Daily Worker</option>
-                                <option value="Probation">Probation</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <select id="statusFilter" class="form-select form-select-sm select2">
-                                <option value="">All Status</option>
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
-                                <option value="terminated">Terminated</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <select id="positionFilter" class="form-select form-select-sm select2">
-                                <option value="">All Positions</option>
-                                @foreach ($employees->pluck('position')->unique()->filter() as $position)
-                                    <option value="{{ $position }}">{{ $position }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <input type="text" id="custom-search" class="form-control form-control-sm"
-                                placeholder="Search employees...">
-                        </div>
-                        <div class="col-md-1">
-                            <button type="button" id="reset-filters" class="btn btn-outline-secondary btn-sm"
-                                title="Reset All Filters">
-                                <i class="fas fa-times me-1"></i> Reset
-                            </button>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- DataTable -->
-                <div class="table-responsive">
-                    <table class="table table-hover table-sm align-middle" id="employees-table">
-                        <thead class="table-light text-nowrap">
-                            <tr>
-                                <th width="60" class="text-center">Photo</th>
-                                <th>Employee No</th>
-                                <th>Name</th>
-                                <th class="d-none d-md-table-cell">Position</th>
-                                <th class="d-none d-lg-table-cell">Department</th>
-                                <th class="d-none d-lg-table-cell">Contact</th>
-                                <th class="d-none d-xl-table-cell">Hire Date</th>
-                                <th class="d-none d-xl-table-cell">Contract End</th>
-                                <th class="d-none d-sm-table-cell">Type & Status</th>
-                                <th width="140" class="text-center">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach ($employees as $employee)
-                                <tr data-employee-id="{{ $employee->id }}">
-                                    <td class="text-center">
-                                        <img src="{{ $employee->photo_url }}" alt="{{ $employee->name }}"
-                                            class="rounded-circle employee-photo"
-                                            style="width: 35px; height: 35px; object-fit: cover;">
-                                    </td>
-                                    <td>
-                                        <span
-                                            class="badge bg-light text-dark border small">{{ $employee->employee_no }}</span>
-                                    </td>
-                                    <td class="clickable-name" style="cursor: pointer;" title="Click to view details">
-                                        <div class="fw-medium">{{ $employee->name }}</div>
-                                        @if ($employee->username)
-                                            <small class="text-muted">
-                                                <i class="bi bi-person-badge"></i> {{ $employee->username }}
-                                            </small>
-                                        @endif
-                                        @if ($employee->email)
-                                            <small class="text-muted d-md-none">
-                                                <i class="bi bi-envelope"></i> {{ Str::limit($employee->email, 15) }}
-                                            </small>
-                                        @endif
-                                        <div class="d-md-none mt-1">
-                                            <small class="badge bg-info">{{ $employee->position }}</small>
-                                            @if ($employee->department)
-                                                <small
-                                                    class="badge bg-primary ms-1">{{ ucfirst($employee->department->name) }}</small>
-                                            @endif
-                                        </div>
-                                    </td>
-                                    <td class="d-none d-md-table-cell">
-                                        <span class="badge bg-info">{{ $employee->position }}</span>
-                                    </td>
-                                    <td class="d-none d-lg-table-cell">
-                                        @if ($employee->department)
-                                            <span
-                                                class="badge bg-primary">{{ ucfirst($employee->department->name) }}</span>
-                                        @else
-                                            <span class="text-muted">-</span>
-                                        @endif
-                                    </td>
-                                    <td class="d-none d-lg-table-cell">
-                                        @if ($employee->phone)
-                                            <div class="small">
-                                                <i class="bi bi-telephone text-success"></i> {{ $employee->phone }}
-                                            </div>
-                                        @endif
-                                        @if ($employee->email)
-                                            <div class="small">
-                                                <i class="bi bi-envelope text-primary"></i>
-                                                {{ Str::limit($employee->email, 20) }}
-                                            </div>
-                                        @endif
-                                        @if (!$employee->phone && !$employee->email)
-                                            <span class="text-muted">-</span>
-                                        @endif
-                                    </td>
-                                    <td class="d-none d-xl-table-cell">
-                                        @if ($employee->hire_date)
-                                            <div class="small">{{ $employee->hire_date->format('d M Y') }}</div>
-                                            <small class="text-muted">{{ $employee->hire_date->diffForHumans() }}</small>
-                                        @else
-                                            <span class="text-muted">-</span>
-                                        @endif
-                                    </td>
-                                    <td class="d-none d-xl-table-cell">
-                                        @if ($employee->contract_end_date)
-                                            <div class="small">{{ $employee->contract_end_date->format('d M Y') }}</div>
-                                            @php
-                                                $now = \Carbon\Carbon::now();
-                                                $daysRemaining = $now->diffInDays($employee->contract_end_date, false);
-                                            @endphp
-
-                                            @if ($daysRemaining < 0)
-                                                <small class="badge bg-danger">Expired</small>
-                                            @elseif ($daysRemaining <= 30)
-                                                <small class="badge bg-warning text-dark">{{ $daysRemaining }}d
-                                                    left</small>
-                                            @else
-                                                <small
-                                                    class="text-muted">{{ $employee->contract_end_date->diffForHumans() }}</small>
-                                            @endif
-                                        @else
-                                            <span class="text-muted">-</span>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-{{ $employee->employment_type_badge['color'] }} mb-1">
-                                            {{ $employee->employment_type }}
-                                        </span>
-                                        <br>
-                                        <span class="badge bg-{{ $employee->status_badge['color'] }}">
-                                            {{ $employee->status_badge['text'] }}
-                                        </span>
-                                    </td>
-                                    <td class="text-center">
-                                        <div class="btn-group-vertical btn-group-sm d-lg-none" role="group">
-                                            <a href="{{ route('employees.show', $employee) }}"
-                                                class="btn btn-primary btn-sm" title="View Details">
-                                                <i class="bi bi-eye"></i>
-                                            </a>
-                                            <a href="{{ route('employees.edit', $employee) }}"
-                                                class="btn btn-warning btn-sm" title="Edit">
-                                                <i class="bi bi-pencil"></i>
-                                            </a>
-                                            <a href="{{ route('employees.timing', $employee) }}"
-                                                class="btn btn-info btn-sm" title="Timing">
-                                                <i class="bi bi-clock"></i>
-                                            </a>
-                                            <button type="button" class="btn btn-danger btn-sm delete-employee-btn"
-                                                data-employee-id="{{ $employee->id }}"
-                                                data-employee-name="{{ $employee->name }}" title="Delete">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </div>
-
-                                        <div class="btn-group d-none d-lg-flex" role="group">
-                                            <a href="{{ route('employees.show', $employee) }}"
-                                                class="btn btn-primary btn-sm" title="View Details">
-                                                <i class="bi bi-eye"></i>
-                                            </a>
-                                            <a href="{{ route('employees.timing', $employee) }}"
-                                                class="btn btn-info btn-sm" title="View Timings">
-                                                <i class="bi bi-clock"></i>
-                                            </a>
-                                            @if (auth()->user()->canModifyData())
-                                                <a href="{{ route('employees.edit', $employee) }}"
-                                                    class="btn btn-warning btn-sm" title="Edit Employee">
-                                                    <i class="bi bi-pencil"></i>
-                                                </a>
-                                                <button type="button" class="btn btn-danger btn-sm delete-employee-btn"
-                                                    data-employee-id="{{ $employee->id }}"
-                                                    data-employee-name="{{ $employee->name }}" title="Delete Employee">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
-                                            @endif
-                                        </div>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
+    {{-- Page Header --}}
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2">
+            <a href="{{ route('hr.record') }}" class="btn btn-sm btn-outline-secondary px-3">
+                <i class="fas fa-arrow-left me-1"></i><span class="d-none d-sm-inline">Back</span>
+            </a>
+            <div>
+                <h5 class="mb-0 fw-semibold" style="color:#4A25AA;">Employees</h5>
+                <small class="text-muted">{{ $allCount }} total &middot; {{ $activeCount }} active</small>
             </div>
         </div>
+        @canany(['hr.employees.create', 'hr.employees.import', 'hr.employees.view'])
+        <div class="d-flex gap-2">
+            @can('hr.employees.view')
+            <a href="{{ route('employees.export', ['status' => request('status', 'all')]) }}"
+               class="btn btn-sm btn-outline-success rounded-2">
+                <i class="bi bi-file-earmark-excel me-1"></i>
+                <span class="d-none d-sm-inline">Export</span>
+            </a>
+            @endcan
+            @can('hr.employees.import')
+            <button type="button" class="btn btn-sm btn-outline-secondary rounded-2"
+                data-bs-toggle="modal" data-bs-target="#importEmployeeModal">
+                <i class="bi bi-upload me-1"></i>
+                <span class="d-none d-sm-inline">Import</span>
+            </button>
+            @endcan
+            @can('hr.employees.create')
+            <a href="{{ route('employees.create') }}" class="btn btn-sm btn-purple rounded-2">
+                <i class="bi bi-plus-lg me-1"></i>
+                <span class="d-none d-sm-inline">Add Employee</span>
+                <span class="d-sm-none">Add</span>
+            </a>
+            @endcan
+        </div>
+        @endcanany
     </div>
 
-    <!-- Modal Import Employee - TANPA LINK TEMPLATE -->
-    <div class="modal fade" id="importEmployeeModal" tabindex="-1" aria-labelledby="importEmployeeModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header py-2">
-                    <h6 class="modal-title" id="importEmployeeModalLabel">
-                        <i class="bi bi-upload me-1"></i>
-                        Import Employees from Excel
-                    </h6>
-                    <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal" aria-label="Close"></button>
+    {{-- Alerts --}}
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show border-0 py-2 px-3 mb-3 rounded-2" role="alert" style="font-size:.875rem;">
+            <i class="bi bi-check-circle me-1"></i>{{ session('success') }}
+            <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+    @if(session('import_results'))
+        <div class="alert alert-info alert-dismissible fade show border-0 py-2 px-3 mb-3 rounded-2" role="alert" style="font-size:.875rem;">
+            <i class="bi bi-info-circle me-1"></i>{{ session('import_results') }}
+            <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+    @if($expiringCount > 0)
+        <div class="alert alert-warning alert-dismissible fade show border-0 py-2 px-3 mb-3 rounded-2 d-flex align-items-center gap-2" role="alert" style="font-size:.875rem;">
+            <i class="bi bi-clock-history flex-shrink-0"></i>
+            <div>
+                <strong>{{ $expiringCount }} contract(s)</strong> expiring within 30 days.
+                <span class="text-muted d-none d-md-inline">Status will automatically change to <em>Pending Contract</em> on expiry — HR must extend or set inactive.</span>
+            </div>
+            <button type="button" class="btn-close btn-sm ms-auto" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    <div class="card border-0 shadow-sm rounded-3">
+        <div class="card-body p-0">
+
+            {{-- Toolbar: tabs + filters --}}
+            <div class="px-3 pt-3 pb-2 border-bottom">
+
+                {{-- Status tabs --}}
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                    <div class="d-flex align-items-center gap-1 flex-wrap">
+                        <button type="button" class="btn btn-sm emp-status-tab active-tab btn-purple rounded-pill px-3"
+                            data-status="" id="tab-all">
+                            All <span class="tab-badge ms-1">{{ $allCount }}</span>
+                        </button>
+                        <button type="button" class="btn btn-sm emp-status-tab btn-outline-purple rounded-pill px-3"
+                            data-status="active" id="tab-active">
+                            <span class="d-none d-sm-inline">Active</span>
+                            <span class="d-sm-none"><i class="bi bi-person-check"></i></span>
+                            <span class="tab-badge ms-1">{{ $activeCount }}</span>
+                        </button>
+                        <button type="button" class="btn btn-sm emp-status-tab btn-outline-purple rounded-pill px-3"
+                            data-status="inactive" id="tab-inactive">
+                            <span class="d-none d-sm-inline">Inactive</span>
+                            <span class="d-sm-none"><i class="bi bi-person-dash"></i></span>
+                            <span class="tab-badge ms-1">{{ $inactiveCount }}</span>
+                        </button>
+                        @if($pendingContractCount > 0)
+                        <button type="button" class="btn btn-sm emp-status-tab btn-outline-warning rounded-pill px-3 position-relative"
+                            data-status="pending_contract" id="tab-pending-contract">
+                            <i class="fas fa-clock me-1"></i>
+                            <span class="d-none d-sm-inline">Pending Contract</span>
+                            <span class="d-sm-none">Pending</span>
+                            <span class="tab-badge ms-1">{{ $pendingContractCount }}</span>
+                        </button>
+                        @endif
+                        <a href="{{ route('employees.near-expired') }}"
+                           class="btn btn-sm rounded-pill px-3 {{ isset($isNearExpired) ? 'btn-warning' : 'btn-outline-warning' }}">
+                            <i class="bi bi-clock me-1"></i>Near Expired
+                            @if(isset($nearExpiredIds))
+                                <span class="ms-1">{{ count($nearExpiredIds) }}</span>
+                            @endif
+                        </a>
+                    </div>
                 </div>
-                <form id="importEmployeeForm" enctype="multipart/form-data">
-                    @csrf
-                    <div class="modal-body py-3">
-                        <!-- Info Alert - TANPA REFERENSI TEMPLATE -->
-                        <div class="alert alert-info py-2 small mb-3">
-                            <i class="bi bi-info-circle me-1"></i>
-                            <strong>Informasi Import:</strong> 
-                            <ul class="mb-0 mt-1 ps-3">
-                                <li>Upload file Excel dengan format yang sesuai</li>
-                                <li>Kolom wajib: <strong>employee_no, name, position, status</strong></li>
-                                <li>Kolom opsional baru: <strong>username</strong> (nama di mesin attendance)</li>
-                                <li>Format tanggal: <strong>YYYY-MM-DD</strong> (contoh: 2024-01-01)</li>
-                                <li>Data dengan employee_no yang sama akan diupdate otomatis</li>
-                                <li>Maksimal file: 10MB (format: .xlsx, .xls, .csv)</li>
-                                <li>Pastikan kolom tanggal tidak mengandung waktu (00:00:00)</li>
-                            </ul>
-                        </div>
 
-                        <!-- File Input -->
-                        <div class="mb-3">
-                            <label for="import_file" class="form-label small fw-bold">File Excel</label>
-                            <input type="file" name="file" id="import_file" class="form-control form-control-sm" 
-                                   required accept=".xlsx,.xls,.csv">
-                            <div class="form-text small">
-                                Supported formats: .xlsx, .xls, .csv
-                            </div>
-                        </div>
-
-                        <!-- Progress Bar -->
-                        <div id="importProgress" class="progress d-none mb-2" style="height: 20px;">
-                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" 
-                                 style="width: 100%">Processing...</div>
-                        </div>
-
-                        <!-- Result Message -->
-                        <div id="importResult" class="mt-2 small"></div>
-
-                        <!-- Failed Rows Container -->
-                        <div id="failedRowsContainer" class="mt-3 d-none">
-                            <h6 class="small fw-bold text-danger">
-                                <i class="bi bi-exclamation-triangle me-1"></i>
-                                Baris yang Gagal:
-                            </h6>
-                            <div class="table-responsive" style="max-height: 300px;">
-                                <table class="table table-sm table-bordered small">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>Baris</th>
-                                            <th>Nama</th>
-                                            <th>Error</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="failedRowsBody"></tbody>
-                                </table>
-                            </div>
+                {{-- Filters --}}
+                <form id="filter-form" class="row g-2 align-items-center">
+                    <div class="col-6 col-sm-4 col-md-2">
+                        <select id="departmentFilter" class="form-select form-select-sm select2">
+                            <option value="">All Departments</option>
+                            @foreach($employees->pluck('department.name')->unique()->filter() as $dept)
+                                <option value="{{ $dept }}">{{ ucfirst($dept) }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-6 col-sm-4 col-md-2">
+                        <select id="employmentTypeFilter" class="form-select form-select-sm select2">
+                            <option value="">All Types</option>
+                            <option value="PKWT">PKWT</option>
+                            <option value="PKWTT">PKWTT</option>
+                            <option value="Daily Worker">Daily Worker</option>
+                            <option value="Probation">Probation</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-sm-4 col-md-2">
+                        <select id="statusFilter" class="form-select form-select-sm select2">
+                            <option value="">All Status</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="pending_contract">Pending Contract</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-sm-6 col-md-2">
+                        <select id="positionFilter" class="form-select form-select-sm select2">
+                            <option value="">All Positions</option>
+                            @foreach($employees->pluck('position')->unique()->filter() as $position)
+                                <option value="{{ $position }}">{{ $position }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-10 col-sm-5 col-md-3">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-white border-end-0 text-muted">
+                                <i class="bi bi-search" style="font-size:.75rem;"></i>
+                            </span>
+                            <input type="text" id="custom-search" class="form-control border-start-0 ps-0"
+                                placeholder="Search employees...">
                         </div>
                     </div>
-                    <div class="modal-footer py-2">
-                        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">
-                            <i class="bi bi-x me-1"></i>Cancel
-                        </button>
-                        <button type="submit" class="btn btn-sm btn-primary" id="importBtn">
-                            <i class="bi bi-upload me-1"></i>Import
+                    <div class="col-2 col-sm-1">
+                        <button type="button" id="reset-filters"
+                            class="btn btn-sm btn-outline-secondary w-100 rounded-2"
+                            title="Reset filters">
+                            <i class="bi bi-x-lg"></i>
                         </button>
                     </div>
                 </form>
             </div>
+
+            {{-- Table --}}
+            <div class="table-responsive">
+                <table class="table table-hover table-sm align-middle mb-0 w-100" id="employees-table">
+                    <thead>
+                        <tr class="text-muted" style="font-size:.72rem; text-transform:uppercase; letter-spacing:.04em; background:#fafafa;">
+                            <th class="text-center ps-3 border-0" style="width:52px">Photo</th>
+                            <th class="border-0">Name</th>
+                            <th class="d-none d-lg-table-cell border-0" style="width:130px">No.</th>
+                            <th class="d-none d-md-table-cell border-0" style="width:130px">Position</th>
+                            <th class="d-none d-lg-table-cell border-0">Department</th>
+                            <th class="d-none d-xl-table-cell border-0">Contact</th>
+                            <th class="d-none d-xl-table-cell border-0">Hire Date</th>
+                            <th class="d-none d-xxl-table-cell border-0">Contract End</th>
+                            <th class="d-none d-sm-table-cell border-0" style="width:110px">Type & Status</th>
+                            <th class="text-center pe-3 border-0" style="width:100px">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($employees as $employee)
+                        <tr data-employee-id="{{ $employee->id }}"
+                            data-status="{{ $employee->status }}"
+                            data-near-expired="{{ in_array($employee->id, $nearExpiredIds ?? []) ? '1' : '0' }}">
+
+                            {{-- Photo --}}
+                            <td class="text-center ps-3">
+                                <img src="{{ $employee->photo_url }}" alt="{{ $employee->name }}"
+                                    class="rounded-circle employee-photo"
+                                    style="width:34px;height:34px;object-fit:cover;">
+                            </td>
+
+                            {{-- Name --}}
+                            <td>
+                                <div class="d-flex align-items-center gap-1">
+                                    <span class="fw-medium" style="font-size:.875rem; line-height:1.3;">{{ $employee->name }}</span>
+                                    @if($employee->is_production)
+                                        <span class="badge rounded-pill prod-badge-{{ $employee->id }}"
+                                              style="background:rgba(13,110,253,.12);color:#0d6efd;font-size:.58rem;">
+                                            <i class="fas fa-industry me-1"></i>Prod
+                                        </span>
+                                    @endif
+                                    @if($employee->is_leader_capacity)
+                                        <span class="badge rounded-pill leader-badge-{{ $employee->id }}"
+                                              style="background:rgba(255,193,7,.15);color:#856404;font-size:.58rem;">
+                                            <i class="fas fa-star me-1"></i>Leader
+                                        </span>
+                                    @endif
+                                    @if($employee->status === 'pending_contract')
+                                        <span class="badge rounded-pill"
+                                              style="background:rgba(255,193,7,.2);color:#92400e;font-size:.58rem;"
+                                              title="Contract expired — HR action required">
+                                            <i class="fas fa-clock me-1"></i>Pending
+                                        </span>
+                                    @endif
+                                    @if(isset($activeSpMap[$employee->id]))
+                                        @php
+                                            $spLvl = $activeSpMap[$employee->id];
+                                            $spBadgeColor = [1=>'info', 2=>'warning', 3=>'warning', 4=>'danger'][$spLvl] ?? 'secondary';
+                                            $spTextColor  = in_array($spLvl, [2,3]) ? 'text-dark' : '';
+                                        @endphp
+                                        <a href="{{ route('warning-letters.index', ['employee_id' => $employee->id]) }}"
+                                           class="badge bg-{{ $spBadgeColor }} {{ $spTextColor }} text-decoration-none"
+                                           style="font-size:.58rem;"
+                                           title="Active SP{{ $spLvl }}">SP{{ $spLvl }}</a>
+                                    @endif
+                                </div>
+                                {{-- Fallback: employee no when No. column hidden (< lg) --}}
+                                <div class="d-lg-none">
+                                    <span class="text-muted" style="font-size:.68rem; font-family:monospace;">{{ $employee->employee_no }}</span>
+                                </div>
+                            </td>
+
+                            {{-- Employee No --}}
+                            <td class="d-none d-lg-table-cell" style="white-space:nowrap">
+                                <span class="text-muted" style="font-size:.78rem; font-family:monospace;">{{ $employee->employee_no }}</span>
+                            </td>
+
+                            {{-- Position --}}
+                            <td class="d-none d-md-table-cell">
+                                <span class="badge rounded-pill text-truncate" style="background:#e8f4fd;color:#0c7a8f;font-size:.7rem;font-weight:500;max-width:120px;display:inline-block;">
+                                    {{ $employee->position ?? '—' }}
+                                </span>
+                            </td>
+
+                            {{-- Department --}}
+                            <td class="d-none d-lg-table-cell">
+                                @if($employee->department)
+                                    <span class="badge rounded-pill" style="background:#eef2ff;color:#4A25AA;font-size:.7rem;font-weight:500;">
+                                        {{ ucfirst($employee->department->name) }}
+                                    </span>
+                                @else
+                                    <span class="text-muted">—</span>
+                                @endif
+                            </td>
+
+                            {{-- Contact --}}
+                            <td class="d-none d-xl-table-cell">
+                                @if($employee->phone)
+                                    <div class="small text-muted"><i class="bi bi-telephone me-1"></i>{{ $employee->phone }}</div>
+                                @endif
+                                @if($employee->email)
+                                    <div class="small text-muted"><i class="bi bi-envelope me-1"></i>{{ Str::limit($employee->email, 22) }}</div>
+                                @endif
+                                @if(!$employee->phone && !$employee->email)
+                                    <span class="text-muted">—</span>
+                                @endif
+                            </td>
+
+                            {{-- Hire Date --}}
+                            <td class="d-none d-xl-table-cell">
+                                @if($employee->hire_date)
+                                    <div class="small">{{ $employee->hire_date->format('d M Y') }}</div>
+                                    <small class="text-muted">{{ $employee->hire_date->diffForHumans() }}</small>
+                                @else
+                                    <span class="text-muted">—</span>
+                                @endif
+                            </td>
+
+                            {{-- Contract End --}}
+                            <td class="d-none d-xxl-table-cell">
+                                @if($employee->contract_end_date)
+                                    @php $daysLeft = now()->diffInDays($employee->contract_end_date, false); @endphp
+                                    <div class="small">{{ $employee->contract_end_date->format('d M Y') }}</div>
+                                    @if($daysLeft < 0)
+                                        <span class="badge bg-danger rounded-pill" style="font-size:.62rem;">Expired</span>
+                                    @elseif($daysLeft <= 30)
+                                        <span class="badge bg-warning text-dark rounded-pill" style="font-size:.62rem;">{{ $daysLeft }}d left</span>
+                                    @else
+                                        <small class="text-muted">{{ $employee->contract_end_date->diffForHumans() }}</small>
+                                    @endif
+                                @else
+                                    <span class="text-muted">—</span>
+                                @endif
+                            </td>
+
+                            {{-- Type & Status --}}
+                            <td class="d-none d-sm-table-cell">
+                                <div class="d-flex flex-column gap-1">
+                                    <span class="badge rounded-pill bg-{{ $employee->employment_type_badge['color'] }}" style="font-size:.67rem;width:fit-content;">
+                                        {{ $employee->employment_type }}
+                                    </span>
+                                    <span class="badge rounded-pill bg-{{ $employee->status_badge['color'] }}" style="font-size:.67rem;width:fit-content;">
+                                        {{ $employee->status_badge['text'] }}
+                                    </span>
+                                    {{-- Hidden raw value for DataTables filter --}}
+                                    <span class="d-none">{{ $employee->status }}</span>
+                                </div>
+                            </td>
+
+                            {{-- Actions --}}
+                            <td class="text-center pe-3">
+                                <div class="d-flex justify-content-center gap-1">
+                                    <a href="{{ route('employees.show', $employee) }}"
+                                       class="btn btn-icon btn-sm text-primary" title="View"
+                                       data-bs-toggle="tooltip" style="width:28px;height:28px;">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    @can('production.timing.view')
+                                    <a href="{{ route('employees.timing', $employee) }}"
+                                       class="btn btn-icon btn-sm text-info" title="Timing"
+                                       data-bs-toggle="tooltip" style="width:28px;height:28px;">
+                                        <i class="bi bi-clock"></i>
+                                    </a>
+                                    @endcan
+                                    @can('hr.employees.edit')
+                                        <button type="button"
+                                            class="btn btn-icon btn-sm toggle-production-btn {{ $employee->is_production ? 'text-primary' : 'text-muted' }}"
+                                            data-employee-id="{{ $employee->id }}"
+                                            data-url="{{ route('employees.toggle-production', $employee) }}"
+                                            data-state="{{ $employee->is_production ? '1' : '0' }}"
+                                            title="{{ $employee->is_production ? 'Production: ON' : 'Production: OFF' }}"
+                                            data-bs-toggle="tooltip"
+                                            style="width:28px;height:28px;">
+                                            <i class="fas fa-industry"></i>
+                                        </button>
+                                        <button type="button"
+                                            class="btn btn-icon btn-sm toggle-leader-btn {{ $employee->is_leader_capacity ? 'text-warning' : 'text-muted' }}"
+                                            data-employee-id="{{ $employee->id }}"
+                                            data-url="{{ route('employees.toggle-leader', $employee) }}"
+                                            data-state="{{ $employee->is_leader_capacity ? '1' : '0' }}"
+                                            title="{{ $employee->is_leader_capacity ? 'Leader: ON' : 'Leader: OFF' }}"
+                                            data-bs-toggle="tooltip"
+                                            style="width:28px;height:28px;">
+                                            <i class="fas fa-star"></i>
+                                        </button>
+                                        @if($employee->status === 'pending_contract')
+                                        <button type="button"
+                                            class="btn btn-icon btn-sm text-warning resolve-contract-btn"
+                                            data-employee-id="{{ $employee->id }}"
+                                            data-employee-name="{{ $employee->name }}"
+                                            data-resolve-url="{{ route('employees.resolve-contract', $employee) }}"
+                                            data-contract-end="{{ $employee->contract_end_date?->format('Y-m-d') }}"
+                                            title="Resolve Contract" data-bs-toggle="tooltip"
+                                            style="width:28px;height:28px;">
+                                            <i class="fas fa-file-contract"></i>
+                                        </button>
+                                        @endif
+                                        <a href="{{ route('employees.edit', $employee) }}"
+                                           class="btn btn-icon btn-sm text-warning" title="Edit"
+                                           data-bs-toggle="tooltip" style="width:28px;height:28px;">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                    @endcan
+                                    @can('hr.employees.delete')
+                                        <button type="button"
+                                            class="btn btn-icon btn-sm text-danger delete-employee-btn"
+                                            data-employee-id="{{ $employee->id }}"
+                                            data-employee-name="{{ $employee->name }}"
+                                            title="Delete" data-bs-toggle="tooltip"
+                                            style="width:28px;height:28px;">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    @endcan
+                                </div>
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+
         </div>
     </div>
+</div>
+
+{{-- Resolve Contract Modal --}}
+<div class="modal fade" id="resolveContractModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:420px;">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-bottom py-3" style="background:#fff8e1;">
+                <h6 class="modal-title fw-semibold text-warning-emphasis">
+                    <i class="fas fa-file-contract me-2"></i>Resolve Pending Contract
+                </h6>
+                <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="resolveContractForm" method="POST" action="">
+                @csrf
+                <div class="modal-body pb-2">
+                    <p class="text-muted small mb-3">
+                        Contract for <strong id="resolveEmpName"></strong> has expired.
+                        Choose the next action:
+                    </p>
+
+                    {{-- Action choice --}}
+                    <div class="d-flex gap-2 mb-3">
+                        <button type="button" class="btn btn-outline-success flex-grow-1 resolve-action-btn"
+                                data-action="extend" style="font-size:.85rem;">
+                            <i class="fas fa-calendar-plus me-1"></i>Extend Contract
+                        </button>
+                        <button type="button" class="btn btn-outline-danger flex-grow-1 resolve-action-btn"
+                                data-action="terminate" style="font-size:.85rem;">
+                            <i class="fas fa-times-circle me-1"></i>Set Inactive
+                        </button>
+                    </div>
+
+                    <input type="hidden" name="action" id="resolveAction" value="">
+
+                    {{-- Extend section --}}
+                    <div id="extendSection" class="d-none">
+                        <div class="alert alert-success py-2 small border-0 rounded-2 mb-2">
+                            <i class="fas fa-info-circle me-1"></i>Status will be set back to <strong>Active</strong> once the new contract end date is saved.
+                        </div>
+                        <label class="form-label small fw-semibold">New Contract End Date <span class="text-danger">*</span></label>
+                        <input type="date" name="contract_end_date" id="resolveContractDate"
+                               class="form-control form-control-sm"
+                               min="{{ now()->addDay()->format('Y-m-d') }}">
+                    </div>
+
+                    {{-- Terminate section --}}
+                    <div id="terminateSection" class="d-none">
+                        <div class="alert alert-danger py-2 small border-0 rounded-2">
+                            <i class="fas fa-exclamation-triangle me-1"></i>Status will be changed to <strong>Inactive</strong>. Employee will no longer appear in attendance.
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top py-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-sm btn-warning d-none" id="resolveSubmitBtn">
+                        <i class="fas fa-check me-1"></i>Confirm
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{{-- Import Modal --}}
+<div class="modal fade" id="importEmployeeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-bottom py-3">
+                <h6 class="modal-title fw-semibold">
+                    <i class="bi bi-upload me-2"></i>Import Employees from Excel
+                </h6>
+                <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="importEmployeeForm" enctype="multipart/form-data">
+                @csrf
+                <div class="modal-body">
+                    <div class="alert alert-info py-2 small mb-3 border-0 rounded-2">
+                        <i class="bi bi-info-circle me-1"></i>
+                        <strong>Required columns:</strong> employee_no, name, position, status &nbsp;·&nbsp;
+                        Date format: <code>YYYY-MM-DD</code> &nbsp;·&nbsp; Max 10MB (.xlsx, .xls, .csv)
+                        <ul class="mb-0 mt-1 ps-3">
+                            <li>Optional: <strong>username</strong> (attendance machine name)</li>
+                            <li>Duplicate employee_no will be updated automatically</li>
+                        </ul>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Excel File</label>
+                        <input type="file" name="file" id="import_file" class="form-control form-control-sm"
+                            required accept=".xlsx,.xls,.csv">
+                    </div>
+                    <div id="importProgress" class="progress d-none mb-2" style="height:6px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" style="width:100%"></div>
+                    </div>
+                    <div id="importResult" class="mt-2 small"></div>
+                    <div id="failedRowsContainer" class="mt-3 d-none">
+                        <h6 class="small fw-semibold text-danger mb-2">
+                            <i class="bi bi-exclamation-triangle me-1"></i>Failed Rows
+                        </h6>
+                        <div class="table-responsive" style="max-height:250px;">
+                            <table class="table table-sm table-bordered small">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Row</th><th>Name</th><th>Error</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="failedRowsBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top py-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-sm btn-success d-none" id="importReloadBtn"
+                        onclick="$('#importEmployeeModal').modal('hide'); location.reload();">
+                        <i class="bi bi-arrow-clockwise me-1"></i>Close & Refresh
+                    </button>
+                    <button type="submit" class="btn btn-sm btn-primary" id="importBtn">
+                        <i class="bi bi-upload me-1"></i>Import
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('styles')
-    <style>
-        .gradient-icon {
-            background: linear-gradient(135deg, #8F12FE 0%, #4A25AA 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
+<style>
+    /* Purple theme */
+    .btn-purple {
+        background: linear-gradient(135deg, #8F12FE 0%, #4A25AA 100%);
+        border-color: #8F12FE;
+        color: #fff;
+    }
+    .btn-purple:hover, .btn-purple:focus {
+        background: linear-gradient(135deg, #7a0fe0 0%, #3b1e8e 100%);
+        border-color: #7a0fe0;
+        color: #fff;
+    }
+    .btn-outline-purple {
+        border: 1px solid #8F12FE;
+        color: #8F12FE;
+        background: transparent;
+    }
+    .btn-outline-purple:hover, .btn-outline-purple:focus {
+        background: rgba(143,18,254,.08);
+        color: #4A25AA;
+        border-color: #4A25AA;
+    }
+    .emp-status-tab.active-tab {
+        background: linear-gradient(135deg, #8F12FE 0%, #4A25AA 100%);
+        border-color: #8F12FE;
+        color: #fff;
+    }
+    .emp-status-tab.active-tab .tab-badge { color: rgba(255,255,255,.8); }
+    .emp-status-tab:not(.active-tab) .tab-badge { color: #8F12FE; }
 
-        #filter-form {
-            background: #f8f9fa;
-            padding: .75rem;
-            border-radius: 0.5rem;
-            border: 1px solid #dee2e6;
-        }
+    /* Table */
+    #employees-table thead th {
+        padding: 8px 10px;
+        font-weight: 600;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    #employees-table tbody td {
+        padding: 9px 10px;
+        border-bottom: 1px solid #f8f8f8;
+        vertical-align: middle;
+    }
+    #employees-table tbody tr:hover td { background: #fafbff; }
 
-        /* Pagination styling */
-        .pagination {
-            --bs-pagination-padding-x: 0.75rem;
-            --bs-pagination-padding-y: 0.375rem;
-            --bs-pagination-color: #6c757d;
-            --bs-pagination-bg: #fff;
-            --bs-pagination-border-width: 1px;
-            --bs-pagination-border-color: #dee2e6;
-            --bs-pagination-border-radius: 0.375rem;
-            --bs-pagination-hover-color: #495057;
-            --bs-pagination-hover-bg: #e9ecef;
-            --bs-pagination-hover-border-color: #dee2e6;
-            --bs-pagination-focus-color: #495057;
-            --bs-pagination-focus-bg: #e9ecef;
-            --bs-pagination-focus-box-shadow: 0 0 0 0.25rem rgba(143, 18, 254, 0.25);
-            --bs-pagination-active-color: #fff;
-            --bs-pagination-active-bg: #8F12FE;
-            --bs-pagination-active-border-color: #4A25AA;
-            --bs-pagination-disabled-color: #6c757d;
-            --bs-pagination-disabled-bg: #fff;
-            --bs-pagination-disabled-border-color: #dee2e6;
-        }
+    /* Icon action buttons */
+    .btn-icon {
+        background: transparent;
+        border: none;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        transition: background .15s;
+    }
+    .btn-icon:hover { background: rgba(0,0,0,.06); }
+    .btn-icon i { font-size: .85rem; }
 
-        .page-link {
-            transition: all 0.15s ease-in-out;
-        }
+    /* Employee photo */
+    .employee-photo {
+        border: 2px solid #fff;
+        box-shadow: 0 1px 4px rgba(0,0,0,.12);
+        transition: transform .2s;
+    }
+    .employee-photo:hover { transform: scale(1.08); }
 
-        .page-link:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
 
-        .page-item.active .page-link {
-            background: linear-gradient(135deg, #8F12FE 0%, #4A25AA 100%);
-            border-color: #8F12FE;
-            box-shadow: 0 2px 4px rgba(143, 18, 254, 0.3);
-        }
+    /* Filter form */
+    #filter-form .form-select-sm, #filter-form .form-control { font-size: .8rem; }
 
-        /* DataTables footer styling */
-        .datatables-footer-row {
-            border-top: 1px solid #eee;
-            padding-top: 0.5rem;
-            padding-bottom: 0.5rem;
-        }
+    /* Prevent DataTables from overflowing the container */
+    #employees-table { width: 100% !important; table-layout: auto; }
+    .dataTables_wrapper { width: 100%; overflow: hidden; }
+    .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
-        .datatables-left {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
+    /* DataTables footer */
+    .datatables-footer-row {
+        border-top: 1px solid #f0f0f0;
+        padding: .5rem 1rem;
+    }
+    .datatables-left { display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; }
+    .vr-divider { width:1px; height:20px; background:#dee2e6; display:inline-block; }
+    .dataTables_paginate { display:flex; justify-content:flex-end; align-items:center; flex-wrap:wrap; }
 
-        .vr-divider {
-            width: 1px;
-            height: 24px;
-            background: #dee2e6;
-            display: inline-block;
-            vertical-align: middle;
-        }
+    /* Pagination */
+    .page-item.active .page-link {
+        background: linear-gradient(135deg, #8F12FE 0%, #4A25AA 100%);
+        border-color: #8F12FE;
+    }
+    .page-link { transition: all .15s; font-size:.8rem; }
 
-        .dataTables_paginate {
-            display: flex;
-            justify-content: flex-end;
-            align-items: center;
-        }
-
-        /* Table styling */
-        #employees-table tbody td {
-            padding: 10px 8px;
-            vertical-align: middle;
-            border-bottom: 1px solid #f1f3f4;
-        }
-
-        .clickable-name {
-            transition: color 0.2s;
-        }
-
-        .clickable-name:hover {
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            background: linear-gradient(45deg, #8F12FE, #4A25AA);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .employee-photo {
-            border: 2px solid #fff;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            transition: transform 0.2s ease;
-        }
-
-        .employee-photo:hover {
-            transform: scale(1.1);
-        }
-
-        .badge {
-            font-size: 0.7rem;
-            padding: 3px 6px;
-            border-radius: 4px;
-        }
-
-        .btn-group .btn {
-            transition: all 0.2s ease;
-        }
-
-        .btn-group .btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-
-        /* Modal styling */
-        .modal-lg {
-            max-width: 800px;
-        }
-        
-        .progress {
-            border-radius: 4px;
-        }
-        
-        #failedRowsContainer .table {
-            font-size: 0.75rem;
-        }
-        
-        #failedRowsContainer .table th {
-            position: sticky;
-            top: 0;
-            background: #f8f9fa;
-            z-index: 1;
-        }
-
-        /* Responsive adjustments */
-        @media (max-width: 767.98px) {
-            .datatables-footer-row {
-                flex-direction: column !important;
-                gap: 0.5rem;
-            }
-
-            .datatables-left {
-                flex-direction: column !important;
-                gap: 0.5rem;
-            }
-
-            .vr-divider {
-                display: none;
-            }
-
-            .dataTables_paginate {
-                justify-content: center !important;
-            }
-
-            #employees-table thead th {
-                font-size: 0.8rem;
-                padding: 8px 4px;
-            }
-
-            #employees-table tbody td {
-                padding: 8px 4px;
-                font-size: 0.85rem;
-            }
-
-            .employee-photo {
-                width: 30px !important;
-                height: 30px !important;
-            }
-        }
-
-        .alert-success {
-            border: none;
-            border-radius: 8px;
-            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
-            border-left: 4px solid #28a745;
-        }
-
-        /* Tooltips */
-        .tooltip {
-            z-index: 9999 !important;
-        }
-
-        .tooltip-inner {
-            max-width: 200px;
-            padding: 0.3rem 0.6rem;
-            font-size: 0.775rem;
-            line-height: 1.2;
-        }
-    </style>
+    @media (max-width: 575.98px) {
+        .datatables-footer-row { flex-direction: column !important; align-items: flex-start !important; }
+        .vr-divider { display:none; }
+        .dataTables_paginate { width:100%; justify-content: center !important; }
+        .dataTables_paginate .pagination { justify-content: center; flex-wrap: wrap; }
+    }
+</style>
 @endpush
 
 @push('scripts')
-    <script>
-        $(document).ready(function() {
-            // Initialize DataTable
-            const table = $('#employees-table').DataTable({
-                processing: false,
-                searching: true,
-                paging: true,
-                info: true,
-                ordering: true,
-                lengthChange: true,
-                pageLength: 15,
-                lengthMenu: [
-                    [10, 15, 25, 50, 100],
-                    [10, 15, 25, 50, 100]
-                ],
-                language: {
-                    search: "_INPUT_",
-                    searchPlaceholder: "Search in table...",
-                    emptyTable: '<div class="text-muted py-2">No employee data available</div>',
-                    zeroRecords: '<div class="text-muted py-2">No matching records found</div>',
-                    infoEmpty: "Showing 0 to 0 of 0 entries",
-                    infoFiltered: "(filtered from _MAX_ total entries)",
-                    lengthMenu: "Show _MENU_ entries per page",
-                    info: "Showing _START_ to _END_ of _TOTAL_ entries",
-                },
-                dom: 't<' +
-                    '"row datatables-footer-row align-items-center"' +
-                    '<"col-md-7 d-flex align-items-center gap-2 datatables-left"l<"vr-divider mx-2">i>' +
-                    '<"col-md-5 dataTables_paginate justify-content-end"p>' +
-                    '>',
-                columnDefs: [{
-                        targets: [0],
-                        orderable: false,
-                        searchable: false,
-                        className: "text-center"
-                    },
-                    {
-                        targets: [9],
-                        orderable: false,
-                        searchable: false,
-                        className: "text-center"
-                    }
-                ],
-                order: [
-                    []
-                ],
-                responsive: true,
-                stateSave: false,
-                drawCallback: function() {
-                    $('[data-bs-toggle="tooltip"]').tooltip();
-                }
-            });
+<script>
+    var isNearExpiredMode = {{ isset($isNearExpired) ? 'true' : 'false' }};
 
-            // Filter functionality
-            $('#departmentFilter, #employmentTypeFilter, #statusFilter, #positionFilter').on('change',
-                function() {
-                    applyFilters();
-                });
+    $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+        if (!isNearExpiredMode) return true;
+        var $row = $(settings.nTable).find('tbody tr').eq(dataIndex);
+        return $row.data('near-expired') == '1';
+    });
 
-            $('#custom-search').on('input', debounce(function() {
-                table.search($(this).val()).draw();
-            }, 500));
-
-            function applyFilters() {
-                const dept = $('#departmentFilter').val();
-                const empType = $('#employmentTypeFilter').val();
-                const status = $('#statusFilter').val();
-                const position = $('#positionFilter').val();
-
-                if (dept) {
-                    table.column(4).search(dept, false, false).draw(false);
-                } else {
-                    table.column(4).search('').draw(false);
-                }
-
-                let patterns = [];
-                if (empType) patterns.push(empType);
-                if (status) patterns.push(status);
-
-                if (patterns.length > 0) {
-                    let regexPattern = patterns.map(p => '(?=.*' + p + ')').join('');
-                    table.column(8).search(regexPattern, true, false).draw(false);
-                } else {
-                    table.column(8).search('').draw(false);
-                }
-
-                if (position) {
-                    table.column(3).search('^' + position + '$', true, false).draw();
-                } else {
-                    table.column(3).search('').draw();
-                }
-            }
-
-            // Reset filters
-            $('#reset-filters').on('click', function() {
-                $('#departmentFilter, #employmentTypeFilter, #statusFilter, #positionFilter').val('')
-                    .trigger('change');
-                $('#custom-search').val('');
-                table.search('').columns().search('').draw();
-            });
-
-            // Handle Import Form Submit
-            $('#importEmployeeForm').on('submit', function(e) {
-                e.preventDefault();
-
-                var formData = new FormData(this);
-                var $btn = $('#importBtn');
-                var $progress = $('#importProgress');
-                var $result = $('#importResult');
-                var $failedContainer = $('#failedRowsContainer');
-                var $failedBody = $('#failedRowsBody');
-
-                $btn.prop('disabled', true);
-                $progress.removeClass('d-none');
-                $result.html('');
-                $failedContainer.addClass('d-none');
-                $failedBody.empty();
-
-                $.ajax({
-                    url: "{{ route('employees.import') }}",
-                    type: "POST",
-                    data: formData,
-                    processData: false,
-                    contentType: false,
-                    headers: {
-                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                    },
-                    success: function(response) {
-                        $progress.addClass('d-none');
-                        $result.html('<div class="alert alert-success py-1 px-2 mb-0">' + 
-                            response.message + '</div>');
-                        
-                        setTimeout(function() {
-                            $('#importEmployeeModal').modal('hide');
-                            location.reload();
-                        }, 2000);
-                    },
-                    error: function(xhr) {
-                        $progress.addClass('d-none');
-                        
-                        if (xhr.responseJSON) {
-                            if (xhr.responseJSON.failed_rows && xhr.responseJSON.failed_rows.length > 0) {
-                                var failedRows = xhr.responseJSON.failed_rows;
-                                $.each(failedRows, function(index, item) {
-                                    $failedBody.append('<tr>' +
-                                        '<td>' + (item.row || '-') + '</td>' +
-                                        '<td>' + (item.name || '-') + '</td>' +
-                                        '<td class="text-danger">' + (item.error || '-') + '</td>' +
-                                        '</tr>');
-                                });
-                                $failedContainer.removeClass('d-none');
-                                
-                                $result.html('<div class="alert alert-warning py-1 px-2 mb-0">' + 
-                                    (xhr.responseJSON.message || 'Import completed with errors.') + '</div>');
-                            } else {
-                                $result.html('<div class="alert alert-danger py-1 px-2 mb-0">' + 
-                                    (xhr.responseJSON.message || 'Import failed.') + '</div>');
-                            }
-                        } else {
-                            $result.html('<div class="alert alert-danger py-1 px-2 mb-0">' + 
-                                'Terjadi kesalahan saat mengupload file.</div>');
-                        }
-                        
-                        $btn.prop('disabled', false);
-                    }
-                });
-            });
-
-            // Reset modal ketika ditutup
-            $('#importEmployeeModal').on('hidden.bs.modal', function() {
-                $('#importEmployeeForm')[0].reset();
-                $('#importResult').empty();
-                $('#importProgress').addClass('d-none');
-                $('#failedRowsContainer').addClass('d-none');
-                $('#failedRowsBody').empty();
-                $('#importBtn').prop('disabled', false);
-            });
-
-            // Handle name click
-            $(document).on('click', '.clickable-name', function(e) {
-                e.stopPropagation();
-                const employeeId = $(this).closest('tr').data('employee-id');
-                if (employeeId) {
-                    const originalContent = $(this).html();
-                    $(this).html('<i class="spinner-border spinner-border-sm"></i> Loading...');
-                    window.location.href = `/employees/${employeeId}`;
-                }
-            });
-
-            // Delete employee
-            $(document).on('click', '.delete-employee-btn', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-
-                const employeeId = $(this).data('employee-id');
-                const employeeName = $(this).data('employee-name');
-
-                Swal.fire({
-                    title: 'Delete Employee',
-                    html: `Are you sure you want to delete <strong>"${employeeName}"</strong>?<br><br>
-                        <div class="alert alert-warning">
-                            <i class="bi bi-exclamation-triangle"></i> This will delete all related data.
-                        </div>`,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#dc3545',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'Yes, Delete!',
-                    cancelButtonText: 'Cancel',
-                    reverseButtons: true
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        const form = $(`
-                            <form action="/employees/${employeeId}" method="POST" style="display: none;">
-                                <input type="hidden" name="_token" value="${$('meta[name="csrf-token"]').attr('content')}">
-                                <input type="hidden" name="_method" value="DELETE">
-                            </form>
-                        `);
-                        $('body').append(form);
-                        form.submit();
-                    }
-                });
-            });
-
-            // Initialize Select2
-            $('.select2').select2({
-                theme: 'bootstrap-5',
-                placeholder: function() {
-                    return $(this).data('placeholder') || 'Select an option';
-                },
-                allowClear: true,
-                width: '100%'
-            });
-
-            // Helper functions
-            function debounce(func, wait) {
-                let timeout;
-                return function() {
-                    clearTimeout(timeout);
-                    timeout = setTimeout(() => func.apply(this, arguments), wait);
-                };
-            }
-
-            // Auto-dismiss alerts
-            setTimeout(() => $('.alert').fadeOut('slow'), 5000);
-
-            // Initialize tooltips
-            $('[data-bs-toggle="tooltip"]').tooltip();
+    $(document).ready(function() {
+        const table = $('#employees-table').DataTable({
+            processing: false,
+            searching: true,
+            paging: true,
+            info: true,
+            ordering: true,
+            lengthChange: true,
+            pageLength: 15,
+            lengthMenu: [[10,15,25,50,100],[10,15,25,50,100]],
+            language: {
+                search: "_INPUT_",
+                searchPlaceholder: "Search in table...",
+                emptyTable: '<div class="text-muted py-3">No employee data available</div>',
+                zeroRecords: '<div class="text-muted py-3">No matching records found</div>',
+                infoEmpty: "Showing 0 to 0 of 0 entries",
+                infoFiltered: "(filtered from _MAX_ total entries)",
+                lengthMenu: "Show _MENU_ per page",
+                info: "Showing _START_ to _END_ of _TOTAL_ entries",
+            },
+            dom: 't<"datatables-footer-row d-flex flex-wrap justify-content-between align-items-center gap-2 px-3 py-2"<"datatables-left"l<"vr-divider mx-2">i><"dataTables_paginate"p>>',
+            columnDefs: [
+                { targets: [0], orderable: false, searchable: false, className: "text-center" },
+                { targets: [2], orderable: false, searchable: false },
+                { targets: [9], orderable: false, searchable: false, className: "text-center" }
+            ],
+            order: [[]],
+            responsive: false,
+            autoWidth: false,
+            stateSave: false,
+            drawCallback: function() { $('[data-bs-toggle="tooltip"]').tooltip(); }
         });
-    </script>
-@endpush    
+
+        function restoreFilters() {
+            const saved = sessionStorage.getItem('employeeFilters');
+            if (saved) {
+                const f = JSON.parse(saved);
+                if (f.department)     $('#departmentFilter').val(f.department);
+                if (f.employmentType) $('#employmentTypeFilter').val(f.employmentType);
+                if (f.status)         $('#statusFilter').val(f.status);
+                if (f.position)       $('#positionFilter').val(f.position);
+                if (f.search)         $('#custom-search').val(f.search);
+                $('.select2').trigger('change.select2');
+                if (f.status) {
+                    $('.emp-status-tab').removeClass('active-tab btn-purple').addClass('btn-outline-purple');
+                    $('.emp-status-tab[data-status="' + f.status + '"]').removeClass('btn-outline-purple').addClass('active-tab btn-purple');
+                }
+                applyFilters();
+                if (f.search) table.search(f.search).draw();
+            }
+        }
+
+        function saveFilters() {
+            sessionStorage.setItem('employeeFilters', JSON.stringify({
+                department:     $('#departmentFilter').val(),
+                employmentType: $('#employmentTypeFilter').val(),
+                status:         $('#statusFilter').val(),
+                position:       $('#positionFilter').val(),
+                search:         $('#custom-search').val()
+            }));
+        }
+
+        $('#departmentFilter, #employmentTypeFilter, #statusFilter, #positionFilter').on('change', function() {
+            applyFilters(); saveFilters();
+        });
+
+        $('#custom-search').on('input', debounce(function() {
+            table.search($(this).val()).draw(); saveFilters();
+        }, 500));
+
+        if (!isNearExpiredMode) restoreFilters(); else table.draw();
+
+        function applyFilters() {
+            const dept     = $('#departmentFilter').val();
+            const empType  = $('#employmentTypeFilter').val();
+            const status   = $('#statusFilter').val();
+            const position = $('#positionFilter').val();
+
+            table.column(4).search(dept ? dept : '', false, false).draw(false);
+
+            let patterns = [];
+            if (empType) patterns.push('\\b' + empType + '\\b');
+            if (status)  patterns.push('\\b' + status  + '\\b');
+            if (patterns.length > 0) {
+                table.column(8).search(patterns.join('(?=.*?)'), true, false, true).draw(false);
+            } else {
+                table.column(8).search('').draw(false);
+            }
+
+            if (position) {
+                table.column(3).search('^' + position + '$', true, false).draw();
+            } else {
+                table.column(3).search('').draw();
+            }
+        }
+
+        $('.emp-status-tab').on('click', function() {
+            isNearExpiredMode = false;
+            const status = $(this).data('status');
+            $('.emp-status-tab').removeClass('active-tab btn-purple').addClass('btn-outline-purple');
+            $(this).removeClass('btn-outline-purple').addClass('active-tab btn-purple');
+            $('#statusFilter').val(status).trigger('change.select2');
+            if (status) {
+                table.column(8).search('\\b' + status + '\\b', true, false, true).draw();
+            } else {
+                table.column(8).search('').draw();
+            }
+            saveFilters();
+        });
+
+        $('#reset-filters').on('click', function() {
+            isNearExpiredMode = false;
+            $('#departmentFilter, #employmentTypeFilter, #statusFilter, #positionFilter').val('').trigger('change');
+            $('#custom-search').val('');
+            table.search('').columns().search('').draw();
+            $('.emp-status-tab').removeClass('active-tab btn-purple').addClass('btn-outline-purple');
+            $('#tab-all').removeClass('btn-outline-purple').addClass('active-tab btn-purple');
+            sessionStorage.removeItem('employeeFilters');
+        });
+
+        // Import form
+        $('#importEmployeeForm').on('submit', function(e) {
+            e.preventDefault();
+            var $btn = $('#importBtn').prop('disabled', true);
+            $('#importProgress').removeClass('d-none');
+            $('#importResult').html('');
+            $('#failedRowsContainer').addClass('d-none');
+            $('#failedRowsBody').empty();
+
+            $.ajax({
+                url: "{{ route('employees.import') }}",
+                type: "POST",
+                data: new FormData(this),
+                processData: false, contentType: false,
+                headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+                success: function(r) {
+                    $('#importProgress').addClass('d-none');
+                    $('#importResult').html('<div class="alert alert-success py-1 px-2 mb-0 small">' + r.message + '</div>');
+                    $btn.addClass('d-none');
+                    $('#importReloadBtn').removeClass('d-none');
+                },
+                error: function(xhr) {
+                    $('#importProgress').addClass('d-none');
+                    if (xhr.responseJSON) {
+                        if (xhr.responseJSON.failed_rows && xhr.responseJSON.failed_rows.length > 0) {
+                            $.each(xhr.responseJSON.failed_rows, function(i, item) {
+                                $('#failedRowsBody').append('<tr><td>' + (item.row||'-') + '</td><td>' + (item.name||'-') + '</td><td class="text-danger">' + (item.error||'-') + '</td></tr>');
+                            });
+                            $('#failedRowsContainer').removeClass('d-none');
+                            $('#importResult').html('<div class="alert alert-warning py-1 px-2 mb-0 small">' + (xhr.responseJSON.message || 'Import completed with errors.') + '</div>');
+                        } else {
+                            $('#importResult').html('<div class="alert alert-danger py-1 px-2 mb-0 small">' + (xhr.responseJSON.message || 'Import failed.') + '</div>');
+                        }
+                    } else {
+                        $('#importResult').html('<div class="alert alert-danger py-1 px-2 mb-0 small">An error occurred while uploading the file.</div>');
+                    }
+                    $btn.prop('disabled', false);
+                }
+            });
+        });
+
+        $('#importEmployeeModal').on('hidden.bs.modal', function() {
+            $('#importEmployeeForm')[0].reset();
+            $('#importResult').empty();
+            $('#importProgress').addClass('d-none');
+            $('#failedRowsContainer').addClass('d-none');
+            $('#failedRowsBody').empty();
+            $('#importBtn').prop('disabled', false).removeClass('d-none');
+            $('#importReloadBtn').addClass('d-none');
+        });
+
+        $(document).on('click', 'a[href*="/employees/"][href$="/edit"]', saveFilters);
+
+        $(document).on('click', '.delete-employee-btn', function(e) {
+            e.preventDefault(); e.stopPropagation();
+            const id = $(this).data('employee-id');
+            const name = $(this).data('employee-name');
+            Swal.fire({
+                title: 'Delete Employee',
+                html: `Are you sure you want to delete <strong>"${name}"</strong>?<br><br><div class="alert alert-warning py-2 small"><i class="bi bi-exclamation-triangle me-1"></i>This will delete all related data.</div>`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, Delete',
+                cancelButtonText: 'Cancel',
+                reverseButtons: true
+            }).then(r => {
+                if (r.isConfirmed) {
+                    const f = $(`<form action="/employees/${id}" method="POST" style="display:none"><input name="_token" value="${$('meta[name="csrf-token"]').attr('content')}"><input name="_method" value="DELETE"></form>`);
+                    $('body').append(f); f.submit();
+                }
+            });
+        });
+
+        $('.select2').select2({ theme: 'bootstrap-5', allowClear: true, width: '100%' });
+
+        function debounce(fn, wait) {
+            let t; return function() { clearTimeout(t); t = setTimeout(() => fn.apply(this, arguments), wait); };
+        }
+
+        // Generic capacity toggle helper
+        function handleCapacityToggle($btn, resKey, badgeClass, onColor, badgeHtml) {
+            const empId = $btn.data('employee-id');
+            const url   = $btn.data('url');
+            $btn.prop('disabled', true);
+            $.ajax({
+                url, method: 'POST',
+                data: { _token: $('meta[name="csrf-token"]').attr('content'), _method: 'PATCH' },
+                success: function(res) {
+                    const on = res[resKey];
+                    $btn.data('state', on ? '1' : '0');
+                    $btn.toggleClass(onColor, on).toggleClass('text-muted', !on);
+                    const onTitle  = $btn.attr('title').split(':')[0] + ': ' + (on ? 'ON' : 'OFF');
+                    $btn.attr('title', onTitle).tooltip('dispose').tooltip();
+                    const $badge = $(`.${badgeClass}-${empId}`);
+                    if (on) {
+                        if (!$badge.length) {
+                            $btn.closest('tr').find('td:nth-child(2) .d-flex').append(badgeHtml(empId));
+                        }
+                    } else {
+                        $badge.remove();
+                    }
+                },
+                error: function() {
+                    Swal.fire({ icon:'error', title:'Gagal', text:'Tidak dapat mengubah status.', timer:2000, showConfirmButton:false });
+                },
+                complete: function() { $btn.prop('disabled', false); }
+            });
+        }
+
+        // Toggle Production inline
+        $(document).on('click', '.toggle-production-btn', function(e) {
+            e.preventDefault(); e.stopPropagation();
+            handleCapacityToggle($(this), 'is_production', 'prod-badge', 'text-primary',
+                (id) => `<span class="badge rounded-pill prod-badge-${id}" style="background:rgba(13,110,253,.12);color:#0d6efd;font-size:.58rem;"><i class="fas fa-industry me-1"></i>Prod</span>`
+            );
+        });
+
+        // Toggle Leader Capacity inline
+        $(document).on('click', '.toggle-leader-btn', function(e) {
+            e.preventDefault(); e.stopPropagation();
+            handleCapacityToggle($(this), 'is_leader_capacity', 'leader-badge', 'text-warning',
+                (id) => `<span class="badge rounded-pill leader-badge-${id}" style="background:rgba(255,193,7,.15);color:#856404;font-size:.58rem;"><i class="fas fa-star me-1"></i>Leader</span>`
+            );
+        });
+
+        // Resolve Contract modal
+        $(document).on('click', '.resolve-contract-btn', function(e) {
+            e.preventDefault(); e.stopPropagation();
+            const name = $(this).data('employee-name');
+            const url  = $(this).data('resolve-url');
+            $('#resolveEmpName').text(name);
+            $('#resolveContractForm').attr('action', url);
+            $('#resolveAction').val('');
+            $('#extendSection, #terminateSection').addClass('d-none');
+            $('#resolveSubmitBtn').addClass('d-none');
+            $('.resolve-action-btn').removeClass('active btn-success btn-danger').addClass('btn-outline-success btn-outline-danger');
+            new bootstrap.Modal(document.getElementById('resolveContractModal')).show();
+        });
+
+        $(document).on('click', '.resolve-action-btn', function() {
+            const action = $(this).data('action');
+            $('#resolveAction').val(action);
+            $('.resolve-action-btn').removeClass('btn-success btn-danger active');
+            if (action === 'extend') {
+                $(this).removeClass('btn-outline-success').addClass('btn-success active');
+                $('#extendSection').removeClass('d-none');
+                $('#terminateSection').addClass('d-none');
+                $('#resolveSubmitBtn').removeClass('d-none btn-danger').addClass('btn-warning');
+            } else {
+                $(this).removeClass('btn-outline-danger').addClass('btn-danger active');
+                $('#terminateSection').removeClass('d-none');
+                $('#extendSection').addClass('d-none');
+                $('#resolveSubmitBtn').removeClass('d-none btn-warning').addClass('btn-danger');
+            }
+        });
+
+        setTimeout(() => $('.alert').fadeOut('slow'), 5000);
+        $('[data-bs-toggle="tooltip"]').tooltip();
+    });
+</script>
+@endpush

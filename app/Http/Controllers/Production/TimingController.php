@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Production\Timing;
 use App\Models\Production\Project;
+use App\Models\Production\JobOrder;
 use App\Models\Hr\Employee;
 use App\Models\Admin\Department;
+use App\Models\Logistic\Unit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use App\Exports\TimingExport;
@@ -23,19 +25,23 @@ class TimingController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
+        $this->middleware('can:production.timing.view');
+        $this->middleware('can:production.timing.edit')->only(['create', 'storeMultiple', 'edit', 'update', 'destroy', 'import', 'downloadTemplate']);
     }
 
     public function index(Request $request)
     {
         $timings = Timing::with(['project', 'employee.department', 'jobOrder'])
-            ->latest()
+            ->orderByDesc('tanggal')
+            ->orderByDesc('start_time')
+            ->orderByDesc('id')
+            ->limit(300)
             ->get();
 
         $projects = Project::with('departments')->orderBy('name')->get();
         $jobOrders = \App\Models\Production\JobOrder::orderBy('name')->get();
         $departments = Department::orderBy('name')->pluck('name', 'id');
         $employees = Employee::orderBy('name')->get();
-
         return view('production.timings.index', compact('timings', 'projects', 'jobOrders', 'departments', 'employees'));
     }
 
@@ -62,11 +68,114 @@ class TimingController extends Controller
         if ($request->filled('employee_id')) {
             $query->where('employee_id', $request->employee_id);
         }
+        if ($request->filled('date_from')) {
+            $query->where('tanggal', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->where('tanggal', '<=', $request->date_to);
+        }
 
-        $timings = $query->orderByDesc('tanggal')->get();
+        // Limit results — more if filters active, default 300 most recent
+        $hasFilter = $request->filled('search') || $request->filled('project_id') || $request->filled('job_order_id') || $request->filled('department') || $request->filled('employee_id') || $request->filled('date_from') || $request->filled('date_to');
+        $limit = $hasFilter ? 1000 : 300;
+
+        $timings = $query->orderByDesc('tanggal')->orderByDesc('start_time')->orderByDesc('id')->limit($limit)->get();
 
         try {
-            $html = view('production.timings.timing_table', compact('timings'))->render();
+            // Generate table rows HTML inline
+            $html = '';
+
+            if ($timings->isEmpty()) {
+                $html = '<tr class="no-data-row">
+                    <td colspan="16" class="text-center py-4">
+                        <i class="bi bi-inbox" style="font-size: 3rem; opacity: 0.3;"></i>
+                        <p class="mt-2 text-muted">No timing data found</p>
+                    </td>
+                </tr>';
+            } else {
+                foreach ($timings as $timing) {
+                    // Calculate duration in minutes
+                    $minutes = 0;
+                    if ($timing->duration_minutes && $timing->duration_minutes > 0) {
+                        $minutes = $timing->duration_minutes;
+                    } elseif ($timing->start_time && $timing->end_time) {
+                        $start = \Carbon\Carbon::parse($timing->start_time);
+                        $end = \Carbon\Carbon::parse($timing->end_time);
+                        $minutes = $start->diffInMinutes($end);
+                    }
+
+                    $html .= '<tr>';
+                    $isoDate = $timing->tanggal ? \Carbon\Carbon::parse($timing->tanggal)->format('Y-m-d') . ' ' . ($timing->start_time ?? '00:00:00') : '0000-00-00';
+                    $html .= '<td class="date-col" data-order="' . $isoDate . '">' . ($timing->tanggal ? \Carbon\Carbon::parse($timing->tanggal)->format('d M Y') : '-') . '</td>';
+                    $html .= '<td>' . ($timing->project ? $timing->project->name : '-') . '</td>';
+                    $html .= '<td>' . ($timing->jobOrder ? $timing->jobOrder->name : '-') . '</td>';
+                    $html .= '<td>' . ($timing->employee && $timing->employee->department ? $timing->employee->department->name : '-') . '</td>';
+                    $html .= '<td>' . ($timing->step ?? '-') . '</td>';
+                    $html .= '<td>' . ($timing->parts ?? '-') . '</td>';
+                    $html .= '<td>' . ($timing->item ?? '-') . '</td>';
+                    $html .= '<td>' . ($timing->employee ? $timing->employee->name : '-') . '</td>';
+                    $html .= '<td>' . ($timing->start_time ? \Carbon\Carbon::parse($timing->start_time)->format('H:i') : '-') . '</td>';
+                    $html .= '<td>' . ($timing->end_time ? \Carbon\Carbon::parse($timing->end_time)->format('H:i') : '<span class="badge bg-warning">Running</span>') . '</td>';
+                    $html .= '<td>' . ($minutes > 0 ? $minutes . ' min' : '-') . '</td>';
+                    $html .= '<td>' . ($timing->measurement_value ?? '-') . '</td>';
+
+                    // Type from measurement_type
+                    $typeText = '-';
+                    if ($timing->measurement_type == 'qty') {
+                        $typeText = 'Qty';
+                    } elseif ($timing->measurement_type == 'progress') {
+                        $typeText = 'Progress';
+                    } elseif ($timing->measurement_type) {
+                        $typeText = $timing->measurement_type;
+                    }
+                    $html .= '<td>' . $typeText . '</td>';
+
+                    // Status badge
+                    $statusBadge = '<span class="badge bg-light text-dark">' . ucfirst($timing->status ?? '-') . '</span>';
+                    if ($timing->status == 'complete') {
+                        $statusBadge = '<span class="badge bg-success">Complete</span>';
+                    } elseif ($timing->status == 'on progress') {
+                        $statusBadge = '<span class="badge bg-warning">On Progress</span>';
+                    } elseif ($timing->status == 'pending') {
+                        $statusBadge = '<span class="badge bg-secondary">Pending</span>';
+                    }
+                    $html .= '<td>' . $statusBadge . '</td>';
+
+                    // Approval badge
+                    $approvalBadge = '<span class="badge bg-warning"><i class="fas fa-clock"></i> Pending</span>';
+                    if ($timing->approval_status == 'approved') {
+                        $approvalBadge = '<span class="badge bg-success"><i class="fas fa-check-circle"></i> Approved</span>';
+                    } elseif ($timing->approval_status == 'rejected') {
+                        $approvalBadge = '<span class="badge bg-danger"><i class="fas fa-times-circle"></i> Rejected</span>';
+                    }
+                    $html .= '<td>' . $approvalBadge . '</td>';
+
+                    $html .= '<td title="' . e($timing->remarks ?? '') . '">' . (mb_strlen($timing->remarks ?? '') > 40 ? mb_substr($timing->remarks, 0, 40) . '…' : $timing->remarks ?? '-') . '</td>'; // Actions column
+                    $authUser = auth()->user();
+                    $canEdit = $authUser->can('production.timing.edit') || $authUser->id == $timing->employee_id;
+                    $canDelete = $authUser->isSuperAdmin();
+
+                    if ($canEdit) {
+                        $editUrl = route('timings.edit', $timing->id);
+                        $deleteUrl = route('timings.destroy', $timing->id);
+                        $html .= '<td class="text-nowrap">';
+                        $html .= '<a href="' . $editUrl . '" class="btn btn-sm btn-warning" title="Edit"><i class="bi bi-pencil-fill"></i></a> ';
+                        if ($canDelete) {
+                            $html .= '<form action="' . $deleteUrl . '" method="POST" class="d-inline" onsubmit="return confirm(\'Are you sure you want to delete this timing record?\')">';
+                            $html .= csrf_field();
+                            $html .= method_field('DELETE');
+                            $html .= '<button type="submit" class="btn btn-sm btn-danger" title="Delete"><i class="bi bi-trash-fill"></i></button>';
+                            $html .= '</form>';
+                        }
+                        $html .= '</td>';
+                    } else {
+                        $html .= '<td class="text-nowrap"><span class="text-muted">-</span></td>';
+                    }
+
+                    $html .= '</tr>';
+                }
+            }
+
             return response()->json([
                 'html' => $html,
                 'count' => $timings->count(),
@@ -88,31 +197,27 @@ class TimingController extends Controller
 
     public function create()
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            abort(403, 'You do not have permission to create timing data.');
-        }
-
         $projects = Project::with(['parts', 'departments'])->get();
 
-        // HANYA ambil employee yang statusnya 'active'
-        $employees = Employee::where('status', 'active')->orderBy('name')->get();
+        $employees = Employee::whereIn('status', ['active', 'pending_contract'])
+            ->orderBy('name')
+            ->get();
 
         $departments = Department::orderBy('name')->pluck('name', 'id');
-        return view('production.timings.create', compact('projects', 'employees', 'departments'));
+        $jobOrders = \App\Models\Production\JobOrder::orderBy('name')->get();
+        $units = \App\Models\Logistic\Unit::orderBy('name')->pluck('name');
+        return view('production.timings.create', compact('projects', 'employees', 'departments', 'jobOrders', 'units'));
     }
 
     public function storeMultiple(Request $request)
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            return redirect()->route('timings.index')->with('error', 'You do not have permission to create timing data.');
-        }
-
         $attributes = [];
         $timings = $request->input('timings', []);
         foreach ($timings as $i => $timing) {
             $row = $i + 1;
             $attributes["timings.$i.tanggal"] = "Date (row $row)";
             $attributes["timings.$i.project_id"] = "Project (row $row)";
+            $attributes["timings.$i.job_order_id"] = "Job Order (row $row)";
             $attributes["timings.$i.step"] = "Step (row $row)";
             $attributes["timings.$i.parts"] = "Part (row $row)";
             $attributes["timings.$i.employee_id"] = "Employee (row $row)";
@@ -131,14 +236,16 @@ class TimingController extends Controller
                 'timings' => 'required|array',
                 'timings.*.tanggal' => 'required|date',
                 'timings.*.project_id' => 'required|exists:projects,id',
-                'timings.*.step' => 'required',
+                'timings.*.job_order_id' => 'nullable|exists:job_orders,id',
+                'timings.*.step' => 'nullable|string|max:255',
                 'timings.*.parts' => 'nullable|string',
+                'timings.*.item' => 'nullable|string|max:255',
                 'timings.*.employee_id' => 'required|exists:employees,id',
                 'timings.*.start_time' => 'required',
                 'timings.*.end_time' => 'required',
                 'timings.*.duration_minutes' => 'required|integer|min:0',
-                'timings.*.measurement_type' => 'required|in:progress,qty,pcs,unit',
-                'timings.*.measurement_value' => 'required|numeric|min:0',
+                'timings.*.measurement_type' => 'nullable|string|max:50',
+                'timings.*.measurement_value' => 'nullable|numeric|min:0',
                 'timings.*.status' => 'required|in:complete,on progress,pending',
                 'timings.*.remarks' => 'nullable',
             ],
@@ -148,27 +255,16 @@ class TimingController extends Controller
 
         // Validasi custom
         $data = $validator->getData();
-        $projectsWithParts = Project::has('parts')->pluck('id')->toArray();
-        $projectIds = array_column($request->timings, 'project_id');
-        $projects = Project::whereIn('id', $projectIds)->pluck('name', 'id');
 
         foreach ($data['timings'] as $idx => $timing) {
-            // Employee harus aktif
             $employee = Employee::find($timing['employee_id']);
-            if (!$employee || $employee->status !== 'active') {
+            if (!$employee || !in_array($employee->status, ['active', 'pending_contract'])) {
                 $validator->errors()->add("timings.$idx.employee_id", 'Selected employee is not active or does not exist.');
             }
             // End time >= start time
             if (isset($timing['start_time'], $timing['end_time'])) {
                 if ($timing['end_time'] < $timing['start_time']) {
                     $validator->errors()->add("timings.$idx.end_time", 'End Time (row ' . ($idx + 1) . ') cannot be earlier than start time.');
-                }
-            }
-            // Parts wajib jika project punya parts
-            if (in_array($timing['project_id'], $projectsWithParts)) {
-                if (empty($timing['parts'])) {
-                    $projectName = $projects[$timing['project_id']] ?? 'Unknown';
-                    $validator->errors()->add("timings.$idx.parts", "Part is required for project: <b>$projectName</b>");
                 }
             }
         }
@@ -179,9 +275,8 @@ class TimingController extends Controller
 
         // Insert ke database
         foreach ($data['timings'] as &$timing) {
-            if (!in_array($timing['project_id'], $projectsWithParts)) {
-                $timing['parts'] = 'No Part';
-            }
+            // Auto-set approval_status to pending for Timing Approval workflow
+            $timing['approval_status'] = 'pending';
             Timing::create($timing);
         }
 
@@ -256,10 +351,6 @@ class TimingController extends Controller
 
     public function import(Request $request)
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            return redirect()->route('timings.index')->with('error', 'You do not have permission to import timing data.');
-        }
-
         $request->validate([
             'xls_file' => 'required|mimes:xls,xlsx',
         ]);
@@ -283,32 +374,40 @@ class TimingController extends Controller
                     continue;
                 }
 
-                // Map columns - Sinkron dengan urutan file import: date, project, department, step, part, employee, start, end, qty, status, remark
+                // Map columns - NEW ORDER: date, job_order, project, department, step, parts, employee, start, end, duration, value, type, status, approval, remarks
                 $tanggal = $row[0] ?? null;
-                $projectName = $row[1] ?? null;
-                $departmentName = $row[2] ?? null;
-                $step = $row[3] ?? null;
-                $parts = $row[4] ?? null;
-                $employeeName = $row[5] ?? null;
-                $startTime = $row[6] ?? null;
-                $endTime = $row[7] ?? null;
-                $outputQty = $row[8] ?? null;
-                $status = $row[9] ?? null;
-                $remarks = $row[10] ?? null;
+                $jobOrderName = $row[1] ?? null;
+                $projectName = $row[2] ?? null;
+                $departmentName = $row[3] ?? null;
+                $step = $row[4] ?? null;
+                $parts = $row[5] ?? null;
+                $employeeName = $row[6] ?? null;
+                $startTime = $row[7] ?? null;
+                $endTime = $row[8] ?? null;
+                // $duration = $row[9] ?? null; // Auto-calculated, ignore from import
+                $measurementValue = $row[10] ?? null;
+                $measurementType = $row[11] ?? null;
+                $status = $row[12] ?? null;
+                $approvalStatus = $row[13] ?? null;
+                $remarks = $row[14] ?? null;
 
                 // Validate required fields
                 if (empty($tanggal)) {
                     $errors[] = "Row {$rowIndex}: Date is required";
                     continue;
                 }
-                if (empty($projectName)) {
-                    $errors[] = "Row {$rowIndex}: Project Name is required";
+
+                // Validate: At least one of job_order or project is required
+                if (empty($jobOrderName) && empty($projectName)) {
+                    $errors[] = "Row {$rowIndex}: Either Job Order or Project is required";
                     continue;
                 }
-                if (empty($step)) {
-                    $errors[] = "Row {$rowIndex}: Step is required";
+
+                if (empty($departmentName)) {
+                    $errors[] = "Row {$rowIndex}: Department is required";
                     continue;
                 }
+
                 if (empty($employeeName)) {
                     $errors[] = "Row {$rowIndex}: Employee Name is required";
                     continue;
@@ -321,39 +420,87 @@ class TimingController extends Controller
                     $errors[] = "Row {$rowIndex}: End Time is required";
                     continue;
                 }
-                if (empty($outputQty) || !is_numeric($outputQty)) {
-                    $errors[] = "Row {$rowIndex}: Output Qty must be a valid number";
-                    continue;
-                }
-                if (empty($status) || !in_array($status, ['complete', 'on progress', 'pending'])) {
-                    $errors[] = "Row {$rowIndex}: Status must be one of: complete, on progress, pending";
-                    continue;
-                }
 
-                // Validate date format
+                // Validate date format - Handle multiple formats including DD/MM/YYYY, DD-MM-YYYY
                 try {
-                    $parsedDate = Carbon::parse($tanggal)->format('Y-m-d');
+                    $parsedDate = null;
+
+                    // Handle Excel serial date number (e.g., 44941 for 2023-01-15)
+                    if (is_numeric($tanggal) && $tanggal > 25569) {
+                        // Excel date: days since 1900-01-01
+                        $parsedDate = Carbon::createFromFormat('Y-m-d', '1900-01-01')
+                            ->addDays($tanggal - 2) // -2 for Excel leap year bug
+                            ->format('Y-m-d');
+                    } else {
+                        // Try different date formats
+                        $dateFormats = [
+                            'd/m/Y', // 15/01/2024
+                            'd-m-Y', // 15-01-2024
+                            'd/m/y', // 15/01/24
+                            'd-m-y', // 15-01-24
+                            'Y-m-d', // 2024-01-15
+                            'Y/m/d', // 2024/01/15
+                            'm/d/Y', // 01/15/2024
+                            'm-d-Y', // 01-15-2024
+                        ];
+
+                        foreach ($dateFormats as $format) {
+                            try {
+                                $date = Carbon::createFromFormat($format, $tanggal);
+                                if ($date && $date->format($format) == $tanggal) {
+                                    $parsedDate = $date->format('Y-m-d');
+                                    break;
+                                }
+                            } catch (\Exception $e) {
+                                continue;
+                            }
+                        }
+
+                        // If still not parsed, try Carbon::parse as last resort
+                        if (!$parsedDate) {
+                            $parsedDate = Carbon::parse($tanggal)->format('Y-m-d');
+                        }
+                    }
                 } catch (\Exception $e) {
-                    $errors[] = "Row {$rowIndex}: Invalid date format";
+                    $errors[] = "Row {$rowIndex}: Invalid date format '{$tanggal}'. Supported: DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD";
                     continue;
                 }
 
-                // Find Project with department relationship
-                $project = Project::with('departments')->where('name', $projectName)->first();
+                // Find Job Order if provided
+                $jobOrder = null;
+                if (!empty($jobOrderName)) {
+                    $jobOrder = JobOrder::where('name', $jobOrderName)->first();
+                    if (!$jobOrder) {
+                        $errors[] = "Row {$rowIndex}: Job Order '{$jobOrderName}' not found";
+                        continue;
+                    }
+                }
+
+                // Find Project if provided (or use job order's project)
+                $project = null;
+                if (!empty($projectName)) {
+                    $project = Project::with('departments')->where('name', $projectName)->first();
+                    if (!$project) {
+                        $errors[] = "Row {$rowIndex}: Project '{$projectName}' not found";
+                        continue;
+                    }
+                } elseif ($jobOrder && $jobOrder->project_id) {
+                    // If no project but have job order, use job order's project
+                    $project = Project::with('departments')->find($jobOrder->project_id);
+                }
+
+                // Validate we have at least project
                 if (!$project) {
-                    $errors[] = "Row {$rowIndex}: Project '{$projectName}' not found";
+                    $errors[] = "Row {$rowIndex}: Could not determine project from provided data";
                     continue;
                 }
 
-                // Get department from project
-                $projectDepartments = $project->departments;
-                if ($projectDepartments->isEmpty()) {
-                    $errors[] = "Row {$rowIndex}: Project '{$projectName}' does not have department(s) assigned";
+                // Find Department
+                $department = Department::where('name', $departmentName)->first();
+                if (!$department) {
+                    $errors[] = "Row {$rowIndex}: Department '{$departmentName}' not found";
                     continue;
                 }
-
-                // Ambil department pertama atau gabung semua
-                $projectDepartment = $projectDepartments->pluck('name')->implode(', ');
 
                 // Find Employee
                 $employee = Employee::where('name', $employeeName)->first();
@@ -362,20 +509,9 @@ class TimingController extends Controller
                     continue;
                 }
 
-                // Check if employee is active
-                if ($employee->status !== 'active') {
+                if (!in_array($employee->status, ['active', 'pending_contract'])) {
                     $errors[] = "Row {$rowIndex}: Employee '{$employeeName}' is not active";
                     continue;
-                }
-
-                // Department will be taken from project, not from import data or employee
-                // Note: Department is not stored in timings table, it's accessed via project relationship
-                if (!empty($departmentName)) {
-                    // Check if provided department matches any of project's departments
-                    $departmentExists = $projectDepartments->pluck('name')->contains($departmentName);
-                    if (!$departmentExists) {
-                        $warnings[] = "Row {$rowIndex}: Department '{$departmentName}' from import will be ignored. Using project departments: {$projectDepartment}";
-                    }
                 }
 
                 // Validate and parse time format with detailed error messages
@@ -415,16 +551,26 @@ class TimingController extends Controller
                     }
                 }
 
-                // Check if project has parts and parts is required
-                $projectsWithParts = Project::has('parts')->pluck('id')->toArray();
-                if (in_array($project->id, $projectsWithParts) && empty($parts)) {
-                    $errors[] = "Row {$rowIndex}: Parts is required for project '{$projectName}'";
+                // Validate status if provided
+                if (!empty($status) && !in_array($status, ['complete', 'on progress', 'pending'])) {
+                    $errors[] = "Row {$rowIndex}: Status must be one of: complete, on progress, pending";
                     continue;
                 }
 
-                // If project doesn't have parts, set default
-                if (!in_array($project->id, $projectsWithParts)) {
-                    $parts = 'No Part';
+                // Set default status if empty
+                if (empty($status)) {
+                    $status = 'pending';
+                }
+
+                // Validate approval status if provided
+                if (!empty($approvalStatus) && !in_array($approvalStatus, ['pending', 'approved', 'rejected'])) {
+                    $errors[] = "Row {$rowIndex}: Approval status must be one of: pending, approved, rejected";
+                    continue;
+                }
+
+                // Set default approval status if empty
+                if (empty($approvalStatus)) {
+                    $approvalStatus = 'pending';
                 }
 
                 // Create timing record
@@ -440,14 +586,18 @@ class TimingController extends Controller
 
                     $timing = Timing::create([
                         'tanggal' => $parsedDate,
+                        'job_order_id' => $jobOrder ? $jobOrder->id : null,
                         'project_id' => $project->id,
                         'step' => $step,
-                        'parts' => $parts,
+                        'parts' => $parts ?? 'No Part',
+                        'item' => $timingData['item'] ?? null,
                         'employee_id' => $employee->id,
                         'start_time' => $startTimeParsed,
                         'end_time' => $endTimeParsed,
-                        'output_qty' => $outputQty,
+                        'measurement_value' => $measurementValue ?? 0,
+                        'measurement_type' => $measurementType ?? 'pcs',
                         'status' => $status,
+                        'approval_status' => $approvalStatus,
                         'remarks' => $remarks,
                     ]);
 
@@ -573,21 +723,21 @@ class TimingController extends Controller
     public function edit(Timing $timing)
     {
         $projects = Project::with(['parts', 'departments'])->get();
-        $employees = Employee::where('status', 'active')->orderBy('name')->get();
+        $employees = Employee::whereIn('status', ['active', 'pending_contract'])
+            ->orderBy('name')
+            ->get();
         $departments = Department::orderBy('name')->pluck('name', 'id');
+        $jobOrders = \App\Models\Production\JobOrder::select('id', 'name', 'project_id')->orderBy('name')->get();
 
-        return view('production.timings.edit', compact('timing', 'projects', 'employees', 'departments'));
+        return view('production.timings.edit', compact('timing', 'projects', 'employees', 'departments', 'jobOrders'));
     }
 
     public function update(Request $request, Timing $timing)
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            return redirect()->route('timings.index')->with('error', 'You do not have permission to update timing data.');
-        }
-
         $attributes = [
             'tanggal' => 'Date',
             'project_id' => 'Project',
+            'job_order_id' => 'Job Order',
             'step' => 'Step',
             'parts' => 'Part',
             'employee_id' => 'Employee',
@@ -605,8 +755,10 @@ class TimingController extends Controller
             [
                 'tanggal' => 'required|date',
                 'project_id' => 'required|exists:projects,id',
+                'job_order_id' => 'nullable|exists:job_orders,id',
                 'step' => 'required',
                 'parts' => 'nullable|string',
+                'item' => 'nullable|string|max:255',
                 'employee_id' => 'required|exists:employees,id',
                 'start_time' => 'required',
                 'end_time' => 'required',
@@ -629,7 +781,7 @@ class TimingController extends Controller
         }
 
         $employee = Employee::find($request->employee_id);
-        if (!$employee || $employee->status !== 'active') {
+        if (!$employee || !in_array($employee->status, ['active', 'pending_contract'])) {
             $validator->errors()->add('employee_id', 'Selected employee is not active or does not exist.');
         }
 

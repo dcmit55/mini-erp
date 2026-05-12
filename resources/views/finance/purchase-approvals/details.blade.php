@@ -262,6 +262,7 @@
                 <h5 class="modal-title">Approve Purchase Order</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
+            @can('procurement.po.approve')
             <form action="{{ route('purchase-approvals.approve', $purchase->id) }}" method="POST">
                 @csrf
                 <div class="modal-body">
@@ -279,7 +280,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Finance Notes (Optional)</label>
-                        <textarea name="finance_notes" class="form-control" rows="3" 
+                        <textarea name="finance_notes" class="form-control" rows="3"
                                   placeholder="Add notes for this approval..."></textarea>
                     </div>
                 </div>
@@ -288,6 +289,7 @@
                     <button type="submit" class="btn btn-primary">Confirm Approve</button>
                 </div>
             </form>
+            @endcan
         </div>
     </div>
 </div>
@@ -300,6 +302,7 @@
                 <h5 class="modal-title">Reject Purchase Order</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
+            @can('procurement.po.approve')
             <form action="{{ route('purchase-approvals.reject', $purchase->id) }}" method="POST">
                 @csrf
                 <div class="modal-body">
@@ -313,7 +316,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Reason for Rejection <span class="text-danger">*</span></label>
-                        <textarea name="finance_notes" class="form-control" rows="4" 
+                        <textarea name="finance_notes" class="form-control" rows="4"
                                   placeholder="Explain why this purchase is being rejected..." required></textarea>
                         <div class="form-text">This reason will be recorded and visible to the requester.</div>
                     </div>
@@ -323,6 +326,7 @@
                     <button type="submit" class="btn btn-danger">Confirm Reject</button>
                 </div>
             </form>
+            @endcan
         </div>
     </div>
 </div>

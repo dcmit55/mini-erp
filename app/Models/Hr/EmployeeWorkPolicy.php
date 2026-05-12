@@ -13,6 +13,11 @@ class EmployeeWorkPolicy extends Model
 {
     use HasFactory, SoftDeletes;
 
+    public function getRouteKeyName(): string
+    {
+        return 'uid';
+    }
+
     protected $fillable = [
         'uid',
         'employee_id',

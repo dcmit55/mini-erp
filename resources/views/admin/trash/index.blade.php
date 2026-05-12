@@ -13,6 +13,7 @@
 
                     <!-- Bulk Action Buttons -->
                     <div class="ms-lg-auto d-flex flex-wrap gap-2">
+                        @can('admin.audit.delete')
                         <form class="d-flex flex-wrap gap-2" id="bulk-action-form" method="POST"
                             action="{{ route('trash.bulkAction') }}">
                             @csrf
@@ -34,6 +35,7 @@
                             data-bs-target="#purgeOldModal">
                             <i class="bi bi-hourglass-split me-1"></i> Purge Old Trash
                         </button>
+                        @endcan
                     </div>
                 </div>
 
@@ -123,6 +125,7 @@
                                     <td>{{ $item->deleted_at }}</td>
                                     <td>
                                         <div class="d-flex flex-wrap gap-1">
+                                        @can('admin.audit.delete')
                                             @if ($var === 'goodsOuts')
                                                 {{-- Custom restore untuk Goods Out --}}
                                                 <form action="{{ route('goods_out.restore', $item->id) }}" method="POST"
@@ -187,6 +190,7 @@
                                                 <button class="btn btn-danger btn-sm delete-btn" type="button"
                                                     title="Delete Permanently"><i class="bi bi-trash3"></i></button>
                                             </form>
+                                        @endcan
                                         </div>
                                     </td>
                                 </tr>

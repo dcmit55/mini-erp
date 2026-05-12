@@ -20,14 +20,19 @@
 
                     <!-- Spacer untuk mendorong tombol ke kanan -->
                     <div class="ms-lg-auto d-flex flex-wrap gap-2">
-                        <a href="{{ route('timings.create') }}" class="btn btn-primary btn-sm flex-shrink-0">
-                            <i class="bi bi-plus-circle me-1"></i> Input Timing
+                        <a href="{{ route('costume-timing.index') }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-cut me-1"></i> Costume Timing
                         </a>
-                        <!-- Import Button -->
-                        <button type="button" class="btn btn-success btn-sm flex-shrink-0" data-bs-toggle="modal"
-                            data-bs-target="#importModal">
-                            <i class="bi bi-filetype-xls me-1"></i> Import
-                        </button>
+                        @can('production.timing.edit')
+                            <a href="{{ route('timings.create') }}" class="btn btn-primary btn-sm flex-shrink-0">
+                                <i class="bi bi-plus-circle me-1"></i> Input Timing
+                            </a>
+                            <!-- Import Button -->
+                            <button type="button" class="btn btn-success btn-sm flex-shrink-0" data-bs-toggle="modal"
+                                data-bs-target="#importModal">
+                                <i class="bi bi-filetype-xls me-1"></i> Import
+                            </button>
+                        @endcan
                         <!-- Export Button -->
                         <button type="button" id="export-btn" class="btn btn-outline-success btn-sm flex-shrink-0">
                             <i class="bi bi-file-earmark-excel me-1"></i> Export
@@ -62,88 +67,258 @@
                     </div>
                 @endif
 
-                <form method="GET" class="row g-2 align-items-end mb-3">
-                    <div class="col-md-4">
-                        <label class="form-label mb-1">Search</label>
-                        <input type="text" name="search" value="{{ request('search') }}" class="form-control"
-                            placeholder="Search step, remarks...">
+                <form method="GET" id="timing-filter-form" class="mb-3">
+                    {{-- Row 1: Search + Project + Job Order + Department --}}
+                    <div class="row g-2 align-items-end mb-2">
+                        <div class="col-md-3">
+                            {{-- <label class="form-label mb-1 small">Search</label> --}}
+                            <input type="text" name="search" value="{{ request('search') }}"
+                                class="form-control form-control-sm" placeholder="Search step, remarks...">
+                        </div>
+                        <div class="col-md-3">
+                            {{-- <label class="form-label mb-1 small">Project</label> --}}
+                            <select name="project_id" class="form-select form-select-sm select2"
+                                data-placeholder="All Projects">
+                                <option value="">All Projects</option>
+                                @foreach ($projects as $project)
+                                    <option value="{{ $project->id }}"
+                                        {{ request('project_id') == $project->id ? 'selected' : '' }}>
+                                        {{ $project->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            {{-- <label class="form-label mb-1 small">Job Order</label> --}}
+                            <select name="job_order_id" class="form-select form-select-sm select2"
+                                data-placeholder="All Job Orders">
+                                <option value="">All Job Orders</option>
+                                @foreach ($jobOrders as $jo)
+                                    <option value="{{ $jo->id }}"
+                                        {{ request('job_order_id') == $jo->id ? 'selected' : '' }}>
+                                        {{ $jo->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label mb-1 small">Department</label>
+                            <select name="department" class="form-select form-select-sm select2"
+                                data-placeholder="All Departments">
+                                <option value="">All Departments</option>
+                                @foreach ($departments as $id => $deptName)
+                                    <option value="{{ $deptName }}"
+                                        {{ request('department') == $deptName ? 'selected' : '' }}>
+                                        {{ ucfirst($deptName) }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
                     </div>
-                    <div class="col-md-2">
-                        <label class="form-label mb-1">Filter Project</label>
-                        <select name="project_id" class="form-select select2" data-placeholder="All Projects">
-                            <option value="">All Projects</option>
-                            @foreach ($projects as $project)
-                                <option value="{{ $project->id }}"
-                                    {{ request('project_id') == $project->id ? 'selected' : '' }}>
-                                    {{ $project->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label mb-1">Filter Job Order</label>
-                        <select name="job_order_id" class="form-select select2" data-placeholder="All Job Orders">
-                            <option value="">All Job Orders</option>
-                            @foreach ($jobOrders as $jo)
-                                <option value="{{ $jo->id }}"
-                                    {{ request('job_order_id') == $jo->id ? 'selected' : '' }}>
-                                    {{ $jo->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label mb-1">Department</label>
-                        <select name="department" class="form-select select2" data-placeholder="All Departments">
-                            <option value="">All Departments</option>
-                            @foreach ($departments as $id => $deptName)
-                                <option value="{{ $deptName }}"
-                                    {{ request('department') == $deptName ? 'selected' : '' }}>
-                                    {{ ucfirst($deptName) }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label mb-1">Employee</label>
-                        <select name="employee_id" class="form-select select2" data-placeholder="All Employees">
-                            <option value="">All Employees</option>
-                            @foreach ($employees as $emp)
-                                <option value="{{ $emp->id }}"
-                                    {{ request('employee_id') == $emp->id ? 'selected' : '' }}>
-                                    {{ $emp->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-lg-2 d-flex align-items-end gap-2">
-                        <a href="{{ route('timings.index') }}" class="btn btn-secondary"
-                            title="Reset All Filters">Reset</a>
+                    {{-- Row 2: Employee + Date Range + Reset --}}
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-3">
+                            {{-- <label class="form-label mb-1 small">Employee</label> --}}
+                            <select name="employee_id" class="form-select form-select-sm select2"
+                                data-placeholder="All Employees">
+                                <option value="">All Employees</option>
+                                @foreach ($employees as $emp)
+                                    <option value="{{ $emp->id }}"
+                                        {{ request('employee_id') == $emp->id ? 'selected' : '' }}>
+                                        {{ $emp->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label mb-1 small">Date Range</label>
+                            <div class="position-relative">
+                                {{-- <span class="position-absolute"
+                                    style="left:9px;top:50%;transform:translateY(-50%);pointer-events:none;z-index:5;">
+                                    <i class="bi bi-calendar3 text-muted" style="font-size:.8rem;"></i>
+                                </span> --}}
+                                <input type="text" id="timing-date-range" class="form-control form-control-sm ps-4"
+                                    placeholder="Select date range..." autocomplete="off" readonly>
+                                <input type="hidden" id="input-date-from" name="date_from"
+                                    value="{{ request('date_from') }}">
+                                <input type="hidden" id="input-date-to" name="date_to" value="{{ request('date_to') }}">
+                            </div>
+                        </div>
+                        <div class="col-md-auto d-flex align-items-end gap-2">
+                            <a href="{{ route('timings.index') }}" class="btn btn-secondary btn-sm"
+                                title="Reset All Filters"><i class="bi bi-x-lg me-1"></i>Reset</a>
+                        </div>
                     </div>
                 </form>
+                <div class="alert alert-info border-0 py-1 px-3 mb-2 small text-muted">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Menampilkan <strong>300 data terbaru</strong>. Gunakan filter tanggal atau filter lain untuk
+                    mempersempit hasil.
+                </div>
                 <div id="timing-error-alert" class="alert alert-danger d-none" role="alert"></div>
                 <table class="table table-sm table-hover align-middle rounded" id="timing-table">
                     <thead class="table-light">
                         <tr>
-                            <th>Date</th>
+                            <th class="date-col">Date</th>
                             <th>Project</th>
                             <th>Job Order</th>
                             <th>Department</th>
                             <th>Step</th>
                             <th>Parts</th>
+                            <th>Item</th>
                             <th>Employee</th>
                             <th>Start</th>
                             <th>End</th>
-                            <th>Duration (hrs)</th>
+                            <th>Duration (min)</th>
                             <th>Value</th>
                             <th>Type</th>
                             <th>Status</th>
+                            <th>Approval</th>
                             <th>Remarks</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody id="timing-rows">
-                        @include('production.timings.timing_table', ['timings' => $timings])
+                        @forelse($timings as $timing)
+                            <tr>
+                                {{-- Date --}}
+                                <td class="date-col"
+                                    data-order="{{ $timing->tanggal ? \Carbon\Carbon::parse($timing->tanggal)->format('Y-m-d') . ' ' . ($timing->start_time ?? '00:00:00') : '0000-00-00' }}">
+                                    {{ $timing->tanggal ? \Carbon\Carbon::parse($timing->tanggal)->format('d M Y') : '-' }}
+                                </td>
+
+                                {{-- Project (no badge) --}}
+                                <td>{{ $timing->project ? $timing->project->name : '-' }}</td>
+
+                                {{-- Job Order (no badge) --}}
+                                <td>{{ $timing->jobOrder ? $timing->jobOrder->name : '-' }}</td>
+
+                                {{-- Department --}}
+                                <td>
+                                    @if ($timing->employee && $timing->employee->department)
+                                        {{ $timing->employee->department->name }}
+                                    @else
+                                        -
+                                    @endif
+                                </td>
+
+                                {{-- Step --}}
+                                <td>{{ $timing->step ?? '-' }}</td>
+
+                                {{-- Parts --}}
+                                <td>{{ $timing->parts ?? '-' }}</td>
+
+                                {{-- Item --}}
+                                <td>{{ $timing->item ?? '-' }}</td>
+
+                                {{-- Employee --}}
+                                <td>{{ $timing->employee ? $timing->employee->name : '-' }}</td>
+
+                                {{-- Start Time --}}
+                                <td>{{ $timing->start_time ? \Carbon\Carbon::parse($timing->start_time)->format('H:i') : '-' }}
+                                </td>
+
+                                {{-- End Time --}}
+                                <td>
+                                    @if ($timing->end_time)
+                                        {{ \Carbon\Carbon::parse($timing->end_time)->format('H:i') }}
+                                    @else
+                                        <span class="badge bg-warning">Running</span>
+                                    @endif
+                                </td>
+
+                                {{-- Duration in Minutes --}}
+                                <td>
+                                    @php
+                                        $minutes = 0;
+                                        if ($timing->duration_minutes && $timing->duration_minutes > 0) {
+                                            $minutes = $timing->duration_minutes;
+                                        } elseif ($timing->start_time && $timing->end_time) {
+                                            $start = \Carbon\Carbon::parse($timing->start_time);
+                                            $end = \Carbon\Carbon::parse($timing->end_time);
+                                            $minutes = $start->diffInMinutes($end);
+                                        }
+                                    @endphp
+                                    {{ $minutes > 0 ? $minutes . ' min' : '-' }}
+                                </td>
+
+                                {{-- Value from measurement_value --}}
+                                <td>{{ $timing->measurement_value ?? '-' }}</td>
+
+                                {{-- Type from measurement_type --}}
+                                <td>
+                                    @if ($timing->measurement_type == 'qty')
+                                        Qty
+                                    @elseif($timing->measurement_type == 'progress')
+                                        Progress
+                                    @else
+                                        {{ $timing->measurement_type ?? '-' }}
+                                    @endif
+                                </td>
+
+                                {{-- Status --}}
+                                <td>
+                                    @if ($timing->status == 'complete')
+                                        <span class="badge bg-success">Complete</span>
+                                    @elseif($timing->status == 'on progress')
+                                        <span class="badge bg-warning">On Progress</span>
+                                    @elseif($timing->status == 'pending')
+                                        <span class="badge bg-secondary">Pending</span>
+                                    @else
+                                        <span
+                                            class="badge bg-light text-dark">{{ ucfirst($timing->status ?? '-') }}</span>
+                                    @endif
+                                </td>
+
+                                {{-- Approval Status --}}
+                                <td>
+                                    @if ($timing->approval_status == 'approved')
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check-circle"></i> Approved
+                                        </span>
+                                    @elseif($timing->approval_status == 'rejected')
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-times-circle"></i> Rejected
+                                        </span>
+                                    @else
+                                        <span class="badge bg-warning">
+                                            <i class="fas fa-clock"></i> Pending
+                                        </span>
+                                    @endif
+                                </td>
+
+                                {{-- Remarks --}}
+                                <td title="{{ $timing->remarks ?? '' }}">
+                                    {{ mb_strlen($timing->remarks ?? '') > 40 ? mb_substr($timing->remarks, 0, 40) . '…' : $timing->remarks ?? '-' }}
+                                </td>
+
+                                {{-- Actions --}}
+                                <td class="text-nowrap">
+                                    @can('production.timing.edit')
+                                        <a href="{{ route('timings.edit', $timing->id) }}" class="btn btn-sm btn-primary"
+                                            title="Edit">
+                                            <i class="bi bi-pencil-fill"></i>
+                                        </a>
+                                        <form action="{{ route('timings.destroy', $timing->id) }}" method="POST"
+                                            class="d-inline"
+                                            onsubmit="return confirm('Are you sure you want to delete this timing record?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-danger" title="Delete">
+                                                <i class="bi bi-trash-fill"></i>
+                                            </button>
+                                        </form>
+                                    @endcan
+                                </td>
+                            </tr>
+                        @empty
+                            <tr class="no-data-row">
+                                <td colspan="16" class="text-center py-4">
+                                    <i class="bi bi-inbox" style="font-size: 3rem; opacity: 0.3;"></i>
+                                    <p class="mt-2 text-muted">No timing data found</p>
+                                </td>
+                            </tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>
@@ -160,7 +335,8 @@
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form action="{{ route('timings.import') }}" method="POST" enctype="multipart/form-data" id="import-form">
+                <form action="{{ route('timings.import') }}" method="POST" enctype="multipart/form-data"
+                    id="import-form">
                     @csrf
                     <div class="modal-body">
                         <div class="mb-3">
@@ -175,15 +351,31 @@
                         <div class="alert alert-info">
                             <h6><i class="bi bi-info-circle me-1"></i>Import Guidelines:</h6>
                             <ul class="mb-0 small">
-                                <li>Download the template first to see the required format</li>
-                                <li><strong>Date format:</strong> YYYY-MM-DD (e.g., 2024-01-15)</li>
-                                <li><strong>Time format:</strong> HH:MM or HH:mm (e.g., 08:30, 13:45)</li>
-                                <li><strong>Status:</strong> complete, on progress, or pending</li>
-                                <li><strong>Project and Employee:</strong> names must exist in the system</li>
-                                <li><strong>Department:</strong> should match the project's department</li>
-                                <li><strong>Parts:</strong> required for projects that have parts</li>
-                                <li><strong>Important:</strong> Ensure time columns are formatted as TEXT in Excel, not TIME
-                                    format</li>
+                                <li>Download the template first to see the required format and detailed instructions</li>
+                                <li><strong>Required Fields:</strong>
+                                    <ul>
+                                        <li><strong>Date:</strong> DD/MM/YYYY or DD-MM-YYYY (e.g., 15/01/2024, 15-01-2024)
+                                        </li>
+                                        <li><strong>Job Order OR Project:</strong> At least ONE must be filled (names must
+                                            exist in system)</li>
+                                        <li><strong>Department:</strong> Must match existing department name exactly</li>
+                                        <li><strong>Employee:</strong> Must match existing employee name exactly</li>
+                                        <li><strong>Start & End Time:</strong> HH:MM in 24-hour format (e.g., 08:00, 13:30)
+                                        </li>
+                                    </ul>
+                                </li>
+                                <li><strong>Optional Fields:</strong> step, parts, value, type, status, approval, remarks
+                                </li>
+                                <li><strong>Duration:</strong> Auto-calculated from start and end time (leave empty)</li>
+                                <li><strong>Important Notes:</strong>
+                                    <ul>
+                                        <li>If both job_order and project provided, system uses job_order's project</li>
+                                        <li>Date formats supported: DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD</li>
+                                        <li>Time must be in 24-hour format (not AM/PM)</li>
+                                        <li>Ensure date and time columns are formatted as TEXT in Excel, not DATE/TIME
+                                            format</li>
+                                    </ul>
+                                </li>
                             </ul>
                         </div>
 
@@ -206,7 +398,181 @@
 @endsection
 
 @push('styles')
+    {{-- Flatpickr date range picker --}}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <style>
+        #timing-date-range {
+            background: #fff !important;
+            cursor: pointer;
+        }
+
+        .flatpickr-day.inRange,
+        .flatpickr-day.startRange,
+        .flatpickr-day.endRange {
+            background: #0d6efd !important;
+            border-color: #0d6efd !important;
+        }
+
+        .flatpickr-day.inRange {
+            background: rgba(13, 110, 253, .15) !important;
+            border-color: transparent !important;
+            color: #333 !important;
+        }
+
+        .date-col {
+            min-width: 100px;
+            max-width: 110px;
+            white-space: nowrap;
+            text-align: left !important;
+        }
+
+        /* Column width constraints */
+        #timing-table th,
+        #timing-table td {
+            vertical-align: middle;
+            font-size: 0.82rem;
+        }
+
+        #timing-table th:nth-child(1),
+        #timing-table td:nth-child(1) {
+            min-width: 100px;
+            max-width: 110px;
+        }
+
+        /* Date */
+        #timing-table th:nth-child(2),
+        #timing-table td:nth-child(2) {
+            min-width: 120px;
+            max-width: 160px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Project */
+        #timing-table th:nth-child(3),
+        #timing-table td:nth-child(3) {
+            min-width: 110px;
+            max-width: 150px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Job Order */
+        #timing-table th:nth-child(4),
+        #timing-table td:nth-child(4) {
+            min-width: 90px;
+            max-width: 120px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Department */
+        #timing-table th:nth-child(5),
+        #timing-table td:nth-child(5) {
+            min-width: 80px;
+            max-width: 120px;
+        }
+
+        /* Step */
+        #timing-table th:nth-child(6),
+        #timing-table td:nth-child(6) {
+            min-width: 70px;
+            max-width: 100px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Parts */
+        #timing-table th:nth-child(7),
+        #timing-table td:nth-child(7) {
+            min-width: 100px;
+            max-width: 140px;
+            white-space: nowrap;
+        }
+
+        /* Employee */
+        #timing-table th:nth-child(7),
+        #timing-table td:nth-child(7) {
+            min-width: 90px;
+            max-width: 120px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Start */
+        #timing-table th:nth-child(9),
+        #timing-table td:nth-child(9) {
+            min-width: 55px;
+            max-width: 65px;
+            white-space: nowrap;
+        }
+
+        /* End */
+        #timing-table th:nth-child(10),
+        #timing-table td:nth-child(10) {
+            min-width: 60px;
+            max-width: 80px;
+            white-space: nowrap;
+        }
+
+        /* Duration */
+        #timing-table th:nth-child(11),
+        #timing-table td:nth-child(11) {
+            min-width: 45px;
+            max-width: 65px;
+            white-space: nowrap;
+        }
+
+        /* Value */
+        #timing-table th:nth-child(12),
+        #timing-table td:nth-child(12) {
+            min-width: 50px;
+            max-width: 70px;
+            white-space: nowrap;
+        }
+
+        /* Type */
+        #timing-table th:nth-child(13),
+        #timing-table td:nth-child(13) {
+            min-width: 70px;
+            max-width: 90px;
+            white-space: nowrap;
+        }
+
+        /* Status */
+        #timing-table th:nth-child(14),
+        #timing-table td:nth-child(14) {
+            min-width: 70px;
+            max-width: 90px;
+            white-space: nowrap;
+        }
+
+        /* Approval */
+        #timing-table th:nth-child(15),
+        #timing-table td:nth-child(15) {
+            min-width: 120px;
+            max-width: 200px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: help;
+        }
+
+        /* Remarks */
+        #timing-table th:nth-child(16),
+        #timing-table td:nth-child(16) {
+            min-width: 70px;
+            max-width: 90px;
+            white-space: nowrap;
+        }
+
+        /* Actions */
+
         /* Select2 Styling */
         .select2-container .select2-selection--single {
             height: 2.375rem;
@@ -367,15 +733,18 @@
 @endpush
 
 @push('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script>
-        let dt;
         let dtConfig = {
             responsive: true,
-            stateSave: true,
+            stateSave: false,
             searching: false,
             paging: true,
             info: true,
             ordering: true,
+            order: [
+                [0, 'desc']
+            ], // Sort by Date column (index 0) descending - NEWEST FIRST
             lengthChange: true,
             pageLength: 25,
             language: {
@@ -434,66 +803,128 @@
             }
             setFiltersFromUrl();
 
+            // Clear old sorting state untuk enforce newest first
+            if (localStorage.getItem('DataTables_timing-table_/production/timings')) {
+                let savedState = JSON.parse(localStorage.getItem('DataTables_timing-table_/production/timings'));
+                savedState.order = [
+                    [0, 'desc']
+                ]; // Force newest first
+                localStorage.setItem('DataTables_timing-table_/production/timings', JSON.stringify(savedState));
+            }
+
             // Inisialisasi DataTables
             dt = $('#timing-table').DataTable(dtConfig);
 
             // AJAX search & filter dengan debounce dan update URL
             let debounceTimer;
+
+            function triggerSearch() {
+                updateQueryString();
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(function() {
+                    let state = dt.state ? dt.state.loaded() : null;
+                    let search = $('input[name="search"]').val();
+                    let project_id = $('select[name="project_id"]').val();
+                    let job_order_id = $('select[name="job_order_id"]').val();
+                    let department = $('select[name="department"]').val();
+                    let employee_id = $('select[name="employee_id"]').val();
+                    let date_from = $('input[name="date_from"]').val();
+                    let date_to = $('input[name="date_to"]').val();
+
+                    $.ajax({
+                        url: "{{ route('timings.ajax_search') }}",
+                        method: 'POST',
+                        data: {
+                            search,
+                            project_id,
+                            job_order_id,
+                            department,
+                            employee_id,
+                            date_from,
+                            date_to,
+                        },
+                        success: function(res) {
+                            $('#timing-error-alert').addClass('d-none').text('');
+                            try {
+                                if (dt && typeof dt.destroy === 'function') {
+                                    dt.destroy();
+                                }
+                                $('#timing-rows').html(res.html);
+
+                                // Force newest first sorting before re-init
+                                dtConfig.order = [
+                                    [0, 'desc']
+                                ];
+                                dt = $('#timing-table').DataTable(dtConfig);
+
+                                // Restore page position only, NOT sorting
+                                if (state && state.start) {
+                                    dt.page(state.start / dt.page.len()).draw('page');
+                                }
+
+                                // Ensure sorting is DESC after draw
+                                dt.order([
+                                    [0, 'desc']
+                                ]).draw();
+                            } catch (error) {
+                                location.reload();
+                            }
+                        },
+                        error: function(xhr) {
+                            let msg =
+                                'Failed to load data. Please check your connection or try again in a while.';
+                            if (xhr.status === 500) {
+                                msg =
+                                    'An error occurred on the server. Please try again later.';
+                            } else if (xhr.status === 404) {
+                                msg = 'Data not found.';
+                            }
+                            $('#timing-error-alert').removeClass('d-none').text(msg);
+                        }
+                    });
+                }, 400); // 400ms debounce
+            }
+
             $('input[name="search"], select[name="project_id"], select[name="job_order_id"], select[name="department"], select[name="employee_id"]')
                 .on('input change', function() {
-                    updateQueryString(); // update URL setiap filter berubah
-                    clearTimeout(debounceTimer);
-                    debounceTimer = setTimeout(function() {
-                        let state = dt.state ? dt.state.loaded() : null;
-
-                        let search = $('input[name="search"]').val();
-                        let project_id = $('select[name="project_id"]').val();
-                        let job_order_id = $('select[name="job_order_id"]').val();
-                        let department = $('select[name="department"]').val();
-                        let employee_id = $('select[name="employee_id"]').val();
-
-                        $.ajax({
-                            url: "{{ route('timings.ajax_search') }}",
-                            method: 'POST',
-                            data: {
-                                search: search,
-                                project_id: project_id,
-                                job_order_id: job_order_id,
-                                department: department,
-                                employee_id: employee_id,
-                            },
-                            success: function(res) {
-                                $('#timing-error-alert').addClass('d-none').text('');
-                                try {
-                                    if (dt && typeof dt.destroy === 'function') {
-                                        dt.destroy();
-                                    }
-                                    $('#timing-rows').html(res.html);
-                                    dt = $('#timing-table').DataTable(dtConfig);
-
-                                    if (state) {
-                                        if (state.start) dt.page(state.start / dt.page
-                                            .len()).draw('page');
-                                        if (state.order) dt.order(state.order).draw();
-                                    }
-                                } catch (error) {
-                                    location.reload();
-                                }
-                            },
-                            error: function(xhr) {
-                                let msg =
-                                    'Failed to load data. Please check your connection or try again in a while.';
-                                if (xhr.status === 500) {
-                                    msg =
-                                        'An error occurred on the server. Please try again later.';
-                                } else if (xhr.status === 404) {
-                                    msg = 'Data not found.';
-                                }
-                                $('#timing-error-alert').removeClass('d-none').text(msg);
-                            }
-                        });
-                    }, 400); // 400ms debounce
+                    triggerSearch();
                 });
+
+            // ── Flatpickr date range picker ──
+            const dateFromVal = $('#input-date-from').val();
+            const dateToVal = $('#input-date-to').val();
+            flatpickr('#timing-date-range', {
+                mode: 'range',
+                dateFormat: 'Y-m-d',
+                altInput: true,
+                altFormat: 'd M Y',
+                showMonths: 2,
+                defaultDate: (dateFromVal && dateToVal) ? [dateFromVal, dateToVal] : (dateFromVal ? [
+                    dateFromVal
+                ] : []),
+                onChange: function(selectedDates) {
+                    if (selectedDates.length === 0) {
+                        $('#input-date-from').val('');
+                        $('#input-date-to').val('');
+                    } else if (selectedDates.length === 1) {
+                        $('#input-date-from').val(flatpickr.formatDate(selectedDates[0], 'Y-m-d'));
+                        $('#input-date-to').val('');
+                    } else {
+                        $('#input-date-from').val(flatpickr.formatDate(selectedDates[0], 'Y-m-d'));
+                        $('#input-date-to').val(flatpickr.formatDate(selectedDates[1], 'Y-m-d'));
+                        triggerSearch();
+                    }
+                },
+                onClose: function(selectedDates) {
+                    if (selectedDates.length === 1) {
+                        $('#input-date-from').val(flatpickr.formatDate(selectedDates[0], 'Y-m-d'));
+                        $('#input-date-to').val('');
+                        triggerSearch();
+                    } else if (selectedDates.length === 0) {
+                        triggerSearch();
+                    }
+                }
+            });
 
             $('#export-btn').on('click', function() {
                 // Ambil filter dari form

@@ -272,24 +272,26 @@
                                             <td class="px-3 py-2 text-end">
                                                 <div class="btn-group btn-group-sm">
                                                     <!-- Compare Button -->
-                                                    <a href="{{ route('purchase-edited.compare', $poNumber) }}" 
+                                                    <a href="{{ route('purchase-edited.compare', $poNumber) }}"
                                                        class="btn btn-outline-info"
                                                        title="Compare revisions">
                                                         <i class="fas fa-code-compare"></i>
                                                     </a>
-                                                                                                        
+
+                                                    @can('finance.purchase-edited.view')
                                                     <!-- Finish/Update DCM Button -->
-                                                    <form action="{{ route('purchase-edited.verify', $poNumber) }}" 
-                                                          method="POST" 
+                                                    <form action="{{ route('purchase-edited.verify', $poNumber) }}"
+                                                          method="POST"
                                                           class="d-inline">
                                                         @csrf
-                                                        <button type="submit" 
+                                                        <button type="submit"
                                                                 class="btn btn-success"
                                                                 title="Update DCM Costing with latest data"
                                                                 onclick="return confirm('Update DCM Costing for PO {{ $poNumber }}?')">
                                                             <i class="fas fa-check"></i> Finish
                                                         </button>
                                                     </form>
+                                                    @endcan
                                                 </div>
                                             </td>
                                         </tr>

@@ -22,6 +22,10 @@ class PurchaseRequestController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
+        $this->middleware('can:procurement.po.view');
+        $this->middleware('can:procurement.po.create')->only(['create', 'store', 'bulkStoreHandsontable', 'storeFromPlanning']);
+        $this->middleware('can:procurement.po.edit')->only(['edit', 'update', 'quickUpdate']);
+        $this->middleware('can:procurement.po.delete')->only(['destroy']);
     }
 
     /**
@@ -144,7 +148,7 @@ class PurchaseRequestController extends Controller
             $purchaseRequests = $query->skip($start)->take($length)->get();
 
             // Check if user can view unit price
-            $canViewUnitPrice = in_array(auth()->user()->role, ['super_admin', 'admin', 'admin_procurement', 'admin_logistic', 'admin_finance']);
+            $canViewUnitPrice = auth()->user()->can('procurement.po.view');
 
             // Format data for DataTables
             $data = [];
@@ -265,7 +269,7 @@ class PurchaseRequestController extends Controller
         }
 
         $stockInfo = $pr->stock_level ?? ($pr->inventory ? $pr->inventory->quantity : 0);
-        $unit = $pr->unit ?? ($pr->inventory ? $pr->inventory->unit : '');
+        $unit = $pr->unit ?? ($pr->inventory ? $pr->inventory->unit_name : '');
 
         return '<div class="d-flex align-items-center gap-1">
                     <i class="bi bi-info-circle text-secondary" style="cursor: pointer;"
@@ -405,7 +409,7 @@ class PurchaseRequestController extends Controller
     private function formatMaterialNameEditable($pr)
     {
         $stockInfo = $pr->stock_level ?? ($pr->inventory ? $pr->inventory->quantity : 0);
-        $unit = $pr->unit ?? ($pr->inventory ? $pr->inventory->unit : '');
+        $unit = $pr->unit ?? ($pr->inventory ? $pr->inventory->unit_name : '');
 
         // Show tooltip hanya untuk type 'restock'
         $tooltipHtml = '';
@@ -491,7 +495,7 @@ class PurchaseRequestController extends Controller
 
     private function formatSupplierSelect($pr)
     {
-        $canEdit = in_array(auth()->user()->role, ['super_admin', 'admin_procurement', 'admin_logistic', 'admin_finance', 'admin']);
+        $canEdit = auth()->user()->can('procurement.po.edit');
 
         if (!$canEdit) {
             // Read-only: tampilkan nama supplier tanpa indicator
@@ -525,7 +529,7 @@ class PurchaseRequestController extends Controller
 
     private function formatPriceInput($pr)
     {
-        $canEdit = in_array(auth()->user()->role, ['super_admin', 'admin_procurement', 'admin_logistic', 'admin_finance', 'admin']);
+        $canEdit = auth()->user()->can('procurement.po.edit');
 
         if (!$canEdit) {
             return $pr->price_per_unit ? number_format($pr->price_per_unit, 2) : '-';
@@ -545,7 +549,7 @@ class PurchaseRequestController extends Controller
 
     private function formatCurrencySelect($pr)
     {
-        $canEdit = in_array(auth()->user()->role, ['super_admin', 'admin_procurement', 'admin_logistic', 'admin_finance', 'admin']);
+        $canEdit = auth()->user()->can('procurement.po.edit');
 
         if (!$canEdit) {
             return $pr->currency ? $pr->currency->name : '-';
@@ -562,7 +566,7 @@ class PurchaseRequestController extends Controller
 
     private function formatApprovalSelect($pr)
     {
-        $canEdit = in_array(auth()->user()->role, ['super_admin', 'admin_procurement', 'admin_logistic', 'admin_finance', 'admin']);
+        $canEdit = auth()->user()->can('procurement.po.edit');
 
         if (!$canEdit) {
             return '<span class="badge ' .
@@ -585,7 +589,7 @@ class PurchaseRequestController extends Controller
 
     private function formatDeliveryDateInput($pr)
     {
-        $canEdit = in_array(auth()->user()->role, ['super_admin', 'admin_procurement']);
+        $canEdit = auth()->user()->can('procurement.po.approve');
 
         if (!$canEdit) {
             return $pr->delivery_date ? $pr->delivery_date->format('d M Y') : '-';
@@ -647,10 +651,6 @@ class PurchaseRequestController extends Controller
      */
     public function store(Request $request)
     {
-        if (auth()->user()->isReadOnlyAdmin()) {
-            return redirect()->back()->with('error', 'You do not have permission to modify purchase requests.');
-        }
-
         // Validasi dasar struktur request
         $request->validate([
             'requests' => 'required|array|min:1',
@@ -801,6 +801,96 @@ class PurchaseRequestController extends Controller
     }
 
     /**
+     * Bulk store via Handsontable spreadsheet mode (JSON AJAX request).
+     */
+    public function bulkStoreHandsontable(Request $request)
+    {
+        $validated = $request->validate([
+            'items' => 'required|array|min:1',
+            'items.*.type' => 'required|in:new_material,restock',
+            'items.*.item_name' => 'nullable|string|max:255',
+            'items.*.inventory_id' => 'nullable|integer|exists:inventories,id',
+            'items.*.qty' => 'required|numeric|min:0.01',
+            'items.*.unit' => 'required|string|max:50',
+            'items.*.project_id' => 'nullable|integer|exists:projects,id',
+            'items.*.remark' => 'nullable|string',
+        ]);
+
+        $errors = [];
+        $validRows = [];
+
+        foreach ($validated['items'] as $i => $item) {
+            $rowLabel = 'Row ' . ($i + 1);
+            if ($item['type'] === 'new_material') {
+                if (empty($item['item_name'])) {
+                    $errors[] = "{$rowLabel}: Item name is required for New Material.";
+                    continue;
+                }
+                $exists = Inventory::whereRaw('LOWER(name) = ?', [strtolower($item['item_name'])])->exists();
+                if ($exists) {
+                    $errors[] = "{$rowLabel}: \"{$item['item_name']}\" already exists in inventory. Use Restock type instead.";
+                    continue;
+                }
+            }
+            if ($item['type'] === 'restock' && empty($item['inventory_id'])) {
+                $errors[] = "{$rowLabel}: Please select an inventory item for Restock.";
+                continue;
+            }
+            $validRows[] = $item;
+        }
+
+        if (!empty($errors) && empty($validRows)) {
+            return response()->json(['success' => false, 'errors' => $errors], 422);
+        }
+
+        $successCount = 0;
+        $saveErrors = [];
+
+        DB::beginTransaction();
+        try {
+            foreach ($validRows as $i => $item) {
+                $supplierData = ['supplier_id' => null, 'original_supplier_id' => null];
+
+                if ($item['type'] === 'restock' && !empty($item['inventory_id'])) {
+                    $inventory = Inventory::find($item['inventory_id']);
+                    $materialName = $inventory->name;
+                    $supplierData['supplier_id'] = $inventory->supplier_id;
+                    $supplierData['original_supplier_id'] = $inventory->supplier_id;
+                } else {
+                    $materialName = $item['item_name'];
+                }
+
+                PurchaseRequest::create([
+                    'type' => $item['type'],
+                    'material_name' => $materialName,
+                    'inventory_id' => $item['type'] === 'restock' ? $item['inventory_id'] : null,
+                    'required_quantity' => $item['qty'],
+                    'qty_to_buy' => $item['qty'],
+                    'unit' => $item['unit'],
+                    'stock_level' => null,
+                    'project_id' => $item['project_id'] ?? null,
+                    'remark' => $item['remark'] ?? null,
+                    'requested_by' => Auth::id(),
+                    'approval_status' => 'Pending',
+                    ...$supplierData,
+                ]);
+                $successCount++;
+            }
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => 'Database error: ' . $e->getMessage()], 500);
+        }
+
+        return response()->json([
+            'success' => true,
+            'count' => $successCount,
+            'errors' => $errors, // partial-row validation errors (rows that were skipped)
+            'redirect' => route('purchase_requests.index'),
+        ]);
+    }
+
+    /**
      * Show the form for editing the specified resource.
      */
     public function edit($id)
@@ -818,10 +908,6 @@ class PurchaseRequestController extends Controller
      */
     public function update(Request $request, $id)
     {
-        if (auth()->user()->isReadOnlyAdmin()) {
-            return redirect()->back()->with('error', 'You do not have permission to modify purchase requests.');
-        }
-
         $request->validate([
             'type' => 'required|in:new_material,restock',
             'material_name' => 'required_if:type,new_material',
@@ -848,7 +934,7 @@ class PurchaseRequestController extends Controller
         if ($request->type === 'restock' && $request->inventory_id) {
             $inventory = Inventory::find($request->inventory_id);
             $data['material_name'] = $inventory->name;
-            $data['unit'] = $inventory->unit;
+            $data['unit'] = $inventory->unit_name;
             $data['stock_level'] = $inventory->quantity;
         }
 
@@ -873,16 +959,6 @@ class PurchaseRequestController extends Controller
 
     public function quickUpdate(Request $request, $id)
     {
-        if (auth()->user()->isReadOnlyAdmin()) {
-            return response()->json(
-                [
-                    'success' => false,
-                    'message' => 'You do not have permission to modify purchase requests.',
-                ],
-                403,
-            );
-        }
-
         $request->validate([
             'material_name' => 'nullable|string|max:255',
             'qty_to_buy' => 'nullable|numeric|min:0',
@@ -970,10 +1046,6 @@ class PurchaseRequestController extends Controller
 
     public function destroy($id)
     {
-        if (auth()->user()->isReadOnlyAdmin()) {
-            return redirect()->back()->with('error', 'You do not have permission to modify purchase requests.');
-        }
-
         try {
             $purchaseRequest = PurchaseRequest::findOrFail($id);
             $name = $purchaseRequest->material_name;

@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Finance;
 
 use App\Http\Controllers\Controller;
-use App\Models\Procurement\ProjectPurchase;
+use App\Models\Procurement\IndoPurchase;
 use App\Models\Finance\DcmCosting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -13,6 +13,12 @@ use Illuminate\Support\Facades\Log;
 
 class PurchaseApprovalController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+        $this->middleware('can:procurement.po.approve');
+    }
+
     /**
      * Display a listing of purchases pending finance approval
      */
@@ -26,7 +32,7 @@ class PurchaseApprovalController extends Controller
         $projectType = $request->get('project_type');
         
         // Ambil semua item pending, tapi nanti akan dikelompokkan per PO
-        $items = ProjectPurchase::with([
+        $items = IndoPurchase::with([
                 'department', 
                 'supplier', 
                 'pic', 
@@ -140,8 +146,9 @@ class PurchaseApprovalController extends Controller
      */
     public function approve(Request $request, $id)
     {
+        abort_unless(Auth::user()->can('procurement.po.approve'), 403);
         \Log::info("=== APPROVE PURCHASE ID: {$id} ===");
-        
+
         try {
             $request->validate([
                 'finance_notes' => 'nullable|string|max:1000',
@@ -149,14 +156,14 @@ class PurchaseApprovalController extends Controller
             ]);
             
             // Cari item yang diklik
-            $purchase = ProjectPurchase::where('is_current', 1)
+            $purchase = IndoPurchase::where('is_current', 1)
                 ->with(['department', 'supplier', 'pic', 'material', 'jobOrder'])
                 ->findOrFail($id);
             
             DB::beginTransaction();
             
             // Approve SEMUA item dengan PO number yang sama
-            $poItems = ProjectPurchase::where('po_number', $purchase->po_number)
+            $poItems = IndoPurchase::where('po_number', $purchase->po_number)
                 ->where('is_current', 1)
                 ->where('status', 'pending')
                 ->get();
@@ -205,22 +212,23 @@ class PurchaseApprovalController extends Controller
      */
     public function reject(Request $request, $id)
     {
+        abort_unless(Auth::user()->can('procurement.po.approve'), 403);
         \Log::info("=== REJECT PURCHASE ID: {$id} ===");
-        
+
         try {
             $request->validate([
                 'finance_notes' => 'required|string|min:5|max:1000',
             ]);
             
             // Cari item yang diklik
-            $purchase = ProjectPurchase::where('is_current', 1)
+            $purchase = IndoPurchase::where('is_current', 1)
                 ->with(['department', 'supplier', 'pic', 'material', 'jobOrder'])
                 ->findOrFail($id);
             
             DB::beginTransaction();
             
             // Reject SEMUA item dengan PO number yang sama
-            $poItems = ProjectPurchase::where('po_number', $purchase->po_number)
+            $poItems = IndoPurchase::where('po_number', $purchase->po_number)
                 ->where('is_current', 1)
                 ->where('status', 'pending')
                 ->get();
@@ -260,6 +268,7 @@ class PurchaseApprovalController extends Controller
      */
     public function bulkApprove(Request $request)
     {
+        abort_unless(Auth::user()->can('procurement.po.approve'), 403);
         $request->validate([
             'purchase_ids' => 'required|array',
             'purchase_ids.*' => 'exists:indo_purchases,id',
@@ -273,7 +282,7 @@ class PurchaseApprovalController extends Controller
         foreach ($request->purchase_ids as $purchaseId) {
             try {
                 DB::transaction(function () use ($purchaseId, $request, &$approvedCount, &$processedPOs) {
-                    $purchase = ProjectPurchase::where('is_current', 1)
+                    $purchase = IndoPurchase::where('is_current', 1)
                         ->with(['department', 'supplier', 'pic', 'material', 'jobOrder'])
                         ->findOrFail($purchaseId);
                     
@@ -283,7 +292,7 @@ class PurchaseApprovalController extends Controller
                     }
                     
                     // Approve SEMUA item dengan PO number yang sama
-                    $poItems = ProjectPurchase::where('po_number', $purchase->po_number)
+                    $poItems = IndoPurchase::where('po_number', $purchase->po_number)
                         ->where('is_current', 1)
                         ->where('status', 'pending')
                         ->get();
@@ -327,18 +336,286 @@ class PurchaseApprovalController extends Controller
     }
     
     /**
+     * Bulk reject purchases
+     */
+    public function bulkReject(Request $request)
+    {
+        $request->validate([
+            'purchase_ids' => 'required|array',
+            'purchase_ids.*' => 'exists:indo_purchases,id',
+            'finance_notes' => 'required|string|min:5|max:1000',
+        ]);
+
+        $rejectedCount = 0;
+        $failed = [];
+        $processedPOs = [];
+
+        foreach ($request->purchase_ids as $purchaseId) {
+            try {
+                DB::transaction(function () use ($purchaseId, $request, &$rejectedCount, &$processedPOs) {
+                    $purchase = IndoPurchase::where('is_current', 1)
+                        ->findOrFail($purchaseId);
+
+                    if (in_array($purchase->po_number, $processedPOs)) {
+                        return;
+                    }
+
+                    $poItems = IndoPurchase::where('po_number', $purchase->po_number)
+                        ->where('is_current', 1)
+                        ->where('status', 'pending')
+                        ->get();
+
+                    foreach ($poItems as $item) {
+                        $item->update([
+                            'status' => 'rejected',
+                            'finance_notes' => $request->finance_notes,
+                        ]);
+
+                        $this->createDcmCosting($item, 'rejected', $request);
+                    }
+
+                    $processedPOs[] = $purchase->po_number;
+                    $rejectedCount += $poItems->count();
+                });
+
+            } catch (\Exception $e) {
+                $failed[] = $purchaseId;
+                \Log::error("Bulk reject failed for purchase {$purchaseId}: " . $e->getMessage());
+            }
+        }
+
+        $message = "Berhasil reject {$rejectedCount} item(s) dalam " . count($processedPOs) . " PO(s).";
+        if (count($failed) > 0) {
+            $message .= " Gagal: " . implode(', ', $failed);
+        }
+
+        return redirect()->route('purchase-approvals.index')
+            ->with('success', $message);
+    }
+
+    /**
+     * Deleted purchases log
+     */
+    public function deletedPurchases(Request $request)
+    {
+        $search = $request->get('search');
+
+        $query = IndoPurchase::onlyTrashed()
+            ->with(['department', 'supplier', 'pic',
+                    'material', 'project', 'internalProject', 'jobOrder', 'category', 'unit',
+                    'deletionApprovedBy'])
+            ->where('is_current', 1)
+            ->orderBy('deleted_at', 'desc');
+
+        if ($search) {
+            $query->where('po_number', 'like', "%{$search}%");
+        }
+
+        $items = $query->get();
+
+        // Group by PO number
+        $grouped = [];
+        foreach ($items as $item) {
+            $po = $item->po_number;
+            if (!isset($grouped[$po])) {
+                $grouped[$po] = [
+                    'po_number'             => $po,
+                    'date'                  => $item->date,
+                    'supplier'              => $item->supplier,
+                    'department'            => $item->department,
+                    'project_type'          => $item->project_type,
+                    'project'               => $item->project,
+                    'internal_project'      => $item->internalProject,
+                    'job_order'             => $item->jobOrder,
+                    'deletion_reason'       => $item->deletion_reason,
+                    'deletion_requested_at' => $item->deletion_requested_at,
+                    'deletion_approved_at'  => $item->deletion_approved_at,
+                    'approved_by_user'      => $item->deletionApprovedBy,
+                    'requested_by'          => $item->pic,
+                    'first_item_id'         => $item->id,
+                    'deleted_at'            => $item->deleted_at,
+                    'total_amount'          => 0,
+                    'items'                 => [],
+                ];
+            }
+            $grouped[$po]['items'][] = [
+                'name'       => $item->material_name,
+                'qty'        => $item->quantity,
+                'unit'       => $item->unit?->name ?? '-',
+                'unit_price' => $item->unit_price,
+                'total'      => $item->invoice_total,
+            ];
+            $grouped[$po]['total_amount'] += $item->invoice_total;
+        }
+
+        $deletedPurchases = collect(array_values($grouped));
+
+        // Manual pagination
+        $perPage = 20;
+        $currentPage = $request->input('page', 1);
+        $pagedData = $deletedPurchases->slice(($currentPage - 1) * $perPage, $perPage)->values();
+        $paginated = new \Illuminate\Pagination\LengthAwarePaginator(
+            $pagedData, $deletedPurchases->count(), $perPage, $currentPage,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+
+        return view('finance.purchase-approvals.deleted-purchases', [
+            'deletedPurchases' => $paginated,
+            'search'           => $search,
+        ]);
+    }
+
+    /**
+     * Detail view for a single deletion request
+     */
+    public function viewDeletionDetail($id)
+    {
+        $purchase = IndoPurchase::with([
+                'department', 'supplier', 'pic', 'material', 'category', 'unit',
+                'project', 'internalProject', 'jobOrder'
+            ])
+            ->where('is_current', 1)
+            ->findOrFail($id);
+
+        $poItems = IndoPurchase::with(['material', 'category', 'unit'])
+            ->where('po_number', $purchase->po_number)
+            ->where('is_current', 1)
+            ->get();
+
+        return view('finance.purchase-approvals.deletion-detail', compact('purchase', 'poItems'));
+    }
+
+    /**
+     * List deletion requests
+     */
+    public function deletionRequests()
+    {
+        $items = IndoPurchase::with(['department', 'supplier', 'pic', 'material', 'project', 'internalProject', 'jobOrder', 'category', 'unit'])
+            ->where('status', 'deletion_requested')
+            ->where('is_current', 1)
+            ->orderBy('deletion_requested_at', 'desc')
+            ->get();
+
+        // Group by PO number
+        $grouped = [];
+        foreach ($items as $item) {
+            $po = $item->po_number;
+            if (!isset($grouped[$po])) {
+                $grouped[$po] = [
+                    'po_number'             => $po,
+                    'supplier'              => $item->supplier,
+                    'department'            => $item->department,
+                    'project_type'          => $item->project_type,
+                    'project'               => $item->project,
+                    'internal_project'      => $item->internalProject,
+                    'job_order'             => $item->jobOrder,
+                    'deletion_reason'       => $item->deletion_reason,
+                    'deletion_requested_at' => $item->deletion_requested_at,
+                    'requested_by'          => $item->pic,
+                    'first_item_id'         => $item->id,
+                    'date'                  => $item->date,
+                    'total_amount'          => 0,
+                    'items'                 => [],
+                ];
+            }
+            $grouped[$po]['items'][] = [
+                'name'       => $item->material_name,
+                'qty'        => $item->quantity,
+                'unit'       => $item->unit?->name ?? '-',
+                'unit_price' => $item->unit_price,
+                'total'      => $item->invoice_total,
+            ];
+            $grouped[$po]['total_amount'] += $item->invoice_total;
+        }
+
+        return view('finance.purchase-approvals.deletion-requests', [
+            'deletionRequests' => collect(array_values($grouped)),
+        ]);
+    }
+
+    /**
+     * Approve deletion — soft delete all items in the PO
+     */
+    public function approveDeletion(Request $request, $id)
+    {
+        abort_unless(Auth::user()->can('procurement.po.approve'), 403);
+        try {
+            $purchase = IndoPurchase::where('is_current', 1)->findOrFail($id);
+
+            if (!$purchase->isDeleteRequested()) {
+                return back()->with('error', 'Purchase ini tidak dalam status permintaan hapus.');
+            }
+
+            DB::beginTransaction();
+
+            IndoPurchase::where('po_number', $purchase->po_number)
+                ->where('is_current', 1)
+                ->get()
+                ->each(function ($item) {
+                    $item->deletion_approved_by = Auth::id();
+                    $item->deletion_approved_at = now();
+                    $item->save();
+                    $item->delete();
+                });
+
+            // Soft delete DCM Costing yang terkait
+            DcmCosting::where('po_number', $purchase->po_number)->delete();
+
+            DB::commit();
+
+            return redirect()->route('purchase-approvals.deletion-requests')
+                ->with('success', 'Purchase ' . $purchase->po_number . ' berhasil dihapus.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Gagal menghapus: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Reject deletion — revert back to approved
+     */
+    public function rejectDeletion(Request $request, $id)
+    {
+        abort_unless(Auth::user()->can('procurement.po.approve'), 403);
+        try {
+            $purchase = IndoPurchase::where('is_current', 1)->findOrFail($id);
+
+            DB::beginTransaction();
+
+            IndoPurchase::where('po_number', $purchase->po_number)
+                ->where('is_current', 1)
+                ->update([
+                    'status'                => 'approved',
+                    'deletion_reason'       => null,
+                    'deletion_requested_by' => null,
+                    'deletion_requested_at' => null,
+                ]);
+
+            DB::commit();
+
+            return redirect()->route('purchase-approvals.deletion-requests')
+                ->with('success', 'Permintaan hapus untuk ' . $purchase->po_number . ' ditolak, status dikembalikan ke Approved.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Gagal menolak permintaan hapus: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Get statistics for dashboard
      */
     public function statistics()
     {
         // Hitung jumlah PO unik yang pending
-        $uniquePOs = ProjectPurchase::where('status', 'pending')
+        $uniquePOs = IndoPurchase::where('status', 'pending')
             ->where('is_current', 1)
             ->select('po_number')
             ->distinct()
             ->count();
             
-        $thisMonthPOs = ProjectPurchase::where('status', 'pending')
+        $thisMonthPOs = IndoPurchase::where('status', 'pending')
             ->where('is_current', 1)
             ->whereMonth('created_at', now()->month)
             ->whereYear('created_at', now()->year)
@@ -346,11 +623,11 @@ class PurchaseApprovalController extends Controller
             ->distinct()
             ->count();
             
-        $totalAmount = ProjectPurchase::where('status', 'pending')
+        $totalAmount = IndoPurchase::where('status', 'pending')
             ->where('is_current', 1)
             ->sum('invoice_total');
             
-        $avgProcessingDays = ProjectPurchase::where('status', 'pending')
+        $avgProcessingDays = IndoPurchase::where('status', 'pending')
             ->where('is_current', 1)
             ->avg(DB::raw('DATEDIFF(NOW(), created_at)'));
         
@@ -367,7 +644,7 @@ class PurchaseApprovalController extends Controller
      */
     public function viewDetails($id)
     {
-        $purchase = ProjectPurchase::where('is_current', 1)
+        $purchase = IndoPurchase::where('is_current', 1)
             ->with([
                 'department', 'supplier', 'pic', 'material',
                 'project', 'internalProject', 'jobOrder',
@@ -376,7 +653,7 @@ class PurchaseApprovalController extends Controller
             ->findOrFail($id);
         
         // Ambil semua item dalam PO yang sama
-        $poItems = ProjectPurchase::where('po_number', $purchase->po_number)
+        $poItems = IndoPurchase::where('po_number', $purchase->po_number)
             ->where('is_current', 1)
             ->with(['material', 'category', 'unit'])
             ->get();

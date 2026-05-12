@@ -3,15 +3,21 @@
 namespace App\Imports;
 
 use App\Models\Logistic\Inventory;
+use App\Models\Logistic\InventoryBatch;
 use App\Models\Logistic\Category;
 use App\Models\Logistic\Unit;
 use App\Models\Finance\Currency;
 use App\Models\Procurement\Supplier;
 use App\Models\Logistic\Location;
 use Maatwebsite\Excel\Concerns\ToModel;
+use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Events\AfterImport;
 
-class InventoryImport implements ToModel
+class InventoryImport implements ToModel, WithEvents
 {
+    /** @var array Track created inventory IDs and their opening qty/price */
+    protected array $batches = [];
+
     public function model(array $row)
     {
         // Cari atau buat supplier berdasarkan nama
@@ -25,16 +31,48 @@ class InventoryImport implements ToModel
         // Cari atau buat unit berdasarkan nama
         $unit = !empty($row[3]) ? Unit::firstOrCreate(['name' => $row[3]]) : null;
 
-        return new Inventory([
+        $inventory = new Inventory([
             'name' => $row[0],
             'category_id' => $category ? $category->id : null,
-            'quantity' => $row[2],
             'unit' => $unit ? $unit->name : $row[3],
-            'price' => $row[4],
             'currency_id' => $currency ? $currency->id : null,
             'supplier_id' => $supplier ? $supplier->id : null,
             'location_id' => $location ? $location->id : null,
-            'remark' => $row[8],
+            'remark' => $row[8] ?? null,
         ]);
+
+        // Store qty/price/currency for batch creation after model is saved
+        $this->batches[] = [
+            'inventory' => $inventory,
+            'qty' => is_numeric($row[2]) ? (float) $row[2] : 0,
+            'price' => is_numeric($row[4]) ? (float) $row[4] : 0,
+            'currency_id' => $currency ? $currency->id : null,
+        ];
+
+        return $inventory;
+    }
+
+    public function registerEvents(): array
+    {
+        return [
+            AfterImport::class => function (AfterImport $event) {
+                foreach ($this->batches as $item) {
+                    $inventory = $item['inventory'];
+                    if ($inventory->id && $item['qty'] > 0) {
+                        InventoryBatch::create([
+                            'batch_number' => \App\Models\Logistic\InventoryBatch::generateBatchNumber($inventory->id),
+                            'inventory_id' => $inventory->id,
+                            'qty' => $item['qty'],
+                            'qty_remaining' => $item['qty'],
+                            'unit_price' => $item['price'],
+                            'currency_id' => $item['currency_id'] ?? null,
+                            'received_date' => now()->toDateString(),
+                            'source_type' => InventoryBatch::SOURCE_INITIAL_STOCK,
+                            'source_id' => $inventory->id,
+                        ]);
+                    }
+                }
+            },
+        ];
     }
 }

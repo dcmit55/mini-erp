@@ -3,29 +3,30 @@
 namespace App\Http\Controllers\Hr;
 
 use App\Http\Controllers\Controller;
+use App\Services\FingerspotService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
 use App\Models\Hr\Employee;
 use App\Models\Admin\Department;
 use App\Models\Hr\Skillset;
+use App\Models\Hr\SessionShift;
 use App\Models\Hr\EmployeeDocument;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use App\Exports\EmployeeExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class EmployeeController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('auth');
-
-        // Admin HR, Super Admin, dan Admin (read-only) bisa akses
-        $this->middleware(function ($request, $next) {
-            $rolesAllowed = ['super_admin', 'admin_hr', 'admin'];
-            if (!in_array(Auth::user()->role, $rolesAllowed)) {
-                abort(403, 'Unauthorized access to HR module.');
-            }
-            return $next($request);
-        });
+        $this->middleware('auth')->except('getLeaveBalance');
+        $this->middleware('can:hr.employees.view')->except('getLeaveBalance');
+        $this->middleware('can:hr.employees.create')->only(['create', 'store']);
+        $this->middleware('can:hr.employees.edit')->only(['edit', 'update', 'deleteDocument', 'resolveContract', 'toggleProduction', 'toggleLeaderCapacity']);
+        $this->middleware('can:hr.employees.delete')->only(['destroy']);
     }
 
     /**
@@ -41,30 +42,64 @@ class EmployeeController extends Controller
             ->latest()
             ->get();
 
-        return view('hr.employees.index', compact('employees'));
+        // Active SP level per employee (for badge in table)
+        $activeSpMap = \App\Models\Hr\WarningLetter::whereNotIn('status', ['expired', 'rejected'])
+            ->where('valid_until', '>=', now()->toDateString())
+            ->selectRaw('employee_id, MAX(sp_level) as max_sp')
+            ->groupBy('employee_id')
+            ->pluck('max_sp', 'employee_id');
+
+        return view('hr.employees.index', compact('employees', 'activeSpMap'));
+    }
+
+    public function nearExpired()
+    {
+        Employee::updateExpiredContracts();
+
+        $employees = Employee::with(['department', 'documents'])
+            ->withCount('documents')
+            ->latest()
+            ->get();
+
+        $nearExpiredIds = $employees->filter(function ($emp) {
+            if (!$emp->contract_end_date || $emp->status !== 'active') return false;
+            $days = now()->diffInDays($emp->contract_end_date, false);
+            return $days >= 0 && $days <= 60;
+        })->pluck('id')->toArray();
+
+        $activeSpMap = \App\Models\Hr\WarningLetter::whereNotIn('status', ['expired', 'rejected'])
+            ->where('valid_until', '>=', now()->toDateString())
+            ->selectRaw('employee_id, MAX(sp_level) as max_sp')
+            ->groupBy('employee_id')
+            ->pluck('max_sp', 'employee_id');
+
+        return view('hr.employees.index', compact('employees', 'nearExpiredIds', 'activeSpMap'))
+            ->with('isNearExpired', true);
+    }
+
+    public function export(Request $request)
+    {
+        $status = $request->input('status', 'all');
+        $filename = 'employees_' . ($status === 'all' ? 'all' : $status) . '_' . now()->format('Ymd') . '.xlsx';
+
+        return Excel::download(new EmployeeExport($status), $filename);
     }
 
     public function create()
     {
-        $departments = Department::orderBy('name')->get();
+        [$departments, $skillsets, $skillCategories, $proficiencyOptions, $sessionShifts] = $this->getFormData();
         $documentTypes = EmployeeDocument::getDocumentTypes();
         $employmentTypes = Employee::getEmploymentTypeOptions();
-        $skillsets = Skillset::active()->orderBy('name')->get();
-        $skillCategories = Skillset::getCategoryOptions();
-        $proficiencyOptions = Skillset::getProficiencyOptions();
 
-        return view('hr.employees.create', compact('departments', 'documentTypes', 'employmentTypes', 'skillsets', 'skillCategories', 'proficiencyOptions'));
+        return view('hr.employees.create', compact('departments', 'documentTypes', 'employmentTypes', 'skillsets', 'skillCategories', 'proficiencyOptions', 'sessionShifts'));
     }
 
     public function store(Request $request)
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            abort(403, 'You do not have permission to create employees.');
-        }
-
         $request->validate([
             'name' => 'required|string|max:255',
-            'employment_type' => 'nullable|in:PKWT,PKWTT,Daily Worker,Probation',
+            'employment_type' => 'nullable|in:PKWT,PKWTT,Daily Worker,Probation,Internship',
+            'citizenship' => 'nullable|in:WNI,WNA',
             'employee_no' => [
                 'nullable',
                 'string',
@@ -92,7 +127,7 @@ class EmployeeController extends Controller
             'contract_end_date' => 'nullable|date|after_or_equal:hire_date',
             'salary' => 'nullable|numeric|min:0',
             'saldo_cuti' => 'nullable|numeric|min:0|max:999.99',
-            'status' => 'required|in:active,inactive,terminated',
+            'status' => 'required|in:active,inactive,pending_contract',
             'username' => 'nullable|string|max:255|unique:employees,username',
             'notes' => 'nullable|string',
             'photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
@@ -100,6 +135,7 @@ class EmployeeController extends Controller
             'document_types.*' => 'nullable|string',
             'document_names.*' => 'nullable|string|max:255',
             'document_descriptions.*' => 'nullable|string',
+            'default_shift_id' => 'nullable|exists:session_shifts,id',
             'skillsets' => 'nullable|array',
             'skillsets.*' => 'exists:skillsets,id',
             'skillset_proficiency' => 'nullable|array',
@@ -108,7 +144,9 @@ class EmployeeController extends Controller
             'skillset_acquired_date.*' => 'nullable|date',
         ]);
 
-        $employeeData = $request->only(['employee_no', 'name', 'username', 'employment_type', 'position', 'department_id', 'email', 'phone', 'address', 'gender', 'ktp_id', 'place_of_birth', 'date_of_birth', 'rekening', 'hire_date', 'contract_end_date', 'salary', 'saldo_cuti', 'status', 'notes']);
+        $employeeData = $request->only(['employee_no', 'name', 'username', 'employment_type', 'position', 'department_id', 'default_shift_id', 'email', 'phone', 'address', 'gender', 'ktp_id', 'place_of_birth', 'date_of_birth', 'rekening', 'hire_date', 'contract_end_date', 'salary', 'saldo_cuti', 'status', 'notes']);
+        $employeeData['is_production']     = $request->has('is_production') ? $request->boolean('is_production') : true;
+        $employeeData['is_leader_capacity'] = $request->boolean('is_leader_capacity');
 
         // Handle photo upload
         if ($request->hasFile('photo')) {
@@ -158,6 +196,7 @@ class EmployeeController extends Controller
     {
         $employee->load([
             'department',
+            'defaultShift',
             'documents',
             'skillsets',
             'timings' => function ($query) {
@@ -239,24 +278,63 @@ class EmployeeController extends Controller
         }
     }
 
+    public function toggleProduction(Employee $employee)
+    {
+        $this->authorize('hr.employees.edit');
+        $employee->update(['is_production' => !$employee->is_production]);
+        return response()->json(['is_production' => $employee->is_production]);
+    }
+
+    public function toggleLeaderCapacity(Employee $employee)
+    {
+        $this->authorize('hr.employees.edit');
+        $employee->update(['is_leader_capacity' => !$employee->is_leader_capacity]);
+        return response()->json(['is_leader_capacity' => $employee->is_leader_capacity]);
+    }
+
     public function edit(Employee $employee)
     {
-        $departments = Department::orderBy('name')->get();
+        [$departments, $skillsets, $skillCategories, $proficiencyOptions, $sessionShifts] = $this->getFormData();
         $documentTypes = EmployeeDocument::getDocumentTypes();
         $employmentTypes = Employee::getEmploymentTypeOptions();
-        $skillsets = Skillset::active()->orderBy('name')->get();
+        $employee->load('documents', 'skillsets');
+
+        return view('hr.employees.edit', compact('employee', 'departments', 'documentTypes', 'employmentTypes', 'skillsets', 'skillCategories', 'proficiencyOptions', 'sessionShifts'));
+    }
+
+    /** Shared form data — cached 10 menit karena jarang berubah */
+    private function getFormData(): array
+    {
+        $departments = Cache::remember('form_departments', 600, fn() => Department::orderBy('name')->get());
+
+        $skillsets = Cache::remember(
+            'form_skillsets',
+            600,
+            fn() => Skillset::active()
+                ->select(['id', 'name', 'category'])
+                ->orderBy('name')
+                ->get(),
+        );
+
+        $sessionShifts = Cache::remember(
+            'form_session_shifts',
+            600,
+            fn() => SessionShift::with('department')
+                ->where('is_active', true)
+                ->orderByRaw('department_id IS NULL DESC')
+                ->orderBy('department_id')
+                ->orderBy('type_of_shift')
+                ->get(),
+        );
+
         $skillCategories = Skillset::getCategoryOptions();
         $proficiencyOptions = Skillset::getProficiencyOptions();
-        $employee->load('documents', 'skillsets'); // load skillsets
 
-        return view('hr.employees.edit', compact('employee', 'departments', 'documentTypes', 'employmentTypes', 'skillsets', 'skillCategories', 'proficiencyOptions'));
+        return [$departments, $skillsets, $skillCategories, $proficiencyOptions, $sessionShifts];
     }
 
     public function update(Request $request, Employee $employee)
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            abort(403, 'You do not have permission to edit employees.');
-        }
 
         // Check if this is a document upload request from modal
         if ($request->hasFile('documents') && $request->filled('document_types') && !$request->filled('name')) {
@@ -265,7 +343,7 @@ class EmployeeController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:255',
-            'employment_type' => 'required|in:PKWT,PKWTT,Daily Worker,Probation',
+            'employment_type' => 'required|in:PKWT,PKWTT,Daily Worker,Probation,Internship',
             'employee_no' => [
                 'required',
                 'string',
@@ -293,7 +371,7 @@ class EmployeeController extends Controller
             'contract_end_date' => 'nullable|date|after_or_equal:hire_date',
             'salary' => 'nullable|numeric|min:0',
             'saldo_cuti' => 'nullable|numeric|min:0|max:999.99',
-            'status' => 'required|in:active,inactive,terminated',
+            'status' => 'required|in:active,inactive,pending_contract',
             'username' => ['nullable', 'string', 'max:255', Rule::unique('employees')->ignore($employee->id)],
             'notes' => 'nullable|string',
             'photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
@@ -301,6 +379,7 @@ class EmployeeController extends Controller
             'document_types.*' => 'nullable|string',
             'document_names.*' => 'nullable|string|max:255',
             'document_descriptions.*' => 'nullable|string',
+            'default_shift_id' => 'nullable|exists:session_shifts,id',
             'skillsets' => 'nullable|array',
             'skillsets.*' => 'exists:skillsets,id',
             'skillset_proficiency' => 'nullable|array',
@@ -309,7 +388,9 @@ class EmployeeController extends Controller
             'skillset_acquired_date.*' => 'nullable|date',
         ]);
 
-        $employeeData = $request->only(['employee_no', 'name', 'username', 'employment_type', 'position', 'department_id', 'email', 'phone', 'address', 'gender', 'ktp_id', 'place_of_birth', 'date_of_birth', 'rekening', 'hire_date', 'contract_end_date', 'salary', 'saldo_cuti', 'status', 'notes']);
+        $employeeData = $request->only(['employee_no', 'name', 'username', 'employment_type', 'position', 'department_id', 'default_shift_id', 'email', 'phone', 'address', 'gender', 'ktp_id', 'place_of_birth', 'date_of_birth', 'rekening', 'hire_date', 'contract_end_date', 'salary', 'saldo_cuti', 'status', 'notes']);
+        $employeeData['is_production']     = $request->boolean('is_production');
+        $employeeData['is_leader_capacity'] = $request->boolean('is_leader_capacity');
 
         // Handle photo upload
         if ($request->hasFile('photo')) {
@@ -355,6 +436,11 @@ class EmployeeController extends Controller
                     ]);
                 }
             }
+        }
+
+        // Check if request came from index page with active filters
+        if ($request->has('return_to_index')) {
+            return redirect()->route('employees.index')->with('success', 'Employee successfully updated.');
         }
 
         return redirect()->route('employees.show', $employee)->with('success', 'Employee successfully updated.');
@@ -433,6 +519,26 @@ class EmployeeController extends Controller
         }
     }
 
+    /**
+     * Endpoint AJAX untuk autocomplete pencarian karyawan aktif.
+     * GET /hr/employees/search?q=nama&limit=10
+     */
+    public function search(Request $request)
+    {
+        $q = trim($request->input('q', ''));
+        $limit = min((int) $request->input('limit', 10), 50);
+
+        $employees = Employee::where('status', 'active')
+            ->where(function ($query) use ($q) {
+                $query->where('name', 'like', "%{$q}%")->orWhere('employee_no', 'like', "%{$q}%");
+            })
+            ->orderBy('name')
+            ->limit($limit)
+            ->get(['id', 'employee_no', 'name']);
+
+        return response()->json($employees);
+    }
+
     public function checkEmployeeNo(Request $request)
     {
         $employeeNo = $request->input('employee_no');
@@ -489,10 +595,6 @@ class EmployeeController extends Controller
 
     public function deleteDocument(EmployeeDocument $document)
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            return redirect()->route('employees.show', $document->employee_id)->with('error', 'You do not have permission to delete documents.');
-        }
-
         try {
             $employeeId = $document->employee_id;
 
@@ -531,12 +633,35 @@ class EmployeeController extends Controller
         }
     }
 
-    public function destroy(Employee $employee)
+    public function resolveContract(Request $request, Employee $employee)
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            abort(403, 'You do not have permission to delete employees.');
+        $this->authorize('hr.employees.edit');
+
+        $request->validate([
+            'action'            => 'required|in:extend,terminate',
+            'contract_end_date' => 'required_if:action,extend|nullable|date|after:today',
+        ]);
+
+        if ($request->action === 'extend') {
+            $note = "[HR Action] Contract extended until {$request->contract_end_date} by " . auth()->user()->name . " on " . now()->format('Y-m-d');
+            $employee->update([
+                'status'            => 'active',
+                'contract_end_date' => $request->contract_end_date,
+                'notes'             => trim(($employee->notes ?? '') . "\n" . $note),
+            ]);
+            return redirect()->back()->with('success', "Contract extended for {$employee->name}. Status is now Active.");
         }
 
+        $note = "[HR Action] Employment set to inactive by " . auth()->user()->name . " on " . now()->format('Y-m-d');
+        $employee->update([
+            'status' => 'inactive',
+            'notes'  => trim(($employee->notes ?? '') . "\n" . $note),
+        ]);
+        return redirect()->back()->with('success', "{$employee->name} has been set as Inactive.");
+    }
+
+    public function destroy(Employee $employee)
+    {
         // Delete photo
         if ($employee->photo && Storage::disk('public')->exists($employee->photo)) {
             Storage::disk('public')->delete($employee->photo);
@@ -546,6 +671,21 @@ class EmployeeController extends Controller
         foreach ($employee->documents as $document) {
             if (Storage::disk('public')->exists($document->file_path)) {
                 Storage::disk('public')->delete($document->file_path);
+            }
+        }
+
+        // Hapus dari mesin fingerspot jika terdaftar (abaikan error agar tidak blokir proses)
+        if ($employee->device_registered_at && str_starts_with($employee->employee_no, 'DCM-')) {
+            try {
+                $deviceId = config('fingerspot.device_id');
+                if ($deviceId) {
+                    $pin = ltrim(substr($employee->employee_no, 4), '0') ?: '0';
+                    app(FingerspotService::class)->deleteUserinfo($deviceId, $pin);
+                }
+            } catch (\Exception $e) {
+                Log::warning('Gagal hapus employee dari fingerspot: ' . $e->getMessage(), [
+                    'employee_no' => $employee->employee_no,
+                ]);
             }
         }
 

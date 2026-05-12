@@ -184,12 +184,12 @@
                         <a href="{{ route('purchase_requests.create') }}" class="btn btn-primary btn-sm flex-shrink-0">
                             <i class="bi bi-plus-circle me-1"></i> Create Request
                         </a>
-                        @if (in_array(auth()->user()->role, ['super_admin', 'admin_procurement', 'admin_logistic', 'admin']))
+                        @can('procurement.supplier.edit')
                             <button type="button" class="btn btn-outline-success btn-sm flex-shrink-0"
                                 data-bs-toggle="modal" data-bs-target="#addSupplierModal">
                                 <i class="bi bi-plus-circle me-1"></i> Quick Add Supplier
                             </button>
-                        @endif
+                        @endcan
                     </div>
                 </div>
 

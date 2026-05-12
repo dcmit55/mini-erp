@@ -44,6 +44,24 @@ require __DIR__.'/../vendor/autoload.php';
 |
 */
 
+// Fix: PHP built-in server (php artisan serve) di Windows kadang tidak memasukkan
+// Authorization header ke $_SERVER['HTTP_AUTHORIZATION'].
+// Kode ini memastikan header tersedia sebelum Laravel capture() membaca request.
+if (empty($_SERVER['HTTP_AUTHORIZATION'])) {
+    if (!empty($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
+        // Kasus: Apache dengan mod_rewrite
+        $_SERVER['HTTP_AUTHORIZATION'] = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
+    } elseif (function_exists('getallheaders')) {
+        // Kasus: Apache/PHP-FPM dengan getallheaders() tersedia
+        foreach (getallheaders() as $name => $value) {
+            if (strcasecmp($name, 'Authorization') === 0) {
+                $_SERVER['HTTP_AUTHORIZATION'] = $value;
+                break;
+            }
+        }
+    }
+}
+
 $app = require_once __DIR__.'/../bootstrap/app.php';
 
 $kernel = $app->make(Kernel::class);

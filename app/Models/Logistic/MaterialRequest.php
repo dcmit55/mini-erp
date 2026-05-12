@@ -16,45 +16,21 @@ class MaterialRequest extends Model implements Auditable
 {
     use HasFactory, \OwenIt\Auditing\Auditable, SoftDeletes;
 
-    const PROJECT_TYPE_CLIENT   = 'client';
+    const PROJECT_TYPE_CLIENT = 'client';
     const PROJECT_TYPE_INTERNAL = 'internal';
 
-    protected $fillable = [
-        'inventory_id',
-        'project_type',
-        'project_id',
-        'internal_project_id',
-        'job_order_id',
-        'qty',
-        'processed_qty',
-        'requested_by',
-        'status',
-        'remark',
-        'approved_at',
-    ];
+    protected $fillable = ['inventory_id', 'staging_inventory_id', 'indo_purchase_id', 'inventory_source', 'project_type', 'project_id', 'internal_project_id', 'job_order_id', 'qty', 'processed_qty', 'requested_by', 'status', 'remark', 'approved_at'];
 
     protected $casts = [
-        'qty'          => 'decimal:2',
+        'qty' => 'decimal:2',
         'processed_qty' => 'decimal:2',
-        'approved_at'  => 'datetime',
-        'created_at'   => 'datetime',
-        'updated_at'   => 'datetime',
-        'deleted_at'   => 'datetime',
+        'approved_at' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'deleted_at' => 'datetime',
     ];
 
-    protected $auditInclude = [
-        'inventory_id',
-        'project_type',
-        'project_id',
-        'internal_project_id',
-        'job_order_id',
-        'qty',
-        'processed_qty',
-        'status',
-        'remark',
-        'requested_by',
-        'approved_at',
-    ];
+    protected $auditInclude = ['inventory_id', 'staging_inventory_id', 'indo_purchase_id', 'inventory_source', 'project_type', 'project_id', 'internal_project_id', 'job_order_id', 'qty', 'processed_qty', 'status', 'remark', 'requested_by', 'approved_at'];
 
     protected $auditTimestamps = true;
 
@@ -62,6 +38,16 @@ class MaterialRequest extends Model implements Auditable
     public function inventory()
     {
         return $this->belongsTo(Inventory::class);
+    }
+
+    public function stagingInventory()
+    {
+        return $this->belongsTo(\App\Models\Lark\LarkStagingInventory::class, 'staging_inventory_id');
+    }
+
+    public function indoPurchase()
+    {
+        return $this->belongsTo(\App\Models\Procurement\IndoPurchase::class, 'indo_purchase_id');
     }
 
     public function project()
@@ -122,11 +108,11 @@ class MaterialRequest extends Model implements Auditable
     public function getStatusBadgeClass()
     {
         return match ($this->status) {
-            'pending'   => 'text-bg-warning',
-            'approved'  => 'text-bg-primary',
+            'pending' => 'text-bg-warning',
+            'approved' => 'text-bg-primary',
             'delivered' => 'text-bg-success',
-            'canceled'  => 'text-bg-danger',
-            default     => '',
+            'canceled' => 'text-bg-danger',
+            default => '',
         };
     }
 

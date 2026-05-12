@@ -33,6 +33,8 @@ class TimingMonitorController extends Controller
         // Calculate statistics
         $totalRunning = Timing::running()->today()->count();
         $totalEmployees = Timing::running()->today()->distinct('employee_id')->count();
+        $totalMassProduction = Timing::running()->today()->where('session_type', 'mass_production')->count();
+        $totalRepair = Timing::running()->today()->where('session_type', 'repair')->count();
 
         // Get costume timing running count
         $costumeRunning = Timing::running()
@@ -58,7 +60,7 @@ class TimingMonitorController extends Controller
             })
             ->count();
 
-        return view('timing.monitor.index', compact('runningSessions', 'totalRunning', 'totalEmployees', 'costumeRunning', 'animatronicsRunning', 'mascotRunning'));
+        return view('timing.monitor.index', compact('runningSessions', 'totalRunning', 'totalEmployees', 'totalMassProduction', 'totalRepair', 'costumeRunning', 'animatronicsRunning', 'mascotRunning'));
     }
 
     /**
@@ -161,6 +163,7 @@ class TimingMonitorController extends Controller
                 'duration_minutes' => $durationMinutes,
                 'duration_hours' => round($durationMinutes / 60, 2),
                 'status' => 'complete',
+                'approval_status' => 'pending', // Default to pending approval
                 'measurement_value' => $timing->measurement_value ?? 0,
             ]);
 

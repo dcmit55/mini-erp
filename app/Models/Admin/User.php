@@ -10,13 +10,24 @@ use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 use Illuminate\Support\Facades\Cache;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable implements AuditableContract
 {
     use HasApiTokens, SoftDeletes, \OwenIt\Auditing\Auditable;
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasRoles;
 
-    protected $fillable = ['username', 'password', 'role', 'department_id'];
+    protected $fillable = ['username', 'password', 'role', 'department_id', 'uid'];
+
+    protected static function boot()
+    {
+        parent::boot();
+        static::creating(function ($user) {
+            if (empty($user->uid)) {
+                $user->uid = (string) \Illuminate\Support\Str::uuid();
+            }
+        });
+    }
 
     protected $hidden = ['password', 'remember_token'];
 
@@ -56,6 +67,22 @@ class User extends Authenticatable implements AuditableContract
     }
 
     /**
+     * Check if user is Timing role (Admin Timing — can create/edit timing data)
+     */
+    public function isTimingRole()
+    {
+        return $this->role === 'timing';
+    }
+
+    /**
+     * Alias kept for readability — same as isTimingRole()
+     */
+    public function isAdminTiming()
+    {
+        return $this->role === 'timing';
+    }
+
+    /**
      * Check if user is read-only admin
      */
     public function isReadOnlyAdmin()
@@ -65,10 +92,19 @@ class User extends Authenticatable implements AuditableContract
 
     /**
      * Check if user can modify data (create/edit/delete)
+     * Note: timing role can modify timing data specifically — handled per-controller
      */
     public function canModifyData()
     {
-        return !$this->isReadOnlyAdmin();
+        return !$this->isReadOnlyAdmin() && !$this->isTimingRole();
+    }
+
+    /**
+     * Can manage timing plans (Timing Planner module)
+     */
+    public function isTimingPlanningAdmin()
+    {
+        return in_array($this->role, ['super_admin', 'admin_mascot', 'admin_costume']);
     }
 
     public function isRequestOwner($username)

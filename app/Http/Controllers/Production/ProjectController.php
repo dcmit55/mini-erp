@@ -19,6 +19,10 @@ class ProjectController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
+        $this->middleware('can:production.project.view');
+        $this->middleware('can:production.project.create')->only(['create', 'store', 'storeQuick']);
+        $this->middleware('can:production.project.edit')->only(['edit', 'update']);
+        $this->middleware('can:production.project.delete')->only(['destroy']);
     }
 
     public function index(Request $request)
@@ -109,10 +113,6 @@ class ProjectController extends Controller
 
     public function store(Request $request)
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            abort(403, 'You do not have permission to create projects.');
-        }
-
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:projects,name,NULL,id,deleted_at,NULL',
             'qty' => 'required|integer|min:1',
@@ -152,9 +152,6 @@ class ProjectController extends Controller
 
     public function storeQuick(Request $request)
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            abort(403, 'You do not have permission to create projects.');
-        }
 
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255|unique:projects,name,NULL,id,deleted_at,NULL',
@@ -197,10 +194,6 @@ class ProjectController extends Controller
 
     public function update(Request $request, Project $project)
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            abort(403, 'You do not have permission to update projects.');
-        }
-
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255', \Illuminate\Validation\Rule::unique('projects')->ignore($project->id)->whereNull('deleted_at')],
             'qty' => 'required|integer|min:1',
@@ -262,12 +255,7 @@ class ProjectController extends Controller
 
     public function destroy(Project $project)
     {
-        if (Auth::user()->isReadOnlyAdmin()) {
-            abort(403, 'You do not have permission to update projects.');
-        }
-
-        // Validasi: Hanya pembuat proyek atau super_admin yang dapat menghapus
-        if (Auth::user()->username !== $project->created_by && Auth::user()->role !== 'super_admin') {
+        if (Auth::user()->username !== $project->created_by && !Auth::user()->can('production.project.delete')) {
             return redirect()->route('projects.index')->with('error', 'You are not authorized to delete this project.');
         }
 
@@ -314,7 +302,7 @@ class ProjectController extends Controller
      */
     public function getLarkRawData(LarkProjectSyncService $syncService)
     {
-        if (!auth()->user()->isSuperAdmin()) {
+        if (!auth()->user()->can('production.project.delete')) {
             abort(403, 'Unauthorized');
         }
 

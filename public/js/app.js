@@ -34428,6 +34428,9 @@ function initializeAudio() {
   });
 }
 function playNotificationSound() {
+  // Respect mute toggle — tab-specific via sessionStorage (default ON)
+  if (sessionStorage.getItem("notif_enabled") === "false") return;
+
   // Web Audio API
   if (audioContext && audioBuffer) {
     var source = audioContext.createBufferSource();
@@ -34444,9 +34447,61 @@ function playNotificationSound() {
   }
 }
 
+// --- Feature Announcement Modal ---
+function showFeatureAnnouncementModal(announcement) {
+  var priorityClass = {
+    info: "primary",
+    important: "warning",
+    critical: "danger"
+  };
+  var priorityIcon = {
+    info: "bi-info-circle",
+    important: "bi-exclamation-triangle",
+    critical: "bi-exclamation-octagon"
+  };
+  var modalHtml = "\n        <div class=\"modal fade\" id=\"featureAnnouncementModal\" tabindex=\"-1\" data-bs-backdrop=\"static\">\n            <div class=\"modal-dialog modal-dialog-centered modal-lg\">\n                <div class=\"modal-content border-0 shadow-lg\">\n                    <div class=\"modal-header bg-".concat(priorityClass[announcement.priority], " text-white\">\n                        <h5 class=\"modal-title\">\n                            <i class=\"bi ").concat(priorityIcon[announcement.priority], " me-2\"></i>\n                            ").concat(announcement.title, "\n                        </h5>\n                        <button type=\"button\" class=\"btn-close btn-close-white\"\n                                data-bs-dismiss=\"modal\" aria-label=\"Close\"></button>\n                    </div>\n                    <div class=\"modal-body p-4\">\n                        ").concat(announcement.version ? "<div class=\"mb-3\">\n                            <span class=\"badge bg-info\">\n                                <i class=\"bi bi-tag me-1\"></i>Version ".concat(announcement.version, "\n                            </span>\n                        </div>") : "", "\n                        <div class=\"feature-description\">\n                            ").concat(announcement.description.replace(/\n/g, "<br>"), "\n                        </div>\n                    </div>\n                    <div class=\"modal-footer bg-light\">\n                        <button type=\"button\" class=\"btn btn-secondary\"\n                                data-bs-dismiss=\"modal\">\n                            <i class=\"bi bi-clock me-1\"></i>Remind Me Later\n                        </button>\n                        <button type=\"button\" class=\"btn btn-").concat(priorityClass[announcement.priority], "\"\n                                onclick=\"markAnnouncementAsRead(").concat(announcement.id, ")\">\n                            <i class=\"bi bi-check-circle me-1\"></i>Got it!\n                        </button>\n                    </div>\n                </div>\n            </div>\n        </div>\n    ");
+
+  // Remove existing modal if any
+  $("#featureAnnouncementModal").remove();
+
+  // Add new modal
+  $("body").append(modalHtml);
+
+  // Show modal
+  var modal = new bootstrap.Modal(document.getElementById("featureAnnouncementModal"));
+  modal.show();
+
+  // Play notification sound
+  playNotificationSound();
+
+  // Cleanup after modal closed
+  $("#featureAnnouncementModal").on("hidden.bs.modal", function () {
+    $(this).remove();
+  });
+}
+
+// Mark announcement as read
+window.markAnnouncementAsRead = function (announcementId) {
+  $.post("/feature-announcements/".concat(announcementId, "/mark-read"), function () {
+    $("#featureAnnouncementModal").modal("hide");
+    // Optional: Show success toast
+    if (typeof Swal !== "undefined") {
+      Swal.fire({
+        icon: "success",
+        title: "Noted!",
+        text: "You won't see this announcement again.",
+        timer: 2000,
+        showConfirmButton: false
+      });
+    }
+  });
+};
+
 // --- Toast ---
 function showToast(materialRequest, action) {
   var playSound = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
+  // Respect mute toggle — tab-specific via sessionStorage (default ON)
+  if (sessionStorage.getItem("notif_enabled") === "false") return;
   var toastContainer = document.getElementById("toast-container");
   var toastTemplate = document.getElementById("toast-template");
   var departmentName = getDepartmentName(materialRequest);
@@ -34737,6 +34792,26 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 
+  // === FEATURE ANNOUNCEMENTS LISTENER ===
+  window.Echo.channel("feature-announcements").listen("NewFeatureAnnouncement", function (e) {
+    var userId = window.authUser ? window.authUser.id : null;
+
+    // Check apakah user ini target
+    if (e.target_user_ids && e.target_user_ids.includes(userId)) {
+      showFeatureAnnouncementModal(e.announcement);
+    }
+  });
+
+  // Check unread announcements saat page load
+  setTimeout(function () {
+    $.get("/feature-announcements/user", function (announcements) {
+      if (announcements && announcements.length > 0) {
+        // Show first announcement
+        showFeatureAnnouncementModal(announcements[0]);
+      }
+    });
+  }, 1000); // Delay 1 detik setelah page load
+
   // Hanya jalankan select color logic jika tabel material request ada
   var materialRequestTable = document.querySelector('#datatable[data-material-request-table="1"]');
   if (materialRequestTable) {
@@ -34817,9 +34892,11 @@ if (true) {
 // Enhanced Pusher configuration with fallbacks
 window.Echo = new laravel_echo__WEBPACK_IMPORTED_MODULE_1__["default"]({
   broadcaster: "pusher",
-  key: "86c8af0e6c8d6c971e9d",
+  key: "54ec9493e614e3204705",
   cluster: "ap1",
-  forceTLS: true,
+  // Use TLS only when page is served over HTTPS; on HTTP (local dev) use plain WS
+  // to avoid sockjs CORS errors from Pusher fallback endpoints
+  forceTLS: window.location.protocol === "https:",
   enabledTransports: ["ws", "wss"],
   // Connection fallback options
   wsHost: "ws-".concat("ap1", ".pusher.com"),

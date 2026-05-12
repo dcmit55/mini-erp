@@ -8,14 +8,21 @@
         <div class="col-12">
             <!-- Header -->
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h4 class="mb-0">Overtime Requests</h4>
-                    <p class="text-muted mb-0">Manage employee overtime requests</p>
+                <div class="d-flex align-items-center gap-2">
+                    <a href="{{ route('hr.management') }}" class="btn btn-sm btn-outline-secondary px-3">
+                        <i class="fas fa-arrow-left me-1"></i><span class="d-none d-sm-inline">Back</span>
+                    </a>
+                    <div>
+                        <h4 class="mb-0">Overtime Requests</h4>
+                        <p class="text-muted mb-0">Manage employee overtime requests</p>
+                    </div>
                 </div>
-                <a href="{{ route('overtime-requests.create') }}" 
+                @can('hr.overtime.create')
+                <a href="{{ route('overtime-requests.create') }}"
                    class="btn btn-primary rounded-3 px-4">
                     <i class="fas fa-plus me-2"></i>New Request
                 </a>
+                @endcan
             </div>
 
             <!-- Stats Cards -->
@@ -220,7 +227,7 @@
                                             <span class="text-muted">{{ $req->department->name ?? '-' }}</span>
                                         </td>
                                         <td class="d-none d-xl-table-cell">
-                                            <span class="fw-medium">{{ $req->jobOrder->name ?? '-' }}</span>
+                                            <span>{{ $req->jobOrder->name ?? '-' }}</span>
                                         </td>
                                         <td>
                                             <span class="badge bg-light text-dark px-2 py-1 rounded-pill">
@@ -239,7 +246,7 @@
                                             <span class="text-muted">{{ $req->start_time->format('d/m H:i') }} - {{ $req->end_time->format('H:i') }}</span>
                                         </td>
                                         <td class="text-end">
-                                            <span class="fw-medium">{{ $req->net_hours_formatted }}</span>
+                                            <small>{{ $req->net_hours_formatted }}</small>
                                         </td>
                                         <td>
                                             @php
@@ -278,48 +285,40 @@
                                         <td class="text-center">
                                             <div class="d-flex justify-content-center gap-1">
                                                 <!-- View Details -->
-                                                <a href="{{ route('overtime-requests.show', $req->id) }}" 
+                                                <a href="{{ route('overtime-requests.show', $req->uid) }}"
                                                    class="btn btn-sm btn-outline-info border-0 px-2 action-btn"
                                                    data-bs-toggle="tooltip" title="View Details">
                                                     <i class="fas fa-eye"></i>
                                                 </a>
-                                                
-                                                <!-- Edit Button (only for draft) -->
-                                                @if($req->status == 'draft')
-                                                <a href="{{ route('overtime-requests.edit', $req->id) }}" 
+
+                                                <!-- Edit Button (not for rejected) -->
+                                                @can('hr.overtime.create')
+                                                @if($req->status !== 'rejected')
+                                                <a href="{{ route('overtime-requests.edit', $req->uid) }}"
                                                    class="btn btn-sm btn-outline-primary border-0 px-2 action-btn"
                                                    data-bs-toggle="tooltip" title="Edit">
                                                     <i class="fas fa-edit"></i>
                                                 </a>
                                                 @endif
+                                                @endcan
 
                                                 <!-- Delete Button (only for draft) -->
+                                                @can('hr.overtime.create')
                                                 @if($req->status == 'draft')
-                                                <form action="{{ route('overtime-requests.destroy', $req->id) }}" 
-                                                      method="POST" class="d-inline" 
+                                                <form action="{{ route('overtime-requests.destroy', $req->uid) }}"
+                                                      method="POST" class="d-inline"
                                                       onsubmit="return confirm('Delete overtime request #{{ $req->id }}?')">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button type="submit" 
+                                                    <button type="submit"
                                                             class="btn btn-sm btn-outline-danger border-0 px-2 action-btn"
                                                             data-bs-toggle="tooltip" title="Delete">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
                                                 </form>
                                                 @endif
-                                                
-                                                <!-- Submit Button (for draft) -->
-                                                @if($req->status == 'draft')
-                                                <form action="{{ route('overtime-requests.submit', $req->id) }}" 
-                                                      method="POST" class="d-inline">
-                                                    @csrf
-                                                    <button type="submit" 
-                                                            class="btn btn-sm btn-outline-success border-0 px-2 action-btn"
-                                                            data-bs-toggle="tooltip" title="Submit for Approval">
-                                                        <i class="fas fa-paper-plane"></i>
-                                                    </button>
-                                                </form>
-                                                @endif
+                                                @endcan
+
                                             </div>
                                         </td>
                                     </tr>
@@ -480,6 +479,7 @@
         vertical-align: middle;
         border-bottom: 1px solid #f1f5f9;
         white-space: nowrap;
+        font-size: 0.8rem;
     }
 
     .table tbody tr {

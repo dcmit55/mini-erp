@@ -13,9 +13,11 @@
 
                     <!-- Spacer untuk mendorong tombol ke kanan -->
                     <div class="ms-lg-auto d-flex flex-wrap gap-2">
+                        @can('admin.users.create')
                         <a href="{{ route('users.create') }}" class="btn btn-primary btn-sm flex-shrink-0">
                             <i class="bi bi-plus-circle me-1"></i> New User
                         </a>
+                        @endcan
                     </div>
                 </div>
                 <!-- Alerts -->
@@ -57,14 +59,18 @@
                                 <td>{{ ucwords(str_replace('_', ' ', $user->role)) }}</td>
                                 <td>
                                     <div class="d-flex flex-wrap gap-1">
+                                        @can('admin.users.edit')
                                         <a href="{{ route('users.edit', $user->id) }}" class="btn btn-sm btn-warning"
                                             title="Edit"><i class="bi bi-pencil-square"></i></a>
+                                        @endcan
+                                        @can('admin.users.delete')
                                         <form action="{{ route('users.destroy', $user->id) }}" method="POST"
                                             class="delete-form">
                                             @csrf @method('DELETE')
                                             <button type="button" class="btn btn-sm btn-danger btn-delete"
                                                 title="Delete"><i class="bi bi-x-circle"></i></button>
                                         </form>
+                                        @endcan
                                     </div>
                                 </td>
                             </tr>
