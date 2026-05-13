@@ -2,6 +2,7 @@
 
 namespace App\Services\Lark;
 
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -164,6 +165,120 @@ class LarkApiClient
         $response = $this->http()->withToken($token)->get($url);
 
         return $response;
+    }
+
+    /**
+     * Get a pre-signed (publicly accessible) temporary download URL for a Lark file.
+     *
+     * Calls the batch_get_tmp_download_url endpoint with Bearer auth,
+     * returns the tmp_download_url from the response — valid ~10-30 minutes,
+     * accessible by browser WITHOUT auth.
+     *
+     * @param string $fileToken  Lark file token
+     * @param string $extra      URL-encoded extra param (bitablePerm context)
+     * @return string|null       Pre-signed URL usable as <img src> or null on failure
+     */
+    public function getTmpDownloadUrl(string $fileToken, string $extra = ''): ?string
+    {
+        $token = $this->getAccessToken();
+
+        $url = "{$this->baseUrl}/drive/v1/medias/batch_get_tmp_download_url?file_tokens={$fileToken}";
+        if ($extra) {
+            $url .= '&extra=' . $extra;
+        }
+
+        $response = Http::withToken($token)->timeout(10)->get($url);
+
+        if (!$response->successful()) {
+            Log::warning('LarkApiClient: getTmpDownloadUrl failed', [
+                'file_token' => $fileToken,
+                'status' => $response->status(),
+            ]);
+            return null;
+        }
+
+        $data = $response->json();
+
+        if (($data['code'] ?? -1) !== 0) {
+            Log::warning('LarkApiClient: getTmpDownloadUrl API error', [
+                'file_token' => $fileToken,
+                'code' => $data['code'] ?? null,
+                'msg' => $data['msg'] ?? null,
+            ]);
+            return null;
+        }
+
+        return $data['data']['tmp_download_urls'][0]['tmp_download_url'] ?? null;
+    }
+
+    /**
+     * Pre-warm proxy cache for multiple Lark URLs using parallel HTTP calls.
+     *
+     * Calls the Lark batch_get_tmp_download_url endpoint concurrently for each URL
+     * so that subsequent /lark-media proxy requests are instant cache hits (no API call needed).
+     *
+     * @param string[] $larkUrls  Array of Lark /download URLs stored in DB
+     */
+    public function prewarmBatch(array $larkUrls): void
+    {
+        // Only process URLs not already cached
+        $toResolve = [];
+        foreach ($larkUrls as $url) {
+            $cacheKey = 'lark_media_' . md5($url);
+            if (Cache::has($cacheKey)) {
+                continue;
+            }
+
+            // Extract file token and extra param (keep extra URL-encoded)
+            if (!preg_match('|/medias/([A-Za-z0-9_-]+)/download|', $url, $m)) {
+                continue;
+            }
+            $fileToken = $m[1];
+            $queryString = parse_url($url, PHP_URL_QUERY) ?? '';
+            preg_match('/(?:^|&)extra=([^&]+)/', $queryString, $extraMatch);
+            $extra = $extraMatch[1] ?? '';
+
+            $toResolve[] = ['url' => $url, 'token' => $fileToken, 'extra' => $extra];
+        }
+
+        if (empty($toResolve)) {
+            return;
+        }
+
+        try {
+            $token = $this->getAccessToken();
+            $baseUrl = $this->baseUrl;
+
+            // Fire all Lark API calls in parallel via Http::pool()
+            $responses = Http::pool(function (\Illuminate\Http\Client\Pool $pool) use ($toResolve, $token, $baseUrl) {
+                $requests = [];
+                foreach ($toResolve as $item) {
+                    $apiUrl = "{$baseUrl}/drive/v1/medias/batch_get_tmp_download_url?file_tokens={$item['token']}";
+                    if ($item['extra']) {
+                        $apiUrl .= '&extra=' . $item['extra'];
+                    }
+                    $requests[] = $pool->withToken($token)->timeout(10)->get($apiUrl);
+                }
+                return $requests;
+            });
+
+            foreach ($toResolve as $idx => $item) {
+                $response = $responses[$idx] ?? null;
+                if (!$response || !$response->successful()) {
+                    continue;
+                }
+                $data = $response->json();
+                if (($data['code'] ?? -1) !== 0) {
+                    continue;
+                }
+                $preSignedUrl = $data['data']['tmp_download_urls'][0]['tmp_download_url'] ?? null;
+                if ($preSignedUrl) {
+                    Cache::put('lark_media_' . md5($item['url']), $preSignedUrl, now()->addMinutes(10));
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning('LarkApiClient: prewarmBatch failed', ['error' => $e->getMessage()]);
+        }
     }
 
     /**

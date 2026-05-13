@@ -65,27 +65,21 @@
                     return 'Rp ' . number_format($n, 0);
                 };
 
-                // Build flat list of ALL photos across all JOs in this project
-                // Each entry: ['url' => ..., 'jo_name' => ...']
-$allSlides = [];
-foreach ($project->jobOrders as $jo) {
-    $photos = $jo->wip_photos ?? [];
-    foreach ($photos as $p) {
-        if ($p) {
-            // If already a full URL (Lark tmp_url), use directly.
-            // Otherwise treat as a local storage path (legacy downloaded files).
-            $photoUrl =
-                str_starts_with($p, 'http://') || str_starts_with($p, 'https://')
-                    ? $p
-                    : asset('storage/' . $p);
-            $allSlides[] = ['url' => $photoUrl, 'jo_name' => $jo->name];
-        }
-    }
-}
-$hasSlides = count($allSlides) > 0;
+                // Build flat list of ALL photos across all JOs in this project.
+                // Use wip_photos_urls accessor — returns browser-accessible proxy URLs
+                // (raw Lark URLs require Bearer auth; proxy handles auth server-side).
+                $allSlides = [];
+                foreach ($project->jobOrders as $jo) {
+                    // wip_photos_urls returns proxy URLs — each request goes through /lark-media
+                    // which fetches from Lark with Bearer auth and redirects to a pre-signed URL
+                    foreach ($jo->wip_photos_urls as $photoUrl) {
+                        $allSlides[] = ['url' => $photoUrl, 'jo_name' => $jo->name];
+                    }
+                }
+                $hasSlides = count($allSlides) > 0;
 
-$carouselId = 'joCarousel-' . $project->id;
-$isWip = str_contains($project->project_status ?? '', 'WIP');
+                $carouselId = 'joCarousel-' . $project->id;
+                $isWip = str_contains($project->project_status ?? '', 'WIP');
             @endphp
 
             <div class="col-xl-4 col-lg-6 col-md-12 col-sm-12">
@@ -105,12 +99,20 @@ $isWip = str_contains($project->project_status ?? '', 'WIP');
                         <div class="pc-photo-panel {{ $bgClass }}">
                             @if ($hasSlides)
                                 <div id="{{ $carouselId }}" class="carousel slide pc-jo-carousel"
-                                    data-bs-ride="carousel" data-bs-interval="3000">
+                                    data-bs-ride="false">
                                     <div class="carousel-inner">
                                         @foreach ($allSlides as $idx => $slide)
                                             <div class="carousel-item {{ $idx === 0 ? 'active' : '' }}">
-                                                <img src="{{ $slide['url'] }}" class="pc-jo-carousel-img"
-                                                    alt="{{ e($slide['jo_name']) }}" loading="lazy">
+                                                @if ($idx === 0)
+                                                    {{-- First slide: load immediately --}}
+                                                    <img src="{{ $slide['url'] }}" class="pc-jo-carousel-img"
+                                                        alt="{{ e($slide['jo_name']) }}" loading="lazy">
+                                                @else
+                                                    {{-- Other slides: lazy-load on carousel slide event --}}
+                                                    <img src="" data-lazy-src="{{ $slide['url'] }}"
+                                                        class="pc-jo-carousel-img lazy-slide"
+                                                        alt="{{ e($slide['jo_name']) }}">
+                                                @endif
                                                 <div class="pc-jo-slide-label">{{ $slide['jo_name'] }}</div>
                                             </div>
                                         @endforeach

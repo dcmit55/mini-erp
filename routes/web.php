@@ -77,15 +77,18 @@ use App\Http\Controllers\Qc\QcViewController;
 */
 
 // ── QC Module ──────────────────────────────────────────────────────────────
-Route::middleware(['auth'])->prefix('qc')->name('qc.')->group(function () {
-    Route::get('/mascot/{any?}', [QcViewController::class, 'mascot'])
-        ->where('any', '.*')
-        ->name('mascot');
-    Route::get('/costume/{any?}', [QcViewController::class, 'costume'])
-        ->where('any', '.*')
-        ->name('costume');
-});
-require __DIR__.'/qc.php';
+Route::middleware(['auth'])
+    ->prefix('qc')
+    ->name('qc.')
+    ->group(function () {
+        Route::get('/mascot/{any?}', [QcViewController::class, 'mascot'])
+            ->where('any', '.*')
+            ->name('mascot');
+        Route::get('/costume/{any?}', [QcViewController::class, 'costume'])
+            ->where('any', '.*')
+            ->name('costume');
+    });
+require __DIR__ . '/qc.php';
 // ──────────────────────────────────────────────────────────────────────────
 
 // Leave Requests - Public access ONLY for create & store
@@ -168,6 +171,11 @@ Route::get('/artisan/{action}', function ($action) {
     ->middleware('auth');
 
 Route::middleware(['auth'])->group(function () {
+    // ── Lark Media Proxy ────────────────────────────────────────────────────
+    // Serves Lark Drive images that require Bearer auth — browsers can't do that
+    // directly via <img src>. Proxy fetches server-side, redirects to pre-signed URL.
+    Route::get('/lark-media', [\App\Http\Controllers\LarkMediaController::class, 'serve'])->name('lark.media');
+
     // Audit
     Route::prefix('audit')
         ->name('audit.')
@@ -806,6 +814,7 @@ Route::middleware(['auth'])->group(function () {
         // Item Receipt Routes
         Route::post('/indo-purchases/{uid}/mark-as-received', [IndoPurchaseController::class, 'markAsReceived'])->name('indo-purchases.mark-as-received');
         Route::post('/{uid}/mark-as-not-matched', [IndoPurchaseController::class, 'markAsNotMatched'])->name('indo-purchases.mark-as-not-matched');
+        Route::post('/bulk-receive', [IndoPurchaseController::class, 'bulkReceive'])->name('indo-purchases.bulk-receive');
 
         // Print & Export
         Route::get('/{uid}/print', [IndoPurchaseController::class, 'print'])->name('indo-purchases.print');

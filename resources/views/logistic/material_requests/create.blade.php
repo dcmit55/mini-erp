@@ -185,11 +185,11 @@
                         </div>
                     </div>
 
-                    <a href="{{ route('material_requests.index') }}" class="btn btn-secondary">Cancel</a>
                     <button type="submit" class="btn btn-success" id="submit-request-btn">
                         <span class="spinner-border spinner-border-sm me-1 d-none" role="status"></span>
                         Submit Request
                     </button>
+                    <a href="{{ route('material_requests.index') }}" class="btn btn-secondary">Cancel</a>
                 </form>
             </div>
         </div>

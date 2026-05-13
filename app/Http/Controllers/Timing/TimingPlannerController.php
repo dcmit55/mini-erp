@@ -65,15 +65,38 @@ class TimingPlannerController extends Controller
             ->get();
 
         // Determine planning date (default: today)
-        $planningDate = request('date') ? \Carbon\Carbon::parse(request('date'))->toDateString() : today()->toDateString();
+        $explicitDate = request('date');
+        $planningDate = $explicitDate ? \Carbon\Carbon::parse($explicitDate)->toDateString() : today()->toDateString();
 
-        // Load existing plans keyed by job_order_id — strict by selected date only
+        // Load plans for the selected date range.
+        // ROOT CAUSE FIX: when no explicit date is provided (default view), load the
+        // LATEST plan per Job Order — not only today's. This ensures plans created on
+        // previous days remain visible the next day instead of disappearing.
+        // When a specific date IS given via ?date=, filter strictly to that date.
         $joIds = $jobOrders->pluck('id')->toArray();
-        $plans = JobOrderTimingPlan::with(['employee', 'createdBy'])
-            ->whereIn('job_order_id', $joIds)
-            ->where('planning_date', $planningDate)
-            ->get()
-            ->groupBy('job_order_id');
+        if ($explicitDate) {
+            // Strict mode: user explicitly navigated to a specific date
+            $plans = JobOrderTimingPlan::with(['employee', 'createdBy'])
+                ->whereIn('job_order_id', $joIds)
+                ->where('planning_date', $planningDate)
+                ->get()
+                ->groupBy('job_order_id');
+        } else {
+            // Default mode: show the LATEST plan per JO regardless of date.
+            // Uses a subquery to get the max planning_date per job_order_id,
+            // then joins back to retrieve the full plan rows for that date.
+            $latestDates = JobOrderTimingPlan::whereIn('job_order_id', $joIds)
+                ->selectRaw('job_order_id, MAX(planning_date) as latest_date')
+                ->groupBy('job_order_id');
+
+            $plans = JobOrderTimingPlan::with(['employee', 'createdBy'])
+                ->joinSub($latestDates, 'latest', function ($join) {
+                    $join->on('job_order_timing_plans.job_order_id', '=', 'latest.job_order_id')
+                         ->on('job_order_timing_plans.planning_date', '=', 'latest.latest_date');
+                })
+                ->get()
+                ->groupBy('job_order_id');
+        }
 
         // Available employees (active mascot + costume dept employees)
         $employees = Employee::where('status', 'active')

@@ -1014,6 +1014,18 @@
 
             }); // end $(function)
 
+            // ── Carousel lazy-load: only load non-active slide images on demand ─
+            // Non-first slides use data-lazy-src instead of src to avoid loading
+            // all images upfront. Image is loaded just before its slide is shown.
+            $(document).on('slide.bs.carousel', '.pc-jo-carousel', function(e) {
+                var img = e.relatedTarget.querySelector('.lazy-slide');
+                if (img && img.getAttribute('data-lazy-src')) {
+                    img.src = img.getAttribute('data-lazy-src');
+                    img.removeAttribute('data-lazy-src');
+                    img.classList.remove('lazy-slide');
+                }
+            });
+
             // ── Fancybox gallery ─────────────────────────────────────────────────
             $(document).on('click', '.btn-open-gallery', function(e) {
                 e.preventDefault();

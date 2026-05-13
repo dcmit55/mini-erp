@@ -15,10 +15,12 @@ use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\ProjectCostingExport;
 use App\Exports\AllProjectsCostingExport;
 use App\Exports\ProjectCostingMultiSheetExport;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Logistic\Inventory;
 use App\Models\Hr\OvertimeRequest;
+use App\Jobs\PrewarmLarkMediaJob;
 
 class ProjectCostingController extends Controller
 {
@@ -97,35 +99,46 @@ class ProjectCostingController extends Controller
             ->orderByDesc('created_at') // Then by created_at
             ->paginate(12); // 12 = 3 cols × 4 rows (xl), fits clean grid
 
-        // Card summaries: calculate actual_project_cost and total_project_time per project
+        // PERFORMANCE: Dispatch Lark media pre-warm as a background queued job.
+        // This avoids blocking the HTTP response with synchronous Lark API calls.
+        $this->dispatchLarkPrewarm($projects);
+
+        // PERFORMANCE: Use shared cached card summaries — avoids re-running
+        // heavy aggregation queries on every pagination click.
         $projectIds = $projects->pluck('id')->toArray();
-        $cardSummaries = [];
+        $cardSummaries = $this->getCardSummaries($projectIds);
 
         if (!empty($projectIds)) {
+            // Only compute summaries for projects not yet cached
+            $uncachedIds = array_diff($projectIds, array_keys($cardSummaries));
+        }
+
+        if (!empty($uncachedIds)) {
             // Material cost: sum of (unit_price + freights) * qty * exchange_rate per project
             // NOTE: inventory.batches must be eager-loaded to avoid N+1 in getPriceAttribute()
-            $usagesByProject = \App\Models\Logistic\MaterialUsage::whereIn('project_id', $projectIds)
+            $usagesByProject = \App\Models\Logistic\MaterialUsage::whereIn('project_id', $uncachedIds)
                 ->with(['inventory.currency', 'inventory.batches'])
                 ->get()
                 ->groupBy('project_id');
 
             // Timing (workmanship): sum duration_minutes per project + salary for cost
-            $timingsByProject = \App\Models\Production\Timing::whereIn('project_id', $projectIds)->where('approval_status', 'approved')->selectRaw('project_id, SUM(duration_minutes) as total_minutes')->groupBy('project_id')->pluck('total_minutes', 'project_id');
+            $timingsByProject = \App\Models\Production\Timing::whereIn('project_id', $uncachedIds)->where('approval_status', 'approved')->selectRaw('project_id, SUM(duration_minutes) as total_minutes')->groupBy('project_id')->pluck('total_minutes', 'project_id');
 
             // Workmanship cost: need snapshotted rate_per_hour (or fallback employee salary)
             // Select rate_per_hour along with employee salary as fallback
-            $timingsWithEmployee = \App\Models\Production\Timing::whereIn('project_id', $projectIds)->where('approval_status', 'approved')->with('employee:id,salary')->get()->groupBy('project_id');
+            $timingsWithEmployee = \App\Models\Production\Timing::whereIn('project_id', $uncachedIds)->where('approval_status', 'approved')->with('employee:id,salary')->get()->groupBy('project_id');
 
             // DCM Costings (PO): sum invoice_total per project_name
-            $projectNames = \App\Models\Production\Project::whereIn('id', $projectIds)->pluck('name', 'id');
+            $projectNames = \App\Models\Production\Project::whereIn('id', $uncachedIds)->pluck('name', 'id');
             $dcmByProjectName = \App\Models\Finance\DcmCosting::whereIn('project_name', $projectNames->values())->where('is_current', true)->get()->groupBy('project_name');
 
             // Pre-fetch all courier tracking rows for all project IDs at once (avoids N+1 per project)
             $sgdRate = \App\Models\Finance\Currency::where('name', 'SGD')->value('exchange_rate') ?? 12000;
-            $allBtSgItems = \App\Models\Lark\LarkBtSgItemTracking::whereIn('project_id', $projectIds)->get()->groupBy('project_id');
-            $allSgBtItems = \App\Models\Lark\LarkSgBtItemTracking::whereIn('project_id', $projectIds)->get()->groupBy('project_id');
+            $allBtSgItems = \App\Models\Lark\LarkBtSgItemTracking::whereIn('project_id', $uncachedIds)->get()->groupBy('project_id');
+            $allSgBtItems = \App\Models\Lark\LarkSgBtItemTracking::whereIn('project_id', $uncachedIds)->get()->groupBy('project_id');
 
-            foreach ($projectIds as $pid) {
+            foreach ($uncachedIds as $pid) {
+
                 // Material cost
                 $materialIDR = 0;
                 foreach ($usagesByProject[$pid] ?? collect() as $usage) {
@@ -169,7 +182,7 @@ class ProjectCostingController extends Controller
                 $intlRows = $dcmRows->filter(fn($c) => str_contains(strtolower($c->purchase_type ?? ''), 'intl') || str_contains(strtolower($c->purchase_type ?? ''), 'international') || str_contains(strtolower($c->supplier ?? ''), 'sg') || str_contains(strtolower($c->department ?? ''), 'sg'));
                 $localRows = $dcmRows->filter(fn($c) => !$intlRows->contains('id', $c->id));
 
-                $cardSummaries[$pid] = [
+                $summary = [
                     'actual_project_cost' => $actualCost,
                     'material_cost' => $materialIDR,
                     'workmanship_cost' => $workmanshipIDR,
@@ -179,6 +192,9 @@ class ProjectCostingController extends Controller
                     'local_po' => $localRows->sum('invoice_total'),
                     'usage_idr' => $materialIDR,
                 ];
+                // Cache per-project summary for 10 minutes to speed up pagination
+                Cache::put('costing_summary_' . $pid, $summary, now()->addMinutes(10));
+                $cardSummaries[$pid] = $summary;
             }
         }
 
@@ -221,6 +237,53 @@ class ProjectCostingController extends Controller
             ->get();
 
         return view('finance.costing.index', compact('projects', 'departments', 'salesOptions', 'jobOrders', 'deadlineMonths', 'cardSummaries', 'allProjects'));
+    }
+
+    /**
+     * Dispatch Lark media pre-warm as a background queued job.
+     *
+     * PERFORMANCE: Instead of blocking the HTTP response with synchronous Lark API calls,
+     * we fire a queued job. The job runs after the response is sent, populating the cache
+     * so subsequent /lark-media proxy requests are instant cache hits.
+     *
+     * @param \Illuminate\Pagination\LengthAwarePaginator $projects
+     */
+    private function dispatchLarkPrewarm($projects): void
+    {
+        $larkUrls = [];
+        foreach ($projects as $project) {
+            foreach ($project->jobOrders as $jo) {
+                foreach ($jo->wip_photos ?? [] as $url) {
+                    if (str_contains($url, 'larksuite.com')) {
+                        $larkUrls[] = $url;
+                    }
+                }
+            }
+        }
+
+        if (!empty($larkUrls)) {
+            PrewarmLarkMediaJob::dispatch(array_unique($larkUrls));
+        }
+    }
+
+    /**
+     * Load cached card summaries for the given project IDs.
+     * Returns only the projects that already have a cached entry.
+     * Uncached projects are computed on-demand and stored by the caller.
+     *
+     * @param int[] $projectIds
+     * @return array<int, array>
+     */
+    private function getCardSummaries(array $projectIds): array
+    {
+        $summaries = [];
+        foreach ($projectIds as $pid) {
+            $cached = Cache::get('costing_summary_' . $pid);
+            if ($cached !== null) {
+                $summaries[$pid] = $cached;
+            }
+        }
+        return $summaries;
     }
 
     /**
@@ -279,27 +342,33 @@ class ProjectCostingController extends Controller
             ->orderByDesc('created_at')
             ->paginate(12);
 
-        $projectIds = $projects->pluck('id')->toArray();
-        $cardSummaries = [];
+        // PERFORMANCE: Dispatch Lark media pre-warm as a background queued job.
+        $this->dispatchLarkPrewarm($projects);
 
-        if (!empty($projectIds)) {
-            $usagesByProject = \App\Models\Logistic\MaterialUsage::whereIn('project_id', $projectIds)
+        $projectIds = $projects->pluck('id')->toArray();
+
+        // PERFORMANCE: Load from cache first; compute only uncached projects.
+        $cardSummaries = $this->getCardSummaries($projectIds);
+        $uncachedIds = array_diff($projectIds, array_keys($cardSummaries));
+
+        if (!empty($uncachedIds)) {
+            $usagesByProject = \App\Models\Logistic\MaterialUsage::whereIn('project_id', $uncachedIds)
                 ->with(['inventory.currency', 'inventory.batches'])
                 ->get()
                 ->groupBy('project_id');
 
-            $timingsByProject = \App\Models\Production\Timing::whereIn('project_id', $projectIds)->where('approval_status', 'approved')->selectRaw('project_id, SUM(duration_minutes) as total_minutes')->groupBy('project_id')->pluck('total_minutes', 'project_id');
+            $timingsByProject = \App\Models\Production\Timing::whereIn('project_id', $uncachedIds)->where('approval_status', 'approved')->selectRaw('project_id, SUM(duration_minutes) as total_minutes')->groupBy('project_id')->pluck('total_minutes', 'project_id');
 
-            $timingsWithEmployee = \App\Models\Production\Timing::whereIn('project_id', $projectIds)->where('approval_status', 'approved')->with('employee:id,salary')->get()->groupBy('project_id');
+            $timingsWithEmployee = \App\Models\Production\Timing::whereIn('project_id', $uncachedIds)->where('approval_status', 'approved')->with('employee:id,salary')->get()->groupBy('project_id');
 
-            $projectNames = \App\Models\Production\Project::whereIn('id', $projectIds)->pluck('name', 'id');
+            $projectNames = \App\Models\Production\Project::whereIn('id', $uncachedIds)->pluck('name', 'id');
             $dcmByProjectName = \App\Models\Finance\DcmCosting::whereIn('project_name', $projectNames->values())->where('is_current', true)->get()->groupBy('project_name');
 
             $sgdRate = \App\Models\Finance\Currency::where('name', 'SGD')->value('exchange_rate') ?? 12000;
-            $allBtSgItems = \App\Models\Lark\LarkBtSgItemTracking::whereIn('project_id', $projectIds)->get()->groupBy('project_id');
-            $allSgBtItems = \App\Models\Lark\LarkSgBtItemTracking::whereIn('project_id', $projectIds)->get()->groupBy('project_id');
+            $allBtSgItems = \App\Models\Lark\LarkBtSgItemTracking::whereIn('project_id', $uncachedIds)->get()->groupBy('project_id');
+            $allSgBtItems = \App\Models\Lark\LarkSgBtItemTracking::whereIn('project_id', $uncachedIds)->get()->groupBy('project_id');
 
-            foreach ($projectIds as $pid) {
+            foreach ($uncachedIds as $pid) {
                 $materialIDR = 0;
                 foreach ($usagesByProject[$pid] ?? collect() as $usage) {
                     $inv = $usage->inventory;
@@ -333,7 +402,7 @@ class ProjectCostingController extends Controller
                 $intlRows = $dcmRows->filter(fn($c) => str_contains(strtolower($c->purchase_type ?? ''), 'intl') || str_contains(strtolower($c->purchase_type ?? ''), 'international') || str_contains(strtolower($c->supplier ?? ''), 'sg') || str_contains(strtolower($c->department ?? ''), 'sg'));
                 $localRows = $dcmRows->filter(fn($c) => !$intlRows->contains('id', $c->id));
 
-                $cardSummaries[$pid] = [
+                $summary = [
                     'actual_project_cost' => $actualCost,
                     'material_cost' => $materialIDR,
                     'workmanship_cost' => $workmanshipIDR,
@@ -343,6 +412,8 @@ class ProjectCostingController extends Controller
                     'local_po' => $localRows->sum('invoice_total'),
                     'usage_idr' => $materialIDR,
                 ];
+                Cache::put('costing_summary_' . $pid, $summary, now()->addMinutes(10));
+                $cardSummaries[$pid] = $summary;
             }
         }
 

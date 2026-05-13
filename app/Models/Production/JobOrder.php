@@ -3,7 +3,6 @@
 namespace App\Models\Production;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
 class JobOrder extends Model implements AuditableContract
@@ -188,44 +187,57 @@ class JobOrder extends Model implements AuditableContract
     }
 
     /**
-     * Accessor: returns public URL for final_image if the file actually exists on disk.
-     * Returns null if final_image is not set or the file is missing.
+     * Convert a stored Lark URL (or local storage path) to a browser-accessible URL.
+     *
+     * WHY PROXY?
+     * Lark /download and batch_get_tmp_download_url URLs require Bearer auth.
+     * Browsers cannot send Bearer tokens in <img src> requests.
+     * The proxy route (/lark-media) fetches server-side with auth, then redirects
+     * to a pre-signed URL that the browser can load directly.
+     *
+     * @param string|null $storedUrl  Value from DB (Lark URL or local path)
+     * @return string|null
+     */
+    public static function toLarkProxyUrl(?string $storedUrl): ?string
+    {
+        if (!$storedUrl) {
+            return null;
+        }
+
+        // Lark URL — route through proxy
+        if (str_contains($storedUrl, 'larksuite.com')) {
+            return route('lark.media', ['u' => base64_encode($storedUrl)]);
+        }
+
+        // Legacy local storage path (e.g. 'job_order_images/foo.jpg')
+        return asset('storage/' . $storedUrl);
+    }
+
+    /**
+     * Accessor: returns browser-accessible URL for final_image.
+     * Routes Lark URLs through the proxy; local paths through storage/.
      */
     public function getFinalImageUrlAttribute(): ?string
     {
-        if (empty($this->final_image)) {
-            return null;
-        }
-        if (!Storage::disk('public')->exists($this->final_image)) {
-            return null;
-        }
-        return asset('storage/' . $this->final_image);
+        return static::toLarkProxyUrl($this->final_image);
     }
 
     /**
-     * Returns true if final_image is set AND the file exists on disk.
+     * Returns true if final_image is set.
      */
     public function hasFinalImage(): bool
     {
-        return !empty($this->final_image) && Storage::disk('public')->exists($this->final_image);
+        return !empty($this->final_image);
     }
 
     /**
-     * Accessor: returns array of public URLs for all wip_photos.
-     * Handles both Lark direct URLs (https://...) and legacy local storage paths.
+     * Accessor: returns array of browser-accessible URLs for all wip_photos.
+     * Each Lark URL is routed through the proxy.
      */
     public function getWipPhotosUrlsAttribute(): array
     {
         $paths = $this->wip_photos ?? [];
-        return array_values(array_filter(array_map(function ($p) {
-            if (!$p) return null;
-            // Lark URLs (url or tmp_url field) — use directly, no storage/ prefix
-            if (str_starts_with($p, 'http://') || str_starts_with($p, 'https://')) {
-                return $p;
-            }
-            // Legacy: local path stored in storage/
-            return asset('storage/' . $p);
-        }, $paths)));
+        return array_values(array_filter(array_map(fn($p) => static::toLarkProxyUrl($p), $paths)));
     }
 
     /**
