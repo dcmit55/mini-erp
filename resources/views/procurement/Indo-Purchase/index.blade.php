@@ -203,6 +203,41 @@
         border-color: #0ea5e9;
     }
 
+    /* ── Bulk Receive ── */
+    .bulk-action-bar {
+        background: #4f46e5;
+        color: white;
+        padding: 0.55rem 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 0.83rem;
+        animation: slideDown .15s ease;
+    }
+    @keyframes slideDown {
+        from { opacity: 0; transform: translateY(-6px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    .bulk-check, .bulk-check-all {
+        width: 13px;
+        height: 13px;
+        cursor: pointer;
+        accent-color: #4f46e5;
+        flex-shrink: 0;
+    }
+    th.col-check { width: 32px; padding-left: 0.75rem; }
+    td.col-check { padding-left: 0.75rem; text-align: center; }
+    .select-all-pages-bar {
+        font-size: 0.78rem;
+        background: #eef2ff;
+        color: #3730a3;
+        padding: 0.35rem 1.25rem;
+        border-bottom: 1px solid #c7d2fe;
+        display: none;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
     .btn-primary {
         background-color: #4f46e5;
         border-color: #4f46e5;
@@ -533,16 +568,63 @@
 
                     @if(session('error'))
                         <div class="alert alert-danger border-0 rounded-0 m-0 d-flex align-items-center px-4 py-3">
-                            <i class="fas fa-exclamation-circle me-2"></i> 
+                            <i class="fas fa-exclamation-circle me-2"></i>
                             <div class="flex-grow-1">{{ session('error') }}</div>
                             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                     @endif
 
+                    {{-- Hidden form for bulk receive; checkboxes associate via form="bulkReceiveForm" --}}
+                    @can('procurement.po.edit')
+                    <form id="bulkReceiveForm" method="POST" action="{{ route('indo-purchases.bulk-receive') }}">
+                        @csrf
+                        <input type="hidden" id="selectAllEligible" name="select_all_eligible" value="0">
+                    </form>
+
+                    {{-- Bulk Action Bar (visible when ≥1 checkbox checked) --}}
+                    <div id="bulkActionBar" class="bulk-action-bar" style="display:none;">
+                        <i class="fas fa-box-open"></i>
+                        <span class="fw-semibold"><span id="selectedCount">0</span> item dipilih</span>
+                        <button type="submit" form="bulkReceiveForm"
+                                class="btn btn-sm btn-light text-primary fw-semibold px-3"
+                                onclick="return confirmBulkReceive()">
+                            <i class="fas fa-check me-1"></i> Mark as Received
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-light px-3" onclick="clearSelection()">
+                            Batal
+                        </button>
+                        <span class="ms-auto text-white-50" style="font-size:0.75rem;">
+                            Hanya item <strong class="text-white">Approved + Pending Check</strong> yang akan diproses
+                        </span>
+                    </div>
+
+                    {{-- Bar "pilih semua halaman" — muncul saat semua di halaman ini dipilih --}}
+                    <div id="selectAllPagesBar" class="select-all-pages-bar" data-total="{{ $totalEligible }}">
+                        <i class="fas fa-info-circle"></i>
+                        <span id="selectAllPagesPrompt">
+                            Semua item di halaman ini dipilih.
+                            <a href="#" id="selectAllPagesBtn" onclick="selectAllPages(); return false;"
+                               class="fw-semibold text-indigo-700" style="color:#3730a3;">
+                                Pilih semua <strong>{{ $totalEligible }}</strong> item eligible di semua halaman
+                            </a>
+                        </span>
+                        <span id="allPagesSelectedMsg" style="display:none;">
+                            <i class="fas fa-check-double me-1 text-success"></i>
+                            <strong>Semua {{ $totalEligible }} item eligible</strong> di semua halaman dipilih.
+                            <a href="#" onclick="clearSelection(); return false;" class="ms-2 text-danger fw-semibold">Batalkan</a>
+                        </span>
+                    </div>
+                    @endcan
+
                     <div class="table-responsive">
                         <table class="table table-hover mb-0" id="purchaseTable">
                             <thead class="table-light">
                                 <tr>
+                                    <th class="border-0 col-check">
+                                        @can('procurement.po.edit')
+                                        <input type="checkbox" id="selectAll" class="bulk-check-all" title="Pilih semua">
+                                        @endcan
+                                    </th>
                                     <th class="border-0 ps-4 text-center" width="50">No</th>
                                     <th class="border-0">Purchase Number</th>
                                     <th class="border-0">Date</th>
@@ -592,6 +674,14 @@
                                         }
                                     @endphp
                                     <tr class="align-middle">
+                                        <td class="col-check">
+                                            @can('procurement.po.edit')
+                                            @if($purchase->canMarkAsReceived())
+                                            <input type="checkbox" name="uids[]" value="{{ $purchase->uid }}"
+                                                   form="bulkReceiveForm" class="bulk-check">
+                                            @endif
+                                            @endcan
+                                        </td>
                                         <td class="ps-4 text-center">
                                             <span class="table-number">{{ $startingNumber + $index }}</span>
                                         </td>
@@ -1006,6 +1096,57 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // ── Bulk Receive ────────────────────────────────────────────────────────
+    const selectAllCb       = document.getElementById('selectAll');
+    const bulkActionBar     = document.getElementById('bulkActionBar');
+    const selectedCountEl   = document.getElementById('selectedCount');
+    const selectAllPagesBar = document.getElementById('selectAllPagesBar');
+    const selectAllPagesPrompt  = document.getElementById('selectAllPagesPrompt');
+    const allPagesSelectedMsgEl = document.getElementById('allPagesSelectedMsg');
+    const selectAllEligibleInput = document.getElementById('selectAllEligible');
+    const totalEligible = {{ $totalEligible ?? 0 }};
+
+    function updateBulkBar() {
+        const allChecks       = document.querySelectorAll('.bulk-check');
+        const checked         = document.querySelectorAll('.bulk-check:checked');
+        const count           = checked.length;
+        const allOnPage       = allChecks.length > 0 && count === allChecks.length;
+
+        // Reset all-pages mode if user deselected something
+        if (!allOnPage && window._bulkAllPages) {
+            window._bulkAllPages = false;
+            if (selectAllEligibleInput) selectAllEligibleInput.value = '0';
+            if (allPagesSelectedMsgEl) allPagesSelectedMsgEl.style.display = 'none';
+            if (selectAllPagesPrompt)  selectAllPagesPrompt.style.display  = 'inline';
+        }
+
+        if (!window._bulkAllPages && selectedCountEl) selectedCountEl.textContent = count;
+        if (bulkActionBar) bulkActionBar.style.display = count > 0 ? 'flex' : 'none';
+
+        if (selectAllCb) {
+            selectAllCb.indeterminate = count > 0 && count < allChecks.length;
+            selectAllCb.checked = allOnPage;
+        }
+
+        // Show/hide the "select all pages" bar
+        if (selectAllPagesBar) {
+            const showBar = allOnPage && !window._bulkAllPages && totalEligible > allChecks.length;
+            selectAllPagesBar.style.display = showBar ? 'flex' : 'none';
+        }
+    }
+
+    if (selectAllCb) {
+        selectAllCb.addEventListener('change', function () {
+            document.querySelectorAll('.bulk-check').forEach(cb => cb.checked = this.checked);
+            updateBulkBar();
+        });
+    }
+
+    document.querySelectorAll('.bulk-check').forEach(cb => {
+        cb.addEventListener('change', updateBulkBar);
+    });
+    // ────────────────────────────────────────────────────────────────────────
+
 });
 </script>
 
@@ -1048,6 +1189,46 @@ function openDeletionModal(uid, poNumber) {
     document.getElementById('deletionPoNumber').value = poNumber;
     document.getElementById('deletionRequestForm').action = '/indo-purchases/' + uid + '/request-deletion';
     new bootstrap.Modal(document.getElementById('deletionRequestModal')).show();
+}
+function clearSelection() {
+    window._bulkAllPages = false;
+    document.querySelectorAll('.bulk-check').forEach(cb => cb.checked = false);
+    const sa = document.getElementById('selectAll');
+    if (sa) { sa.checked = false; sa.indeterminate = false; }
+    const bar = document.getElementById('bulkActionBar');
+    if (bar) bar.style.display = 'none';
+    const cnt = document.getElementById('selectedCount');
+    if (cnt) cnt.textContent = '0';
+    const eligibleInput = document.getElementById('selectAllEligible');
+    if (eligibleInput) eligibleInput.value = '0';
+    const pagesBar = document.getElementById('selectAllPagesBar');
+    if (pagesBar) pagesBar.style.display = 'none';
+    const prompt = document.getElementById('selectAllPagesPrompt');
+    if (prompt) prompt.style.display = 'inline';
+    const msg = document.getElementById('allPagesSelectedMsg');
+    if (msg) msg.style.display = 'none';
+}
+function selectAllPages() {
+    window._bulkAllPages = true;
+    const eligibleInput = document.getElementById('selectAllEligible');
+    if (eligibleInput) eligibleInput.value = '1';
+    const bar = document.getElementById('selectAllPagesBar');
+    const total = bar ? bar.dataset.total : '0';
+    const cnt = document.getElementById('selectedCount');
+    if (cnt) cnt.textContent = total;
+    const prompt = document.getElementById('selectAllPagesPrompt');
+    if (prompt) prompt.style.display = 'none';
+    const msg = document.getElementById('allPagesSelectedMsg');
+    if (msg) msg.style.display = 'inline';
+}
+function confirmBulkReceive() {
+    if (window._bulkAllPages) {
+        const bar = document.getElementById('selectAllPagesBar');
+        const total = bar ? bar.dataset.total : '?';
+        return confirm('Semua ' + total + ' purchase order eligible di semua halaman akan ditandai sebagai received. Lanjutkan?');
+    }
+    const count = document.querySelectorAll('.bulk-check:checked').length;
+    return confirm(count + ' purchase order akan ditandai sebagai received dan ditambahkan ke inventory. Lanjutkan?');
 }
 </script>
 @endsection

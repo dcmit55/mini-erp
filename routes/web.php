@@ -806,6 +806,7 @@ Route::middleware(['auth'])->group(function () {
         // Item Receipt Routes
         Route::post('/indo-purchases/{uid}/mark-as-received', [IndoPurchaseController::class, 'markAsReceived'])->name('indo-purchases.mark-as-received');
         Route::post('/{uid}/mark-as-not-matched', [IndoPurchaseController::class, 'markAsNotMatched'])->name('indo-purchases.mark-as-not-matched');
+        Route::post('/bulk-receive', [IndoPurchaseController::class, 'bulkReceive'])->name('indo-purchases.bulk-receive');
 
         // Print & Export
         Route::get('/{uid}/print', [IndoPurchaseController::class, 'print'])->name('indo-purchases.print');

@@ -47,6 +47,10 @@ class IndoPurchaseController extends Controller
                 'suppliers' => Supplier::select('id', 'name')->get(),
                 'supplierLocations' => \App\Models\Procurement\LocationSupplier::select('id', 'name')->get(),
                 'filters' => $request->all(),
+                'totalEligible' => IndoPurchase::where('status', 'approved')
+                    ->whereIn('item_status', ['pending_check', 'pending'])
+                    ->whereNull('received_at')
+                    ->count(),
             ]);
         } catch (\Exception $e) {
             Log::error('Index error: ' . $e->getMessage());
@@ -576,6 +580,59 @@ class IndoPurchaseController extends Controller
             ]);
             return back()->with('error', 'Gagal menandai barang sebagai diterima: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * BULK MARK AS RECEIVED
+     */
+    public function bulkReceive(Request $request)
+    {
+        if ($request->boolean('select_all_eligible')) {
+            $uids = IndoPurchase::where('status', 'approved')
+                ->whereIn('item_status', ['pending_check', 'pending'])
+                ->whereNull('received_at')
+                ->pluck('uid')
+                ->toArray();
+        } else {
+            $uids = $request->input('uids', []);
+        }
+
+        if (empty($uids)) {
+            return back()->with('error', 'Pilih minimal satu purchase order untuk di-receive.');
+        }
+
+        $successCount = 0;
+        $skippedPos   = [];
+
+        foreach ($uids as $uid) {
+            try {
+                $purchase = IndoPurchase::with(['project:id,name', 'internalProject:id,project,job,department', 'jobOrder:id,name'])
+                    ->where('uid', $uid)
+                    ->first();
+
+                if (!$purchase || !$purchase->canMarkAsReceived()) {
+                    if ($purchase) $skippedPos[] = $purchase->po_number;
+                    continue;
+                }
+
+                $this->purchaseService->markAsReceived($purchase);
+                $successCount++;
+            } catch (\Exception $e) {
+                Log::error('Bulk receive error uid=' . $uid . ': ' . $e->getMessage());
+                $skippedPos[] = $uid;
+            }
+        }
+
+        if ($successCount === 0) {
+            return back()->with('error', 'Tidak ada item yang berhasil di-receive. Pastikan status PO sudah Approved dan belum pernah diterima.');
+        }
+
+        $msg = $successCount . ' purchase order berhasil ditandai received dan ditambahkan ke inventory.';
+        if (!empty($skippedPos)) {
+            $msg .= ' ' . count($skippedPos) . ' item dilewati: ' . implode(', ', array_slice($skippedPos, 0, 5));
+        }
+
+        return back()->with('success', $msg);
     }
 
     /**
