@@ -30,11 +30,12 @@ class QcStageProductionController extends Controller
     public function store(Request $request, QcProject $project, string $stage): JsonResponse
     {
         $data = $request->validate([
-            'date'     => 'required|date',
-            'operator' => 'required|string|max:100',
-            'part'     => 'required|string|max:100',
-            'qty'      => 'required|integer|min:1',
-            'notes'    => 'nullable|string|max:500',
+            'date'       => 'required|date',
+            'operator'   => 'required|string|max:100',
+            'part'       => 'required|string|max:100',
+            'qty'        => 'required|integer|min:1',
+            'notes'      => 'nullable|string|max:500',
+            'item_stage' => 'nullable|string|max:100',
         ]);
 
         $dp = QcDailyProgress::firstOrCreate(
@@ -51,6 +52,7 @@ class QcStageProductionController extends Controller
                 'qty_produced' => (int) $data['qty'],
                 'qty_pass'     => null,
                 'qty_fail'     => null,
+                'item_stage'   => $data['item_stage'] ?? null,
             ],
             'note'   => $data['notes'] ?? null,
             'status' => null,
@@ -292,26 +294,53 @@ class QcStageProductionController extends Controller
     // GET /projects/{uid}/stages/{stage}/gallery
     public function gallery(QcProject $project, string $stage): JsonResponse
     {
-        $itemUids = QcDailyItem::whereHas('dailyProgress', fn($q) =>
-            $q->where('qc_project_id', $project->id)->where('stage', $stage)
-        )->pluck('uid');
+        $result = collect();
 
-        $logUids = QcRejectLog::where('qc_project_id', $project->id)
+        // Reject log photos — include row order + item name so frontend can label them
+        $logs = QcRejectLog::where('qc_project_id', $project->id)
             ->where('stage', $stage)
-            ->pluck('uid');
+            ->with('photos')
+            ->latest()
+            ->get();
 
-        $photos = \App\Models\Qc\QcPhoto::where(function ($q) use ($itemUids, $logUids) {
-            $q->where(fn($q2) => $q2->where('photoable_type', 'daily_item')->whereIn('photoable_uid', $itemUids))
-              ->orWhere(fn($q2) => $q2->where('photoable_type', 'reject_log')->whereIn('photoable_uid', $logUids));
-        })->latest()->get();
+        foreach ($logs as $idx => $log) {
+            foreach ($log->photos as $photo) {
+                $result->push([
+                    'uid'          => $photo->uid,
+                    'url'          => $photo->url,
+                    'context'      => $photo->context,
+                    'created_at'   => $photo->created_at->toISOString(),
+                    'source'       => 'reject_log',
+                    'log_order'    => $idx + 1,
+                    'log_name'     => $log->item_name ?? '—',
+                    'log_category' => $log->defect_category ?? '',
+                ]);
+            }
+        }
 
-        return response()->json($photos->map(fn($p) => [
-            'uid'     => $p->uid,
-            'url'     => $p->url,
-            'context' => $p->context,
-            'meta'    => $p->meta,
-            'created_at' => $p->created_at->toISOString(),
-        ])->values());
+        // Daily item photos (for production/other stages)
+        $itemIds = QcDailyItem::whereHas('dailyProgress', fn($q) =>
+            $q->where('qc_project_id', $project->id)->where('stage', $stage)
+        )->pluck('id');
+
+        if ($itemIds->isNotEmpty()) {
+            \App\Models\Qc\QcPhoto::where('photoable_type', \App\Models\Qc\QcDailyItem::class)
+                ->whereIn('photoable_id', $itemIds)
+                ->latest()
+                ->get()
+                ->each(fn($p) => $result->push([
+                    'uid'          => $p->uid,
+                    'url'          => $p->url,
+                    'context'      => $p->context,
+                    'created_at'   => $p->created_at->toISOString(),
+                    'source'       => 'daily_item',
+                    'log_order'    => null,
+                    'log_name'     => null,
+                    'log_category' => null,
+                ]));
+        }
+
+        return response()->json($result->values());
     }
 
     // GET /projects/{uid}/stages/{stage}/history
@@ -383,6 +412,7 @@ class QcStageProductionController extends Controller
             'date'         => $i->dailyProgress?->date?->toDateString(),
             'operator'     => $i->operators[0] ?? '—',
             'part'         => $pd['part'] ?? '—',
+            'item_stage'   => $pd['item_stage'] ?? null,
             'qty_produced' => $pd['qty_produced'] ?? 0,
             'qty_pass'     => $pd['qty_pass'] ?? null,
             'qty_fail'     => $pd['qty_fail'] ?? null,

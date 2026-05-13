@@ -26,10 +26,12 @@ export default function StageTabOutlet() {
     switch (tab) {
         case 'dashboard':  return <DashboardTab  {...props} />;
         case 'production':
+            if (stage === 'finishing') return null;
+            return <ProductionTab {...props} />;
+        case 'inspection':
             return stage === 'finishing'
                 ? <FinishingProductionTab projectUid={projectUid} />
-                : <ProductionTab {...props} />;
-        case 'inspection': return <InspectionTab {...props} />;
+                : <InspectionTab {...props} />;
         case 'rework':     return <ReworkTab     {...props} />;
         case 'gallery':    return <GalleryTab    {...props} />;
         case 'history':    return <HistoryTab    {...props} />;

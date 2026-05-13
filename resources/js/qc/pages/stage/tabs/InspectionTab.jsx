@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getStageRecords, inspectRecord } from '../../../api/stageProduction';
 import { uploadPhoto } from '../../../api/photos';
 import { STAGE_COLORS, DEFECT_CATEGORIES, SEVERITY_LEVELS } from '../../../data/models';
-import { ClipboardCheck, Camera, X, AlertCircle, CheckCircle2, XCircle, Image } from 'lucide-react';
+import { ClipboardCheck, Camera, X, AlertCircle, CheckCircle2, XCircle, Image, ThumbsUp, ThumbsDown } from 'lucide-react';
 
 const inp = {
     width: '100%', border: '1px solid #e2e8f0', borderRadius: 8,
@@ -14,7 +14,7 @@ const lbl = { fontSize: 11, fontWeight: 600, color: '#64748b', display: 'block',
 // ── Inspection Form ───────────────────────────────────────────────────
 
 function InspectionForm({ record, projectUid, stage, onDone }) {
-    const qc    = useQueryClient();
+    const qc = useQueryClient();
     const color = STAGE_COLORS[stage] ?? STAGE_COLORS.cutting;
 
     const [form, setForm] = useState({
@@ -24,9 +24,9 @@ function InspectionForm({ record, projectUid, stage, onDone }) {
         defect_desc: '',
         severity: 'Major',
     });
-    const [photos, setPhotos]     = useState([]);
+    const [photos, setPhotos] = useState([]);
     const [uploading, setUploading] = useState(false);
-    const [err, setErr]           = useState(null);
+    const [err, setErr] = useState(null);
 
     const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -155,6 +155,234 @@ function InspectionForm({ record, projectUid, stage, onDone }) {
     );
 }
 
+// ── Helpers ──────────────────────────────────────────────────────────
+
+function initials(name) {
+    return (name ?? '?').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+}
+
+function sewingDescription(pct) {
+    if (pct === null) return { label: '—', color: '#94a3b8' };
+    if (pct <= 7) return { label: 'Achieved', color: '#16a34a' };
+    if (pct <= 14) return { label: 'Underperformance', color: '#d97706' };
+    if (pct <= 20) return { label: 'Critical Failure', color: '#dc2626' };
+    return { label: 'Severe Failure', color: '#7f1d1d' };
+}
+
+// ── SewingInspectionTab ───────────────────────────────────────────────
+
+function SewingInspectionTab({ projectUid }) {
+    const qc = useQueryClient();
+    const color = STAGE_COLORS.sewing;
+
+    const { data: records = [], isLoading } = useQuery({
+        queryKey: ['stage-records', projectUid, 'sewing'],
+        queryFn: () => getStageRecords(projectUid, 'sewing'),
+        staleTime: 30_000,
+    });
+
+    // Display state (reactive)
+    const [tally, setTally] = useState({});
+    // Refs for debounce — always current values without re-render dependency
+    const tallyRef = useRef({});
+    const debounceRef = useRef({});
+    const savingRef = useRef({});
+    const [savingUids, setSavingUids] = useState({});
+
+    // Seed tallyRef from server on first load (only for uids not yet in ref)
+    useMemo(() => {
+        records.forEach(r => {
+            if (!tallyRef.current[r.uid]) {
+                tallyRef.current[r.uid] = { pass: r.qty_pass ?? 0, fail: r.qty_fail ?? 0 };
+            }
+        });
+    }, [records]);
+
+    const autoSave = useCallback((uid) => {
+        if (savingRef.current[uid]) return;
+        savingRef.current[uid] = true;
+        setSavingUids(prev => ({ ...prev, [uid]: true }));
+        const { pass, fail } = tallyRef.current[uid] ?? { pass: 0, fail: 0 };
+        inspectRecord(projectUid, 'sewing', uid, {
+            qty_pass: pass,
+            qty_fail: fail,
+            defect_category: fail > 0 ? 'Other' : undefined,
+            severity: fail > 0 ? 'Major' : undefined,
+        }).then(() => {
+            qc.invalidateQueries({ queryKey: ['stage-records', projectUid, 'sewing'] });
+        }).catch(() => { }).finally(() => {
+            savingRef.current[uid] = false;
+            setSavingUids(prev => ({ ...prev, [uid]: false }));
+        });
+    }, [projectUid, qc]);
+
+    const bump = useCallback((uid, key) => {
+        // Seed ref if first click
+        if (!tallyRef.current[uid]) {
+            const rec = records.find(r => r.uid === uid);
+            tallyRef.current[uid] = { pass: rec?.qty_pass ?? 0, fail: rec?.qty_fail ?? 0 };
+        }
+        tallyRef.current[uid][key]++;
+        // Mirror to display state
+        setTally(prev => ({ ...prev, [uid]: { ...tallyRef.current[uid] } }));
+        // Debounce 700ms
+        clearTimeout(debounceRef.current[uid]);
+        debounceRef.current[uid] = setTimeout(() => autoSave(uid), 700);
+    }, [records, autoSave]);
+
+    const getDisplay = (uid, serverRec) => {
+        return tally[uid] ?? { pass: serverRec?.qty_pass ?? 0, fail: serverRec?.qty_fail ?? 0 };
+    };
+
+    if (isLoading) {
+        return <div style={{ padding: '40px 0', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>Loading…</div>;
+    }
+
+    if (records.length === 0) {
+        return (
+            <div style={{ padding: '48px 0', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+                <ThumbsUp size={32} style={{ marginBottom: 10, opacity: .3 }} />
+                <div>Belum ada operator terdaftar untuk Sewing stage ini.</div>
+                <div style={{ fontSize: 11, marginTop: 4 }}>Tambahkan production record terlebih dahulu di tab Production.</div>
+            </div>
+        );
+    }
+
+    const thStyle = {
+        padding: '10px 14px', textAlign: 'left',
+        fontSize: 10, fontWeight: 700, color: color.text,
+        textTransform: 'uppercase', letterSpacing: '.06em',
+        whiteSpace: 'nowrap', background: `${color.border}14`,
+    };
+
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 13, color: '#64748b' }}>
+                    <strong style={{ color: color.text }}>{records.length}</strong> record · Sewing Inspection
+                </span>
+                <span style={{ fontSize: 10, color: '#94a3b8' }}>— klik Pass/Fail untuk mencatat, tersimpan otomatis</span>
+            </div>
+
+            <div style={{ background: '#fff', borderRadius: 14, boxShadow: '0 2px 8px rgba(0,0,0,.07)', overflow: 'hidden', border: '1px solid #f1f5f9' }}>
+                <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                        <thead>
+                            <tr>
+                                <th style={{ ...thStyle, width: 40 }}>No</th>
+                                <th style={{ ...thStyle, width: 48 }}>Profil</th>
+                                <th style={thStyle}>Nama Operator</th>
+                                <th style={thStyle}>Part / Component</th>
+                                <th style={thStyle}>Stage</th>
+                                <th style={{ ...thStyle, width: 160 }}>Status</th>
+                                <th style={{ ...thStyle, textAlign: 'center' }}>Total Pass</th>
+                                <th style={{ ...thStyle, textAlign: 'center' }}>Rework</th>
+                                <th style={{ ...thStyle, textAlign: 'center' }}>Percentage</th>
+                                <th style={thStyle}>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {records.map((r, i) => {
+                                const { pass, fail } = getDisplay(r.uid, r);
+                                const total = pass + fail;
+                                const pct = total > 0 ? parseFloat(((fail / total) * 100).toFixed(2)) : null;
+                                const desc = sewingDescription(pct);
+                                const isSaving = savingUids[r.uid];
+
+                                return (
+                                    <tr key={r.uid} style={{ borderTop: '1px solid #f1f5f9' }}
+                                        onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
+                                        onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
+
+                                        {/* No */}
+                                        <td style={{ padding: '12px 14px', color: '#94a3b8', fontSize: 11, fontWeight: 600 }}>{i + 1}</td>
+
+                                        {/* Avatar */}
+                                        <td style={{ padding: '12px 14px' }}>
+                                            <div style={{ width: 36, height: 36, borderRadius: '50%', background: color.border, color: '#fff', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', letterSpacing: '-.02em', position: 'relative' }}>
+                                                {initials(r.operator)}
+                                                {isSaving && (
+                                                    <div style={{ position: 'absolute', inset: -2, borderRadius: '50%', border: '2px solid transparent', borderTopColor: color.border, animation: 'spin 1s linear infinite' }} />
+                                                )}
+                                            </div>
+                                        </td>
+
+                                        {/* Operator + date */}
+                                        <td style={{ padding: '12px 14px', minWidth: 130 }}>
+                                            <div style={{ fontSize: 13, fontWeight: 600, color: '#1e293b' }}>{r.operator ?? '—'}</div>
+                                            <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 2 }}>{r.date ?? '—'}</div>
+                                        </td>
+
+                                        {/* Part */}
+                                        <td style={{ padding: '12px 14px' }}>
+                                            <span style={{ fontSize: 12, fontWeight: 600, padding: '3px 10px', borderRadius: 999, background: color.bg, color: color.text, border: `1px solid ${color.border}33`, whiteSpace: 'nowrap', display: 'inline-block' }}>
+                                                {r.part ?? '—'}
+                                            </span>
+                                        </td>
+
+                                        {/* Stage (item_stage) */}
+                                        <td style={{ padding: '12px 14px' }}>
+                                            {r.item_stage ? (
+                                                <span style={{ fontSize: 11, color: '#475569', fontWeight: 500 }}>{r.item_stage}</span>
+                                            ) : (
+                                                <span style={{ color: '#cbd5e1', fontSize: 11 }}>—</span>
+                                            )}
+                                        </td>
+
+                                        {/* Pass / Fail buttons */}
+                                        <td style={{ padding: '10px 14px' }}>
+                                            <div style={{ display: 'flex', gap: 6 }}>
+                                                <button onClick={() => bump(r.uid, 'pass')}
+                                                    style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 8, border: '1.5px solid #22c55e', background: '#f0fdf4', color: '#15803d', fontSize: 12, fontWeight: 700, cursor: 'pointer', outline: 'none' }}
+                                                    onMouseEnter={e => { e.currentTarget.style.background = '#dcfce7'; }}
+                                                    onMouseLeave={e => { e.currentTarget.style.background = '#f0fdf4'; }}>
+                                                    <ThumbsUp size={12} /> Pass
+                                                </button>
+                                                <button onClick={() => bump(r.uid, 'fail')}
+                                                    style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 8, border: '1.5px solid #ef4444', background: '#fef2f2', color: '#b91c1c', fontSize: 12, fontWeight: 700, cursor: 'pointer', outline: 'none' }}
+                                                    onMouseEnter={e => { e.currentTarget.style.background = '#fee2e2'; }}
+                                                    onMouseLeave={e => { e.currentTarget.style.background = '#fef2f2'; }}>
+                                                    <ThumbsDown size={12} /> Fail
+                                                </button>
+                                            </div>
+                                        </td>
+
+                                        {/* Total Pass */}
+                                        <td style={{ padding: '12px 14px', textAlign: 'center' }}>
+                                            <span style={{ fontSize: 16, fontWeight: 800, color: '#16a34a' }}>{pass}</span>
+                                        </td>
+
+                                        {/* Rework */}
+                                        <td style={{ padding: '12px 14px', textAlign: 'center' }}>
+                                            <span style={{ fontSize: 16, fontWeight: 800, color: fail > 0 ? '#dc2626' : '#94a3b8' }}>{fail}</span>
+                                        </td>
+
+                                        {/* Percentage */}
+                                        <td style={{ padding: '12px 14px', textAlign: 'center' }}>
+                                            {pct !== null ? (
+                                                <span style={{ fontSize: 13, fontWeight: 700, color: desc.color }}>{pct}%</span>
+                                            ) : (
+                                                <span style={{ color: '#cbd5e1', fontSize: 12 }}>—</span>
+                                            )}
+                                        </td>
+
+                                        {/* Description */}
+                                        <td style={{ padding: '12px 14px' }}>
+                                            <span style={{ fontSize: 12, fontWeight: 700, color: desc.color, background: `${desc.color}18`, padding: '3px 10px', borderRadius: 999, display: 'inline-block', whiteSpace: 'nowrap' }}>
+                                                {desc.label}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 // ── Main ──────────────────────────────────────────────────────────────
 
 export default function InspectionTab({ projectUid, stage, project }) {
@@ -164,12 +392,16 @@ export default function InspectionTab({ projectUid, stage, project }) {
         queryKey: ['stage-records', projectUid, stage],
         queryFn: () => getStageRecords(projectUid, stage),
         staleTime: 30_000,
+        enabled: stage !== 'sewing',
     });
 
     const [activeUid, setActiveUid] = useState(null);
 
+    // Sewing stage has its own tally UI — must be AFTER hooks
+    if (stage === 'sewing') return <SewingInspectionTab projectUid={projectUid} />;
+
     const pending = records.filter(r => !r.is_finalized);
-    const done    = records.filter(r => r.is_finalized);
+    const done = records.filter(r => r.is_finalized);
 
     if (isLoading) return <div style={{ padding: '40px 0', textAlign: 'center', color: '#94a3b8' }}>Loading…</div>;
 

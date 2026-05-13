@@ -20,7 +20,7 @@ class QcDashboardController extends Controller
         $delivered       = $projects->where('status', 'Delivered')->count();
         $rejected        = $projects->where('status', 'Rejected')->count();
 
-        $allRejects = $projects->flatMap->rejectLogs;
+        $allRejects    = $projects->flatMap->rejectLogs->where('stage', 'finishing');
         $totalRejects  = $allRejects->count();
         $activeRejects = $allRejects->whereIn('rework_status', ['OPEN', 'IN_REPAIR'])->count();
         $closedRejects = $allRejects->where('rework_status', 'CLOSED')->count();
@@ -62,8 +62,8 @@ class QcDashboardController extends Controller
             'checklist_pass'  => $p->checklistItems->where('status', 'PASS')->count(),
             'checklist_fail'  => $p->checklistItems->where('status', 'FAIL')->count(),
             'checklist_total' => $p->checklistItems->count(),
-            'open_defects'    => $p->rejectLogs->where('rework_status', 'OPEN')->count(),
-            'total_defects'   => $p->rejectLogs->count(),
+            'open_defects'    => $p->rejectLogs->where('stage', 'finishing')->where('rework_status', 'OPEN')->count(),
+            'total_defects'   => $p->rejectLogs->where('stage', 'finishing')->count(),
         ]);
 
         // Defect categories (top 7)

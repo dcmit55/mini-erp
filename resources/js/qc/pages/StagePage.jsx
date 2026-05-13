@@ -79,7 +79,7 @@ export default function StagePage() {
                 overflowX: 'auto',
                 paddingLeft: 8,
             }}>
-                {TABS.map(t => {
+                {TABS.filter(t => !(stage === 'finishing' && t === 'production')).map(t => {
                     const Icon   = TAB_ICONS[t];
                     const active = currentTab === t;
                     return (

@@ -2,7 +2,7 @@
 
 @section('content')
 @php
-    $wipJobs    = $jobOrders->filter(fn($jo) => !empty($jo->wip_photo) && $jo->wip_photo_url);
+    $wipJobs    = $jobOrders->filter(fn($jo) => !empty($jo->wip_photos_urls));
     $designJobs = $jobOrders->filter(fn($jo) =>
         !empty($jo->project_images) || !empty($jo->latest_designs) || !empty($jo->final_images)
     );
@@ -75,33 +75,32 @@
         @if($wipJobs->count() > 0)
             <div class="row g-3">
                 @foreach($wipJobs as $jo)
-                    <div class="col-6 col-sm-4 col-md-3 col-xl-2">
-                        <div class="gallery-card shadow-sm rounded-3 overflow-hidden">
-                            <div class="gallery-photo-wrap">
-                                <a href="{{ $jo->wip_photo_url }}"
-                                   data-fancybox="wip-gallery"
-                                   data-caption="<strong>{{ e($jo->name) }}</strong><br><span class='text-muted small'>WIP | {{ e($jo->project->name ?? 'No Project') }}</span>@if($jo->description)<br><p class='mt-2 mb-0'>{{ e(Str::limit($jo->description, 120)) }}</p>@endif">
-                                    <img src="{{ $jo->wip_photo_url }}"
-                                         class="gallery-photo"
-                                         alt="{{ $jo->name }}"
-                                         loading="lazy">
-                                    <div class="gallery-overlay">
-                                        <span class="badge bg-warning text-dark x-small">WIP</span>
-                                    </div>
-                                </a>
-                            </div>
-                            <div class="gallery-desc p-2">
-                                <div class="fw-semibold small text-truncate" title="{{ $jo->name }}">{{ $jo->name }}</div>
-                                <div class="text-muted x-small text-truncate">{{ $jo->project->name ?? '—' }}</div>
-                                @if($jo->description)
-                                    <div class="text-muted x-small mt-1 desc-clamp">{{ $jo->description }}</div>
-                                @endif
-                                @if($jo->status)
-                                    <span class="badge rounded-pill mt-1 status-badge-{{ Str::slug($jo->status) }} x-small">{{ $jo->status }}</span>
-                                @endif
+                    @foreach($jo->wip_photos_urls as $wipIdx => $wipUrl)
+                        <div class="col-6 col-sm-4 col-md-3 col-xl-2">
+                            <div class="gallery-card shadow-sm rounded-3 overflow-hidden">
+                                <div class="gallery-photo-wrap">
+                                    <a href="{{ $wipUrl }}"
+                                       data-fancybox="wip-gallery"
+                                       data-caption="<strong>{{ e($jo->name) }}</strong><br><span class='text-muted small'>WIP | {{ e($jo->project->name ?? 'No Project') }}</span>@if($jo->description)<br><p class='mt-2 mb-0'>{{ e(Str::limit($jo->description, 120)) }}</p>@endif">
+                                        <img src="{{ $wipUrl }}"
+                                             class="gallery-photo"
+                                             alt="{{ $jo->name }}"
+                                             loading="lazy">
+                                        <div class="gallery-overlay">
+                                            <span class="badge bg-warning text-dark x-small">WIP</span>
+                                        </div>
+                                    </a>
+                                </div>
+                                <div class="gallery-desc p-2">
+                                    <div class="fw-semibold small text-truncate" title="{{ $jo->name }}">{{ $jo->name }}</div>
+                                    <div class="text-muted x-small text-truncate">{{ $jo->project->name ?? '—' }}</div>
+                                    @if($jo->status)
+                                        <span class="badge rounded-pill mt-1 status-badge-{{ Str::slug($jo->status) }} x-small">{{ $jo->status }}</span>
+                                    @endif
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    @endforeach
                 @endforeach
             </div>
         @else
@@ -134,7 +133,7 @@
                     </div>
                     <div class="row g-2 mb-2">
                         @foreach($designPhotos as $idx => $photo)
-                            @php $url = asset('storage/' . $photo['path']); @endphp
+                            @php $url = \App\Models\Production\JobOrder::toLarkProxyUrl($photo['path']) ?? asset('storage/' . $photo['path']); @endphp
                             <div class="col-6 col-sm-4 col-md-3 col-xl-2">
                                 <div class="gallery-card shadow-sm rounded-3 overflow-hidden">
                                     <div class="gallery-photo-wrap">

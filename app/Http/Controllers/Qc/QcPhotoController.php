@@ -42,6 +42,7 @@ class QcPhotoController extends Controller
             'photoable_type' => get_class($owner),
             'photoable_id'   => $owner->id,
             'path'           => $path,
+            'disk'           => 'public',
             'context'        => $data['context'] ?? null,
             'meta'           => $data['meta'] ?? null,
         ]);

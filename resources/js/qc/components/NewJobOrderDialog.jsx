@@ -198,7 +198,7 @@ export default function NewJobOrderDialog({ onClose }) {
 
     const [form, setForm] = useState({
         job_order_id: '', mascot_type: typeOptions[0],
-        total_unit: 1, inspection_date: today, deadline: '',
+        total_unit: '', inspection_date: today, deadline: '',
     });
     const [selectedJo, setSelectedJo] = useState(null);
     const [error, setError]           = useState(null);
@@ -296,7 +296,8 @@ export default function NewJobOrderDialog({ onClose }) {
                             <label style={fieldLabel}>Total Units</label>
                             <input type="number" min="1" style={fieldInput}
                                 value={form.total_unit}
-                                onChange={e => set('total_unit', parseInt(e.target.value) || 1)} />
+                                placeholder="e.g. 10"
+                                onChange={e => set('total_unit', e.target.value === '' ? '' : parseInt(e.target.value) || '')} />
                         </div>
                         <div style={fieldWrap}>
                             <label style={fieldLabel}>Deadline</label>

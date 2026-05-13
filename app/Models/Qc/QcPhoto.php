@@ -33,6 +33,11 @@ class QcPhoto extends Model
 
     public function getUrlAttribute(): string
     {
-        return Storage::disk($this->disk)->url($this->path);
+        $disk = $this->disk ?? 'public';
+        // Root-relative URL for the public disk so it works regardless of APP_URL value
+        if ($disk === 'public') {
+            return '/storage/' . ltrim($this->path, '/');
+        }
+        return Storage::disk($disk)->url($this->path);
     }
 }

@@ -72,7 +72,7 @@ class JobOrderTransformer
             'final_images' => $this->downloadMultipleAttachments($dto->finalImageRaw, 'final'),
             // Skip re-download for primary image if it already exists locally
             'final_image' => !empty($existingImages['final_image']) ? $existingImages['final_image'] : $this->getFirstImagePath($dto->finalImageRaw, 'final'),
-            'wip_photo' => !empty($existingImages['wip_photo']) ? $existingImages['wip_photo'] : $this->normalizeWipPhoto($dto->wipPhotoRaw),
+            'wip_photos' => $this->downloadMultipleAttachments($dto->wipPhotoRaw, 'wip'),
             'created_by' => 'Sync from Lark',
             'last_sync_at' => now(),
             '_department_ids' => $this->normalizeDepartmentIds($dto->departmentsArray),
@@ -608,6 +608,14 @@ class JobOrderTransformer
      * Download ALL non-video attachments from Lark WIP Images field.
      * Returns JSON-serializable array of local storage paths.
      */
+    /**
+     * Public proxy for downloadMultipleAttachments — used by sync services.
+     */
+    public function downloadGalleryAttachments(?array $attachments, string $prefix = 'design'): ?string
+    {
+        return $this->downloadMultipleAttachments($attachments, $prefix);
+    }
+
     /**
      * Public proxy for normalizeFinalImage — used by DownloadJobOrderPhotosJob.
      */
