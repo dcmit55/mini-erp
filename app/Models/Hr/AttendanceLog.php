@@ -65,7 +65,7 @@ class AttendanceLog extends Model
     public function scopeActiveEmployees($query)
     {
         return $query->whereHas('employee', function ($q) {
-            $q->where('status', 'active');
+            $q->active();
         });
     }
 }

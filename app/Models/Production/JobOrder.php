@@ -10,14 +10,14 @@ class JobOrder extends Model implements AuditableContract
 {
     use \OwenIt\Auditing\Auditable;
 
-    protected $auditInclude = ['project_id', 'department_id', 'name', 'description', 'start_date', 'end_date', 'delivery_date', 'status', 'source_by', 'notes', 'actual_start_date', 'actual_end_date', 'final_image', 'wip_photos'];
+    protected $auditInclude = ['project_id', 'department_id', 'name', 'description', 'start_date', 'end_date', 'delivery_date', 'status', 'source_by', 'notes', 'actual_start_date', 'actual_end_date', 'final_image', 'project_images', 'latest_designs', 'final_images', 'wip_photo'];
     protected $table = 'job_orders';
 
     public $incrementing = false;
     protected $keyType = 'string';
     protected $primaryKey = 'id';
 
-    protected $fillable = ['id', 'project_id', 'department_id', 'name', 'description', 'start_date', 'end_date', 'delivery_date', 'status', 'source_by', 'notes', 'actual_start_date', 'actual_end_date', 'project_lark', 'department_lark', 'lark_record_id', 'last_sync_at', 'final_image', 'wip_photos', 'total_standard_minutes', 'standard_time_per_unit'];
+    protected $fillable = ['id', 'project_id', 'department_id', 'name', 'description', 'start_date', 'end_date', 'delivery_date', 'status', 'source_by', 'notes', 'actual_start_date', 'actual_end_date', 'project_lark', 'department_lark', 'lark_record_id', 'last_sync_at', 'final_image', 'project_images', 'latest_designs', 'final_images', 'wip_photo', 'total_standard_minutes', 'standard_time_per_unit'];
 
     protected $dates = ['start_date', 'end_date', 'actual_start_date', 'actual_end_date', 'last_sync_at'];
 
@@ -31,6 +31,10 @@ class JobOrder extends Model implements AuditableContract
         'standard_time_per_unit' => 'decimal:2',
         'status' => 'string',
         'wip_photos' => 'array',
+        'last_sync_at' => 'datetime',
+        'project_images' => 'array',
+        'latest_designs' => 'array',
+        'final_images' => 'array',
     ];
 
     protected static function boot()

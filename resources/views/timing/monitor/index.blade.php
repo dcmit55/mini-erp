@@ -89,25 +89,36 @@
 
         <!-- Session Type Summary -->
         <div class="row g-2 mb-3">
-            <div class="col-md-6">
-                <div class="card shadow-sm">
+            <div class="col-md-4">
+                <div class="card shadow-sm" style="background-color:#E8F5E9; border-top:3px solid #4CAF50;">
                     <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
                         <div>
-                            <div class="fw-semibold small">Mass Production</div>
+                            <div class="fw-semibold small">📦 Mass Production</div>
                             <small class="text-muted" style="font-size: 10px;">Produksi massal</small>
                         </div>
-                        <h3 class="mb-0 text-secondary fw-bold">{{ $totalMassProduction }}</h3>
+                        <h3 class="mb-0 fw-bold" style="color:#4CAF50;">{{ $totalMassProduction }}</h3>
                     </div>
                 </div>
             </div>
-            <div class="col-md-6">
-                <div class="card shadow-sm" style="background-color:#fff3e0;">
+            <div class="col-md-4">
+                <div class="card shadow-sm" style="background-color:#FFF3E0; border-top:3px solid #F59E0B;">
                     <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
                         <div>
-                            <div class="fw-semibold small">Repair / Rework</div>
+                            <div class="fw-semibold small">🔬 Sample</div>
+                            <small class="text-muted" style="font-size: 10px;">Produksi sampel</small>
+                        </div>
+                        <h3 class="mb-0 fw-bold" style="color:#F59E0B;">{{ $totalSample }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card shadow-sm" style="background-color:#FEE2E2; border-top:3px solid #DC2626;">
+                    <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-semibold small">🔧 Repair / Rework</div>
                             <small class="text-muted" style="font-size: 10px;">Perbaikan</small>
                         </div>
-                        <h3 class="mb-0 fw-bold" style="color:#fd7e14;">{{ $totalRepair }}</h3>
+                        <h3 class="mb-0 fw-bold" style="color:#DC2626;">{{ $totalRepair }}</h3>
                     </div>
                 </div>
             </div>
@@ -125,6 +136,7 @@
                         stripos($departmentName, 'Mascot') !== false => '#f9d423',
                         default => '#667eea',
                     };
+                    $isCostumeDept = stripos($departmentName, 'Costume') !== false || stripos($departmentName, 'Sewing') !== false;
                 @endphp
                 <div class="card shadow-sm border-0 mb-3">
                     <div class="card-header bg-white py-2 border-bottom"
@@ -136,6 +148,139 @@
                         </div>
                     </div>
                     <div class="card-body p-2">
+                        @if($isCostumeDept)
+                            {{-- Costume: station sections vertikal (Office → Cutting → Sewing → Finishing) --}}
+                            @php
+                                $stationDefs  = [
+                                    'office'    => ['label' => 'Office',    'color' => '#6c8ebf'],
+                                    'cutting'   => ['label' => 'Cutting',   'color' => '#b8860b'],
+                                    'sewing'    => ['label' => 'Sewing',    'color' => '#2d7a4f'],
+                                    'finishing' => ['label' => 'Finishing', 'color' => '#0891b2'],
+                                ];
+                                $byStation    = $sessions->groupBy('station');
+                                $assignedKeys = ['office', 'cutting', 'sewing', 'finishing'];
+                                $unassigned   = $sessions->filter(fn($s) => !in_array($s->station, $assignedKeys));
+                                $isFirstSt    = true;
+                            @endphp
+
+                            @if($sessions->isEmpty())
+                                <div class="text-center text-muted py-3" style="font-size:12px;">Tidak ada sesi berjalan</div>
+                            @else
+                                @foreach($stationDefs as $stKey => $stInfo)
+                                    @php $stSessions = $byStation->get($stKey, collect()); @endphp
+                                    @if($stSessions->isNotEmpty())
+                                        <div class="{{ $isFirstSt ? '' : 'mt-3' }} mb-1">
+                                            <div class="d-flex align-items-center gap-2 mb-2 pb-1" style="border-bottom:2px solid {{ $stInfo['color'] }}30;">
+                                                <span class="fw-semibold px-2 py-0" style="font-size:.75rem; color:{{ $stInfo['color'] }}; background:{{ $stInfo['color'] }}15; border-radius:4px; border-left:3px solid {{ $stInfo['color'] }};">{{ $stInfo['label'] }}</span>
+                                                <span class="text-muted" style="font-size:.7rem;">{{ $stSessions->count() }} person(s)</span>
+                                            </div>
+                                            <div class="row g-2">
+                                                @foreach($stSessions as $session)
+                                                    @php
+                                                        $sessionType = $session->session_type ?? 'mass_production';
+                                                        $isSample    = $sessionType === 'sample';
+                                                        $isRepair    = $sessionType === 'repair';
+                                                        if ($isSample) { $cardBg = '#FFF3E0'; $borderColor = '#F59E0B'; $badgeText = 'Sample'; $badgeBg = '#F59E0B'; }
+                                                        elseif ($isRepair) { $cardBg = '#FEE2E2'; $borderColor = '#DC2626'; $badgeText = 'Repair'; $badgeBg = '#DC2626'; }
+                                                        else { $cardBg = '#E8F5E9'; $borderColor = '#4CAF50'; $badgeText = 'Production'; $badgeBg = '#4CAF50'; }
+                                                    @endphp
+                                                    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 col-6" id="session-{{ $session->id }}">
+                                                        <div class="card shadow-sm w-100" style="background:{{ $cardBg }}; border-top:3px solid {{ $borderColor }}; border-radius:8px;">
+                                                            <div class="card-body p-2 d-flex flex-column">
+                                                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                                                    <span class="badge px-2 py-1" style="background:{{ $badgeBg }}; color:white; font-size:8px;">{{ $badgeText }}</span>
+                                                                    <span class="text-muted" style="font-size:8px;"><i class="bi bi-clock"></i> {{ $session->start_time }}</span>
+                                                                </div>
+                                                                <div class="d-flex align-items-center gap-2 mb-2">
+                                                                    <div class="flex-shrink-0">
+                                                                        @if ($session->employee->photo)
+                                                                            <img src="{{ asset('storage/' . $session->employee->photo) }}" class="rounded-circle" width="44" height="44" style="object-fit:cover; border:2px solid {{ $borderColor }};">
+                                                                        @else
+                                                                            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:44px; height:44px; background:{{ $borderColor }}20;"><i class="bi bi-person text-secondary"></i></div>
+                                                                        @endif
+                                                                    </div>
+                                                                    <div class="flex-grow-1" style="min-width:0;">
+                                                                        <div class="fw-semibold text-truncate" style="font-size:.78rem;">{{ $session->employee->name ?? 'Unknown' }}</div>
+                                                                        <div class="text-muted text-truncate" style="font-size:8px;">{{ $session->employee->position ?? 'N/A' }}</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="text-center mb-1 py-1 bg-white bg-opacity-60 rounded">
+                                                                    <span class="duration-display fw-bold font-monospace" style="font-size:13px; color:{{ $borderColor }};" data-start-time="{{ $session->start_time }}">{{ $session->duration }}</span>
+                                                                </div>
+                                                                <div style="font-size:8px; word-break:break-word; overflow-wrap:break-word;">
+                                                                    <div class="d-flex justify-content-between mb-1"><span class="text-muted flex-shrink-0">JO:</span><span class="text-end" style="max-width:65%;">{{ $session->jobOrder->name ?? 'N/A' }}</span></div>
+                                                                    <div class="d-flex justify-content-between mb-1"><span class="text-muted flex-shrink-0">Step:</span><span style="max-width:65%;">{{ $session->step }}</span></div>
+                                                                    <div class="d-flex justify-content-between mb-1"><span class="text-muted flex-shrink-0">Project:</span><span style="max-width:65%;">{{ $session->jobOrder->project->name ?? 'N/A' }}</span></div>
+                                                                    <div class="d-flex justify-content-between"><span class="text-muted flex-shrink-0">Part:</span><span style="max-width:65%;">{{ $session->parts }}</span></div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                        @php $isFirstSt = false; @endphp
+                                    @endif
+                                @endforeach
+
+                                @if($unassigned->isNotEmpty())
+                                    <div class="{{ $isFirstSt ? '' : 'mt-3' }} mb-1">
+                                        <div class="d-flex align-items-center gap-2 mb-2 pb-1" style="border-bottom:2px solid #dee2e6;">
+                                            <span class="fw-semibold px-2 py-0" style="font-size:.75rem; color:#6c757d; background:#f1f3f5; border-radius:4px; border-left:3px solid #adb5bd;">Unassigned</span>
+                                            <span class="text-muted" style="font-size:.7rem;">{{ $unassigned->count() }} person(s)</span>
+                                        </div>
+                                        <div class="row g-2">
+                                            @foreach($unassigned as $session)
+                                                @php
+                                                    $isRepair    = ($session->session_type ?? 'mass_production') === 'repair';
+                                                    $cardBg      = $isRepair ? '#FEF3E8' : '#E8F5E9';
+                                                    $borderColor = $isRepair ? '#F59E0B' : '#4CAF50';
+                                                    $badgeText   = $isRepair ? 'Repair' : 'Production';
+                                                    $badgeBg     = $isRepair ? '#F59E0B' : '#4CAF50';
+                                                @endphp
+                                                <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 col-6" id="session-{{ $session->id }}">
+                                                    <div class="card shadow-sm w-100" style="background:{{ $cardBg }}; border-top:3px solid {{ $borderColor }}; border-radius:8px;">
+                                                        <div class="card-body p-2 d-flex flex-column">
+                                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                                <span class="badge px-2 py-1" style="background:{{ $badgeBg }}; color:white; font-size:8px;">{{ $badgeText }}</span>
+                                                                <span class="text-muted" style="font-size:8px;"><i class="bi bi-clock"></i> {{ $session->start_time }}</span>
+                                                            </div>
+                                                            <div class="d-flex align-items-center gap-2 mb-2">
+                                                                <div class="flex-shrink-0">
+                                                                    @if ($session->employee->photo)
+                                                                        <img src="{{ asset('storage/' . $session->employee->photo) }}" class="rounded-circle" width="44" height="44" style="object-fit:cover; border:2px solid {{ $borderColor }};">
+                                                                    @else
+                                                                        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:44px; height:44px; background:{{ $borderColor }}20;"><i class="bi bi-person text-secondary"></i></div>
+                                                                    @endif
+                                                                </div>
+                                                                <div class="flex-grow-1" style="min-width:0;">
+                                                                    <div class="fw-semibold text-truncate" style="font-size:.78rem;">{{ $session->employee->name ?? 'Unknown' }}</div>
+                                                                    <div class="text-muted text-truncate" style="font-size:8px;">{{ $session->employee->position ?? 'N/A' }}</div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="text-center mb-1 py-1 bg-white bg-opacity-60 rounded">
+                                                                <span class="duration-display fw-bold font-monospace" style="font-size:13px; color:{{ $borderColor }};" data-start-time="{{ $session->start_time }}">{{ $session->duration }}</span>
+                                                            </div>
+                                                            <div style="font-size:8px; word-break:break-word; overflow-wrap:break-word;">
+                                                                <div class="d-flex justify-content-between mb-1"><span class="text-muted flex-shrink-0">JO:</span><span class="text-end" style="max-width:65%;">{{ $session->jobOrder->name ?? 'N/A' }}</span></div>
+                                                                <div class="d-flex justify-content-between mb-1"><span class="text-muted flex-shrink-0">Step:</span><span style="max-width:65%;">{{ $session->step }}</span></div>
+                                                                <div class="d-flex justify-content-between mb-1"><span class="text-muted flex-shrink-0">Project:</span><span style="max-width:65%;">{{ $session->jobOrder->project->name ?? 'N/A' }}</span></div>
+                                                                <div class="d-flex justify-content-between"><span class="text-muted flex-shrink-0">Part:</span><span style="max-width:65%;">{{ $session->parts }}</span></div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @endif
+                            @endif
+                        @else
+                            {{-- Dept lain: flat grid seperti semula --}}
+                            @if($sessions->isEmpty())
+                                <div class="text-center text-muted py-3" style="font-size:12px;">Tidak ada sesi berjalan</div>
+                            @else
+
                         <div class="row g-2">
                             @foreach ($sessions as $session)
                                 @php
@@ -194,32 +339,18 @@
                                             <!-- Job Info dengan word-wrap -->
                                             <div
                                                 style="font-size: 9px; word-break: break-word; overflow-wrap: break-word;">
-                                                <div class="d-flex justify-content-between mb-1">
-                                                    <span class="text-muted flex-shrink-0">JO:</span>
-                                                    <span class="text-end"
-                                                        style="word-break: break-word; overflow-wrap: break-word; max-width: 65%;">{{ $session->jobOrder->name ?? 'N/A' }}</span>
-                                                </div>
-                                                <div class="d-flex justify-content-between mb-1">
-                                                    <span class="text-muted flex-shrink-0">Step:</span>
-                                                    <span
-                                                        style="word-break: break-word; overflow-wrap: break-word; max-width: 65%;">{{ $session->step }}</span>
-                                                </div>
-                                                <div class="d-flex justify-content-between mb-1">
-                                                    <span class="text-muted flex-shrink-0">Project:</span>
-                                                    <span
-                                                        style="word-break: break-word; overflow-wrap: break-word; max-width: 65%;">{{ $session->jobOrder->project->name ?? 'N/A' }}</span>
-                                                </div>
-                                                <div class="d-flex justify-content-between">
-                                                    <span class="text-muted flex-shrink-0">Part:</span>
-                                                    <span
-                                                        style="word-break: break-word; overflow-wrap: break-word; max-width: 65%;">{{ $session->parts }}</span>
-                                                </div>
+                                                <div class="d-flex justify-content-between mb-1"><span class="text-muted flex-shrink-0">JO:</span><span class="text-end" style="word-break: break-word; overflow-wrap: break-word; max-width: 65%;">{{ $session->jobOrder->name ?? 'N/A' }}</span></div>
+                                                <div class="d-flex justify-content-between mb-1"><span class="text-muted flex-shrink-0">Step:</span><span style="word-break: break-word; overflow-wrap: break-word; max-width: 65%;">{{ $session->step }}</span></div>
+                                                <div class="d-flex justify-content-between mb-1"><span class="text-muted flex-shrink-0">Project:</span><span style="word-break: break-word; overflow-wrap: break-word; max-width: 65%;">{{ $session->jobOrder->project->name ?? 'N/A' }}</span></div>
+                                                <div class="d-flex justify-content-between"><span class="text-muted flex-shrink-0">Part:</span><span style="word-break: break-word; overflow-wrap: break-word; max-width: 65%;">{{ $session->parts }}</span></div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            @endforeach
-                        </div>
+                                @endforeach
+                            </div>
+                            @endif
+                        @endif
                     </div>
                 </div>
             @endforeach

@@ -49,7 +49,7 @@ class DailyAttendanceExport implements
     {
         // Load semua karyawan aktif (filter dept/employee jika ada)
         $employees = Employee::with('department')
-            ->where('status', 'active')
+            ->active()
             ->when($this->departmentId, fn($q) => $q->where('department_id', $this->departmentId))
             ->when($this->employeeId,   fn($q) => $q->where('id', $this->employeeId))
             ->orderBy('department_id')

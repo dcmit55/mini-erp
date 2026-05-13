@@ -45,6 +45,7 @@ class MascotMonitorController extends Controller
         $totalEmployees = $runningSessions->unique('employee_id')->count();
         $totalMassProduction = $runningSessions->where('status', 'on progress')->where('session_type', 'mass_production')->count();
         $totalRepair = $runningSessions->where('status', 'on progress')->where('session_type', 'repair')->count();
+        $totalSample = $runningSessions->where('status', 'on progress')->where('session_type', 'sample')->count();
 
         // Group by project for better organization
         $groupedSessions = $runningSessions->groupBy(function ($timing) {
@@ -53,7 +54,7 @@ class MascotMonitorController extends Controller
 
         $units = Unit::orderBy('name')->get();
 
-        return view('timing.mascot.monitor', compact('runningSessions', 'groupedSessions', 'totalRunning', 'totalFrozen', 'totalEmployees', 'totalMassProduction', 'totalRepair', 'mascotDept', 'units'));
+        return view('timing.mascot.monitor', compact('runningSessions', 'groupedSessions', 'totalRunning', 'totalFrozen', 'totalEmployees', 'totalMassProduction', 'totalRepair', 'totalSample', 'mascotDept', 'units'));
     }
 
     /**

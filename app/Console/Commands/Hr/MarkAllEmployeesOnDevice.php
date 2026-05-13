@@ -16,7 +16,7 @@ class MarkAllEmployeesOnDevice extends Command
 
     public function handle(): int
     {
-        $query = Employee::where('status', 'active')
+        $query = Employee::active()
             ->whereNull('device_registered_at')
             ->orderBy('employee_no');
 

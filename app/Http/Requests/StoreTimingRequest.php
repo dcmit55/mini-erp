@@ -43,6 +43,7 @@ class StoreTimingRequest extends FormRequest
 
             // Other fields
             'status' => ['required', Rule::in(['complete', 'on progress', 'pending'])],
+            'session_type' => ['nullable', Rule::in(['mass_production', 'repair', 'sample'])],
             'step' => 'nullable|string|max:255',
             'parts' => 'nullable|string|max:255',
             'remarks' => 'nullable|string|max:1000',
@@ -96,7 +97,7 @@ class StoreTimingRequest extends FormRequest
 
             // Validate employee is active
             $employee = \App\Models\Hr\Employee::find($this->input('employee_id'));
-            if ($employee && $employee->status !== 'active') {
+            if ($employee && !$employee->isActive()) {
                 $validator->errors()->add('employee_id', 'Selected employee is not active.');
             }
 

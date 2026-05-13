@@ -1,0 +1,20 @@
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "default",
+  "rsc": false,
+  "tsx": false,
+  "tailwind": {
+    "config": "tailwind.config.js",
+    "css": "resources/css/qc.css",
+    "baseColor": "slate",
+    "cssVariables": true,
+    "prefix": ""
+  },
+  "aliases": {
+    "components": "resources/js/qc/components",
+    "utils": "resources/js/qc/lib/utils",
+    "ui": "resources/js/qc/components/ui",
+    "lib": "resources/js/qc/lib",
+    "hooks": "resources/js/qc/hooks"
+  }
+}

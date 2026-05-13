@@ -148,12 +148,17 @@ class JobOrderController extends Controller
                     }
 
                     $isGeneral = !auth()->user()->can('production.jo.edit');
+                    $actions = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;min-width:70px;">' .
+                        '<a href="' . route('job-orders.show', $jo->id) . '" class="btn btn-sm btn-info" style="' . $btnStyle . '" title="Detail"><i class="bi bi-eye"></i></a>' .
+                        $imgBtn;
 
-                    if ($isGeneral) {
-                        return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;min-width:70px;">' . '<a href="' . route('job-orders.show', $jo->id) . '" class="btn btn-sm btn-info" style="' . $btnStyle . '" title="Detail"><i class="bi bi-eye"></i></a>' . $imgBtn . '</div>';
+                    if (!$isGeneral) {
+                        $actions .= '<a href="' . route('job-orders.edit', $jo->id) . '" class="btn btn-sm btn-warning" style="' . $btnStyle . '" title="Edit"><i class="bi bi-pencil"></i></a>' .
+                            '<form action="' . route('job-orders.destroy', $jo->id) . '" method="POST" style="display:contents;">' . csrf_field() . method_field('DELETE') . '<button type="button" class="btn btn-sm btn-danger btn-delete" style="' . $btnStyle . '" title="Delete"><i class="bi bi-trash3"></i></button>' . '</form>';
                     }
 
-                    return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;min-width:70px;">' . '<a href="' . route('job-orders.show', $jo->id) . '" class="btn btn-sm btn-info" style="' . $btnStyle . '" title="Detail"><i class="bi bi-eye"></i></a>' . $imgBtn . '<a href="' . route('job-orders.edit', $jo->id) . '" class="btn btn-sm btn-warning" style="' . $btnStyle . '" title="Edit"><i class="bi bi-pencil"></i></a>' . '<form action="' . route('job-orders.destroy', $jo->id) . '" method="POST" style="display:contents;">' . csrf_field() . method_field('DELETE') . '<button type="button" class="btn btn-sm btn-danger btn-delete" style="' . $btnStyle . '" title="Delete"><i class="bi bi-trash3"></i></button>' . '</form>' . '</div>';
+                    $actions .= '</div>';
+                    return $actions;
                 })
                 ->rawColumns(['description', 'notes', 'countdown_display', 'department_name', 'actions'])
                 ->make(true);
@@ -353,9 +358,9 @@ class JobOrderController extends Controller
                 $message = sprintf('Lark sync completed! Fetched: %d | Created: %d | Updated: %d | Deactivated: %d', $stats['fetched'], $stats['created'], $stats['updated'], $stats['deactivated']);
                 if ($stats['errors'] > 0) {
                     $message .= sprintf(' | Errors: %d', $stats['errors']);
-                    return redirect()->route('job-orders.index')->with('warning', $message);
+                    return redirect()->back()->with('warning', $message);
                 }
-                return redirect()->route('job-orders.index')->with('success', $message);
+                return redirect()->back()->with('success', $message);
             } catch (\Exception $e) {
                 \Log::error('Lark job order sync failed', ['error' => $e->getMessage(), 'user_id' => auth()->id()]);
                 return redirect()
@@ -401,6 +406,68 @@ class JobOrderController extends Controller
                 ],
                 500,
             );
+        }
+    }
+
+    /**
+     * Display a grid of all Job Order galleries
+     */
+    public function galleryIndex(Request $request)
+    {
+        $query = JobOrder::with(['project', 'department'])
+            ->where(function($q) {
+                $q->whereNotNull('wip_photo')
+                  ->orWhereNotNull('project_images')
+                  ->orWhereNotNull('latest_designs')
+                  ->orWhereNotNull('final_images');
+            })
+            ->latest();
+
+        if ($request->filled('project')) {
+            $query->where('project_id', $request->project);
+        }
+
+        $jobOrders = $query->get();
+        $projects = Project::orderBy('name')->get(['id', 'name']);
+
+        return view('production.job-orders.gallery-index', compact('jobOrders', 'projects'));
+    }
+
+    /**
+     * Display Job Order Photo Gallery
+     */
+    public function gallery($id)
+    {
+        $jobOrder = JobOrder::with(['project', 'department', 'departments'])->findOrFail($id);
+        
+        return view('production.job-orders.gallery', compact('jobOrder'));
+    }
+
+    /**
+     * Sync single Job Order gallery from Lark
+     */
+    public function syncGallery($id, LarkJobOrderSyncService $syncService)
+    {
+        $jobOrder = JobOrder::findOrFail($id);
+        
+        if (empty($jobOrder->lark_record_id)) {
+            return redirect()->back()->with('error', 'Job Order tidak terhubung dengan Lark (lark_record_id kosong).');
+        }
+
+        try {
+            // Force download images by clearing existing images in transformer call
+            // But we can just call syncSingle which will download new ones if they changed
+            $syncService->syncSingle($jobOrder->lark_record_id);
+            
+            return redirect()->back()->with('success', 'Gallery berhasil disinkronkan dari Lark.');
+        } catch (\Exception $e) {
+            \Log::error('Single Job Order sync failed', [
+                'id' => $id,
+                'lark_id' => $jobOrder->lark_record_id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return redirect()->back()->with('error', 'Gagal sinkronisasi: ' . $e->getMessage());
         }
     }
 }

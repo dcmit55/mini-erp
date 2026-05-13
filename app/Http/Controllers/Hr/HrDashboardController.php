@@ -87,14 +87,14 @@ class HrDashboardController extends Controller
             ->get();
 
         // Gender distribution
-        $byGender = Employee::where('status', 'active')
+        $byGender = Employee::active()
             ->selectRaw('gender, COUNT(*) as total')
             ->groupBy('gender')
             ->get();
 
         // Near-expired employees list with details
         $nearExpiredList = Employee::with('department')
-            ->where('status', 'active')
+            ->active()
             ->whereNotNull('contract_end_date')
             ->whereBetween('contract_end_date', [$today, $thirtyDaysLater])
             ->orderBy('contract_end_date')
@@ -104,7 +104,7 @@ class HrDashboardController extends Controller
 
         // Get all active employees for attendance heatmap sample (exclude Party Point)
         $activeEmployeeList = Employee::with('department')
-            ->where('status', 'active')
+            ->active()
             ->where('department_id', '!=', $excludeDeptId)
             ->limit(15)
             ->get();

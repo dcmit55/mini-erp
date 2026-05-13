@@ -105,6 +105,7 @@ class AnimatronicsTimingController extends Controller
             'step' => 'required|string|max:255',
             'parts' => 'nullable|string|max:255',
             'tracking_mode' => 'required|in:timer,progress',
+            'session_type' => 'nullable|in:mass_production,repair,sample',
             'department_specific_data' => 'nullable|array',
         ]);
 
@@ -216,6 +217,7 @@ class AnimatronicsTimingController extends Controller
                     'output_qty' => 0,
                     'status' => 'on progress',
                     'remarks' => null,
+                    'session_type' => $validated['session_type'] ?? 'mass_production',
                     'department_specific_data' => $deptSpecificData,
                 ]);
 

@@ -3,13 +3,13 @@
 @section('content')
 <div class="container-fluid py-3">
     @php
-        $activeCount          = $employees->where('status', 'active')->count();
+        $activeCount          = $employees->whereIn('status', ['active', 'pending_contract'])->count();
         $inactiveCount        = $employees->where('status', 'inactive')->count();
         $pendingContractCount = $employees->where('status', 'pending_contract')->count();
         $allCount             = $employees->count();
         $expiringCount        = $employees->filter(fn($e) =>
             $e->contract_end_date &&
-            $e->status === 'active' &&
+            $e->isActive() &&
             $e->contract_end_date->lte(now()->addDays(30)) &&
             $e->contract_end_date->gte(now())
         )->count();
@@ -138,6 +138,8 @@
                             <option value="PKWTT">PKWTT</option>
                             <option value="Daily Worker">Daily Worker</option>
                             <option value="Probation">Probation</option>
+                            <option value="Internship">Internship</option>
+                            <option value="Working Trial">Working Trial</option>
                         </select>
                     </div>
                     <div class="col-6 col-sm-4 col-md-2">
@@ -715,7 +717,12 @@
 
             let patterns = [];
             if (empType) patterns.push('\\b' + empType + '\\b');
-            if (status)  patterns.push('\\b' + status  + '\\b');
+            if (status) {
+                const statusPattern = (status === 'active')
+                    ? '\\b(active|pending_contract)\\b'
+                    : '\\b' + status + '\\b';
+                patterns.push(statusPattern);
+            }
             if (patterns.length > 0) {
                 table.column(8).search(patterns.join('(?=.*?)'), true, false, true).draw(false);
             } else {
@@ -736,7 +743,10 @@
             $(this).removeClass('btn-outline-purple').addClass('active-tab btn-purple');
             $('#statusFilter').val(status).trigger('change.select2');
             if (status) {
-                table.column(8).search('\\b' + status + '\\b', true, false, true).draw();
+                const searchPattern = (status === 'active')
+                    ? '\\b(active|pending_contract)\\b'
+                    : '\\b' + status + '\\b';
+                table.column(8).search(searchPattern, true, false, true).draw();
             } else {
                 table.column(8).search('').draw();
             }

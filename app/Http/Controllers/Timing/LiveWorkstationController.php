@@ -63,7 +63,7 @@ class LiveWorkstationController extends Controller
         $leaveEmployeeIds  = $leaves->pluck('employee_id')->toArray();
         $excludedIds       = array_merge($attendanceEmployeeIds, $leaveEmployeeIds);
         $notClockedInQuery = Employee::with('department')
-            ->where('status', 'active')
+            ->active()
             ->whereNotIn('id', $excludedIds);
         if ($departmentId) {
             $notClockedInQuery->where('department_id', $departmentId);

@@ -58,6 +58,17 @@
 .row-done    .emp-col { border-left:3px solid #198754 !important; }
 .row-leave   .emp-col { border-left:3px solid #fd7e14 !important; }
 .row-absent  .emp-col { border-left:3px solid #dee2e6 !important; }
+
+/* foto styling seperti di running monitor */
+.employee-photo {
+    width: 32px; height: 32px; border-radius: 50%; object-fit: cover;
+    border: 2px solid; background: #f8f9fa;
+}
+.employee-photo-placeholder {
+    width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .7rem; font-weight: 700;
+}
 </style>
 
 {{-- Refresh progress bar --}}
@@ -220,6 +231,12 @@
                 @php
                     $inMin    = (int)$att->clock_in->format('H') * 60 + (int)$att->clock_in->format('i');
                     $isActive = is_null($att->clock_out);
+                    $employee = $att->employee;
+                    
+                    // Check employee photo
+                    $hasPhoto = $employee && !empty($employee->photo);
+                    $photoUrl = $hasPhoto ? asset('storage/' . $employee->photo) : null;
+                    $initials = strtoupper(substr($employee->name ?? '?', 0, 2));
 
                     // Determine shift end from session shift
                     if ($att->sessionShift && $att->sessionShift->end_time) {
@@ -253,12 +270,9 @@
                     $filledDuration = max(0, min($filledMin - $inMin, $totalDuration));
 
                     // Bar width & fill %
-                    // Active  → bar extends to shift end (OT: stays 100% with different color)
-                    // Done    → bar extends only to clock-out (accurate stop), fill = 100%
                     if ($isActive) {
                         $barWidth = round($totalDuration * $PX);
                         if ($isToday && $currentMinutes >= $shiftEndMin) {
-                            // Past shift end but not clocked out — keep bar full & blue
                             $pct = 100;
                         } else {
                             $pct = round($filledDuration / $totalDuration * 100);
@@ -296,7 +310,7 @@
                     $rowType     = $isActive ? 'row-active' : 'row-done';
                     $accentColor = $isActive ? '#0d6efd' : '#198754';
 
-                    // Calculate break window positions (only if shift has breaks configured)
+                    // Calculate break window positions
                     $breakSegments = [];
                     if ($att->sessionShift) {
                         foreach ([
@@ -310,7 +324,6 @@
                                 $beM = (int) substr($brk['end'],   3, 2);
                                 $bStartMin = $bsH * 60 + $bsM;
                                 $bEndMin   = $beH * 60 + $beM;
-                                // Only render break if it falls within the displayed bar range
                                 if ($bStartMin >= $inMin && $bEndMin <= $shiftEndMin && $bEndMin > $bStartMin) {
                                     $breakSegments[] = [
                                         'left'  => round(($bStartMin - $inMin) * $PX),
@@ -322,20 +335,32 @@
                         }
                     }
                 @endphp
-                <tr class="tl-row {{ $rowType }}" data-emp="{{ strtolower($att->employee->name ?? '') }}">
+                <tr class="tl-row {{ $rowType }}" data-emp="{{ strtolower($employee->name ?? '') }}">
                     <td class="emp-col py-0 px-3" style="height:52px; vertical-align:middle;">
                         <div class="d-flex align-items-center gap-2">
-                            <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
-                                 style="width:32px;height:32px;font-size:.63rem;font-weight:700;letter-spacing:.02em;
-                                        background:{{ $accentColor }}18; color:{{ $accentColor }};">
-                                {{ strtoupper(substr($att->employee->name ?? '?', 0, 2)) }}
-                            </div>
+                            {{-- Foto Karyawan ukuran 32px seperti di running monitor --}}
+                            @if($hasPhoto && $photoUrl)
+                                <img src="{{ $photoUrl }}" class="employee-photo" style="border-color: {{ $accentColor }};" 
+                                     onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                <div class="employee-photo-placeholder" style="display: none; background:{{ $accentColor }}18; color:{{ $accentColor }};">
+                                    {{ $initials }}
+                                </div>
+                            @else
+                                <div class="employee-photo-placeholder" style="background:{{ $accentColor }}18; color:{{ $accentColor }};">
+                                    {{ $initials }}
+                                </div>
+                            @endif
+                            
+                            {{-- Info Karyawan --}}
                             <div style="min-width:0; flex:1;">
                                 <div class="fw-semibold text-truncate" style="font-size:.8rem; color:#111827; max-width:150px;">
-                                    {{ $att->employee->name ?? '—' }}
+                                    {{ $employee->name ?? '—' }}
+                                    @if($employee && $employee->nickname)
+                                        <span class="text-muted" style="font-size:.65rem;">({{ $employee->nickname }})</span>
+                                    @endif
                                 </div>
                                 <div class="d-flex align-items-center gap-1 mt-1">
-                                    <span style="font-size:.63rem; color:#9ca3af;">{{ $att->employee->employee_no ?? '' }}</span>
+                                    <span style="font-size:.63rem; color:#9ca3af;">{{ $employee->employee_no ?? '' }}</span>
                                     @if($shiftLabel)
                                     <span class="rounded-1 px-1" style="font-size:.58rem; background:{{ $accentColor }}15; color:{{ $accentColor }};">{{ $shiftLabel }}</span>
                                     @endif
@@ -351,7 +376,7 @@
 
                         <div class="bar-track"
                              style="top:14px; height:24px; left:{{ $barLeft }}px; width:{{ $barWidth }}px;"
-                             title="{{ $att->employee->name }}: {{ $clockInStr }} – {{ $clockOutStr ?? $shiftEndStr }}"
+                             title="{{ $employee->name }}: {{ $clockInStr }} – {{ $clockOutStr ?? $shiftEndStr }}"
                              @if($isActive)
                                  data-live="1"
                                  data-in-min="{{ $inMin }}"
@@ -400,18 +425,35 @@
                         $lLeft  = $toDisplayPx($lfMin);
                         $lWidth = round(($ltMin - $lfMin) * $PX);
                     }
+                    
+                    $employeeLeave = $leave->employee;
+                    $hasPhotoLeave = $employeeLeave && !empty($employeeLeave->photo);
+                    $photoUrlLeave = $hasPhotoLeave ? asset('storage/' . $employeeLeave->photo) : null;
+                    $initialsLeave = strtoupper(substr($employeeLeave->name ?? '?', 0, 2));
                 @endphp
-                <tr class="tl-row row-leave" data-emp="{{ strtolower($leave->employee->name ?? '') }}">
+                <tr class="tl-row row-leave" data-emp="{{ strtolower($employeeLeave->name ?? '') }}">
                     <td class="emp-col py-0 px-3" style="height:52px; vertical-align:middle;">
                         <div class="d-flex align-items-center gap-2">
-                            <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
-                                 style="width:32px;height:32px;font-size:.63rem;font-weight:700;background:#fff7ed;color:#ea580c;">
-                                {{ strtoupper(substr($leave->employee->name ?? '?', 0, 2)) }}
-                            </div>
+                            @if($hasPhotoLeave && $photoUrlLeave)
+                                <img src="{{ $photoUrlLeave }}" class="employee-photo" style="border-color: #fd7e14;" 
+                                     onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                <div class="employee-photo-placeholder" style="display: none; background:#fff7ed; color:#ea580c;">
+                                    {{ $initialsLeave }}
+                                </div>
+                            @else
+                                <div class="employee-photo-placeholder" style="background:#fff7ed; color:#ea580c;">
+                                    {{ $initialsLeave }}
+                                </div>
+                            @endif
                             <div style="min-width:0;">
-                                <div class="fw-semibold text-truncate" style="font-size:.8rem; color:#111827; max-width:150px;">{{ $leave->employee->name ?? '—' }}</div>
+                                <div class="fw-semibold text-truncate" style="font-size:.8rem; color:#111827; max-width:150px;">
+                                    {{ $employeeLeave->name ?? '—' }}
+                                    @if($employeeLeave && $employeeLeave->nickname)
+                                        <span class="text-muted" style="font-size:.65rem;">({{ $employeeLeave->nickname }})</span>
+                                    @endif
+                                </div>
                                 <div class="d-flex align-items-center gap-1 mt-1">
-                                    <span style="font-size:.63rem; color:#9ca3af;">{{ $leave->employee->employee_no ?? '' }}</span>
+                                    <span style="font-size:.63rem; color:#9ca3af;">{{ $employeeLeave->employee_no ?? '' }}</span>
                                     <span class="rounded-1 px-1" style="font-size:.58rem; background:#fff7ed; color:#ea580c;">Leave</span>
                                 </div>
                             </div>
@@ -432,15 +474,32 @@
 
                 {{-- Not clocked in rows --}}
                 @foreach($notClockedIn as $emp)
+                @php
+                    $hasPhotoNotIn = !empty($emp->photo);
+                    $photoUrlNotIn = $hasPhotoNotIn ? asset('storage/' . $emp->photo) : null;
+                    $initialsNotIn = strtoupper(substr($emp->name ?? '?', 0, 2));
+                @endphp
                 <tr class="tl-row row-absent" data-emp="{{ strtolower($emp->name ?? '') }}">
                     <td class="emp-col py-0 px-3" style="height:48px; vertical-align:middle; opacity:.55;">
                         <div class="d-flex align-items-center gap-2">
-                            <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
-                                 style="width:32px;height:32px;font-size:.63rem;font-weight:700;background:#f3f4f6;color:#9ca3af;">
-                                {{ strtoupper(substr($emp->name ?? '?', 0, 2)) }}
-                            </div>
+                            @if($hasPhotoNotIn && $photoUrlNotIn)
+                                <img src="{{ $photoUrlNotIn }}" class="employee-photo" style="border-color: #adb5bd; opacity:.7;" 
+                                     onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                <div class="employee-photo-placeholder" style="display: none; background:#f3f4f6; color:#9ca3af;">
+                                    {{ $initialsNotIn }}
+                                </div>
+                            @else
+                                <div class="employee-photo-placeholder" style="background:#f3f4f6; color:#9ca3af;">
+                                    {{ $initialsNotIn }}
+                                </div>
+                            @endif
                             <div style="min-width:0;">
-                                <div class="fw-semibold text-truncate" style="font-size:.8rem; color:#6b7280; max-width:150px;">{{ $emp->name ?? '—' }}</div>
+                                <div class="fw-semibold text-truncate" style="font-size:.8rem; color:#6b7280; max-width:150px;">
+                                    {{ $emp->name ?? '—' }}
+                                    @if($emp->nickname)
+                                        <span class="text-muted" style="font-size:.65rem;">({{ $emp->nickname }})</span>
+                                    @endif
+                                </div>
                                 <div style="font-size:.63rem; color:#adb5bd;">{{ $emp->employee_no ?? '' }} · Not clocked in</div>
                             </div>
                         </div>
@@ -527,7 +586,6 @@
             const inMin       = parseInt(track.dataset.inMin);
             const shiftEndMin = parseInt(track.dataset.shiftEndMin);
             const totalDur    = parseInt(track.dataset.totalDur);
-            const isOT        = currentMin >= shiftEndMin;
 
             const fill     = track.querySelector('.bar-fill-active, .bar-fill-ot');
             const dot      = track.querySelector('.pulse-dot');
@@ -537,7 +595,6 @@
             const pastShiftEnd = currentMin >= shiftEndMin;
 
             if (pastShiftEnd) {
-                // Past shift end, not yet clocked out — bar stays blue & full
                 if (fill) { fill.className = 'bar-fill-active'; fill.style.width = '100%'; }
                 if (dot)  dot.style.display = 'none';
                 if (leftSpan) leftSpan.style.color = '#fff';
@@ -549,7 +606,6 @@
                     remLabel.textContent = '+' + (h > 0 ? h + 'h ' : '') + m + 'm';
                 }
             } else {
-                // Normal progress
                 const filledDur = Math.max(0, Math.min(currentMin - inMin, totalDur));
                 const pct       = Math.round(filledDur / totalDur * 100);
 

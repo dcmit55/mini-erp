@@ -79,7 +79,7 @@ class LeaveRequestController extends Controller
     public function create()
     {
         $employees = Employee::with('department')
-            ->whereRaw('LOWER(status) = ?', ['active'])
+            ->active()
             ->select(['id', 'name', 'position', 'department_id', 'hire_date', 'saldo_cuti', 'status', 'menstruation_leave_approved'])
             ->orderBy('name')
             ->get();
@@ -97,7 +97,7 @@ class LeaveRequestController extends Controller
 // Validate employee is active
         $employee = Employee::with('department')->findOrFail($request->employee_id);
 
-        if ($employee->status !== 'active') {
+        if (!$employee->isActive()) {
             return back()
                 ->withInput()
                 ->withErrors(['employee_id' => "Cannot create leave request for {$employee->name}. Employee status is {$employee->status}."]);
@@ -248,7 +248,7 @@ class LeaveRequestController extends Controller
         }
 
         $employees = Employee::with('department')
-            ->where('status', 'active')
+            ->active()
             ->select(['id', 'name', 'position', 'department_id', 'hire_date', 'saldo_cuti', 'status', 'menstruation_leave_approved'])
             ->orderBy('name')
             ->get();
@@ -267,7 +267,7 @@ class LeaveRequestController extends Controller
         // Validate employee is active
         $employee = Employee::with('department')->findOrFail($request->employee_id);
 
-        if ($employee->status !== 'active') {
+        if (!$employee->isActive()) {
             return back()
                 ->withInput()
                 ->withErrors(['employee_id' => "Cannot update leave request for {$employee->name}. Employee status is {$employee->status}."]);

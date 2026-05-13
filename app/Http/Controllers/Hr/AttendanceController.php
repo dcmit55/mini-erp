@@ -24,7 +24,7 @@ class AttendanceController extends Controller
         // Handle AJAX request untuk skill gap recalculation
         if ($request->input('ajax_skill_gap')) {
             $employees = Employee::with(['department', 'skillsets'])
-                ->where('status', 'active')
+                ->active()
                 ->whereDoesntHave('department', fn($q) => $q->where('name', 'Party Point'))
                 ->orderBy('name')
                 ->get();
@@ -48,7 +48,7 @@ class AttendanceController extends Controller
         // Handle AJAX request untuk modal content
         if ($request->input('ajax_skill_gap_modal')) {
             $employees = Employee::with(['department', 'skillsets'])
-                ->where('status', 'active')
+                ->active()
                 ->whereDoesntHave('department', fn($q) => $q->where('name', 'Party Point'))
                 ->orderBy('name')
                 ->get();
@@ -77,7 +77,7 @@ class AttendanceController extends Controller
 
         // Query employees with filters
         $employees = Employee::with(['department', 'skillsets'])
-            ->where('status', 'active')
+            ->active()
             ->whereDoesntHave('department', fn($q) => $q->where('name', 'Party Point'))
             ->when($department_id, function ($query) use ($department_id) {
                 return $query->where('department_id', $department_id);
@@ -131,7 +131,7 @@ class AttendanceController extends Controller
     {
         // Filter hanya active employees
         $employees = $employees->filter(function ($employee) {
-            return $employee->status === 'active';
+            return $employee->isActive();
         });
 
         // Get absent and late employees
@@ -252,7 +252,7 @@ class AttendanceController extends Controller
         // Validate employee is active
         $employee = Employee::findOrFail($request->employee_id);
 
-        if ($employee->status !== 'active') {
+        if (!$employee->isActive()) {
             return response()->json(
                 [
                     'success' => false,
@@ -316,7 +316,7 @@ class AttendanceController extends Controller
 
             // Only load active employees for skill gap
             $employees = Employee::with(['department', 'skillsets'])
-                ->where('status', 'active')
+                ->active()
                 ->orderBy('name')
                 ->get();
             $attendances = Attendance::whereDate('date', $request->date)->get()->keyBy('employee_id');
@@ -365,7 +365,7 @@ class AttendanceController extends Controller
         ]);
 
         // Check if all employees are active
-        $inactiveEmployees = Employee::whereIn('id', $request->employee_ids)->where('status', '!=', 'active')->pluck('name')->toArray();
+        $inactiveEmployees = Employee::whereIn('id', $request->employee_ids)->whereNotIn('status', ['active', 'pending_contract'])->pluck('name')->toArray();
 
         if (!empty($inactiveEmployees)) {
             return response()->json(

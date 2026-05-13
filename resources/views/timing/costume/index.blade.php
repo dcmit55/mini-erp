@@ -14,12 +14,6 @@
                 <a href="{{ route('costume-timing.monitor') }}" class="btn btn-primary btn-sm">
                     <i class="fas fa-tv me-1"></i> Monitor
                 </a>
-                {{-- <a href="{{ route('animatronics-timing.index') }}" class="btn btn-outline-secondary btn-sm">
-                    <i class="fas fa-robot me-1"></i> Animatronics
-                </a>
-                <a href="{{ route('mascot-timing.index') }}" class="btn btn-outline-secondary btn-sm">
-                    <i class="fas fa-mask me-1"></i> Mascot Timing
-                </a> --}}
                 <a href="{{ route('timings.index') }}" class="btn btn-outline-primary btn-sm">
                     <i class="bi bi-table me-1"></i> View All Timings
                 </a>
@@ -236,37 +230,44 @@
                                     <span id="plan-session-badge" class="badge bg-success ms-1 d-none"><i
                                             class="bi bi-calendar2-check-fill me-1"></i>From Plan</span>
                                 </label>
-                                <div class="d-flex gap-3">
-                                    <div class="form-check flex-fill">
-                                        <input class="form-check-input" type="radio" name="session_type"
-                                            id="type-mass-production" value="mass_production" checked>
-                                        <label
-                                            class="form-check-label d-flex align-items-center gap-2 p-2 border rounded w-100 cursor-pointer session-type-label"
-                                            for="type-mass-production" style="cursor:pointer;">
-                                            <span class="badge bg-success fs-6"><i
-                                                    class="bi bi-grid-3x3-gap-fill"></i></span>
-                                            <div>
-                                                <strong class="d-block">Mass Production</strong>
-                                                <small class="text-muted">Produksi massal / normal</small>
-                                            </div>
-                                        </label>
-                                    </div>
-                                    <div class="form-check flex-fill">
-                                        <input class="form-check-input" type="radio" name="session_type"
-                                            id="type-repair" value="repair">
-                                        <label
-                                            class="form-check-label d-flex align-items-center gap-2 p-2 border rounded w-100 cursor-pointer session-type-label"
-                                            for="type-repair" style="cursor:pointer;">
-                                            <span class="badge bg-warning text-dark fs-6"><i
-                                                    class="bi bi-tools"></i></span>
-                                            <div>
-                                                <strong class="d-block">Repair</strong>
-                                                <small class="text-muted">Perbaikan / rework unit</small>
-                                            </div>
-                                        </label>
-                                    </div>
+                                <div class="d-flex gap-3 flex-wrap" id="session-type-buttons-container">
+                                    <button type="button" class="btn btn-outline-success session-type-btn active" data-type="mass_production">
+                                        <i class="bi bi-grid-3x3-gap-fill"></i> Mass Production
+                                    </button>
+                                    <button type="button" class="btn btn-outline-warning session-type-btn" data-type="sample">
+                                        <i class="bi bi-eyedropper"></i> Sample
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger session-type-btn" data-type="repair">
+                                        <i class="bi bi-tools"></i> Repair
+                                    </button>
                                 </div>
+                                <input type="hidden" name="session_type" id="session-type-hidden" value="mass_production">
+                                <small class="text-muted d-block mt-1">Klik salah satu tombol untuk memilih tipe sesi</small>
                             </div>
+
+                            <!-- =========== STEP 5: STATION (BUTTON VERSION) =========== -->
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">
+                                    <span class="badge bg-secondary me-2">5</span>Station <span class="text-danger">*</span>
+                                </label>
+                                <div class="d-flex gap-3 flex-wrap" id="station-buttons-container">
+                                    <button type="button" class="btn btn-outline-primary station-btn" data-station="office">
+                                        <i class="bi bi-building"></i> Office
+                                    </button>
+                                    <button type="button" class="btn btn-outline-warning station-btn" data-station="cutting">
+                                        <i class="bi bi-scissors"></i> Cutting
+                                    </button>
+                                    <button type="button" class="btn btn-outline-success station-btn" data-station="sewing">
+                                        <i class="bi bi-scissors"></i> Sewing
+                                    </button>
+                                    <button type="button" class="btn btn-outline-info station-btn" data-station="finishing">
+                                        <i class="bi bi-check2-circle"></i> Finishing
+                                    </button>
+                                </div>
+                                <input type="hidden" name="station" id="station-hidden" value="">
+                                <small class="text-muted d-block mt-1">Klik salah satu tombol untuk memilih stasiun kerja</small>
+                            </div>
+                            <!-- =========== END STATION =========== -->
 
                             <!-- Start Button -->
                             <div class="d-grid">
@@ -358,20 +359,29 @@
             font-size: 0.72rem;
         }
 
-        /* Session Type Radio Visual Feedback */
-        .form-check-input[name="session_type"]:checked+.session-type-label {
-            border-color: #0d6efd !important;
-            background-color: #f0f4ff;
+        /* Session Type Button active styles */
+        .session-type-btn.active[data-type="mass_production"] {
+            background-color: #198754;
+            color: white;
+            border-color: #198754;
         }
-
-        .form-check-input[value="mass_production"]:checked+.session-type-label {
-            border-color: #198754 !important;
-            background-color: #f0fff4;
+        .session-type-btn.active[data-type="sample"] {
+            background-color: #ffc107;
+            border-color: #ffc107;
+            color: #000;
         }
-
-        .form-check-input[value="repair"]:checked+.session-type-label {
-            border-color: #fd7e14 !important;
-            background-color: #fff8f0;
+        .session-type-btn.active[data-type="repair"] {
+            background-color: #dc3545;
+            color: white;
+            border-color: #dc3545;
+        }
+        .session-type-btn {
+            box-shadow: none;
+            transition: all 0.15s ease;
+        }
+        .session-type-btn.active {
+            box-shadow: 0 0 0 0.2rem rgba(13,110,253,0.15);
+            transform: scale(1.02);
         }
 
         .gradient-icon {
@@ -415,6 +425,32 @@
             font-weight: bold;
             color: #28a745;
         }
+
+        /* Station button active style */
+        .station-btn.active {
+            box-shadow: 0 0 0 0.2rem rgba(13,110,253,0.25);
+            transform: scale(1.02);
+        }
+        .station-btn[data-station="office"].active {
+            background-color: #0d6efd;
+            color: white;
+            border-color: #0d6efd;
+        }
+        .station-btn[data-station="cutting"].active {
+            background-color: #ffc107;
+            border-color: #ffc107;
+            color: #000;
+        }
+        .station-btn[data-station="sewing"].active {
+            background-color: #198754;
+            color: white;
+            border-color: #198754;
+        }
+        .station-btn[data-station="finishing"].active {
+            background-color: #0dcaf0;
+            border-color: #0dcaf0;
+            color: #000;
+        }
     </style>
 @endsection
 
@@ -431,6 +467,25 @@
             let selectedJobOrder = null;
             let currentTasksByEmp = {}; // Per-employee planned tasks from plan
             let currentSessionTypesByEmp = {}; // Per-employee planned session_type from plan
+
+            // =========== STATION BUTTON HANDLER ===========
+            let selectedStation = '';
+            $('.station-btn').on('click', function() {
+                const station = $(this).data('station');
+                $('.station-btn').removeClass('active');
+                $(this).addClass('active');
+                $('#station-hidden').val(station);
+                selectedStation = station;
+            });
+            // =============================================
+
+            // =========== SESSION TYPE BUTTON HANDLER ===========
+            $('.session-type-btn').on('click', function() {
+                $('.session-type-btn').removeClass('active');
+                $(this).addClass('active');
+                $('#session-type-hidden').val($(this).data('type'));
+            });
+            // ===================================================
 
             // Initialize Select2 for job order
             $('#job-order-select').select2({
@@ -620,11 +675,12 @@
                         const empSession = plannedSessionTypesByEmp[empId];
                         const $sessionDiv = $(this).find('.emp-plan-session');
                         if (empSession) {
-                            const isMass = empSession === 'mass_production';
+                            const sessionLabel = empSession === 'mass_production' ? 'Mass Prod' : (empSession === 'sample' ? 'Sample' : 'Repair');
+                            const sessionClass = empSession === 'mass_production' ? 'bg-success' : (empSession === 'sample' ? 'bg-warning text-dark' : 'bg-danger');
                             $sessionDiv.find('.emp-plan-session-badge')
-                                .removeClass('bg-success bg-warning text-dark')
-                                .addClass(isMass ? 'bg-success' : 'bg-warning text-dark')
-                                .text(isMass ? 'Mass Prod' : 'Repair');
+                                .removeClass('bg-success bg-warning bg-danger text-dark')
+                                .addClass(sessionClass)
+                                .text(sessionLabel);
                             $sessionDiv.removeClass('d-none');
                         } else {
                             $sessionDiv.addClass('d-none');
@@ -632,10 +688,9 @@
                     });
 
                     if (plannedSessionType) {
-                        $('input[name="session_type"]').prop('checked', false); // uncheck all first
-                        $(`input[name="session_type"][value="${plannedSessionType}"]`)
-                            .prop('checked', true)
-                            .trigger('change');
+                        $('.session-type-btn').removeClass('active');
+                        $(`.session-type-btn[data-type="${plannedSessionType}"]`).addClass('active');
+                        $('#session-type-hidden').val(plannedSessionType);
                         $('#plan-session-badge').removeClass('d-none');
                     } else {
                         $('#plan-session-badge').addClass('d-none');
@@ -716,6 +771,17 @@
             $('#costume-timer-form').on('submit', function(e) {
                 e.preventDefault();
 
+                // Get selected station from hidden input
+                const stationValue = $('#station-hidden').val();
+                if (!stationValue) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Station Required',
+                        text: 'Please select a station (Office, Cutting, Sewing, or Finishing).'
+                    });
+                    return;
+                }
+
                 // Check if any selected employees have a paused session
                 const pausedWarnings = [];
                 selectedEmployees.forEach(empId => {
@@ -744,18 +810,18 @@
                         cancelButtonText: 'Batal',
                     }).then(result => {
                         if (result.isConfirmed) {
-                            doStartSession();
+                            doStartSession(stationValue);
                         }
                     });
                     return;
                 }
 
-                doStartSession();
+                doStartSession(stationValue);
             });
 
-            function doStartSession() {
+            function doStartSession(selectedStation) {
                 const stepVal = $('#step-input').val();
-                const globalSessionType = $('input[name="session_type"]:checked').val();
+                const globalSessionType = $('#session-type-hidden').val() || 'mass_production';
 
                 // Build tasks and session_types per employee from plan (fallback to global)
                 const tasksPayload = {};
@@ -775,7 +841,8 @@
                     item: $('#item-input').val() || null,
                     output_qty: $('#output-qty-input').val(),
                     session_type: globalSessionType,
-                    session_types: sessionTypesPayload
+                    session_types: sessionTypesPayload,
+                    station: selectedStation
                 };
 
                 // Disable button and show loading
@@ -805,6 +872,14 @@
                             $('#job-order-select').val('').trigger('change');
                             selectedEmployees = [];
                             selectedJobOrder = null;
+                            // Reset station buttons
+                            $('.station-btn').removeClass('active');
+                            $('#station-hidden').val('');
+                            selectedStation = '';
+                            // Reset session type buttons
+                            $('.session-type-btn').removeClass('active');
+                            $('.session-type-btn[data-type="mass_production"]').addClass('active');
+                            $('#session-type-hidden').val('mass_production');
 
                             // Reload active sessions and employee list
                             loadActiveSessions();

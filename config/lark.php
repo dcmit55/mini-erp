@@ -112,4 +112,7 @@ return [
         'auto_deactivate' => env('LARK_AUTO_DEACTIVATE', true), // Auto soft delete jika tidak ada di Lark
         'batch_size' => env('LARK_BATCH_SIZE', 100),
     ],
+
+    // Set false jika SSL verification gagal (self-signed cert / SSL inspection proxy)
+    'verify_ssl' => env('LARK_VERIFY_SSL', true),
 ];
