@@ -24,14 +24,25 @@ class LarkApiClient
     private string $appId;
     private string $appSecret;
     private string $baseUrl = 'https://open.larksuite.com/open-apis';
+    private bool $verifySsl;
 
     private ?string $accessToken = null;
     private ?int $tokenExpiry = null;
 
     public function __construct()
     {
-        $this->appId = config('services.lark.app_id');
+        $this->appId     = config('services.lark.app_id');
         $this->appSecret = config('services.lark.app_secret');
+        $this->verifySsl = (bool) config('lark.verify_ssl', true);
+    }
+
+    private function http(): \Illuminate\Http\Client\PendingRequest
+    {
+        $client = Http::timeout(30);
+        if (!$this->verifySsl) {
+            $client = $client->withoutVerifying();
+        }
+        return $client;
     }
 
     /**
@@ -45,7 +56,7 @@ class LarkApiClient
             return $this->accessToken;
         }
 
-        $response = Http::post("{$this->baseUrl}/auth/v3/tenant_access_token/internal", [
+        $response = $this->http()->post("{$this->baseUrl}/auth/v3/tenant_access_token/internal", [
             'app_id' => $this->appId,
             'app_secret' => $this->appSecret,
         ]);
@@ -107,7 +118,7 @@ class LarkApiClient
                 'params' => $params,
             ]);
 
-            $response = Http::withToken($token)->get($url, $params);
+            $response = $this->http()->withToken($token)->get($url, $params);
 
             if (!$response->successful()) {
                 throw new \Exception('Failed to fetch Lark records: ' . $response->body());
@@ -150,7 +161,7 @@ class LarkApiClient
     {
         $token = $this->getAccessToken();
 
-        $response = Http::withToken($token)->timeout(30)->get($url);
+        $response = $this->http()->withToken($token)->get($url);
 
         return $response;
     }

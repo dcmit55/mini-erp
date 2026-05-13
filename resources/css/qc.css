@@ -1,0 +1,83 @@
+/* Tailwind v4 — skip preflight so Bootstrap is not overridden */
+@import "tailwindcss/theme.css";
+@import "tailwindcss/utilities.css";
+
+/* QC Module Design Tokens */
+@theme {
+    --color-qc-primary: hsl(239 84% 67%);
+    --color-qc-primary-foreground: hsl(210 40% 98%);
+    --color-qc-secondary: hsl(210 40% 96%);
+    --color-qc-secondary-foreground: hsl(222 47% 11%);
+    --color-qc-destructive: hsl(0 84% 60%);
+    --color-qc-destructive-foreground: hsl(210 40% 98%);
+    --color-qc-muted: hsl(210 40% 96%);
+    --color-qc-muted-foreground: hsl(215 16% 47%);
+    --color-qc-accent: hsl(210 40% 96%);
+    --color-qc-accent-foreground: hsl(222 47% 11%);
+    --color-qc-border: hsl(214 32% 91%);
+    --color-qc-input: hsl(214 32% 91%);
+    --color-qc-ring: hsl(239 84% 67%);
+    --color-qc-background: hsl(0 0% 100%);
+    --color-qc-foreground: hsl(222 84% 5%);
+    --color-qc-card: hsl(0 0% 100%);
+    --color-qc-card-foreground: hsl(222 84% 5%);
+    --color-qc-popover: hsl(0 0% 100%);
+    --color-qc-popover-foreground: hsl(222 84% 5%);
+    --radius-qc: 0.5rem;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Fix: Tailwind's .collapse utility sets visibility:collapse globally,
+   which conflicts with Bootstrap's .collapse class used on #navbarSupportedContent.
+   Restore correct Bootstrap navbar visibility. */
+.navbar-collapse {
+    visibility: visible !important;
+}
+
+/* QC page layout fixes */
+#qc-app {
+    background: #fff;
+    min-height: 60vh;
+}
+
+/* On mobile, hide the site footer and adjust main padding so the
+   React fixed-bottom nav doesn't overlap page content. */
+@media (max-width: 640px) {
+    body:has(#qc-app) footer {
+        display: none !important;
+    }
+    body:has(#qc-app) main.py-4 {
+        padding-bottom: 72px !important;
+    }
+}
+
+/* Scope all QC styles inside #qc-app */
+#qc-app {
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+    color: #0f172a;
+
+    /* ShadCN CSS variables (mapped from @theme) */
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 239 84% 67%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 239 84% 67%;
+    --radius: 0.5rem;
+}

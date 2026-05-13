@@ -56,7 +56,7 @@ class LarkJobOrderSyncService
             // 1. Fetch raw data dari Lark
             Log::info('Starting Lark job order sync');
 
-            $rawRecords = $this->apiClient->fetchRecords($this->appToken, $this->tableId, $this->viewId);
+            $rawRecords = $this->apiClient->fetchRecords($this->appToken, $this->tableId, $this->viewId, 'name');
 
             $stats['fetched'] = count($rawRecords);
 
@@ -172,7 +172,7 @@ class LarkJobOrderSyncService
      */
     public function getRawResponse(): array
     {
-        return $this->apiClient->fetchRawResponse($this->appToken, $this->tableId, $this->viewId);
+        return $this->apiClient->fetchRawResponse($this->appToken, $this->tableId, $this->viewId, 'name');
     }
 
     /**
@@ -181,22 +181,45 @@ class LarkJobOrderSyncService
     public function syncSingle(string $larkRecordId): JobOrder
     {
         // Fetch all and find specific record
-        $rawRecords = $this->apiClient->fetchRecords($this->appToken, $this->tableId, $this->viewId);
+        $rawRecords = $this->apiClient->fetchRecords($this->appToken, $this->tableId, $this->viewId, 'name');
 
-        $targetRecord = collect($rawRecords)->firstWhere('record_id', $larkRecordId);
+        $rawRecord = collect($rawRecords)->firstWhere('record_id', $larkRecordId);
 
-        if (!$targetRecord) {
+        if (!$rawRecord) {
             throw new \Exception("Job Order with lark_record_id {$larkRecordId} not found in Lark");
         }
 
         DB::beginTransaction();
 
         try {
-            $dto = new LarkJobOrderDTO($targetRecord);
-            $data = $this->transformer->transform($dto);
+            $dto = new LarkJobOrderDTO($rawRecord);
+            
+            // Find existing to preserve images if needed (though transformer handles it)
+            $existing = JobOrder::where('lark_record_id', $larkRecordId)->first();
+            $existingImages = $existing ? [
+                'final_image' => $existing->final_image,
+                'wip_photo' => $existing->wip_photo
+            ] : [];
+
+            $data = $this->transformer->transform($dto, $existingImages);
             $this->transformer->validate($data);
 
-            $jobOrder = JobOrder::updateOrCreate(['lark_record_id' => $dto->recordId], $data);
+            // Extract department IDs for pivot sync
+            $departmentIds = $data['_department_ids'] ?? [];
+            unset($data['_department_ids']);
+
+            $jobOrder = JobOrder::updateOrCreate(
+                ['lark_record_id' => $larkRecordId],
+                array_merge($data, [
+                    'source_by' => 'Sync from Lark',
+                    'last_sync_at' => now(),
+                ])
+            );
+
+            // Sync departments via pivot table
+            if (!empty($departmentIds)) {
+                $jobOrder->departments()->sync($departmentIds);
+            }
 
             DB::commit();
 

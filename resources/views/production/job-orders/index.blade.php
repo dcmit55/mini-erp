@@ -13,6 +13,11 @@
 
                     <!-- Spacer untuk mendorong tombol ke kanan -->
                     <div class="ms-sm-auto d-flex flex-wrap gap-2">
+                        @can('production.jo.view')
+                            <a href="{{ route('job-orders.gallery.index') }}" class="btn btn-outline-purple btn-sm flex-shrink-0">
+                                <i class="bi bi-images me-1"></i> Gallery
+                            </a>
+                        @endcan
                         @can('production.jo.create')
                             <a href="{{ route('job-orders.create') }}" class="btn btn-primary btn-sm flex-shrink-0">
                                 <i class="bi bi-plus-circle me-1"></i> Create Job Order
@@ -120,6 +125,9 @@
 
 @push('styles')
     <style>
+        .btn-outline-purple { border-color: #4A25AA; color: #4A25AA; }
+        .btn-outline-purple:hover { background-color: #4A25AA; color: #fff; }
+
         .gradient-icon {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             -webkit-background-clip: text;

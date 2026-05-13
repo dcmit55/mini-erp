@@ -98,7 +98,7 @@ class EmployeeController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'employment_type' => 'nullable|in:PKWT,PKWTT,Daily Worker,Probation,Internship',
+            'employment_type' => 'nullable|in:PKWT,PKWTT,Daily Worker,Probation,Internship,Working Trial',
             'citizenship' => 'nullable|in:WNI,WNA',
             'employee_no' => [
                 'nullable',
@@ -343,7 +343,7 @@ class EmployeeController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:255',
-            'employment_type' => 'required|in:PKWT,PKWTT,Daily Worker,Probation,Internship',
+            'employment_type' => 'required|in:PKWT,PKWTT,Daily Worker,Probation,Internship,Working Trial',
             'employee_no' => [
                 'required',
                 'string',

@@ -244,10 +244,30 @@
                                 </div>
                             </div>
 
-                            <!-- STEP 5: Animatronics-Specific Fields -->
+                            <!-- STEP 5: Session Type -->
                             <div class="mb-4">
                                 <label class="form-label fw-bold">
-                                    <span class="badge bg-danger me-2">5</span>Animatronics Details (Optional)
+                                    <span class="badge bg-danger me-2">5</span>Session Type <span class="text-danger">*</span>
+                                </label>
+                                <div class="d-flex gap-3 flex-wrap" id="session-type-buttons-container">
+                                    <button type="button" class="btn btn-outline-success session-type-btn active" data-type="mass_production">
+                                        <i class="bi bi-grid-3x3-gap-fill"></i> Mass Production
+                                    </button>
+                                    <button type="button" class="btn btn-outline-warning session-type-btn" data-type="sample">
+                                        <i class="bi bi-eyedropper"></i> Sample
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger session-type-btn" data-type="repair">
+                                        <i class="bi bi-tools"></i> Repair
+                                    </button>
+                                </div>
+                                <input type="hidden" name="session_type" id="session-type-hidden" value="mass_production">
+                                <small class="text-muted d-block mt-1">Klik salah satu tombol untuk memilih tipe sesi</small>
+                            </div>
+
+                            <!-- STEP 6: Animatronics-Specific Fields -->
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">
+                                    <span class="badge bg-danger me-2">6</span>Animatronics Details (Optional)
                                 </label>
                                 <div class="row g-3">
                                     <div class="col-md-12">
@@ -520,6 +540,30 @@
             font-size: 0.9rem;
             padding: 0.3rem 0.6rem;
         }
+
+        /* Session Type Button active styles */
+        .session-type-btn.active[data-type="mass_production"] {
+            background-color: #198754;
+            color: white;
+            border-color: #198754;
+        }
+        .session-type-btn.active[data-type="sample"] {
+            background-color: #ffc107;
+            border-color: #ffc107;
+            color: #000;
+        }
+        .session-type-btn.active[data-type="repair"] {
+            background-color: #dc3545;
+            color: white;
+            border-color: #dc3545;
+        }
+        .session-type-btn {
+            transition: all 0.15s ease;
+        }
+        .session-type-btn.active {
+            box-shadow: 0 0 0 0.2rem rgba(13,110,253,0.15);
+            transform: scale(1.02);
+        }
     </style>
 @endsection
 
@@ -529,6 +573,13 @@
             let selectedEmployees = [];
             let selectedJobOrder = null;
             let trackingMode = 'timer';
+
+            // Session Type button handler
+            $('.session-type-btn').on('click', function() {
+                $('.session-type-btn').removeClass('active');
+                $(this).addClass('active');
+                $('#session-type-hidden').val($(this).data('type'));
+            });
 
             // Tracking mode change handler
             $('input[name="tracking_mode"]').on('change', function() {
@@ -716,11 +767,11 @@
                     employees: selectedEmployees,
                     job_order_id: selectedJobOrder,
                     tracking_mode: trackingMode,
-                    step: $('#step-input').val(), // Changed from step-select to step-input
-                    parts: $('#parts-input').val(), // Changed from parts-select to parts-input
+                    step: $('#step-input').val(),
+                    parts: $('#parts-input').val(),
+                    session_type: $('#session-type-hidden').val() || 'mass_production',
                     department_specific_data: {
-                        remark: $('textarea[name="department_specific_data[remark]"]')
-                            .val() // Changed to remark only
+                        remark: $('textarea[name="department_specific_data[remark]"]').val()
                     }
                 };
 

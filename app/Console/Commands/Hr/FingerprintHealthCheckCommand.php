@@ -104,7 +104,7 @@ class FingerprintHealthCheckCommand extends Command
         $rawCount      = FingerprintLog::whereDate('created_at', $today)->count();
         $attendCount   = AttendanceLog::whereDate('date', $today)->whereNotNull('clock_in')->count();
         $dailyCount    = DailyAttendance::whereDate('date', $today)->count();
-        $totalEmployees = Employee::where('status', 'active')->count();
+        $totalEmployees = Employee::active()->count();
 
         $this->line("  fingerprint_logs  → <info>{$rawCount}</info> tap hari ini");
         $this->line("  attendance_logs   → <info>{$attendCount}</info> karyawan punya clock-in");

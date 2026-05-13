@@ -60,17 +60,19 @@ class JobOrderTransformer
         return [
             'lark_record_id' => $dto->recordId,
             'name' => $this->normalizeName($dto->nameRaw),
-            'project_lark' => $this->normalizeProjectLark($dto->projectRaw),
-            'project_id' => $this->normalizeProjectId($dto->projectRaw),
-            'department_lark' => $this->normalizeDepartmentLark($dto->departmentRaw),
-            'department_id' => $this->normalizePrimaryDepartmentId($dto->departmentsArray),
-            'delivery_date' => $this->parseDeliveryDate($dto->deliveryDateRaw),
-            'status' => $this->normalizeStatus($dto->statusRaw),
-            // Store Lark attachment URLs directly — same pattern as ProjectTransformer::normalizeImage().
-            // URLs are refreshed every sync, so all records always have valid photo data.
-            // No HTTP download needed here; the Lark tmp_url is usable immediately after sync.
-            'final_image' => $this->extractFinalImageUrl($dto->finalImageRaw),
-            'wip_photos' => $this->extractWipPhotoUrls($dto->wipPhotoRaw),
+            'project_lark' => $this->normalizeProjectLark($dto->projectRaw), // Raw text
+            'project_id' => $this->normalizeProjectId($dto->projectRaw), // FK lookup
+            'department_lark' => $this->normalizeDepartmentLark($dto->departmentRaw), // Raw text (deprecated, keep for archive)
+            'department_id' => $this->normalizePrimaryDepartmentId($dto->departmentsArray), // FK lookup - first dept only
+            'delivery_date' => $this->parseDeliveryDate($dto->deliveryDateRaw), // Parse date from Lark
+            'status' => $this->normalizeStatus($dto->statusRaw), // Job status from Lark
+            // Gallery fields (Multiple Images)
+            'project_images' => $this->downloadMultipleAttachments($dto->projectImageRaw, 'project'),
+            'latest_designs' => $this->downloadMultipleAttachments($dto->latestDesignRaw, 'design'),
+            'final_images' => $this->downloadMultipleAttachments($dto->finalImageRaw, 'final'),
+            // Skip re-download for primary image if it already exists locally
+            'final_image' => !empty($existingImages['final_image']) ? $existingImages['final_image'] : $this->getFirstImagePath($dto->finalImageRaw, 'final'),
+            'wip_photo' => !empty($existingImages['wip_photo']) ? $existingImages['wip_photo'] : $this->normalizeWipPhoto($dto->wipPhotoRaw),
             'created_by' => 'Sync from Lark',
             'last_sync_at' => now(),
             '_department_ids' => $this->normalizeDepartmentIds($dto->departmentsArray),
@@ -448,66 +450,54 @@ class JobOrderTransformer
     }
 
     /**
-     * Normalize final image from Lark attachment — downloads to local storage
+     * Download multiple attachments and return JSON array of local paths
      *
-     * Lark attachment URLs require authentication and expire.
-     * Following InventoryTransformer pattern: download & save to storage/public.
-     *
-     * @param array|null $attachments Raw attachment array from Lark
-     * @return string|null Local storage path (e.g. "job_order_images/lark_xxx.jpg") or null
+     * @param array|null $attachments Raw attachments from Lark
+     * @param string $prefix Filename prefix
+     * @return string|null JSON encoded array of paths
      */
-    private function normalizeFinalImage(?array $attachments): ?string
+    private function downloadMultipleAttachments(?array $attachments, string $prefix = 'gallery'): ?string
     {
         if (empty($attachments) || !is_array($attachments)) {
             return null;
         }
 
-        // Get first attachment
-        $firstAttachment = $attachments[0] ?? null;
-        if (!$firstAttachment || !is_array($firstAttachment)) {
-            return null;
-        }
+        $paths = [];
+        foreach ($attachments as $attachment) {
+            $larkUrl = $attachment['url'] ?? ($attachment['tmp_url'] ?? null);
+            if (!$larkUrl) continue;
 
-        // Prefer 'url' over 'tmp_url'
-        $larkUrl = $firstAttachment['url'] ?? ($firstAttachment['tmp_url'] ?? null);
+            try {
+                $response = $this->apiClient->downloadMedia($larkUrl);
+                if ($response && $response->successful()) {
+                    $extension = $this->getExtensionFromUrl($larkUrl) ?? 'jpg';
+                    $filename = $prefix . '_' . Str::random(20) . '_' . time() . '.' . $extension;
+                    $path = 'job_order_gallery/' . $filename;
 
-        if (empty($larkUrl) || !is_string($larkUrl)) {
-            Log::warning('Job Order final_image: attachment has no valid URL', [
-                'attachment' => $firstAttachment,
-            ]);
-            return null;
-        }
-
-        try {
-            $response = $this->apiClient->downloadMedia($larkUrl);
-
-            if (!$response || !$response->successful()) {
-                Log::error('Job Order final_image: failed to download from Lark (check Authorization)', [
+                    Storage::disk('public')->put($path, $response->body());
+                    $paths[] = $path;
+                }
+            } catch (\Exception $e) {
+                Log::error("Job Order Gallery: failed to download {$prefix} image", [
                     'url' => $larkUrl,
-                    'status' => $response?->status(),
+                    'error' => $e->getMessage()
                 ]);
-                return null;
             }
-
-            $extension = $this->getExtensionFromUrl($larkUrl) ?? 'jpg';
-            $filename = 'lark_' . Str::random(40) . '.' . $extension;
-            $path = 'job_order_images/' . $filename;
-
-            Storage::disk('public')->put($path, $response->body());
-
-            Log::info('Job Order final_image downloaded successfully', [
-                'lark_url' => $larkUrl,
-                'local_path' => $path,
-            ]);
-
-            return $path;
-        } catch (\Exception $e) {
-            Log::error('Job Order final_image: error during download', [
-                'url' => $larkUrl,
-                'error' => $e->getMessage(),
-            ]);
-            return null;
         }
+
+        return !empty($paths) ? json_encode($paths) : null;
+    }
+
+    /**
+     * Get first image path for backward compatibility
+     */
+    private function getFirstImagePath(?array $attachments, string $prefix = 'jo'): ?string
+    {
+        $json = $this->downloadMultipleAttachments($attachments, $prefix);
+        if (!$json) return null;
+
+        $paths = json_decode($json, true);
+        return $paths[0] ?? null;
     }
 
     /**

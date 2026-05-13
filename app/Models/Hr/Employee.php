@@ -208,6 +208,16 @@ class Employee extends Model implements AuditableContract
         ];
     }
 
+    public function isActive(): bool
+    {
+        return in_array($this->status, ['active', 'pending_contract']);
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->whereIn('status', ['active', 'pending_contract']);
+    }
+
     public function getPhotoUrlAttribute()
     {
         if ($this->photo && Storage::disk('public')->exists($this->photo)) {
@@ -232,6 +242,7 @@ class Employee extends Model implements AuditableContract
             'Daily Worker' => 'warning',
             'Probation' => 'info',
             'Internship' => 'secondary',
+            'Working Trial' => 'dark',
         ];
         return [
             'color' => $colors[$this->employment_type] ?? 'secondary',
@@ -247,6 +258,7 @@ class Employee extends Model implements AuditableContract
             'Daily Worker' => 'Daily Worker',
             'Probation' => 'Probation',
             'Internship' => 'Internship',
+            'Working Trial' => 'Working Trial',
         ];
     }
 

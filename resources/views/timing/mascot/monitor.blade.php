@@ -72,31 +72,42 @@
 
         <!-- Session Type Summary -->
         <div class="row g-2 mb-3">
-            <div class="col-md-6">
-                <div class="card shadow-sm">
+            <div class="col-md-4">
+                <div class="card shadow-sm" style="background-color:#E8F5E9; border-top:3px solid #4CAF50;">
                     <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
                         <div>
                             <div class="fw-semibold small">📦 Mass Production</div>
                             <small class="text-muted" style="font-size: 12px;">Produksi massal</small>
                         </div>
-                        <h3 class="mb-0 text-secondary fw-bold">{{ $totalMassProduction ?? 0 }}</h3>
+                        <h3 class="mb-0 fw-bold" style="color:#4CAF50;">{{ $totalMassProduction ?? 0 }}</h3>
                     </div>
                 </div>
             </div>
-            <div class="col-md-6">
-                <div class="card shadow-sm" style="background-color:#fff3e0;">
+            <div class="col-md-4">
+                <div class="card shadow-sm" style="background-color:#FFF3E0; border-top:3px solid #F59E0B;">
+                    <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-semibold small">🔬 Sample</div>
+                            <small class="text-muted" style="font-size: 10px;">Produksi sampel</small>
+                        </div>
+                        <h3 class="mb-0 fw-bold" style="color:#F59E0B;">{{ $totalSample ?? 0 }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card shadow-sm" style="background-color:#FEE2E2; border-top:3px solid #DC2626;">
                     <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
                         <div>
                             <div class="fw-semibold small">🔧 Repair / Rework</div>
                             <small class="text-muted" style="font-size: 10px;">Perbaikan</small>
                         </div>
-                        <h3 class="mb-0 fw-bold" style="color:#fd7e14;">{{ $totalRepair ?? 0 }}</h3>
+                        <h3 class="mb-0 fw-bold" style="color:#DC2626;">{{ $totalRepair ?? 0 }}</h3>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Clocked-In Employees - Menggunakan Grid agar rapi dan sejajar -->
+        <!-- Clocked-In Employees - Card lebih kecil -->
         <div id="clocked-in-panel" class="card shadow-sm border-0 mb-3" style="display:none; border-left:4px solid #fda085 !important;">
             <div class="card-header d-flex align-items-center justify-content-between py-2" style="background:linear-gradient(135deg,#f6d365 0%,#fda085 100%);">
                 <div class="d-flex align-items-center gap-2">
@@ -106,8 +117,8 @@
                 </div>
                 <small class="text-white opacity-75" style="font-size:.7rem;">Sudah clock-in via fingerprint · belum start timing</small>
             </div>
-            <div class="card-body py-2 px-3">
-                <div class="row g-2" id="clocked-in-list"></div>
+            <div class="card-body py-2 px-2">
+                <div class="row g-1" id="clocked-in-list"></div>
             </div>
         </div>
 
@@ -141,18 +152,24 @@
                                     $isFrozen = $session->status === 'frozen';
                                     $isAutoBreak = !empty($deptData['auto_break_paused']);
                                     $sessionType = $session->session_type ?? 'mass_production';
+                                    $isSample = $sessionType === 'sample';
                                     $isRepair = $sessionType === 'repair';
-                                    
+
                                     if ($isFrozen) {
                                         $cardBg = '#FEE2E2';
                                         $borderColor = '#DC2626';
                                         $badgeText = '⏸ PAUSED' . ($isAutoBreak ? ' (BREAK)' : '');
                                         $badgeBg = '#DC2626';
-                                    } elseif ($isRepair) {
+                                    } elseif ($isSample) {
                                         $cardBg = '#FFF3E0';
-                                        $borderColor = '#E65100';
+                                        $borderColor = '#F59E0B';
+                                        $badgeText = '🔬 SAMPLE';
+                                        $badgeBg = '#F59E0B';
+                                    } elseif ($isRepair) {
+                                        $cardBg = '#FEE2E2';
+                                        $borderColor = '#DC2626';
                                         $badgeText = '🔧 REPAIR';
-                                        $badgeBg = '#E65100';
+                                        $badgeBg = '#DC2626';
                                     } else {
                                         $cardBg = '#E8F5E9';
                                         $borderColor = '#4CAF50';
@@ -183,30 +200,30 @@
                                                 <div class="flex-shrink-0">
                                                     @if ($session->employee && $session->employee->photo)
                                                         <img src="{{ asset('storage/' . $session->employee->photo) }}"
-                                                            class="rounded-circle" width="60" height="60"
+                                                            class="rounded-circle" width="55" height="55"
                                                             style="object-fit: cover; border: 2px solid {{ $borderColor }};">
                                                     @else
                                                         <div class="rounded-circle d-flex align-items-center justify-content-center"
-                                                            style="width: 60px; height: 60px; background: {{ $borderColor }}20;">
+                                                            style="width: 55px; height: 55px; background: {{ $borderColor }}20;">
                                                             <i class="bi bi-person text-secondary fs-3"></i>
                                                         </div>
                                                     @endif
                                                 </div>
                                                 <div class="flex-grow-1" style="min-width: 0;">
                                                     <div class="fw-semibold small text-truncate">{{ $session->employee->name ?? 'Unknown' }}</div>
-                                                    <div class="text-muted text-truncate" style="font-size: 11px;">{{ $session->employee->position ?? 'N/A' }}</div>
+                                                    <div class="text-muted text-truncate" style="font-size: 10px;">{{ $session->employee->position ?? 'N/A' }}</div>
                                                 </div>
                                             </div>
                                             
                                             <!-- Timer -->
                                             <div class="text-center mb-2 py-1 bg-white bg-opacity-60 rounded">
                                                 @if ($isFrozen)
-                                                    <span class="fw-bold font-monospace" style="font-size: 15px; color: {{ $borderColor }};">
+                                                    <span class="fw-bold font-monospace" style="font-size: 14px; color: {{ $borderColor }};">
                                                         {{ $deptData['frozen_duration'] ?? '00:00:00' }}
                                                     </span>
                                                 @else
                                                     <span class="duration-display fw-bold font-monospace"
-                                                        style="font-size: 16px; color: {{ $borderColor }};"
+                                                        style="font-size: 14px; color: {{ $borderColor }};"
                                                         data-start-time="{{ $session->start_time }}">
                                                         {{ $session->duration ?? '00:00:00' }}
                                                     </span>
@@ -215,22 +232,20 @@
                                             
                                             <!-- Job Info dengan JO dan Project -->
                                             <div class="border-top pt-2 small flex-grow-1">
-                                                <!-- JO (Job Order) - BOLD -->
                                                 <div class="mb-1 text-truncate" title="{{ $session->jobOrder->name ?? 'N/A' }}">
                                                     <span class="text-muted">JO:</span> 
-                                                    <strong>{{ $session->jobOrder->name ?? 'N/A' }}</strong>
+                                                    <strong>{{ \Illuminate\Support\Str::limit($session->jobOrder->name ?? 'N/A', 22) }}</strong>
                                                 </div>
-                                                <!-- Project - TIDAK BOLD -->
                                                 <div class="mb-1 text-truncate" title="{{ $session->jobOrder->project->name ?? 'N/A' }}">
                                                     <span class="text-muted">Project:</span> 
-                                                    {{ $session->jobOrder->project->name ?? 'N/A' }}
+                                                    {{ \Illuminate\Support\Str::limit($session->jobOrder->project->name ?? 'N/A', 18) }}
                                                 </div>
                                                 <div class="row g-0 mb-1">
                                                     <div class="col-6 text-truncate">
-                                                        <span class="text-muted">Step:</span> {{ $session->step ?? '-' }}
+                                                        <span class="text-muted">Step:</span> {{ \Illuminate\Support\Str::limit($session->step ?? '-', 12) }}
                                                     </div>
                                                     <div class="col-6 text-truncate">
-                                                        <span class="text-muted">Part:</span> {{ $session->parts ?? '-' }}
+                                                        <span class="text-muted">Part:</span> {{ \Illuminate\Support\Str::limit($session->parts ?? '-', 10) }}
                                                     </div>
                                                 </div>
                                             </div>
@@ -240,20 +255,23 @@
                                                 @if ($isFrozen)
                                                     <button class="btn btn-success btn-sm w-100 unfreeze-btn"
                                                         data-timing-id="{{ $session->id }}"
-                                                        data-employee-name="{{ $session->employee->name ?? 'Unknown' }}">
+                                                        data-employee-name="{{ $session->employee->name ?? 'Unknown' }}"
+                                                        style="font-size: 8px; padding: 3px;">
                                                         <i class="bi bi-play-circle me-1"></i>RESUME
                                                     </button>
                                                 @else
                                                     <div class="d-flex gap-1">
                                                         <button class="btn btn-info btn-sm flex-grow-1 freeze-btn"
                                                             data-timing-id="{{ $session->id }}"
-                                                            data-employee-name="{{ $session->employee->name ?? 'Unknown' }}">
+                                                            data-employee-name="{{ $session->employee->name ?? 'Unknown' }}"
+                                                            style="font-size: 8px; padding: 3px;">
                                                             <i class="bi bi-pause-circle me-1"></i>PAUSE
                                                         </button>
                                                         <button class="btn btn-warning btn-sm flex-grow-1 stop-work-btn"
                                                             data-timing-id="{{ $session->id }}"
                                                             data-employee-name="{{ $session->employee->name ?? 'Unknown' }}"
-                                                            data-job-order="{{ $session->jobOrder->name ?? 'N/A' }}">
+                                                            data-job-order="{{ $session->jobOrder->name ?? 'N/A' }}"
+                                                            style="font-size: 8px; padding: 3px;">
                                                             <i class="bi bi-stop-circle me-1"></i>STOP
                                                         </button>
                                                     </div>
@@ -471,42 +489,42 @@
                 setTimeout(() => location.reload(), 500);
             });
 
-            function loadClockedIn() {
-                $.ajax({
-                    url: '{{ route('mascot-timing.monitor.clocked-in') }}',
-                    method: 'GET',
-                    success: function(r) {
-                        if (!r.success) return;
-                        $('#clocked-in-count').text(r.count || 0);
-                        const panel = $('#clocked-in-panel');
-                        const container = $('#clocked-in-list');
-                        if (r.count > 0) {
-                            let html = '';
-                            r.employees.forEach(function(emp) {
-                                const av = emp.photo ?
-                                    `<img src="/storage/${emp.photo}" class="rounded-circle" width="45" height="45" style="object-fit:cover;">` :
-                                    `<div class="rounded-circle d-flex align-items-center justify-content-center fw-bold text-white" style="width:45px;height:45px;background:linear-gradient(135deg,#f6d365,#fda085);font-size:1rem;">${emp.initials}</div>`;
-                                html += `<div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 col-6">
-                                    <div class="card border-0 shadow-sm h-100">
-                                        <div class="card-body p-2 text-center">
-                                            ${av}
-                                            <div class="fw-semibold small mt-1 text-truncate" style="font-size: 10px;">${emp.name}</div>
-                                            <div class="text-muted" style="font-size: 8px;">${emp.clock_in}</div>
-                                            <div class="small text-muted text-truncate" style="font-size: 7px;">${emp.position || '-'}</div>
-                                            <span class="badge bg-success mt-1" style="font-size: 7px;">Available</span>
-                                        </div>
+        function loadClockedIn() {
+            $.ajax({
+                url: '{{ route('mascot-timing.monitor.clocked-in') }}',
+                method: 'GET',
+                success: function(r) {
+                    if (!r.success) return;
+                    $('#clocked-in-count').text(r.count || 0);
+                    const panel = $('#clocked-in-panel');
+                    const container = $('#clocked-in-list');
+                    if (r.count > 0) {
+                        let html = '';
+                        r.employees.forEach(function(emp) {
+                            const av = emp.photo ?
+                                `<img src="/storage/${emp.photo}" class="rounded-circle" width="20" height="0" style="object-fit:cover;">` :
+                                `<div class="rounded-circle d-flex align-items-center justify-content-center fw-bold text-white" style="width:30px;height:30px;background:linear-gradient(135deg,#f6d365,#fda085);font-size:.7rem;">${emp.initials}</div>`;
+                            // LEBAR CARD DIPERKECIL: col-xl-2 (16.6%) menjadi col-xl-1 (8.3%) pada layar besar
+                            html += `<div class="col-xl-1 col-lg-2 col-md-3 col-sm-4 col-6">
+                                <div class="card border-0 shadow-sm h-100">
+                                    <div class="card-body p-1 text-center">
+                                        ${av}
+                                        <div class="fw-semibold text-truncate" style="font-size: 10px; margin-top: 2px;">${emp.name}</div>
+                                        <div class="text-muted" style="font-size: 6px;">${emp.clock_in}</div>
+                                        <div class="small text-muted text-truncate" style="font-size: 6px;">${emp.position || '-'}</div>
+                                        <span class="badge bg-success" style="font-size: 6px; padding: 1px 4px; margin-top: 2px;">Available</span>
                                     </div>
-                                </div>`;
-                            });
-                            container.html(html);
-                            panel.show();
-                        } else {
-                            panel.hide();
-                        }
+                                </div>
+                            </div>`;
+                        });
+                        container.html(html);
+                        panel.show();
+                    } else {
+                        panel.hide();
                     }
-                });
-            }
-
+                }
+            });
+        }
             // Bulk stop handlers
             $(document).on('change', '.session-checkbox', function() {
                 const group = $(this).data('group');

@@ -195,7 +195,7 @@ class SessionShiftController extends Controller
         $excludedIds      = array_merge($attendanceEmployeeIds, $leaveEmployeeIds);
 
         $notClockedInQuery = Employee::with('department')
-            ->where('status', 'active')
+            ->active()
             ->whereNotIn('id', $excludedIds);
 
         if ($departmentId) {

@@ -41,7 +41,7 @@ class WorkPoliciesImport implements ToModel, WithHeadingRow, WithValidation, Ski
             return null;
         }
 
-        if ($employee->status !== 'active') {
+        if (!$employee->isActive()) {
             $this->failedRows[] = [
                 'row'   => $row,
                 'error' => "Karyawan {$employee->employee_no} tidak aktif"

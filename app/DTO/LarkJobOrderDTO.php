@@ -19,6 +19,8 @@ class LarkJobOrderDTO extends BaseLarkDTO
     public readonly ?string $deliveryDateRaw; // Delivery date from Lark (YYYY-MM-DD or Unix timestamp)
     public readonly ?string $statusRaw; // Job status from Lark
     public readonly ?array $finalImageRaw; // Final Image (Before Delivery) raw attachment array from Lark
+    public readonly ?array $projectImageRaw; // Project Image raw attachment array
+    public readonly ?array $latestDesignRaw; // Latest Design raw attachment array
     public readonly ?array $wipPhotoRaw; // WIP Images raw attachment array from Lark
 
     /**
@@ -47,6 +49,8 @@ class LarkJobOrderDTO extends BaseLarkDTO
         'job_orders.delivery_date' => 'Delivery Date', // Format: YYYY-MM-DD or Unix timestamp
         'job_orders.status' => 'Job Status', // Status from Lark (e.g., "Preparing", "Delivered")
         'job_orders.final_image' => 'Final Image (Before Delivery)', // Attachment field
+        'job_orders.project_image' => '+Project Image', // Attachment field
+        'job_orders.latest_design' => 'Latest Design', // Attachment field
         'job_orders.wip_photo' => 'WIP Images', // WIP photo attachment field
     ];
 
@@ -78,8 +82,10 @@ class LarkJobOrderDTO extends BaseLarkDTO
         // Extract job status from Lark
         $this->statusRaw = $this->extractField($fields, 'job_orders.status');
 
-        // Extract final image as raw array (attachment) — needs download in transformer
+        // Extract images as raw arrays (attachment) — needs download in transformer
         $this->finalImageRaw = $this->extractArrayField($fields, 'job_orders.final_image');
+        $this->projectImageRaw = $this->extractArrayField($fields, 'job_orders.project_image');
+        $this->latestDesignRaw = $this->extractArrayField($fields, 'job_orders.latest_design');
 
         // Extract WIP images as raw array (attachment) — photos only, skip videos
         $this->wipPhotoRaw = $this->extractArrayField($fields, 'job_orders.wip_photo');
@@ -141,6 +147,8 @@ class LarkJobOrderDTO extends BaseLarkDTO
             'departments_array' => $this->departmentsArray,
             'delivery_date_raw' => $this->deliveryDateRaw,
             'final_image_raw' => is_array($this->finalImageRaw) ? count($this->finalImageRaw) . ' attachment(s)' : null,
+            'project_image_raw' => is_array($this->projectImageRaw) ? count($this->projectImageRaw) . ' attachment(s)' : null,
+            'latest_design_raw' => is_array($this->latestDesignRaw) ? count($this->latestDesignRaw) . ' attachment(s)' : null,
         ];
     }
 }

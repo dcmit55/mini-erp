@@ -41,6 +41,9 @@ class AnimatronicsMonitorController extends Controller
         $totalRunning   = $runningSessions->where('status', 'on progress')->count();
         $totalFrozen    = $runningSessions->where('status', 'frozen')->count();
         $totalEmployees = $runningSessions->unique('employee_id')->count();
+        $totalMassProduction = $runningSessions->where('status', 'on progress')->where('session_type', 'mass_production')->count();
+        $totalRepair = $runningSessions->where('status', 'on progress')->where('session_type', 'repair')->count();
+        $totalSample = $runningSessions->where('status', 'on progress')->where('session_type', 'sample')->count();
 
         $timerModeSessions = $runningSessions->filter(function ($timing) {
             $data = $timing->department_specific_data ?? [];
@@ -58,7 +61,8 @@ class AnimatronicsMonitorController extends Controller
 
         return view('timing.animatronics.monitor', compact(
             'runningSessions', 'groupedSessions', 'totalRunning', 'totalFrozen',
-            'totalEmployees', 'timerModeSessions', 'progressModeSessions', 'animatronicsDept'
+            'totalEmployees', 'timerModeSessions', 'progressModeSessions', 'animatronicsDept',
+            'totalMassProduction', 'totalRepair', 'totalSample'
         ));
     }
 

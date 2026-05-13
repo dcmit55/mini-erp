@@ -9,6 +9,7 @@ use App\Models\Hr\AttendanceLog;
 use App\Models\Logistic\Unit;
 use App\Services\Timing\TimingBreakService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 class CostumeMonitorController extends Controller
 {
@@ -45,15 +46,47 @@ class CostumeMonitorController extends Controller
         $totalEmployees = $runningSessions->unique('employee_id')->count();
         $totalMassProduction = $runningSessions->where('status', 'on progress')->where('session_type', 'mass_production')->count();
         $totalRepair = $runningSessions->where('status', 'on progress')->where('session_type', 'repair')->count();
+        $totalSample = $runningSessions->where('status', 'on progress')->where('session_type', 'sample')->count();
 
-        // Group by project for better organization
-        $groupedSessions = $runningSessions->groupBy(function ($timing) {
-            return $timing->project->name ?? 'Unknown Project';
+        // =========== NEW: Group sessions by station ===========
+        $stations = ['office', 'cutting', 'sewing', 'finishing'];
+        $groupedByStation = [];
+        foreach ($stations as $station) {
+            $groupedByStation[$station] = $runningSessions->filter(function ($session) use ($station) {
+                return $session->station === $station;
+            });
+        }
+        // Also include sessions with null/empty station as "Unassigned"
+        $groupedByStation['unassigned'] = $runningSessions->filter(function ($session) {
+            return empty($session->station);
         });
+
+        // Optional: statistics per station
+        $stationStats = [];
+        foreach ($stations as $station) {
+            $stationStats[$station] = [
+                'total' => $groupedByStation[$station]->count(),
+                'running' => $groupedByStation[$station]->where('status', 'on progress')->count(),
+                'frozen' => $groupedByStation[$station]->where('status', 'frozen')->count(),
+            ];
+        }
+        // =======================================================
 
         $units = Unit::orderBy('name')->get();
 
-        return view('timing.costume.monitor', compact('runningSessions', 'groupedSessions', 'totalRunning', 'totalFrozen', 'totalEmployees', 'totalMassProduction', 'totalRepair', 'costumeDept', 'units'));
+        return view('timing.costume.monitor', compact(
+            'runningSessions',
+            'totalRunning',
+            'totalFrozen',
+            'totalEmployees',
+            'totalMassProduction',
+            'totalRepair',
+            'totalSample',
+            'costumeDept',
+            'units',
+            'groupedByStation',      // <-- baru
+            'stationStats'           // <-- baru
+        ));
     }
 
     /**
@@ -72,16 +105,19 @@ class CostumeMonitorController extends Controller
             ->pluck('employee_id')
             ->toArray();
 
-        $employees = AttendanceLog::whereDate('date', today())->whereNotNull('clock_in')->whereHas('employee', fn($q) => $q->where('department_id', $dept->id)->whereNotIn('id', $activeEmployeeIds))->with('employee')->orderBy('clock_in')->get()->map(
-            fn($log) => [
+        $employees = AttendanceLog::whereDate('date', today())->whereNotNull('clock_in')
+            ->whereHas('employee', fn($q) => $q->where('department_id', $dept->id)->whereNotIn('id', $activeEmployeeIds))
+            ->with('employee')
+            ->orderBy('clock_in')
+            ->get()
+            ->map(fn($log) => [
                 'id' => $log->employee->id,
                 'name' => $log->employee->name,
                 'position' => $log->employee->position ?? '—',
                 'photo' => $log->employee->photo,
                 'clock_in' => optional($log->clock_in)->format('H:i'),
                 'initials' => strtoupper(substr($log->employee->name, 0, 1)),
-            ],
-        );
+            ]);
 
         return response()->json([
             'success' => true,
@@ -91,23 +127,16 @@ class CostumeMonitorController extends Controller
     }
 
     /**
-     * Get running sessions via AJAX for auto-refresh
+     * Get running sessions via AJAX for auto-refresh (including station)
      */
     public function getRunning(TimingBreakService $breakService)
     {
         $breakService->run();
 
-        // Get costume department
         $costumeDept = Department::where('name', 'LIKE', '%costume%')->orWhere('name', 'LIKE', '%sewing%')->first();
 
         if (!$costumeDept) {
-            return response()->json(
-                [
-                    'success' => false,
-                    'message' => 'Costume department not found',
-                ],
-                404,
-            );
+            return response()->json(['success' => false, 'message' => 'Costume department not found'], 404);
         }
 
         $runningSessions = Timing::whereIn('status', ['on progress', 'frozen'])
@@ -140,6 +169,7 @@ class CostumeMonitorController extends Controller
                     'auto_break_paused' => !empty($departmentData['auto_break_paused']),
                     'frozen_duration' => $isFrozen ? $departmentData['frozen_duration'] ?? '00:00:00' : null,
                     'duration' => $isFrozen ? $departmentData['frozen_duration'] ?? '00:00:00' : $timing->getDurationAttribute(),
+                    'station' => $timing->station ?? 'unassigned',   // <-- tambah station
                 ];
             }),
             'statistics' => [

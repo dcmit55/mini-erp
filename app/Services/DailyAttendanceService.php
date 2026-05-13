@@ -27,7 +27,7 @@ class DailyAttendanceService
     {
         Log::info("===== GENERATING DAILY FOR DATE: " . $date->format('Y-m-d') . " =====");
 
-        $employees = Employee::with(['department', 'defaultShift'])->where('status', 'active')->get();
+        $employees = Employee::with(['department', 'defaultShift'])->active()->get();
         $dateStr   = $date->format('Y-m-d');
 
         foreach ($employees as $employee) {

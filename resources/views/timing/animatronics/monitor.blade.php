@@ -6,16 +6,16 @@
         <div class="d-flex flex-column flex-lg-row align-items-lg-center gap-2 mb-3">
             <div class="d-flex align-items-center">
                 <i class="fas fa-tv gradient-icon me-2" style="font-size: 1.5rem;"></i>
-                <h2 class="mb-0" style="font-size:1.2rem;">🤖 Animatronics Running Monitor</h2>
+                <h2 class="mb-0" style="font-size:1.2rem;">🎭 Mascot Running Monitor</h2>
             </div>
             <div class="ms-lg-auto d-flex gap-2 flex-wrap">
                 <button id="refresh-btn" class="btn btn-outline-primary btn-sm">
                     <i class="bi bi-arrow-clockwise me-1"></i> Refresh
                 </button>
-                <a href="{{ route('animatronics-timing.index') }}" class="btn btn-outline-secondary btn-sm">
-                    <i class="fas fa-robot me-1"></i> Start New Session
+                <a href="{{ route('mascot-timing.index') }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-theater-masks me-1"></i> Start New Session
                 </a>
-                <a href="{{ route('live-workstation.index', ['type' => 'animatronics']) }}" class="btn btn-outline-success btn-sm">
+                <a href="{{ route('live-workstation.index', ['type' => 'mascot']) }}" class="btn btn-outline-success btn-sm">
                     <i class="fas fa-desktop me-1"></i> Live Workstation
                 </a>
                 <a href="{{ route('timings.index') }}" class="btn btn-outline-primary btn-sm">
@@ -33,7 +33,7 @@
                             <div>
                                 <h6 class="mb-0 small">Running</h6>
                                 <h2 class="mb-0 fw-bold" id="total-running">{{ $totalRunning ?? 0 }}</h2>
-                                <small>{{ $animatronicsDept->name ?? 'Animatronics Department' }}</small>
+                                <small>{{ $mascotDept->name ?? 'Mascot Department' }}</small>
                             </div>
                             <i class="fas fa-play-circle fa-2x opacity-50"></i>
                         </div>
@@ -61,7 +61,7 @@
                             <div>
                                 <h6 class="mb-0 small">Active Employees</h6>
                                 <h2 class="mb-0 fw-bold" id="total-employees">{{ $totalEmployees ?? 0 }}</h2>
-                                <small>Working on Animatronics</small>
+                                <small>Working on Mascot</small>
                             </div>
                             <i class="fas fa-users fa-2x opacity-50"></i>
                         </div>
@@ -72,31 +72,42 @@
 
         <!-- Session Type Summary -->
         <div class="row g-2 mb-3">
-            <div class="col-md-6">
-                <div class="card shadow-sm">
+            <div class="col-md-4">
+                <div class="card shadow-sm" style="background-color:#E8F5E9; border-top:3px solid #4CAF50;">
                     <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
                         <div>
                             <div class="fw-semibold small">📦 Mass Production</div>
                             <small class="text-muted" style="font-size: 12px;">Produksi massal</small>
                         </div>
-                        <h3 class="mb-0 text-secondary fw-bold">{{ $totalMassProduction ?? 0 }}</h3>
+                        <h3 class="mb-0 fw-bold" style="color:#4CAF50;">{{ $totalMassProduction ?? 0 }}</h3>
                     </div>
                 </div>
             </div>
-            <div class="col-md-6">
-                <div class="card shadow-sm" style="background-color:#fff3e0;">
+            <div class="col-md-4">
+                <div class="card shadow-sm" style="background-color:#FFF3E0; border-top:3px solid #F59E0B;">
+                    <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-semibold small">🔬 Sample</div>
+                            <small class="text-muted" style="font-size: 10px;">Produksi sampel</small>
+                        </div>
+                        <h3 class="mb-0 fw-bold" style="color:#F59E0B;">{{ $totalSample ?? 0 }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card shadow-sm" style="background-color:#FEE2E2; border-top:3px solid #DC2626;">
                     <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
                         <div>
                             <div class="fw-semibold small">🔧 Repair / Rework</div>
                             <small class="text-muted" style="font-size: 10px;">Perbaikan</small>
                         </div>
-                        <h3 class="mb-0 fw-bold" style="color:#fd7e14;">{{ $totalRepair ?? 0 }}</h3>
+                        <h3 class="mb-0 fw-bold" style="color:#DC2626;">{{ $totalRepair ?? 0 }}</h3>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Clocked-In Employees -->
+        <!-- Clocked-In Employees - Styling seperti Animatronics -->
         <div id="clocked-in-panel" class="card shadow-sm border-0 mb-3" style="display:none; border-left:4px solid #fda085 !important;">
             <div class="card-header d-flex align-items-center justify-content-between py-2" style="background:linear-gradient(135deg,#f6d365 0%,#fda085 100%);">
                 <div class="d-flex align-items-center gap-2">
@@ -115,7 +126,7 @@
         @if(isset($groupedSessions) && $groupedSessions->count() > 0)
             @foreach($groupedSessions as $jobOrderName => $sessions)
                 <div class="card shadow-sm border-0 mb-3">
-                    <div class="card-header bg-gradient-animatronics text-white d-flex justify-content-between align-items-center py-2">
+                    <div class="card-header bg-gradient-mascot text-white d-flex justify-content-between align-items-center py-2">
                         <h6 class="mb-0">
                             <i class="fas fa-tasks me-2"></i>{{ $jobOrderName }}
                             <span class="badge bg-light text-dark ms-2">{{ $sessions->count() }} Employee(s)</span>
@@ -141,18 +152,24 @@
                                     $isFrozen = $session->status === 'frozen';
                                     $isAutoBreak = !empty($deptData['auto_break_paused']);
                                     $sessionType = $session->session_type ?? 'mass_production';
+                                    $isSample = $sessionType === 'sample';
                                     $isRepair = $sessionType === 'repair';
-                                    
+
                                     if ($isFrozen) {
                                         $cardBg = '#FEE2E2';
                                         $borderColor = '#DC2626';
                                         $badgeText = '⏸ PAUSED' . ($isAutoBreak ? ' (BREAK)' : '');
                                         $badgeBg = '#DC2626';
-                                    } elseif ($isRepair) {
+                                    } elseif ($isSample) {
                                         $cardBg = '#FFF3E0';
-                                        $borderColor = '#E65100';
+                                        $borderColor = '#F59E0B';
+                                        $badgeText = '🔬 SAMPLE';
+                                        $badgeBg = '#F59E0B';
+                                    } elseif ($isRepair) {
+                                        $cardBg = '#FEE2E2';
+                                        $borderColor = '#DC2626';
                                         $badgeText = '🔧 REPAIR';
-                                        $badgeBg = '#E65100';
+                                        $badgeBg = '#DC2626';
                                     } else {
                                         $cardBg = '#E8F5E9';
                                         $borderColor = '#4CAF50';
@@ -178,59 +195,59 @@
                                                 <span class="text-muted" style="font-size: 14px;"><i class="bi bi-clock"></i> {{ $session->start_time }}</span>
                                             </div>
                                             
-                                            <!-- Employee Info: Foto di kiri, Nama & Posisi di kanan -->
+                                            <!-- Employee Info -->
                                             <div class="d-flex align-items-center gap-3 mb-3">
                                                 <div class="flex-shrink-0">
                                                     @if ($session->employee && $session->employee->photo)
                                                         <img src="{{ asset('storage/' . $session->employee->photo) }}"
-                                                            class="rounded-circle" width="60" height="60"
+                                                            class="rounded-circle" width="55" height="55"
                                                             style="object-fit: cover; border: 2px solid {{ $borderColor }};">
                                                     @else
                                                         <div class="rounded-circle d-flex align-items-center justify-content-center"
-                                                            style="width: 60px; height: 60px; background: {{ $borderColor }}20;">
+                                                            style="width: 55px; height: 55px; background: {{ $borderColor }}20;">
                                                             <i class="bi bi-person text-secondary fs-3"></i>
                                                         </div>
                                                     @endif
                                                 </div>
                                                 <div class="flex-grow-1" style="min-width: 0;">
                                                     <div class="fw-semibold small text-truncate">{{ $session->employee->name ?? 'Unknown' }}</div>
-                                                    <div class="text-muted text-truncate" style="font-size: 11px;">{{ $session->employee->position ?? 'N/A' }}</div>
+                                                    <div class="text-muted text-truncate" style="font-size: 10px;">{{ $session->employee->position ?? 'N/A' }}</div>
                                                 </div>
                                             </div>
                                             
                                             <!-- Timer -->
                                             <div class="text-center mb-2 py-1 bg-white bg-opacity-60 rounded">
                                                 @if ($isFrozen)
-                                                    <span class="fw-bold font-monospace" style="font-size: 15px; color: {{ $borderColor }};">
+                                                    <span class="fw-bold font-monospace" style="font-size: 14px; color: {{ $borderColor }};">
                                                         {{ $deptData['frozen_duration'] ?? '00:00:00' }}
                                                     </span>
+                                                    <div class="text-muted" style="font-size: 7px;">⏸ paused</div>
                                                 @else
                                                     <span class="duration-display fw-bold font-monospace"
-                                                        style="font-size: 16px; color: {{ $borderColor }};"
+                                                        style="font-size: 14px; color: {{ $borderColor }};"
                                                         data-start-time="{{ $session->start_time }}">
                                                         {{ $session->duration ?? '00:00:00' }}
                                                     </span>
+                                                    <div class="text-muted" style="font-size: 7px;">elapsed</div>
                                                 @endif
                                             </div>
                                             
-                                            <!-- Job Info dengan JO dan Project -->
+                                            <!-- Job Info -->
                                             <div class="border-top pt-2 small flex-grow-1">
-                                                <!-- JO (Job Order) - BOLD -->
                                                 <div class="mb-1 text-truncate" title="{{ $session->jobOrder->name ?? 'N/A' }}">
                                                     <span class="text-muted">JO:</span> 
-                                                    <strong>{{ $session->jobOrder->name ?? 'N/A' }}</strong>
+                                                    <strong>{{ \Illuminate\Support\Str::limit($session->jobOrder->name ?? 'N/A', 22) }}</strong>
                                                 </div>
-                                                <!-- Project - TIDAK BOLD -->
                                                 <div class="mb-1 text-truncate" title="{{ $session->jobOrder->project->name ?? 'N/A' }}">
                                                     <span class="text-muted">Project:</span> 
-                                                    {{ $session->jobOrder->project->name ?? 'N/A' }}
+                                                    {{ \Illuminate\Support\Str::limit($session->jobOrder->project->name ?? 'N/A', 18) }}
                                                 </div>
                                                 <div class="row g-0 mb-1">
                                                     <div class="col-6 text-truncate">
-                                                        <span class="text-muted">Step:</span> {{ $session->step ?? '-' }}
+                                                        <span class="text-muted">Step:</span> {{ \Illuminate\Support\Str::limit($session->step ?? '-', 12) }}
                                                     </div>
                                                     <div class="col-6 text-truncate">
-                                                        <span class="text-muted">Part:</span> {{ $session->parts ?? '-' }}
+                                                        <span class="text-muted">Part:</span> {{ \Illuminate\Support\Str::limit($session->parts ?? '-', 10) }}
                                                     </div>
                                                 </div>
                                             </div>
@@ -240,20 +257,23 @@
                                                 @if ($isFrozen)
                                                     <button class="btn btn-success btn-sm w-100 unfreeze-btn"
                                                         data-timing-id="{{ $session->id }}"
-                                                        data-employee-name="{{ $session->employee->name ?? 'Unknown' }}">
+                                                        data-employee-name="{{ $session->employee->name ?? 'Unknown' }}"
+                                                        style="font-size: 8px; padding: 3px;">
                                                         <i class="bi bi-play-circle me-1"></i>RESUME
                                                     </button>
                                                 @else
                                                     <div class="d-flex gap-1">
                                                         <button class="btn btn-info btn-sm flex-grow-1 freeze-btn"
                                                             data-timing-id="{{ $session->id }}"
-                                                            data-employee-name="{{ $session->employee->name ?? 'Unknown' }}">
+                                                            data-employee-name="{{ $session->employee->name ?? 'Unknown' }}"
+                                                            style="font-size: 8px; padding: 3px;">
                                                             <i class="bi bi-pause-circle me-1"></i>PAUSE
                                                         </button>
-                                                        <button class="btn btn-danger btn-sm flex-grow-1 stop-work-btn"
+                                                        <button class="btn btn-warning btn-sm flex-grow-1 stop-work-btn"
                                                             data-timing-id="{{ $session->id }}"
                                                             data-employee-name="{{ $session->employee->name ?? 'Unknown' }}"
-                                                            data-job-order="{{ $session->jobOrder->name ?? 'N/A' }}">
+                                                            data-job-order="{{ $session->jobOrder->name ?? 'N/A' }}"
+                                                            style="font-size: 8px; padding: 3px;">
                                                             <i class="bi bi-stop-circle me-1"></i>STOP
                                                         </button>
                                                     </div>
@@ -270,11 +290,11 @@
         @else
             <div class="card shadow-sm border-0">
                 <div class="card-body text-center py-5">
-                    <i class="fas fa-robot text-muted" style="font-size: 4rem;"></i>
-                    <h5 class="text-muted mt-2">No Running Animatronics Sessions</h5>
-                    <p class="text-muted small">Start a new timing session from Animatronics Timing</p>
-                    <a href="{{ route('animatronics-timing.index') }}" class="btn btn-primary btn-sm mt-2">
-                        <i class="fas fa-robot me-1"></i> Go to Animatronics Timing
+                    <i class="fas fa-theater-masks text-muted" style="font-size: 4rem;"></i>
+                    <h5 class="text-muted mt-2">No Running Mascot Sessions</h5>
+                    <p class="text-muted small">Start a new timing session from Mascot Timing</p>
+                    <a href="{{ route('mascot-timing.index') }}" class="btn btn-primary btn-sm mt-2">
+                        <i class="fas fa-theater-masks me-1"></i> Go to Mascot Timing
                     </a>
                 </div>
             </div>
@@ -328,7 +348,7 @@
     <div class="modal fade" id="stopWorkModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
-                <div class="modal-header bg-danger text-white">
+                <div class="modal-header bg-warning text-white">
                     <h5 class="modal-title"><i class="bi bi-stop-circle me-2"></i>Stop Work Session</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
@@ -362,7 +382,7 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-danger">
+                        <button type="submit" class="btn btn-warning">
                             <i class="bi bi-stop-circle me-1"></i>Stop & Save
                         </button>
                     </div>
@@ -373,11 +393,11 @@
 
     <style>
         .gradient-icon {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
-        .bg-gradient-animatronics {
+        .bg-gradient-mascot {
             background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
         }
         .card {
@@ -415,7 +435,7 @@
 @section('scripts')
     <script>
         $(document).ready(function() {
-            // Duration timer
+            // Duration timer functions
             function startDurationTimers() {
                 setInterval(function() {
                     $('.duration-display').each(function() {
@@ -451,7 +471,7 @@
 
             function refreshData() {
                 $.ajax({
-                    url: '{{ route('animatronics-timing.monitor.running') }}',
+                    url: '{{ route('mascot-timing.monitor.running') }}',
                     method: 'GET',
                     success: function(response) {
                         if (response.success) {
@@ -471,9 +491,10 @@
                 setTimeout(() => location.reload(), 500);
             });
 
+            // Load Clocked-In Employees - Menggunakan styling yang sama seperti Animatronics
             function loadClockedIn() {
                 $.ajax({
-                    url: '{{ route('animatronics-timing.monitor.clocked-in') }}',
+                    url: '{{ route('mascot-timing.monitor.clocked-in') }}',
                     method: 'GET',
                     success: function(r) {
                         if (!r.success) return;
@@ -561,7 +582,7 @@
                 submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Stopping...');
 
                 $.ajax({
-                    url: '{{ route('animatronics-timing.bulk-stop') }}',
+                    url: '{{ route('mascot-timing.bulk-stop') }}',
                     method: 'POST',
                     data: {
                         _token: '{{ csrf_token() }}',
@@ -603,7 +624,7 @@
                 }).then(function(result) {
                     if (!result.isConfirmed) return;
                     $.ajax({
-                        url: '{{ route('animatronics-timing.freeze') }}',
+                        url: '{{ route('mascot-timing.freeze') }}',
                         method: 'POST',
                         data: { _token: '{{ csrf_token() }}', timing_id: timingId },
                         success: function(r) {
@@ -636,7 +657,7 @@
                 }).then(function(result) {
                     if (!result.isConfirmed) return;
                     $.ajax({
-                        url: '{{ route('animatronics-timing.unfreeze') }}',
+                        url: '{{ route('mascot-timing.unfreeze') }}',
                         method: 'POST',
                         data: { _token: '{{ csrf_token() }}', timing_id: timingId },
                         success: function(r) {
@@ -686,7 +707,7 @@
                 }
 
                 $.ajax({
-                    url: '{{ route('animatronics-timing.stop') }}',
+                    url: '{{ route('mascot-timing.stop') }}',
                     method: 'POST',
                     data: {
                         _token: '{{ csrf_token() }}',

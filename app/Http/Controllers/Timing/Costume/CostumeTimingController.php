@@ -213,9 +213,10 @@ class CostumeTimingController extends Controller
             'tasks.*' => 'nullable|string|max:255',
             'parts' => 'required|string|max:255',
             'item' => 'nullable|string|max:255',
-            'session_type' => 'required|in:mass_production,repair',
+            'session_type' => 'required|in:mass_production,repair,sample',
             'session_types' => 'nullable|array',
-            'session_types.*' => 'nullable|in:mass_production,repair',
+            'session_types.*' => 'nullable|in:mass_production,repair,sample',
+            'station' => 'required|in:office,cutting,sewing,finishing', // [ADDED] station validation
         ]);
 
         // Build per-employee task map
@@ -310,6 +311,7 @@ class CostumeTimingController extends Controller
                     'status' => 'on progress',
                     'session_type' => $sessionTypeMap[$employeeId] ?? $defaultSessionType, // Per-employee session_type
                     'remarks' => null,
+                    'station' => $validated['station'], // [ADDED] assign station
                 ]);
 
                 // Return full timing data for real-time display
@@ -328,6 +330,7 @@ class CostumeTimingController extends Controller
                     'start_time' => $timing->start_time,
                     'session_type' => $timing->session_type,
                     'duration' => '00:00:00',
+                    'station' => $timing->station, // [ADDED] include station in response
                 ];
 
                 $employeeNames[] = $employee->name;
@@ -536,6 +539,7 @@ class CostumeTimingController extends Controller
                 'measurement_type' => $timing->measurement_type ?? 'pcs',
                 'measurement_value' => $timing->measurement_value ?? 0,
                 'duration' => $isFrozen ? $deptData['frozen_duration'] ?? '00:00:00' : $this->calculateDuration($timing->start_time),
+                'station' => $timing->station, // [ADDED] include station in active sessions response
             ];
         });
 
@@ -787,6 +791,7 @@ class CostumeTimingController extends Controller
                 'step' => $timing->step,
                 'parts' => $timing->parts,
                 'start_time' => $timing->start_time,
+                'station' => $timing->station, // [ADDED] include station in info
             ];
         });
 

@@ -57,7 +57,7 @@ class AttendancesImport implements ToModel, WithHeadingRow, WithValidation, Skip
         }
 
         // Hanya karyawan aktif
-        if ($employee->status !== 'active') {
+        if (!$employee->isActive()) {
             $this->failedRows[] = [
                 'row'   => $row,
                 'error' => "Employee {$employee->employee_no} is inactive (status: {$employee->status})"

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Timing;
 
 use App\Http\Controllers\Controller;
 use App\Models\Production\Timing;
+use App\Models\Admin\Department;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -30,11 +31,25 @@ class TimingMonitorController extends Controller
                 return $timing->employee->department->name ?? 'Unknown';
             });
 
+        // Always show the 3 main departments even when they have no running sessions
+        $mainDepts = Department::where(function ($q) {
+            $q->where('name', 'LIKE', '%costume%')
+              ->orWhere('name', 'LIKE', '%sewing%')
+              ->orWhere('name', 'LIKE', '%animatronic%')
+              ->orWhere('name', 'LIKE', '%mascot%');
+        })->pluck('name');
+        foreach ($mainDepts as $deptName) {
+            if (!$runningSessions->has($deptName)) {
+                $runningSessions->put($deptName, collect());
+            }
+        }
+
         // Calculate statistics
         $totalRunning = Timing::running()->today()->count();
         $totalEmployees = Timing::running()->today()->distinct('employee_id')->count();
         $totalMassProduction = Timing::running()->today()->where('session_type', 'mass_production')->count();
         $totalRepair = Timing::running()->today()->where('session_type', 'repair')->count();
+        $totalSample = Timing::running()->today()->where('session_type', 'sample')->count();
 
         // Get costume timing running count
         $costumeRunning = Timing::running()
@@ -60,7 +75,7 @@ class TimingMonitorController extends Controller
             })
             ->count();
 
-        return view('timing.monitor.index', compact('runningSessions', 'totalRunning', 'totalEmployees', 'totalMassProduction', 'totalRepair', 'costumeRunning', 'animatronicsRunning', 'mascotRunning'));
+        return view('timing.monitor.index', compact('runningSessions', 'totalRunning', 'totalEmployees', 'totalMassProduction', 'totalRepair', 'totalSample', 'costumeRunning', 'animatronicsRunning', 'mascotRunning'));
     }
 
     /**

@@ -68,12 +68,25 @@ use App\Http\Controllers\Hr\FingerspotController;
 use App\Http\Controllers\Hr\SessionShiftController;
 use App\Http\Controllers\Hr\SymcoreExportController;
 use App\Http\Controllers\ChatbotController;
+use App\Http\Controllers\Qc\QcViewController;
 
 /*
 |--------------------------------------------------------------------------
 | Web Routes
 |--------------------------------------------------------------------------
 */
+
+// ── QC Module ──────────────────────────────────────────────────────────────
+Route::middleware(['auth'])->prefix('qc')->name('qc.')->group(function () {
+    Route::get('/mascot/{any?}', [QcViewController::class, 'mascot'])
+        ->where('any', '.*')
+        ->name('mascot');
+    Route::get('/costume/{any?}', [QcViewController::class, 'costume'])
+        ->where('any', '.*')
+        ->name('costume');
+});
+require __DIR__.'/qc.php';
+// ──────────────────────────────────────────────────────────────────────────
 
 // Leave Requests - Public access ONLY for create & store
 Route::get('leave_requests/create', [LeaveRequestController::class, 'create'])->name('leave_requests.create');
@@ -283,6 +296,9 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/create', [JobOrderController::class, 'create'])->name('create');
             Route::post('/import', [JobOrderController::class, 'import'])->name('import');
 
+            // Gallery routes
+            Route::get('/gallery', [JobOrderController::class, 'galleryIndex'])->name('gallery.index');
+
             // CRUD routes
             Route::get('/', [JobOrderController::class, 'index'])->name('index');
             Route::post('/', [JobOrderController::class, 'store'])->name('store');
@@ -290,6 +306,10 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/{id}/edit', [JobOrderController::class, 'edit'])->name('edit');
             Route::put('/{id}', [JobOrderController::class, 'update'])->name('update');
             Route::delete('/{id}', [JobOrderController::class, 'destroy'])->name('destroy');
+
+            // Gallery routes
+            Route::get('/{id}/gallery', [JobOrderController::class, 'gallery'])->name('gallery');
+            Route::post('/{id}/sync-gallery', [JobOrderController::class, 'syncGallery'])->name('sync.gallery');
 
             // Soft delete functionality
             Route::put('/{id}/restore', [JobOrderController::class, 'restore'])->name('restore');

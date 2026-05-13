@@ -15,8 +15,14 @@ class Timing extends Model implements AuditableContract
 {
     use HasFactory, \OwenIt\Auditing\Auditable;
 
-    protected $auditInclude = ['tanggal', 'job_order_id', 'project_id', 'step', 'parts', 'item', 'employee_id', 'start_time', 'end_time', 'duration_minutes', 'status', 'approval_status', 'approved_by', 'rejection_reason', 'remarks'];
+    // [UPDATED] Added 'station' to audit fields
+    protected $auditInclude = [
+        'tanggal', 'job_order_id', 'project_id', 'step', 'parts', 'item',
+        'employee_id', 'start_time', 'end_time', 'duration_minutes', 'status',
+        'approval_status', 'approved_by', 'rejection_reason', 'remarks', 'station'
+    ];
 
+    // [UPDATED] Added 'station' to fillable
     protected $fillable = [
         'tanggal',
         'job_order_id',
@@ -52,6 +58,7 @@ class Timing extends Model implements AuditableContract
         'rate_per_hour',
         'session_type',
         'source', // e.g. 'mascot', 'costume', 'animatronics', 'across'
+        'station', // [ADDED]
     ];
 
     protected $casts = [
