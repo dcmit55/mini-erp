@@ -664,7 +664,7 @@
                                 @endcanany
 
                                 <!-- QC Menu -->
-                                {{-- <li class="nav-item dropdown">
+                                <li class="nav-item dropdown">
                                     <a class="nav-link dropdown-toggle {{ request()->is('qc*') ? 'active' : '' }}"
                                         href="#" id="qcDropdown" role="button"
                                         data-bs-toggle="dropdown" aria-expanded="false">
@@ -684,7 +684,7 @@
                                             </a>
                                         </li>
                                     </ul>
-                                </li> --}}
+                                </li>
 
                                 <!-- Finances Dropdown -->
                                 @canany(['finance.costing.view', 'finance.currency.view', 'procurement.po.approve',
