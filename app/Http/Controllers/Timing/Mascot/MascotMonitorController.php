@@ -46,7 +46,6 @@ class MascotMonitorController extends Controller
         $totalMassProduction = $runningSessions->where('status', 'on progress')->where('session_type', 'mass_production')->count();
         $totalRepair = $runningSessions->where('status', 'on progress')->where('session_type', 'repair')->count();
         $totalSample = $runningSessions->where('status', 'on progress')->where('session_type', 'sample')->count();
-
         // Group by project for better organization
         $groupedSessions = $runningSessions->groupBy(function ($timing) {
             return $timing->project->name ?? 'Unknown Project';

@@ -53,30 +53,70 @@ class JobOrderTransformer
      */
     /**
      * @param LarkJobOrderDTO $dto
+     * @param array  $existingImages  Optional: existing stored LOCAL paths to preserve.
+     *                                Keys: 'final_image','wip_photos','project_images','latest_designs','final_images'.
+     *                                Values treated as local when NOT starting with 'http'.
+     * @param bool   $downloadImages  When FALSE (default for bulk sync), all image fields are skipped.
+     *                                Existing local paths are preserved; new records get null until backfill runs.
+     *                                Set TRUE only for single-record sync or the backfill artisan command.
+     *                                NEVER pass TRUE during bulk sync — 700+ records × N images = timeout.
      * @return array
      */
-    public function transform(LarkJobOrderDTO $dto): array
+    public function transform(LarkJobOrderDTO $dto, array $existingImages = [], bool $downloadImages = false): array
     {
         return [
             'lark_record_id' => $dto->recordId,
             'name' => $this->normalizeName($dto->nameRaw),
-            'project_lark' => $this->normalizeProjectLark($dto->projectRaw), // Raw text
-            'project_id' => $this->normalizeProjectId($dto->projectRaw), // FK lookup
-            'department_lark' => $this->normalizeDepartmentLark($dto->departmentRaw), // Raw text (deprecated, keep for archive)
-            'department_id' => $this->normalizePrimaryDepartmentId($dto->departmentsArray), // FK lookup - first dept only
-            'delivery_date' => $this->parseDeliveryDate($dto->deliveryDateRaw), // Parse date from Lark
-            'status' => $this->normalizeStatus($dto->statusRaw), // Job status from Lark
-            // Gallery fields (Multiple Images)
-            'project_images' => $this->downloadMultipleAttachments($dto->projectImageRaw, 'project'),
-            'latest_designs' => $this->downloadMultipleAttachments($dto->latestDesignRaw, 'design'),
-            'final_images' => $this->downloadMultipleAttachments($dto->finalImageRaw, 'final'),
-            // Skip re-download for primary image if it already exists locally
-            'final_image' => !empty($existingImages['final_image']) ? $existingImages['final_image'] : $this->getFirstImagePath($dto->finalImageRaw, 'final'),
-            'wip_photo' => !empty($existingImages['wip_photo']) ? $existingImages['wip_photo'] : $this->normalizeWipPhoto($dto->wipPhotoRaw),
+            'project_lark' => $this->normalizeProjectLark($dto->projectRaw),
+            'project_id' => $this->normalizeProjectId($dto->projectRaw),
+            'department_lark' => $this->normalizeDepartmentLark($dto->departmentRaw),
+            'department_id' => $this->normalizePrimaryDepartmentId($dto->departmentsArray),
+            'delivery_date' => $this->parseDeliveryDate($dto->deliveryDateRaw),
+            'status' => $this->normalizeStatus($dto->statusRaw),
+            // ── Image fields ─────────────────────────────────────────────────────────
+            // $downloadImages=false (bulk sync via web button):
+            //   - Already-local paths are kept as-is (no re-download).
+            //   - Records without local images keep null until backfill command runs.
+            //   - Zero HTTP calls to Lark during bulk sync → fast, no timeout.
+            // $downloadImages=true (syncSingle / artisan backfill):
+            //   - Downloads from Lark, saves to local storage.
+            //   - DB stores local path e.g. "wip_photos/wip_abc.jpg".
+            //   - Rendered via asset('storage/...') — no API call at render time.
+            'project_images' => $this->areLocalPaths($existingImages['project_images'] ?? null) ? $existingImages['project_images'] : ($downloadImages ? $this->downloadMultipleAttachments($dto->projectImageRaw, 'project') : $existingImages['project_images'] ?? null),
+            'latest_designs' => $this->areLocalPaths($existingImages['latest_designs'] ?? null) ? $existingImages['latest_designs'] : ($downloadImages ? $this->downloadMultipleAttachments($dto->latestDesignRaw, 'design') : $existingImages['latest_designs'] ?? null),
+            'final_images' => $this->areLocalPaths($existingImages['final_images'] ?? null) ? $existingImages['final_images'] : ($downloadImages ? $this->downloadMultipleAttachments($dto->finalImageRaw, 'final') : $existingImages['final_images'] ?? null),
+            'final_image' => $this->isLocalPath($existingImages['final_image'] ?? null) ? $existingImages['final_image'] : ($downloadImages ? $this->getFirstImagePath($dto->finalImageRaw, 'final') : $existingImages['final_image'] ?? null),
+            'wip_photos' => $this->areLocalPaths($existingImages['wip_photos'] ?? null) ? $existingImages['wip_photos'] : ($downloadImages ? $this->normalizeWipPhotos($dto->wipPhotoRaw) : $existingImages['wip_photos'] ?? null),
             'created_by' => 'Sync from Lark',
             'last_sync_at' => now(),
             '_department_ids' => $this->normalizeDepartmentIds($dto->departmentsArray),
         ];
+    }
+
+    /**
+     * Returns true when $paths is a non-empty array whose FIRST element is a LOCAL path.
+     * Local path = does NOT start with 'http' (i.e. not a Lark/external URL).
+     * Example local: "wip_photos/wip_abc123.jpg"
+     * Example Lark URL (needs download): "https://open.larksuite.com/..."
+     */
+    private function areLocalPaths(mixed $paths): bool
+    {
+        if (empty($paths) || !is_array($paths)) {
+            return false;
+        }
+        $first = (string) ($paths[0] ?? '');
+        return $first !== '' && !str_starts_with($first, 'http');
+    }
+
+    /**
+     * Returns true when $path is a non-empty LOCAL storage path (not a Lark URL).
+     */
+    private function isLocalPath(mixed $path): bool
+    {
+        if (empty($path) || !is_string($path)) {
+            return false;
+        }
+        return !str_starts_with($path, 'http');
     }
 
     /**
@@ -450,13 +490,18 @@ class JobOrderTransformer
     }
 
     /**
-     * Download multiple attachments and return JSON array of local paths
+     * Download all non-video attachments and save to local storage.
+     * Returns a PHP array of relative storage paths, e.g. ['job_order_gallery/abc.jpg'].
+     * Returns null when nothing could be downloaded.
+     *
+     * NOTE: Returns ?array, NOT ?string — compatible with model's `array` cast.
+     * Eloquent automatically JSON-encodes arrays on save; do not json_encode here.
      *
      * @param array|null $attachments Raw attachments from Lark
-     * @param string $prefix Filename prefix
-     * @return string|null JSON encoded array of paths
+     * @param string $prefix Filename prefix ('project', 'design', 'final', …)
+     * @return array|null
      */
-    private function downloadMultipleAttachments(?array $attachments, string $prefix = 'gallery'): ?string
+    private function downloadMultipleAttachments(?array $attachments, string $prefix = 'gallery'): ?array
     {
         if (empty($attachments) || !is_array($attachments)) {
             return null;
@@ -465,7 +510,9 @@ class JobOrderTransformer
         $paths = [];
         foreach ($attachments as $attachment) {
             $larkUrl = $attachment['url'] ?? ($attachment['tmp_url'] ?? null);
-            if (!$larkUrl) continue;
+            if (!$larkUrl) {
+                continue;
+            }
 
             try {
                 $response = $this->apiClient->downloadMedia($larkUrl);
@@ -476,28 +523,38 @@ class JobOrderTransformer
 
                     Storage::disk('public')->put($path, $response->body());
                     $paths[] = $path;
+                } else {
+                    Log::warning("Job Order Gallery: non-success download for {$prefix}", [
+                        'url' => $larkUrl,
+                        'status' => $response?->status(),
+                    ]);
                 }
             } catch (\Exception $e) {
                 Log::error("Job Order Gallery: failed to download {$prefix} image", [
                     'url' => $larkUrl,
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ]);
             }
         }
 
-        return !empty($paths) ? json_encode($paths) : null;
+        return !empty($paths) ? $paths : null;
     }
 
     /**
-     * Get first image path for backward compatibility
+     * Download first attachment to local storage. Used for the `final_image` column (single path).
      */
     private function getFirstImagePath(?array $attachments, string $prefix = 'jo'): ?string
     {
-        $json = $this->downloadMultipleAttachments($attachments, $prefix);
-        if (!$json) return null;
-
-        $paths = json_decode($json, true);
+        $paths = $this->downloadMultipleAttachments($attachments, $prefix);
         return $paths[0] ?? null;
+    }
+
+    /**
+     * Alias used by normalizeFinalImagePublic() public proxy.
+     */
+    private function normalizeFinalImage(?array $attachments): ?string
+    {
+        return $this->getFirstImagePath($attachments, 'final');
     }
 
     /**
@@ -679,7 +736,7 @@ class JobOrderTransformer
                 }
 
                 $filename = 'wip_' . Str::random(40) . '.' . $finalExt;
-                $path = 'job_order_images/' . $filename;
+                $path = 'wip_photos/' . $filename;
                 Storage::disk('public')->put($path, $response->body());
                 $paths[] = $path;
 

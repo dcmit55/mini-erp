@@ -539,7 +539,7 @@
                                                         <i class="fas fa-tasks me-2"></i>Job Order
                                                     </a>
                                                 </li>
-                                                            @endcan
+                                            @endcan
                                             @can('logistic.material-request.view')
                                                 <li>
                                                     <a class="dropdown-item {{ request()->is('material_requests*') ? 'active' : '' }}"
@@ -664,7 +664,7 @@
                                 @endcanany
 
                                 <!-- QC Menu -->
-                                <li class="nav-item dropdown">
+                                {{-- <li class="nav-item dropdown">
                                     <a class="nav-link dropdown-toggle {{ request()->is('qc*') ? 'active' : '' }}"
                                         href="#" id="qcDropdown" role="button"
                                         data-bs-toggle="dropdown" aria-expanded="false">
@@ -684,7 +684,7 @@
                                             </a>
                                         </li>
                                     </ul>
-                                </li>
+                                </li> --}}
 
                                 <!-- Finances Dropdown -->
                                 @canany(['finance.costing.view', 'finance.currency.view', 'procurement.po.approve',
@@ -854,15 +854,16 @@
                                                             ($directorLeavePendingCount ?? 0) +
                                                             ($hrOvertimePendingCount ?? 0) +
                                                             ($directorOvertimePendingCount ?? 0);
-                                                        $staffMgmtActive = request()->routeIs('hr.management')
-                                                            || request()->routeIs('leave_requests.index')
-                                                            || request()->routeIs('overtime-requests.*')
-                                                            || request()->routeIs('overtime-pays.*')
-                                                            || request()->routeIs('warning-letters.*')
-                                                            || request()->routeIs('warning-batches.*')
-                                                            || request()->routeIs('leave_requests.hr-approvals')
-                                                            || request()->routeIs('leave_requests.director-approvals')
-                                                            || request()->routeIs('timings.*');
+                                                        $staffMgmtActive =
+                                                            request()->routeIs('hr.management') ||
+                                                            request()->routeIs('leave_requests.index') ||
+                                                            request()->routeIs('overtime-requests.*') ||
+                                                            request()->routeIs('overtime-pays.*') ||
+                                                            request()->routeIs('warning-letters.*') ||
+                                                            request()->routeIs('warning-batches.*') ||
+                                                            request()->routeIs('leave_requests.hr-approvals') ||
+                                                            request()->routeIs('leave_requests.director-approvals') ||
+                                                            request()->routeIs('timings.*');
                                                     @endphp
                                                     <li class="dropdown-submenu">
                                                         <a class="dropdown-item d-flex align-items-center justify-content-between hr-submenu-toggle {{ $staffMgmtActive ? 'active' : '' }}"
@@ -870,9 +871,11 @@
                                                             <span><i class="fas fa-tasks me-2"></i>Staff Management</span>
                                                             <span class="d-flex align-items-center gap-1">
                                                                 @if ($mgmtPending > 0)
-                                                                    <span class="badge bg-danger rounded-pill" style="font-size:0.6rem;">{{ $mgmtPending > 99 ? '99+' : $mgmtPending }}</span>
+                                                                    <span class="badge bg-danger rounded-pill"
+                                                                        style="font-size:0.6rem;">{{ $mgmtPending > 99 ? '99+' : $mgmtPending }}</span>
                                                                 @endif
-                                                                <i class="fas fa-chevron-right" style="font-size:.6rem;opacity:.5;"></i>
+                                                                <i class="fas fa-chevron-right"
+                                                                    style="font-size:.6rem;opacity:.5;"></i>
                                                             </span>
                                                         </a>
                                                         <ul class="dropdown-menu">
@@ -883,12 +886,12 @@
                                                                 </a>
                                                             </li>
                                                             @can('production.timing.view')
-                                                            <li>
-                                                                <a class="dropdown-item {{ request()->routeIs('timings.*') ? 'active' : '' }}"
-                                                                    href="{{ route('timings.index') }}">
-                                                                    <i class="fas fa-stopwatch me-2"></i>Timing Data
-                                                                </a>
-                                                            </li>
+                                                                <li>
+                                                                    <a class="dropdown-item {{ request()->routeIs('timings.*') ? 'active' : '' }}"
+                                                                        href="{{ route('timings.index') }}">
+                                                                        <i class="fas fa-stopwatch me-2"></i>Timing Data
+                                                                    </a>
+                                                                </li>
                                                             @endcan
                                                         </ul>
                                                     </li>
