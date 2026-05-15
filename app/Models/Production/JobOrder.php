@@ -16,7 +16,7 @@ class JobOrder extends Model implements AuditableContract
     protected $keyType = 'string';
     protected $primaryKey = 'id';
 
-    protected $fillable = ['id', 'project_id', 'department_id', 'name', 'description', 'start_date', 'end_date', 'delivery_date', 'status', 'source_by', 'notes', 'actual_start_date', 'actual_end_date', 'project_lark', 'department_lark', 'lark_record_id', 'last_sync_at', 'final_image', 'project_images', 'latest_designs', 'final_images', 'wip_photos', 'total_standard_minutes', 'standard_time_per_unit'];
+    protected $fillable = ['id', 'project_id', 'department_id', 'name', 'description', 'start_date', 'end_date', 'delivery_date', 'status', 'source_by', 'notes', 'actual_start_date', 'actual_end_date', 'project_lark', 'department_lark', 'lark_record_id', 'last_sync_at', 'final_image', 'project_images', 'latest_designs', 'final_images', 'wip_photos', 'lark_photo_tokens', 'total_standard_minutes', 'standard_time_per_unit'];
 
     protected $dates = ['start_date', 'end_date', 'actual_start_date', 'actual_end_date', 'last_sync_at'];
 
@@ -30,6 +30,7 @@ class JobOrder extends Model implements AuditableContract
         'standard_time_per_unit' => 'decimal:2',
         'status' => 'string',
         'wip_photos' => 'array',
+        'lark_photo_tokens' => 'array',
         'last_sync_at' => 'datetime',
         'project_images' => 'array',
         'latest_designs' => 'array',
@@ -231,13 +232,55 @@ class JobOrder extends Model implements AuditableContract
     }
 
     /**
-     * Accessor: returns array of browser-accessible URLs for all wip_photos.
-     * Each Lark URL is routed through the proxy.
+     * Accessor: first wip_photo local path.
+     * Used by gallery-index.blade.php (wip_photo / wip_photo_url).
+     */
+    public function getWipPhotoAttribute(): ?string
+    {
+        $photos = $this->wip_photos ?? [];
+        return $photos[0] ?? null;
+    }
+
+    /**
+     * Accessor: browser URL for the FIRST wip_photo.
+     * Local path  → asset('storage/wip_photos/xxx.jpg')  — no API call, works offline.
+     * Legacy Lark URL (pre-migration) → toLarkProxyUrl() as fallback until backfill runs.
+     */
+    public function getWipPhotoUrlAttribute(): ?string
+    {
+        $path = $this->wip_photo;
+        if (!$path) {
+            return null;
+        }
+        if (!str_starts_with($path, 'http')) {
+            return asset('storage/' . $path); // local storage — offline-capable
+        }
+        return static::toLarkProxyUrl($path); // legacy Lark URL fallback
+    }
+
+    /**
+     * Accessor: browser-accessible URLs for ALL wip_photos.
+     * Local paths → asset('storage/') — served directly, no proxy, no API call.
+     * Legacy Lark URLs (pre-migration) → proxy fallback until backfill migrates them.
      */
     public function getWipPhotosUrlsAttribute(): array
     {
         $paths = $this->wip_photos ?? [];
-        return array_values(array_filter(array_map(fn($p) => static::toLarkProxyUrl($p), $paths)));
+        return array_values(
+            array_filter(
+                array_map(function (string $p): ?string {
+                    if (!$p) {
+                        return null;
+                    }
+                    // Local path → direct storage URL (offline-capable, no API dependency)
+                    if (!str_starts_with($p, 'http')) {
+                        return asset('storage/' . $p);
+                    }
+                    // Legacy Lark URL — proxy fallback (until backfill migrates to local)
+                    return static::toLarkProxyUrl($p);
+                }, $paths),
+            ),
+        );
     }
 
     /**

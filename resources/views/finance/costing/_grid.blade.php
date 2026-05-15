@@ -66,12 +66,11 @@
                 };
 
                 // Build flat list of ALL photos across all JOs in this project.
-                // Use wip_photos_urls accessor — returns browser-accessible proxy URLs
-                // (raw Lark URLs require Bearer auth; proxy handles auth server-side).
+                // wip_photos_urls accessor returns local storage URLs (asset('storage/wip_photos/xxx.jpg')).
+                // No Lark API call at render time — images load from local disk.
                 $allSlides = [];
                 foreach ($project->jobOrders as $jo) {
-                    // wip_photos_urls returns proxy URLs — each request goes through /lark-media
-                    // which fetches from Lark with Bearer auth and redirects to a pre-signed URL
+                    // Local storage path — served directly, works without internet connection
                     foreach ($jo->wip_photos_urls as $photoUrl) {
                         $allSlides[] = ['url' => $photoUrl, 'jo_name' => $jo->name];
                     }

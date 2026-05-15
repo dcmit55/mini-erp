@@ -85,14 +85,11 @@ class TimingPlannerController extends Controller
             // Default mode: show the LATEST plan per JO regardless of date.
             // Uses a subquery to get the max planning_date per job_order_id,
             // then joins back to retrieve the full plan rows for that date.
-            $latestDates = JobOrderTimingPlan::whereIn('job_order_id', $joIds)
-                ->selectRaw('job_order_id, MAX(planning_date) as latest_date')
-                ->groupBy('job_order_id');
+            $latestDates = JobOrderTimingPlan::whereIn('job_order_id', $joIds)->selectRaw('job_order_id, MAX(planning_date) as latest_date')->groupBy('job_order_id');
 
             $plans = JobOrderTimingPlan::with(['employee', 'createdBy'])
                 ->joinSub($latestDates, 'latest', function ($join) {
-                    $join->on('job_order_timing_plans.job_order_id', '=', 'latest.job_order_id')
-                         ->on('job_order_timing_plans.planning_date', '=', 'latest.latest_date');
+                    $join->on('job_order_timing_plans.job_order_id', '=', 'latest.job_order_id')->on('job_order_timing_plans.planning_date', '=', 'latest.latest_date');
                 })
                 ->get()
                 ->groupBy('job_order_id');
@@ -146,13 +143,11 @@ class TimingPlannerController extends Controller
         DB::beginTransaction();
         try {
             // Delete ALL plans for this JO regardless of planning_date.
-            // The unique constraint uq_jo_employee_plan is on (job_order_id, employee_id)
-            // WITHOUT planning_date, so records from any previous date block the insert.
-            JobOrderTimingPlan::where('job_order_id', $joId)->delete();
+            // Use Eloquent get()->each->delete() so the Auditable trait fires 'deleted' events.
+            JobOrderTimingPlan::where('job_order_id', $joId)->get()->each->delete();
 
-            $rows = [];
             foreach ($rowsMap as $empId => $row) {
-                $rows[] = [
+                JobOrderTimingPlan::create([
                     'job_order_id' => $joId,
                     'planning_date' => $planningDate,
                     'employee_id' => $empId,
@@ -161,12 +156,8 @@ class TimingPlannerController extends Controller
                     'stage' => $row['stage'] ?? null,
                     'session_type' => $row['session_type'] ?? null,
                     'created_by' => $userId,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
+                ]);
             }
-
-            JobOrderTimingPlan::insert($rows);
 
             DB::commit();
 
@@ -198,7 +189,8 @@ class TimingPlannerController extends Controller
 
         $planningDate = $request->planning_date ?? today()->toDateString();
 
-        JobOrderTimingPlan::where('job_order_id', $request->job_order_id)->where('planning_date', $planningDate)->delete();
+        // Use Eloquent get()->each->delete() so Auditable fires 'deleted' event per record.
+        JobOrderTimingPlan::where('job_order_id', $request->job_order_id)->where('planning_date', $planningDate)->get()->each->delete();
 
         return response()->json(['success' => true, 'message' => 'Plan berhasil dihapus.']);
     }

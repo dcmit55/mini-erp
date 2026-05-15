@@ -3,16 +3,24 @@
 namespace App\Services\Lark;
 
 use App\DTO\LarkJobOrderDTO;
+use App\Jobs\DownloadJobOrderPhotosJob;
 use App\Transformers\JobOrderTransformer;
 use App\Models\Production\JobOrder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Lark Job Order Sync Service
+ * Lark Job Order Sync Service — Incremental Architecture
  *
- * Main orchestrator untuk sync Job Orders dari Lark ke MySQL
- * Following iSyment pattern: Database transactions, comprehensive logging
+ * sync() fetches ALL metadata from Lark (fast — text fields only).
+ * Image downloads are queued per-job-order ONLY when photo tokens changed.
+ *
+ * Change detection uses Lark attachment file_token (stable, unique per file):
+ *   - Same tokens → skip download entirely
+ *   - New/changed tokens → dispatch DownloadJobOrderPhotosJob (background)
+ *
+ * With QUEUE_CONNECTION=sync the job runs via app()->terminating() — after HTTP response.
+ * With a real queue driver it runs in a background worker.
  */
 class LarkJobOrderSyncService
 {
@@ -34,10 +42,19 @@ class LarkJobOrderSyncService
     }
 
     /**
-     * Main sync method - Called from controller/job
+     * Incremental sync — metadata fast pass + photo change detection.
+     *
+     * Steps:
+     *  1. Fetch all records from Lark (metadata + attachment tokens, no binary download)
+     *  2. Pre-load existing DB records into memory (1 query)
+     *  3. For each Lark record:
+     *     a. Upsert metadata (name, status, project, department, delivery_date)
+     *     b. Compare wip_photos file_tokens vs stored lark_photo_tokens
+     *     c. If tokens CHANGED or missing → dispatch DownloadJobOrderPhotosJob (queued)
+     *     d. If tokens SAME → skip image entirely (zero API calls for photos)
+     *  4. Soft-delete records no longer in Lark
      *
      * @return array Sync statistics
-     * @throws \Exception
      */
     public function sync(): array
     {
@@ -45,6 +62,8 @@ class LarkJobOrderSyncService
             'fetched' => 0,
             'created' => 0,
             'updated' => 0,
+            'photos_queued' => 0,
+            'photos_skipped' => 0,
             'deactivated' => 0,
             'errors' => 0,
             'error_details' => [],
@@ -53,106 +72,144 @@ class LarkJobOrderSyncService
         DB::beginTransaction();
 
         try {
-            // 1. Fetch raw data dari Lark
-            Log::info('Starting Lark job order sync');
+            Log::info('LarkJobOrderSyncService: starting incremental sync');
 
+            // ── Step 1: Fetch all records (metadata + attachment metadata, no binary) ──────
             $rawRecords = $this->apiClient->fetchRecords($this->appToken, $this->tableId, $this->viewId, 'name');
-
             $stats['fetched'] = count($rawRecords);
 
-            Log::info('Fetched job order records from Lark', [
+            Log::info('LarkJobOrderSyncService: records fetched from Lark', [
                 'count' => $stats['fetched'],
-                'table_id' => $this->tableId,
-                'view_id' => $this->viewId,
             ]);
 
-            // 2. Pre-load departments into memory (1 query total) — eliminates N+1 per record.
-            //    Same pattern as Projects module but bulk-loaded for 700+ job orders.
+            // ── Step 2: Pre-load all departments + existing job orders ────────────────────
             $this->transformer->preloadDepartments();
 
-            // 3. Process each record
+            // Load existing records keyed by lark_record_id (1 query, no N+1)
+            $existingMap = JobOrder::whereNotNull('lark_record_id')
+                ->get([
+                    'id',
+                    'lark_record_id',
+                    'final_image',
+                    'wip_photos',
+                    'project_images',
+                    'latest_designs',
+                    'final_images',
+                    'lark_photo_tokens', // stored file_tokens from last successful download
+                ])
+                ->keyBy('lark_record_id');
+
+            // Jobs to dispatch AFTER the DB transaction commits
+            $photoJobs = [];
             $larkRecordIds = [];
 
+            // ── Step 3: Process each record ───────────────────────────────────────────────
             foreach ($rawRecords as $rawRecord) {
                 try {
                     $dto = new LarkJobOrderDTO($rawRecord);
                     $larkRecordIds[] = $dto->recordId;
 
-                    // Transform to database format (photos stored as Lark URLs — no HTTP download)
-                    $data = $this->transformer->transform($dto);
+                    $existing = $existingMap[$dto->recordId] ?? null;
 
-                    // Validate
+                    // Build existingImages with only LOCAL paths (Lark URLs are treated as undownloaded)
+                    $existingImages = $existing
+                        ? [
+                            'final_image' => $existing->final_image,
+                            'wip_photos' => $existing->wip_photos ?? [],
+                            'project_images' => $existing->project_images,
+                            'latest_designs' => $existing->latest_designs,
+                            'final_images' => $existing->final_images,
+                        ]
+                        : [];
+
+                    // Transform metadata ONLY — zero HTTP downloads, fast
+                    $data = $this->transformer->transform($dto, $existingImages, downloadImages: false);
+
                     $this->transformer->validate($data);
 
-                    // Extract department IDs for pivot sync (remove from main data)
                     $departmentIds = $data['_department_ids'] ?? [];
                     unset($data['_department_ids']);
 
-                    // Upsert to database with source tracking
-                    $jobOrder = JobOrder::updateOrCreate(
-                        ['lark_record_id' => $dto->recordId],
-                        array_merge($data, [
-                            'source_by' => 'Sync from Lark',
-                            'last_sync_at' => now(),
-                        ]),
-                    );
+                    $jobOrder = JobOrder::updateOrCreate(['lark_record_id' => $dto->recordId], array_merge($data, ['source_by' => 'Sync from Lark', 'last_sync_at' => now()]));
 
-                    // Sync departments via pivot table (many-to-many)
                     if (!empty($departmentIds)) {
                         $jobOrder->departments()->sync($departmentIds);
-
-                        Log::debug('Job Order departments synced', [
-                            'job_order_id' => $jobOrder->id,
-                            'department_ids' => $departmentIds,
-                        ]);
                     } else {
-                        // If no departments from Lark, detach all
                         $jobOrder->departments()->detach();
                     }
 
-                    if ($jobOrder->wasRecentlyCreated) {
-                        $stats['created']++;
-                    } else {
-                        $stats['updated']++;
-                    }
+                    $jobOrder->wasRecentlyCreated ? $stats['created']++ : $stats['updated']++;
 
-                    Log::debug('Job Order synced', [
-                        'lark_record_id' => $dto->recordId,
-                        'job_order_id' => $jobOrder->id,
-                        'action' => $jobOrder->wasRecentlyCreated ? 'created' : 'updated',
-                        'countdown_days' => $jobOrder->countdown_days,
-                    ]);
+                    // ── Photo change detection ─────────────────────────────────────────────
+                    // Extract file_tokens from this Lark record's wip_photos attachments
+                    $currentTokens = $this->extractPhotoTokens($dto->wipPhotoRaw);
+
+                    // Stored tokens from last successful download
+                    $storedTokens = $existing?->lark_photo_tokens ?? [];
+
+                    // Compare: skip if tokens identical AND local paths already exist
+                    $hasLocalPhotos = !empty($existingImages['wip_photos']) && is_array($existingImages['wip_photos']) && !str_starts_with((string) ($existingImages['wip_photos'][0] ?? ''), 'http');
+
+                    $tokensChanged = $currentTokens !== $storedTokens;
+                    $needsDownload = !empty($dto->wipPhotoRaw) && ($tokensChanged || !$hasLocalPhotos);
+
+                    if ($needsDownload) {
+                        // Queue download — runs background (or post-response on sync driver)
+                        $photoJobs[] = [
+                            'job_order_id' => $jobOrder->id,
+                            'lark_record_id' => $dto->recordId,
+                            'wip_photo_raw' => $dto->wipPhotoRaw,
+                            'new_tokens' => $currentTokens,
+                        ];
+                        $stats['photos_queued']++;
+
+                        Log::debug('LarkJobOrderSyncService: photo download queued', [
+                            'jo_id' => $jobOrder->id,
+                            'tokens_changed' => $tokensChanged,
+                            'had_local' => $hasLocalPhotos,
+                        ]);
+                    } else {
+                        $stats['photos_skipped']++;
+                    }
                 } catch (\Exception $e) {
                     $stats['errors']++;
                     $stats['error_details'][] = [
                         'record_id' => $dto->recordId ?? 'unknown',
                         'error' => $e->getMessage(),
                     ];
-
-                    Log::error('Failed to sync job order', [
+                    Log::error('LarkJobOrderSyncService: record failed', [
                         'record_id' => $dto->recordId ?? 'unknown',
                         'error' => $e->getMessage(),
-                        'trace' => $e->getTraceAsString(),
                     ]);
                 }
             }
 
-            // 3. Soft delete job orders yang tidak ada lagi di Lark
+            // ── Step 4: Soft-delete job orders no longer in Lark ─────────────────────────
             $deactivated = JobOrder::whereNotNull('lark_record_id')->whereNotIn('lark_record_id', $larkRecordIds)->whereNull('deleted_at')->get();
 
             foreach ($deactivated as $jobOrder) {
                 $jobOrder->delete();
                 $stats['deactivated']++;
-
-                Log::info('Job Order deactivated (not in Lark)', [
-                    'lark_record_id' => $jobOrder->lark_record_id,
-                    'job_order_id' => $jobOrder->id,
-                ]);
+                Log::info('LarkJobOrderSyncService: deactivated', ['id' => $jobOrder->lark_record_id]);
             }
 
             DB::commit();
 
-            Log::info('Lark job order sync completed', $stats);
+            // ── Dispatch photo jobs AFTER commit ──────────────────────────────────────────
+            // With real queue: runs in background worker immediately
+            // With QUEUE_CONNECTION=sync: runs via app()->terminating() (after HTTP response)
+            foreach ($photoJobs as $jobData) {
+                $job = new DownloadJobOrderPhotosJob($jobData['job_order_id'], $jobData['lark_record_id'], $jobData['wip_photo_raw'], $jobData['new_tokens']);
+
+                if (config('queue.default') === 'sync') {
+                    // Defer until after HTTP response — never block the UI
+                    app()->terminating(fn() => dispatch_sync($job));
+                } else {
+                    dispatch($job);
+                }
+            }
+
+            Log::info('LarkJobOrderSyncService: incremental sync completed', $stats);
 
             // After main sync, sync the latest design images field (same table, field_key='id')
             try {
@@ -167,12 +224,10 @@ class LarkJobOrderSyncService
             return $stats;
         } catch (\Exception $e) {
             DB::rollBack();
-
-            Log::error('Lark job order sync failed', [
+            Log::error('LarkJobOrderSyncService: sync failed', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
-
             throw $e;
         }
     }
@@ -292,7 +347,7 @@ class LarkJobOrderSyncService
 
         try {
             $dto = new LarkJobOrderDTO($rawRecord);
-            
+
             // Find existing to preserve images if needed (though transformer handles it)
             $existing = JobOrder::where('lark_record_id', $larkRecordId)->first();
             $existingImages = $existing ? [
@@ -300,7 +355,7 @@ class LarkJobOrderSyncService
                 'wip_photos' => $existing->wip_photos
             ] : [];
 
-            $data = $this->transformer->transform($dto, $existingImages);
+            $data = $this->transformer->transform($dto, $existingImages, downloadImages: true);
             $this->transformer->validate($data);
 
             // Extract department IDs for pivot sync
@@ -312,7 +367,7 @@ class LarkJobOrderSyncService
                 array_merge($data, [
                     'source_by' => 'Sync from Lark',
                     'last_sync_at' => now(),
-                ])
+                ]),
             );
 
             // Sync departments via pivot table

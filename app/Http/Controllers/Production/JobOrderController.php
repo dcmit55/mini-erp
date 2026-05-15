@@ -148,13 +148,10 @@ class JobOrderController extends Controller
                     }
 
                     $isGeneral = !auth()->user()->can('production.jo.edit');
-                    $actions = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;min-width:70px;">' .
-                        '<a href="' . route('job-orders.show', $jo->id) . '" class="btn btn-sm btn-info" style="' . $btnStyle . '" title="Detail"><i class="bi bi-eye"></i></a>' .
-                        $imgBtn;
+                    $actions = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;min-width:70px;">' . '<a href="' . route('job-orders.show', $jo->id) . '" class="btn btn-sm btn-info" style="' . $btnStyle . '" title="Detail"><i class="bi bi-eye"></i></a>' . $imgBtn;
 
                     if (!$isGeneral) {
-                        $actions .= '<a href="' . route('job-orders.edit', $jo->id) . '" class="btn btn-sm btn-warning" style="' . $btnStyle . '" title="Edit"><i class="bi bi-pencil"></i></a>' .
-                            '<form action="' . route('job-orders.destroy', $jo->id) . '" method="POST" style="display:contents;">' . csrf_field() . method_field('DELETE') . '<button type="button" class="btn btn-sm btn-danger btn-delete" style="' . $btnStyle . '" title="Delete"><i class="bi bi-trash3"></i></button>' . '</form>';
+                        $actions .= '<a href="' . route('job-orders.edit', $jo->id) . '" class="btn btn-sm btn-warning" style="' . $btnStyle . '" title="Edit"><i class="bi bi-pencil"></i></a>' . '<form action="' . route('job-orders.destroy', $jo->id) . '" method="POST" style="display:contents;">' . csrf_field() . method_field('DELETE') . '<button type="button" class="btn btn-sm btn-danger btn-delete" style="' . $btnStyle . '" title="Delete"><i class="bi bi-trash3"></i></button>' . '</form>';
                     }
 
                     $actions .= '</div>';
@@ -352,7 +349,9 @@ class JobOrderController extends Controller
         // If queue driver is 'sync' (no real queue worker), run directly with extended time limit.
         // On production with a real queue driver (database/redis), dispatch to background immediately.
         if (config('queue.default') === 'sync') {
-            set_time_limit(600);
+            // Metadata-only sync (no image downloads) should complete in < 60 seconds.
+            // Run image backfill separately: php artisan joborder:backfill-wip-photos
+            set_time_limit(120);
             try {
                 $stats = $syncService->sync();
                 $message = sprintf('Lark sync completed! Fetched: %d | Created: %d | Updated: %d | Deactivated: %d | Designs synced: %d', $stats['fetched'], $stats['created'], $stats['updated'], $stats['deactivated'], $stats['design_updated'] ?? 0);
@@ -439,7 +438,7 @@ class JobOrderController extends Controller
     public function gallery($id)
     {
         $jobOrder = JobOrder::with(['project', 'department', 'departments'])->findOrFail($id);
-        
+
         return view('production.job-orders.gallery', compact('jobOrder'));
     }
 
@@ -449,7 +448,7 @@ class JobOrderController extends Controller
     public function syncGallery($id, LarkJobOrderSyncService $syncService)
     {
         $jobOrder = JobOrder::findOrFail($id);
-        
+
         if (empty($jobOrder->lark_record_id)) {
             return redirect()->back()->with('error', 'Job Order tidak terhubung dengan Lark (lark_record_id kosong).');
         }
@@ -458,16 +457,18 @@ class JobOrderController extends Controller
             // Force download images by clearing existing images in transformer call
             // But we can just call syncSingle which will download new ones if they changed
             $syncService->syncSingle($jobOrder->lark_record_id);
-            
+
             return redirect()->back()->with('success', 'Gallery berhasil disinkronkan dari Lark.');
         } catch (\Exception $e) {
             \Log::error('Single Job Order sync failed', [
                 'id' => $id,
                 'lark_id' => $jobOrder->lark_record_id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
-            
-            return redirect()->back()->with('error', 'Gagal sinkronisasi: ' . $e->getMessage());
+
+            return redirect()
+                ->back()
+                ->with('error', 'Gagal sinkronisasi: ' . $e->getMessage());
         }
     }
 }

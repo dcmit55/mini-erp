@@ -175,6 +175,7 @@ class AuditController extends Controller
             'Supplier' => [\App\Models\Procurement\Supplier::class, ['name', 'id']],
             'LeaveRequest' => [\App\Models\Hr\LeaveRequest::class, ['id']],
             'Timing' => [\App\Models\Production\Timing::class, ['id']],
+            'JobOrderTimingPlan' => [\App\Models\Production\JobOrderTimingPlan::class, ['id']],
         ];
 
         $result = [
@@ -246,6 +247,11 @@ class AuditController extends Controller
             ],
             'LeaveRequest' => [
                 'employee_id' => ['model' => \App\Models\Hr\Employee::class, 'field' => 'name'],
+            ],
+            'JobOrderTimingPlan' => [
+                'job_order_id' => ['model' => \App\Models\Production\JobOrder::class, 'field' => 'name'],
+                'employee_id' => ['model' => \App\Models\Hr\Employee::class, 'field' => 'name'],
+                'created_by' => ['model' => \App\Models\Admin\User::class, 'field' => 'username'],
             ],
             'ProjectPart' => [
                 'project_id' => ['model' => \App\Models\Production\Project::class, 'field' => 'name'],

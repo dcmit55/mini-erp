@@ -99,8 +99,8 @@ class ProjectCostingController extends Controller
             ->orderByDesc('created_at') // Then by created_at
             ->paginate(12); // 12 = 3 cols × 4 rows (xl), fits clean grid
 
-        // PERFORMANCE: Dispatch Lark media pre-warm as a background queued job.
-        // This avoids blocking the HTTP response with synchronous Lark API calls.
+        // PERFORMANCE: Dispatch Lark media pre-warm.
+        // Once wip_photos are migrated to local storage this is a no-op (no Lark URLs in DB).
         $this->dispatchLarkPrewarm($projects);
 
         // PERFORMANCE: Use shared cached card summaries — avoids re-running
@@ -138,7 +138,6 @@ class ProjectCostingController extends Controller
             $allSgBtItems = \App\Models\Lark\LarkSgBtItemTracking::whereIn('project_id', $uncachedIds)->get()->groupBy('project_id');
 
             foreach ($uncachedIds as $pid) {
-
                 // Material cost
                 $materialIDR = 0;
                 foreach ($usagesByProject[$pid] ?? collect() as $usage) {
@@ -261,8 +260,26 @@ class ProjectCostingController extends Controller
             }
         }
 
-        if (!empty($larkUrls)) {
-            PrewarmLarkMediaJob::dispatch(array_unique($larkUrls));
+        if (empty($larkUrls)) {
+            return;
+        }
+
+        $unique = array_unique($larkUrls);
+
+        // PERFORMANCE: When queue driver is 'sync' (no background worker), the job
+        // would run inline — blocking the HTTP response. Use app()->terminating()
+        // to defer execution until AFTER the response is sent to the browser.
+        // When a real queue driver (database/redis) is active, dispatch normally.
+        if (config('queue.default') === 'sync') {
+            app()->terminating(function () use ($unique) {
+                try {
+                    app(\App\Services\Lark\LarkApiClient::class)->prewarmBatch($unique);
+                } catch (\Throwable) {
+                    // Non-critical: prewarm failure must never break page load
+                }
+            });
+        } else {
+            PrewarmLarkMediaJob::dispatch($unique);
         }
     }
 
@@ -342,7 +359,8 @@ class ProjectCostingController extends Controller
             ->orderByDesc('created_at')
             ->paginate(12);
 
-        // PERFORMANCE: Dispatch Lark media pre-warm as a background queued job.
+        // PERFORMANCE: Dispatch Lark media pre-warm.
+        // Once wip_photos are migrated to local storage this is a no-op (no Lark URLs in DB).
         $this->dispatchLarkPrewarm($projects);
 
         $projectIds = $projects->pluck('id')->toArray();

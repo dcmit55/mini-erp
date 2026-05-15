@@ -11,13 +11,13 @@ use App\Transformers\JobOrderTransformer;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Backfill wip_photos for existing Job Orders that have lark_record_id but no wip_photos.
- * Run this once after adding the wip_photos column, or to refresh photo data.
+ * Backfill wip_photos and final_image for existing Job Orders from Lark.
+ * Targets records that have NULL photos OR still store Lark API URLs.
  *
  * Usage:
  *   php artisan joborder:backfill-wip-photos
  *   php artisan joborder:backfill-wip-photos --limit=50    (process in batches)
- *   php artisan joborder:backfill-wip-photos --force       (re-download even if wip_photos set)
+ *   php artisan joborder:backfill-wip-photos --force       (re-download all, even if already local)
  */
 class BackfillJobOrderWipPhotos extends Command
 {
@@ -25,7 +25,7 @@ class BackfillJobOrderWipPhotos extends Command
                             {--limit=100 : Max number of JOs to process in one run}
                             {--force : Re-download even if wip_photos already set}';
 
-    protected $description = 'Backfill wip_photos JSON column for existing Job Orders from Lark';
+    protected $description = 'Backfill wip_photos and final_image for existing Job Orders from Lark (downloads to local storage)';
 
     public function handle(LarkApiClient $apiClient, JobOrderTransformer $transformer): int
     {
@@ -34,7 +34,12 @@ class BackfillJobOrderWipPhotos extends Command
 
         $query = JobOrder::whereNotNull('lark_record_id');
         if (!$force) {
-            $query->whereNull('wip_photos');
+            // Target records that need photos downloaded:
+            // (a) wip_photos NULL or still has Lark API URLs
+            // (b) final_image still has a Lark API URL (not NULL — NULL = legitimately no image)
+            $query->where(function ($q) {
+                $q->whereNull('wip_photos')->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(wip_photos, '$[0]')) LIKE 'http%'")->orWhere('final_image', 'LIKE', 'http%');
+            });
         }
 
         $total = $query->count();
@@ -47,7 +52,7 @@ class BackfillJobOrderWipPhotos extends Command
 
         // Fetch target JOs from DB
         $jobs = $query
-            ->select(['id', 'lark_record_id', 'wip_photos'])
+            ->select(['id', 'lark_record_id', 'wip_photos', 'final_image'])
             ->limit($limit)
             ->get();
         $targetLarkIds = $jobs->pluck('lark_record_id')->filter()->flip(); // record_id => index map
@@ -78,11 +83,50 @@ class BackfillJobOrderWipPhotos extends Command
                 }
 
                 $dto = new LarkJobOrderDTO($rawRecord);
-                // Download photos (no _exists flag → full download)
-                $paths = $transformer->normalizeWipPhotosPublic($dto->wipPhotoRaw);
 
-                $jo->update(['wip_photos' => $paths]);
-                $done++;
+                $updates = [];
+
+                // ── wip_photos ─────────────────────────────────────────────────────
+                $needsWip = $force || empty($jo->wip_photos) || str_starts_with((string) ($jo->wip_photos[0] ?? ''), 'http');
+
+                if ($needsWip) {
+                    $paths = $transformer->normalizeWipPhotosPublic($dto->wipPhotoRaw);
+                    $updates['wip_photos'] = $paths;
+
+                    // Extract file_tokens so future incremental syncs skip re-download
+                    $tokens = [];
+                    if (!empty($dto->wipPhotoRaw)) {
+                        $videoExtensions = ['mp4', 'mov', 'avi', 'webm', 'mkv', 'flv', 'wmv', '3gp'];
+                        foreach ($dto->wipPhotoRaw as $attachment) {
+                            $mime = $attachment['mime_type'] ?? ($attachment['type'] ?? '');
+                            if ($mime && str_starts_with($mime, 'video/')) {
+                                continue;
+                            }
+                            $ext = strtolower(pathinfo($attachment['name'] ?? '', PATHINFO_EXTENSION));
+                            if (in_array($ext, $videoExtensions)) {
+                                continue;
+                            }
+                            if ($token = $attachment['file_token'] ?? null) {
+                                $tokens[] = $token;
+                            }
+                        }
+                        sort($tokens);
+                    }
+                    $updates['lark_photo_tokens'] = $tokens ?: null;
+                }
+
+                // ── final_image ────────────────────────────────────────────────────
+                $needsFinal = $force || empty($jo->final_image) || str_starts_with((string) $jo->final_image, 'http');
+
+                if ($needsFinal) {
+                    $finalPath = $transformer->normalizeFinalImagePublic($dto->finalImageRaw);
+                    $updates['final_image'] = $finalPath;
+                }
+
+                if (!empty($updates)) {
+                    $jo->update($updates);
+                    $done++;
+                }
             } catch (\Exception $e) {
                 $errors++;
                 Log::warning('BackfillWipPhotos: failed for JO #' . $jo->id, ['error' => $e->getMessage()]);
