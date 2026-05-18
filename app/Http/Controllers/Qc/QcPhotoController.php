@@ -35,13 +35,14 @@ class QcPhotoController extends Controller
         $modelClass = self::ALLOWED_TYPES[$data['photoable_type']];
         $owner      = $modelClass::where('uid', $data['photoable_uid'])->firstOrFail();
 
-        $path = $request->file('photo')->store('qc/photos', 'public');
+        $path = $request->file('photo')->store('qc/photos', 'qc_public');
 
         $photo = QcPhoto::create([
             'uid'            => Str::uuid(),
             'photoable_type' => get_class($owner),
             'photoable_id'   => $owner->id,
             'path'           => $path,
+            'disk'           => 'qc_public',
             'context'        => $data['context'] ?? null,
             'meta'           => $data['meta'] ?? null,
         ]);

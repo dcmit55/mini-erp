@@ -187,7 +187,7 @@ function ProjectDashboard({ project, onStageClick }) {
 
     const totalProduced = useMemo(() => allRecords.reduce((s, r) => s + (r.qty_produced ?? 0), 0), [allRecords]);
     const totalPass     = useMemo(() => allRecords.reduce((s, r) => s + (r.qty_pass     ?? 0), 0), [allRecords]);
-    const openDefects   = useMemo(() => allLogs.filter(l => l.rework_status !== 'CLOSED').length, [allLogs]);
+    const openDefects   = useMemo(() => allLogs.filter(l => l.stage === 'finishing' && l.rework_status !== 'CLOSED').length, [allLogs]);
 
     const sp = project.stage_progress ?? {};
 
@@ -210,41 +210,42 @@ function ProjectDashboard({ project, onStageClick }) {
             </div>
 
             {/* Charts row */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16 }}>
                 {/* Production trend */}
-                <div style={{ background: '#fff', borderRadius: 14, padding: '16px 18px', boxShadow: '0 1px 4px rgba(0,0,0,.06)' }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 12 }}>Production Trend</div>
+                <div style={{ background: '#fff', borderRadius: 16, padding: '20px 22px', boxShadow: '0 2px 8px rgba(0,0,0,.08)', border: '1px solid #f1f5f9' }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#334155', marginBottom: 16 }}>Production Trend</div>
                     {trendData.length > 0 ? (
-                        <ResponsiveContainer width="100%" height={180}>
-                            <LineChart data={trendData} margin={{ top: 4, right: 8, bottom: 0, left: -20 }}>
-                                <XAxis dataKey="date" tick={{ fontSize: 9 }} tickLine={false} axisLine={false} />
-                                <YAxis allowDecimals={false} tick={{ fontSize: 9 }} tickLine={false} axisLine={false} />
-                                <Tooltip contentStyle={{ borderRadius: 8, fontSize: 11 }} />
-                                <Line type="monotone" dataKey="produced" name="Produced" stroke="#6366f1" strokeWidth={2} dot={{ r: 2.5 }} />
-                                <Line type="monotone" dataKey="pass"     name="Pass"     stroke="#22c55e" strokeWidth={2} dot={{ r: 2.5 }} />
-                                <Line type="monotone" dataKey="fail"     name="Fail"     stroke="#ef4444" strokeWidth={2} dot={{ r: 2.5 }} strokeDasharray="4 2" />
+                        <ResponsiveContainer width="100%" height={260}>
+                            <LineChart data={trendData} margin={{ top: 6, right: 12, bottom: 4, left: -16 }}>
+                                <XAxis dataKey="date" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
+                                <YAxis allowDecimals={false} tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
+                                <Tooltip contentStyle={{ borderRadius: 8, fontSize: 12 }} />
+                                <Legend iconSize={10} wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
+                                <Line type="monotone" dataKey="produced" name="Produced" stroke="#6366f1" strokeWidth={2.5} dot={{ r: 3 }} />
+                                <Line type="monotone" dataKey="pass"     name="Pass"     stroke="#22c55e" strokeWidth={2.5} dot={{ r: 3 }} />
+                                <Line type="monotone" dataKey="fail"     name="Fail"     stroke="#ef4444" strokeWidth={2.5} dot={{ r: 3 }} strokeDasharray="4 2" />
                             </LineChart>
                         </ResponsiveContainer>
                     ) : (
-                        <div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#cbd5e1', fontSize: 12 }}>Belum ada data produksi</div>
+                        <div style={{ height: 260, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#cbd5e1', fontSize: 13 }}>Belum ada data produksi</div>
                     )}
                 </div>
 
                 {/* Defect pie */}
-                <div style={{ background: '#fff', borderRadius: 14, padding: '16px 18px', boxShadow: '0 1px 4px rgba(0,0,0,.06)' }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 12 }}>Defect by Category</div>
+                <div style={{ background: '#fff', borderRadius: 16, padding: '20px 22px', boxShadow: '0 2px 8px rgba(0,0,0,.08)', border: '1px solid #f1f5f9' }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#334155', marginBottom: 16 }}>Defect by Category</div>
                     {defectPieData.length > 0 ? (
-                        <ResponsiveContainer width="100%" height={180}>
+                        <ResponsiveContainer width="100%" height={260}>
                             <PieChart>
-                                <Pie data={defectPieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={64} innerRadius={24} paddingAngle={3}>
+                                <Pie data={defectPieData} dataKey="value" nameKey="name" cx="50%" cy="45%" outerRadius={90} innerRadius={36} paddingAngle={3}>
                                     {defectPieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                                 </Pie>
-                                <Tooltip contentStyle={{ fontSize: 11 }} />
-                                <Legend iconSize={8} wrapperStyle={{ fontSize: 10 }} />
+                                <Tooltip contentStyle={{ fontSize: 12 }} />
+                                <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
                             </PieChart>
                         </ResponsiveContainer>
                     ) : (
-                        <div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#cbd5e1', fontSize: 12 }}>Belum ada defect</div>
+                        <div style={{ height: 260, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#cbd5e1', fontSize: 13 }}>Belum ada defect</div>
                     )}
                 </div>
             </div>

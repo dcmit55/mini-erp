@@ -666,6 +666,14 @@ class JobOrderTransformer
      * Returns JSON-serializable array of local storage paths.
      */
     /**
+     * Public proxy for downloadMultipleAttachments — used by sync services.
+     */
+    public function downloadGalleryAttachments(?array $attachments, string $prefix = 'design'): ?string
+    {
+        return $this->downloadMultipleAttachments($attachments, $prefix);
+    }
+
+    /**
      * Public proxy for normalizeFinalImage — used by DownloadJobOrderPhotosJob.
      */
     public function normalizeFinalImagePublic(?array $attachments): ?string

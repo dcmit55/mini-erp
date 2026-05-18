@@ -211,6 +211,16 @@ class LarkJobOrderSyncService
 
             Log::info('LarkJobOrderSyncService: incremental sync completed', $stats);
 
+            // After main sync, sync the latest design images field (same table, field_key='id')
+            try {
+                $designStats = $this->syncLatestDesignField();
+                $stats['design_updated'] = $designStats['updated'];
+            } catch (\Exception $e) {
+                Log::warning('Lark latest design field sync failed (non-fatal)', [
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
             return $stats;
         } catch (\Exception $e) {
             DB::rollBack();
@@ -223,47 +233,92 @@ class LarkJobOrderSyncService
     }
 
     /**
-     * Extract an ordered array of file_tokens from a Lark attachment array.
-     * Tokens are stable identifiers — they don't change unless the file is replaced.
-     * Sorting ensures comparison is order-independent.
-     *
-     * @param array|null $attachments  Raw attachment array from Lark DTO
-     * @return array  Sorted array of file_token strings
+     * Sync latest_designs from Lark field ID fldd323RrS (same job orders table).
+     * Uses field_key='id' to access the field directly by its Lark field ID.
+     * Matches to job_orders via lark_record_id — no name lookup needed.
      */
-    private function extractPhotoTokens(?array $attachments): array
+    public function syncLatestDesignField(): array
     {
-        if (empty($attachments)) {
-            return [];
+        $stats = ['fetched' => 0, 'updated' => 0, 'skipped' => 0, 'errors' => 0];
+
+        // Field IDs in the job orders Lark table (field_key='id' mode)
+        $latestDesignFieldIds = ['fldd323RrS', 'fldHE5ln9m']; // both map → latest_designs
+        $projectImageFieldId  = 'fldAmMjJLr';                  // maps → project_images
+
+        $rawRecords = $this->apiClient->fetchRecords($this->appToken, $this->tableId, $this->viewId, 'id');
+        $stats['fetched'] = count($rawRecords);
+
+        DB::beginTransaction();
+        try {
+            foreach ($rawRecords as $rawRecord) {
+                try {
+                    $recordId = $rawRecord['record_id'] ?? null;
+                    $fields   = $rawRecord['fields'] ?? [];
+
+                    $jobOrder = JobOrder::where('lark_record_id', $recordId)->first();
+                    if (!$jobOrder) {
+                        $stats['skipped']++;
+                        continue;
+                    }
+
+                    $updated = false;
+
+                    // ── latest_designs: merge all design field IDs ──────────
+                    $designUrls = collect($latestDesignFieldIds)
+                        ->flatMap(function ($fid) use ($fields) {
+                            $attachments = $fields[$fid] ?? [];
+                            if (empty($attachments) || !is_array($attachments)) return [];
+                            return collect($attachments)
+                                ->map(fn($a) => $a['url'] ?? ($a['tmp_url'] ?? null))
+                                ->filter()
+                                ->values()
+                                ->toArray();
+                        })
+                        ->unique()
+                        ->values()
+                        ->toArray();
+
+                    if (!empty($designUrls)) {
+                        $jobOrder->update(['latest_designs' => $designUrls]);
+                        $updated = true;
+                    }
+
+                    // ── project_images ─────────────────────────────────────
+                    $projectAttachments = $fields[$projectImageFieldId] ?? [];
+                    if (!empty($projectAttachments) && is_array($projectAttachments)) {
+                        $projectUrls = collect($projectAttachments)
+                            ->map(fn($a) => $a['url'] ?? ($a['tmp_url'] ?? null))
+                            ->filter()
+                            ->values()
+                            ->toArray();
+                        if (!empty($projectUrls)) {
+                            $jobOrder->update(['project_images' => $projectUrls]);
+                            $updated = true;
+                        }
+                    }
+
+                    if ($updated) {
+                        $stats['updated']++;
+                    } else {
+                        $stats['skipped']++;
+                    }
+                } catch (\Exception $e) {
+                    $stats['errors']++;
+                    Log::error('Design field sync: record error', [
+                        'record_id' => $recordId ?? 'unknown',
+                        'error'     => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            DB::commit();
+            Log::info('Lark latest design field sync completed', $stats);
+
+            return $stats;
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
         }
-
-        $videoExtensions = ['mp4', 'mov', 'avi', 'webm', 'mkv', 'flv', 'wmv', '3gp'];
-        $tokens = [];
-
-        foreach ($attachments as $attachment) {
-            if (!is_array($attachment)) {
-                continue;
-            }
-
-            // Skip videos by mime type
-            $mime = $attachment['mime_type'] ?? ($attachment['type'] ?? '');
-            if ($mime && str_starts_with($mime, 'video/')) {
-                continue;
-            }
-
-            // Skip videos by filename extension
-            $ext = strtolower(pathinfo($attachment['name'] ?? '', PATHINFO_EXTENSION));
-            if (in_array($ext, $videoExtensions)) {
-                continue;
-            }
-
-            $token = $attachment['file_token'] ?? null;
-            if ($token) {
-                $tokens[] = $token;
-            }
-        }
-
-        sort($tokens); // order-independent comparison
-        return $tokens;
     }
 
     /**
@@ -295,15 +350,10 @@ class LarkJobOrderSyncService
 
             // Find existing to preserve images if needed (though transformer handles it)
             $existing = JobOrder::where('lark_record_id', $larkRecordId)->first();
-            $existingImages = $existing
-                ? [
-                    'final_image' => $existing->final_image,
-                    'wip_photos' => $existing->wip_photos ?? [],
-                    'project_images' => $existing->project_images,
-                    'latest_designs' => $existing->latest_designs,
-                    'final_images' => $existing->final_images,
-                ]
-                : [];
+            $existingImages = $existing ? [
+                'final_image' => $existing->final_image,
+                'wip_photos' => $existing->wip_photos
+            ] : [];
 
             $data = $this->transformer->transform($dto, $existingImages, downloadImages: true);
             $this->transformer->validate($data);

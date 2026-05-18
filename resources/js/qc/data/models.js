@@ -27,6 +27,10 @@ export const TAB_LABELS = {
 
 export const SEVERITY_LEVELS = ['minor', 'major', 'critical'];
 
+// ─── Finishing defect enums ───────────────────────────────────────────────────
+export const FINISHING_STATUSES  = ['OPEN', 'IN_REPAIR', 'REPAIRED-PQC', 'CLOSED'];
+export const DEFECT_SEVERITIES   = ['Major', 'Minor', 'Critical'];
+
 export const REJECT_STATUSES = [
     'open',
     'in_repair',

@@ -5,14 +5,17 @@ import {
 } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { LayoutDashboard, Layers } from 'lucide-react';
-import { AppProvider } from './context/AppContext';
+import { AppProvider, useApp } from './context/AppContext';
 import { useMediaQuery } from './hooks/useMediaQuery';
 
-import OverviewPage      from './pages/OverviewPage';
-import JobsPage          from './pages/JobsPage';
-import JoWorkspacePage   from './pages/JoWorkspacePage';
-import StagePage         from './pages/StagePage';
-import StageTabOutlet    from './pages/stage/StageTabOutlet';
+import OverviewPage           from './pages/OverviewPage';
+import JobsPage               from './pages/JobsPage';
+import JoWorkspacePage        from './pages/JoWorkspacePage';
+import StagePage              from './pages/StagePage';
+import StageTabOutlet         from './pages/stage/StageTabOutlet';
+import MascotJoWorkspacePage  from './pages/MascotJoWorkspacePage';
+import MascotStagePage        from './pages/MascotStagePage';
+import MascotQC               from '../modules/mascot/MascotQC';
 
 // ─── React Query client ───────────────────────────────────────────────────────
 
@@ -37,7 +40,7 @@ function Shell({ children }) {
     const isMobile = useMediaQuery('(max-width: 640px)');
 
     // Inside a workspace the global nav is hidden to save vertical space
-    const hideNav = loc.pathname.startsWith('/projects/') || loc.pathname.startsWith('/jobs/');
+    const hideNav = loc.pathname.startsWith('/projects/') || loc.pathname.startsWith('/jobs/') || loc.pathname.startsWith('/mascot');
 
     const isActive = (path) =>
         loc.pathname === path || (path === '/projects' && loc.pathname === '/jobs');
@@ -135,12 +138,17 @@ export default function App({ context = 'mascot', authUser = null }) {
                             <Route path="/overview"  element={<OverviewPage />} />
                             <Route path="/projects"  element={<JobsPage />} />
 
-                            <Route path="/projects/:joUID" element={<JoWorkspacePage />} />
+                            {/* Workspace & Stage — mascot context uses separate mascot files */}
+                            <Route path="/projects/:joUID" element={<WorkspaceRoute />} />
 
-                            <Route path="/projects/:joUID/:stage" element={<StagePage />}>
+                            <Route path="/projects/:joUID/:stage" element={<StageRoute />}>
                                 <Route index element={<Navigate to="dashboard" replace />} />
                                 <Route path=":tab" element={<StageTabOutlet />} />
                             </Route>
+
+                            {/* Mascot QC — standalone module */}
+                            <Route path="/mascot"     element={<MascotQC />} />
+                            <Route path="/mascot/:id" element={<MascotQC />} />
 
                             {/* Legacy aliases */}
                             <Route path="/jobs" element={<Navigate to="/projects" replace />} />
@@ -153,6 +161,16 @@ export default function App({ context = 'mascot', authUser = null }) {
             </AppProvider>
         </QueryClientProvider>
     );
+}
+
+function WorkspaceRoute() {
+    const { context } = useApp();
+    return context === 'mascot' ? <MascotJoWorkspacePage /> : <JoWorkspacePage />;
+}
+
+function StageRoute() {
+    const { context } = useApp();
+    return context === 'mascot' ? <MascotStagePage /> : <StagePage />;
 }
 
 function LegacyJobRedirect() {

@@ -33,6 +33,15 @@ class QcPhoto extends Model
 
     public function getUrlAttribute(): string
     {
-        return Storage::disk($this->disk)->url($this->path);
+        $disk = $this->disk ?? 'public';
+        // qc_public disk stores directly inside public/storage/, so path is already relative to /storage/
+        if ($disk === 'qc_public') {
+            return '/storage/' . ltrim($this->path, '/');
+        }
+        // Legacy 'public' disk — files in storage/app/public/ (may not be web-accessible without symlink)
+        if ($disk === 'public') {
+            return '/storage/' . ltrim($this->path, '/');
+        }
+        return Storage::disk($disk)->url($this->path);
     }
 }

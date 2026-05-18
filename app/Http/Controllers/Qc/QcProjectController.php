@@ -238,9 +238,9 @@ class QcProjectController extends Controller
             'checklist_fail'   => $p->relationLoaded('checklistItems')
                 ? $p->checklistItems->where('status', 'FAIL')->count() : 0,
             'open_defects'     => $p->relationLoaded('rejectLogs')
-                ? $p->rejectLogs->where('rework_status', 'OPEN')->count() : 0,
+                ? $p->rejectLogs->where('stage', 'finishing')->where('rework_status', 'OPEN')->count() : 0,
             'total_defects'    => $p->relationLoaded('rejectLogs')
-                ? $p->rejectLogs->count() : 0,
+                ? $p->rejectLogs->where('stage', 'finishing')->count() : 0,
         ];
 
         if ($full) {

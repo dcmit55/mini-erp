@@ -85,9 +85,9 @@ function exportExcel(project) {
         ['Pass Rate', clTotal > 0 ? `${Math.round((clPass / clTotal) * 100)}%` : '—'],
         [],
         ['Defects Summary'],
-        ['Total Defects', (project.reject_logs ?? []).length],
-        ['Open Defects', (project.reject_logs ?? []).filter(r => r.rework_status === 'OPEN').length],
-        ['Closed', (project.reject_logs ?? []).filter(r => r.rework_status === 'CLOSED').length],
+        ['Total Defects', (project.reject_logs ?? []).filter(r => r.stage === 'finishing').length],
+        ['Open Defects', (project.reject_logs ?? []).filter(r => r.stage === 'finishing' && r.rework_status === 'OPEN').length],
+        ['Closed', (project.reject_logs ?? []).filter(r => r.stage === 'finishing' && r.rework_status === 'CLOSED').length],
     ]);
     XLSX.utils.book_append_sheet(wb, ws1, 'Summary');
 
@@ -294,7 +294,7 @@ const StackedBarTooltip = ({ active, payload, label }) => {
 
 export default function ProjectReportTab({ project }) {
     const clItems    = project.checklist_items ?? [];
-    const rejectLogs = project.reject_logs ?? [];
+    const rejectLogs = (project.reject_logs ?? []).filter(r => r.stage === 'finishing');
     const clTotal    = CL_SECTIONS.reduce((a, s) => a + s.items.length, 0);
     const clPass     = clItems.filter(c => c.status === 'PASS').length;
     const clFail     = clItems.filter(c => c.status === 'FAIL').length;

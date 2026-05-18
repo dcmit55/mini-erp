@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getStageRecords, createStageRecord, inspectRecord } from '../../../api/stageProduction';
+import { addCustomPart } from '../../../api/projects';
 import { getEmployees } from '../../../api/employees';
 import { uploadPhoto } from '../../../api/photos';
 import { useApp } from '../../../context/AppContext';
@@ -438,12 +439,21 @@ export default function ProductionTab({ projectUid, stage, project }) {
 
     const [showForm, setShowForm]   = useState(false);
     const [expandedUid, setExpanded] = useState(null);
-    const [form, setForm]           = useState({ date: new Date().toISOString().slice(0, 10), operator: '', part: '', qty: 1, notes: '' });
+    const [form, setForm]           = useState({ date: new Date().toISOString().slice(0, 10), operator: '', part: '', qty: 1, notes: '', item_stage: '' });
     const [formErr, setFormErr]     = useState(null);
     const [search, setSearch]       = useState('');
     const [sortDir, setSortDir]     = useState('desc');
 
     const setF = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+    const handlePartChange = (v) => {
+        setF('part', v);
+        if (v && !allParts.includes(v)) {
+            addCustomPart(projectUid, v)
+                .then(() => qc.invalidateQueries({ queryKey: ['project', projectUid] }))
+                .catch(() => {});
+        }
+    };
 
     const employeeNames = useMemo(() => employees.map(e => e.name), [employees]);
     const allParts = useMemo(() => {
@@ -476,15 +486,33 @@ export default function ProductionTab({ projectUid, stage, project }) {
                 : (a.date ?? '').localeCompare(b.date ?? ''));
     }, [records, search, sortDir]);
 
-    const canSubmit = form.operator && form.part && form.qty >= 1;
+    const isSewing  = stage === 'sewing';
+    const canSubmit = form.operator && form.part && (isSewing || form.qty >= 1);
     const toggle    = uid => setExpanded(prev => prev === uid ? null : uid);
+
+    const rejectRate = useMemo(() => {
+        if (!isSewing) return null;
+        const inspected   = records.filter(r => r.status !== null && r.status !== undefined);
+        const totalProd   = inspected.reduce((s, r) => s + (r.qty_produced ?? 0), 0);
+        const totalFail   = inspected.reduce((s, r) => s + (r.qty_fail   ?? 0), 0);
+        if (totalProd === 0) return null;
+        return { rate: +((totalFail / totalProd) * 100).toFixed(1), totalFail, totalProd };
+    }, [records, isSewing]);
+
+    const rejectBand = rejectRate
+        ? rejectRate.rate <= 6
+            ? { label: 'Achieved',        bg: '#dcfce7', text: '#166534', border: '#86efac' }
+            : rejectRate.rate <= 13
+            ? { label: 'Underperformance', bg: '#fef3c7', text: '#92400e', border: '#fde68a' }
+            : { label: 'Critical',         bg: '#fee2e2', text: '#991b1b', border: '#fca5a5' }
+        : null;
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
             {/* ── Add Form (collapsible) ── */}
-            <div style={{ background: color.bg, borderRadius: 14, overflow: 'hidden', border: `1.5px solid ${color.border}33`, borderTop: `3px solid ${color.border}` }}>
-                <button onClick={() => setShowForm(s => !s)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', background: 'none', border: 'none', cursor: 'pointer', outline: 'none' }}>
+            <div style={{ background: color.bg, borderRadius: 14, border: `1.5px solid ${color.border}33`, borderTop: `3px solid ${color.border}` }}>
+                <button onClick={() => setShowForm(s => !s)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', background: 'none', border: 'none', cursor: 'pointer', outline: 'none', borderRadius: '14px 14px 0 0', overflow: 'hidden' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: color.text }}>
                         <div style={{ width: 26, height: 26, borderRadius: 7, background: color.border, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <Plus size={14} color="#fff" />
@@ -503,8 +531,13 @@ export default function ProductionTab({ projectUid, stage, project }) {
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(155px, 1fr))', gap: 12 }}>
                             <div><span style={lbl}>Date *</span><input type="date" style={inp} value={form.date} onChange={e => setF('date', e.target.value)} /></div>
                             <div><span style={lbl}>Operator *</span><SearchCombobox value={form.operator} onChange={v => setF('operator', v)} options={employeeNames} placeholder="Cari atau ketik nama…" allowCustom /></div>
-                            <div><span style={lbl}>Part / Component *</span><SearchCombobox value={form.part} onChange={v => setF('part', v)} options={allParts} placeholder="Cari atau ketik part…" allowCustom /></div>
-                            <div><span style={lbl}>Qty Produced *</span><input type="number" min="1" style={inp} value={form.qty} onChange={e => setF('qty', parseInt(e.target.value) || 1)} /></div>
+                            <div><span style={lbl}>Part / Component *</span><SearchCombobox value={form.part} onChange={handlePartChange} options={allParts} placeholder="Cari atau ketik part…" allowCustom /></div>
+                            {isSewing && (
+                                <div><span style={lbl}>Stage</span><input type="text" style={inp} value={form.item_stage} onChange={e => setF('item_stage', e.target.value)} placeholder="Contoh: Zipper, Body Sewing…" /></div>
+                            )}
+                            {!isSewing && (
+                                <div><span style={lbl}>Qty Produced *</span><input type="number" min="1" style={inp} value={form.qty} onChange={e => setF('qty', parseInt(e.target.value) || 1)} /></div>
+                            )}
                             <div style={{ gridColumn: '1 / -1' }}><span style={lbl}>Notes</span><input type="text" style={inp} value={form.notes} onChange={e => setF('notes', e.target.value)} placeholder="Optional notes…" /></div>
                         </div>
                         <div style={{ marginTop: 14, display: 'flex', justifyContent: 'flex-end' }}>
@@ -535,6 +568,24 @@ export default function ProductionTab({ projectUid, stage, project }) {
                         {sortDir === 'desc' ? <ChevronDown size={13} /> : <ChevronUp size={13} />} Date
                     </button>
                 </div>
+
+                {/* Reject-rate band — sewing only */}
+                {rejectRate && rejectBand && (
+                    <div style={{ padding: '10px 16px', borderBottom: `1.5px solid ${rejectBand.border}`, background: rejectBand.bg, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: rejectBand.text, textTransform: 'uppercase', letterSpacing: '.05em' }}>
+                            Reject Rate
+                        </div>
+                        <div style={{ fontSize: 22, fontWeight: 800, color: rejectBand.text, lineHeight: 1 }}>
+                            {rejectRate.rate}%
+                        </div>
+                        <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999, background: rejectBand.text + '18', color: rejectBand.text, border: `1px solid ${rejectBand.border}` }}>
+                            {rejectBand.label}
+                        </span>
+                        <span style={{ fontSize: 11, color: rejectBand.text, opacity: .7, marginLeft: 'auto' }}>
+                            {rejectRate.totalFail} fail / {rejectRate.totalProd} pcs inspected
+                        </span>
+                    </div>
+                )}
 
                 {isLoading ? (
                     <div style={{ padding: '44px 0', textAlign: 'center', color: '#94a3b8', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>

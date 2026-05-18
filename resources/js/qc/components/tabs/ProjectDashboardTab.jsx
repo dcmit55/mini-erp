@@ -24,9 +24,10 @@ function StatCard({ label, value, color }) {
 }
 
 export default function ProjectDashboardTab({ project }) {
-    const rejectLogs = project.reject_logs ?? [];
-    const openLogs   = rejectLogs.filter(r => r.rework_status !== 'CLOSED');
-    const closedLogs = rejectLogs.filter(r => r.rework_status === 'CLOSED');
+    const rejectLogs     = project.reject_logs ?? [];
+    const finishingLogs  = rejectLogs.filter(r => r.stage === 'finishing');
+    const openLogs       = finishingLogs.filter(r => r.rework_status !== 'CLOSED');
+    const closedLogs     = finishingLogs.filter(r => r.rework_status === 'CLOSED');
 
     const dailyDone = (project.daily_progress ?? []).reduce((sum, dp) => {
         return sum + (dp.items ?? []).filter(i => i.is_finalized).length;

@@ -3,12 +3,26 @@ import { useParams, useNavigate, Outlet } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getProject } from '../api/projects';
 import { useApp } from '../context/AppContext';
-import { STAGE_LABELS, STAGE_COLORS, TABS, TAB_LABELS } from '../data/models';
+import { TABS, TAB_LABELS } from '../data/models';
 import {
     ArrowLeft,
     LayoutDashboard, Activity, ClipboardCheck,
     Wrench, Image, Clock,
 } from 'lucide-react';
+
+// ── Mascot-specific stage definitions ────────────────────────────────────────
+
+const STAGE_LABELS = {
+    cutting:   'Struktur & Material',
+    sewing:    'Wrapping & Surface',
+    finishing: 'Assembly & Komponen',
+};
+
+const STAGE_COLORS = {
+    cutting:  { bg: '#fff7ed', border: '#f97316', text: '#c2410c' },
+    sewing:   { bg: '#f5f3ff', border: '#8b5cf6', text: '#6d28d9' },
+    finishing:{ bg: '#ecfeff', border: '#06b6d4', text: '#0e7490' },
+};
 
 const TAB_ICONS = {
     dashboard:  LayoutDashboard,
@@ -19,10 +33,10 @@ const TAB_ICONS = {
     history:    Clock,
 };
 
-export default function StagePage() {
+export default function MascotStagePage() {
     const { joUID, stage, tab } = useParams();
     const navigate = useNavigate();
-    const { setActiveStage, setActiveTab, activeTab } = useApp();
+    const { setActiveStage, setActiveTab } = useApp();
 
     const { data: project } = useQuery({
         queryKey: ['project', joUID],
@@ -30,7 +44,7 @@ export default function StagePage() {
         staleTime: 60_000,
     });
 
-    const color = STAGE_COLORS[stage] ?? STAGE_COLORS.cutting;
+    const color      = STAGE_COLORS[stage] ?? STAGE_COLORS.cutting;
     const currentTab = tab ?? 'dashboard';
 
     useEffect(() => {
@@ -61,7 +75,7 @@ export default function StagePage() {
                 </button>
                 <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 14, fontWeight: 700, color: color.text }}>
-                        {STAGE_LABELS[stage] ?? stage} Stage
+                        {STAGE_LABELS[stage] ?? stage}
                     </div>
                     <div style={{ fontSize: 11, color: '#64748b', marginTop: 1 }}>
                         {project?.project_name ?? '…'}
@@ -101,12 +115,10 @@ export default function StagePage() {
                 })}
             </div>
 
-            {/* ── Tab content area ── */}
+            {/* ── Tab content ── */}
             <div style={{ background: '#fff', borderRadius: '0 0 12px 12px', padding: 20, minHeight: 320 }}>
-                {/* Outlet renders the matched tab sub-route component */}
                 <Outlet context={{ project, stage, tab: currentTab, color }} />
 
-                {/* Fallback placeholder shown until sub-routes are implemented */}
                 {!tab && (
                     <PlaceholderTab stage={stage} tab="dashboard" color={color} />
                 )}
@@ -122,7 +134,7 @@ function StageStepper({ joUID, activeStage, navigate }) {
     return (
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             {stageList.map((s, i) => {
-                const color   = STAGE_COLORS[s];
+                const color    = STAGE_COLORS[s];
                 const isActive = s === activeStage;
                 return (
                     <React.Fragment key={s}>
@@ -147,7 +159,7 @@ function StageStepper({ joUID, activeStage, navigate }) {
     );
 }
 
-// ── Placeholder (Phase 2+ will replace with real tabs) ───────────────────────
+// ── Placeholder tab ───────────────────────────────────────────────────────────
 
 export function PlaceholderTab({ stage, tab, color }) {
     return (
@@ -164,7 +176,7 @@ export function PlaceholderTab({ stage, tab, color }) {
                 {React.createElement(TAB_ICONS[tab] ?? LayoutDashboard, { size: 24, color: color.text })}
             </div>
             <div style={{ fontSize: 15, fontWeight: 600, color: '#334155' }}>
-                {STAGE_LABELS[stage]} › {TAB_LABELS[tab]}
+                {STAGE_LABELS[stage] ?? stage} › {TAB_LABELS[tab]}
             </div>
             <div style={{ fontSize: 13, color: '#94a3b8' }}>
                 This section will be implemented in the next phase.

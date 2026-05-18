@@ -664,7 +664,7 @@
                                 @endcanany
 
                                 <!-- QC Menu -->
-                                {{-- <li class="nav-item dropdown">
+                                <li class="nav-item dropdown">
                                     <a class="nav-link dropdown-toggle {{ request()->is('qc*') ? 'active' : '' }}"
                                         href="#" id="qcDropdown" role="button"
                                         data-bs-toggle="dropdown" aria-expanded="false">
@@ -684,7 +684,7 @@
                                             </a>
                                         </li>
                                     </ul>
-                                </li> --}}
+                                </li>
 
                                 <!-- Finances Dropdown -->
                                 @canany(['finance.costing.view', 'finance.currency.view', 'procurement.po.approve',
@@ -804,6 +804,7 @@
                                             )
                                                 ->where('approval_1', 'approved')
                                                 ->count();
+                                            $totalStaffMgmtPending = ($hrLeavePendingCount + $directorLeavePendingCount + $hrOvertimePendingCount + $directorOvertimePendingCount);
                                         @endphp
                                         @php
                                             $hrNavActive =
@@ -846,57 +847,21 @@
                                                     </a>
                                                 </li>
 
-                                                {{-- Staff Management --}}
+                                                {{-- Staff Management (langsung menuju halaman utama) --}}
                                                 @can('hr.attendance.view')
-                                                    @php
-                                                        $mgmtPending =
-                                                            ($hrLeavePendingCount ?? 0) +
-                                                            ($directorLeavePendingCount ?? 0) +
-                                                            ($hrOvertimePendingCount ?? 0) +
-                                                            ($directorOvertimePendingCount ?? 0);
-                                                        $staffMgmtActive =
-                                                            request()->routeIs('hr.management') ||
-                                                            request()->routeIs('leave_requests.index') ||
-                                                            request()->routeIs('overtime-requests.*') ||
-                                                            request()->routeIs('overtime-pays.*') ||
-                                                            request()->routeIs('warning-letters.*') ||
-                                                            request()->routeIs('warning-batches.*') ||
-                                                            request()->routeIs('leave_requests.hr-approvals') ||
-                                                            request()->routeIs('leave_requests.director-approvals') ||
-                                                            request()->routeIs('timings.*');
-                                                    @endphp
-                                                    <li class="dropdown-submenu">
-                                                        <a class="dropdown-item d-flex align-items-center justify-content-between hr-submenu-toggle {{ $staffMgmtActive ? 'active' : '' }}"
-                                                            href="#">
+                                                    <li>
+                                                        <a class="dropdown-item d-flex align-items-center justify-content-between {{ request()->routeIs('hr.management') ? 'active' : '' }}"
+                                                            href="{{ route('hr.management') }}">
                                                             <span><i class="fas fa-tasks me-2"></i>Staff Management</span>
-                                                            <span class="d-flex align-items-center gap-1">
-                                                                @if ($mgmtPending > 0)
-                                                                    <span class="badge bg-danger rounded-pill"
-                                                                        style="font-size:0.6rem;">{{ $mgmtPending > 99 ? '99+' : $mgmtPending }}</span>
-                                                                @endif
-                                                                <i class="fas fa-chevron-right"
-                                                                    style="font-size:.6rem;opacity:.5;"></i>
-                                                            </span>
+                                                            @if($totalStaffMgmtPending > 0)
+                                                                <span class="badge bg-danger rounded-pill" style="font-size:0.6rem;">{{ $totalStaffMgmtPending > 99 ? '99+' : $totalStaffMgmtPending }}</span>
+                                                            @endif
                                                         </a>
-                                                        <ul class="dropdown-menu">
-                                                            <li>
-                                                                <a class="dropdown-item {{ request()->routeIs('hr.management') || request()->routeIs('leave_requests.*') || request()->routeIs('overtime-requests.*') || request()->routeIs('overtime-pays.*') || request()->routeIs('warning-letters.*') || request()->routeIs('warning-batches.*') ? 'active' : '' }}"
-                                                                    href="{{ route('hr.management') }}">
-                                                                    <i class="fas fa-tasks me-2"></i>Overview
-                                                                </a>
-                                                            </li>
-                                                            @can('production.timing.view')
-                                                                <li>
-                                                                    <a class="dropdown-item {{ request()->routeIs('timings.*') ? 'active' : '' }}"
-                                                                        href="{{ route('timings.index') }}">
-                                                                        <i class="fas fa-stopwatch me-2"></i>Timing Data
-                                                                    </a>
-                                                                </li>
-                                                            @endcan
-                                                        </ul>
                                                     </li>
+                                                @endcan
 
-                                                    {{-- Attendance --}}
+                                                {{-- Attendance --}}
+                                                @can('hr.attendance.view')
                                                     <li>
                                                         <a class="dropdown-item {{ request()->routeIs('hr.attendance-hub') || request()->routeIs('attendance-logs.*') || request()->routeIs('session-shifts.live-monitor') ? 'active' : '' }}"
                                                             href="{{ route('hr.attendance-hub') }}">
@@ -909,7 +874,6 @@
                                         </li>
                                     @endcan
                                 @endauth
-
                                 {{-- Guest Access - Show Leave Request link in navigation for non-authenticated users --}}
                                 @guest
                                     <li class="nav-item">

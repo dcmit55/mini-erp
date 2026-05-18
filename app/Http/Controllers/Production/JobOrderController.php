@@ -354,7 +354,7 @@ class JobOrderController extends Controller
             set_time_limit(120);
             try {
                 $stats = $syncService->sync();
-                $message = sprintf('Lark sync completed! Fetched: %d | Created: %d | Updated: %d | Deactivated: %d', $stats['fetched'], $stats['created'], $stats['updated'], $stats['deactivated']);
+                $message = sprintf('Lark sync completed! Fetched: %d | Created: %d | Updated: %d | Deactivated: %d | Designs synced: %d', $stats['fetched'], $stats['created'], $stats['updated'], $stats['deactivated'], $stats['design_updated'] ?? 0);
                 if ($stats['errors'] > 0) {
                     $message .= sprintf(' | Errors: %d', $stats['errors']);
                     return redirect()->back()->with('warning', $message);
@@ -414,8 +414,11 @@ class JobOrderController extends Controller
     public function galleryIndex(Request $request)
     {
         $query = JobOrder::with(['project', 'department'])
-            ->where(function ($q) {
-                $q->whereNotNull('wip_photos')->orWhereNotNull('project_images')->orWhereNotNull('latest_designs')->orWhereNotNull('final_images');
+            ->where(function($q) {
+                $q->whereNotNull('wip_photos')
+                  ->orWhereNotNull('project_images')
+                  ->orWhereNotNull('latest_designs')
+                  ->orWhereNotNull('final_images');
             })
             ->latest();
 
