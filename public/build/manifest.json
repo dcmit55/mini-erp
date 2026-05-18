@@ -4,7 +4,7 @@
     "name": "axios"
   },
   "resources/css/qc.css": {
-    "file": "assets/qc-DyPJYc6f.css",
+    "file": "assets/qc-BQFFsY8d.css",
     "name": "qc",
     "names": [
       "qc.css"
@@ -22,7 +22,7 @@
     ]
   },
   "resources/js/qc/main.jsx": {
-    "file": "assets/main-BtFdkLnJ.js",
+    "file": "assets/main-C8IWnhug.js",
     "name": "main",
     "src": "resources/js/qc/main.jsx",
     "isEntry": true,
@@ -30,7 +30,7 @@
       "_axios-CCuxK5Fx.js"
     ],
     "css": [
-      "assets/main-041GMvRN.css"
+      "assets/main-BVIZDp4l.css"
     ]
   },
   "resources/sass/app.scss": {

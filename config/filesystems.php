@@ -42,6 +42,13 @@ return [
             'visibility' => 'public',
         ],
 
+        // Disk untuk QC photos — menyimpan langsung ke public/storage/ agar bisa diakses via /storage/...
+        'qc_public' => [
+            'driver' => 'local',
+            'root' => public_path('storage'),
+            'visibility' => 'public',
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),

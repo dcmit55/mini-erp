@@ -13,7 +13,7 @@
                 </div>
                 <div>
                     <h4 class="mb-1 fw-semibold">HR Management</h4>
-                    <p class="text-muted mb-0">Kelola permintaan, persetujuan, administrasi SDM, dan data timing</p>
+                    <p class="text-muted mb-0">Kelola permintaan, persetujuan, dan administrasi SDM</p>
                 </div>
             </div>
         </div>
@@ -146,11 +146,11 @@
         </div>
     </div>
 
-    {{-- Administration + Timing Data --}}
+    {{-- Administration --}}
     <div class="mb-4">
         <div class="d-flex align-items-center gap-2 mb-3">
             <div class="line"></div>
-            <h6 class="text-uppercase fw-semibold mb-0 tracking-wide">Administration & Data</h6>
+            <h6 class="text-uppercase fw-semibold mb-0 tracking-wide">Administration</h6>
         </div>
         <div class="row g-3">
             @can('hr.warning-letter.view')
@@ -175,7 +175,6 @@
                 </a>
             </div>
             @endcan
-
             <div class="col-lg-6">
                 <a href="{{ route('overtime-pays.index') }}" class="text-decoration-none">
                     <div class="card border-0 shadow-xs hover-lift h-100 menu-card">
@@ -196,31 +195,6 @@
                     </div>
                 </a>
             </div>
-
-            {{-- TIMING DATA CARD --}}
-            @can('production.timing.view')
-            <div class="col-lg-6">
-                <a href="{{ route('timings.index') }}" class="text-decoration-none">
-                    <div class="card border-0 shadow-xs hover-lift h-100 menu-card">
-                        <div class="card-body p-3">
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="icon-shape icon-md bg-soft-secondary rounded-2">
-                                    <i class="fas fa-stopwatch text-secondary"></i>
-                                </div>
-                                <div class="flex-grow-1">
-                                    <h6 class="mb-1 fw-semibold">Timing Data</h6>
-                                    <p class="text-muted small mb-0">Lihat dan kelola data timing (jam kerja) karyawan</p>
-                                </div>
-                                <div class="arrow-icon text-secondary">
-                                    <i class="fas fa-chevron-right fs-6"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </a>
-            </div>
-            @endcan
-
         </div>
     </div>
 
