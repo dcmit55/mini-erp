@@ -260,126 +260,127 @@
                     ];
                 })->values(),
         ) !!};
+
+        // Stage types with their stages — passed from server, no hardcoded list
+        var STAGE_TYPES_MAP = {!! json_encode(
+            $stageTypes->mapWithKeys(function ($st) {
+                return [
+                    $st->id => [
+                        'id' => $st->id,
+                        'name' => $st->name,
+                        'stages' => $st->activeStages->map(
+                                fn($s) => [
+                                    'id' => $s->id,
+                                    'name' => $s->name,
+                                    'sequence' => $s->sequence,
+                                ],
+                            )->values(),
+                    ],
+                ];
+            }),
+        ) !!};
+
+        var STAGE_TYPE_NAMES = {!! json_encode($stageTypes->pluck('name', 'id')) !!};
     </script>
     <script>
         (function() {
             'use strict';
 
-            // ── Custom time editor using native <input type="time"> ──
-            const TimeEditor = Handsontable.editors.TextEditor.prototype;
-            class NativeTimeEditor extends Handsontable.editors.BaseEditor {
-                init() {
-                    this.input = this.hot.rootDocument.createElement('input');
-                    this.input.type = 'time';
-                    this.input.style.cssText =
-                        'position:absolute;top:0;left:0;width:100%;height:100%;border:none;padding:2px 4px;font-size:13px;box-sizing:border-box;background:#fff;z-index:9999;';
-                    this.input.addEventListener('keydown', (e) => {
-                        if (e.key === 'Enter' || e.key === 'Tab') {
-                            this.finishEditing(false);
-                        } else if (e.key === 'Escape') {
-                            this.cancelChanges();
-                            this.hot.deselectCell();
-                        }
-                    });
-                }
-                open() {
-                    const {
-                        top,
-                        left,
-                        width,
-                        height
-                    } = this.TD.getBoundingClientRect();
-                    const rootRect = this.hot.rootElement.getBoundingClientRect();
-                    this.input.style.top = (top - rootRect.top) + 'px';
-                    this.input.style.left = (left - rootRect.left) + 'px';
-                    this.input.style.width = width + 'px';
-                    this.input.style.height = height + 'px';
-                    this.hot.rootElement.appendChild(this.input);
-                    this.input.value = this.originalValue || '';
-                    this.input.focus();
-                }
-                close() {
-                    if (this.input.parentNode) this.input.parentNode.removeChild(this.input);
-                }
-                getValue() {
-                    return this.input.value;
-                }
-                setValue(val) {
-                    this.originalValue = val || '';
-                    if (this.input) this.input.value = val || '';
-                }
-                focus() {
-                    this.input.focus();
-                }
-            }
-            Handsontable.editors.registerEditor('nativeTime', NativeTimeEditor);
-
             const EMP_NAMES = ALL_EMPLOYEES.map(e => e.name);
-            const EMP_MAP = {}; // name -> employee object
+            const EMP_MAP = {};
             ALL_EMPLOYEES.forEach(e => EMP_MAP[e.name] = e);
+
+            // ── Stage types & stages (dynamic, from DB, no hardcoded list) ──
+            const STAGE_TYPE_LIST = Object.values(STAGE_TYPES_MAP);
+            const STAGE_TYPE_NAME_SOURCE = ['', ...STAGE_TYPE_LIST.map(st => st.name)];
+
+            // Map stage_type name → list of stage names (for HOT dropdown source)
+            function getStageNamesForType(stageTypeName) {
+                const st = STAGE_TYPE_LIST.find(s => s.name === stageTypeName);
+                if (!st) return [''];
+                return ['', ...st.stages.map(s => `${s.sequence}: ${s.name}`)];
+            }
+
+            // Map stage_type name → map of "seq: name" → stage_id
+            function getStageIdMap(stageTypeName) {
+                const st = STAGE_TYPE_LIST.find(s => s.name === stageTypeName);
+                if (!st) return {};
+                const map = {};
+                st.stages.forEach(s => {
+                    map[`${s.sequence}: ${s.name}`] = s.id;
+                });
+                return map;
+            }
+
+            // Resolve stage_id + stageTypeName from stored data (edit mode)
+            function resolveStageDisplay(stageTypeId, stageId) {
+                if (!stageTypeId || !stageId) return {
+                    typeName: '',
+                    stageName: ''
+                };
+                const st = STAGE_TYPES_MAP[stageTypeId];
+                if (!st) return {
+                    typeName: '',
+                    stageName: ''
+                };
+                const stg = st.stages.find(s => s.id === stageId);
+                return {
+                    typeName: st.name,
+                    stageName: stg ? `${stg.sequence}: ${stg.name}` : '',
+                };
+            }
 
             let selectedJoId = null;
             let hotInstance = null;
 
-            const ALL_STAGES = [
-                '1: Design & Prototyping',
-                '2: Structure Approval',
-                '3: Structure & Sample',
-                '4: Visual Review & Paint Prep',
-                '5: Adjustment & Finishing (Structure)',
-                '6: Final Structure Approval',
-                '7: Wrapping & Painting',
-                '8: Wrapping Approval',
-                '9: Finishing & Approval',
-                '10: Final QC & Shipping',
-            ];
+            // Track per-row stage dropdown sources (since each row can have different type)
+            let rowStageSources = {}; // rowIndex -> ['', 'stage name', ...]
 
-            const EMPTY_ROW = (defaultStage = '') => ({
+            const EMPTY_ROW = () => ({
                 name: '',
                 position: '',
                 department: '',
                 task: '',
                 parts: '',
-                stage: defaultStage,
+                stage_type: '',
+                stage: '',
                 session_type: '',
-                emp_id: null
             });
             const MIN_ROWS = 10;
 
-            function buildTableData(plannedRows, defaultStage = '') {
-                // plannedRows: [{employee_id, task, stage, session_type}] or plain id array (legacy)
+            function buildTableData(plannedRows) {
                 const rows = plannedRows
                     .map(r => {
                         const id = typeof r === 'object' ? r.employee_id : r;
                         const emp = ALL_EMPLOYEES.find(e => e.id === Number(id));
                         if (!emp) return null;
+                        // Resolve display values from IDs (edit mode support)
+                        const resolved = resolveStageDisplay(
+                            r.stage_type_id || null,
+                            r.stage_id || null
+                        );
                         return {
                             name: emp.name,
                             position: emp.position,
                             department: emp.department,
-                            task: typeof r === 'object' ? (r.task || '') : '',
-                            parts: typeof r === 'object' ? (r.parts || '') : '',
-                            stage: typeof r === 'object' ? (r.stage || defaultStage) : defaultStage,
-                            session_type: typeof r === 'object' ? (r.session_type || '') : '',
-                            emp_id: emp.id
+                            task: r.task || '',
+                            parts: r.parts || '',
+                            stage_type: resolved.typeName || '',
+                            stage: resolved.stageName || '',
+                            session_type: r.session_type || '',
+                            _stage_type_id: r.stage_type_id || null,
+                            _stage_id: r.stage_id || null,
                         };
                     })
                     .filter(Boolean);
-                // Pad to MIN_ROWS — empty rows get no default stage
-                while (rows.length < MIN_ROWS) rows.push(EMPTY_ROW(''));
+                while (rows.length < MIN_ROWS) rows.push(EMPTY_ROW());
                 return rows;
             }
 
-            function getTableData() {
-                if (!hotInstance) return [];
-                return hotInstance.getSourceData();
-            }
-
-            // ── empIdMap: track row -> emp_id OUTSIDE of HOT, 100% reliable ──
-            let empIdMap = {}; // { rowIndex: empId|null }
+            // ── empIdMap & stageMetaMap tracked outside HOT ──
+            let empIdMap = {};
 
             function syncEmpIdMap() {
-                // Rebuild from current source data names
                 empIdMap = {};
                 const src = hotInstance ? hotInstance.getSourceData() : [];
                 src.forEach((row, i) => {
@@ -393,10 +394,6 @@
                 $('#hot-selected-count').text(n + ' karyawan diinput');
             }
 
-            function getValidEmpIds() {
-                return Object.values(empIdMap).filter(id => !!id);
-            }
-
             function getValidRows() {
                 if (!hotInstance) return [];
                 const src = hotInstance.getSourceData();
@@ -404,32 +401,69 @@
                 src.forEach((row, i) => {
                     const empId = empIdMap[i];
                     if (!empId) return;
+                    // Resolve stage_type_id and stage_id from display names
+                    const stageTypeName = row.stage_type || '';
+                    const stageDisplayName = row.stage || '';
+                    const stageIdMap = getStageIdMap(stageTypeName);
+                    const stageId = stageIdMap[stageDisplayName] || null;
+                    const stEntry = STAGE_TYPE_LIST.find(s => s.name === stageTypeName);
                     result.push({
                         employee_id: empId,
                         task: row.task || '',
                         parts: row.parts || '',
-                        stage: row.stage || '',
+                        stage: stageDisplayName, // keep text for legacy compat
+                        stage_type_id: stEntry?.id || null,
+                        stage_id: stageId,
                         session_type: row.session_type || '',
                     });
                 });
                 return result;
             }
 
-            function initHOT(plannedIds, lastStage = 0) {
-                // Compute allowed stages: 1 step back from lastStage, current, all forward
-                // lastStage = 0 means no history → show all stages
-                const minStageNum = lastStage > 1 ? lastStage - 1 : (lastStage === 1 ? 1 : 0);
-                const stageSource = lastStage > 0 ? ['', ...ALL_STAGES.slice(minStageNum - 1)] : ['', ...ALL_STAGES];
+            function getValidEmpIds() {
+                return Object.values(empIdMap).filter(id => !!id);
+            }
 
-                // Default pre-fill: the last stage of the JO (so planner opens on current stage)
-                const defaultStage = lastStage > 0 ? ALL_STAGES[lastStage - 1] : '';
+            // Custom Stage dropdown renderer (shows greyed placeholder when empty)
+            function stageTypeRenderer(hotInstance, td, row, col, prop, value) {
+                Handsontable.renderers.TextRenderer.apply(this, arguments);
+                if (!value) {
+                    td.style.color = '#aaa';
+                    td.textContent = '— select type —';
+                }
+            }
 
-                const tableData = buildTableData(plannedIds, defaultStage);
+            function stageRenderer(hotInstance, td, row, col, prop, value) {
+                Handsontable.renderers.TextRenderer.apply(this, arguments);
+                const src = hotInstance.getSourceData();
+                const stageTypeName = src[row]?.stage_type || '';
+                if (!stageTypeName) {
+                    td.style.color = '#ccc';
+                    td.style.background = '#fafafa';
+                    td.textContent = '(select type first)';
+                    return;
+                }
+                if (!value) {
+                    td.style.color = '#aaa';
+                    td.textContent = '— select stage —';
+                }
+            }
+
+            function initHOT(plannedRows) {
+                const tableData = buildTableData(
+                    Array.isArray(plannedRows) ? plannedRows : []
+                );
 
                 if (hotInstance) {
                     hotInstance.destroy();
                     hotInstance = null;
                 }
+
+                rowStageSources = {};
+                // Pre-compute per-row stage sources from existing data
+                tableData.forEach((row, i) => {
+                    rowStageSources[i] = getStageNamesForType(row.stage_type || '');
+                });
 
                 hotInstance = new Handsontable(document.getElementById('hot-container'), {
                     data: tableData,
@@ -437,7 +471,7 @@
                     height: Math.max(420, Math.floor(window.innerHeight * 0.55)),
                     stretchH: 'all',
                     rowHeaders: true,
-                    colHeaders: ['Employee Name', 'Position', 'Department', 'Task', 'Parts', 'Stage',
+                    colHeaders: ['Employee Name', 'Position', 'Dept', 'Task', 'Parts', 'Stage Type', 'Stage',
                         'Session Type'
                     ],
                     columns: [{
@@ -447,52 +481,70 @@
                             strict: true,
                             filter: true,
                             allowInvalid: false,
-                            width: 200,
+                            width: 180,
                         },
                         {
                             data: 'position',
                             type: 'text',
-                            width: 140,
+                            width: 120,
+                            readOnly: true,
                             className: 'htDimmed'
                         },
                         {
                             data: 'department',
                             type: 'text',
-                            width: 140,
+                            width: 120,
+                            readOnly: true,
                             className: 'htDimmed'
                         },
                         {
                             data: 'task',
                             type: 'text',
-                            placeholder: 'e.g., Sculpting, Sewing...',
-                            renderer(hotInstance, td, row, col, prop, value) {
+                            width: 150,
+                            placeholder: 'e.g., Sculpting...',
+                            renderer(hot, td, row, col, prop, value) {
                                 Handsontable.renderers.TextRenderer.apply(this, arguments);
                                 td.textContent = value || '';
                                 td.style.color = value ? '#333' : '#aaa';
                                 if (!value) td.textContent = 'e.g., Sculpting...';
                             },
-                            width: 160,
                         },
                         {
                             data: 'parts',
                             type: 'dropdown',
                             source: ['', ...@json($timingParts)],
                             allowInvalid: true,
-                            width: 130,
+                            width: 120,
+                        },
+                        {
+                            data: 'stage_type',
+                            type: 'dropdown',
+                            source: STAGE_TYPE_NAME_SOURCE,
+                            allowInvalid: false,
+                            width: 160,
+                            renderer: stageTypeRenderer,
                         },
                         {
                             data: 'stage',
                             type: 'dropdown',
-                            source: stageSource,
+                            source(query, callback) {
+                                // HOT calls source(query, callback) — query is the typed search string,
+                                // NOT the row index. Use getSelected() to get the actual row index.
+                                const sel = hotInstance ? hotInstance.getSelected() : null;
+                                const rowIdx = sel ? sel[0][0] : 0;
+                                callback(rowStageSources[rowIdx] || ['']);
+                            },
                             allowInvalid: false,
-                            width: 220,
+                            width: 240,
+                            renderer: stageRenderer,
                         },
                         {
                             data: 'session_type',
                             type: 'dropdown',
                             source: ['', 'mass_production', 'repair'],
                             allowInvalid: false,
-                            renderer(hotInstance, td, row, col, prop, value) {
+                            width: 140,
+                            renderer(hot, td, row, col, prop, value) {
                                 Handsontable.renderers.TextRenderer.apply(this, arguments);
                                 if (value === 'repair') {
                                     td.style.background = '#fff3e0';
@@ -511,7 +563,6 @@
                                     td.textContent = '— select type —';
                                 }
                             },
-                            width: 140,
                         },
                     ],
                     manualColResize: true,
@@ -520,37 +571,42 @@
                     afterChange(changes, source) {
                         if (!changes || source === 'loadData' || source === '_fill') return;
                         const fills = [];
-                        changes.forEach(([row, prop, , newVal]) => {
-                            if (prop !== 'name') return;
-                            const emp = EMP_MAP[newVal] || null;
-                            // ── Update empIdMap (our reliable tracker) ──
-                            empIdMap[row] = emp ? emp.id : null;
-                            fills.push([row, 'position', emp ? emp.position : '']);
-                            fills.push([row, 'department', emp ? emp.department : '']);
-                            // Auto-fill stage with JO default stage when employee is selected
-                            if (emp && defaultStage) {
-                                const currentStage = hotInstance.getSourceDataAtRow(row)?.stage || '';
-                                if (!currentStage) fills.push([row, 'stage', defaultStage]);
+                        changes.forEach(([row, prop, oldVal, newVal]) => {
+                            if (prop === 'name') {
+                                const emp = EMP_MAP[newVal] || null;
+                                empIdMap[row] = emp ? emp.id : null;
+                                fills.push([row, 'position', emp ? emp.position : '']);
+                                fills.push([row, 'department', emp ? emp.department : '']);
+                            }
+                            if (prop === 'stage_type' && newVal !== oldVal) {
+                                // Update per-row stage source and clear stage value
+                                rowStageSources[row] = getStageNamesForType(newVal || '');
+                                fills.push([row, 'stage', '']);
                             }
                         });
-                        if (fills.length) {
-                            hotInstance.setDataAtRowProp(fills, '_fill');
-                        }
+                        if (fills.length) hotInstance.setDataAtRowProp(fills, '_fill');
                         updateSelectedCount();
                     },
                     afterRemoveRow(index, amount) {
-                        // Rebuild map after row deletion
                         syncEmpIdMap();
+                        // Rebuild rowStageSources after deletion
+                        const newSources = {};
+                        const src = hotInstance.getSourceData();
+                        src.forEach((row, i) => {
+                            newSources[i] = getStageNamesForType(row.stage_type || '');
+                        });
+                        rowStageSources = newSources;
                         updateSelectedCount();
                     },
                     afterCreateRow(index, amount) {
-                        // New rows start with no employee
-                        for (let i = index; i < index + amount; i++) empIdMap[i] = null;
+                        for (let i = index; i < index + amount; i++) {
+                            empIdMap[i] = null;
+                            rowStageSources[i] = [''];
+                        }
                         updateSelectedCount();
                     },
                 });
 
-                // Initialize empIdMap from pre-filled planned data
                 syncEmpIdMap();
                 updateSelectedCount();
             }
@@ -582,40 +638,34 @@
                 $('#plan-jo-name').text($card.data('jo-label'));
                 $('#plan-jo-project').text('Project: ' + $card.data('project'));
 
-                // Init HOT before opening so it has correct size when modal shown
-                initHOT($card.data('planned-rows') || $card.data('planned-ids') || [], $card.data(
-                    'last-stage') || 0);
+                initHOT($card.data('planned-rows') || $card.data('planned-ids') || []);
 
                 const modal = new bootstrap.Modal(document.getElementById('planEditorModal'), {
                     backdrop: true
                 });
                 modal.show();
 
-                // Re-render HOT after modal is fully visible (Bootstrap transition ~300ms)
                 document.getElementById('planEditorModal').addEventListener('shown.bs.modal',
-                    function onShown() {
-                        if (hotInstance) hotInstance.render();
-                        document.getElementById('planEditorModal').removeEventListener('shown.bs.modal',
-                            onShown);
-                    });
+            function onShown() {
+                    if (hotInstance) hotInstance.render();
+                    document.getElementById('planEditorModal').removeEventListener('shown.bs.modal',
+                        onShown);
+                });
             });
 
-            // Clear active card highlight when modal is closed
             document.getElementById('planEditorModal').addEventListener('hidden.bs.modal', function() {
                 $('.jo-planner-card').removeClass('jo-active');
             });
 
             /* ── Toolbar ── */
             $('#hot-add-row').on('click', function() {
-                if (!hotInstance) return;
-                hotInstance.alter('insert_row_below');
+                if (hotInstance) hotInstance.alter('insert_row_below');
             });
             $('#hot-remove-row').on('click', function() {
                 if (!hotInstance) return;
                 const sel = hotInstance.getSelected();
                 if (sel && sel.length) {
-                    const row = sel[0][0];
-                    if (hotInstance.countRows() > 1) hotInstance.alter('remove_row', row);
+                    if (hotInstance.countRows() > 1) hotInstance.alter('remove_row', sel[0][0]);
                 } else {
                     const last = hotInstance.countRows() - 1;
                     if (last >= 0) hotInstance.alter('remove_row', last);
@@ -636,10 +686,14 @@
                         const n = hotInstance.countRows();
                         const clears = [];
                         for (let i = 0; i < n; i++) {
-                            clears.push([i, 'name', ''], [i, 'position', ''], [i, 'department', ''], [i,
-                                'task', ''
-                            ], [i, 'parts', ''], [i, 'stage', '']);
+                            clears.push(
+                                [i, 'name', ''], [i, 'position', ''], [i, 'department', ''],
+                                [i, 'task', ''], [i, 'parts', ''], [i, 'stage_type', ''], [i, 'stage',
+                                    ''
+                                ]
+                            );
                             empIdMap[i] = null;
+                            rowStageSources[i] = [''];
                         }
                         hotInstance.setDataAtRowProp(clears, '_fill');
                         updateSelectedCount();
@@ -658,13 +712,13 @@
                     });
                     return;
                 }
-                // Validate required fields per row
                 const missing = [];
                 planRows.forEach((row, i) => {
                     const fields = [];
                     if (!row.task) fields.push('Task');
                     if (!row.parts) fields.push('Parts');
-                    if (!row.stage) fields.push('Stage');
+                    if (!row.stage_type_id) fields.push('Stage Type');
+                    if (!row.stage_id) fields.push('Stage');
                     if (!row.session_type) fields.push('Session Type');
                     if (fields.length) missing.push(`Row ${i + 1}: ${fields.join(', ')}`);
                 });
@@ -700,7 +754,7 @@
                         } else {
                             $card.prepend(
                                 `<div class="text-end mb-1"><span class="badge bg-success" style="font-size:0.58rem;">${html}</span></div>`
-                            );
+                                );
                         }
                         bootstrap.Modal.getInstance(document.getElementById('planEditorModal'))?.hide();
                         Swal.fire({
@@ -722,7 +776,7 @@
                     },
                     complete() {
                         btn.prop('disabled', false).html(
-                            '<i class="bi bi-floppy me-1"></i>Simpan Plan');
+                        '<i class="bi bi-floppy me-1"></i>Submit Plan');
                     },
                 });
             });
@@ -733,7 +787,7 @@
                 Swal.fire({
                         icon: 'warning',
                         title: 'Hapus Plan?',
-                        text: 'Plan JO ini akan dihapus. Sistem akan fallback ke sesi terakhir.',
+                        text: 'Plan JO ini akan dihapus.',
                         showCancelButton: true,
                         confirmButtonColor: '#dc3545',
                         confirmButtonText: 'Ya, Hapus',

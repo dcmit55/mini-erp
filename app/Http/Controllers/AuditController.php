@@ -252,6 +252,8 @@ class AuditController extends Controller
                 'job_order_id' => ['model' => \App\Models\Production\JobOrder::class, 'field' => 'name'],
                 'employee_id' => ['model' => \App\Models\Hr\Employee::class, 'field' => 'name'],
                 'created_by' => ['model' => \App\Models\Admin\User::class, 'field' => 'username'],
+                'stage_type_id' => ['model' => \App\Models\Production\StageType::class, 'field' => 'name'],
+                'stage_id' => ['model' => \App\Models\Production\Stage::class, 'field' => 'name'],
             ],
             'ProjectPart' => [
                 'project_id' => ['model' => \App\Models\Production\Project::class, 'field' => 'name'],

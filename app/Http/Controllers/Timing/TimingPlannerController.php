@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Timing;
 use App\Http\Controllers\Controller;
 use App\Models\Production\JobOrder;
 use App\Models\Production\JobOrderTimingPlan;
+use App\Models\Production\StageType;
+use App\Models\Production\Stage;
 use App\Models\Production\Timing;
 use App\Models\Production\TimingPart;
 use App\Models\Hr\Employee;
@@ -108,7 +110,12 @@ class TimingPlannerController extends Controller
         // Parts master list for Handsontable dropdown
         $timingParts = TimingPart::active()->pluck('name')->toArray();
 
-        return view('timing.planner.index', compact('jobOrders', 'plans', 'employees', 'lastStages', 'planningDate', 'timingParts'));
+        // Stage types with their active stages (for dynamic dropdown in planner)
+        $stageTypes = StageType::with(['activeStages'])
+            ->orderBy('name')
+            ->get();
+
+        return view('timing.planner.index', compact('jobOrders', 'plans', 'employees', 'lastStages', 'planningDate', 'timingParts', 'stageTypes'));
     }
 
     /**
@@ -126,7 +133,9 @@ class TimingPlannerController extends Controller
             'rows.*.employee_id' => 'required|exists:employees,id',
             'rows.*.task' => 'required|string|max:255',
             'rows.*.parts' => 'nullable|string|max:100',
-            'rows.*.stage' => 'required|string|max:100',
+            'rows.*.stage_type_id' => 'nullable|exists:stage_types,id',
+            'rows.*.stage_id' => 'nullable|exists:stages,id',
+            'rows.*.stage' => 'nullable|string|max:255',
             'rows.*.session_type' => 'required|in:mass_production,repair',
         ]);
 
@@ -154,6 +163,8 @@ class TimingPlannerController extends Controller
                     'task' => $row['task'] ?? null,
                     'parts' => $row['parts'] ?? null,
                     'stage' => $row['stage'] ?? null,
+                    'stage_type_id' => $row['stage_type_id'] ?? null,
+                    'stage_id' => $row['stage_id'] ?? null,
                     'session_type' => $row['session_type'] ?? null,
                     'created_by' => $userId,
                 ]);
@@ -222,11 +233,26 @@ class TimingPlannerController extends Controller
                     'task' => $p->task ?? '',
                     'parts' => $p->parts ?? '',
                     'stage' => $p->stage ?? '',
+                    'stage_type_id' => $p->stage_type_id,
+                    'stage_id' => $p->stage_id,
                     'session_type' => $p->session_type ?? '',
                 ],
             ),
             'updated_at' => $plans->max('updated_at')?->format('d M Y H:i') ?? null,
             'planned_by' => $plans->first()?->createdBy?->username ?? null,
         ]);
+    }
+
+    /**
+     * Return active stages for a given stage_type_id (AJAX).
+     */
+    public function getStagesByType(int $stageTypeId)
+    {
+        $stages = Stage::where('stage_type_id', $stageTypeId)
+            ->where('is_active', true)
+            ->orderBy('sequence')
+            ->get(['id', 'name', 'sequence']);
+
+        return response()->json(['success' => true, 'stages' => $stages]);
     }
 }

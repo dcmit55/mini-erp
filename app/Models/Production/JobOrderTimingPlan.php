@@ -5,6 +5,8 @@ namespace App\Models\Production;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Hr\Employee;
 use App\Models\Admin\User;
+use App\Models\Production\Stage;
+use App\Models\Production\StageType;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
 class JobOrderTimingPlan extends Model implements AuditableContract
@@ -13,21 +15,22 @@ class JobOrderTimingPlan extends Model implements AuditableContract
 
     protected $table = 'job_order_timing_plans';
 
-    protected $fillable = ['job_order_id', 'planning_date', 'employee_id', 'task', 'parts', 'stage', 'session_type', 'created_by'];
+    protected $fillable = ['job_order_id', 'planning_date', 'employee_id', 'task', 'parts', 'stage', 'stage_type_id', 'stage_id', 'session_type', 'created_by'];
 
     /**
      * Attributes to include in audit log (excludes timestamps to reduce noise).
      */
-    protected $auditInclude = [
-        'job_order_id',
-        'planning_date',
-        'employee_id',
-        'task',
-        'parts',
-        'stage',
-        'session_type',
-        'created_by',
-    ];
+    protected $auditInclude = ['job_order_id', 'planning_date', 'employee_id', 'task', 'parts', 'stage', 'stage_type_id', 'stage_id', 'session_type', 'created_by'];
+
+    public function stageType()
+    {
+        return $this->belongsTo(StageType::class);
+    }
+
+    public function stageModel()
+    {
+        return $this->belongsTo(Stage::class, 'stage_id');
+    }
 
     public function jobOrder()
     {

@@ -669,6 +669,7 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/save', [\App\Http\Controllers\Timing\TimingPlannerController::class, 'savePlan'])->name('save');
             Route::post('/clear', [\App\Http\Controllers\Timing\TimingPlannerController::class, 'clearPlan'])->name('clear');
             Route::get('/plan/{jobOrderId}', [\App\Http\Controllers\Timing\TimingPlannerController::class, 'getPlan'])->name('get');
+            Route::get('/stages/{stageTypeId}', [\App\Http\Controllers\Timing\TimingPlannerController::class, 'getStagesByType'])->name('stages-by-type');
         });
 
     // Dept Cross Timing — Universal timing (no department restriction)
